@@ -1,0 +1,9 @@
+[project]
+name = "radarvan"
+version = "0.1.0"
+description = "Tracking generals stats"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.119.0",
+]

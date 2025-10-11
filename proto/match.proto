@@ -1,0 +1,238 @@
+syntax = "proto3";
+package matches;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/f4hy/generalsstats;generalsstats";
+
+enum General {
+  USA =0;
+  AIR=1;
+  LASER=2;
+  SUPER=3;
+  CHINA=4;
+  NUKE=5;
+  TANK=6;
+  INFANTRY=7;
+  GLA=8;
+  TOXIN=9;
+  STEALTH=10;
+  DEMO=11;
+}
+enum Faction {
+  ANYUSA=0;
+  ANYCHINA=1;
+  ANYGLA=2;
+}
+
+enum Team {
+  NONE=0;
+  ONE=1;
+  TWO=2;
+  THREE=3;
+  FOUR=4;
+}
+
+message Player {
+  string name = 1;
+  General general=2;
+  Team team = 3;
+}
+
+message MatchInfo {
+  int64 id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  string map = 3;
+  Team winning_team = 4;
+  repeated Player players = 5;
+  double duration_minutes = 6;
+  string filename = 7;
+  string incomplete = 8;
+  string notes = 9;
+}
+
+message Matches {
+  repeated MatchInfo matches = 1;
+}
+
+message WinLoss {
+  int32 wins = 1;
+  int32 losses = 2;
+}
+
+message GeneralWL {
+  General general = 1;
+  WinLoss win_loss = 2;
+}
+
+message PlayerRateOverTime {
+  Date date = 1;
+  GeneralWL wl = 2;  
+}
+
+message PlayerStat {
+  string player_name = 1;
+  repeated GeneralWL stats =2;
+  message FactionWL {
+    Faction faction = 1;
+    WinLoss win_loss = 2;
+  }
+  repeated FactionWL faction_stats =3;
+  repeated PlayerRateOverTime over_time = 4;
+}
+
+
+message PlayerStats {
+  repeated PlayerStat player_stats = 1;
+}
+
+message GeneralStat {
+  General general = 1;
+  message PlayerWL {
+    string player_name = 1;
+    WinLoss win_loss = 2;
+  }
+  repeated PlayerWL stats =2;
+  WinLoss total=3;
+}
+
+message GeneralStats {
+  repeated GeneralStat general_stats = 1;
+}
+
+message Date {
+  int32 Year = 1;
+  int32 Month = 2;
+  int32 Day = 3;
+}
+
+message TeamStat {
+  Date date = 1;
+  Team team = 2;
+  int32 wins =3;
+}
+
+message TeamStats {
+  repeated TeamStat team_stats=1;
+}
+
+message MapStat {
+  string map = 1;
+  Team team = 2;
+  int32 wins =3;
+}
+
+message MapResult {
+  string map = 1;
+  Date date = 2;
+  Team winner = 3;
+}
+
+message MapResults {
+  repeated MapResult results = 1;
+}
+
+message MapStats {
+  repeated MapStat map_stats=1;
+  map<string, MapResults> over_time=2;
+}
+
+message SaveResponse {
+  bool success = 1;
+}
+
+
+message Costs {
+  Player player = 2;
+  message BuiltObject {
+    string name = 1;
+    int32 count = 2;
+    int32 total_spent = 3;
+  }
+  repeated BuiltObject buildings = 3;
+  repeated BuiltObject units = 4;
+  repeated BuiltObject upgrades = 5;
+}
+
+
+
+message APM {
+  string player_name =1;
+  int64 action_count = 2;
+  double minutes = 3;
+  double apm=4;
+}
+
+message UpgradeEvent {
+  string player_name = 1;
+  int64 timecode = 2;
+  string upgrade_name = 3  ;
+  int64 cost = 4;
+  double atMinute = 5;
+}
+
+message Spent {
+  string player_name = 1;
+  int64 acc_cost = 4;
+  double atMinute = 5;
+}
+
+
+
+message Upgrades {
+  repeated UpgradeEvent upgrades = 1;
+}
+
+message SpentOverTime {
+  repeated Spent buildings = 1;
+  repeated Spent units = 2;
+  repeated Spent upgrades = 3;
+  repeated Spent total = 9;
+}
+
+message MatchDetails{
+  int64 match_id = 1;
+  repeated Costs costs = 2;
+  repeated APM apms = 3;
+  map<string, Upgrades> upgrade_events = 4;
+  SpentOverTime spent = 5;
+}
+
+
+message PairWinLoss{
+  General general1 = 1;
+  General general2 = 2;
+  WinLoss winloss = 3;
+}
+message PairFactionWinLoss{
+  Faction faction1 = 1;
+  Faction faction2 = 2;
+  WinLoss winloss = 3;
+}
+
+message PairsWinLosses{
+  repeated PairWinLoss pairwl = 1;
+}
+
+message PairFactionWinLosses{
+  repeated PairFactionWinLoss pairwl = 1;
+}
+
+message TeamPairs{
+  map<string, PairsWinLosses> team_pairs = 1;
+  map<string, PairFactionWinLosses> faction_pairs = 2;
+}
+
+message Wrapped{
+  int32 games_played = 1;
+  double hours_played = 2;
+  General most_played = 3;
+  double most_played_winrate = 4;
+  string most_built = 5;
+  double most_built_spent = 6;
+  int32 most_built_count = 7;
+  int32 most_built_more = 8;
+  General best_general = 9;
+  double best_winrate = 10;
+  double best_average = 11;
+}
