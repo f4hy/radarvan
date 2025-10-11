@@ -69,27 +69,6 @@ export default function Menu() {
           icon={<MilitaryTechIcon />}
           callback={setSelection}
         />
-        <MenuItem
-          value="MapStats"
-          text="Map Stats"
-          open={true}
-          icon={<MapIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="PairStats"
-          text="Pair Stats"
-          open={true}
-          icon={<LooksTwoIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="Wrapped"
-          text="Wrapped"
-          open={true}
-          icon={<RedeemIcon />}
-          callback={setSelection}
-        />
       </List>
       <Divider />
     </div>
@@ -198,12 +177,6 @@ function Main(props: { selection: Selection }) {
       return <DisplayGeneralStats />
     case "TeamStats":
       return <DisplayTeamStats />
-    case "MapStats":
-      return <DisplayMapStats />
-    case "PairStats":
-      return <DisplayPairStats />
-    case "Wrapped":
-      return <WrappedYear />
     default:
       return <div>{props.selection}</div>
   }

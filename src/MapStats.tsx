@@ -209,7 +209,6 @@ export default function DisplayMapstats() {
                 label="map"
                 angle={90}
                 height={500}
-                textAnchor="begin"
                 minTickGap={0}
                 interval={0}
               />

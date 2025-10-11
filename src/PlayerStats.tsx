@@ -175,7 +175,6 @@ function DisplayPlayerStat(props: { stat: PlayerStat; max: number }) {
                 dataKey="general"
                 height={130}
                 angle={60}
-                textAnchor="begin"
                 minTickGap={0}
                 interval={0}
               />
