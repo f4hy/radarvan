@@ -37,55 +37,55 @@ class Team(IntEnum):
 
 
 class Player(BaseModel):
-    name: str = ""
-    general: General = General.USA
-    team: Team = Team.NONE
+    name: str
+    general: General
+    team: Team
 
 
 class MatchInfo(BaseModel):
-    id: int = 0
-    timestamp: Optional[datetime] = None
-    map: str = ""
-    winning_team: Team = Field(default=Team.NONE, alias="winningTeam")
-    players: List[Player] = []
-    duration_minutes: float = Field(default=0.0, alias="durationMinutes")
-    filename: str = ""
-    incomplete: str = ""
-    notes: str = ""
+    id: int
+    timestamp: datetime
+    map: str
+    winning_team: Team
+    players: List[Player]
+    duration_minutes: float
+    filename: str
+    incomplete: str
+    notes: str
 
     class Config:
         populate_by_name = True
 
 
 class Matches(BaseModel):
-    matches: List[MatchInfo] = []
+    matches: List[MatchInfo]
 
 
 class WinLoss(BaseModel):
-    wins: int = 0
-    losses: int = 0
+    wins: int
+    losses: int
 
 
 class GeneralWL(BaseModel):
-    general: General = General.USA
-    win_loss: Optional[WinLoss] = Field(default=None, alias="winLoss")
+    general: General
+    win_loss: WinLoss = Field(alias="winLoss")
 
     class Config:
         populate_by_name = True
 
 
 class DateMessage(BaseModel):
-    year: int = Field(default=0, alias="Year")
-    month: int = Field(default=0, alias="Month")
-    day: int = Field(default=0, alias="Day")
+    year: int = Field(alias="Year")
+    month: int = Field(alias="Month")
+    day: int = Field(alias="Day")
 
     class Config:
         populate_by_name = True
 
 
 class PlayerRateOverTime(BaseModel):
-    date: Optional[DateMessage] = None
-    wl: Optional[GeneralWL] = None
+    date: DateMessage
+    wl: GeneralWL
 
 
 class PlayerStatFactionWL(BaseModel):
@@ -97,8 +97,8 @@ class PlayerStatFactionWL(BaseModel):
 
 
 class PlayerStat(BaseModel):
-    player_name: str = Field(default="", alias="playerName")
-    stats: List[GeneralWL] = []
+    player_name: str = Field(alias="playerName")
+    stats: List[GeneralWL] 
     faction_stats: List[PlayerStatFactionWL] = Field(default=[], alias="factionStats")
     over_time: List[PlayerRateOverTime] = Field(default=[], alias="overTime")
 
@@ -114,7 +114,7 @@ class PlayerStats(BaseModel):
 
 
 class GeneralStatPlayerWL(BaseModel):
-    player_name: str = Field(default="", alias="playerName")
+    player_name: str = Field(alias="playerName")
     win_loss: Optional[WinLoss] = Field(default=None, alias="winLoss")
 
     class Config:
@@ -122,13 +122,13 @@ class GeneralStatPlayerWL(BaseModel):
 
 
 class GeneralStat(BaseModel):
-    general: General = General.USA
+    general: General
     stats: List[GeneralStatPlayerWL] = []
     total: Optional[WinLoss] = None
 
 
 class GeneralStats(BaseModel):
-    general_stats: List[GeneralStat] = Field(default=[], alias="generalStats")
+    general_stats: List[GeneralStat] = Field(alias="generalStats")
 
     class Config:
         populate_by_name = True
@@ -176,7 +176,7 @@ class SaveResponse(BaseModel):
 
 
 class CostsBuiltObject(BaseModel):
-    name: str = ""
+    name: str
     count: int = 0
     total_spent: int = Field(default=0, alias="totalSpent")
 
@@ -192,7 +192,7 @@ class Costs(BaseModel):
 
 
 class APM(BaseModel):
-    player_name: str = Field(default="", alias="playerName")
+    player_name: str = Field(alias="playerName")
     action_count: int = Field(default=0, alias="actionCount")
     minutes: float = 0.0
     apm: float = 0.0
@@ -202,9 +202,9 @@ class APM(BaseModel):
 
 
 class UpgradeEvent(BaseModel):
-    player_name: str = Field(default="", alias="playerName")
+    player_name: str = Field(alias="playerName")
     timecode: int = 0
-    upgrade_name: str = Field(default="", alias="upgradeName")
+    upgrade_name: str = Field(alias="upgradeName")
     cost: int = 0
     at_minute: float = Field(default=0.0, alias="atMinute")
 
@@ -213,7 +213,7 @@ class UpgradeEvent(BaseModel):
 
 
 class Spent(BaseModel):
-    player_name: str = Field(default="", alias="playerName")
+    player_name: str = Field(alias="playerName")
     acc_cost: int = Field(default=0, alias="accCost")
     at_minute: float = Field(default=0.0, alias="atMinute")
 
@@ -244,8 +244,8 @@ class MatchDetails(BaseModel):
 
 
 class PairWinLoss(BaseModel):
-    general1: General = General.USA
-    general2: General = General.USA
+    general1: General
+    general2: General
     winloss: Optional[WinLoss] = None
 
 
@@ -273,18 +273,3 @@ class TeamPairs(BaseModel):
         populate_by_name = True
 
 
-class Wrapped(BaseModel):
-    games_played: int = Field(default=0, alias="gamesPlayed")
-    hours_played: float = Field(default=0.0, alias="hoursPlayed")
-    most_played: General = Field(default=General.USA, alias="mostPlayed")
-    most_played_winrate: float = Field(default=0.0, alias="mostPlayedWinrate")
-    most_built: str = Field(default="", alias="mostBuilt")
-    most_built_spent: float = Field(default=0.0, alias="mostBuiltSpent")
-    most_built_count: int = Field(default=0, alias="mostBuiltCount")
-    most_built_more: int = Field(default=0, alias="mostBuiltMore")
-    best_general: General = Field(default=General.USA, alias="bestGeneral")
-    best_winrate: float = Field(default=0.0, alias="bestWinrate")
-    best_average: float = Field(default=0.0, alias="bestAverage")
-
-    class Config:
-        populate_by_name = True

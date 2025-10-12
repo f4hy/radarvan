@@ -50,23 +50,34 @@ export default function Menu() {
         />
         <MenuItem
           value="PlayerStats"
-          text="Player Stats"
-          open={true}
-          icon={<PersonIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="TeamStats"
-          text="Team Stats"
-          open={true}
-          icon={<PeopleIcon />}
+          text="Player Stats (soon)"
+						open={true}
+						icon={<PersonIcon />}
+						disabled={true}
           callback={setSelection}
         />
         <MenuItem
           value="GeneralStats"
-          text="General Stats"
+          text="General Stats (soon)"
           open={true}
           icon={<MilitaryTechIcon />}
+						disabled={true}
+          callback={setSelection}
+        />
+        <MenuItem
+          value="MapStats"
+          text="Map Stats (soon)"
+          open={true}
+          icon={<MapIcon />}
+						disabled={true}
+          callback={setSelection}
+        />
+        <MenuItem
+          value="TeamStats"
+          text="Team Stats (maybe)"
+          open={true}
+          icon={<PeopleIcon />}
+						disabled={true}
           callback={setSelection}
         />
       </List>
@@ -164,7 +175,8 @@ interface MenuItemProps {
   value: Selection
   text: string
   icon: React.ReactNode
-  callback: (s: Selection) => void
+		callback: (s: Selection) => void
+		disabled?: boolean
 }
 
 function Main(props: { selection: Selection }) {
@@ -186,10 +198,11 @@ function MenuItem(props: MenuItemProps) {
   const open = props.open
   return (
     <ListItemButton
-      key={props.value}
+				key={props.value}
+				disabled={props.disabled}
       sx={{
         minHeight: 48,
-        justifyContent: { open } ? "initial" : "center",
+        justifyContent:  (open  ? "initial" : "center"),
         px: 2.5,
       }}
       onClick={() => props.callback(props.value)}

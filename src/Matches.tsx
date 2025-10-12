@@ -17,25 +17,16 @@ import _ from "lodash"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import Map from "./Map"
-import { Matches, MatchInfo } from "./proto/match"
 import ShowMatchDetails from "./ShowMatchDetails"
+import { Client } from "./Client"
+import { getMatchesApiMatchesMatchCountGet } from "./generated_client"
+import { MatchInfoInput, Matches } from "./generated_client"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
-  fetch("/api/matches/" + count).then((r) =>
-    r
-      .blob()
-      .then((b) => b.arrayBuffer())
-      .then((j) => {
-        const a = new Uint8Array(j)
-        const matches = Matches.decode(a)
-        matches.matches.sort(
-          (m1, m2) =>
-            (m2.timestamp?.getTime() ?? 0) - (m1.timestamp?.getTime() ?? 0)
-        )
-        callback(matches)
-      })
-  )
+const empty : Matches = {matches: []}
+getMatchesApiMatchesMatchCountGet({path: {match_count: count}}).then((result) => callback(result.data ?? (empty) ))
 }
+
 
 function MatchCard(props: {
   avatar: React.ReactNode
@@ -69,11 +60,11 @@ function downloadReplay(filename: string) {
   )
 }
 
-function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
+function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
 
   const date: string = props.match.timestamp
-    ? props.match.timestamp.toDateString()
+    ? props.match.timestamp
     : "unknown"
   let header =
     " MatchId:" +
@@ -83,16 +74,17 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     " on Map:'" +
     props.match.map.split("/").slice(-1) +
     "'  Winner:Team" +
-    props.match.winningTeam +
+    props.match.winning_team +
     " Duration " +
-    props.match.durationMinutes.toFixed(2) +
-    " minutes"
+    props.match.duration_minutes.toFixed(2) +
+			" minutes"
+	const playerCount = props.match.players.length
   const winners = _.sortBy(
-    props.match.players.filter((p) => p.team === props.match.winningTeam),
+    props.match.players.filter((p) => p.team === props.match.winning_team),
     ["team", "name"]
   )
   const losers = _.sortBy(
-    props.match.players.filter((p) => p.team !== props.match.winningTeam),
+    props.match.players.filter((p) => p.team !== props.match.winning_team),
     ["team", "name"]
   )
   if (losers.length === 0) {
@@ -105,8 +97,8 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     paperprops["bgcolor"] = "text.disabled"
     paperprops["borderColor"] = "red"
   }
-  const showTeam = props.match.winningTeam !== 0 ? "block" : "none"
-  const showTeamSpacing = props.match.winningTeam !== 0 ? 4 : 6
+  const showTeam = props.match.winning_team !== 0 ? "block" : "none"
+  const showTeamSpacing =18 /playerCount
   return (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
@@ -125,11 +117,11 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
       <Grid container spacing={{ sx: 0, md: 1, width: "99%" }}>
         <Grid item xs={12} md={10}>
           <Grid container spacing={{ sx: 0, md: 1 }} sx={{ width: "99%" }}>
-            <Grid item xs={4} sx={{ display: { xs: "none", md: showTeam } }}>
+            <Grid item  sx={{ display: { xs: "none", md: showTeam } }} md={showTeamSpacing}>
               <MatchCard
                 title={
                   <Typography variant="h5">
-                    {"Team:" + props.match.winningTeam}
+                    {"Team:" + props.match.winning_team}
                   </Typography>
                 }
                 avatar={<EmojiEventsIcon />}
@@ -137,19 +129,19 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
               />
             </Grid>
             {winners.map((p) => (
-              <Grid item xs={6} md={showTeamSpacing}>
+              <Grid item  md={showTeamSpacing}>
                 <MatchCard
-                  key={p.name + "-" + p.general + "-generalcard"}
+                  key={p?.name + "-" + p.general + "-generalcard"}
                   title={
-                    <Typography variant="h5">{`${p.name.padEnd(
+                    <Typography variant="h5">{`${(p?.name ?? "").padEnd(
                       50,
                       " "
                     )}`}</Typography>
                   }
                   avatar={
-                    <DisplayGeneral
-                      general={p.general}
-                      key={p.name + "-" + p.general + "-general"}
+											<DisplayGeneral											
+                      general={p!.general}
+                      key={p?.name + "-" + p.general + "-general"}
                     />
                   }
                   color="#c5e1a5"
@@ -158,8 +150,7 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
             ))}
             <Grid
               item
-              xs={6}
-              md={4}
+              md={showTeamSpacing}
               sx={{ display: { xs: "none", md: showTeam } }}
             >
               <MatchCard
@@ -171,7 +162,7 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
               />
             </Grid>
             {losers.map((p) => (
-              <Grid item xs={6} md={showTeamSpacing}>
+              <Grid item  md={showTeamSpacing}>
                 <MatchCard
                   title={
                     <Typography variant="h5">{`${p.name.padEnd(
@@ -189,20 +180,21 @@ function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
                 />
               </Grid>
             ))}
-            <Grid item xs={6} md={6}>
-              <Button variant="contained" onClick={() => setDetails(!details)}>
-                Match Details
+            <Grid item  md={6}>
+              <Button variant="contained" onClick={() => setDetails(!details)} disabled>
+                Match Details (soon)
               </Button>
             </Grid>
-            <Grid item xs={6} md={6}>
+            <Grid item  md={6}>
               <Button
-                variant="contained"
+									variant="contained"
+									disabled
                 onClick={() =>
                   downloadReplay(props.match.filename.replace(".json", ".rep"))
                 }
                 endIcon={<DownloadIcon />}
               >
-                Download Replay
+                Download Replay (soon)
               </Button>
             </Grid>
           </Grid>
@@ -230,7 +222,7 @@ export default function DisplayMatches() {
     setGetAll(true)
   }
   const byDate = _.groupBy(matchList.matches, (m) =>
-    m.timestamp?.toDateString()
+    m.timestamp
   )
   return (
     <>
