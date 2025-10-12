@@ -9,7 +9,7 @@ function getConfig(): Configuration {
   }
   // This will be used in production
     return new Configuration({
-  basePath: '/',
+  basePath: 'https://localhost',
 });
 	
 }
