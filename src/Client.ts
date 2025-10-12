@@ -8,9 +8,7 @@ function getConfig(): Configuration {
 });
   }
   // This will be used in production
-  return new Configuration({
-  basePath: 'https://localhost',
-});
+  return DefaultConfig;
 
 }
 const config = getConfig()
