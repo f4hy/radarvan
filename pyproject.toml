@@ -13,6 +13,9 @@ dependencies = [
     "streamlit>=1.50.0",
 ]
 
+[tool.mypy]
+warn_return_any = True
+warn_unused_configs = True
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

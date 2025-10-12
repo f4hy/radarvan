@@ -1,17 +1,14 @@
 from datetime import datetime, UTC
 from radarvan.api_types import Matches, MatchInfo, Player, General, Team
 from typing import Union
-
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 app = FastAPI()
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
+app.mount("/", StaticFiles(directory="build"), name="build")
 
 @app.get("/api/matches/{match_count}")
 def get_matches(match_count: int) -> Matches:

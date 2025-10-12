@@ -1,1 +1,1 @@
-web: ./bin/backend
+web: fastapi run
