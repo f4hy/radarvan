@@ -23,10 +23,11 @@ import { getMatchesApiMatchesMatchCountGet } from "./generated_client"
 import { MatchInfoInput, Matches } from "./generated_client"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
-const empty : Matches = {matches: []}
-getMatchesApiMatchesMatchCountGet({path: {match_count: count}}).then((result) => callback(result.data ?? (empty) ))
+  const empty: Matches = { matches: [] }
+  getMatchesApiMatchesMatchCountGet({ path: { match_count: count } }).then(
+    (result) => callback(result.data ?? empty)
+  )
 }
-
 
 function MatchCard(props: {
   avatar: React.ReactNode
@@ -63,9 +64,7 @@ function downloadReplay(filename: string) {
 function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
 
-  const date: string = props.match.timestamp
-    ? props.match.timestamp
-    : "unknown"
+  const date: string = props.match.timestamp ? props.match.timestamp : "unknown"
   let header =
     " MatchId:" +
     props.match.id +
@@ -77,8 +76,8 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     props.match.winning_team +
     " Duration " +
     props.match.duration_minutes.toFixed(2) +
-			" minutes"
-	const playerCount = props.match.players.length
+    " minutes"
+  const playerCount = props.match.players.length
   const winners = _.sortBy(
     props.match.players.filter((p) => p.team === props.match.winning_team),
     ["team", "name"]
@@ -98,7 +97,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     paperprops["borderColor"] = "red"
   }
   const showTeam = props.match.winning_team !== 0 ? "block" : "none"
-  const showTeamSpacing =18 /playerCount
+  const showTeamSpacing = 18 / playerCount
   return (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
@@ -117,7 +116,11 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
       <Grid container spacing={{ sx: 0, md: 1, width: "99%" }}>
         <Grid item xs={12} md={10}>
           <Grid container spacing={{ sx: 0, md: 1 }} sx={{ width: "99%" }}>
-            <Grid item  sx={{ display: { xs: "none", md: showTeam } }} md={showTeamSpacing}>
+            <Grid
+              item
+              sx={{ display: { xs: "none", md: showTeam } }}
+              md={showTeamSpacing}
+            >
               <MatchCard
                 title={
                   <Typography variant="h5">
@@ -129,7 +132,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
               />
             </Grid>
             {winners.map((p) => (
-              <Grid item  md={showTeamSpacing}>
+              <Grid item md={showTeamSpacing}>
                 <MatchCard
                   key={p?.name + "-" + p.general + "-generalcard"}
                   title={
@@ -139,7 +142,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
                     )}`}</Typography>
                   }
                   avatar={
-											<DisplayGeneral											
+                    <DisplayGeneral
                       general={p!.general}
                       key={p?.name + "-" + p.general + "-general"}
                     />
@@ -162,7 +165,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
               />
             </Grid>
             {losers.map((p) => (
-              <Grid item  md={showTeamSpacing}>
+              <Grid item md={showTeamSpacing}>
                 <MatchCard
                   title={
                     <Typography variant="h5">{`${p.name.padEnd(
@@ -180,15 +183,19 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
                 />
               </Grid>
             ))}
-            <Grid item  md={6}>
-              <Button variant="contained" onClick={() => setDetails(!details)} disabled>
+            <Grid item md={6}>
+              <Button
+                variant="contained"
+                onClick={() => setDetails(!details)}
+                disabled
+              >
                 Match Details (soon)
               </Button>
             </Grid>
-            <Grid item  md={6}>
+            <Grid item md={6}>
               <Button
-									variant="contained"
-									disabled
+                variant="contained"
+                disabled
                 onClick={() =>
                   downloadReplay(props.match.filename.replace(".json", ".rep"))
                 }
@@ -221,9 +228,7 @@ export default function DisplayMatches() {
   const showAll = () => {
     setGetAll(true)
   }
-  const byDate = _.groupBy(matchList.matches, (m) =>
-    m.timestamp
-  )
+  const byDate = _.groupBy(matchList.matches, (m) => m.timestamp)
   return (
     <>
       {Object.entries(byDate).map(([date, group], idx) => (

@@ -1,4 +1,3 @@
-import { createClient, createConfig } from './generated_client/client';
+import { createClient, createConfig } from "./generated_client/client"
 
-
-export const Client = createClient(createConfig());
+export const Client = createClient(createConfig())
