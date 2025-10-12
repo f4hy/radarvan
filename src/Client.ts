@@ -9,7 +9,7 @@ function getConfig(): Configuration {
   }
   // This will be used in production
     return new Configuration({
-  basePath: 'https://localhost',
+  basePath: 'https://radarvan-5e9c302c60e6.herokuapp.com',
 });
 	
 }
