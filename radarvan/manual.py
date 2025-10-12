@@ -17,6 +17,13 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_09_September/25_Thursday/Modus_09BAC013F91C/03-40-07_3v3_Skip_OneThree_WildCard_Neo_Modus_Syn.rep",
     "https://www.gentool.net/data/zh/2025_09_September/25_Thursday/Modus_09BAC013F91C/02-50-23_4v4_Skip_WildCard_OneThree_HardAI_Modus_Syn_Pancake_Neo.rep",
     "https://www.gentool.net/data/zh/2025_09_September/25_Thursday/Modus_09BAC013F91C/02-07-26_4v4_Skip_OneThree_WildCard_HardAI_Syn_Modus_Neo_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/01-42-30_2v2_Skip_WLD_Mod_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/01-50-50_2v2_Skip_WLD_Mod_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/02-09-26_2v2_Skip_WLD_Pancake_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/02-34-50_2v2_Skip_WLD_Pancake_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/02-46-00_2v2_Skip_WLD_Pancake_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/03-12-52_2v2_WLD_Skip_Mod_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/03-14-48_2v2_WLD_Skip_Mod_Pancake.rep",
 ]
 
 
