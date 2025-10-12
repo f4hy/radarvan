@@ -27,7 +27,7 @@ def get_matches(match_count: int) -> Matches:
             MatchInfo(
                 id=0,
                 timestamp=datetime.now(),
-                map="test",
+                map="/maps/maps_tournament urban_tournament urban.webp",
                 winning_team=1,
                 players=[
                     Player(name="Modus", general=General.AIR, team=Team.THREE),
@@ -38,14 +38,14 @@ def get_matches(match_count: int) -> Matches:
                     Player(name="Skip", general=General.AIR, team=Team.ONE),
                 ],
                 duration_minutes=1.0,
-                filename="test",
+                filename="/maps/maps_tournament urban_tournament urban.webp",
                 incomplete="",
                 notes="",
             ),
             MatchInfo(
                 id=2,
                 timestamp=datetime.now(),
-                map="test",
+                map="/maps/maps_tournament urban_tournament urban.webp",
                 winning_team=1,
                 players=[
                     Player(name="Modus", general=General.AIR, team=Team.THREE),
@@ -58,7 +58,7 @@ def get_matches(match_count: int) -> Matches:
                     Player(name="neo", general=General.AIR, team=Team.ONE),
                 ],
                 duration_minutes=1.0,
-                filename="test",
+                filename="/maps/maps_tournament urban_tournament urban.webp",
                 incomplete="",
                 notes="",
             ),
