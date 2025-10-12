@@ -9,9 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="radarvan", description="Stats for generals", version="0.1.0")
 
+origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
@@ -62,5 +64,6 @@ def get_matches(match_count: int) -> Matches:
             ),
         ]
     )
+
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")
