@@ -4,11 +4,20 @@ from typing import Union
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.mount("/", StaticFiles(directory="build"), name="build")
+
+app.mount("/", StaticFiles(directory="build", html=True), name="build")
 
 @app.get("/api/matches/{match_count}")
 def get_matches(match_count: int) -> Matches:
