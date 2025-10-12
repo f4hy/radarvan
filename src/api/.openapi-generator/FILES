@@ -1,0 +1,14 @@
+apis/DefaultApi.ts
+apis/index.ts
+index.ts
+models/General.ts
+models/HTTPValidationError.ts
+models/MatchInfoInput.ts
+models/MatchInfoOutput.ts
+models/Matches.ts
+models/Player.ts
+models/Team.ts
+models/ValidationError.ts
+models/ValidationErrorLocInner.ts
+models/index.ts
+runtime.ts

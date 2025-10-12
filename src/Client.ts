@@ -1,3 +1,7 @@
-import { createClient, createConfig } from "./generated_client/client"
+import { DefaultApi, Configuration, DefaultConfig } from "./api"
 
-export const Client = createClient(createConfig())
+const config = new Configuration({
+  basePath: 'http://localhost:8000',
+});
+export const Client = new DefaultApi(config)
+

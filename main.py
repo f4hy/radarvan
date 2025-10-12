@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 
-app = FastAPI()
+app = FastAPI(title="radarvan", description="Stats for generals", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,8 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-app.mount("/", StaticFiles(directory="build", html=True), name="build")
 
 @app.get("/api/matches/{match_count}")
 def get_matches(match_count: int) -> Matches:
@@ -63,3 +61,5 @@ def get_matches(match_count: int) -> Matches:
             ),
         ]
     )
+
+app.mount("/", StaticFiles(directory="build", html=True), name="build")

@@ -19,14 +19,10 @@ import DisplayGeneral from "./Generals"
 import Map from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
-import { getMatchesApiMatchesMatchCountGet } from "./generated_client"
-import { MatchInfoInput, Matches } from "./generated_client"
+import { MatchInfoInput, Matches } from "./api"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
-  const empty: Matches = { matches: [] }
-  getMatchesApiMatchesMatchCountGet({ path: { match_count: count } }).then(
-    (result) => callback(result.data ?? empty)
-  )
+Client.getMatchesApiMatchesMatchCountGet({matchCount: count}).then(callback).catch(e => alert(e))
 }
 
 function MatchCard(props: {
@@ -64,7 +60,7 @@ function downloadReplay(filename: string) {
 function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
 
-  const date: string = props.match.timestamp ? props.match.timestamp : "unknown"
+  const date = props.match.timestamp ? props.match.timestamp : "unknown"
   let header =
     " MatchId:" +
     props.match.id +
@@ -73,17 +69,17 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     " on Map:'" +
     props.match.map.split("/").slice(-1) +
     "'  Winner:Team" +
-    props.match.winning_team +
+    props.match.winningTeam +
     " Duration " +
-    props.match.duration_minutes.toFixed(2) +
+    props.match.durationMinutes.toFixed(2) +
     " minutes"
   const playerCount = props.match.players.length
   const winners = _.sortBy(
-    props.match.players.filter((p) => p.team === props.match.winning_team),
+    props.match.players.filter((p) => p.team === props.match.winningTeam),
     ["team", "name"]
   )
   const losers = _.sortBy(
-    props.match.players.filter((p) => p.team !== props.match.winning_team),
+    props.match.players.filter((p) => p.team !== props.match.winningTeam),
     ["team", "name"]
   )
   if (losers.length === 0) {
@@ -96,7 +92,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     paperprops["bgcolor"] = "text.disabled"
     paperprops["borderColor"] = "red"
   }
-  const showTeam = props.match.winning_team !== 0 ? "block" : "none"
+  const showTeam = props.match.winningTeam !== 0 ? "block" : "none"
   const showTeamSpacing = 18 / playerCount
   return (
     <Paper sx={paperprops} variant="outlined">
@@ -124,7 +120,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
               <MatchCard
                 title={
                   <Typography variant="h5">
-                    {"Team:" + props.match.winning_team}
+                    {"Team:" + props.match.winningTeam}
                   </Typography>
                 }
                 avatar={<EmojiEventsIcon />}
