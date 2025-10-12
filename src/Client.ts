@@ -8,7 +8,10 @@ function getConfig(): Configuration {
 });
   }
   // This will be used in production
-  return DefaultConfig;
+  return new Configuration({
+  basePath: 'https://localhost',
+});
+
 }
 const config = getConfig()
 export const Client = new DefaultApi(config)
