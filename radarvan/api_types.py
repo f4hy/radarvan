@@ -98,7 +98,7 @@ class PlayerStatFactionWL(BaseModel):
 
 class PlayerStat(BaseModel):
     player_name: str = Field(alias="playerName")
-    stats: List[GeneralWL] 
+    stats: List[GeneralWL]
     faction_stats: List[PlayerStatFactionWL] = Field(default=[], alias="factionStats")
     over_time: List[PlayerRateOverTime] = Field(default=[], alias="overTime")
 
@@ -271,5 +271,3 @@ class TeamPairs(BaseModel):
 
     class Config:
         populate_by_name = True
-
-
