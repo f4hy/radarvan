@@ -1,1 +1,1 @@
-web: fastapi run
+web: fastapi run radarvan/main.py
