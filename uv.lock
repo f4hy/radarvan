@@ -502,6 +502,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/47/71/70db47e4f6ce3e5c37a607355f80da8860a33226be640226ac52cb05ef2e/fsspec-2025.9.0-py3-none-any.whl", hash = "sha256:530dc2a2af60a414a832059574df4a6e10cce927f6f4a78209390fe38955cfb7", size = 199289, upload-time = "2025-09-02T19:10:47.708Z" },
 ]
 
+[package.optional-dependencies]
+s3 = [
+    { name = "s3fs" },
+]
+
 [[package]]
 name = "gitdb"
 version = "4.0.12"
@@ -1437,7 +1442,10 @@ name = "radarvan"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "click" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "fsspec", extra = ["s3"] },
+    { name = "httpx" },
     { name = "pydantic" },
     { name = "python-lsp-server", extra = ["all"] },
     { name = "ruff" },
@@ -1447,7 +1455,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.3.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.119.0" },
+    { name = "fsspec", extras = ["s3"], specifier = ">=2025.9.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pydantic", specifier = ">=2.12.0" },
     { name = "python-lsp-server", extras = ["all"], specifier = ">=1.13.1" },
     { name = "ruff", specifier = ">=0.14.0" },
