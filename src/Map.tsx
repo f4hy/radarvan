@@ -13,9 +13,9 @@ export default function Map(props: { mapname: string }) {
   const mapUrl = mapmatch ? getMapUrl(mapmatch) : ""
 
   return (
-    <Tooltip title={mapname}>
+    <Tooltip title={"Map " + mapname}>
       <Card sx={{ minheight: 160 }}>
-        <CardMedia component="img" image={mapUrl} height="99%" alt={mapname} />
+        <CardMedia component="img" image={mapUrl} height="99%" alt={"Map: " + mapname + " <missing image>"} />
       </Card>
     </Tooltip>
   )

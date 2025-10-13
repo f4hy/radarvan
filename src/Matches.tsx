@@ -8,7 +8,10 @@ import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
 import Card from "@mui/material/Card"
 import CardHeader from "@mui/material/CardHeader"
+import CardContent from "@mui/material/CardContent"
 import Grid from "@mui/material/Grid"
+import Stack from "@mui/material/Stack"
+import Divider from "@mui/material/Divider"
 import ListItem from "@mui/material/ListItem"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
@@ -19,7 +22,7 @@ import DisplayGeneral from "./Generals"
 import Map from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
-import { MatchInfoInput, Matches } from "./api"
+import { MatchInfoInput, Matches, Player } from "./api"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
   Client.getMatchesApiMatchesMatchCountGet({ matchCount: count }).then(callback).catch(e => alert(e))
@@ -41,6 +44,34 @@ function MatchCard(props: {
     </Card>
   )
 }
+
+function TeamCard(props: {
+  players: Player[]
+  won: boolean
+}) {
+  const color = (props.won ? "#c5e1a5" : "#e57373")
+  const title = (props.won ? "Won" : "Lost")
+  return (
+    <Card sx={{ backgroundColor: color }}>
+      <CardHeader
+        title={title}
+        avatar={<EmojiEventsIcon />}
+        component="div"
+      />
+      {props.players.map((p) => (
+        <CardContent component="div">
+          <Stack direction="row" divider={<Divider flexItem />} spacing={4}>
+            <DisplayGeneral
+              general={p!.general}
+              key={p?.name + "-" + p.general + "-general"}
+            />             <Typography variant="h5">{p.name}</Typography>
+          </Stack>
+        </CardContent>
+      ))}
+    </Card>
+  )
+}
+
 
 function downloadURI(uri: string, name: string) {
   var link = document.createElement("a")
@@ -93,7 +124,6 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     paperprops["borderColor"] = "red"
   }
   const showTeam = props.match.winningTeam !== 0 ? "block" : "none"
-  const showTeamSpacing = 18 / playerCount
   return (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
@@ -109,105 +139,40 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
           </Typography>
         ) : null}
       </ListItem>
-      <Grid container spacing={{ sx: 0, md: 1, width: "99%" }}>
-        <Grid item xs={12} md={10}>
-          <Grid container spacing={{ sx: 0, md: 1 }} sx={{ width: "99%" }}>
-            <Grid
-              item
-              sx={{ display: { xs: "none", md: showTeam } }}
-              md={showTeamSpacing}
-            >
-              <MatchCard
-                title={
-                  <Typography variant="h5">
-                    {"Team:" + props.match.winningTeam}
-                  </Typography>
-                }
-                avatar={<EmojiEventsIcon />}
-                color="#c5e1a5"
-              />
-            </Grid>
-            {winners.map((p) => (
-              <Grid item md={showTeamSpacing}>
-                <MatchCard
-                  key={p?.name + "-" + p.general + "-generalcard"}
-                  title={
-                    <Typography variant="h5">{`${(p?.name ?? "").padEnd(
-                      50,
-                      " "
-                    )}`}</Typography>
-                  }
-                  avatar={
-                    <DisplayGeneral
-                      general={p!.general}
-                      key={p?.name + "-" + p.general + "-general"}
-                    />
-                  }
-                  color="#c5e1a5"
-                />
-              </Grid>
-            ))}
-            <Grid
-              item
-              md={showTeamSpacing}
-              sx={{ display: { xs: "none", md: showTeam } }}
-            >
-              <MatchCard
-                title={
-                  <Typography variant="h5">{"Team:" + losingTeam}</Typography>
-                }
-                avatar={<ThumbDownIcon />}
-                color="#e57373"
-              />
-            </Grid>
-            {losers.map((p) => (
-              <Grid item md={showTeamSpacing}>
-                <MatchCard
-                  title={
-                    <Typography variant="h5">{`${p.name.padEnd(
-                      50,
-                      " "
-                    )}`}</Typography>
-                  }
-                  avatar={
-                    <DisplayGeneral
-                      general={p.general}
-                      key={p.name + "-" + p.general + "-general"}
-                    />
-                  }
-                  color="#e57373"
-                />
-              </Grid>
-            ))}
-            <Grid item md={6}>
-              <Button
-                variant="contained"
-                onClick={() => setDetails(!details)}
-                disabled
-              >
-                Match Details (soon)
-              </Button>
-            </Grid>
-            <Grid item md={6}>
-              <Button
-                variant="contained"
-                disabled
-                onClick={() =>
-                  downloadReplay(props.match.filename.replace(".json", ".rep"))
-                }
-                endIcon={<DownloadIcon />}
-              >
-                Download Replay (soon)
-              </Button>
-            </Grid>
-          </Grid>
-        </Grid>
-        <Grid item xs={12} md={2}>
-          <Map mapname={props.match.map} />
-        </Grid>
-      </Grid>
-      {details ? <ShowMatchDetails id={props.match.id} /> : null}
-    </Paper>
+      <Stack direction="row"  spacing={{ xs: 1, sm: 2, md: 24 }} justifyContent="space-between">
+        <Stack direction="row"  spacing={{ xs: 1, sm: 2, md: 24 }} justifyContent="flex-start">
+          <TeamCard
+              players={winners}
+              won={true}
+          />
+          <TeamCard
+              players={losers}
+              won={false}
+          />
+        </Stack>
+        <Map mapname={props.match.map} />
+      </Stack>
+      <Stack direction="row"  spacing={{ sx: 0, md: 1, width: "99%" }}>
+        <Button
+          variant="contained"
+          onClick={() => setDetails(!details)}
+          disabled
+        >
+          Match Details (soon)
+        </Button>
+        <Button
+          variant="contained"
+          disabled
+          onClick={() =>
+            downloadReplay(props.match.filename.replace(".json", ".rep"))
+          }
+          endIcon={<DownloadIcon />}
+        >
+          Download Replay (soon)
+        </Button>
+      </Stack>
+      { details ? <ShowMatchDetails id={props.match.id} /> : null }
+    </Paper >
   )
 }
 
