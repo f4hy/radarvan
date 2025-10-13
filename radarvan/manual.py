@@ -31,9 +31,14 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-10-57_2v2_Mod_Pancake_131_Neo.rep",
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-47-34_2v2_Mod_Pancake_131_Neo.rep",
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-49-16_2v2_Mod_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-34-51_2v2_Mod_Pancake_Neo_131.rep",
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/03-10-42_1v1v1v1v1v1_Neo_131_Pancake_Mod_HardAI_HardAI.rep",
 ]
 
+# REPLAYS = [
+#     # "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-49-16_2v2_Mod_Pancake_131_Neo.rep",
+#     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-34-51_2v2_Mod_Pancake_Neo_131.rep"
+# ]
 
 @cache
 def get_fs() -> fsspec.AbstractFileSystem():

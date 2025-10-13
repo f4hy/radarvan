@@ -22,7 +22,10 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
 }
 
 export default function CostBreakdown(props: { costs: CostsOutput[] }) {
-  const building_data = props.costs.map((x) =>
+if (props.costs.length == 0){
+return <></>
+}
+const building_data = props.costs.map((x) =>
     formatCosts(x.buildings, x?.player?.name ?? "unk")
   )
   const building_names: string[] = _.without(

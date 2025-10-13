@@ -6,10 +6,14 @@ import pathlib
 import json
 import httpx
 from cncstats_types import EnhancedReplay
+import logging
+logger = logging.getLogger(__name__)
+
 PARSE_URL = "https://cncstats.herokuapp.com/replay"
 
 
 def parse_replay_data(data: bytes, debug=False):
+    logger.info("Calling cncstats to parse replay")
     response = httpx.post(PARSE_URL, files={"file": data})
     if debug:
         print(response.json())

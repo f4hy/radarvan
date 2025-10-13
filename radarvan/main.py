@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import manual
 import matches
+import match_details
 from contextlib import asynccontextmanager
 import logging
 
@@ -61,8 +62,13 @@ def get_matches(match_count: int) -> Matches:
 
 
 @app.get("/api/details/{match_id}")
-def get_matche_details(match_id: int) -> MatchDetails:
+def get_match_details(match_id: int) -> MatchDetails:
     """Get details about a particular match"""
+    replays = manual.get_parsed_replays(manual.REPLAYS)
+    for replay in replays:
+        if replay.Header.TimeStampBegin == match_id:
+            details = match_details.match_details_from_replay(replay)
+            return details
     return MatchDetails(
         match_id=match_id,
         costs=[],
@@ -74,6 +80,7 @@ def get_matche_details(match_id: int) -> MatchDetails:
             upgrades=[],
             total=[],
         ),
+        money_values=[],
     )
 
 

@@ -28,7 +28,7 @@ import {
     MatchesToJSON,
 } from '../models/index';
 
-export interface GetMatcheDetailsApiDetailsMatchIdGetRequest {
+export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
     matchId: number;
 }
 
@@ -43,13 +43,13 @@ export class DefaultApi extends runtime.BaseAPI {
 
     /**
      * Get details about a particular match
-     * Get Matche Details
+     * Get Match Details
      */
-    async getMatcheDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatcheDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
+    async getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
-                'Required parameter "matchId" was null or undefined when calling getMatcheDetailsApiDetailsMatchIdGet().'
+                'Required parameter "matchId" was null or undefined when calling getMatchDetailsApiDetailsMatchIdGet().'
             );
         }
 
@@ -73,10 +73,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
     /**
      * Get details about a particular match
-     * Get Matche Details
+     * Get Match Details
      */
-    async getMatcheDetailsApiDetailsMatchIdGet(requestParameters: GetMatcheDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
-        const response = await this.getMatcheDetailsApiDetailsMatchIdGetRaw(requestParameters, initOverrides);
+    async getMatchDetailsApiDetailsMatchIdGet(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
+        const response = await this.getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

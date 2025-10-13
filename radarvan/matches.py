@@ -3,6 +3,7 @@
 import datetime
 from api_types import Matches, MatchInfo, Player, General, Team
 from cncstats_types import EnhancedReplay, PlayerSummary
+import utils
 import logging
 
 logger = logging.getLogger(__name__)
@@ -52,11 +53,9 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     winner = _winners[0].Team
 
     players = [player_summary_to_player(p) for p in replay.Summary]
-    start = datetime.datetime.fromtimestamp(replay.Header.TimeStampBegin)
-    end = datetime.datetime.fromtimestamp(replay.Header.TimeStampEnd)
-    duration_minutes = (end - start).total_seconds() / 60
+    duration_minutes = utils.duration_minutes(replay)
     return MatchInfo(
-        id=replay.Header.Metadata.Seed,
+        id=replay.Header.TimeStampBegin,
         timestamp=replay.Header.TimeStampBegin,
         map=replay.Header.Metadata.MapFile,
         winning_team=winner,

@@ -17,13 +17,13 @@ import {
   YAxis,
   ZAxis,
 } from "recharts"
-import { PlayerColor } from "./Colors"
+import { PlayerColor, ColorByIdx } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
 import { Client } from "./Client"
 import { MatchDetails, Spent, Upgrades, APM } from "./api"
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
-  Client.getMatcheDetailsApiDetailsMatchIdGet({ matchId: id })
+  Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
     .then(callback)
     .catch(e => alert(e))
 }
@@ -39,6 +39,7 @@ const empty: MatchDetails = {
     upgrades: [],
     total: [],
   },
+  moneyValues: {},
 }
 
 const shapes: (
@@ -110,6 +111,51 @@ function SpendingChart(props: {
   }
 }
 
+
+
+function MoneyChart(props: {
+  money: { [key: string]: { [key: string]: number; }; }
+  title: string
+}) {
+  if (props.money && Object.keys(props.money).length > 0) {
+    const players = Object.keys(Object.values(props.money)[0])
+    const data = Object.entries(props.money).map(([timecode, values]) => ({ ...values, timecode: timecode }))
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart
+          height={300}
+          data={data}
+          margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis type="number" dataKey="timecode" />
+          <YAxis
+            label={{
+              value: "$",
+              position: "insideLeft",
+              offset: -5,
+              angle: -90,
+            }}
+          />
+          <Tooltip />
+          <Legend />
+          {players.map((n, i) => (
+            <Line
+              dataKey={n}
+              strokeWidth={2}
+              stroke={ColorByIdx(i)}
+              dot={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    )
+  } else {
+    return <div>WTF</div>
+  }
+}
+
+
 function EventChart(props: {
   upgrades: { [name: string]: Upgrades }
   max: number
@@ -117,7 +163,7 @@ function EventChart(props: {
   const names = Object.keys(props.upgrades).sort((x1, x2) =>
     x1.localeCompare(x2)
   )
-  if (props.upgrades) {
+  if (props.upgrades && names.length > 0) {
     return (
       <ResponsiveContainer width="100%" height={300}>
         <ScatterChart margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
@@ -156,6 +202,9 @@ function EventChart(props: {
 }
 
 function ApmChart(props: { apms: APM[] }) {
+  if (props.apms.length == 0) {
+    return <></>
+  }
   const data = _.sortBy(props.apms, (a) => -a.apm)
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -210,10 +259,12 @@ export default function ShowMatchDetails(props: { id: number }) {
   const maxMinute = Math.ceil(maxAtMinute ?? 1)
   return (
     <>
-			<Spending title="Spending Total" spend_data={details.spent.total} max={maxMinute} />
-			<Spending title="Spending Units" spend_data={details.spent.units} max={maxMinute} />
-			<Spending title="Spending Buildings" spend_data={details.spent.buildings} max={maxMinute} />
-			<Spending title="Spending Upgrades" spend_data={details.spent.upgrades} max={maxMinute} />
+      <MoneyChart title="Money" money={details.moneyValues} />
+      <Divider />
+      <Spending title="Spending Total" spend_data={details.spent.total} max={maxMinute} />
+      <Spending title="Spending Units" spend_data={details.spent.units} max={maxMinute} />
+      <Spending title="Spending Buildings" spend_data={details.spent.buildings} max={maxMinute} />
+      <Spending title="Spending Upgrades" spend_data={details.spent.upgrades} max={maxMinute} />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
       <ApmChart apms={details.apms} />
       <Divider />

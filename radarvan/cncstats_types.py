@@ -79,7 +79,7 @@ class ArgMetadata(BaseModel):
     Count: int
 
 
-class PlayerMoney(BaseModel):
+class Money(BaseModel):
 
     Player1Money: int
     Player2Money: int
@@ -99,12 +99,12 @@ class EnhancedBodyChunk(BaseModel):
     PlayerID: int
     PlayerName: str
     NumberOfArguments: int
-    Details: Optional[Union[Unit, Building, Upgrade, Power]] = None
+    # Details: Optional[Union[Unit, Building, Upgrade, Power]] = None
     ArgMetadata: List[ArgMetadata]
     Arguments: List[
         Union[int, float, bool, str, Position3D, ScreenPosition, ScreenRectangle]
     ]
-    player_money: PlayerMoney | None = None
+    PlayerMoney: Money | None = None
 
 
 class ObjectSummary(BaseModel):

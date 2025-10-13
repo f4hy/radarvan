@@ -238,6 +238,9 @@ class MatchDetails(BaseModel):
     apms: List[APM]
     upgrade_events: Dict[str, Upgrades] = Field(alias="upgradeEvents")
     spent: SpentOverTime
+    money_values: dict[int, dict[str, int]] = Field(
+        description="at a time value (int) map each player to the value"
+    )
 
     class Config:
         populate_by_name = True

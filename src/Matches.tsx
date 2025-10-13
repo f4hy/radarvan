@@ -154,9 +154,8 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         <Button
           variant="contained"
           onClick={() => setDetails(!details)}
-          disabled
         >
-          Match Details (soon)
+          Match Details
         </Button>
         <Button
           variant="contained"

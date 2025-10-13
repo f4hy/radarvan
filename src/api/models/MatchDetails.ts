@@ -78,6 +78,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     spent: SpentOverTime;
+    /**
+     * at a time value (int) map each player to the value
+     * @type {{ [key: string]: { [key: string]: number; }; }}
+     * @memberof MatchDetails
+     */
+    moneyValues: { [key: string]: { [key: string]: number; }; };
 }
 
 /**
@@ -89,6 +95,7 @@ export function instanceOfMatchDetails(value: object): value is MatchDetails {
     if (!('apms' in value) || value['apms'] === undefined) return false;
     if (!('upgradeEvents' in value) || value['upgradeEvents'] === undefined) return false;
     if (!('spent' in value) || value['spent'] === undefined) return false;
+    if (!('moneyValues' in value) || value['moneyValues'] === undefined) return false;
     return true;
 }
 
@@ -107,6 +114,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'apms': ((json['apms'] as Array<any>).map(APMFromJSON)),
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
         'spent': SpentOverTimeFromJSON(json['spent']),
+        'moneyValues': json['money_values'],
     };
 }
 
@@ -126,6 +134,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'apms': ((value['apms'] as Array<any>).map(APMToJSON)),
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
         'spent': SpentOverTimeToJSON(value['spent']),
+        'money_values': value['moneyValues'],
     };
 }
 
