@@ -25,7 +25,7 @@ import { MatchDetails, Spent, Upgrades, APM } from "./api"
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
     .then(callback)
-    .catch(e => alert(e))
+    .catch((e) => alert(e))
 }
 
 const empty: MatchDetails = {
@@ -107,19 +107,20 @@ function SpendingChart(props: {
       </ResponsiveContainer>
     )
   } else {
-    return <div>WTF {JSON.stringify(props.spent)}</div>
+    return <div>{props.title + " data unavailible for this replay"}</div>
   }
 }
 
-
-
 function MoneyChart(props: {
-  money: { [key: string]: { [key: string]: number; }; }
+  money: { [key: string]: { [key: string]: number } }
   title: string
 }) {
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
-    const data = Object.entries(props.money).map(([timecode, values]) => ({ ...values, timecode: timecode }))
+    const data = Object.entries(props.money).map(([timecode, values]) => ({
+      ...values,
+      timecode: timecode,
+    }))
     return (
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
@@ -151,17 +152,16 @@ function MoneyChart(props: {
       </ResponsiveContainer>
     )
   } else {
-    return <div>WTF</div>
+    return <div>Money data unavailible for this replay</div>
   }
 }
-
 
 function EventChart(props: {
   upgrades: { [name: string]: Upgrades }
   max: number
 }) {
   const names = Object.keys(props.upgrades).sort((x1, x2) =>
-    x1.localeCompare(x2)
+    x1.localeCompare(x2),
   )
   if (props.upgrades && names.length > 0) {
     return (
@@ -203,7 +203,7 @@ function EventChart(props: {
 
 function ApmChart(props: { apms: APM[] }) {
   if (props.apms.length == 0) {
-    return <></>
+    return <div>APM data not yet availible</div>
   }
   const data = _.sortBy(props.apms, (a) => -a.apm)
   return (
@@ -229,23 +229,21 @@ function ApmChart(props: { apms: APM[] }) {
   )
 }
 
-function Spending(props: { title: string, spend_data: Spent[] | undefined, max: number }) {
-
+function Spending(props: {
+  title: string
+  spend_data: Spent[] | undefined
+  max: number
+}) {
   if ((props.spend_data ?? []).length === 0) {
-    return <></>
+    return <div>{props.title} data not yet available</div>
   }
   return (
     <>
       <Typography>props.title</Typography>
-      <SpendingChart
-        spent={props.spend_data}
-        title="total"
-        max={props.max}
-      />
+      <SpendingChart spent={props.spend_data} title="total" max={props.max} />
     </>
   )
 }
-
 
 export default function ShowMatchDetails(props: { id: number }) {
   const [details, setDetails] = React.useState<MatchDetails>(empty)
@@ -261,10 +259,26 @@ export default function ShowMatchDetails(props: { id: number }) {
     <>
       <MoneyChart title="Money" money={details.moneyValues} />
       <Divider />
-      <Spending title="Spending Total" spend_data={details.spent.total} max={maxMinute} />
-      <Spending title="Spending Units" spend_data={details.spent.units} max={maxMinute} />
-      <Spending title="Spending Buildings" spend_data={details.spent.buildings} max={maxMinute} />
-      <Spending title="Spending Upgrades" spend_data={details.spent.upgrades} max={maxMinute} />
+      <Spending
+        title="Spending Total"
+        spend_data={details.spent.total}
+        max={maxMinute}
+      />
+      <Spending
+        title="Spending Units"
+        spend_data={details.spent.units}
+        max={maxMinute}
+      />
+      <Spending
+        title="Spending Buildings"
+        spend_data={details.spent.buildings}
+        max={maxMinute}
+      />
+      <Spending
+        title="Spending Upgrades"
+        spend_data={details.spent.upgrades}
+        max={maxMinute}
+      />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
       <ApmChart apms={details.apms} />
       <Divider />

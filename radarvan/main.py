@@ -28,6 +28,8 @@ async def lifespan(app: FastAPI):
     logging.basicConfig(level=logging.INFO)
     manual.test_connection()
     logger.info("connection tested")
+    manual.get_parsed_replays(manual.REPLAYS)
+    logger.info("primed replays")
     yield
     logger.info("goodbye!")
 
@@ -54,11 +56,10 @@ app.add_middleware(
 def get_matches(match_count: int) -> Matches:
     """Get listing of matches, up to a return count limit for paging."""
     replays = manual.get_parsed_replays(manual.REPLAYS)
-    # logger.info(f"{replays=}")
+    logger.info(f"Got {len(replays)} parsed replays")
     match_infos = [matches.match_from_replay(replay) for replay in replays]
     not_nulls = [i for i in match_infos if i]
-    logger.info(f"{match_infos=}")
-    return Matches(matches=not_nulls)
+    return Matches(matches=sorted(not_nulls, key=lambda x: x.timestamp, reverse=True))
 
 
 @app.get("/api/details/{match_id}")

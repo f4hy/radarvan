@@ -63,13 +63,16 @@ def parse_replay(path: str) -> EnhancedReplay:
         raw_data = fsspec.filesystem("http").read_bytes(path)
         fs.write_bytes(replay_path, raw_data)
     if fs.exists(json_path):
+        logger.info(f"reading {json_path=}")
         json_data = fs.read_text(json_path)
+        logger.info(f"validating {json_path=}")
         parsed_replay = EnhancedReplay.model_validate_json(json_data)
     else:
         logger.info(f"Does not exist {json_path=}")
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay)
         fs.write_text(json_path, parsed_replay.model_dump_json())
+    logger.info("Finished parsing replay")
     return parsed_replay
 
 

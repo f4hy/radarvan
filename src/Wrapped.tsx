@@ -26,7 +26,7 @@ function getWrapped(player: string, callback: (m: Wrapped) => void) {
         console.log(JSON.stringify(wrapped))
         callback(wrapped)
       })
-      .catch((e) => alert(e))
+      .catch((e) => alert(e)),
   )
 }
 

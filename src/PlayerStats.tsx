@@ -41,7 +41,7 @@ function getPlayerStats(callback: (m: PlayerStats) => void) {
         const a = new Uint8Array(j)
         const playerStats = PlayerStats.decode(a)
         callback(playerStats)
-      })
+      }),
   )
 }
 
@@ -131,7 +131,7 @@ function DisplayPlayerStat(props: { stat: PlayerStat; max: number }) {
     }
   })
   const faction_sorted = props.stat.factionStats.sort(
-    (s1, s2) => s1.faction - s2.faction
+    (s1, s2) => s1.faction - s2.faction,
   )
   const faction_data = faction_sorted.map((p) => {
     const wins = p.winLoss?.wins ?? 0
@@ -202,10 +202,10 @@ export default function DisplayPlayerStats() {
         acc,
         s.factionStats.reduce(
           (ac, x) => Math.max(ac, x.winLoss?.wins ?? 0, x.winLoss?.losses ?? 0),
-          0
-        )
+          0,
+        ),
       ),
-    0
+    0,
   )
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (

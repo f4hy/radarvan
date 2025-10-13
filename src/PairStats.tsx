@@ -32,7 +32,7 @@ function getPairStats(callback: (m: TeamPairs) => void) {
         const a = new Uint8Array(j)
         const mapstats = TeamPairs.decode(a)
         callback(mapstats)
-      })
+      }),
   )
 }
 

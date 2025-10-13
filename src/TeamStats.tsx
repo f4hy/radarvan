@@ -34,7 +34,7 @@ function getTeamStats(querystr: string, callback: (m: TeamStats) => void) {
         const a = new Uint8Array(j)
         const teamStats = TeamStats.decode(a)
         callback(teamStats)
-      })
+      }),
   )
 }
 
@@ -109,7 +109,7 @@ function RecordOverTime(props: { stats: TeamStats }) {
     return [...acc, toAdd]
   }
   const data = _.orderBy(props.stats.teamStats, (ts) =>
-    datemsgtoString(ts.date)
+    datemsgtoString(ts.date),
   ).reduce(reducer, initial)
   const rates = data.map((x) => ({
     date: x.date,
@@ -295,7 +295,7 @@ export default function DisplayTeamStats() {
 
   const max = teamStats.teamStats.reduce((max, s) => Math.max(max, s.wins), 0)
   const grouped = Object.entries(
-    _.groupBy(teamStats.teamStats, (ts: TeamStat) => datemsgtoString(ts.date))
+    _.groupBy(teamStats.teamStats, (ts: TeamStat) => datemsgtoString(ts.date)),
   )
   const ordered = _.orderBy(grouped, (s) => s[0], ["desc"])
   const matches = teamStats.teamStats.reduce((acc, x) => acc + x.wins, 0)
@@ -304,7 +304,7 @@ export default function DisplayTeamStats() {
       ...acc,
       [x.team]: (acc[x.team] ?? 0) + x.wins,
     }),
-    {}
+    {},
   )
 
   return (

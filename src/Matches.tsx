@@ -25,7 +25,9 @@ import { Client } from "./Client"
 import { MatchInfoInput, Matches, Player } from "./api"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
-  Client.getMatchesApiMatchesMatchCountGet({ matchCount: count }).then(callback).catch(e => alert(e))
+  Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
+    .then(callback)
+    .catch((e) => alert(e))
 }
 
 function MatchCard(props: {
@@ -45,33 +47,26 @@ function MatchCard(props: {
   )
 }
 
-function TeamCard(props: {
-  players: Player[]
-  won: boolean
-}) {
-  const color = (props.won ? "#c5e1a5" : "#e57373")
-  const title = (props.won ? "Won" : "Lost")
+function TeamCard(props: { players: Player[]; won: boolean }) {
+  const color = props.won ? "#c5e1a5" : "#e57373"
+  const title = props.won ? "Won" : "Lost"
   return (
     <Card sx={{ backgroundColor: color }}>
-      <CardHeader
-        title={title}
-        avatar={<EmojiEventsIcon />}
-        component="div"
-      />
+      <CardHeader title={title} avatar={<EmojiEventsIcon />} component="div" />
       {props.players.map((p) => (
         <CardContent component="div">
           <Stack direction="row" divider={<Divider flexItem />} spacing={4}>
             <DisplayGeneral
               general={p!.general}
               key={p?.name + "-" + p.general + "-general"}
-            />             <Typography variant="h5">{p.name}</Typography>
+            />{" "}
+            <Typography variant="h5">{p.name}</Typography>
           </Stack>
         </CardContent>
       ))}
     </Card>
   )
 }
-
 
 function downloadURI(uri: string, name: string) {
   var link = document.createElement("a")
@@ -84,7 +79,7 @@ function downloadURI(uri: string, name: string) {
 
 function downloadReplay(filename: string) {
   fetch("/api/getRepaly/" + filename).then((r) =>
-    r.text().then((url) => downloadURI(url, filename))
+    r.text().then((url) => downloadURI(url, filename)),
   )
 }
 
@@ -105,11 +100,11 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const playerCount = props.match.players.length
   const winners = _.sortBy(
     props.match.players.filter((p) => p.team === props.match.winningTeam),
-    ["team", "name"]
+    ["team", "name"],
   )
   const losers = _.sortBy(
     props.match.players.filter((p) => p.team !== props.match.winningTeam),
-    ["team", "name"]
+    ["team", "name"],
   )
   if (losers.length === 0) {
     return <div>Loading {props.idx}</div>
@@ -137,24 +132,23 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
           </Typography>
         ) : null}
       </ListItem>
-      <Stack direction="row"  spacing={{ xs: 1, sm: 2, md: 24 }} justifyContent="space-between">
-        <Stack direction="row"  spacing={{ xs: 1, sm: 2, md: 24 }} justifyContent="flex-start">
-          <TeamCard
-              players={winners}
-              won={true}
-          />
-          <TeamCard
-              players={losers}
-              won={false}
-          />
+      <Stack
+        direction="row"
+        spacing={{ xs: 1, sm: 2, md: 24 }}
+        justifyContent="space-between"
+      >
+        <Stack
+          direction="row"
+          spacing={{ xs: 1, sm: 2, md: 24 }}
+          justifyContent="flex-start"
+        >
+          <TeamCard players={winners} won={true} />
+          <TeamCard players={losers} won={false} />
         </Stack>
         <Map mapname={props.match.map} />
       </Stack>
-      <Stack direction="row"  spacing={{ sx: 0, md: 1, width: "99%" }}>
-        <Button
-          variant="contained"
-          onClick={() => setDetails(!details)}
-        >
+      <Stack direction="row" spacing={{ sx: 0, md: 1, width: "99%" }}>
+        <Button variant="contained" onClick={() => setDetails(!details)}>
           Match Details
         </Button>
         <Button
@@ -168,8 +162,8 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
           Download Replay (soon)
         </Button>
       </Stack>
-      { details ? <ShowMatchDetails id={props.match.id} /> : null }
-    </Paper >
+      {details ? <ShowMatchDetails id={props.match.id} /> : null}
+    </Paper>
   )
 }
 
@@ -186,7 +180,9 @@ export default function DisplayMatches() {
   const showAll = () => {
     setGetAll(true)
   }
-  const byDate = _.groupBy(matchList.matches, (m) => new Date(m.timestamp).toLocaleDateString())
+  const byDate = _.groupBy(matchList.matches, (m) =>
+    new Date(m.timestamp).toLocaleDateString(),
+  )
   return (
     <>
       {Object.entries(byDate).map(([date, group], idx) => (

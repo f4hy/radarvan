@@ -24,7 +24,7 @@ function getGeneralStats(callback: (m: GeneralStats) => void) {
         const generalStats = GeneralStats.decode(a)
         generalStats.generalStats.sort((s1, s2) => s1.general - s2.general)
         callback(generalStats)
-      })
+      }),
   )
 }
 
@@ -56,7 +56,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
 
 function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
   const sorted = props.stat.stats.sort((s1, s2) =>
-    s1.playerName.localeCompare(s2.playerName, "en")
+    s1.playerName.localeCompare(s2.playerName, "en"),
   )
   const overall = props.stat.total
   let pdata = sorted.map((s) => ({
@@ -105,7 +105,7 @@ export default function DisplayGeneralStats() {
   }, [])
   const maxwl = generalStats.generalStats.reduce(
     (acc, s) => Math.max(acc, s.total?.wins ?? 0, s.total?.losses ?? 0),
-    0
+    0,
   )
   const maxWinLoss = roundUpNearest5(maxwl + 1)
   return (

@@ -38,7 +38,7 @@ function getMapStats(callback: (m: MapStats) => void) {
         const a = new Uint8Array(j)
         const mapstats = MapStats.decode(a)
         callback(mapstats)
-      })
+      }),
   )
 }
 const emptyOverTime: { [key: string]: MapResults } = {}
@@ -184,7 +184,7 @@ export default function DisplayMapstats() {
   const chunks = _.chunk(data, isBig ? 64 : 16)
   const sorted_over_time_keys = _.sortBy(
     Object.keys(mapstats.overTime),
-    (r) => -mapstats.overTime[r].results.length
+    (r) => -mapstats.overTime[r].results.length,
   )
   return (
     <Paper>
