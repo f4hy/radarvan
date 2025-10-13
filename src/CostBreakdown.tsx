@@ -10,18 +10,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { Costs, Costs_BuiltObject } from "./proto/match"
+import { MatchDetails, Spent, Upgrades, APM , CostsOutput, CostsBuiltObject } from "./api"
 
-function formatCosts(data: Costs_BuiltObject[], name: string) {
+function formatCosts(data: CostsBuiltObject[], name: string) {
   const sorted = _.sortBy(data, (d) => -d.totalSpent)
-  function reducer(acc: any, d: Costs_BuiltObject) {
+  function reducer(acc: any, d: CostsBuiltObject) {
     return { ...acc, [d.name]: d.totalSpent }
   }
   const bc = sorted.reduce(reducer, { name: name })
   return bc
 }
 
-export default function CostBreakdown(props: { costs: Costs[] }) {
+export default function CostBreakdown(props: { costs: CostsOutput[] }) {
   const building_data = props.costs.map((x) =>
     formatCosts(x.buildings, x?.player?.name ?? "unk")
   )

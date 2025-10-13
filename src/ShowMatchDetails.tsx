@@ -19,19 +19,13 @@ import {
 } from "recharts"
 import { PlayerColor } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
-import { APM, MatchDetails, Spent, Upgrades } from "./proto/match"
+import { Client } from "./Client"
+import { MatchDetails, Spent, Upgrades, APM } from "./api"
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
-  fetch("/api/details/" + id).then((r) =>
-    r
-      .blob()
-      .then((b) => b.arrayBuffer())
-      .then((j) => {
-        const a = new Uint8Array(j)
-        const costs = MatchDetails.decode(a)
-        callback(costs)
-      })
-  )
+  Client.getMatcheDetailsApiDetailsMatchIdGet({ matchId: id })
+    .then(callback)
+    .catch(e => alert(e))
 }
 
 const empty: MatchDetails = {
@@ -157,7 +151,7 @@ function EventChart(props: {
       </ResponsiveContainer>
     )
   } else {
-    return <div>{JSON.stringify(props.upgrades)}</div>
+    return <div></div>
   }
 }
 
@@ -186,6 +180,24 @@ function ApmChart(props: { apms: APM[] }) {
   )
 }
 
+function Spending(props: { title: string, spend_data: Spent[] | undefined, max: number }) {
+
+  if ((props.spend_data ?? []).length === 0) {
+    return <></>
+  }
+  return (
+    <>
+      <Typography>props.title</Typography>
+      <SpendingChart
+        spent={props.spend_data}
+        title="total"
+        max={props.max}
+      />
+    </>
+  )
+}
+
+
 export default function ShowMatchDetails(props: { id: number }) {
   const [details, setDetails] = React.useState<MatchDetails>(empty)
   React.useEffect(() => {
@@ -198,30 +210,10 @@ export default function ShowMatchDetails(props: { id: number }) {
   const maxMinute = Math.ceil(maxAtMinute ?? 1)
   return (
     <>
-      <Typography>Spending Total</Typography>
-      <SpendingChart
-        spent={details.spent?.total}
-        title="total"
-        max={maxMinute}
-      />
-      <Typography>Spending Buildings</Typography>
-      <SpendingChart
-        spent={details.spent?.buildings}
-        title="buildings"
-        max={maxMinute}
-      />
-      <Typography>Spending Units</Typography>
-      <SpendingChart
-        spent={details.spent?.units}
-        title="units"
-        max={maxMinute}
-      />
-      <Typography>Spending Upgrades</Typography>
-      <SpendingChart
-        spent={details.spent?.upgrades}
-        title="upgrades"
-        max={maxMinute}
-      />
+			<Spending title="Spending Total" spend_data={details.spent.total} max={maxMinute} />
+			<Spending title="Spending Units" spend_data={details.spent.units} max={maxMinute} />
+			<Spending title="Spending Buildings" spend_data={details.spent.buildings} max={maxMinute} />
+			<Spending title="Spending Upgrades" spend_data={details.spent.upgrades} max={maxMinute} />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
       <ApmChart apms={details.apms} />
       <Divider />

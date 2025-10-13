@@ -16,14 +16,21 @@
 import * as runtime from '../runtime';
 import type {
   HTTPValidationError,
+  MatchDetails,
   Matches,
 } from '../models/index';
 import {
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    MatchDetailsFromJSON,
+    MatchDetailsToJSON,
     MatchesFromJSON,
     MatchesToJSON,
 } from '../models/index';
+
+export interface GetMatcheDetailsApiDetailsMatchIdGetRequest {
+    matchId: number;
+}
 
 export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
@@ -35,6 +42,46 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
 export class DefaultApi extends runtime.BaseAPI {
 
     /**
+     * Get details about a particular match
+     * Get Matche Details
+     */
+    async getMatcheDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatcheDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getMatcheDetailsApiDetailsMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/details/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchDetailsFromJSON(jsonValue));
+    }
+
+    /**
+     * Get details about a particular match
+     * Get Matche Details
+     */
+    async getMatcheDetailsApiDetailsMatchIdGet(requestParameters: GetMatcheDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
+        const response = await this.getMatcheDetailsApiDetailsMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
      * Get Matches
      */
     async getMatchesApiMatchesMatchCountGetRaw(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
@@ -64,6 +111,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get listing of matches, up to a return count limit for paging.
      * Get Matches
      */
     async getMatchesApiMatchesMatchCountGet(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
