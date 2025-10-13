@@ -44,8 +44,12 @@ def player_summary_to_player(p: PlayerSummary) -> Player:
     )
 
 
-def match_from_replay(replay: EnhancedReplay) -> MatchInfo:
-    winner = next(p for p in replay.Summary if p.Win == True).Team
+def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
+    _winners = [p for p in replay.Summary if p.Win is True]
+    if not _winners:
+        logger.info(f"No winner found in replay {replay.Summary=}")
+        return None
+    winner = _winners[0].Team
 
     players = [player_summary_to_player(p) for p in replay.Summary]
     start = datetime.datetime.fromtimestamp(replay.Header.TimeStampBegin)

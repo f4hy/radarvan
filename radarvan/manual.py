@@ -25,6 +25,13 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/02-46-00_2v2_Skip_WLD_Pancake_Mod.rep",
     "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/03-12-52_2v2_WLD_Skip_Mod_Pancake.rep",
     "https://www.gentool.net/data/zh/2025_10_October/09_Thursday/Mod_09BAC013F91C/03-14-48_2v2_WLD_Skip_Mod_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/01-31-27_2v2_Mod_Pancake_Neo_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/01-40-54_2v2_Mod_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/01-51-56_2v2_Mod_Pancake_Neo_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-10-57_2v2_Mod_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-47-34_2v2_Mod_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-49-16_2v2_Mod_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/03-10-42_1v1v1v1v1v1_Neo_131_Pancake_Mod_HardAI_HardAI.rep",
 ]
 
 
@@ -40,19 +47,21 @@ def test_connection():
     logger.info(f"Listing {listing=}")
 
 
-# @cache
+@cache
 def parse_replay(path: str) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
     json_path = replay_path.replace(".rep", ".json")
     logger.info(f"{json_path=} {replay_path=}")
     fs = get_fs()
     if not fs.exists(replay_path):
+        logger.info(f"Does not exist {replay_path=}")
         raw_data = fsspec.filesystem("http").read_bytes(path)
         fs.write_bytes(replay_path, raw_data)
     if fs.exists(json_path):
         json_data = fs.read_text(json_path)
         parsed_replay = EnhancedReplay.model_validate_json(json_data)
     else:
+        logger.info(f"Does not exist {json_path=}")
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay)
         fs.write_text(json_path, parsed_replay.model_dump_json())

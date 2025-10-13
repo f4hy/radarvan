@@ -55,8 +55,9 @@ def get_matches(match_count: int) -> Matches:
     replays = manual.get_parsed_replays(manual.REPLAYS)
     # logger.info(f"{replays=}")
     match_infos = [matches.match_from_replay(replay) for replay in replays]
+    not_nulls = [i for i in match_infos if i]
     logger.info(f"{match_infos=}")
-    return Matches(matches=match_infos)
+    return Matches(matches=not_nulls)
 
 
 @app.get("/api/details/{match_id}")
