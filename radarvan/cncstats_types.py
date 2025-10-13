@@ -104,7 +104,7 @@ class EnhancedBodyChunk(BaseModel):
     Arguments: List[
         Union[int, float, bool, str, Position3D, ScreenPosition, ScreenRectangle]
     ]
-    PlayerMoney: Optional[PlayerMoney] = None
+    player_money: PlayerMoney | None = None
 
 
 class ObjectSummary(BaseModel):

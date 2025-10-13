@@ -9,6 +9,7 @@ from parse_replay import parse_replay_data
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
+bill = "131_5211058E5C33"
 
 s3_root = "s3://generals-stats/radarvan/dev/"
 
