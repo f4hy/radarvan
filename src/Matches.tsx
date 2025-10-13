@@ -22,7 +22,7 @@ import { Client } from "./Client"
 import { MatchInfoInput, Matches } from "./api"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
-Client.getMatchesApiMatchesMatchCountGet({matchCount: count}).then(callback).catch(e => alert(e))
+  Client.getMatchesApiMatchesMatchCountGet({ matchCount: count }).then(callback).catch(e => alert(e))
 }
 
 function MatchCard(props: {
@@ -224,7 +224,7 @@ export default function DisplayMatches() {
   const showAll = () => {
     setGetAll(true)
   }
-  const byDate = _.groupBy(matchList.matches, (m) => m.timestamp)
+  const byDate = _.groupBy(matchList.matches, (m) => new Date(m.timestamp).toLocaleDateString())
   return (
     <>
       {Object.entries(byDate).map(([date, group], idx) => (
