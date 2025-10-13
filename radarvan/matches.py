@@ -1,5 +1,6 @@
 """Get match info from a replay."""
 
+import datetime
 from api_types import Matches, MatchInfo, Player, General, Team
 from cncstats_types import EnhancedReplay, PlayerSummary
 import logging
@@ -47,14 +48,16 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo:
     winner = next(p for p in replay.Summary if p.Win == True).Team
 
     players = [player_summary_to_player(p) for p in replay.Summary]
-
+    start = datetime.datetime.fromtimestamp(replay.Header.TimeStampBegin)
+    end = datetime.datetime.fromtimestamp(replay.Header.TimeStampEnd)
+    duration_minutes = (end - start).total_seconds() / 60
     return MatchInfo(
         id=replay.Header.Metadata.Seed,
         timestamp=replay.Header.TimeStampBegin,
         map=replay.Header.Metadata.MapFile,
         winning_team=winner,
         players=players,
-        duration_minutes=1.0,
+        duration_minutes=duration_minutes,
         filename=replay.Header.Metadata.MapFile,
         incomplete="",
         notes="",

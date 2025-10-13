@@ -97,10 +97,8 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     props.match.id +
     " Date:" +
     date +
-    " on Map:'" +
+    " on Map:" +
     props.match.map.split("/").slice(-1) +
-    "'  Winner:Team" +
-    props.match.winningTeam +
     " Duration " +
     props.match.durationMinutes.toFixed(2) +
     " minutes"
