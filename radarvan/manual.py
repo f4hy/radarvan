@@ -34,6 +34,10 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-49-16_2v2_Mod_Pancake_131_Neo.rep",
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-34-51_2v2_Mod_Pancake_Neo_131.rep",
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/03-10-42_1v1v1v1v1v1_Neo_131_Pancake_Mod_HardAI_HardAI.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/01-26-21_2v2_Skip_WLD_Tytan_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/01-36-13_3v3_Skip_WLD_Neo_Pancake_131_Tytan.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/02-08-32_4v4_Skip_131_Pan_Mod_WLD_Tyt_Neo_Syn.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/02-25-54_4v4_Skip_Mod_Pan_131_Neo_Syn_Tyt_WLD.rep",
 ]
 
 if os.getenv("DEV"):
