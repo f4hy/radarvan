@@ -18,8 +18,6 @@ import utils
 logger = logging.getLogger(__name__)
 
 
-
-
 def player_money_from_replay(replay: EnhancedReplay) -> dict[int, dict[str, int]]:
     """Get player money from replay."""
 
@@ -39,7 +37,7 @@ def player_money_from_replay(replay: EnhancedReplay) -> dict[int, dict[str, int]
 
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
-    print(money)
+    logger.info(f"Summary : {replay.Summary}")
     return MatchDetails(
         match_id=replay.Header.TimeStampBegin,
         costs=[],
@@ -52,4 +50,5 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
             total=[],
         ),
         money_values=money,
+        player_summary=[s.model_dump() for s in  replay.Summary],
     )

@@ -19,6 +19,7 @@ import {
 } from "recharts"
 import { PlayerColor, ColorByIdx } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
+import ShowPlayerSummary from "./Summary"
 import { Client } from "./Client"
 import { MatchDetails, Spent, Upgrades, APM } from "./api"
 
@@ -40,6 +41,7 @@ const empty: MatchDetails = {
     total: [],
   },
   moneyValues: {},
+  playerSummary: [],
 }
 
 const shapes: (
@@ -126,13 +128,13 @@ function MoneyChart(props: {
     return (
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
-					title="Money $$"
+          title="Money $$"
           height={300}
           data={data}
           margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis  type="number" dataKey="timecode" domain={[0, max_time]} />
+          <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
           <YAxis
             label={{
               value: "Money",
@@ -262,6 +264,10 @@ export default function ShowMatchDetails(props: { id: number }) {
   return (
     <>
       <MoneyChart title="Money" money={details.moneyValues} />
+      <Divider />
+      {details.playerSummary.map((sum) => {
+      return <ShowPlayerSummary playerSummary={sum} />
+      })}
       <Divider />
       <Spending
         title="Spending Total"

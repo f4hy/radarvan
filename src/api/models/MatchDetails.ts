@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PlayerSummary } from './PlayerSummary';
+import {
+    PlayerSummaryFromJSON,
+    PlayerSummaryFromJSONTyped,
+    PlayerSummaryToJSON,
+    PlayerSummaryToJSONTyped,
+} from './PlayerSummary';
 import type { Upgrades } from './Upgrades';
 import {
     UpgradesFromJSON,
@@ -84,6 +91,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     moneyValues: { [key: string]: { [key: string]: number; }; };
+    /**
+     * 
+     * @type {Array<PlayerSummary>}
+     * @memberof MatchDetails
+     */
+    playerSummary: Array<PlayerSummary>;
 }
 
 /**
@@ -96,6 +109,7 @@ export function instanceOfMatchDetails(value: object): value is MatchDetails {
     if (!('upgradeEvents' in value) || value['upgradeEvents'] === undefined) return false;
     if (!('spent' in value) || value['spent'] === undefined) return false;
     if (!('moneyValues' in value) || value['moneyValues'] === undefined) return false;
+    if (!('playerSummary' in value) || value['playerSummary'] === undefined) return false;
     return true;
 }
 
@@ -115,6 +129,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
         'spent': SpentOverTimeFromJSON(json['spent']),
         'moneyValues': json['money_values'],
+        'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
     };
 }
 
@@ -135,6 +150,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
         'spent': SpentOverTimeToJSON(value['spent']),
         'money_values': value['moneyValues'],
+        'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
     };
 }
 

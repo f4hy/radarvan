@@ -11,7 +11,9 @@ models/MatchDetails.ts
 models/MatchInfoInput.ts
 models/MatchInfoOutput.ts
 models/Matches.ts
+models/ObjectSummary.ts
 models/Player.ts
+models/PlayerSummary.ts
 models/Spent.ts
 models/SpentOverTime.ts
 models/Team.ts

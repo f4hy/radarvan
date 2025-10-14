@@ -232,15 +232,33 @@ class SpentOverTime(BaseModel):
     total: List[Spent]
 
 
+class ObjectSummary(BaseModel):
+    Count: int
+    TotalSpent: int
+
+
+class PlayerSummary(BaseModel):
+    Name: str
+    Side: str
+    Team: int
+    Win: bool
+    MoneySpent: int
+    UnitsCreated: dict[str, ObjectSummary]
+    BuildingsBuilt: dict[str, ObjectSummary]
+    UpgradesBuilt: dict[str, ObjectSummary]
+    PowersUsed: dict[str, int]
+
+
 class MatchDetails(BaseModel):
     match_id: int = Field(alias="matchId")
     costs: List[Costs]
     apms: List[APM]
-    upgrade_events: Dict[str, Upgrades] = Field(alias="upgradeEvents")
+    upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
     spent: SpentOverTime
     money_values: dict[int, dict[str, int]] = Field(
         description="at a time value (int) map each player to the value"
     )
+    player_summary: list[PlayerSummary]
 
     class Config:
         populate_by_name = True
@@ -267,8 +285,8 @@ class PairFactionWinLosses(BaseModel):
 
 
 class TeamPairs(BaseModel):
-    team_pairs: Dict[str, PairsWinLosses] = Field(alias="teamPairs")
-    faction_pairs: Dict[str, PairFactionWinLosses] = Field(alias="factionPairs")
+    team_pairs: dict[str, PairsWinLosses] = Field(alias="teamPairs")
+    faction_pairs: dict[str, PairFactionWinLosses] = Field(alias="factionPairs")
 
     class Config:
         populate_by_name = True
