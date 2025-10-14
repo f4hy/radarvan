@@ -81,14 +81,7 @@ class ArgMetadata(BaseModel):
 
 class Money(BaseModel):
 
-    Player1Money: int
-    Player2Money: int
-    Player3Money: int
-    Player4Money: int
-    Player5Money: int
-    Player6Money: int
-    Player7Money: int
-    Player8Money: int
+    PlayerMoney: list[int]
 
 
 class EnhancedBodyChunk(BaseModel):

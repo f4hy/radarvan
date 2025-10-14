@@ -53,7 +53,7 @@ def test_connection():
 
 
 @cache
-def parse_replay(path: str) -> EnhancedReplay:
+def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
     json_path = replay_path.replace(".rep", ".json")
     logger.info(f"{json_path=} {replay_path=}")
@@ -62,7 +62,7 @@ def parse_replay(path: str) -> EnhancedReplay:
         logger.info(f"Does not exist {replay_path=}")
         raw_data = fsspec.filesystem("http").read_bytes(path)
         fs.write_bytes(replay_path, raw_data)
-    if fs.exists(json_path):
+    if fs.exists(json_path) and (not reparse):
         logger.info(f"reading {json_path=}")
         json_data = fs.read_text(json_path)
         logger.info(f"validating {json_path=}")

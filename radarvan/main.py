@@ -52,6 +52,15 @@ app.add_middleware(
 )
 
 
+@app.get("/api/reparse")
+def reparse() -> None:
+    """Reparse the replays."""
+    manual.parse_replay.cache_clear()
+    for replay in manual.REPLAYS:
+        logger.info(f"Reparsing {replay=}")
+        manual.parse_replay(replay, reparse=True)
+
+
 @app.get("/api/matches/{match_count}")
 def get_matches(match_count: int) -> Matches:
     """Get listing of matches, up to a return count limit for paging."""
