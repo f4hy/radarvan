@@ -6,7 +6,8 @@ import fsspec
 from cncstats_types import EnhancedReplay
 from functools import cache
 from parse_replay import parse_replay_data
-
+import os
+import utils
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
 bill = "131_5211058E5C33"
@@ -35,10 +36,9 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/03-10-42_1v1v1v1v1v1_Neo_131_Pancake_Mod_HardAI_HardAI.rep",
 ]
 
-# REPLAYS = [
-#     # "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-49-16_2v2_Mod_Pancake_131_Neo.rep",
-#     "https://www.gentool.net/data/zh/2025_10_October/11_Saturday/131_5211058E5C33/02-34-51_2v2_Mod_Pancake_Neo_131.rep"
-# ]
+if os.getenv("DEV"):
+    REPLAYS = REPLAYS[-5:]
+
 
 @cache
 def get_fs() -> fsspec.AbstractFileSystem():
