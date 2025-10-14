@@ -121,6 +121,8 @@ function MoneyChart(props: {
       ...values,
       timecode: timecode,
     }))
+    const max = Object.values(props.money).reduce((acc, cur) => { return Math.max(acc, ...Object.values(cur)) }, 0)
+    const max_time = Math.max(...Object.keys(props.money).map(k => Number(k)))
     return (
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
@@ -129,7 +131,7 @@ function MoneyChart(props: {
           margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" dataKey="timecode" />
+          <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
           <YAxis
             label={{
               value: "$",
@@ -137,6 +139,7 @@ function MoneyChart(props: {
               offset: -5,
               angle: -90,
             }}
+            domain={[0, max]}
           />
           <Tooltip />
           <Legend />
