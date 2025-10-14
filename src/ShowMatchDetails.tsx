@@ -126,15 +126,16 @@ function MoneyChart(props: {
     return (
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
+					title="Money $$"
           height={300}
           data={data}
           margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
+          <XAxis  type="number" dataKey="timecode" domain={[0, max_time]} />
           <YAxis
             label={{
-              value: "$",
+              value: "Money",
               position: "insideLeft",
               offset: -5,
               angle: -90,

@@ -78,4 +78,6 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
 
 def get_parsed_replays(replay_paths: list[str]) -> list[EnhancedReplay]:
     logger.info(f"getting {replay_paths=}")
-    return [parse_replay(path) for path in replay_paths]
+    all_replays =  [parse_replay(path) for path in replay_paths]
+    long_enough = [r for r in all_replays if utils.duration_minutes(r) > 2.0]
+    return long_enough
