@@ -25,10 +25,67 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { MatchDetails, Spent, Upgrades, APM, PlayerSummary } from "./api"
+import { MatchDetails, Spent, Upgrades, APM, PlayerSummary, ObjectSummary } from "./api"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
+
+
+function removeUnitPrefix(s: string): string {
+  return s.replace(/.*_/g, "").replace("America", "").replace("China", "").replace("GLA", "")
+}
+
+function BuiltChart(props: {
+  built: { [key: string]: ObjectSummary }
+  title: string
+}) {
+  if (Object.keys(props.built).length < 1) {
+    return (<div>No data</div>)
+  }
+  const data = Object.entries(props.built).map(([unit, values]) => ({
+    ...values,
+    unit: unit,
+  }))
+  return (
+    <>
+      <Typography>{props.title}</Typography>
+      <Stack direction="row">
+        <ResponsiveContainer width="90%" height={300}>
+          <BarChart
+            title={props.title}
+            height={300}
+            layout="vertical"
+            data={data}
+            margin={{ top: 5, right: 5, left: 200, bottom: 5 }}
+          >
+            <YAxis dataKey="unit" type="category" tickFormatter={removeUnitPrefix}
+            />
+            <XAxis dataKey="count" type="number" orientation="top" allowDecimals={false}  label="count"
+            />
+            <Tooltip />
+            <Bar dataKey="count" fill="#8884d8" label={{ fill: 'black', fontSize: 20 }} />
+          </BarChart>
+        </ResponsiveContainer>
+        <ResponsiveContainer width="80%" height={300}>
+          <BarChart
+            title={props.title}
+            height={300}
+            layout="vertical"
+            data={data}
+            margin={{ top: 5, right: 5, left: 20, bottom: 5 }}
+          >
+            <YAxis dataKey="unit" type="category" tickFormatter={removeUnitPrefix}  hide={true}
+            />
+            <XAxis dataKey="totalSpent" type="number" name="$" orientation="top"
+            />
+            <Tooltip />
+            <Bar dataKey="totalSpent" fill="green"  />
+          </BarChart>
+        </ResponsiveContainer>
+      </Stack>
+    </>
+  )
+}
 
 
 export default function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
@@ -38,28 +95,19 @@ export default function ShowPlayerSummary(props: { playerSummary: PlayerSummary 
         <Typography>{props.playerSummary.name + " Details"}</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <Typography>Money Spent{props.playerSummary.moneySpent}</Typography>
+        <Typography>Money Spent: ${props.playerSummary.moneySpent}</Typography>
       </AccordionDetails>
       <Divider />
       <AccordionDetails>
-        {Object.entries(props.playerSummary.unitsCreated).map(([name, obj]) => {
-          return <Typography>{"Units Created: " + name + " " + obj.count}</Typography>
-        }
-        )}
+        <BuiltChart title="Units Created" built={props.playerSummary.unitsCreated} />
       </AccordionDetails>
       <Divider />
       <AccordionDetails>
-        {Object.entries(props.playerSummary.buildingsBuilt).map(([name, obj]) => {
-          return <Typography>{"Buildings Built: " + name + " " + obj.count}</Typography>
-        }
-        )}
+        <BuiltChart title="Buildings Created" built={props.playerSummary.buildingsBuilt} />
       </AccordionDetails>
       <Divider />
       <AccordionDetails>
-        {Object.entries(props.playerSummary.upgradesBuilt).map(([name, obj]) => {
-          return <Typography>{"Upgrades: " + name + " " + obj.count}</Typography>
-        }
-        )}
+        <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
       </AccordionDetails>
       <Divider />
       <AccordionDetails>
