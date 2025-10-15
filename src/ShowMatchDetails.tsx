@@ -269,26 +269,6 @@ export default function ShowMatchDetails(props: { id: number }) {
       return <ShowPlayerSummary playerSummary={sum} />
       })}
       <Divider />
-      <Spending
-        title="Spending Total"
-        spend_data={details.spent.total}
-        max={maxMinute}
-      />
-      <Spending
-        title="Spending Units"
-        spend_data={details.spent.units}
-        max={maxMinute}
-      />
-      <Spending
-        title="Spending Buildings"
-        spend_data={details.spent.buildings}
-        max={maxMinute}
-      />
-      <Spending
-        title="Spending Upgrades"
-        spend_data={details.spent.upgrades}
-        max={maxMinute}
-      />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
       <ApmChart apms={details.apms} />
       <Divider />
