@@ -29,6 +29,10 @@ import { MatchDetails, Spent, Upgrades, APM, PlayerSummary, ObjectSummary } from
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
+import { ButtonGroup } from "@mui/material"
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+
 
 
 function removeUnitPrefix(s: string): string {
@@ -87,36 +91,43 @@ function BuiltChart(props: {
   )
 }
 
-
-export default function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
+function ShowPlayerSummary(props: {
+  playerSummary: PlayerSummary
+}) {
+  const sum = props.playerSummary
   return (
-    <Accordion>
-      <AccordionSummary>
-        <Typography>{props.playerSummary.name + " Details"}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography>Money Spent: ${props.playerSummary.moneySpent}</Typography>
-      </AccordionDetails>
+    <Stack>
+      <Typography>{sum.name} | {sum.side} | Team={sum.team}</Typography>
+      <Typography>Money Spent: ${props.playerSummary.moneySpent}</Typography>
       <Divider />
-      <AccordionDetails>
-        <BuiltChart title="Units Created" built={props.playerSummary.unitsCreated} />
-      </AccordionDetails>
+      <BuiltChart title="Units Created" built={props.playerSummary.unitsCreated} />
       <Divider />
-      <AccordionDetails>
-        <BuiltChart title="Buildings Created" built={props.playerSummary.buildingsBuilt} />
-      </AccordionDetails>
+      <BuiltChart title="Buildings Created" built={props.playerSummary.buildingsBuilt} />
       <Divider />
-      <AccordionDetails>
-        <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
-      </AccordionDetails>
+      <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
       <Divider />
-      <AccordionDetails>
-        {Object.entries(props.playerSummary.powersUsed).map(([name, count]) => {
-          return <Typography>{"Powers Used: " + name + " " + count}</Typography>
-        }
-        )}
-      </AccordionDetails>
-
-    </Accordion>
+      {Object.entries(props.playerSummary.powersUsed).map(([name, count]) => {
+        return <Typography>{"Powers Used: " + name + " " + count}</Typography>
+      }
+      )}
+    </Stack>
   )
+}
+
+export default function ShowPlayerSummaries(props: { playerSummaries: PlayerSummary[] }) {
+  const [selectedPlayer, setSelectedPlayer] = React.useState<number>(0)
+  const handleClick = (
+    event: React.MouseEvent<HTMLElement>,
+    newSelection: number | undefined,
+  ) => {
+			setSelectedPlayer(newSelection ?? 0);
+  };
+  const buttonGroup = <ToggleButtonGroup exclusive value={selectedPlayer} onChange={handleClick} color="warning">
+    {props.playerSummaries.map((sum, i) => {
+      return <ToggleButton size="large" value={i} onClick={() => { setSelectedPlayer(i) }}>{sum.name}</ToggleButton>
+    })
+    }
+  </ToggleButtonGroup>
+  const playerSummary = selectedPlayer !== undefined ? <ShowPlayerSummary playerSummary={props.playerSummaries[selectedPlayer]} /> : (<></>)
+  return (<><Typography>Select player for details</Typography>{buttonGroup}{playerSummary}</>)
 }

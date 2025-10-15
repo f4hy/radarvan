@@ -19,7 +19,7 @@ import {
 } from "recharts"
 import { PlayerColor, ColorByIdx } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
-import ShowPlayerSummary from "./Summary"
+import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
 import { MatchDetails, Spent, Upgrades, APM } from "./api"
 
@@ -265,9 +265,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     <>
       <MoneyChart title="Money" money={details.moneyValues} />
       <Divider />
-      {details.playerSummary.map((sum) => {
-      return <ShowPlayerSummary playerSummary={sum} />
-      })}
+      <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
       <ApmChart apms={details.apms} />
