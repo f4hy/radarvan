@@ -60,7 +60,7 @@ function BuiltChart(props: {
           >
             <YAxis dataKey="unit" type="category" tickFormatter={removeUnitPrefix}
             />
-            <XAxis dataKey="count" type="number" orientation="top" allowDecimals={false}  label="count"
+            <XAxis dataKey="count" type="number" orientation="top" allowDecimals={false}
             />
             <Tooltip />
             <Bar dataKey="count" fill="#8884d8" label={{ fill: 'black', fontSize: 20 }} />
@@ -74,12 +74,12 @@ function BuiltChart(props: {
             data={data}
             margin={{ top: 5, right: 5, left: 20, bottom: 5 }}
           >
-            <YAxis dataKey="unit" type="category" tickFormatter={removeUnitPrefix}  hide={true}
+            <YAxis dataKey="unit" type="category" tickFormatter={removeUnitPrefix} hide={true}
             />
             <XAxis dataKey="totalSpent" type="number" name="$" orientation="top"
             />
             <Tooltip />
-            <Bar dataKey="totalSpent" fill="green"  />
+            <Bar dataKey="totalSpent" fill="green" />
           </BarChart>
         </ResponsiveContainer>
       </Stack>
