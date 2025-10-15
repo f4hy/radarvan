@@ -95,9 +95,12 @@ function ShowPlayerSummary(props: {
   playerSummary: PlayerSummary
 }) {
   const sum = props.playerSummary
+  if (sum?.name === undefined) {
+    return <Typography>No player summaries</Typography>
+  }
   return (
     <Stack>
-      <Typography>{sum.name} | {sum.side} | Team={sum.team}</Typography>
+      <Typography>{sum?.name} | {sum?.side} | Team={sum?.team}</Typography>
       <Typography>Money Spent: ${props.playerSummary.moneySpent}</Typography>
       <Divider />
       <BuiltChart title="Units Created" built={props.playerSummary.unitsCreated} />
@@ -120,11 +123,11 @@ export default function ShowPlayerSummaries(props: { playerSummaries: PlayerSumm
     event: React.MouseEvent<HTMLElement>,
     newSelection: number | undefined,
   ) => {
-			setSelectedPlayer(newSelection ?? 0);
+    setSelectedPlayer(newSelection ?? selectedPlayer);
   };
   const buttonGroup = <ToggleButtonGroup exclusive value={selectedPlayer} onChange={handleClick} color="warning">
     {props.playerSummaries.map((sum, i) => {
-      return <ToggleButton size="large" value={i} onClick={() => { setSelectedPlayer(i) }}>{sum.name}</ToggleButton>
+      return <ToggleButton size="large" value={i} onClick={() => { setSelectedPlayer(i) }}>{sum?.name}</ToggleButton>
     })
     }
   </ToggleButtonGroup>
