@@ -127,7 +127,7 @@ export default function ShowPlayerSummaries(props: { playerSummaries: PlayerSumm
   };
   const buttonGroup = <ToggleButtonGroup exclusive value={selectedPlayer} onChange={handleClick} color="warning">
     {props.playerSummaries.map((sum, i) => {
-      return <ToggleButton size="large" value={i} onClick={() => { setSelectedPlayer(i) }}>{sum?.name}</ToggleButton>
+      return <ToggleButton size="large" value={i} >{sum?.name}</ToggleButton>
     })
     }
   </ToggleButtonGroup>
