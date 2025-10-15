@@ -2,6 +2,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ThumbDownIcon from "@mui/icons-material/ThumbDown"
+import ErrorIcon from '@mui/icons-material/Error';
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -50,9 +51,10 @@ function MatchCard(props: {
 function TeamCard(props: { players: Player[]; won: boolean }) {
   const color = props.won ? "#c5e1a5" : "#e57373"
   const title = props.won ? "Won" : "Lost"
+  const icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
   return (
-    <Card sx={{ backgroundColor: color }}>
-      <CardHeader title={title} avatar={<EmojiEventsIcon />} component="div" />
+    <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }} >
+      <CardHeader title={title} avatar={icon} component="div" />
       {props.players.map((p) => (
         <CardContent component="div">
           <Stack direction="row" divider={<Divider flexItem />} spacing={4}>
@@ -110,7 +112,6 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     return <div>Loading {props.idx}</div>
   }
 
-  const losingTeam = losers[0].team
   const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: "20px" }
   if (props.match.incomplete) {
     paperprops["bgcolor"] = "text.disabled"
@@ -134,20 +135,13 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
       </ListItem>
       <Stack
         direction="row"
-        spacing={{ xs: 1, sm: 2, md: 24 }}
-        justifyContent="space-between"
+        justifyContent="flex-start"
       >
-        <Stack
-          direction="row"
-          spacing={{ xs: 1, sm: 2, md: 24 }}
-          justifyContent="flex-start"
-        >
-          <TeamCard players={winners} won={true} />
-          <TeamCard players={losers} won={false} />
-        </Stack>
+        <TeamCard players={winners} won={true} />
+        <TeamCard players={losers} won={false} />
         <Map mapname={props.match.map} />
       </Stack>
-      <Stack direction="row" spacing={{ sx: 0, md: 1, width: "99%" }}>
+      <Stack direction="row">
         <Button variant="contained" onClick={() => setDetails(!details)}>
           Match Details
         </Button>

@@ -14,7 +14,7 @@ export default function Map(props: { mapname: string }) {
 
   return (
     <Tooltip title={"Map " + mapname}>
-      <Card sx={{ minheight: 160 }}>
+      <Card sx={{ minHeight: 300, minWidth: 300 }}>
         <CardMedia
           component="img"
           image={mapUrl}
