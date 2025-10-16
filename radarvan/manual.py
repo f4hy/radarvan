@@ -8,6 +8,7 @@ from functools import cache
 from parse_replay import parse_replay_data
 import os
 import utils
+
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
 bill = "131_5211058E5C33"
@@ -92,6 +93,6 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
 
 def get_parsed_replays(replay_paths: list[str]) -> list[EnhancedReplay]:
     logger.info(f"getting {replay_paths=}")
-    all_replays =  [parse_replay(path) for path in replay_paths]
+    all_replays = [parse_replay(path) for path in replay_paths]
     long_enough = [r for r in all_replays if utils.duration_minutes(r) > 2.0]
     return long_enough
