@@ -15,7 +15,6 @@ bill = "131_5211058E5C33"
 
 s3_root = "s3://generals-stats/radarvan/dev/"
 
-
 REPLAYS = [
     "https://www.gentool.net/data/zh/2025_09_September/25_Thursday/Modus_09BAC013F91C/03-40-07_3v3_Skip_OneThree_WildCard_Neo_Modus_Syn.rep",
     "https://www.gentool.net/data/zh/2025_09_September/25_Thursday/Modus_09BAC013F91C/02-50-23_4v4_Skip_WildCard_OneThree_HardAI_Modus_Syn_Pancake_Neo.rep",
