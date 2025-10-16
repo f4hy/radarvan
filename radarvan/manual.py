@@ -38,6 +38,16 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/01-36-13_3v3_Skip_WLD_Neo_Pancake_131_Tytan.rep",
     "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/02-08-32_4v4_Skip_131_Pan_Mod_WLD_Tyt_Neo_Syn.rep",
     "https://www.gentool.net/data/zh/2025_10_October/14_Tuesday/131_5211058E5C33/02-25-54_4v4_Skip_Mod_Pan_131_Neo_Syn_Tyt_WLD.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-13-41_1v1v1v1v1_Neo_131_WLD_Skip_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-17-41_3v3_Skip_Neo_WLD_131_Mod_Pan.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-19-46_3v3_Skip_WLD_Neo_Mod_131_Pan.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-48-00_3v3_WLD_Neo_Skip_Pan_131_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/02-09-10_3v3_Skip_WLD_Neo_Mod_Pan_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/02-11-35_3v3_Skip_Neo_WLD_Pan_131_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/02-23-08_3v3_Skip_WLD_Neo_131_Pan_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/02-25-35_3v3_Skip_Neo_WLD_Pan_Mod_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/02-42-45_1v1v1v1v1v1v1v1_Neo_WLD_Mod_Skip_131_HardAI_HardAI_HardAI.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/03-19-07_2v2v2_Mod_HardAI_WLD_HardAI_131_HardAI.rep",
 ]
 
 if os.getenv("DEV"):
