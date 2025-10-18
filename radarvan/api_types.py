@@ -33,7 +33,7 @@ class Team(IntEnum):
     TWO = 2
     THREE = 3
     FOUR = 4
-    UNRECOGNIZED = -1
+    OBSERVER = -1
 
 
 class Player(BaseModel):

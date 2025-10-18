@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 def duration_minutes(replay: EnhancedReplay) -> float:
     start = datetime.datetime.fromtimestamp(replay.Header.TimeStampBegin)
     end = datetime.datetime.fromtimestamp(replay.Header.TimeStampEnd)
-    return (end - start).total_seconds() / 60.
+    return (end - start).total_seconds() / 60.0
+
 
 def side_to_general(side: str) -> General:
     match side:
@@ -43,14 +44,17 @@ def side_to_general(side: str) -> General:
     return General.UNRECOGNIZED
 
 
-def player_summary_to_player(p: PlayerSummary, color_map: dict[str, str]) -> Player:
+def player_summary_to_player(
+    p: PlayerSummary, color_map: dict[str, str], observers: set[str]
+) -> Player:
     color = color_map.get(p.Name, "black").lower().replace("color", "")
+    team = Team.OBSERVER if p.Name in observers else p.Team
     if not p.Name:
         color = "grey"
     return Player(
         name=p.Name or "CPU",
         general=side_to_general(p.Side),
-        team=p.Team,
+        team=team,
         color=color,
     )
 

@@ -26,7 +26,7 @@ import { Client } from "./Client"
 import { MatchInfoInput, Matches, Player, Team } from "./api"
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import { Tooltip } from "@mui/material";
-
+import VisibilityIcon from '@mui/icons-material/Visibility';
 function getMatches(count: number, callback: (m: Matches) => void) {
   Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
     .then(callback)
@@ -59,10 +59,14 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
   const team = (props.players[0]?.team)
   let title = (props.won ? "Won" : "Lost") + " Team:" + (props.players[0]?.team)
   let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
-  if (team === Team.NUMBER_0 || team === Team.NUMBER_MINUS_1) {
+  if (team === Team.NUMBER_0) {
     title = "Unkown Team"
     icon = <QuestionMarkIcon />
   }
+		if (team === Team.NUMBER_MINUS_1) {
+    title = "Observer"
+    icon = <VisibilityIcon />
+		}
   return (
     <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }} >
       <CardHeader title={title} avatar={icon} component="div" />

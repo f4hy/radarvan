@@ -9,9 +9,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
-
-
 def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     duration_minutes = utils.duration_minutes(replay)
     if duration_minutes < 2:
@@ -30,11 +27,15 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         incomplete = "Likely Mismatch :("
     elif winner == Team.NONE:
         notes = "No team won?"
-    if winner == Team.UNRECOGNIZED:
-        notes = "?"
+    # if winner == Team.OBSERVER:
+    #     notes = ""
 
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
-    players = [utils.player_summary_to_player(p, color_map) for p in replay.Summary]
+    # wont be needed once cncstats fixes observers
+    observers = {p.Name for p in replay.Header.Metadata.Players if p.Team == -1}
+    players = [
+        utils.player_summary_to_player(p, color_map, observers) for p in replay.Summary
+    ]
     return MatchInfo(
         id=replay.Header.Metadata.Seed,
         timestamp=replay.Header.TimeStampBegin,
