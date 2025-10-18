@@ -50,6 +50,10 @@ function MatchCard(props: {
   )
 }
 
+function playerNameStyle(player: Player) {
+  return { WebkitTextStroke: `0.5px grey` }
+}
+
 function TeamCard(props: { players: Player[]; won: boolean }) {
   const color = props.won ? "#c5e1a5" : "#e57373"
   const team = (props.players[0]?.team)
@@ -69,7 +73,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
               general={p!.general}
               key={p?.name + "-" + p.general + "-general"}
             />{" "}
-            <Typography variant="h5">{p.name}</Typography>
+            <Typography variant="h5" color={p.color} fontWeight="fontWeightBold" sx={playerNameStyle(p)}>{p.name}</Typography>
           </Stack>
         </CardContent>
       ))}

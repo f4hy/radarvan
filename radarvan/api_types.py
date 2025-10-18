@@ -40,6 +40,7 @@ class Player(BaseModel):
     name: str
     general: General
     team: Team
+    color: str
 
 
 class MatchInfo(BaseModel):

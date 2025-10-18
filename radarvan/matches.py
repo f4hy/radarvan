@@ -2,7 +2,7 @@
 
 import datetime
 from api_types import Matches, MatchInfo, Player, General, Team
-from cncstats_types import EnhancedReplay, PlayerSummary
+from cncstats_types import EnhancedReplay, PlayerSummary, GeneralsHeader
 import utils
 import logging
 
@@ -39,9 +39,15 @@ def side_to_general(side: str) -> General:
     return General.UNRECOGNIZED
 
 
-def player_summary_to_player(p: PlayerSummary) -> Player:
+def player_summary_to_player(p: PlayerSummary, color_map: dict[str, str]) -> Player:
+    color = color_map.get(p.Name, "black").lower().replace("color", "")
+    if not p.Name:
+        color = "grey"
     return Player(
-        name=p.Name or "CPU", general=side_to_general(p.Side), team=p.Team
+        name=p.Name or "CPU",
+        general=side_to_general(p.Side),
+        team=p.Team,
+        color=color,
     )
 
 
@@ -66,7 +72,8 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     if winner == Team.UNRECOGNIZED:
         notes = "?"
 
-    players = [player_summary_to_player(p) for p in replay.Summary]
+    color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
+    players = [player_summary_to_player(p, color_map) for p in replay.Summary]
     return MatchInfo(
         id=replay.Header.Metadata.Seed,
         timestamp=replay.Header.TimeStampBegin,

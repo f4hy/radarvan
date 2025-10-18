@@ -52,6 +52,12 @@ export interface Player {
      * @memberof Player
      */
     team: Team;
+    /**
+     * 
+     * @type {string}
+     * @memberof Player
+     */
+    color: string;
 }
 
 
@@ -63,6 +69,7 @@ export function instanceOfPlayer(value: object): value is Player {
     if (!('name' in value) || value['name'] === undefined) return false;
     if (!('general' in value) || value['general'] === undefined) return false;
     if (!('team' in value) || value['team'] === undefined) return false;
+    if (!('color' in value) || value['color'] === undefined) return false;
     return true;
 }
 
@@ -79,6 +86,7 @@ export function PlayerFromJSONTyped(json: any, ignoreDiscriminator: boolean): Pl
         'name': json['name'],
         'general': GeneralFromJSON(json['general']),
         'team': TeamFromJSON(json['team']),
+        'color': json['color'],
     };
 }
 
@@ -96,6 +104,7 @@ export function PlayerToJSONTyped(value?: Player | null, ignoreDiscriminator: bo
         'name': value['name'],
         'general': GeneralToJSON(value['general']),
         'team': TeamToJSON(value['team']),
+        'color': value['color'],
     };
 }
 
