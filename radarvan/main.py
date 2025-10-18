@@ -30,8 +30,8 @@ async def lifespan(app: FastAPI):
     logging.basicConfig(level=logging.INFO)
     manual.test_connection()
     logger.info("connection tested")
-    # sorted_deduped_matches()
-    # logger.info("primed replays")
+    sorted_deduped_matches()
+    logger.info("primed replays")
     yield
     logger.info("goodbye!")
 
