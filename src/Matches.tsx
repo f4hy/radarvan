@@ -25,6 +25,7 @@ import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import { MatchInfoInput, Matches, Player, Team } from "./api"
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import { Tooltip } from "@mui/material";
 
 function getMatches(count: number, callback: (m: Matches) => void) {
   Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
@@ -163,6 +164,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         <Button variant="contained" onClick={() => setDetails(!details)}>
           Match Details
         </Button>
+        <Tooltip title={props.match.filename}>
         <Button
           variant="contained"
           onClick={() =>
@@ -172,9 +174,10 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         >
           Download Replay
         </Button>
-      </Stack>
-      {details ? <ShowMatchDetails id={props.match.id} /> : null}
-    </Paper>
+      </Tooltip>
+    </Stack>
+      { details ? <ShowMatchDetails id={props.match.id} /> : null }
+    </Paper >
   )
 }
 
