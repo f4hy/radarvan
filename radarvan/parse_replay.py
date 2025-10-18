@@ -18,6 +18,7 @@ def parse_replay_data(data: bytes, debug=False):
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
+    logger.info(f"Pared replay in {response.elapsed.total_seconds()}s ")
     validated = EnhancedReplay.model_validate(response.json())
     return validated
 

@@ -138,7 +138,7 @@ class Metadata(BaseModel):
     MapFile: str
     MapCRC: str
     MapSize: str
-    Seed: str
+    Seed: int
     C: str
     SR: str
     StartingCredits: str

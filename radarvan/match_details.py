@@ -37,9 +37,9 @@ def player_money_from_replay(replay: EnhancedReplay) -> dict[int, dict[str, int]
 
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
-    logger.info(f"Summary : {replay.Summary}")
+    logger.info(f"Money {len(money)}")
     return MatchDetails(
-        match_id=replay.Header.TimeStampBegin,
+        match_id=replay.Header.Metadata.Seed,
         costs=[],
         apms=[],
         upgrade_events={},

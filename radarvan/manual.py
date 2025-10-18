@@ -8,6 +8,7 @@ from functools import cache
 from parse_replay import parse_replay_data
 import os
 import utils
+from log_time import log_time
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
@@ -16,6 +17,9 @@ bill = "131_5211058E5C33"
 s3_root = "s3://generals-stats/radarvan/dev/"
 
 REPLAYS = [
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-13-41_1v1v1v1v1_Neo_131_WLD_Skip_Mod.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-17-41_3v3_Skip_Neo_WLD_131_Mod_Pan.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-19-46_3v3_Skip_WLD_Neo_Mod_131_Pan.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/131_5211058E5C33/01-13-40_1v1v1v1v1_Neo_131_WLD_Skip_Mod.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/131_5211058E5C33/01-17-40_3v3_Skip_Neo_WLD_131_Mod_Pan.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/131_5211058E5C33/01-19-45_3v3_Skip_WLD_Neo_Mod_131_Pan.rep",
@@ -29,9 +33,6 @@ REPLAYS = [
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/131_5211058E5C33/02-42-44_1v1v1v1v1v1v1v1_Neo_WLD_Mod_Skip_131_HardAI_HardAI_HardAI.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/131_5211058E5C33/03-19-06_2v2v2_Mod_HardAI_WLD_HardAI_131_HardAI.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/131_5211058E5C33/03-45-34_1v1v1v1_Mod_131_WLD_HardAI.rep",
-    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-13-41_1v1v1v1v1_Neo_131_WLD_Skip_Mod.rep",
-    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-17-41_3v3_Skip_Neo_WLD_131_Mod_Pan.rep",
-    "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-19-46_3v3_Skip_WLD_Neo_Mod_131_Pan.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-36-14_3v3_Skip_WLD_Neo_131_Pan_Mod.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-41-20_3v3_Skip_WLD_Neo_Mod_Pan_131.rep",
     "https://www.gentool.net/data/zh/2025_10_October/16_Thursday/Mod_09BAC013F91C/01-48-00_3v3_WLD_Neo_Skip_Pan_131_Mod.rep",
@@ -557,7 +558,7 @@ REPLAYS = [
 ]
 
 if os.getenv("DEV"):
-    REPLAYS = REPLAYS[-5:]
+    REPLAYS = REPLAYS[:30]
 
 
 @cache
@@ -572,23 +573,28 @@ def test_connection():
     logger.info(f"Listing {listing=}")
 
 
+def save_replay_if_missing(replay_path: str):
+    fs = get_fs()
+    if not fs.exists(replay_path):
+        with log_time(f"Does not exist, saving {replay_path}", logger):
+            raw_data = fsspec.filesystem("http").read_bytes(path)
+            fs.write_bytes(replay_path, raw_data)
+
+
 @cache
 def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
     json_path = replay_path.replace(".rep", ".json")
     logger.info(f"{json_path=} {replay_path=}")
     fs = get_fs()
-    if not fs.exists(replay_path):
-        logger.info(f"Does not exist {replay_path=}")
-        raw_data = fsspec.filesystem("http").read_bytes(path)
-        fs.write_bytes(replay_path, raw_data)
     if fs.exists(json_path) and (not reparse):
-        logger.info(f"reading {json_path=}")
-        json_data = fs.read_text(json_path)
-        logger.info(f"validating {json_path=}")
-        parsed_replay = EnhancedReplay.model_validate_json(json_data)
+        with log_time(f"reading {json_path}", logger):
+            json_data = fs.read_text(json_path)
+        with log_time(f"Validing {json_path}", logger):
+            parsed_replay = EnhancedReplay.model_validate_json(json_data)
     else:
         logger.info(f"Does not exist {json_path=}")
+        save_replay_if_missing(replay_path)
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay)
         fs.write_text(json_path, parsed_replay.model_dump_json())

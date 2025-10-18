@@ -23,7 +23,7 @@ import DisplayGeneral from "./Generals"
 import Map from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
-import { MatchInfoInput, Matches, Player } from "./api"
+import { MatchInfoInput, Matches, Player, Team } from "./api"
 
 function getMatches(count: number, callback: (m: Matches) => void) {
   Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
@@ -50,7 +50,7 @@ function MatchCard(props: {
 
 function TeamCard(props: { players: Player[]; won: boolean }) {
   const color = props.won ? "#c5e1a5" : "#e57373"
-  const title = props.won ? "Won" : "Lost"
+  const title = (props.won ? "Won" : "Lost") + " Team:" + (props.players[0]?.team)
   const icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
   return (
     <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }} >
@@ -85,39 +85,48 @@ function downloadReplay(filename: string) {
   )
 }
 
+function displayTeam(team: Team): string {
+  switch (team) {
+    case Team.NUMBER_0:
+      return "No Team"
+    case Team.NUMBER_1:
+      return "Team 1"
+    case Team.NUMBER_2:
+      return "Team 2"
+    case Team.NUMBER_3:
+      return "Team 3"
+    case Team.NUMBER_4:
+      return "Team 4"
+    default:
+      return "Unknown Team"
+  }
+}
+
 function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
+  const date = props.match.timestamp.toDateString();
+  const winningTeam = displayTeam(props.match.winningTeam)
+  let header = (
+    <Typography>
+      {" MatchId:" +
+        props.match.id +
+        ` Winner:${winningTeam}` +
+        " Date:" +
+        date +
+        " on Map:" +
+        props.match.map.split("/").slice(-1) +
+        " Duration:" +
+        props.match.durationMinutes.toFixed(2) +
+        " minutes"}
+    </Typography>)
 
-  const date = props.match.timestamp ? props.match.timestamp : "unknown"
-  let header =
-    " MatchId:" +
-    props.match.id +
-    " Date:" +
-    date +
-    " on Map:" +
-    props.match.map.split("/").slice(-1) +
-    " Duration " +
-    props.match.durationMinutes.toFixed(2) +
-    " minutes"
-  const playerCount = props.match.players.length
-  const winners = _.sortBy(
-    props.match.players.filter((p) => p.team === props.match.winningTeam),
-    ["team", "name"],
-  )
-  const losers = _.sortBy(
-    props.match.players.filter((p) => p.team !== props.match.winningTeam),
-    ["team", "name"],
-  )
-  if (losers.length === 0) {
-    return <div>Loading {props.idx}</div>
-  }
+  const teams = _.groupBy(props.match.players, "team")
 
   const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: "20px" }
   if (props.match.incomplete) {
     paperprops["bgcolor"] = "text.disabled"
     paperprops["borderColor"] = "red"
   }
-  const showTeam = props.match.winningTeam !== 0 ? "block" : "none"
   return (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
@@ -137,8 +146,10 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         direction="row"
         justifyContent="flex-start"
       >
-        <TeamCard players={winners} won={true} />
-        <TeamCard players={losers} won={false} />
+        {
+          Object.values(teams).map((team) => (
+            <TeamCard players={team} won={team[0].team === props.match.winningTeam} />
+          ))}
         <Map mapname={props.match.map} />
       </Stack>
       <Stack direction="row">

@@ -1,4 +1,5 @@
 from datetime import datetime, UTC
+from cncstats_types import EnhancedReplay
 from api_types import (
     Matches,
     MatchInfo,
@@ -8,6 +9,7 @@ from api_types import (
     MatchDetails,
     SpentOverTime,
 )
+from functools import cache
 from typing import Union
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
@@ -61,24 +63,26 @@ def reparse() -> None:
         manual.parse_replay(replay, reparse=True)
 
 
-@app.get("/api/matches/{match_count}")
-def get_matches(match_count: int) -> Matches:
-    """Get listing of matches, up to a return count limit for paging."""
+@cache
+def sorted_deduped_matches() -> dict[int, EnhancedReplay]:
     replays = manual.get_parsed_replays(manual.REPLAYS)
     logger.info(f"Got {len(replays)} parsed replays")
     match_infos = [matches.match_from_replay(replay) for replay in replays]
-    not_nulls = [i for i in match_infos if i]
-    return Matches(matches=sorted(not_nulls, key=lambda x: x.timestamp, reverse=True))
+    deduped = {i.id: i for i in match_infos if i}
+    sorted_matches = dict(
+        sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
+    )
+    return sorted_matches
 
 
-@app.get("/api/details/{match_id}")
-def get_match_details(match_id: int) -> MatchDetails:
-    """Get details about a particular match"""
-    replays = manual.get_parsed_replays(manual.REPLAYS)
-    for replay in replays:
-        if replay.Header.TimeStampBegin == match_id:
-            details = match_details.match_details_from_replay(replay)
-            return details
+@app.get("/api/matches/{match_count}")
+def get_matches(match_count: int) -> Matches:
+    """Get listing of matches, up to a return count limit for paging."""
+    replays = sorted_deduped_matches()
+    return Matches(matches=replays.values())
+
+
+def empty_match_details(match_id: int) -> MatchDetails:
     return MatchDetails(
         match_id=match_id,
         costs=[],
@@ -90,8 +94,27 @@ def get_match_details(match_id: int) -> MatchDetails:
             upgrades=[],
             total=[],
         ),
-        money_values=[],
+        money_values={},
+        player_summary=[],
     )
+
+
+@cache
+def replay_map() -> dict[int, EnhancedReplay]:
+    replays = manual.get_parsed_replays(manual.REPLAYS)
+    logger.info(f"Got {len(replays)} parsed replays")
+    return {r.Header.Metadata.Seed: r for r in replays}
+
+
+@app.get("/api/details/{match_id}")
+def get_match_details(match_id: int) -> MatchDetails:
+    """Get details about a particular match"""
+    replays = replay_map()
+    replay = replays.get(match_id)
+    if not replay:
+        return empty_match_details(match_id)
+    details = match_details.match_details_from_replay(replay)
+    return details
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

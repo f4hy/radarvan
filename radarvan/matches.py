@@ -46,16 +46,20 @@ def player_summary_to_player(p: PlayerSummary) -> Player:
 
 
 def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
+    duration_minutes = utils.duration_minutes(replay)
+    if duration_minutes < 2:
+        logger.info("under 2 minutes, not a real game")
+        return None
     _winners = [p for p in replay.Summary if p.Win is True]
+    if _winners:
+        winner = _winners[0].Team
     if not _winners:
         logger.info(f"No winner found in replay {replay.Summary=}")
-        return None
-    winner = _winners[0].Team
+        winner = Team.NONE
 
     players = [player_summary_to_player(p) for p in replay.Summary]
-    duration_minutes = utils.duration_minutes(replay)
     return MatchInfo(
-        id=replay.Header.TimeStampBegin,
+        id=replay.Header.Metadata.Seed,
         timestamp=replay.Header.TimeStampBegin,
         map=replay.Header.Metadata.MapFile,
         winning_team=winner,
