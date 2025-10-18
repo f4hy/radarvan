@@ -27,8 +27,8 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
             logger.info(f"No winner found in replay {replay.Summary=}")
     if not _winners:
         winner = Team.NONE
-        incomplete = "Unable to detect winner"
-    if winner == Team.NONE:
+        incomplete = "Likely Mismatch :("
+    elif winner == Team.NONE:
         notes = "No team won?"
     if winner == Team.UNRECOGNIZED:
         notes = "?"
