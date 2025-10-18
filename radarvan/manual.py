@@ -565,7 +565,7 @@ def save_replay_if_missing(replay_path: str):
             fs.write_bytes(replay_path, raw_data)
 
 
-@cached(cache=LRUCache(maxsize=12))
+# @cached(cache=LRUCache(maxsize=12))
 def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
     json_path = replay_path.replace(".rep", ".json")
