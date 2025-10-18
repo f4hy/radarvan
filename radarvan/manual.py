@@ -545,7 +545,7 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
 
 
 def get_parsed_replays(replay_paths: list[str]) -> Generator[EnhancedReplay, None, None]:
-    logger.info(f"getting {replay_paths=}")
+    logger.info(f"getting {len(replay_paths)=}")
     for path in replay_paths:
         if "1v1v1v1" in path or "2v4" in path:
             continue
