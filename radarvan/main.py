@@ -67,7 +67,7 @@ def reparse() -> None:
 def sorted_deduped_matches() -> dict[int, EnhancedReplay]:
     replays = manual.get_parsed_replays(manual.REPLAYS)
     logger.info(f"Got {len(replays)} parsed replays")
-    match_infos = [matches.match_from_replay(replay) for replay in replays]
+    match_infos = [matches.match_from_replay(replay, filename) for filename, replay in replays.items()]
     deduped = {i.id: i for i in match_infos if i}
     sorted_matches = dict(
         sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
@@ -103,7 +103,7 @@ def empty_match_details(match_id: int) -> MatchDetails:
 def replay_map() -> dict[int, EnhancedReplay]:
     replays = manual.get_parsed_replays(manual.REPLAYS)
     logger.info(f"Got {len(replays)} parsed replays")
-    return {r.Header.Metadata.Seed: r for r in replays}
+    return {r.Header.Metadata.Seed: r for r in replays.values()}
 
 
 @app.get("/api/details/{match_id}")
@@ -115,6 +115,7 @@ def get_match_details(match_id: int) -> MatchDetails:
         return empty_match_details(match_id)
     details = match_details.match_details_from_replay(replay)
     return details
+
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

@@ -24,6 +24,7 @@ import Map from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import { MatchInfoInput, Matches, Player, Team } from "./api"
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 
 function getMatches(count: number, callback: (m: Matches) => void) {
   Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
@@ -50,8 +51,13 @@ function MatchCard(props: {
 
 function TeamCard(props: { players: Player[]; won: boolean }) {
   const color = props.won ? "#c5e1a5" : "#e57373"
-  const title = (props.won ? "Won" : "Lost") + " Team:" + (props.players[0]?.team)
-  const icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
+  const team = (props.players[0]?.team)
+  let title = (props.won ? "Won" : "Lost") + " Team:" + (props.players[0]?.team)
+  let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
+  if (team === Team.NUMBER_0 || team === Team.NUMBER_MINUS_1) {
+    title = "Unkown Team"
+    icon = <QuestionMarkIcon />
+  }
   return (
     <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }} >
       <CardHeader title={title} avatar={icon} component="div" />
@@ -79,10 +85,11 @@ function downloadURI(uri: string, name: string) {
   document.body.removeChild(link)
 }
 
-function downloadReplay(filename: string) {
-  fetch("/api/getRepaly/" + filename).then((r) =>
-    r.text().then((url) => downloadURI(url, filename)),
-  )
+function downloadReplay(url: string) {
+  const filename = url.split("/").pop()
+  if (filename) {
+    downloadURI(url, filename)
+  }
 }
 
 function displayTeam(team: Team): string {
@@ -158,13 +165,12 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         </Button>
         <Button
           variant="contained"
-          disabled
           onClick={() =>
-            downloadReplay(props.match.filename.replace(".json", ".rep"))
+            downloadReplay(props.match.filename)
           }
           endIcon={<DownloadIcon />}
         >
-          Download Replay (soon)
+          Download Replay
         </Button>
       </Stack>
       {details ? <ShowMatchDetails id={props.match.id} /> : null}
