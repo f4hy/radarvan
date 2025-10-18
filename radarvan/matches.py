@@ -45,7 +45,7 @@ def player_summary_to_player(p: PlayerSummary) -> Player:
     )
 
 
-def match_from_replay(replay: EnhancedReplay, filename: str) -> MatchInfo | None:
+def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     duration_minutes = utils.duration_minutes(replay)
     if duration_minutes < 2:
         logger.info("under 2 minutes, not a real game")
@@ -74,7 +74,7 @@ def match_from_replay(replay: EnhancedReplay, filename: str) -> MatchInfo | None
         winning_team=winner,
         players=players,
         duration_minutes=duration_minutes,
-        filename=filename,
+        filename=replay.Header.FileName,
         incomplete=incomplete,
         notes=notes,
     )

@@ -1,5 +1,5 @@
 """Manual paths for now."""
-
+from typing import Generator
 import httpx
 import logging
 import fsspec
@@ -9,6 +9,7 @@ from parse_replay import parse_replay_data
 import os
 import utils
 from log_time import log_time
+from cachetools import cached, LRUCache
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
@@ -581,7 +582,7 @@ def save_replay_if_missing(replay_path: str):
             fs.write_bytes(replay_path, raw_data)
 
 
-@cache
+@cached(cache=LRUCache(maxsize=12))
 def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
     json_path = replay_path.replace(".rep", ".json")
@@ -599,11 +600,14 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
         parsed_replay = parse_replay_data(raw_replay)
         fs.write_text(json_path, parsed_replay.model_dump_json())
     logger.info("Finished parsing replay")
+    parsed_replay.Header.FileName = path
     return parsed_replay
 
 
-def get_parsed_replays(replay_paths: list[str]) -> dict[str, EnhancedReplay]:
+def get_parsed_replays(replay_paths: list[str]) -> Generator[EnhancedReplay, None, None]:
     logger.info(f"getting {replay_paths=}")
-    all_replays ={path: parse_replay(path) for path in replay_paths}
-    long_enough = {p:r for p,r in all_replays.items() if utils.duration_minutes(r) > 2.0}
-    return long_enough
+    for path in replay_paths:
+        parsed = parse_replay(path)
+        if utils.duration_minutes(parsed) > 2.0:
+            logger.info(f"Yielding {parsed.Header.FileName}")
+            yield parsed

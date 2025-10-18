@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     logging.basicConfig(level=logging.INFO)
     manual.test_connection()
     logger.info("connection tested")
-    manual.get_parsed_replays(manual.REPLAYS)
+    sorted_deduped_matches()
     logger.info("primed replays")
     yield
     logger.info("goodbye!")
@@ -64,11 +64,11 @@ def reparse() -> None:
 
 
 @cache
-def sorted_deduped_matches() -> dict[int, EnhancedReplay]:
+def sorted_deduped_matches() -> dict[int, MatchInfo]:
     replays = manual.get_parsed_replays(manual.REPLAYS)
-    logger.info(f"Got {len(replays)} parsed replays")
-    match_infos = [matches.match_from_replay(replay, filename) for filename, replay in replays.items()]
+    match_infos = (matches.match_from_replay(replay) for replay in replays)
     deduped = {i.id: i for i in match_infos if i}
+    logger.info(f"Got {len(deduped)} parsed replays")
     sorted_matches = dict(
         sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
     )
@@ -99,20 +99,16 @@ def empty_match_details(match_id: int) -> MatchDetails:
     )
 
 
-@cache
-def replay_map() -> dict[int, EnhancedReplay]:
-    replays = manual.get_parsed_replays(manual.REPLAYS)
-    logger.info(f"Got {len(replays)} parsed replays")
-    return {r.Header.Metadata.Seed: r for r in replays.values()}
 
 
 @app.get("/api/details/{match_id}")
 def get_match_details(match_id: int) -> MatchDetails:
     """Get details about a particular match"""
-    replays = replay_map()
+    replays = sorted_deduped_matches()
     replay = replays.get(match_id)
     if not replay:
         return empty_match_details(match_id)
+    replay = manual.parse_replay(replay.filename)
     details = match_details.match_details_from_replay(replay)
     return details
 
