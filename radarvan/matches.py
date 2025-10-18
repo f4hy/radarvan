@@ -41,7 +41,7 @@ def side_to_general(side: str) -> General:
 
 def player_summary_to_player(p: PlayerSummary) -> Player:
     return Player(
-        name=p.Name or "Hard army?", general=side_to_general(p.Side), team=p.Team
+        name=p.Name or "CPU", general=side_to_general(p.Side), team=p.Team
     )
 
 

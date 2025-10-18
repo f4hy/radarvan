@@ -525,12 +525,12 @@ def save_replay_if_missing(replay_path: str):
 # @cached(cache=LRUCache(maxsize=12))
 def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
-    json_path = replay_path.replace(".rep", ".json")
+    json_path = replay_path.replace(".rep", ".json.gz")
     logger.info(f"{json_path=} {replay_path=}")
     fs = get_fs()
     if fs.exists(json_path) and (not reparse):
         with log_time(f"reading {json_path}", logger):
-            json_data = fs.read_text(json_path)
+            json_data = fs.read_text(json_path, compression="gzip")
         with log_time(f"Validing {json_path}", logger):
             parsed_replay = EnhancedReplay.model_validate_json(json_data)
     else:
@@ -538,7 +538,7 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
         save_replay_if_missing(replay_path)
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay)
-        fs.write_text(json_path, parsed_replay.model_dump_json())
+        fs.write_text(json_path, parsed_replay.model_dump_json(), compression="gzip")
     logger.info("Finished parsing replay")
     parsed_replay.Header.FileName = path
     return parsed_replay

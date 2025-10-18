@@ -36,18 +36,29 @@ function generalToSide(general: General): Side {
 }
 
 export default function DisplayGeneral(props: { general: General }) {
+  let general: string | null = General[props.general]
+  let avatar = (<Avatar
+    key={props.general}
+    src={sideImg[generalToSide(props.general)]}
+    sx={{ width: "2rem", height: "2.1rem" }}
+  />
+  )
+  if (general == "UNRECOGNIZED") {
+    general = null
+    avatar = (<Avatar
+      key={props.general}
+      sx={{ width: "2rem", height: "2.1rem" }}
+    >?</Avatar>
+    )
+  }
   return (
     <>
       <Badge
-        badgeContent={General[props.general]}
+        badgeContent={general}
         color="primary"
         sx={{ fontSize: 1 }}
       >
-        <Avatar
-          key={props.general}
-          src={sideImg[generalToSide(props.general)]}
-          sx={{ width: "2rem", height: "2.1rem" }}
-        />
+        {avatar}
       </Badge>
     </>
   )

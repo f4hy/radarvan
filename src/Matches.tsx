@@ -112,7 +112,7 @@ function displayTeam(team: Team): string {
 
 function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
-  const date = props.match.timestamp.toDateString();
+  const date = props.match.timestamp.toLocaleString();
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
     <Typography>
@@ -165,23 +165,29 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
           Match Details
         </Button>
         <Tooltip title={props.match.filename}>
-        <Button
-          variant="contained"
-          onClick={() =>
-            downloadReplay(props.match.filename)
-          }
-          endIcon={<DownloadIcon />}
-        >
-          Download Replay
-        </Button>
-      </Tooltip>
-    </Stack>
-      { details ? <ShowMatchDetails id={props.match.id} /> : null }
+          <Button
+            variant="contained"
+            onClick={() =>
+              downloadReplay(props.match.filename)
+            }
+            endIcon={<DownloadIcon />}
+          >
+            Download Replay
+          </Button>
+        </Tooltip>
+      </Stack>
+      {details ? <ShowMatchDetails id={props.match.id} /> : null}
     </Paper >
   )
 }
 
 const empty = { matches: [] }
+
+function subtractHours(d: Date, hoursToSubtract: number): Date {
+  const shifted = new Date(d)
+  shifted.setHours(d.getHours() - hoursToSubtract)
+  return shifted
+}
 
 export default function DisplayMatches() {
   const [getAll, setGetAll] = React.useState<boolean>(false)
@@ -194,8 +200,7 @@ export default function DisplayMatches() {
   const showAll = () => {
     setGetAll(true)
   }
-  const byDate = _.groupBy(matchList.matches, (m) =>
-    new Date(m.timestamp).toLocaleDateString(),
+  const byDate = _.groupBy(matchList.matches, (m) => subtractHours(m.timestamp, 4).toLocaleDateString()
   )
   return (
     <>
