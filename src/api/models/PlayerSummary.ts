@@ -53,6 +53,12 @@ export interface PlayerSummary {
     win: boolean;
     /**
      * 
+     * @type {string}
+     * @memberof PlayerSummary
+     */
+    color: string;
+    /**
+     * 
      * @type {number}
      * @memberof PlayerSummary
      */
@@ -91,6 +97,7 @@ export function instanceOfPlayerSummary(value: object): value is PlayerSummary {
     if (!('side' in value) || value['side'] === undefined) return false;
     if (!('team' in value) || value['team'] === undefined) return false;
     if (!('win' in value) || value['win'] === undefined) return false;
+    if (!('color' in value) || value['color'] === undefined) return false;
     if (!('moneySpent' in value) || value['moneySpent'] === undefined) return false;
     if (!('unitsCreated' in value) || value['unitsCreated'] === undefined) return false;
     if (!('buildingsBuilt' in value) || value['buildingsBuilt'] === undefined) return false;
@@ -113,6 +120,7 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'side': json['Side'],
         'team': json['Team'],
         'win': json['Win'],
+        'color': json['Color'],
         'moneySpent': json['MoneySpent'],
         'unitsCreated': (mapValues(json['UnitsCreated'], ObjectSummaryFromJSON)),
         'buildingsBuilt': (mapValues(json['BuildingsBuilt'], ObjectSummaryFromJSON)),
@@ -136,6 +144,7 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
         'Side': value['side'],
         'Team': value['team'],
         'Win': value['win'],
+        'Color': value['color'],
         'MoneySpent': value['moneySpent'],
         'UnitsCreated': (mapValues(value['unitsCreated'], ObjectSummaryToJSON)),
         'BuildingsBuilt': (mapValues(value['buildingsBuilt'], ObjectSummaryToJSON)),

@@ -9,46 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def side_to_general(side: str) -> General:
-    match side:
-        case "USA":
-            return General.AIR
-        case "USA Airforce":
-            return General.AIR
-        case "USA Lazr":
-            return General.LASER
-        case "USA Superweapon":
-            return General.SUPER
-        case "China":
-            return General.CHINA
-        case "China Nuke":
-            return General.NUKE
-        case "China Tank":
-            return General.TANK
-        case "China Infantry":
-            return General.INFANTRY
-        case "GLA":
-            return General.GLA
-        case "GLA Toxin":
-            return General.TOXIN
-        case "GLA Stealth":
-            return General.STEALTH
-        case "GLA Demo":
-            return General.DEMO
-    logger.warning(f"Unknown side {side=}")
-    return General.UNRECOGNIZED
 
-
-def player_summary_to_player(p: PlayerSummary, color_map: dict[str, str]) -> Player:
-    color = color_map.get(p.Name, "black").lower().replace("color", "")
-    if not p.Name:
-        color = "grey"
-    return Player(
-        name=p.Name or "CPU",
-        general=side_to_general(p.Side),
-        team=p.Team,
-        color=color,
-    )
 
 
 def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
@@ -73,7 +34,7 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         notes = "?"
 
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
-    players = [player_summary_to_player(p, color_map) for p in replay.Summary]
+    players = [utils.player_summary_to_player(p, color_map) for p in replay.Summary]
     return MatchInfo(
         id=replay.Header.Metadata.Seed,
         timestamp=replay.Header.TimeStampBegin,

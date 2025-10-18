@@ -243,6 +243,7 @@ class PlayerSummary(BaseModel):
     Side: str
     Team: int
     Win: bool
+    Color: str
     MoneySpent: int
     UnitsCreated: dict[str, ObjectSummary]
     BuildingsBuilt: dict[str, ObjectSummary]

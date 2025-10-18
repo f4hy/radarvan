@@ -1,7 +1,14 @@
 """Get match info from a replay."""
 
 import datetime
-from api_types import Matches, MatchInfo, Player, General, Team
+from api_types import (
+    Matches,
+    MatchInfo,
+    Player,
+    General,
+    Team,
+    PlayerSummary as APIPlayerSummary,
+)
 from cncstats_types import EnhancedReplay, PlayerSummary, Money
 from api_types import (
     Matches,
@@ -35,6 +42,17 @@ def player_money_from_replay(replay: EnhancedReplay) -> dict[int, dict[str, int]
     return player_monies
 
 
+def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
+    color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
+    player_summaries: list[APIPlayerSummary] = []
+    for s in replay.Summary:
+        d = s.model_dump()
+        d["Color"] = color_map.get(s.Name, "black").lower().replace("color", "")
+        APIPlayerSummary.model_validate(d)
+        player_summaries.append(d)
+    return player_summaries
+
+
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
     logger.info(f"Money {len(money)}")
@@ -50,5 +68,5 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
             total=[],
         ),
         money_values=money,
-        player_summary=[s.model_dump() for s in  replay.Summary],
+        player_summary=api_player_summaries(replay),
     )

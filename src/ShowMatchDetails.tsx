@@ -21,7 +21,7 @@ import { PlayerColor, ColorByIdx } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import { MatchDetails, Spent, Upgrades, APM } from "./api"
+import { MatchDetails, Spent, Upgrades, APM, PlayerSummary } from "./api"
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
@@ -116,9 +116,11 @@ function SpendingChart(props: {
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
   title: string
+  playerSummaries: PlayerSummary[]
 }) {
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
+    const colors = props.playerSummaries.reduce((acc, cur) => ({ ...acc, [cur.name]: cur.color }), {})
     const data = Object.entries(props.money).map(([timecode, values]) => ({
       ...values,
       timecode: timecode,
@@ -126,36 +128,38 @@ function MoneyChart(props: {
     const max = Object.values(props.money).reduce((acc, cur) => { return Math.max(acc, ...Object.values(cur)) }, 0)
     const max_time = Math.max(...Object.keys(props.money).map(k => Number(k)))
     return (
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart
-          title="Money $$"
-          height={300}
-          data={data}
-          margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
-          <YAxis
-            label={{
-              value: "Money",
-              position: "insideLeft",
-              offset: -5,
-              angle: -90,
-            }}
-            domain={[0, max]}
-          />
-          <Tooltip />
-          <Legend />
-          {players.map((n, i) => (
-            <Line
-              dataKey={n}
-              strokeWidth={2}
-              stroke={ColorByIdx(i)}
-              dot={false}
+      <>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart
+            title="Money $$"
+            height={300}
+            data={data}
+            margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
+            <YAxis
+              label={{
+                value: "Money",
+                position: "insideLeft",
+                offset: -5,
+                angle: -90,
+              }}
+              domain={[0, max]}
             />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+            <Tooltip />
+            <Legend />
+            {players.map((n, i) => (
+              <Line
+                dataKey={n}
+                strokeWidth={2}
+                stroke={_.get(colors, n)}
+                dot={false}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </>
     )
   } else {
     return <div>Money data unavailible for this replay</div>
@@ -263,7 +267,7 @@ export default function ShowMatchDetails(props: { id: number }) {
   const maxMinute = Math.ceil(maxAtMinute ?? 1)
   return (
     <>
-      <MoneyChart title="Money" money={details.moneyValues} />
+      <MoneyChart title="Money" money={details.moneyValues} playerSummaries={details.playerSummary} />
       <Divider />
       <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />
