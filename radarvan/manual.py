@@ -1,4 +1,5 @@
 """Manual paths for now."""
+
 from typing import Generator
 import httpx
 import logging
@@ -542,12 +543,11 @@ def test_connection():
     logger.info(f"Listing {listing=}")
 
 
-def save_replay_if_missing(replay_path: str):
+def save_replay_if_missing(replay_path: str, save_path: str):
     fs = get_fs()
-    if not fs.exists(replay_path):
-        with log_time(f"Does not exist, saving {replay_path}", logger):
-            raw_data = fsspec.filesystem("http").read_bytes(path)
-            fs.write_bytes(replay_path, raw_data)
+    with log_time(f"Does not exist, saving {replay_path}", logger):
+        raw_data = fsspec.filesystem("http").read_bytes(replay_path)
+        fs.write_bytes(save_path, raw_data)
 
 
 # @cached(cache=LRUCache(maxsize=12))
@@ -563,7 +563,7 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
             parsed_replay = EnhancedReplay.model_validate_json(json_data)
     else:
         logger.info(f"Does not exist {json_path=}")
-        save_replay_if_missing(replay_path)
+        save_replay_if_missing(path, replay_path)
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay)
         fs.write_text(json_path, parsed_replay.model_dump_json(), compression="gzip")
@@ -572,7 +572,9 @@ def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
     return parsed_replay
 
 
-def get_parsed_replays(replay_paths: list[str]) -> Generator[EnhancedReplay, None, None]:
+def get_parsed_replays(
+    replay_paths: list[str],
+) -> Generator[EnhancedReplay, None, None]:
     logger.info(f"getting {len(replay_paths)=}")
     for path in replay_paths:
         if "1v1v1v1" in path or "2v4" in path:
