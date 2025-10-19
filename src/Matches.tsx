@@ -63,10 +63,10 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     title = "Unkown Team"
     icon = <QuestionMarkIcon />
   }
-		if (team === Team.NUMBER_MINUS_1) {
+  if (team === Team.NUMBER_MINUS_1) {
     title = "Observer"
     icon = <VisibilityIcon />
-		}
+  }
   return (
     <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }} >
       <CardHeader title={title} avatar={icon} component="div" />
@@ -139,11 +139,8 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const teams = _.groupBy(props.match.players, "team")
 
   const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: "20px" }
-  if (props.match.incomplete) {
-    paperprops["bgcolor"] = "text.disabled"
-    paperprops["borderColor"] = "red"
-  }
-  return (
+
+  const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
         <ListItemText key="match-text" primary={header} />
@@ -187,6 +184,20 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
       {details ? <ShowMatchDetails id={props.match.id} /> : null}
     </Paper >
   )
+
+  if (props.match.incomplete) {
+    paperprops["bgcolor"] = "text.disabled"
+    paperprops["borderColor"] = "red"
+    return (<Accordion defaultExpanded={false}>
+      <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{bgcolor: "text.disabled"}}>
+        <Typography color="error.main">Mismatch: </Typography>{header}
+      </AccordionSummary>
+      <AccordionDetails>
+        {matchDisplay}
+      </AccordionDetails>
+    </Accordion>)
+  }
+  return matchDisplay
 }
 
 const empty = { matches: [] }
