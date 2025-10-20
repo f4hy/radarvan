@@ -34,7 +34,8 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
                     faction_stats=[],
                     over_time=[],
                 )
-
+            if player.general == General.UNRECOGNIZED:
+                continue
             if player.team == game.winning_team:
                 player_stats[player.name].stats[player.general].wins += 1
             else:
