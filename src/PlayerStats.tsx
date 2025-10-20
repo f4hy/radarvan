@@ -22,44 +22,50 @@ import {
 } from "recharts"
 import DisplayGeneral from "./Generals"
 import {
-  Faction,
-  General,
   GeneralWL,
-  PlayerRateOverTime,
-  PlayerStat,
-  PlayerStats,
-  WinLoss,
+  Faction, factionFromJSON,
   DateMessage,
 } from "./proto/match"
 
+import {
+  General,
+  GeneralFromJSON,
+  instanceOfGeneral,
+  PlayerStatOutput,
+  PlayerStats,
+  WinLoss,
+  PlayerRateOverTimeOutput,
+} from "./api"
+import { Client } from "./Client"
+
+
 function getPlayerStats(callback: (m: PlayerStats) => void) {
-  fetch("/api/playerstats").then((r) =>
-    r
-      .blob()
-      .then((b) => b.arrayBuffer())
-      .then((j) => {
-        const a = new Uint8Array(j)
-        const playerStats = PlayerStats.decode(a)
-        callback(playerStats)
-      }),
-  )
+  Client.getPlayerStatsApiPlayerstatsGet()
+    .then(callback)
+    .catch((e) => alert(e))
+}
+
+function stringToGeneral(s: string): General {
+  let num = parseInt(s)
+  if (instanceOfGeneral(num)) {
+    return GeneralFromJSON(num)
+  }
+  return General.NUMBER_MINUS_1
 }
 
 function roundUpNearestN(num: number, N: number) {
   return Math.ceil(num / N) * N
 }
 
-function PlayerListItem(props: { playerStatWL: GeneralWL }) {
-  const p = props.playerStatWL
+function PlayerListItem(props: { general: General, winLoss: WinLoss }) {
   return (
     <ListItem>
       <ListItemAvatar>
-        <DisplayGeneral general={p.general} />
+        <DisplayGeneral general={props.general} />
       </ListItemAvatar>
       <ListItemText
-        primary={`${General[p.general]}:(${p.winLoss?.wins ?? 0}:${
-          p.winLoss?.losses ?? 0
-        })`}
+        primary={`${props.general}:(${props.winLoss?.wins ?? 0}:${props.winLoss?.losses ?? 0
+          })`}
       />
     </ListItem>
   )
@@ -82,7 +88,7 @@ function rate(wl: WinLoss | undefined): number {
   return 0
 }
 
-function GeneralStatOverTime(props: { ot: PlayerRateOverTime[] }) {
+function GeneralStatOverTime(props: { ot: PlayerRateOverTimeOutput[] }) {
   const grouped = Object.entries(_.groupBy(props.ot, (x) => x.wl?.general))
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -93,7 +99,7 @@ function GeneralStatOverTime(props: { ot: PlayerRateOverTime[] }) {
             <ResponsiveContainer width="99%" height={150}>
               <LineChart
                 data={data.map((d) => ({
-                  date: datemsgtoString(d.date),
+                  date: d.date,
                   rate: rate(d.wl?.winLoss),
                 }))}
                 margin={{
@@ -117,29 +123,27 @@ function GeneralStatOverTime(props: { ot: PlayerRateOverTime[] }) {
   )
 }
 
-function DisplayPlayerStat(props: { stat: PlayerStat; max: number }) {
-  const sorted = props.stat.stats.sort((s1, s2) => s1.general - s2.general)
-  const data = sorted.map((p) => {
-    const wins = p.winLoss?.wins ?? 0
-    const losses = p.winLoss?.losses ?? 0
+function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
+  const sorted = props.stat.stats
+  const data = Object.entries(sorted).map(([general, winLoss]) => {
+    const wins = winLoss?.wins ?? 0
+    const losses = winLoss?.losses ?? 0
     const tot = wins + losses
     const rate = (wins / (tot > 0 ? tot : 1)) * 100
     return {
-      general: General[p.general] + ":" + rate.toFixed() + "%",
+      general: general + ":" + rate.toFixed() + "%",
       wins: wins,
       losses: losses,
     }
   })
-  const faction_sorted = props.stat.factionStats.sort(
-    (s1, s2) => s1.faction - s2.faction,
-  )
+  const faction_sorted = props.stat.factionStats
   const faction_data = faction_sorted.map((p) => {
     const wins = p.winLoss?.wins ?? 0
     const losses = p.winLoss?.losses ?? 0
     const tot = wins + losses
     const rate = (wins / (tot > 0 ? tot : 1)) * 100
     return {
-      faction: Faction[p.faction] + ":" + rate.toFixed() + "%",
+      faction: factionFromJSON([p.faction]) + ":" + rate.toFixed() + "%",
       wins: p.winLoss?.wins ?? 0,
       losses: p.winLoss?.losses ?? 0,
     }
@@ -150,8 +154,8 @@ function DisplayPlayerStat(props: { stat: PlayerStat; max: number }) {
         <Grid item xs={12} md={2}>
           <Typography variant="h3">{props.stat.playerName}</Typography>
           <List sx={{ display: { xs: "none", md: "block" } }}>
-            {sorted.map((p) => (
-              <PlayerListItem playerStatWL={p} />
+            {Object.entries(sorted).map(([general, winLoss]) => (
+              <PlayerListItem general={stringToGeneral(general)} winLoss={winLoss} />
             ))}
           </List>
         </Grid>

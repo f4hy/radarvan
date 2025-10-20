@@ -99,7 +99,7 @@ class PlayerStatFactionWL(BaseModel):
 
 class PlayerStat(BaseModel):
     player_name: str = Field(alias="playerName")
-    stats: List[GeneralWL]
+    stats: dict[General, WinLoss]
     faction_stats: List[PlayerStatFactionWL] = Field(alias="factionStats")
     over_time: List[PlayerRateOverTime] = Field(alias="overTime")
 

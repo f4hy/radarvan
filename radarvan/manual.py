@@ -528,7 +528,7 @@ REPLAYS = [
 ]
 
 if os.getenv("DEV"):
-    REPLAYS = REPLAYS[:30]
+    REPLAYS = REPLAYS[:10]
 
 
 @cache

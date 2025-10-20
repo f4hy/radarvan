@@ -7,7 +7,7 @@ from api_types import (
     General,
     Team,
     MatchDetails,
-    SpentOverTime,
+    SpentOverTime, PlayerStats
 )
 from functools import cache
 from typing import Union
@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import manual
 import matches
+import player_stats
 import match_details
 from contextlib import asynccontextmanager
 import logging
@@ -112,6 +113,11 @@ def get_match_details(match_id: int) -> MatchDetails:
     details = match_details.match_details_from_replay(replay)
     return details
 
+@app.get("/api/playerstats")
+def get_player_stats() -> PlayerStats:
+    """Get player stats."""
+    games = sorted_deduped_matches()
+    return player_stats.get_player_stats(games.values())
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

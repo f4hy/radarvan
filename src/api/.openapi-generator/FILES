@@ -5,7 +5,10 @@ models/APM.ts
 models/CostsBuiltObject.ts
 models/CostsInput.ts
 models/CostsOutput.ts
+models/DateMessage.ts
+models/Faction.ts
 models/General.ts
+models/GeneralWL.ts
 models/HTTPValidationError.ts
 models/MatchDetails.ts
 models/MatchInfoInput.ts
@@ -13,6 +16,12 @@ models/MatchInfoOutput.ts
 models/Matches.ts
 models/ObjectSummary.ts
 models/Player.ts
+models/PlayerRateOverTimeInput.ts
+models/PlayerRateOverTimeOutput.ts
+models/PlayerStatFactionWL.ts
+models/PlayerStatInput.ts
+models/PlayerStatOutput.ts
+models/PlayerStats.ts
 models/PlayerSummary.ts
 models/Spent.ts
 models/SpentOverTime.ts
@@ -21,5 +30,6 @@ models/UpgradeEvent.ts
 models/Upgrades.ts
 models/ValidationError.ts
 models/ValidationErrorLocInner.ts
+models/WinLoss.ts
 models/index.ts
 runtime.ts

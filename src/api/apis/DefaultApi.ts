@@ -18,6 +18,7 @@ import type {
   HTTPValidationError,
   MatchDetails,
   Matches,
+  PlayerStats,
 } from '../models/index';
 import {
     HTTPValidationErrorFromJSON,
@@ -26,6 +27,8 @@ import {
     MatchDetailsToJSON,
     MatchesFromJSON,
     MatchesToJSON,
+    PlayerStatsFromJSON,
+    PlayerStatsToJSON,
 } from '../models/index';
 
 export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
@@ -116,6 +119,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchesApiMatchesMatchCountGet(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
         const response = await this.getMatchesApiMatchesMatchCountGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get player stats.
+     * Get Player Stats
+     */
+    async getPlayerStatsApiPlayerstatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/playerstats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlayerStatsFromJSON(jsonValue));
+    }
+
+    /**
+     * Get player stats.
+     * Get Player Stats
+     */
+    async getPlayerStatsApiPlayerstatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
+        const response = await this.getPlayerStatsApiPlayerstatsGetRaw(initOverrides);
         return await response.value();
     }
 
