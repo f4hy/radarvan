@@ -189,7 +189,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
     paperprops["bgcolor"] = "text.disabled"
     paperprops["borderColor"] = "red"
     return (<Accordion defaultExpanded={false}>
-      <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{bgcolor: "text.disabled"}}>
+      <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{ bgcolor: "text.disabled" }}>
         <Typography color="error.main">Mismatch: </Typography>{header}
       </AccordionSummary>
       <AccordionDetails>

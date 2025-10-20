@@ -35,6 +35,7 @@ function generalToSide(general: General): Side {
   }
 }
 
+
 export default function DisplayGeneral(props: { general: General }) {
   let general: string | null = General[props.general]
   let avatar = (<Avatar

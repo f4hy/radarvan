@@ -26,6 +26,7 @@ import {
   Faction, factionFromJSON,
   DateMessage,
 } from "./proto/match"
+import { toGeneralName } from "./general_utils"
 
 import {
   General,
@@ -45,8 +46,8 @@ function getPlayerStats(callback: (m: PlayerStats) => void) {
     .catch((e) => alert(e))
 }
 
-function stringToGeneral(s: string): General {
-  let num = parseInt(s)
+function toGeneral(s: string | number): General {
+  let num = (typeof s === "string") ? parseInt(s) : s
   if (instanceOfGeneral(num)) {
     return GeneralFromJSON(num)
   }
@@ -64,8 +65,8 @@ function PlayerListItem(props: { general: General, winLoss: WinLoss }) {
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
       <ListItemText
-        primary={`${props.general}:(${props.winLoss?.wins ?? 0}:${props.winLoss?.losses ?? 0
-          })`}
+        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${props.winLoss?.losses ?? 0
+          }]`}
       />
     </ListItem>
   )
@@ -95,7 +96,7 @@ function GeneralStatOverTime(props: { ot: PlayerRateOverTimeOutput[] }) {
       <Grid container rowSpacing={3}>
         {grouped.map(([g, data]) => (
           <Grid item xs={12} lg={3}>
-            <DisplayGeneral general={+g} />
+            <DisplayGeneral general={toGeneral(g)} />
             <ResponsiveContainer width="99%" height={150}>
               <LineChart
                 data={data.map((d) => ({
@@ -131,7 +132,7 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
     const tot = wins + losses
     const rate = (wins / (tot > 0 ? tot : 1)) * 100
     return {
-      general: general + ":" + rate.toFixed() + "%",
+      general: toGeneralName(toGeneral((general))) + ":" + rate.toFixed() + "%",
       wins: wins,
       losses: losses,
     }
@@ -155,7 +156,7 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
           <Typography variant="h3">{props.stat.playerName}</Typography>
           <List sx={{ display: { xs: "none", md: "block" } }}>
             {Object.entries(sorted).map(([general, winLoss]) => (
-              <PlayerListItem general={stringToGeneral(general)} winLoss={winLoss} />
+              <PlayerListItem general={toGeneral(general)} winLoss={winLoss} />
             ))}
           </List>
         </Grid>
