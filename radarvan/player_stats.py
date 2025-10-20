@@ -26,6 +26,8 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
     player_stats: dict[str, PlayerStat] = {}
 
     for game in games:
+        if game.incomplete:
+            continue
         for player in game.players:
             if player.name not in player_stats:
                 player_stats[player.name] = PlayerStat(
