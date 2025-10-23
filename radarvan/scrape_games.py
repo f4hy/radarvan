@@ -166,11 +166,11 @@ if __name__ == "__main__":
     base = "https://www.gentool.net/data/zh/"
     pattern = "09BAC013F91C"
 
-    all_paths = asyncio.run(get_replay_urls(30, base))
+    all_paths = asyncio.run(get_replay_urls(2, base))
     print("ALL_PATHS", all_paths)
     with open("replay_paths.txt", "w") as f:
         for paths in all_paths:
             for p in paths:
-                if p:
-                    f.write(f'"{p}"')
-                    f.write("\n")
+                for i in p:
+                    f.write(f'"{i}"')
+                    f.write(",\n")

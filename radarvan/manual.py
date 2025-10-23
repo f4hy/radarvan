@@ -19,6 +19,23 @@ bill = "131_5211058E5C33"
 s3_root = "s3://generals-stats/radarvan/dev/"
 
 REPLAYS = [
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/01-47-06_1v1v1v1_WLD_131_Pancake_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/02-25-19_2v2_Skip_131_Neo_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/02-35-51_1v1v1v1v1v1_Neo_Pancake_WLD_HardAI_Skip_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/02-38-28_3v3_Skip_Pancake_Neo_131_WLD_HardAI.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/02-40-32_3v3_Skip_Pancake_Neo_131_WLD_HardAI.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/02-52-43_3v3_Skip_Neo_Pancake_WLD_131_HardAI.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/02-55-46_3v3_Skip_Pancake_Neo_WLD_131_HardAI.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-18-44_2v2_WLD_Neo_131_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-20-07_2v2_WLD_Neo_Pancake_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-33-28_2v2_WLD_Neo_Pancake_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-34-50_2v2_WLD_Neo_Pancake_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-46-00_2v2_WLD_Neo_131_Pancake.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-47-05_2v2_WLD_Neo_Pancake_131.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-57-24_2v2_WLD_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/03-59-54_2v2_WLD_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/04-16-45_2v2_WLD_Pancake_131_Neo.rep",
+    "https://www.gentool.net/data/zh/2025_10_October/23_Thursday/131_5211058E5C33/04-18-26_2v2_WLD_Pancake_131_Neo.rep",
     "https://www.gentool.net/data/zh/2025_10_October/19_Sunday/131_5211058E5C33/01-04-38_1v1v1v1v1v1_Skip_Tytan_131_CD_HardAI_HardAI.rep",
     "https://www.gentool.net/data/zh/2025_10_October/19_Sunday/131_5211058E5C33/01-10-12_1v1v1v1v1v1_Skip_Tytan_CD_131_HardAI_HardAI.rep",
     "https://www.gentool.net/data/zh/2025_10_October/19_Sunday/131_5211058E5C33/01-26-18_4v4_Skip_Mod_131_CD_Neo_Pan_Tytan_HardAI.rep",
