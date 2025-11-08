@@ -152,7 +152,6 @@ class GeneralsHeader(BaseModel):
     TimeStampBegin: int
     TimeStampEnd: int
     NumTimeStamps: int
-    Filler: ByteArray12
     FileName: str
     Year: int
     Month: int
