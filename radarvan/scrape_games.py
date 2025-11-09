@@ -164,8 +164,9 @@ async def get_replay_urls(
     for paths in all_paths:
         replay_paths = await search_replays(paths)
         all_replay_paths.append(replay_paths)
-        for path in replay_paths:
-            _parsed = replay_files.parse_replay(path, replay_manager)
+        for paths in replay_paths:
+            for p in paths:
+                replay_files.parse_replay(p, replay_manager)
 
     return all_replay_paths
 

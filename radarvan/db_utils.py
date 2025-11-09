@@ -33,7 +33,8 @@ class DatabaseManager:
         Initialize database connection.
         Example: DatabaseManager('postgresql://user:password@localhost:5432/cnc_stats')
         """
-        self.engine = create_engine(connection_string, echo=False)
+        con_str = connection_string.replace("postgres://", "postgresql://")
+        self.engine = create_engine(con_str, echo=False)
         self.SessionLocal = sessionmaker(bind=self.engine)
 
     def create_all_tables(self):
