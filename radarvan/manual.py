@@ -1,4 +1,7 @@
 """Manual paths for now."""
+from sqlalchemy.orm import Session
+
+from db_utils import ReplayManager
 
 from typing import Generator
 import httpx
@@ -6,11 +9,14 @@ import logging
 import fsspec
 from cncstats_types import EnhancedReplay
 from functools import cache
+from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
+
 from parse_replay import parse_replay_data
 import os
 import utils
 from log_time import log_time
 from cachetools import cached, LRUCache
+import replay_files
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
@@ -755,43 +761,29 @@ def test_connection():
     logger.info(f"Listing {listing=}")
 
 
-def save_replay_if_missing(replay_path: str, save_path: str):
-    fs = get_fs()
-    with log_time(f"Does not exist, saving {replay_path}", logger):
-        raw_data = fsspec.filesystem("http").read_bytes(replay_path)
-        fs.write_bytes(save_path, raw_data)
-
-
-# @cached(cache=LRUCache(maxsize=12))
-def parse_replay(path: str, reparse: bool = False) -> EnhancedReplay:
-    replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
-    json_path = replay_path.replace(".rep", ".json.gz")
-    logger.info(f"{json_path=} {replay_path=}")
-    fs = get_fs()
-    if fs.exists(json_path) and (not reparse):
-        with log_time(f"reading {json_path}", logger):
-            json_data = fs.read_text(json_path, compression="gzip")
-        with log_time(f"Validing {json_path}", logger):
-            parsed_replay = EnhancedReplay.model_validate_json(json_data)
-    else:
-        logger.info(f"Does not exist {json_path=}")
-        save_replay_if_missing(path, replay_path)
-        raw_replay = fs.read_bytes(replay_path)
-        parsed_replay = parse_replay_data(raw_replay)
-        fs.write_text(json_path, parsed_replay.model_dump_json(), compression="gzip")
-    logger.info("Finished parsing replay")
-    parsed_replay.Header.FileName = path
-    return parsed_replay
-
-
 def get_parsed_replays(
     replay_paths: list[str],
+    replay_manager: ReplayManager,
 ) -> Generator[EnhancedReplay, None, None]:
     logger.info(f"getting {len(replay_paths)=}")
     for path in replay_paths:
         if "1v1v1v1" in path or "2v4" in path:
             continue
-        parsed = parse_replay(path)
+        parsed = replay_files.parse_replay(path, replay_manager)
         if utils.duration_minutes(parsed) > 2.0:
             logger.info(f"Yielding {parsed.Header.FileName}")
             yield parsed
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    conn_str = os.getenv("DATABASE_URL")
+    db_manager = DatabaseManager(conn_str)
+    with db_manager.get_session() as session:
+        replay_manager = ReplayManager(session)
+        for path in REPLAYS:
+            print(path)
+            if "1v1v1v1" in path or "2v4" in path:
+                continue
+            parsed = replay_files.parse_replay(path, replay_manager)
+            

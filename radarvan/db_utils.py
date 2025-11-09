@@ -2,9 +2,11 @@ from sqlalchemy import create_engine, select, func, and_, or_
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from db import (
     Base,
+    ReplayFile,
+    ParsedReplayJson,
     Match,
     MatchPlayer,
     GeneralModel,
@@ -18,7 +20,11 @@ from db import (
     MatchPlayerPower,
     General,
     Team,
+    ProcessingStatus,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseManager:
@@ -97,6 +103,74 @@ class DatabaseManager:
             conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY player_general_stats")
             conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY map_stats_view")
             conn.commit()
+
+
+class ReplayManager:
+    """Repository for match-related operations."""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get_replay_file(self, url: str) -> ReplayFile | None:
+        fetched = self.session.get(ReplayFile, url)
+        return fetched
+
+    def get_parsed_file(self, json_uri: str) -> ParsedReplayJson | None:
+        fetched = self.session.get(ParsedReplayJson, json_uri)
+        return fetched
+
+    def register_replay(self, from_url: str, s3_uri: str) -> ReplayFile:
+        """Register a new replay."""
+        logger.info(f"Registering {from_url=} {s3_uri=}")
+        prefix = "https://www.gentool.net/data/zh/"
+        date_str = from_url.removeprefix(prefix).split("/")[0]
+        date = datetime.strptime(date_str, "%Y_%m_%B")
+        replay_file = ReplayFile(
+            original_url=from_url,
+            s3_uri=s3_uri,
+            source_date=date,
+        )
+        self.session.add(replay_file)
+        self.session.flush()
+        self.session.commit()
+        return replay_file
+
+    def save_parsed_json(
+        self,
+        json_s3_uri: str,
+        replay_id: int,
+        original_replay_file_url: str,
+        game_timestamp: datetime,
+    ) -> ParsedReplayJson:
+        """Save the result of parsing."""
+        logger.info(
+            f"Saving parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
+        )
+        game_date = (game_timestamp - timedelta(hours=5)).date()
+        parsed_json = ParsedReplayJson(
+            json_s3_uri=json_s3_uri,
+            match_id=replay_id,
+            replay_file_url=original_replay_file_url,
+            game_timestamp=game_timestamp,
+            game_date=game_date,
+        )
+        self.session.add(parsed_json)
+        self.session.flush()
+        replay_file = self.session.get(ReplayFile, original_replay_file_url)
+        replay_file.status = ProcessingStatus.PARSED
+        self.session.commit()
+        return parsed_json
+
+    def list_jsons(self, date: date | None = None) -> list[ParsedReplayJson]:
+        """List all jsons or filter by date."""
+        query = (
+            self.session.query(ParsedReplayJson)
+            .distinct(ParsedReplayJson.match_id)
+            .order_by(ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp)
+        )
+        if date:
+            query.limit(ParsedReplayJson.game_date == date)
+        return self.session.execute(query).scalars().all()
 
 
 class MatchRepository:

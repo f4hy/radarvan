@@ -1,3 +1,4 @@
+from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
 import asyncio
 import re
 import httpx  # <-- Only change needed
@@ -15,6 +16,7 @@ import player_ids
 from functools import cache
 from cachetools import TTLCache
 from cachetools_async import cached
+import replay_files
 
 logger = logging.getLogger(__name__)
 TIMEOUT = 120.0
@@ -152,12 +154,19 @@ async def search_replays(urls_to_list: str) -> list[str]:
     return dir_lists
 
 
-async def get_replay_urls(days: int, base: str):
+async def get_replay_urls(
+    days: int,
+    base: str,
+    replay_manager: ReplayManager,
+):
     all_paths = await search_dates(days, base)
     all_replay_paths = []
     for paths in all_paths:
         replay_paths = await search_replays(paths)
         all_replay_paths.append(replay_paths)
+        for path in replay_paths:
+            _parsed = replay_files.parse_replay(path, replay_manager)
+
     return all_replay_paths
 
 
@@ -165,12 +174,17 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     base = "https://www.gentool.net/data/zh/"
     pattern = "09BAC013F91C"
+    logging.basicConfig(level=logging.INFO)
+    conn_str = os.getenv("DATABASE_URL")
+    db_manager = DatabaseManager(conn_str)
+    with db_manager.get_session() as session:
+        replay_manager = ReplayManager(session)
 
-    all_paths = asyncio.run(get_replay_urls(2, base))
-    print("ALL_PATHS", all_paths)
-    with open("replay_paths.txt", "w") as f:
-        for paths in all_paths:
-            for p in paths:
-                for i in p:
-                    f.write(f'"{i}"')
-                    f.write(",\n")
+        all_paths = asyncio.run(get_replay_urls(2, base, replay_manager))
+        print("ALL_PATHS", all_paths)
+        with open("replay_paths.txt", "w") as f:
+            for paths in all_paths:
+                for p in paths:
+                    for i in p:
+                        f.write(f'"{i}"')
+                        f.write(",\n")

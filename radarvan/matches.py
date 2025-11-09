@@ -37,7 +37,7 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         utils.player_summary_to_player(p, color_map, observers) for p in replay.Summary
     ]
     return MatchInfo(
-        id=replay.Header.Metadata.Seed,
+        id=replay.replay_id(),
         timestamp=replay.Header.TimeStampBegin,
         map=replay.Header.Metadata.MapFile,
         winning_team=winner,

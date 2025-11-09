@@ -14,12 +14,14 @@ dependencies = [
     "pydantic>=2.12.0",
     "s3fs>=2025.9.0",
     "sqlalchemy>=2.0.44",
+    "sqlalchemy-stubs>=0.4",
 ]
 [dependency-groups]
 dev = [
   "beautifulsoup4>=4.14.2",
   "click>=8.3.0",
   "mypy>=1.18.2",
+  "pylsp-mypy>=0.7.0",
   "pytest >=8.1.1,<9",
   "python-lsp-server[all]>=1.13.1",
   "ruff>=0.14.0",
@@ -105,3 +107,7 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.mypy]
+strict = true
+plugins = ["sqlmypy", "pydantic.mypy"]

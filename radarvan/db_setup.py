@@ -5,13 +5,16 @@ from db import General, Team, Match
 import os
 
 # Initialize database connection (do this once at application startup)
-constring = os.getenv("DB_CON_STRING")
+constring = os.getenv("DATABASE_URL")
 print("!!", constring)
 db_manager = DatabaseManager(constring)
 
 
 def setup_database():
     """Run this once to set up your database."""
+
+    # Drop all
+    db_manager.drop_all_tables()
     # Create all tables
     db_manager.create_all_tables()
 

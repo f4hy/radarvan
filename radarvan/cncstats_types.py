@@ -179,3 +179,6 @@ class EnhancedReplay(BaseModel):
     Body: List[EnhancedBodyChunk]
     Summary: List[PlayerSummary]
     Offset: int
+
+    def replay_id(self) -> int:
+        return self.Header.Metadata.Seed

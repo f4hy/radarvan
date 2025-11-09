@@ -1,6 +1,7 @@
 from sqlalchemy import (
     Column,
     Integer,
+    Date,
     String,
     Float,
     Boolean,
@@ -16,8 +17,77 @@ from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 from enum import IntEnum
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Text, ForeignKey, Enum
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from datetime import datetime
+import enum
 
 Base = declarative_base()
+
+
+class ProcessingStatus(enum.Enum):
+    PENDING = "pending"
+    SKIPPED = "skipped"
+    PARSED = "parsed"
+    FAILED = "failed"
+
+
+class ReplayFile(Base):
+    """Original replay files from HTTP URIs"""
+
+    __tablename__ = "replay_files"
+
+    original_url = Column(
+        String, unique=True, primary_key=True, nullable=False, index=True
+    )
+    s3_uri = Column(String, unique=True, nullable=False, index=True)
+    status = Column(
+        Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
+    )
+
+    # Timestamps
+    discovered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    source_date = Column(Date, nullable=False, index=True)
+    parsed_at = Column(DateTime, nullable=True)
+
+    # Error tracking
+    error_message = Column(Text, nullable=True)
+
+    # Relationships
+    parsed_replay_json = relationship(
+        "ParsedReplayJson", back_populates="replay_file", uselist=False
+    )
+
+    def __repr__(self):
+        return (
+            f"<ReplayFile(id={self.id}, url={self.original_url}, status={self.status})>"
+        )
+
+
+class ParsedReplayJson(Base):
+    """Parsed replay data stored in S3"""
+
+    __tablename__ = "parsed_replay_json"
+
+    json_s3_uri = Column(String, primary_key=True, nullable=False)
+    match_id = Column(Integer, nullable=False, index=True)
+    replay_file_url = Column(
+        String, ForeignKey("replay_files.original_url"), unique=True, nullable=False
+    )
+
+    # S3 storage info
+
+    # File info
+    file_size_bytes = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    game_timestamp = Column(DateTime, nullable=False)
+    game_date = Column(Date, index=True)
+    # Relationships
+    replay_file = relationship("ReplayFile", back_populates="parsed_replay_json")
+
+    def __repr__(self):
+        return f"<ParsedReplayJson(id={self.id}, {self.s3_uri=})>"
 
 
 # Enums (keep your existing ones)
