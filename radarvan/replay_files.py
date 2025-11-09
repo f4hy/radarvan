@@ -26,6 +26,7 @@ s3_root = "s3://generals-stats/radarvan/dev/"
 def get_fs() -> fsspec.AbstractFileSystem():
     return fsspec.filesystem("s3")
 
+
 def test_connection():
     fs = get_fs()
     fs.write_text(f"{s3_root}test.txt", "test")
@@ -83,15 +84,19 @@ def path_filter(url: str) -> bool:
     if "2v4" in url:
         return False
     return True
-    
-def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
 
-    uris= [j.json_s3_uri for j in replay_manager.list_jsons() if path_filter(j.replay_file_url)]
+
+def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
+    uris = {
+        j.json_s3_uri: j.replay_file_url
+        for j in replay_manager.list_jsons()
+        if path_filter(j.replay_file_url)
+    }
     fs = get_fs()
-    all_data = fs.cat(uris)
+    all_data = fs.cat(uris.keys())
     for p, d in all_data.items():
         parsed = EnhancedReplay.model_validate_json(d)
-        parsed.Header.FileName = p
+        parsed.Header.FileName = uris[fs.unstrip_protocol(p)]
         if utils.duration_minutes(parsed) > 2.0:
             logger.info(f"Yielding {parsed.Header.FileName}")
             yield parsed
