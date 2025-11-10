@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "apscheduler>=3.11.1",
+    "beautifulsoup4>=4.14.2",
     "cachetools>=6.2.0",
     "cachetools-async>=0.0.5",
     "fastapi[standard]>=0.119.0",
