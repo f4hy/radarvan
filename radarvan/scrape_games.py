@@ -19,6 +19,7 @@ from cachetools_async import cached
 import replay_files
 
 logger = logging.getLogger(__name__)
+BASE = "https://www.gentool.net/data/zh/"
 TIMEOUT = 120.0
 
 
@@ -173,7 +174,6 @@ async def get_replay_urls(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    base = "https://www.gentool.net/data/zh/"
     pattern = "09BAC013F91C"
     logging.basicConfig(level=logging.INFO)
     conn_str = os.getenv("DATABASE_URL")
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     with db_manager.get_session() as session:
         replay_manager = ReplayManager(session)
 
-        all_paths = asyncio.run(get_replay_urls(2, base, replay_manager))
+        all_paths = asyncio.run(get_replay_urls(7, BASE, replay_manager))
         print("ALL_PATHS", all_paths)
         with open("replay_paths.txt", "w") as f:
             for paths in all_paths:

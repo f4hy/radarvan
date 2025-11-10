@@ -173,6 +173,13 @@ class ReplayManager:
             query.limit(ParsedReplayJson.game_date == date)
         return self.session.execute(query).scalars().all()
 
+    def list_dates_with_games(self) -> list[date]:
+        """Get the set of dates which have games."""
+
+        stmt = select(ParsedReplayJson.game_date).distinct()
+        unique_dates = self.session.execute(stmt).scalars().all()
+        return unique_dates
+
 
 class MatchRepository:
     """Repository for match-related operations."""

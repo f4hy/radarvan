@@ -18,6 +18,7 @@ from api_types import (
     SpentOverTime,
     Team,
 )
+import schedule
 from cncstats_types import EnhancedReplay
 from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -63,7 +64,11 @@ async def lifespan(app: FastAPI):
     logger.info("connection tested")
     # sorted_deduped_matches()
     # logger.info("primed replays")
+    replay_manager = get_replay_manager(get_db_session())
+    scheduler = schedule.get_scheduler(replay_manager)
+    scheduler.start()
     yield
+    scheduler.shutdown()
     logger.info("goodbye!")
 
 
@@ -92,8 +97,9 @@ app.add_middleware(
 #     for replay in manual.REPLAYS:
 #         logger.info(f"Reparsing {replay=}")
 #         manual.parse_replay(replay, reparse=True)
-def dont_cache_manager(replay_manager : ReplayManager) -> str:
+def dont_cache_manager(replay_manager: ReplayManager) -> str:
     return "single_key"
+
 
 @cached(cache=TTLCache(5, ttl=1_200), key=dont_cache_manager)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
@@ -114,6 +120,16 @@ def list_replays(
     listed = replay_manager.list_jsons()
     logger.info(f"Found {len(listed)=}")
     return listed
+
+
+@app.get("/api/dates/")
+def get_dates(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    listed = replay_manager.list_dates_with_games()
+    logger.info(f"Found {len(listed)=}")
+    return listed
+
 
 @app.get("/api/matches/{match_count}")
 def get_matches(
