@@ -173,6 +173,10 @@ class ReplayManager:
             query.limit(ParsedReplayJson.game_date == date)
         return self.session.execute(query).scalars().all()
 
+    def already_scraped(self) -> set[str]:
+        query = self.session.query(ReplayFile.original_url)
+        return set(self.session.execute(query).scalars().all())
+
     def list_dates_with_games(self) -> list[date]:
         """Get the set of dates which have games."""
 

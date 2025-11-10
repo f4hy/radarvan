@@ -13,7 +13,7 @@ async def update_games(replay_manager: ReplayManager) -> None:
     """Get latest updates."""
     logger.info("Updating games.")
     base = scrape_games.BASE
-    await scrape_games.get_replay_urls(1, base, replay_manager)
+    await scrape_games.get_replay_urls(0, base, replay_manager)
     logger.info("Done updating.")
 
 

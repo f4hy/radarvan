@@ -56,7 +56,7 @@ def generate_directories(n_days, base_path="."):
     created_dirs = []
 
     # Generate directories for last N days
-    for i in range(n_days):
+    for i in range(-1, n_days):
         # Calculate date for this iteration
         date = current_date - timedelta(days=i)
 
@@ -160,6 +160,7 @@ async def get_replay_urls(
     base: str,
     replay_manager: ReplayManager,
 ):
+    existing_paths = replay_manager.already_scraped()
     all_paths = await search_dates(days, base)
     all_replay_paths = []
     for paths in all_paths:
@@ -167,8 +168,9 @@ async def get_replay_urls(
         all_replay_paths.append(replay_paths)
         for paths in replay_paths:
             for p in paths:
-                replay_files.parse_replay(p, replay_manager)
-
+                if p not in existing_paths:
+                    replay_files.parse_replay(p, replay_manager)
+    logger.info(f"existing {existing_paths=}")
     return all_replay_paths
 
 
@@ -181,7 +183,7 @@ if __name__ == "__main__":
     with db_manager.get_session() as session:
         replay_manager = ReplayManager(session)
 
-        all_paths = asyncio.run(get_replay_urls(1, BASE, replay_manager))
+        all_paths = asyncio.run(get_replay_urls(0, BASE, replay_manager))
         print("ALL_PATHS", all_paths)
         with open("replay_paths.txt", "w") as f:
             for paths in all_paths:

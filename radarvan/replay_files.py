@@ -73,7 +73,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
             game_timestamp=datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin),
         )
 
-    logger.info("Finished parsing replay")
+    logger.info(f"Finished parsing replay {path=}")
     parsed_replay.Header.FileName = path
     return parsed_replay
 
