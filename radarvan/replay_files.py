@@ -90,7 +90,7 @@ def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
         if path_filter(j.replay_file_url)
     }
     fs = get_fs()
-    chunk_size = 30
+    chunk_size = 50
     for i in range(0, len(uris), chunk_size):
         data_chunk = fs.cat(list(uris.keys())[i : i + chunk_size])
         for p, d in data_chunk.items():
