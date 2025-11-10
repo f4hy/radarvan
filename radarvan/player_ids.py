@@ -7,4 +7,6 @@ PLAYERS = {
     "Tytan": "BE3C6996A715",
     "Pancake": "0F581CE73940",
     "Syn": "AABC3F9C1BD7",
+    "Gorn": "E590BC7EC80D",
+    "CoreDog": "528B373177B5",
 }

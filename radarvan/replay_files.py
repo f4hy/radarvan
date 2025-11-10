@@ -79,11 +79,9 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
 
 
 def path_filter(url: str) -> bool:
-    if "1v1v1v1" in url:
-        return False
-    if "2v4" in url:
-        return False
-    return True
+
+    types = {f"_{i}v{i}_" for i in range(5)}
+    return any(t in url for t in types)
 
 
 def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:

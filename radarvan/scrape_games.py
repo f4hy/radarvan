@@ -181,7 +181,7 @@ if __name__ == "__main__":
     with db_manager.get_session() as session:
         replay_manager = ReplayManager(session)
 
-        all_paths = asyncio.run(get_replay_urls(7, BASE, replay_manager))
+        all_paths = asyncio.run(get_replay_urls(1, BASE, replay_manager))
         print("ALL_PATHS", all_paths)
         with open("replay_paths.txt", "w") as f:
             for paths in all_paths:
