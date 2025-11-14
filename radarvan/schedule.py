@@ -1,8 +1,5 @@
-from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
-from fastapi import FastAPI
+from db_utils import ReplayManager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from contextlib import asynccontextmanager
-import httpx
 import scrape_games
 import logging
 

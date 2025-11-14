@@ -1,26 +1,14 @@
 """Get match info from a replay."""
 
-import datetime
 from api_types import (
-    Matches,
-    MatchInfo,
-    Player,
-    General,
-    Team,
     PlayerSummary as APIPlayerSummary,
 )
-from cncstats_types import EnhancedReplay, PlayerSummary, Money
+from cncstats_types import EnhancedReplay
 from api_types import (
-    Matches,
-    MatchInfo,
-    Player,
-    General,
-    Team,
     MatchDetails,
     SpentOverTime,
 )
 import logging
-import utils
 
 logger = logging.getLogger(__name__)
 

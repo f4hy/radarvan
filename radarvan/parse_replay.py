@@ -1,6 +1,5 @@
 """Parse replay file."""
 
-import argparse
 import sys
 import pathlib
 import json

@@ -1,33 +1,26 @@
 import logging
+import os
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
-from functools import cache
-from typing import Union
-from cachetools import TTLCache, cached
-from cachetools.keys import hashkey
+from collections.abc import Generator
+
 import match_details
 import matches
 import player_stats
+import replay_files
+import schedule
 from api_types import (
-    General,
     MatchDetails,
     Matches,
     MatchInfo,
-    Player,
     PlayerStats,
     SpentOverTime,
-    Team,
 )
-import schedule
-from cncstats_types import EnhancedReplay
-from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
-from fastapi import Depends, FastAPI, HTTPException, Query
+from cachetools import TTLCache, cached
+from db_utils import DatabaseManager, ReplayManager
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-import replay_files
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +28,7 @@ conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
 
 
-def get_db_session() -> Session:
+def get_db_session() -> Generator[Session]:
     """
     Dependency that provides a database session.
     Automatically handles commit/rollback and cleanup.
@@ -64,11 +57,12 @@ async def lifespan(app: FastAPI):
     logger.info("connection tested")
     # sorted_deduped_matches()
     # logger.info("primed replays")
-    replay_manager = get_replay_manager(get_db_session())
-    scheduler = schedule.get_scheduler(replay_manager)
-    scheduler.start()
-    yield
-    scheduler.shutdown()
+    with db_manager.SessionLocal() as session:
+        replay_manager = get_replay_manager(session)
+        scheduler = schedule.get_scheduler(replay_manager)
+        scheduler.start()
+        yield
+        scheduler.shutdown()
     logger.info("goodbye!")
 
 

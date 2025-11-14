@@ -1,8 +1,7 @@
 """Get match info from a replay."""
 
-import datetime
-from api_types import Matches, MatchInfo, Player, General, Team
-from cncstats_types import EnhancedReplay, PlayerSummary, GeneralsHeader
+from api_types import MatchInfo, Team
+from cncstats_types import EnhancedReplay
 import utils
 import logging
 

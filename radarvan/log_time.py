@@ -1,10 +1,9 @@
 import time
 from contextlib import contextmanager
-from typing import Optional
 import logging
 
 @contextmanager
-def log_time(message: str, logger: Optional[logging.Logger] = None):
+def log_time(message: str, logger: logging.Logger | None = None):
     """
     Context manager that logs a message and the elapsed time.
     """

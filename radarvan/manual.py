@@ -1,21 +1,16 @@
 """Manual paths for now."""
-from sqlalchemy.orm import Session
 
 from db_utils import ReplayManager
 
-from typing import Generator
-import httpx
+from collections.abc import Generator
 import logging
 import fsspec
 from cncstats_types import EnhancedReplay
 from functools import cache
-from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
+from db_utils import DatabaseManager
 
-from parse_replay import parse_replay_data
 import os
 import utils
-from log_time import log_time
-from cachetools import cached, LRUCache
 import replay_files
 
 logger = logging.getLogger(__name__)
@@ -764,7 +759,7 @@ def test_connection():
 def get_parsed_replays(
     replay_paths: list[str],
     replay_manager: ReplayManager,
-) -> Generator[EnhancedReplay, None, None]:
+) -> Generator[EnhancedReplay]:
     logger.info(f"getting {len(replay_paths)=}")
     for path in replay_paths:
         if "1v1v1v1" in path or "2v4" in path:

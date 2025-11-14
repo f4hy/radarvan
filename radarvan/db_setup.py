@@ -1,7 +1,4 @@
-from typing import List, Dict, Optional
-from datetime import datetime, timedelta
-from db_utils import DatabaseManager, MatchRepository, StatsRepository
-from db import General, Team, Match
+from db_utils import DatabaseManager
 import os
 
 # Initialize database connection (do this once at application startup)

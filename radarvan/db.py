@@ -17,10 +17,8 @@ from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 from enum import IntEnum
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Text, ForeignKey, Enum
+from sqlalchemy import Enum
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
 
 Base = declarative_base()

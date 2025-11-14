@@ -1,7 +1,6 @@
-from sqlalchemy import create_engine, select, func, and_, or_
+from sqlalchemy import create_engine, select, func, and_
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
-from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta, date
 from db import (
     Base,
@@ -267,7 +266,7 @@ class MatchRepository:
         self,
         match: Match,
         player_name: str,
-        objects: Dict[str, Dict[str, int]],
+        objects: dict[str, dict[str, int]],
         category: str,
     ):
         """Add built objects (units/buildings/upgrades) for a player."""
@@ -352,11 +351,11 @@ class MatchRepository:
         )
         self.session.add(power)
 
-    def get_match_by_id(self, match_id: int) -> Optional[Match]:
+    def get_match_by_id(self, match_id: int) -> Match | None:
         """Get a match by ID with all related data."""
         return self.session.query(Match).filter_by(id=match_id).first()
 
-    def get_recent_matches(self, limit: int = 10) -> List[Match]:
+    def get_recent_matches(self, limit: int = 10) -> list[Match]:
         """Get most recent matches."""
         return (
             self.session.query(Match)
@@ -365,7 +364,7 @@ class MatchRepository:
             .all()
         )
 
-    def get_matches_by_player(self, player_name: str) -> List[Match]:
+    def get_matches_by_player(self, player_name: str) -> list[Match]:
         """Get all matches for a specific player."""
         return (
             self.session.query(Match)
@@ -375,7 +374,7 @@ class MatchRepository:
             .all()
         )
 
-    def get_matches_by_map(self, map_name: str) -> List[Match]:
+    def get_matches_by_map(self, map_name: str) -> list[Match]:
         """Get all matches on a specific map."""
         return (
             self.session.query(Match)
@@ -391,7 +390,7 @@ class StatsRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def get_player_stats(self, player_name: str) -> Dict:
+    def get_player_stats(self, player_name: str) -> dict:
         """Get comprehensive stats for a player."""
         # Win/Loss by general
         general_stats = (
@@ -437,7 +436,7 @@ class StatsRepository:
             ],
         }
 
-    def get_leaderboard(self, min_games: int = 10) -> List[Dict]:
+    def get_leaderboard(self, min_games: int = 10) -> list[dict]:
         """Get player leaderboard by win rate."""
         results = (
             self.session.query(
@@ -475,7 +474,7 @@ class StatsRepository:
 
         return sorted(leaderboard, key=lambda x: x["win_rate"], reverse=True)
 
-    def get_general_winrates(self) -> List[Dict]:
+    def get_general_winrates(self) -> list[dict]:
         """Get win rates for each general."""
         results = (
             self.session.query(
@@ -501,7 +500,7 @@ class StatsRepository:
             for name, wins, losses in results
         ]
 
-    def get_map_stats(self) -> List[Dict]:
+    def get_map_stats(self) -> list[dict]:
         """Get statistics for each map."""
         results = (
             self.session.query(

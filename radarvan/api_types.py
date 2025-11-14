@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
 from datetime import datetime
 from enum import IntEnum
 
@@ -48,7 +47,7 @@ class MatchInfo(BaseModel):
     timestamp: datetime
     map: str
     winning_team: Team
-    players: List[Player]
+    players: list[Player]
     duration_minutes: float
     filename: str
     incomplete: str
@@ -59,7 +58,7 @@ class MatchInfo(BaseModel):
 
 
 class Matches(BaseModel):
-    matches: List[MatchInfo]
+    matches: list[MatchInfo]
 
 
 class WinLoss(BaseModel):
@@ -91,7 +90,7 @@ class PlayerRateOverTime(BaseModel):
 
 class PlayerStatFactionWL(BaseModel):
     faction: Faction = Faction.ANYUSA
-    win_loss: Optional[WinLoss] = Field(default=None, alias="winLoss")
+    win_loss: WinLoss | None = Field(default=None, alias="winLoss")
 
     class Config:
         populate_by_name = True
@@ -100,15 +99,15 @@ class PlayerStatFactionWL(BaseModel):
 class PlayerStat(BaseModel):
     player_name: str = Field(alias="playerName")
     stats: dict[General, WinLoss]
-    faction_stats: List[PlayerStatFactionWL] = Field(alias="factionStats")
-    over_time: List[PlayerRateOverTime] = Field(alias="overTime")
+    faction_stats: list[PlayerStatFactionWL] = Field(alias="factionStats")
+    over_time: list[PlayerRateOverTime] = Field(alias="overTime")
 
     class Config:
         populate_by_name = True
 
 
 class PlayerStats(BaseModel):
-    player_stats: List[PlayerStat] = Field(alias="playerStats")
+    player_stats: list[PlayerStat] = Field(alias="playerStats")
 
     class Config:
         populate_by_name = True
@@ -116,7 +115,7 @@ class PlayerStats(BaseModel):
 
 class GeneralStatPlayerWL(BaseModel):
     player_name: str = Field(alias="playerName")
-    win_loss: Optional[WinLoss] = Field(default=None, alias="winLoss")
+    win_loss: WinLoss | None = Field(default=None, alias="winLoss")
 
     class Config:
         populate_by_name = True
@@ -124,25 +123,25 @@ class GeneralStatPlayerWL(BaseModel):
 
 class GeneralStat(BaseModel):
     general: General
-    stats: List[GeneralStatPlayerWL]
+    stats: list[GeneralStatPlayerWL]
     total: WinLoss
 
 
 class GeneralStats(BaseModel):
-    general_stats: List[GeneralStat] = Field(alias="generalStats")
+    general_stats: list[GeneralStat] = Field(alias="generalStats")
 
     class Config:
         populate_by_name = True
 
 
 class TeamStat(BaseModel):
-    date: Optional[DateMessage] = None
+    date: DateMessage | None = None
     team: Team = Team.NONE
     wins: int = 0
 
 
 class TeamStats(BaseModel):
-    team_stats: List[TeamStat] = Field(alias="teamStats")
+    team_stats: list[TeamStat] = Field(alias="teamStats")
 
     class Config:
         populate_by_name = True
@@ -156,17 +155,17 @@ class MapStat(BaseModel):
 
 class MapResult(BaseModel):
     map: str = ""
-    date: Optional[DateMessage] = None
+    date: DateMessage | None = None
     winner: Team = Team.NONE
 
 
 class MapResults(BaseModel):
-    results: List[MapResult]
+    results: list[MapResult]
 
 
 class MapStats(BaseModel):
-    map_stats: List[MapStat] = Field(alias="mapStats")
-    over_time: Dict[str, MapResults] = Field(alias="overTime")
+    map_stats: list[MapStat] = Field(alias="mapStats")
+    over_time: dict[str, MapResults] = Field(alias="overTime")
 
     class Config:
         populate_by_name = True
@@ -186,10 +185,10 @@ class CostsBuiltObject(BaseModel):
 
 
 class Costs(BaseModel):
-    player: Optional[Player]
-    buildings: List[CostsBuiltObject]
-    units: List[CostsBuiltObject]
-    upgrades: List[CostsBuiltObject]
+    player: Player | None
+    buildings: list[CostsBuiltObject]
+    units: list[CostsBuiltObject]
+    upgrades: list[CostsBuiltObject]
 
 
 class APM(BaseModel):
@@ -223,14 +222,14 @@ class Spent(BaseModel):
 
 
 class Upgrades(BaseModel):
-    upgrades: List[UpgradeEvent]
+    upgrades: list[UpgradeEvent]
 
 
 class SpentOverTime(BaseModel):
-    buildings: List[Spent]
-    units: List[Spent]
-    upgrades: List[Spent]
-    total: List[Spent]
+    buildings: list[Spent]
+    units: list[Spent]
+    upgrades: list[Spent]
+    total: list[Spent]
 
 
 class ObjectSummary(BaseModel):
@@ -253,8 +252,8 @@ class PlayerSummary(BaseModel):
 
 class MatchDetails(BaseModel):
     match_id: int = Field(alias="matchId")
-    costs: List[Costs]
-    apms: List[APM]
+    costs: list[Costs]
+    apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
     spent: SpentOverTime
     money_values: dict[int, dict[str, int]] = Field(
@@ -269,21 +268,21 @@ class MatchDetails(BaseModel):
 class PairWinLoss(BaseModel):
     general1: General
     general2: General
-    winloss: Optional[WinLoss]
+    winloss: WinLoss | None
 
 
 class PairFactionWinLoss(BaseModel):
     faction1: Faction = Faction.ANYUSA
     faction2: Faction = Faction.ANYUSA
-    winloss: Optional[WinLoss]
+    winloss: WinLoss | None
 
 
 class PairsWinLosses(BaseModel):
-    pairwl: List[PairWinLoss]
+    pairwl: list[PairWinLoss]
 
 
 class PairFactionWinLosses(BaseModel):
-    pairwl: List[PairFactionWinLoss]
+    pairwl: list[PairFactionWinLoss]
 
 
 class TeamPairs(BaseModel):

@@ -1,16 +1,11 @@
-from db_utils import DatabaseManager, MatchRepository, ReplayManager, StatsRepository
+from db_utils import DatabaseManager, ReplayManager
 import asyncio
-import re
 import httpx  # <-- Only change needed
 from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urljoin
-import asyncio
-import httpx
 import os
 from datetime import datetime, timedelta
-from pathlib import Path
-import argparse
 import logging
 import player_ids
 from functools import cache

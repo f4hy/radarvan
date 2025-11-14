@@ -1,17 +1,13 @@
 """Manual paths for now."""
 
-from typing import Generator, Iterator
-import httpx
+from collections.abc import Iterator
 import logging
 import fsspec
 from cncstats_types import EnhancedReplay
 from functools import cache
 from parse_replay import parse_replay_data
-import os
 import utils
 from log_time import log_time
-from cachetools import cached, LRUCache
-import db_utils
 from db_utils import ReplayManager
 from datetime import datetime
 
