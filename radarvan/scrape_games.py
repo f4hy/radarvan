@@ -85,6 +85,9 @@ async def matching_links(base_url: str, patterns: list[str]):
     except httpx.ReadTimeout:
         logger.info(f"Timed out reading from {base_url}")
         return []
+    except Exception as e:
+        logger.info(f"Error reading from {base_url} error={repr(e)}")
+        return []
 
     soup = BeautifulSoup(response.text, "html.parser")
 
