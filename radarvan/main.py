@@ -2,6 +2,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from collections.abc import Generator
+from fastapi import FastAPI, BackgroundTasks
 
 import match_details
 import matches
@@ -17,7 +18,7 @@ from api_types import (
 )
 from cachetools import TTLCache, cached
 from db_utils import DatabaseManager, ReplayManager
-from fastapi import Depends, FastAPI
+from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -123,6 +124,15 @@ def get_dates(
     listed = replay_manager.list_dates_with_games()
     logger.info(f"Found {len(listed)=}")
     return listed
+
+
+@app.get("/api/scrape/")
+def scrape(
+    background_tasks: BackgroundTasks,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    background_tasks.add_task(schedule.update_games, replay_manager)
+    return {"scheduled": "ok"}
 
 
 @app.get("/api/matches/{match_count}")
