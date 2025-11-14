@@ -126,12 +126,13 @@ def get_dates(
     return listed
 
 
-@app.get("/api/scrape/")
+@app.get("/api/scrape/{days}")
 def scrape(
     background_tasks: BackgroundTasks,
+    days: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
-    background_tasks.add_task(schedule.update_games, replay_manager)
+    background_tasks.add_task(schedule.update_games, replay_manager, days=1)
     return {"scheduled": "ok"}
 
 
