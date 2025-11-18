@@ -168,7 +168,6 @@ async def get_replay_urls(
             for p in paths:
                 if p not in existing_paths:
                     replay_files.parse_replay(p, replay_manager)
-    logger.info(f"existing {existing_paths=}")
     return all_replay_paths
 
 
