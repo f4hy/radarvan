@@ -96,7 +96,7 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
     return "single_key"
 
 
-@cached(cache=TTLCache(5, ttl=300), key=dont_cache_manager)
+@cached(cache=TTLCache(5, ttl=60), key=dont_cache_manager)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     replays = replay_files.get_all_replays(replay_manager)
     match_infos = (matches.match_from_replay(replay) for replay in replays)
