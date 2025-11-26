@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from sqlalchemy import create_engine, select, func, and_
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
@@ -22,8 +23,14 @@ from db import (
     ProcessingStatus,
 )
 import logging
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+class FileListing(BaseModel):
+    original_path: str
+    match_id: int
 
 
 class DatabaseManager:
@@ -124,11 +131,14 @@ class ReplayManager:
         logger.info(f"Registering {from_url=} {s3_uri=}")
         prefix = "https://www.gentool.net/data/zh/"
         date_str = from_url.removeprefix(prefix).split("/")[0]
+        player = from_url.removeprefix(prefix).split("/")[2]
+        player_id = player.split("_")[-1]
         date = datetime.strptime(date_str, "%Y_%m_%B")
         replay_file = ReplayFile(
             original_url=from_url,
             s3_uri=s3_uri,
             source_date=date,
+            player_id=player_id,
         )
         self.session.add(replay_file)
         self.session.flush()
@@ -160,6 +170,13 @@ class ReplayManager:
         replay_file.status = ProcessingStatus.PARSED
         self.session.commit()
         return parsed_json
+
+    def list_files(self) -> list[ReplayFile]:
+        """List all files."""
+        query = (
+            self.session.query(ReplayFile)
+        )
+        return self.session.execute(query).scalars().all()
 
     def list_jsons(self, date: date | None = None) -> list[ParsedReplayJson]:
         """List all jsons or filter by date."""

@@ -108,11 +108,21 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
+
+@app.get("/api/files/")
+def list_files(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    listed = list(replay_manager.list_files())
+    logger.info(f"Found {len(listed)=}")
+    return listed
+
+
 @app.get("/api/replays/")
 def list_replays(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
-    listed = replay_manager.list_jsons()
+    listed = replay_manager.list_jsons(distinct=False)
     logger.info(f"Found {len(listed)=}")
     return listed
 

@@ -43,6 +43,7 @@ class ReplayFile(Base):
     status = Column(
         Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
     )
+    player_id = Column(String, nullable=False, index=True)
 
     # Timestamps
     discovered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
