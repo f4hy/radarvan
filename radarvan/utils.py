@@ -17,7 +17,7 @@ def duration_minutes(replay: EnhancedReplay) -> float:
 def side_to_general(side: str) -> General:
     match side:
         case "USA":
-            return General.AIR
+            return General.USA
         case "USA Airforce":
             return General.AIR
         case "USA Lazr":

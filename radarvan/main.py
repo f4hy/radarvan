@@ -194,6 +194,7 @@ def get_player_stats(
 ) -> PlayerStats:
     """Get player stats."""
     games = sorted_deduped_matches(replay_manager)
+    logger.info("getting player stats")
     return player_stats.get_player_stats(games.values())
 
 

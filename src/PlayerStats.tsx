@@ -137,21 +137,9 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
       losses: losses,
     }
   })
-  const faction_sorted = props.stat.factionStats
-  const faction_data = faction_sorted.map((p) => {
-    const wins = p.winLoss?.wins ?? 0
-    const losses = p.winLoss?.losses ?? 0
-    const tot = wins + losses
-    const rate = (wins / (tot > 0 ? tot : 1)) * 100
-    return {
-      faction: factionFromJSON([p.faction]) + ":" + rate.toFixed() + "%",
-      wins: p.winLoss?.wins ?? 0,
-      losses: p.winLoss?.losses ?? 0,
-    }
-  })
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Grid container spacing={2}>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={2}>
           <Typography variant="h3">{props.stat.playerName}</Typography>
           <List sx={{ display: { xs: "none", md: "block" } }}>
@@ -161,17 +149,7 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
           </List>
         </Grid>
         <Grid item xs={12} md={10}>
-          <ResponsiveContainer width="99%" height={350}>
-            <BarChart data={faction_data} layout="horizontal">
-              <CartesianGrid strokeDasharray="5 5" vertical={false} />
-              <Bar dataKey="wins" fill="#42A5F5" />
-              <Bar dataKey="losses" fill="#FF7043" />
-              <XAxis dataKey="faction" />
-              <YAxis domain={[0, props.max]} />
-              <Tooltip cursor={false} />
-            </BarChart>
-          </ResponsiveContainer>
-          <ResponsiveContainer width="99%" height={350}>
+          <ResponsiveContainer width="99%">
             <BarChart data={data} layout="horizontal">
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
               <Bar dataKey="wins" fill="#42A5F5" />
@@ -189,7 +167,6 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
           </ResponsiveContainer>
         </Grid>
       </Grid>
-      <GeneralStatOverTime ot={props.stat.overTime} />
     </Box>
   )
 }
