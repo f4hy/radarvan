@@ -2,7 +2,7 @@ import json
 from db_utils import DatabaseManager, ReplayManager
 import os
 from pathlib import Path
-from datetime import datetime 
+from datetime import datetime
 from tqdm import tqdm
 
 # Initialize database connection (do this once at application startup)
@@ -18,7 +18,7 @@ def restore_replay_files():
     parsed = json.loads(replay_dump_path.read_text())
     print(f"loaded {len(parsed)} from {replay_dump_path}")
     with db_manager.SessionLocal() as session:
-        replay_manager = ReplayManager(session)
+        replay_manager = ReplayManager(session, auto_commit=False, notify=False)
         for r in tqdm(parsed):
             from_url = r["original_url"]
             s3_uri = r["s3_uri"]
@@ -38,7 +38,7 @@ def restore_jsons():
     print(f"loaded {len(parsed)} from {replay_dump_path}")
     date_format = "%Y-%m-%dT%H:%M:%S"
     with db_manager.SessionLocal() as session:
-        replay_manager = ReplayManager(session)
+        replay_manager = ReplayManager(session, auto_commit=False, notify=False)
         for r in tqdm(parsed):
             replay_manager.save_parsed_json(
                 json_s3_uri=r["json_s3_uri"],

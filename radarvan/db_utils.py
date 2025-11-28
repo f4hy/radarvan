@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, select, func, and_
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
+from notify import notify
 from db import (
     Base,
     ReplayFile,
@@ -115,8 +116,15 @@ class DatabaseManager:
 class ReplayManager:
     """Repository for match-related operations."""
 
-    def __init__(self, session: Session):
+    def __init__(
+        self,
+        session: Session,
+        notify: bool = False,
+        auto_commit: bool = True,
+    ):
         self.session = session
+        self.notify = notify
+        self.auto_commit = auto_commit
 
     def get_replay_file(self, url: str) -> ReplayFile | None:
         fetched = self.session.get(ReplayFile, url)
@@ -141,8 +149,11 @@ class ReplayManager:
             player_id=player_id,
         )
         self.session.add(replay_file)
-        self.session.flush()
-        self.session.commit()
+        if self.auto_commit:
+            self.session.flush()
+            self.session.commit()
+        if self.notify:
+            notify(f"Registered {from_url=} {s3_uri=}")
         return replay_file
 
     def save_parsed_json(
@@ -165,28 +176,33 @@ class ReplayManager:
             game_date=game_date,
         )
         self.session.add(parsed_json)
-        self.session.flush()
         replay_file = self.session.get(ReplayFile, original_replay_file_url)
         replay_file.status = ProcessingStatus.PARSED
-        self.session.commit()
+        if self.auto_commit:
+            self.session.flush()
+            self.session.commit()
+        if self.notify:
+            notify(
+                f"Saved parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
+            )
         return parsed_json
 
     def list_files(self) -> list[ReplayFile]:
         """List all files."""
-        query = (
-            self.session.query(ReplayFile)
-        )
+        query = self.session.query(ReplayFile)
         return self.session.execute(query).scalars().all()
 
-    def list_jsons(self, date: date | None = None) -> list[ParsedReplayJson]:
+    def list_jsons(
+        self, date: date | None = None, distinct: bool = True
+    ) -> list[ParsedReplayJson]:
         """List all jsons or filter by date."""
-        query = (
-            self.session.query(ParsedReplayJson)
-            .distinct(ParsedReplayJson.match_id)
-            .order_by(ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp)
+        query = self.session.query(ParsedReplayJson).order_by(
+            ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp
         )
+        if distinct:
+            query = query.distinct(ParsedReplayJson.match_id)
         if date:
-            query.limit(ParsedReplayJson.game_date == date)
+            query = query.limit(ParsedReplayJson.game_date == date)
         return self.session.execute(query).scalars().all()
 
     def already_scraped(self) -> set[str]:

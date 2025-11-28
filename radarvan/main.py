@@ -47,7 +47,7 @@ def get_db_session() -> Generator[Session]:
 
 def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayManager:
     """Dependency that provides a MatchRepository instance."""
-    return ReplayManager(session)
+    return ReplayManager(session, notify=True)
 
 
 @asynccontextmanager
