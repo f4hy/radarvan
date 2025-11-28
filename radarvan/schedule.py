@@ -29,4 +29,5 @@ def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
         id="update_games",
     )
     logger.info("Setup scheduler.")
+    notify(f"Setup Schedule {scheduler=}")
     return scheduler
