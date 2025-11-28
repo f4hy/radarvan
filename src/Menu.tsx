@@ -72,7 +72,6 @@ export default function Menu() {
           value="PlayerStats"
           text="Player Stats"
           open={true}
-          disabled={(queryParams["debug"] === undefined)}
           icon={<PersonIcon />}
           callback={setSelection}
         />
