@@ -24,13 +24,14 @@ def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
         update_games,
-        trigger=datetime.now() + timedelta(minutes=1),
+        "date",
+        run_date=datetime.now(),
         args=[replay_manager],
         id="update_games_init",
     )
     scheduler.add_job(
         update_games,
-        trigger="interval",
+        "interval",
         minutes=60,
         args=[replay_manager],
         id="update_games",
