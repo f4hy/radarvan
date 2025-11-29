@@ -15,21 +15,25 @@ import replay_files
 
 logger = logging.getLogger(__name__)
 BASE = "https://www.gentool.net/data/zh/"
-TIMEOUT = 120.0
+TIMEOUT = 600.0
 
 
 @cache
 def async_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=60.0)
+    return httpx.AsyncClient(timeout=600.0)
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
 async def get_url(url: str) -> httpx.Response:
     client = async_client()
-    logger.info(f"Getting {url=}")
-    response = await client.get(url, timeout=TIMEOUT)
+    logger.info(f"Getting {url=} ")
+    async with asyncio.Semaphore(4):
+        response = await client.get(url, timeout=TIMEOUT)
     response.raise_for_status()
     logger.info(f"Finished Reading {url=} in {response.elapsed.total_seconds()}s")
+    if response.elapsed.total_seconds() > 2:
+        logger.info(f"Waiting {response.elapsed.total_seconds() * 4} s ")
+        await asyncio.sleep(response.elapsed.total_seconds() * 4)
     return response
 
 
@@ -70,7 +74,7 @@ def generate_directories(n_days, base_path="."):
 
         # print(f"Created: {full_path}")
 
-    return created_dirs
+    return reversed(created_dirs)
 
 
 async def matching_links(base_url: str, patterns: list[str]):
