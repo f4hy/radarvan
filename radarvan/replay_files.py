@@ -1,5 +1,6 @@
 """Manual paths for now."""
 
+import re
 from collections.abc import Iterator
 import logging
 import fsspec
@@ -75,6 +76,9 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
 
 
 def path_filter(url: str) -> bool:
+    multi_computer = re.search("HardAI.*HardAI", url)
+    if multi_computer:
+        return False
     types = {f"_{i}v{i}_" for i in range(5)}
     return any(t in url for t in types)
 

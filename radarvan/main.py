@@ -61,9 +61,11 @@ async def lifespan(app: FastAPI):
     with db_manager.SessionLocal() as session:
         replay_manager = get_replay_manager(session)
         scheduler = schedule.get_scheduler(replay_manager)
-        scheduler.start()
+        if os.getenv("DEV") is None:
+            scheduler.start()
         yield
-        scheduler.shutdown()
+        if os.getenv("DEV") is None:
+            scheduler.shutdown()
     logger.info("goodbye!")
 
 
@@ -106,7 +108,6 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
         sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
     )
     return sorted_matches
-
 
 
 @app.get("/api/files/")
