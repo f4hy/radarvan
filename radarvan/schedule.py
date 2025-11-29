@@ -8,7 +8,7 @@ from notify import notify
 logger = logging.getLogger(__name__)
 
 
-async def update_games(replay_manager: ReplayManager, days: int = 1) -> None:
+async def update_games(replay_manager: ReplayManager, days: int = 0) -> None:
     """Get latest updates."""
     logger.info("Updating games.")
     base = scrape_games.BASE
@@ -26,7 +26,7 @@ def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
         update_games,
         "date",
         run_date=datetime.now(),
-        args=[replay_manager],
+        args=[replay_manager, 1],
         id="update_games_init",
     )
     scheduler.add_job(
