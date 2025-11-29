@@ -1,3 +1,6 @@
+import Stack from "@mui/material/Stack"
+import Skeleton from "@mui/material/Skeleton"
+import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -93,6 +96,19 @@ function roundUpNearest5(num: number) {
   return Math.ceil(num / 5) * 5
 }
 
+function Loading() {
+  return (
+    <Stack>
+      <LinearProgress />
+      <Stack direction="row">
+        <Skeleton variant="rectangular" height={150} />
+        <Skeleton variant="rectangular" height={150} />
+      </Stack>
+    </Stack>
+  )
+}
+
+
 const empty = { generalStats: [] }
 
 export default function DisplayGeneralStats() {
@@ -105,19 +121,22 @@ export default function DisplayGeneralStats() {
     0,
   )
   const maxWinLoss = roundUpNearest5(maxwl + 1)
+  if (generalStats.generalStats.length === 0) {
+    return (<Loading />)
+  }
   return (
-			<Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-				<Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
+    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+      <Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
       {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
       <DisplayOverallGeneralStat stats={generalStats} />
-			<Divider sx={{ mt: 8 }} />
-        <Grid container spacing={2}>
-					{generalStats.generalStats.map((m) => (
-					<Grid item xs={12} sm={6} md={3}>
-						<DisplayGeneralStat stat={m} max={maxWinLoss} />
-						</Grid>
-      ))}
-        </Grid>
+      <Divider sx={{ mt: 8 }} />
+      <Grid container spacing={2}>
+        {generalStats.generalStats.map((m) => (
+          <Grid item xs={12} sm={6} md={3}>
+            <DisplayGeneralStat stat={m} max={maxWinLoss} />
+          </Grid>
+        ))}
+      </Grid>
     </Paper>
   )
 }
