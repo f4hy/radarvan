@@ -141,7 +141,7 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
       <Grid container spacing={3}>
         <Grid item xs={12} md={2}>
           <Typography variant="h3">{props.stat.playerName}</Typography>
-          <List sx={{ display: { xs: "none", md: "block" } }}>
+          <List >
             {Object.entries(sorted).map(([general, winLoss]) => (
               <PlayerListItem general={toGeneral(general)} winLoss={winLoss} />
             ))}
