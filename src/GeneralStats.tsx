@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
+import Grid from "@mui/material/Grid"
 import * as React from "react"
 import {
   Bar,
@@ -61,7 +62,7 @@ function DisplayGeneralStat(props: { stat: GeneralStatOutput; max: number }) {
     losses: s.winLoss?.losses ?? 0,
   }))
   const data = [
-    { name: "overall", wins: overall?.wins ?? 0, losses: overall?.losses ?? 0 },
+    { name: "all players", wins: overall?.wins ?? 0, losses: overall?.losses ?? 0 },
     ...pdata,
   ].map((x) => {
     const tot = x.losses + x.wins
@@ -69,7 +70,7 @@ function DisplayGeneralStat(props: { stat: GeneralStatOutput; max: number }) {
     return {
       wins: x.wins,
       losses: x.losses,
-      name: x.name + ":" + rate.toFixed() + "%",
+      name: "winrate" + ":" + rate.toFixed() + "%",
     }
   })
   return (
@@ -81,7 +82,7 @@ function DisplayGeneralStat(props: { stat: GeneralStatOutput; max: number }) {
           <Bar dataKey="wins" fill="#42A5F5" />
           <Bar dataKey="losses" fill="#FF7043" />
           <XAxis dataKey="name" />
-          <YAxis domain={["auto", props.max]} />
+          <YAxis domain={[0, props.max]} />
           <Tooltip cursor={false} />
         </BarChart>
       </ResponsiveContainer>
@@ -110,12 +111,13 @@ export default function DisplayGeneralStats() {
       {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
       <DisplayOverallGeneralStat stats={generalStats} />
 			<Divider sx={{ mt: 8 }} />
-      {generalStats.generalStats.map((m) => (
-        <>
-          <DisplayGeneralStat stat={m} max={maxWinLoss} />
-          <Divider />
-        </>
+        <Grid container spacing={2}>
+					{generalStats.generalStats.map((m) => (
+					<Grid item xs={12} sm={6} md={3}>
+						<DisplayGeneralStat stat={m} max={maxWinLoss} />
+						</Grid>
       ))}
+        </Grid>
     </Paper>
   )
 }
