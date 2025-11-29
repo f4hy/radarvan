@@ -1,5 +1,6 @@
 from db_utils import ReplayManager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import datetime, timedelta
 import scrape_games
 import logging
 from notify import notify
@@ -7,7 +8,7 @@ from notify import notify
 logger = logging.getLogger(__name__)
 
 
-async def update_games(replay_manager: ReplayManager, days: int = 0) -> None:
+async def update_games(replay_manager: ReplayManager, days: int = 1) -> None:
     """Get latest updates."""
     logger.info("Updating games.")
     base = scrape_games.BASE
@@ -23,11 +24,16 @@ def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
         update_games,
-        "interval",
+        trigger=datetime.now() + timedelta(minutes=1),
+        args=[replay_manager],
+        id="update_games_init",
+    )
+    scheduler.add_job(
+        update_games,
+        trigger="interval",
         minutes=60,
         args=[replay_manager],
         id="update_games",
     )
     logger.info("Setup scheduler.")
-    notify(f"Setup Schedule {scheduler=}")
     return scheduler
