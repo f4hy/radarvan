@@ -1,3 +1,6 @@
+import Stack from "@mui/material/Stack"
+import Skeleton from "@mui/material/Skeleton"
+import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
@@ -21,11 +24,7 @@ import {
   YAxis,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import {
-  GeneralWL,
-  Faction, factionFromJSON,
-  DateMessage,
-} from "./proto/match"
+import { GeneralWL, Faction, factionFromJSON, DateMessage } from "./proto/match"
 import { toGeneralName } from "./general_utils"
 
 import {
@@ -39,7 +38,6 @@ import {
 } from "./api"
 import { Client } from "./Client"
 
-
 function getPlayerStats(callback: (m: PlayerStats) => void) {
   Client.getPlayerStatsApiPlayerstatsGet()
     .then(callback)
@@ -47,7 +45,7 @@ function getPlayerStats(callback: (m: PlayerStats) => void) {
 }
 
 function toGeneral(s: string | number): General {
-  let num = (typeof s === "string") ? parseInt(s) : s
+  let num = typeof s === "string" ? parseInt(s) : s
   if (instanceOfGeneral(num)) {
     return GeneralFromJSON(num)
   }
@@ -58,15 +56,16 @@ function roundUpNearestN(num: number, N: number) {
   return Math.ceil(num / N) * N
 }
 
-function PlayerListItem(props: { general: General, winLoss: WinLoss }) {
+function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
   return (
     <ListItem>
       <ListItemAvatar>
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
       <ListItemText
-        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${props.winLoss?.losses ?? 0
-          }]`}
+        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${
+          props.winLoss?.losses ?? 0
+        }]`}
       />
     </ListItem>
   )
@@ -132,7 +131,7 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
     const tot = wins + losses
     const rate = (wins / (tot > 0 ? tot : 1)) * 100
     return {
-      general: toGeneralName(toGeneral((general))) + ":" + rate.toFixed() + "%",
+      general: toGeneralName(toGeneral(general)) + ":" + rate.toFixed() + "%",
       wins: wins,
       losses: losses,
     }
@@ -173,11 +172,26 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
 
 const empty = { playerStats: [] }
 
+function Loading() {
+  return (
+    <Stack>
+      <LinearProgress />
+      <Stack direction="row">
+        <Skeleton variant="rectangular" height={150} />
+        <Skeleton variant="rectangular" height={150} />
+      </Stack>
+    </Stack>
+  )
+}
+
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
   React.useEffect(() => {
     getPlayerStats(setPlayerStats)
   }, [])
+  if (playerStats.playerStats.length === 0) {
+    return <Loading />
+  }
   const maxwl = playerStats.playerStats.reduce(
     (acc, s) =>
       Math.max(

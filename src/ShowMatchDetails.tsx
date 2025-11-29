@@ -120,13 +120,18 @@ function MoneyChart(props: {
 }) {
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
-    const colors = props.playerSummaries.reduce((acc, cur) => ({ ...acc, [cur.name]: cur.color }), {})
+    const colors = props.playerSummaries.reduce(
+      (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
+      {},
+    )
     const data = Object.entries(props.money).map(([timecode, values]) => ({
       ...values,
       timecode: timecode,
     }))
-    const max = Object.values(props.money).reduce((acc, cur) => { return Math.max(acc, ...Object.values(cur)) }, 0)
-    const max_time = Math.max(...Object.keys(props.money).map(k => Number(k)))
+    const max = Object.values(props.money).reduce((acc, cur) => {
+      return Math.max(acc, ...Object.values(cur))
+    }, 0)
+    const max_time = Math.max(...Object.keys(props.money).map((k) => Number(k)))
     return (
       <>
         <ResponsiveContainer width="100%" height={300}>
@@ -267,7 +272,11 @@ export default function ShowMatchDetails(props: { id: number }) {
   const maxMinute = Math.ceil(maxAtMinute ?? 1)
   return (
     <>
-      <MoneyChart title="Money" money={details.moneyValues} playerSummaries={details.playerSummary} />
+      <MoneyChart
+        title="Money"
+        money={details.moneyValues}
+        playerSummaries={details.playerSummary}
+      />
       <Divider />
       <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />

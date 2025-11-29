@@ -2,13 +2,14 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ThumbDownIcon from "@mui/icons-material/ThumbDown"
-import ErrorIcon from '@mui/icons-material/Error';
+import ErrorIcon from "@mui/icons-material/Error"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
 import Card from "@mui/material/Card"
 import CardHeader from "@mui/material/CardHeader"
+import LinearProgress from "@mui/material/LinearProgress"
 import CardContent from "@mui/material/CardContent"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
@@ -17,6 +18,7 @@ import ListItem from "@mui/material/ListItem"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
+import Skeleton from "@mui/material/Skeleton"
 import _ from "lodash"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
@@ -24,9 +26,9 @@ import Map from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import { MatchInfoInput, Matches, Player, Team } from "./api"
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
-import { Tooltip } from "@mui/material";
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
+import { Tooltip } from "@mui/material"
+import VisibilityIcon from "@mui/icons-material/Visibility"
 function getMatches(count: number, callback: (m: Matches) => void) {
   Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
     .then(callback)
@@ -56,8 +58,8 @@ function playerNameStyle(player: Player) {
 
 function TeamCard(props: { players: Player[]; won: boolean }) {
   const color = props.won ? "#c5e1a5" : "#e57373"
-  const team = (props.players[0]?.team)
-  let title = (props.won ? "Won" : "Lost") + " Team:" + (props.players[0]?.team)
+  const team = props.players[0]?.team
+  let title = (props.won ? "Won" : "Lost") + " Team:" + props.players[0]?.team
   let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
   if (team === Team.NUMBER_0) {
     title = "Unkown Team"
@@ -68,7 +70,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     icon = <VisibilityIcon />
   }
   return (
-    <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }} >
+    <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }}>
       <CardHeader title={title} avatar={icon} component="div" />
       {props.players.map((p) => (
         <CardContent component="div">
@@ -77,7 +79,14 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
               general={p!.general}
               key={p?.name + "-" + p.general + "-general"}
             />{" "}
-            <Typography variant="h5" color={p.color} fontWeight="fontWeightBold" sx={playerNameStyle(p)}>{p.name}</Typography>
+            <Typography
+              variant="h5"
+              color={p.color}
+              fontWeight="fontWeightBold"
+              sx={playerNameStyle(p)}
+            >
+              {p.name}
+            </Typography>
           </Stack>
         </CardContent>
       ))}
@@ -120,7 +129,7 @@ function displayTeam(team: Team): string {
 
 function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
-  const date = props.match.timestamp.toLocaleString();
+  const date = props.match.timestamp.toLocaleString()
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
     <Typography>
@@ -134,7 +143,8 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         " Duration:" +
         props.match.durationMinutes.toFixed(2) +
         " minutes"}
-    </Typography>)
+    </Typography>
+  )
 
   const teams = _.groupBy(props.match.players, "team")
 
@@ -155,14 +165,13 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
           </Typography>
         ) : null}
       </ListItem>
-      <Stack
-        direction="row"
-        justifyContent="flex-start"
-      >
-        {
-          Object.values(teams).map((team) => (
-            <TeamCard players={team} won={team[0].team === props.match.winningTeam} />
-          ))}
+      <Stack direction="row" justifyContent="flex-start">
+        {Object.values(teams).map((team) => (
+          <TeamCard
+            players={team}
+            won={team[0].team === props.match.winningTeam}
+          />
+        ))}
         <Map mapname={props.match.map} />
       </Stack>
       <Stack direction="row">
@@ -172,9 +181,7 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         <Tooltip title={props.match.filename}>
           <Button
             variant="contained"
-            onClick={() =>
-              downloadReplay(props.match.filename)
-            }
+            onClick={() => downloadReplay(props.match.filename)}
             endIcon={<DownloadIcon />}
           >
             Download Replay
@@ -182,20 +189,24 @@ function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
         </Tooltip>
       </Stack>
       {details ? <ShowMatchDetails id={props.match.id} /> : null}
-    </Paper >
+    </Paper>
   )
 
   if (props.match.incomplete) {
     paperprops["bgcolor"] = "text.disabled"
     paperprops["borderColor"] = "red"
-    return (<Accordion defaultExpanded={false}>
-      <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{ bgcolor: "text.disabled" }}>
-        <Typography color="error.main">Mismatch: </Typography>{header}
-      </AccordionSummary>
-      <AccordionDetails>
-        {matchDisplay}
-      </AccordionDetails>
-    </Accordion>)
+    return (
+      <Accordion defaultExpanded={false}>
+        <AccordionSummary
+          expandIcon={<ArrowDownwardIcon />}
+          sx={{ bgcolor: "text.disabled" }}
+        >
+          <Typography color="error.main">Mismatch: </Typography>
+          {header}
+        </AccordionSummary>
+        <AccordionDetails>{matchDisplay}</AccordionDetails>
+      </Accordion>
+    )
   }
   return matchDisplay
 }
@@ -206,6 +217,20 @@ function subtractHours(d: Date, hoursToSubtract: number): Date {
   const shifted = new Date(d)
   shifted.setHours(d.getHours() - hoursToSubtract)
   return shifted
+}
+
+function Loading() {
+  return (
+    <Stack>
+      <LinearProgress />
+      {[...Array(5)].map((i) => (
+        <>
+          <Skeleton variant="text" animation="wave" />{" "}
+          <Skeleton variant="rectangular" height={80} />
+        </>
+      ))}
+    </Stack>
+  )
 }
 
 export default function DisplayMatches() {
@@ -219,8 +244,12 @@ export default function DisplayMatches() {
   const showAll = () => {
     setGetAll(true)
   }
-  const byDate = _.groupBy(matchList.matches, (m) => subtractHours(m.timestamp, 4).toLocaleDateString()
+  const byDate = _.groupBy(matchList.matches, (m) =>
+    subtractHours(m.timestamp, 4).toLocaleDateString(),
   )
+  if (matchList.matches.length === 0) {
+    return <Loading />
+  }
   return (
     <>
       {Object.entries(byDate).map(([date, group], idx) => (

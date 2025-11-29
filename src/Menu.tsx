@@ -29,28 +29,27 @@ import RedeemIcon from "@mui/icons-material/Redeem"
 const drawerWidth = 190
 
 interface QueryParams {
-  [key: string]: string | null;
+  [key: string]: string | null
 }
 
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [selection, setSelection] = React.useState<Selection>("Matches")
-  const [queryParams, setQueryParams] = React.useState<QueryParams>({});
+  const [queryParams, setQueryParams] = React.useState<QueryParams>({})
   React.useEffect(() => {
     // Get the query string from the current URL
-    const search = window.location.search;
+    const search = window.location.search
 
     // Create a URLSearchParams object to easily parse the query string
-    const params = new URLSearchParams(search);
+    const params = new URLSearchParams(search)
 
     // Convert URLSearchParams to a plain object for easier consumption
-    const newQueryParams: QueryParams = {};
+    const newQueryParams: QueryParams = {}
     for (const [key, value] of params.entries()) {
-      newQueryParams[key] = value;
+      newQueryParams[key] = value
     }
-    setQueryParams(newQueryParams);
-  }, []); // The empty dependency array ensures this runs only once on mount
-
+    setQueryParams(newQueryParams)
+  }, []) // The empty dependency array ensures this runs only once on mount
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
