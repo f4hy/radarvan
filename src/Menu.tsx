@@ -76,26 +76,9 @@ export default function Menu() {
         />
         <MenuItem
           value="GeneralStats"
-          text="General Stats (soon)"
+          text="General Stats"
           open={true}
           icon={<MilitaryTechIcon />}
-          disabled={true}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="MapStats"
-          text="Map Stats (soon)"
-          open={true}
-          icon={<MapIcon />}
-          disabled={true}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="TeamStats"
-          text="Team Stats (maybe)"
-          open={true}
-          icon={<PeopleIcon />}
-          disabled={true}
           callback={setSelection}
         />
       </List>

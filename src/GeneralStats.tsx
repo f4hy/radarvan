@@ -12,20 +12,16 @@ import {
   YAxis,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStat, GeneralStats } from "./proto/match"
+import { General, GeneralStatOutput, GeneralStats } from "./api"
+import { Client } from "./Client"
+import { toGeneralName } from "./general_utils"
+import { Typography } from "@mui/material"
+
 
 function getGeneralStats(callback: (m: GeneralStats) => void) {
-  fetch("/api/generalstats").then((r) =>
-    r
-      .blob()
-      .then((b) => b.arrayBuffer())
-      .then((j) => {
-        const a = new Uint8Array(j)
-        const generalStats = GeneralStats.decode(a)
-        generalStats.generalStats.sort((s1, s2) => s1.general - s2.general)
-        callback(generalStats)
-      }),
-  )
+  Client.getGeneralsStatsApiGeneralstatsGet()
+    .then(callback)
+    .catch((e) => alert(e))
 }
 
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
@@ -37,7 +33,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
     return {
       wins: wins,
       losses: losses,
-      name: General[x.general] + ":" + rate.toFixed() + "%",
+      name: toGeneralName(x.general) + ":" + rate.toFixed() + "%",
     }
   })
   return (
@@ -54,7 +50,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   )
 }
 
-function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
+function DisplayGeneralStat(props: { stat: GeneralStatOutput; max: number }) {
   const sorted = props.stat.stats.sort((s1, s2) =>
     s1.playerName.localeCompare(s2.playerName, "en"),
   )
@@ -109,9 +105,11 @@ export default function DisplayGeneralStats() {
   )
   const maxWinLoss = roundUpNearest5(maxwl + 1)
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 1600 }}>
+			<Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+				<Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
       {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
       <DisplayOverallGeneralStat stats={generalStats} />
+			<Divider sx={{ mt: 8 }} />
       {generalStats.generalStats.map((m) => (
         <>
           <DisplayGeneralStat stat={m} max={maxWinLoss} />

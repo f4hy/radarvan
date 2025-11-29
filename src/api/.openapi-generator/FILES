@@ -8,6 +8,10 @@ models/CostsOutput.ts
 models/DateMessage.ts
 models/Faction.ts
 models/General.ts
+models/GeneralStatInput.ts
+models/GeneralStatOutput.ts
+models/GeneralStatPlayerWL.ts
+models/GeneralStats.ts
 models/GeneralWL.ts
 models/HTTPValidationError.ts
 models/MatchDetails.ts

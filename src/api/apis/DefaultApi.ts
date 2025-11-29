@@ -15,12 +15,15 @@
 
 import * as runtime from '../runtime';
 import type {
+  GeneralStats,
   HTTPValidationError,
   MatchDetails,
   Matches,
   PlayerStats,
 } from '../models/index';
 import {
+    GeneralStatsFromJSON,
+    GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
     MatchDetailsFromJSON,
@@ -39,10 +42,78 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
 }
 
+export interface ScrapeApiScrapeDaysGetRequest {
+    days: number;
+}
+
 /**
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Get Dates
+     */
+    async getDatesApiDatesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/dates/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Get Dates
+     */
+    async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getDatesApiDatesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get generals stats.
+     * Get Generals Stats
+     */
+    async getGeneralsStatsApiGeneralstatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralStats>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/generalstats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GeneralStatsFromJSON(jsonValue));
+    }
+
+    /**
+     * Get generals stats.
+     * Get Generals Stats
+     */
+    async getGeneralsStatsApiGeneralstatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
+        const response = await this.getGeneralsStatsApiGeneralstatsGetRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Get details about a particular match
@@ -154,16 +225,15 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Reparse the replays.
-     * Reparse
+     * List Files
      */
-    async reparseApiReparseGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async listFilesApiFilesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/api/reparse`;
+        let urlPath = `/api/files/`;
 
         const response = await this.request({
             path: urlPath,
@@ -180,11 +250,84 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Reparse the replays.
-     * Reparse
+     * List Files
      */
-    async reparseApiReparseGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.reparseApiReparseGetRaw(initOverrides);
+    async listFilesApiFilesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.listFilesApiFilesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * List Replays
+     */
+    async listReplaysApiReplaysGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/replays/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * List Replays
+     */
+    async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.listReplaysApiReplaysGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Scrape
+     */
+    async scrapeApiScrapeDaysGetRaw(requestParameters: ScrapeApiScrapeDaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['days'] == null) {
+            throw new runtime.RequiredError(
+                'days',
+                'Required parameter "days" was null or undefined when calling scrapeApiScrapeDaysGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/scrape/{days}`;
+        urlPath = urlPath.replace(`{${"days"}}`, encodeURIComponent(String(requestParameters['days'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Scrape
+     */
+    async scrapeApiScrapeDaysGet(requestParameters: ScrapeApiScrapeDaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.scrapeApiScrapeDaysGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

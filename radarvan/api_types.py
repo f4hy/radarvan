@@ -128,7 +128,7 @@ class GeneralStat(BaseModel):
 
 
 class GeneralStats(BaseModel):
-    general_stats: list[GeneralStat] = Field(alias="generalStats")
+    general_stats: list[GeneralStat]
 
     class Config:
         populate_by_name = True

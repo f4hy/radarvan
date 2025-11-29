@@ -7,13 +7,14 @@ from fastapi import FastAPI, BackgroundTasks
 import match_details
 import matches
 import player_stats
+import general_stats
 import replay_files
 import schedule
 from api_types import (
     MatchDetails,
     Matches,
     MatchInfo,
-    PlayerStats,
+    PlayerStats, GeneralStats,
     SpentOverTime,
 )
 from cachetools import TTLCache, cached
@@ -98,7 +99,7 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
     return "single_key"
 
 
-@cached(cache=TTLCache(5, ttl=60), key=dont_cache_manager)
+@cached(cache=TTLCache(5, ttl=3000), key=dont_cache_manager)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     replays = replay_files.get_all_replays(replay_manager)
     match_infos = (matches.match_from_replay(replay) for replay in replays)
@@ -197,6 +198,15 @@ def get_player_stats(
     games = sorted_deduped_matches(replay_manager)
     logger.info("getting player stats")
     return player_stats.get_player_stats(games.values())
+
+@app.get("/api/generalstats")
+def get_generals_stats(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> GeneralStats:
+    """Get generals stats."""
+    games = sorted_deduped_matches(replay_manager)
+    logger.info("getting player stats")
+    return general_stats.get_player_stats(games.values())
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

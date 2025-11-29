@@ -206,6 +206,7 @@ export default function DisplayPlayerStats() {
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
     <Paper>
+				<Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
       {playerStats.playerStats.map((m) => (
         <>
           <DisplayPlayerStat stat={m} max={maxWinLoss} />
