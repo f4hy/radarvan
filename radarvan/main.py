@@ -142,7 +142,7 @@ def scrape(
     days: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
-    background_tasks.add_task(schedule.update_games, replay_manager, days=1)
+    background_tasks.add_task(schedule.update_games, replay_manager, days=days)
     return {"scheduled": "ok"}
 
 
