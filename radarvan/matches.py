@@ -46,3 +46,4 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         incomplete=incomplete,
         notes=notes,
     )
+

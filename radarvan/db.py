@@ -16,10 +16,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
-from enum import IntEnum
-from sqlalchemy import Enum
-from sqlalchemy.ext.declarative import declarative_base
 import enum
+from sqlalchemy import Enum
 
 Base = declarative_base()
 
@@ -41,7 +39,10 @@ class ReplayFile(Base):
     )
     s3_uri = Column(String, unique=True, nullable=False, index=True)
     status = Column(
-        Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
+        Enum(ProcessingStatus),
+        default=ProcessingStatus.PENDING,
+        nullable=False,
+        index=True,
     )
     player_id = Column(String, nullable=False, index=True)
 
@@ -59,9 +60,7 @@ class ReplayFile(Base):
     )
 
     def __repr__(self):
-        return (
-            f"<ReplayFile(id={self.id}, url={self.original_url}, status={self.status})>"
-        )
+        return f"<ReplayFile(url={self.original_url}, status={self.status})>"
 
 
 class ParsedReplayJson(Base):
@@ -72,10 +71,11 @@ class ParsedReplayJson(Base):
     json_s3_uri = Column(String, primary_key=True, nullable=False)
     match_id = Column(Integer, nullable=False, index=True)
     replay_file_url = Column(
-        String, ForeignKey("replay_files.original_url"), unique=True, nullable=False
+        String,
+        ForeignKey("replay_files.original_url", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
-
-    # S3 storage info
 
     # File info
     file_size_bytes = Column(Integer, nullable=True)
@@ -84,13 +84,15 @@ class ParsedReplayJson(Base):
     game_date = Column(Date, index=True)
     # Relationships
     replay_file = relationship("ReplayFile", back_populates="parsed_replay_json")
+    match = relationship("Match", back_populates="replay_json", uselist=False)
 
     def __repr__(self):
-        return f"<ParsedReplayJson(id={self.id}, {self.s3_uri=})>"
+        return (
+            f"<ParsedReplayJson(s3_uri={self.json_s3_uri}, match_id={self.match_id})>"
+        )
 
 
-# Enums (keep your existing ones)
-class General(IntEnum):
+class General(enum.IntEnum):
     USA = 0
     AIR = 1
     LASER = 2
@@ -106,7 +108,7 @@ class General(IntEnum):
     UNRECOGNIZED = -1
 
 
-class Team(IntEnum):
+class Team(enum.IntEnum):
     NONE = 0
     ONE = 1
     TWO = 2
@@ -115,20 +117,12 @@ class Team(IntEnum):
     OBSERVER = -1
 
 
-class Faction(IntEnum):
-    ANYUSA = 0
-    ANYCHINA = 1
-    ANYGLA = 2
-    UNRECOGNIZED = -1
-
-
 # Lookup Tables
 class GeneralModel(Base):
     __tablename__ = "generals"
 
     id = Column(SmallInteger, primary_key=True)
     name = Column(String(50), nullable=False, unique=True)
-    faction = Column(String(20), nullable=False)
 
     # Relationships
     match_players = relationship("MatchPlayer", back_populates="general")
@@ -147,44 +141,35 @@ class TeamModel(Base):
     match_players = relationship("MatchPlayer", back_populates="team")
 
 
-# Main Tables
 class Match(Base):
     __tablename__ = "matches"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    match_id = Column(
+        Integer,
+        primary_key=True,
+        nullable=False,
+    )
+    json_s3_uri = Column(
+        String,
+        ForeignKey("parsed_replay_json.json_s3_uri", ondelete="CASCADE"),
+        nullable=False,
+    )
     timestamp = Column(DateTime(timezone=True), nullable=False)
     map = Column(String(100), nullable=False)
     winning_team_id = Column(SmallInteger, ForeignKey("teams.id"))
     duration_minutes = Column(Float, nullable=False)
     filename = Column(String(255), nullable=False)
-    incomplete = Column(String(255))
+    incomplete = Column(Boolean, default=False)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
+    replay_json = relationship("ParsedReplayJson", back_populates="match")
     winning_team = relationship(
         "TeamModel", foreign_keys=[winning_team_id], back_populates="matches_won"
     )
     players = relationship(
         "MatchPlayer", back_populates="match", cascade="all, delete-orphan"
-    )
-    apm_data = relationship(
-        "MatchPlayerAPM", back_populates="match", cascade="all, delete-orphan"
-    )
-    objects = relationship(
-        "MatchPlayerObject", back_populates="match", cascade="all, delete-orphan"
-    )
-    upgrade_events = relationship(
-        "MatchUpgradeEvent", back_populates="match", cascade="all, delete-orphan"
-    )
-    spending_timeline = relationship(
-        "MatchSpendingTimeline", back_populates="match", cascade="all, delete-orphan"
-    )
-    money_timeline = relationship(
-        "MatchMoneyTimeline", back_populates="match", cascade="all, delete-orphan"
-    )
-    powers = relationship(
-        "MatchPlayerPower", back_populates="match", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -200,7 +185,7 @@ class MatchPlayer(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("matches.match_id", ondelete="CASCADE"), nullable=False
     )
     player_name = Column(String(100), nullable=False)
     general_id = Column(SmallInteger, ForeignKey("generals.id"), nullable=False)
@@ -219,157 +204,4 @@ class MatchPlayer(Base):
         Index("idx_match_players_player", "player_name"),
         Index("idx_match_players_general", "general_id"),
         Index("idx_match_players_team", "team_id"),
-    )
-
-
-class MatchPlayerAPM(Base):
-    __tablename__ = "match_player_apm"
-
-    match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), primary_key=True
-    )
-    player_name = Column(String(100), primary_key=True)
-    action_count = Column(Integer, nullable=False)
-    minutes = Column(Float, nullable=False)
-    apm = Column(Float, nullable=False)
-
-    # Relationships
-    match = relationship("Match", back_populates="apm_data")
-
-    __table_args__ = (Index("idx_apm_player", "player_name"),)
-
-
-class ObjectType(Base):
-    __tablename__ = "object_types"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), nullable=False, unique=True)
-    category = Column(String(20), nullable=False)
-
-    # Relationships
-    match_objects = relationship("MatchPlayerObject", back_populates="object_type")
-
-    __table_args__ = (
-        CheckConstraint(
-            "category IN ('UNIT', 'BUILDING', 'UPGRADE', 'POWER')",
-            name="check_object_category",
-        ),
-    )
-
-
-class MatchPlayerObject(Base):
-    __tablename__ = "match_player_objects"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False
-    )
-    player_name = Column(String(100), nullable=False)
-    object_type_id = Column(Integer, ForeignKey("object_types.id"), nullable=False)
-    count = Column(Integer, nullable=False)
-    total_spent = Column(Integer, nullable=False)
-
-    # Relationships
-    match = relationship("Match", back_populates="objects")
-    object_type = relationship("ObjectType", back_populates="match_objects")
-
-    __table_args__ = (
-        CheckConstraint("count >= 0", name="check_count_positive"),
-        CheckConstraint("total_spent >= 0", name="check_spent_positive"),
-        UniqueConstraint(
-            "match_id", "player_name", "object_type_id", name="uq_match_player_object"
-        ),
-        Index("idx_objects_match_player", "match_id", "player_name"),
-        Index("idx_objects_type", "object_type_id"),
-    )
-
-
-class MatchUpgradeEvent(Base):
-    __tablename__ = "match_upgrade_events"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False
-    )
-    player_name = Column(String(100), nullable=False)
-    upgrade_name = Column(String(100), nullable=False)
-    timecode = Column(Integer, nullable=False)
-    cost = Column(Integer, nullable=False)
-    at_minute = Column(Float, nullable=False)
-
-    # Relationships
-    match = relationship("Match", back_populates="upgrade_events")
-
-    __table_args__ = (
-        Index("idx_upgrade_events_match", "match_id"),
-        Index("idx_upgrade_events_player", "player_name"),
-        Index("idx_upgrade_events_time", "match_id", "at_minute"),
-    )
-
-
-class MatchSpendingTimeline(Base):
-    __tablename__ = "match_spending_timeline"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False
-    )
-    player_name = Column(String(100), nullable=False)
-    at_minute = Column(Float, nullable=False)
-    category = Column(String(20), nullable=False)
-    accumulated_cost = Column(Integer, nullable=False)
-
-    # Relationships
-    match = relationship("Match", back_populates="spending_timeline")
-
-    __table_args__ = (
-        CheckConstraint(
-            "category IN ('BUILDINGS', 'UNITS', 'UPGRADES', 'TOTAL')",
-            name="check_spending_category",
-        ),
-        Index("idx_spending_match_player", "match_id", "player_name", "category"),
-        Index("idx_spending_time", "match_id", "at_minute"),
-    )
-
-
-class MatchMoneyTimeline(Base):
-    __tablename__ = "match_money_timeline"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False
-    )
-    timecode = Column(Integer, nullable=False)
-    player_name = Column(String(100), nullable=False)
-    money_value = Column(Integer, nullable=False)
-
-    # Relationships
-    match = relationship("Match", back_populates="money_timeline")
-
-    __table_args__ = (
-        Index("idx_money_match_time", "match_id", "timecode"),
-        Index("idx_money_player", "player_name"),
-    )
-
-
-class MatchPlayerPower(Base):
-    __tablename__ = "match_player_powers"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    match_id = Column(
-        Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False
-    )
-    player_name = Column(String(100), nullable=False)
-    power_name = Column(String(100), nullable=False)
-    use_count = Column(Integer, nullable=False)
-
-    # Relationships
-    match = relationship("Match", back_populates="powers")
-
-    __table_args__ = (
-        CheckConstraint("use_count >= 0", name="check_use_count_positive"),
-        UniqueConstraint(
-            "match_id", "player_name", "power_name", name="uq_match_player_power"
-        ),
-        Index("idx_powers_match_player", "match_id", "player_name"),
     )
