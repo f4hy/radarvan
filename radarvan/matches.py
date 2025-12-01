@@ -12,7 +12,6 @@ import utils
 from api_types import General, MatchInfo, Player, Team
 from cncstats_types import EnhancedReplay
 from db_utils import DatabaseManager, ReplayManager
-from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 

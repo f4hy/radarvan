@@ -116,9 +116,6 @@ class Match(Base):
 
     # Relationships
     replay_json = relationship("ParsedReplayJson", back_populates="match")
-    winning_team = relationship(
-        "TeamModel", foreign_keys=[winning_team_id], back_populates="matches_won"
-    )
     players = relationship(
         "MatchPlayer", back_populates="match", cascade="all, delete-orphan"
     )
