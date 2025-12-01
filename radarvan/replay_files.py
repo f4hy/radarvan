@@ -44,6 +44,7 @@ def save_replay_if_missing(
 
 
 # @cached(cache=LRUCache(maxsize=12))
+@utils.log_duration
 def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root)
     save_replay_if_missing(path, replay_path, replay_manager)
@@ -104,3 +105,4 @@ def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
             if utils.duration_minutes(parsed) > 2.0:
                 logger.info(f"Yielding {parsed.Header.FileName}")
                 yield parsed
+

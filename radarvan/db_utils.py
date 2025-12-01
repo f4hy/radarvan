@@ -1,6 +1,8 @@
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from collections.abc import Iterator
 from sqlalchemy import create_engine, select, func, and_
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from notify import notify
@@ -136,6 +138,16 @@ class ReplayManager:
             )
         return parsed_json
 
+    def register_match(self, db_match: Match) -> Match:
+        """Register a new replay."""
+        logger.info(f"Registering {db_match=}")
+        self.session.add(db_match)
+        if self.auto_commit:
+            self.session.commit()
+        if self.notify:
+            notify(f"Registered Match {db_match}")
+        return db_match
+
     def list_files(self) -> list[ReplayFile]:
         """List all files."""
         query = self.session.query(ReplayFile)
@@ -145,14 +157,30 @@ class ReplayManager:
         self, date: date | None = None, distinct: bool = True
     ) -> list[ParsedReplayJson]:
         """List all jsons or filter by date."""
-        query = self.session.query(ParsedReplayJson).order_by(
-            ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp
+        stmt = (
+            select(ParsedReplayJson)
+            .order_by(ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp)
+            .options(
+                selectinload(ParsedReplayJson.match).selectinload(Match.players)
+            )
         )
+
         if distinct:
-            query = query.distinct(ParsedReplayJson.match_id)
+            stmt = stmt.distinct(ParsedReplayJson.match_id)
+
         if date:
-            query = query.limit(ParsedReplayJson.game_date == date)
-        return self.session.execute(query).scalars().all()
+            stmt = stmt.where(ParsedReplayJson.game_date == date)
+
+        return self.session.scalars(stmt).all()
+
+    def list_matches(self, duration_cutoff: float) -> list[Match]:
+        """List all files."""
+        stmt = (
+            select(Match)
+            .where(Match.duration_minutes > duration_cutoff)
+            .options(selectinload(Match.players))
+        )
+        return self.session.scalars(stmt).all()
 
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)

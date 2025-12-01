@@ -14,7 +14,8 @@ from api_types import (
     MatchDetails,
     Matches,
     MatchInfo,
-    PlayerStats, GeneralStats,
+    PlayerStats,
+    GeneralStats,
     SpentOverTime,
 )
 from cachetools import TTLCache, cached
@@ -99,10 +100,11 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
     return "single_key"
 
 
-@cached(cache=TTLCache(5, ttl=3000), key=dont_cache_manager)
+@cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
-    replays = replay_files.get_all_replays(replay_manager)
-    match_infos = (matches.match_from_replay(replay) for replay in replays)
+    # replays = replay_files.get_all_replays(replay_manager)
+    # match_infos = (matches.match_from_replay(replay) for replay in replays)
+    match_infos = matches.get_all_matches(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
     logger.info(f"Got {len(deduped)} parsed replays")
     sorted_matches = dict(
@@ -198,6 +200,7 @@ def get_player_stats(
     games = sorted_deduped_matches(replay_manager)
     logger.info("getting player stats")
     return player_stats.get_player_stats(games.values())
+
 
 @app.get("/api/generalstats")
 def get_generals_stats(

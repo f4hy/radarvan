@@ -84,7 +84,9 @@ class ParsedReplayJson(Base):
     game_date = Column(Date, index=True)
     # Relationships
     replay_file = relationship("ReplayFile", back_populates="parsed_replay_json")
-    match = relationship("Match", back_populates="replay_json", uselist=False)
+    match = relationship(
+        "Match", back_populates="replay_json", uselist=False, lazy="joined"
+    )
 
     def __repr__(self):
         return (
@@ -110,14 +112,14 @@ class Match(Base):
     winning_team_id = Column(SmallInteger)
     duration_minutes = Column(Float, nullable=False)
     filename = Column(String(255), nullable=False)
-    incomplete = Column(Boolean, default=False)
+    incomplete = Column(String, default=False)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     replay_json = relationship("ParsedReplayJson", back_populates="match")
     players = relationship(
-        "MatchPlayer", back_populates="match", cascade="all, delete-orphan"
+        "MatchPlayer", back_populates="match", cascade="all, delete-orphan", lazy="selectin"
     )
 
     __table_args__ = (
@@ -126,6 +128,9 @@ class Match(Base):
         Index("idx_matches_map", "map"),
         Index("idx_matches_winning_team", "winning_team_id"),
     )
+
+    def __repr__(self):
+        return f"<Match({self.match_id=} {self.map=} {self.players=})>"
 
 
 class MatchPlayer(Base):
@@ -144,7 +149,9 @@ class MatchPlayer(Base):
     match = relationship("Match", back_populates="players")
 
     __table_args__ = (
-        UniqueConstraint("match_id", "player_name", name="uq_match_player"),
         Index("idx_match_players_match", "match_id"),
         Index("idx_match_players_player", "player_name"),
     )
+
+    def __repr__(self):
+        return f"<Player({self.player_name=} {self.general_id=} {self.team_id=} {self.color=} {self.is_winner}) >\n"

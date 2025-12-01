@@ -1,5 +1,7 @@
 """Get match info from a replay."""
 
+from collections.abc import Iterator
+from log_time import log_time
 import json
 import logging
 import os
@@ -56,6 +58,7 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     )
 
 
+@utils.log_duration
 def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     """replay to match."""
     match_id = replay.replay_id()
@@ -78,7 +81,6 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     players = [
         utils.player_summary_to_player(p, color_map, observers) for p in replay.Summary
     ]
-
     db_players = [
         db.MatchPlayer(
             match_id=match_id,
@@ -87,19 +89,16 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
             team_id=p.team,
             color=p.color,
             is_winner=p.team == winner,
-            team=db.Team(p.team),
-            general=db.General()
         )
         for p in players
     ]
-    db_teams = [db.Team() for t in p.team]
-    
+
     return db.Match(
         match_id=match_id,
         json_s3_uri=json_s3_uri,
-        timestamp=replay.Header.TimeStampBegin,
+        timestamp=datetime.fromtimestamp(replay.Header.TimeStampBegin),
         map=replay.Header.Metadata.MapFile,
-        winning_team=winner,
+        winning_team_id=winner,
         players=db_players,
         duration_minutes=utils.duration_minutes(replay),
         filename=replay.Header.FileName,
@@ -110,15 +109,21 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
 
 def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
     """Convert."""
+    db_players = db_match.players
     players = [
-        Player(name=p.name, general=p.general, team=p.team, color=p.color)
-        for p in db_match.players
+        Player(
+            name=p.player_name,
+            general=p.general_id,
+            team=p.team_id,
+            color=p.color,
+        )
+        for p in db_players
     ]
     return MatchInfo(
         id=db_match.match_id,
         timestamp=db_match.timestamp,
         map=db_match.map,
-        winning_team=db_match.winning_team,
+        winning_team=db_match.winning_team_id,
         players=players,
         duration_minutes=db_match.duration_minutes,
         filename=db_match.json_s3_uri,
@@ -127,21 +132,46 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
     )
 
 
+def get_all_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
+    replay_jsons = replay_manager.list_jsons(distinct=True)
+    for j in replay_jsons:
+        db_match = j.match
+        if (db_match) is None:
+            logger.info(f"Match was None, going to parse {j.replay_file_url}")
+            parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
+            db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
+            replay_manager.register_match(db_match)
+        converted = match_to_matchinfo(db_match)
+        if converted.duration_minutes < 2:
+            continue
+        yield converted
+
+
+def get_all_matches2(replay_manager: ReplayManager) -> list[MatchInfo]:
+    """Faster but doesn't register missing. use once we always save matches to db."""
+    with log_time("listing"):
+        listing = replay_manager.list_matches(2.0)
+    with log_time("convert"):
+        converted = [match_to_matchinfo(m) for m in listing]
+    return converted
+
+
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     constring = os.getenv("DATABASE_URL")
     print("!!", constring)
     db_manager = DatabaseManager(constring)
     with db_manager.SessionLocal() as session:
-        replay_manager = ReplayManager(session, auto_commit=False, notify=False)
-        jsons = replay_files.all_json_uris(replay_manager)
-    i = 1
-    for json_uri, replay_file_url in jsons.items():
-        print(json_uri, replay_file_url)
-        parsed = replay_files.parse_replay(replay_file_url, replay_manager)
-        print(parsed)
-        db_match = replay_to_db_match(parsed, json_uri)
-        print(db_match)
-
-        i += 1
-        if i > 1:
-            break
+        replay_manager = ReplayManager(
+            session,
+            auto_commit=True,
+            notify=False,
+        )
+        with log_time("listing jsons"):
+            json_count = len(replay_manager.list_jsons(distinct=True))
+        print(json_count)
+        with log_time("get all matches"):
+            for _ in get_all_matches(replay_manager):
+                pass
+        with log_time("get all matches2"):
+            get_all_matches2(replay_manager)

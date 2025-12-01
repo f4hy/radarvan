@@ -4,8 +4,27 @@ import datetime
 from api_types import Player, General, Team
 from cncstats_types import EnhancedReplay, PlayerSummary
 import logging
+import time
+import functools
 
 logger = logging.getLogger(__name__)
+
+
+def log_duration(func):
+    """
+    A decorator that logs the execution duration of the decorated function.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info(f"Function '{func.__name__}' executed in {duration:.4f} seconds.")
+        return result
+
+    return wrapper
 
 
 def duration_minutes(replay: EnhancedReplay) -> float:
@@ -40,6 +59,8 @@ def side_to_general(side: str) -> General:
             return General.STEALTH
         case "GLA Demo":
             return General.DEMO
+        case "":
+            return General.UNRECOGNIZED
     logger.warning(f"Unknown side {side=}")
     return General.UNRECOGNIZED
 
