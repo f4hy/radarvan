@@ -83,12 +83,17 @@ def path_filter(url: str) -> bool:
     return any(t in url for t in types)
 
 
-def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
+def all_json_uris(replay_manager: ReplayManager) -> dict[str, str]:
     uris = {
         j.json_s3_uri: j.replay_file_url
         for j in replay_manager.list_jsons()
         if path_filter(j.replay_file_url)
     }
+    return uris
+
+
+def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
+    uris = all_json_uris(replay_manager)
     fs = get_fs()
     chunk_size = 50
     for i in range(0, len(uris), chunk_size):

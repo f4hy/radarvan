@@ -59,8 +59,6 @@ def setup_database():
     # Create all tables
     db_manager.create_all_tables()
     print("created tables")
-    # Initialize lookup tables (generals, teams)
-    db_manager.initialize_lookup_tables()
 
     restore_replay_files()
     restore_jsons()

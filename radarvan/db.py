@@ -92,55 +92,6 @@ class ParsedReplayJson(Base):
         )
 
 
-class General(enum.IntEnum):
-    USA = 0
-    AIR = 1
-    LASER = 2
-    SUPER = 3
-    CHINA = 4
-    NUKE = 5
-    TANK = 6
-    INFANTRY = 7
-    GLA = 8
-    TOXIN = 9
-    STEALTH = 10
-    DEMO = 11
-    UNRECOGNIZED = -1
-
-
-class Team(enum.IntEnum):
-    NONE = 0
-    ONE = 1
-    TWO = 2
-    THREE = 3
-    FOUR = 4
-    OBSERVER = -1
-
-
-# Lookup Tables
-class GeneralModel(Base):
-    __tablename__ = "generals"
-
-    id = Column(SmallInteger, primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
-
-    # Relationships
-    match_players = relationship("MatchPlayer", back_populates="general")
-
-
-class TeamModel(Base):
-    __tablename__ = "teams"
-
-    id = Column(SmallInteger, primary_key=True)
-    name = Column(String(20), nullable=False, unique=True)
-
-    # Relationships
-    matches_won = relationship(
-        "Match", foreign_keys="Match.winning_team_id", back_populates="winning_team"
-    )
-    match_players = relationship("MatchPlayer", back_populates="team")
-
-
 class Match(Base):
     __tablename__ = "matches"
 
@@ -156,7 +107,7 @@ class Match(Base):
     )
     timestamp = Column(DateTime(timezone=True), nullable=False)
     map = Column(String(100), nullable=False)
-    winning_team_id = Column(SmallInteger, ForeignKey("teams.id"))
+    winning_team_id = Column(SmallInteger)
     duration_minutes = Column(Float, nullable=False)
     filename = Column(String(255), nullable=False)
     incomplete = Column(Boolean, default=False)
@@ -188,20 +139,15 @@ class MatchPlayer(Base):
         Integer, ForeignKey("matches.match_id", ondelete="CASCADE"), nullable=False
     )
     player_name = Column(String(100), nullable=False)
-    general_id = Column(SmallInteger, ForeignKey("generals.id"), nullable=False)
-    team_id = Column(SmallInteger, ForeignKey("teams.id"), nullable=False)
+    general_id = Column(SmallInteger, nullable=False)
+    team_id = Column(SmallInteger, nullable=False)
     color = Column(String(20), nullable=False)
     is_winner = Column(Boolean, nullable=False)
 
-    # Relationships
     match = relationship("Match", back_populates="players")
-    general = relationship("GeneralModel", back_populates="match_players")
-    team = relationship("TeamModel", back_populates="match_players")
 
     __table_args__ = (
         UniqueConstraint("match_id", "player_name", name="uq_match_player"),
         Index("idx_match_players_match", "match_id"),
         Index("idx_match_players_player", "player_name"),
-        Index("idx_match_players_general", "general_id"),
-        Index("idx_match_players_team", "team_id"),
     )

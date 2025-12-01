@@ -10,10 +10,6 @@ from db import (
     ParsedReplayJson,
     Match,
     MatchPlayer,
-    GeneralModel,
-    TeamModel,
-    General,
-    Team,
     ProcessingStatus,
 )
 import logging
@@ -57,46 +53,6 @@ class DatabaseManager:
             raise
         finally:
             session.close()
-
-    def initialize_lookup_tables(self):
-        """Populate generals and teams lookup tables."""
-        with self.get_session() as session:
-            # Check if already populated
-            if session.query(GeneralModel).count() > 0:
-                return
-
-            # Insert generals
-            general_data = [
-                (0, "USA", "USA"),
-                (1, "AIR", "USA"),
-                (2, "LASER", "USA"),
-                (3, "SUPER", "USA"),
-                (4, "CHINA", "CHINA"),
-                (5, "NUKE", "CHINA"),
-                (6, "TANK", "CHINA"),
-                (7, "INFANTRY", "CHINA"),
-                (8, "GLA", "GLA"),
-                (9, "TOXIN", "GLA"),
-                (10, "STEALTH", "GLA"),
-                (11, "DEMO", "GLA"),
-                (-1, "UNRECOGNIZED", "UNRECOGNIZED"),
-            ]
-
-            for gen_id, name, faction in general_data:
-                session.add(GeneralModel(id=gen_id, name=name))
-
-            # Insert teams
-            team_data = [
-                (0, "NONE"),
-                (1, "ONE"),
-                (2, "TWO"),
-                (3, "THREE"),
-                (4, "FOUR"),
-                (-1, "OBSERVER"),
-            ]
-
-            for team_id, name in team_data:
-                session.add(TeamModel(id=team_id, name=name))
 
     def refresh_materialized_views(self):
         """Refresh materialized views for aggregated stats."""
