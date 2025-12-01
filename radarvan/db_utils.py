@@ -85,6 +85,15 @@ class ReplayManager:
         fetched = self.session.get(ParsedReplayJson, json_uri)
         return fetched
 
+    def get_replay_json_by_match_id(self, match_id: str) -> ParsedReplayJson | None:
+        statement = (
+            select(ParsedReplayJson)
+            .where(ParsedReplayJson.match_id == match_id)
+            .order_by(ParsedReplayJson.created_at.desc())
+            .limit(1)
+        )
+        return self.session.scalar(statement)
+
     def register_replay(self, from_url: str, s3_uri: str) -> ReplayFile:
         """Register a new replay."""
         logger.info(f"Registering {from_url=} {s3_uri=}")
@@ -160,9 +169,7 @@ class ReplayManager:
         stmt = (
             select(ParsedReplayJson)
             .order_by(ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp)
-            .options(
-                selectinload(ParsedReplayJson.match).selectinload(Match.players)
-            )
+            .options(selectinload(ParsedReplayJson.match).selectinload(Match.players))
         )
 
         if distinct:

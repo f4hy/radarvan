@@ -10,6 +10,7 @@ from api_types import (
     PlayerStat,
     WinLoss,
 )
+import replay_files
 import logging
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,8 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
 
     for game in games:
         if game.incomplete:
+            continue
+        if not replay_files.path_filter(game.filename):
             continue
         for player in game.players:
             name = player_name_map(player.name)

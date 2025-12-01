@@ -183,11 +183,10 @@ def get_match_details(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchDetails:
     """Get details about a particular match"""
-    replays = sorted_deduped_matches(replay_manager)
-    replay = replays.get(match_id)
+    replay = replay_manager.get_replay_json_by_match_id(match_id)
     if not replay:
         return empty_match_details(match_id)
-    replay = replay_files.parse_replay(replay.filename, replay_manager)
+    replay = replay_files.parse_replay(replay.replay_file_url, replay_manager)
     details = match_details.match_details_from_replay(replay)
     return details
 
