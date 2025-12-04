@@ -1,4 +1,5 @@
 from db_utils import ReplayManager
+from matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 import scrape_games
@@ -11,15 +12,17 @@ logger = logging.getLogger(__name__)
 async def update_games(
     replay_manager: ReplayManager,
     days: int = 0,
-    notify: bool = False,
+    do_notify: bool = False,
 ) -> None:
     """Get latest updates."""
     logger.info("Updating games.")
     base = scrape_games.BASE
     paths = await scrape_games.get_replay_urls(days, base, replay_manager)
+    register_matches(replay_manager)
     msg = f"Done updating, found {len(paths)}."
     logger.info(msg)
-    notify("DEBUG:" + msg)
+    if do_notify:
+        notify("DEBUG:" + msg)
 
 
 def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:

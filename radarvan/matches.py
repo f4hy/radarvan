@@ -147,6 +147,16 @@ def get_all_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
         yield converted
 
 
+def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
+    replay_jsons = replay_manager.list_jsons(distinct=True)
+    matches = {m.match_id: m for m in replay_manager.list_matches(2.0)}
+    for j in replay_jsons:
+        if matches.get(j.match_id) is None:
+            parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
+            db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
+            replay_manager.register_match(db_match)
+
+
 def get_all_matches2(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):

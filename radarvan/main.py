@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from collections.abc import Generator
 from fastapi import FastAPI, BackgroundTasks
 
+import middleware
 import match_details
 import matches
 import player_stats
@@ -87,7 +88,7 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
 )
-
+app.add_middleware(middleware.RequestTimingMiddleware)
 
 # @app.get("/api/reparse")
 # def reparse() -> None:
@@ -104,7 +105,7 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     # replays = replay_files.get_all_replays(replay_manager)
     # match_infos = (matches.match_from_replay(replay) for replay in replays)
-    match_infos = matches.get_all_matches(replay_manager)
+    match_infos = matches.get_all_matches2(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
     logger.info(f"Got {len(deduped)} parsed replays")
     sorted_matches = dict(
