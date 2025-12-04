@@ -160,6 +160,15 @@ def get_matches(
     replays = sorted_deduped_matches(replay_manager)
     return Matches(matches=replays.values())
 
+@app.get("/api/match/{id}")
+def get_matches(
+        match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    """Get listing of matches, up to a return count limit for paging."""
+    m = sorted_deduped_matches(replay_manager).get(match_id)
+    return m
+
 
 def empty_match_details(match_id: int) -> MatchDetails:
     return MatchDetails(

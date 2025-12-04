@@ -1,5 +1,7 @@
 """Get match info from a replay."""
 
+from typing import DefaultDict
+from collections import defaultdict
 from collections.abc import Iterator
 from log_time import log_time
 import json
@@ -157,12 +159,32 @@ def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
             replay_manager.register_match(db_match)
 
 
+def filter_match(db_match: db.Match) -> bool:
+    # remove comp stomps
+    teams: DefaultDict[int, list[str]] = defaultdict(list)
+    if len(db_match.players) == 2:
+        return True
+    for p in db_match.players:
+        teams[p.team_id].append(p.player_name)
+    for team in teams.values():
+        if set(team) == {"CPU"}:
+            logger.info(f"Filtering compstom {teams}")
+            return False
+    # remove ffa
+    if len(set(teams.keys())) == 1:
+        logger.info(f"Filtering ffa {teams}")
+        return False
+    return True
+
+
 def get_all_matches2(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):
         listing = replay_manager.list_matches(2.0)
+    filtered = [l for l in listing if filter_match(l)]
+
     with log_time("convert"):
-        converted = [match_to_matchinfo(m) for m in listing]
+        converted = [match_to_matchinfo(m) for m in filtered]
     return converted
 
 
