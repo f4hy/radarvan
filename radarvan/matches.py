@@ -151,7 +151,7 @@ def get_all_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
 
 def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
     replay_jsons = replay_manager.list_jsons(distinct=True)
-    matches = {m.match_id: m for m in replay_manager.list_matches(2.0)}
+    matches = {m.match_id: m for m in replay_manager.list_matches(0.0)}
     for j in replay_jsons:
         if matches.get(j.match_id) is None:
             parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
