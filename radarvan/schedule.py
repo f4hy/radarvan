@@ -40,7 +40,7 @@ def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
         update_games,
         "interval",
         minutes=60,
-        args=[replay_manager, 1, True],
+        args=[replay_manager, 1, False],
         id="update_games",
     )
     logger.info("Setup scheduler.")
