@@ -17,7 +17,7 @@ import {
   YAxis,
   ZAxis,
 } from "recharts"
-import { PlayerColor, ColorByIdx } from "./Colors"
+import { PlayerColor } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
@@ -41,6 +41,7 @@ const empty: MatchDetails = {
     total: [],
   },
   moneyValues: {},
+  moneyCollectedValues: {},
   playerSummary: [],
 }
 
@@ -145,7 +146,7 @@ function MoneyChart(props: {
             <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
             <YAxis
               label={{
-                value: "Money",
+                value: props.title,
                 position: "insideLeft",
                 offset: -5,
                 angle: -90,
@@ -167,7 +168,7 @@ function MoneyChart(props: {
       </>
     )
   } else {
-    return <div>Money data unavailible for this replay</div>
+  return <div>{props.title} data unavailible for this replay</div>
   }
 }
 
@@ -275,6 +276,11 @@ export default function ShowMatchDetails(props: { id: number }) {
       <MoneyChart
         title="Money"
         money={details.moneyValues}
+        playerSummaries={details.playerSummary}
+      />
+      <MoneyChart
+        title="$ Collected"
+        money={details.moneyCollectedValues}
         playerSummaries={details.playerSummary}
       />
       <Divider />

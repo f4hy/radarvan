@@ -38,6 +38,10 @@ export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
     matchId: number;
 }
 
+export interface GetMatchesApiMatchMatchIdGetRequest {
+    matchId: number;
+}
+
 export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
 }
@@ -151,6 +155,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchDetailsApiDetailsMatchIdGet(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
         const response = await this.getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Matches
+     */
+    async getMatchesApiMatchMatchIdGetRaw(requestParameters: GetMatchesApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getMatchesApiMatchMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Matches
+     */
+    async getMatchesApiMatchMatchIdGet(requestParameters: GetMatchesApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getMatchesApiMatchMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

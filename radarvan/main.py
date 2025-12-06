@@ -163,7 +163,7 @@ def get_matches(
     return Matches(matches=replays.values())
 
 
-@app.get("/api/match/{id}")
+@app.get("/api/match/{match_id}")
 def get_matches(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),

@@ -92,6 +92,12 @@ export interface MatchDetails {
      */
     moneyValues: { [key: string]: { [key: string]: number; }; };
     /**
+     * at a time value (int) map each player to the value
+     * @type {{ [key: string]: { [key: string]: number; }; }}
+     * @memberof MatchDetails
+     */
+    moneyCollectedValues: { [key: string]: { [key: string]: number; }; };
+    /**
      * 
      * @type {Array<PlayerSummary>}
      * @memberof MatchDetails
@@ -109,6 +115,7 @@ export function instanceOfMatchDetails(value: object): value is MatchDetails {
     if (!('upgradeEvents' in value) || value['upgradeEvents'] === undefined) return false;
     if (!('spent' in value) || value['spent'] === undefined) return false;
     if (!('moneyValues' in value) || value['moneyValues'] === undefined) return false;
+    if (!('moneyCollectedValues' in value) || value['moneyCollectedValues'] === undefined) return false;
     if (!('playerSummary' in value) || value['playerSummary'] === undefined) return false;
     return true;
 }
@@ -129,6 +136,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
         'spent': SpentOverTimeFromJSON(json['spent']),
         'moneyValues': json['money_values'],
+        'moneyCollectedValues': json['money_collected_values'],
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
     };
 }
@@ -150,6 +158,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
         'spent': SpentOverTimeToJSON(value['spent']),
         'money_values': value['moneyValues'],
+        'money_collected_values': value['moneyCollectedValues'],
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
     };
 }

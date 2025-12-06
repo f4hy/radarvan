@@ -259,6 +259,9 @@ class MatchDetails(BaseModel):
     money_values: dict[int, dict[str, int]] = Field(
         description="at a time value (int) map each player to the value"
     )
+    money_collected_values: dict[int, dict[str, int]] = Field(
+        description="at a time value (int) map each player to the value"
+    )
     player_summary: list[PlayerSummary]
 
     class Config:
