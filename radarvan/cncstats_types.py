@@ -32,14 +32,12 @@ class ByteArray12(RootModel):
 
 
 class Position3D(BaseModel):
-
     X: float
     Y: float
     Z: float
 
 
 class ScreenPosition(BaseModel):
-
     X: int
     Y: int
 
@@ -51,41 +49,34 @@ class ScreenRectangle(RootModel):
 
 
 class Unit(BaseModel):
-
     Name: str
     Cost: int
 
 
 class Building(BaseModel):
-
     Name: str
     Cost: int
 
 
 class Upgrade(BaseModel):
-
     Name: str
     Cost: int
 
 
 class Power(BaseModel):
-
     Name: str
 
 
 class ArgMetadata(BaseModel):
-
     Type: int
     Count: int
 
 
 class Money(BaseModel):
-
     PlayerMoney: list[int]
 
 
 class EnhancedBodyChunk(BaseModel):
-
     TimeCode: int
     OrderCode: int
     OrderName: str
@@ -101,13 +92,11 @@ class EnhancedBodyChunk(BaseModel):
 
 
 class ObjectSummary(BaseModel):
-
     Count: int
     TotalSpent: int
 
 
 class PlayerSummary(BaseModel):
-
     Name: str
     Side: str
     Team: int
@@ -120,7 +109,6 @@ class PlayerSummary(BaseModel):
 
 
 class Player(BaseModel):
-
     Type: str
     Name: str
     IP: str
@@ -134,7 +122,6 @@ class Player(BaseModel):
 
 
 class Metadata(BaseModel):
-
     MapFile: str
     MapCRC: str
     MapSize: str
@@ -147,7 +134,6 @@ class Metadata(BaseModel):
 
 
 class GeneralsHeader(BaseModel):
-
     GameType: str
     TimeStampBegin: int
     TimeStampEnd: int

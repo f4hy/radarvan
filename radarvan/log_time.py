@@ -2,6 +2,7 @@ import time
 from contextlib import contextmanager
 import logging
 
+
 @contextmanager
 def log_time(message: str, logger: logging.Logger | None = None):
     """

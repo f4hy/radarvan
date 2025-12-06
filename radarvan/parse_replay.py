@@ -6,6 +6,7 @@ import json
 import httpx
 from cncstats_types import EnhancedReplay
 import logging
+
 logger = logging.getLogger(__name__)
 
 PARSE_URL = "https://cncstats.herokuapp.com/replay"
@@ -20,6 +21,7 @@ def parse_replay_data(data: bytes, debug=False):
     logger.info(f"Pared replay in {response.elapsed.total_seconds()}s ")
     validated = EnhancedReplay.model_validate(response.json())
     return validated
+
 
 if __name__ == "__main__":
     filename = sys.argv[1]

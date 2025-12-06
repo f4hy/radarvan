@@ -119,7 +119,10 @@ class Match(Base):
     # Relationships
     replay_json = relationship("ParsedReplayJson", back_populates="match")
     players = relationship(
-        "MatchPlayer", back_populates="match", cascade="all, delete-orphan", lazy="selectin"
+        "MatchPlayer",
+        back_populates="match",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     __table_args__ = (

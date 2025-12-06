@@ -105,4 +105,3 @@ def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
             if utils.duration_minutes(parsed) > 2.0:
                 logger.info(f"Yielding {parsed.Header.FileName}")
                 yield parsed
-

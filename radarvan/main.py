@@ -3,6 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from collections.abc import Generator
 from fastapi import FastAPI, BackgroundTasks
+import exception_handling
 
 import middleware
 import match_details
@@ -90,6 +91,7 @@ app.add_middleware(
 )
 app.add_middleware(middleware.RequestTimingMiddleware)
 
+
 # @app.get("/api/reparse")
 # def reparse() -> None:
 #     """Reparse the replays."""
@@ -160,9 +162,10 @@ def get_matches(
     replays = sorted_deduped_matches(replay_manager)
     return Matches(matches=replays.values())
 
+
 @app.get("/api/match/{id}")
 def get_matches(
-        match_id: int,
+    match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
     """Get listing of matches, up to a return count limit for paging."""
@@ -222,3 +225,6 @@ def get_generals_stats(
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")
+
+
+exception_handling.setup_error_handling(app)
