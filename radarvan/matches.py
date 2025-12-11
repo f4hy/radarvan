@@ -128,7 +128,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         winning_team=db_match.winning_team_id,
         players=players,
         duration_minutes=db_match.duration_minutes,
-        filename=db_match.json_s3_uri,
+        filename=db_match.filename,
         incomplete=db_match.incomplete,
         notes=db_match.notes,
     )
