@@ -112,8 +112,6 @@ class ReplayManager:
         if self.auto_commit:
             self.session.flush()
             self.session.commit()
-        if self.notify:
-            notify(f"Registered {from_url=} {s3_uri=}")
         return replay_file
 
     def save_parsed_json(
@@ -141,10 +139,6 @@ class ReplayManager:
         if self.auto_commit:
             self.session.flush()
             self.session.commit()
-        if self.notify:
-            notify(
-                f"Saved parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
-            )
         return parsed_json
 
     def register_match(self, db_match: Match) -> Match:
