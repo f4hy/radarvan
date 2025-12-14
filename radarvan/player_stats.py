@@ -30,7 +30,7 @@ def player_name_map(name: str) -> str:
         "wild": "WildCard",
         "wildcard": "WildCard",
         "cd": "CoreDawg",
-        "CD@wg": "CoreDawg",
+        "cd@wg": "CoreDawg",
         "syn": "Syn",
         "stm": "STM",
         "ty": "Tytan",
