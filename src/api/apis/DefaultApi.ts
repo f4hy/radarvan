@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  GameRecordOutput,
   GeneralStats,
   HTTPValidationError,
   MatchDetails,
@@ -22,6 +23,8 @@ import type {
   PlayerStats,
 } from '../models/index';
 import {
+    GameRecordOutputFromJSON,
+    GameRecordOutputToJSON,
     GeneralStatsFromJSON,
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
@@ -307,7 +310,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * List Replays
      */
-    async listReplaysApiReplaysGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async listReplaysApiReplaysGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecordOutput>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -322,17 +325,13 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GameRecordOutputFromJSON));
     }
 
     /**
      * List Replays
      */
-    async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+    async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecordOutput>> {
         const response = await this.listReplaysApiReplaysGetRaw(initOverrides);
         return await response.value();
     }

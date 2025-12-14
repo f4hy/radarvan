@@ -19,6 +19,7 @@ from api_types import (
     PlayerStats,
     GeneralStats,
     SpentOverTime,
+    GameRecord,
 )
 from cachetools import TTLCache, cached
 from db_utils import DatabaseManager, ReplayManager
@@ -128,10 +129,11 @@ def list_files(
 @app.get("/api/replays/")
 def list_replays(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
-    listed = replay_manager.list_jsons(distinct=False)
+) -> list[GameRecord]:
+    listed = replay_manager.list_jsons(distinct=False)[:200]
     logger.info(f"Found {len(listed)=}")
-    return listed
+    converted = [GameRecord.model_validate(l, from_attributes=True) for l in listed]
+    return converted
 
 
 @app.get("/api/dates/")

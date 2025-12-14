@@ -1,6 +1,8 @@
 import ListIcon from "@mui/icons-material/List"
 import LooksTwoIcon from "@mui/icons-material/LooksTwo"
 import MapIcon from "@mui/icons-material/Map"
+import TableView from "@mui/icons-material/TableView"
+
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import PeopleIcon from "@mui/icons-material/People"
@@ -25,6 +27,7 @@ import DisplayPairStats from "./PairStats"
 import DisplayPlayerStats from "./PlayerStats"
 import DisplayTeamStats from "./TeamStats"
 import WrappedYear from "./Wrapped"
+import DisplayDebugData from "./DebugData"
 import RedeemIcon from "@mui/icons-material/Redeem"
 const drawerWidth = 190
 
@@ -81,6 +84,15 @@ export default function Menu() {
           icon={<MilitaryTechIcon />}
           callback={setSelection}
         />
+				{(queryParams["debug"] === "True") && (
+        <MenuItem
+          value="DebugData"
+          text="DebugData"
+          open={true}
+          icon={<TableView />}
+          callback={setSelection}
+        />
+				)}
       </List>
       <Divider />
     </div>
@@ -166,6 +178,7 @@ type Selection =
   | "Matches"
   | "GeneralStats"
   | "PlayerStats"
+  | "DebugData"
   | "TeamStats"
   | "MapStats"
   | "PairStats"
@@ -190,6 +203,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayGeneralStats />
     case "TeamStats":
       return <DisplayTeamStats />
+    case "DebugData":
+      return <DisplayDebugData />
     default:
       return <div>{props.selection}</div>
   }

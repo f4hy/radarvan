@@ -7,6 +7,8 @@ models/CostsInput.ts
 models/CostsOutput.ts
 models/DateMessage.ts
 models/Faction.ts
+models/GameRecordInput.ts
+models/GameRecordOutput.ts
 models/General.ts
 models/GeneralStatInput.ts
 models/GeneralStatOutput.ts
@@ -17,9 +19,11 @@ models/HTTPValidationError.ts
 models/MatchDetails.ts
 models/MatchInfoInput.ts
 models/MatchInfoOutput.ts
+models/MatchListing.ts
 models/Matches.ts
 models/ObjectSummary.ts
 models/Player.ts
+models/PlayerListing.ts
 models/PlayerRateOverTimeInput.ts
 models/PlayerRateOverTimeOutput.ts
 models/PlayerStatFactionWL.ts

@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from datetime import datetime
+from pydantic import BaseModel, Field, ConfigDict
+from datetime import datetime, date
 from enum import IntEnum
+from pydantic import BaseModel, Field, HttpUrl
+from typing import Optional
 
 
 class General(IntEnum):
@@ -294,3 +296,44 @@ class TeamPairs(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+# listing
+
+
+class PlayerListing(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    player_name: str
+    team_id: int
+    is_winner: bool
+    general_id: int
+    match_id: int
+    color: str
+
+
+class MatchListing(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    match_id: int
+    map: str
+    duration_minutes: float
+    incomplete: str
+    created_at: datetime
+    json_s3_uri: str
+    timestamp: datetime
+    winning_team_id: int
+    filename: HttpUrl
+    notes: str
+    players: list[PlayerListing]
+
+
+class GameRecord(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    json_s3_uri: str
+    file_size_bytes: int | None = None
+    game_timestamp: datetime
+    match_id: int
+    replay_file_url: HttpUrl
+    created_at: datetime
+    game_date: date
+    match: MatchListing | None = None
