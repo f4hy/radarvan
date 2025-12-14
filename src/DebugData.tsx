@@ -1,4 +1,7 @@
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from "@mui/material/Stack"
+import Switch from '@mui/material/Switch';
 import Skeleton from "@mui/material/Skeleton"
 import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
@@ -48,8 +51,8 @@ function getGameData(callback: (m: GameRecordOutput[]) => void) {
 }
 
 
-function DisplayDataTable(props: { data: GameRecordOutput[] }) {
-  const data = props.data
+function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: boolean }) {
+  const data = props.exclude_unparsed ? props.data.filter((d => d.match)) : props.data
   const columns = [
     { field: "json_s3_uri", headerName: "json_s3_uri" }
   ]
@@ -102,16 +105,29 @@ function Loading() {
 
 export default function DisplayDebugData() {
   const [debugData, setDebugData] = React.useState<GameRecordOutput[]>([])
+  const [checked, setChecked] = React.useState(true);
   React.useEffect(() => {
     getGameData(setDebugData)
   }, [])
   if (debugData.length === 0) {
     return <Loading />
   }
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setChecked(event.target.checked);
+  };
+
   return (
     <Paper>
-      <Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
-      <DisplayDataTable data={debugData} />
+      <Typography variant="h4">Listing of all data toggle to show all replays not just 1 per matchid</Typography>
+      <FormGroup>
+        <FormControlLabel control={<Switch
+          checked={checked}
+          onChange={handleChange}
+        />}
+          label="Toggle on shows just one replay per match"
+        />
+      </FormGroup>
+      <DisplayDataTable data={debugData} exclude_unparsed={checked} />
     </Paper>
   )
 }

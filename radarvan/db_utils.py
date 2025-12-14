@@ -162,7 +162,7 @@ class ReplayManager:
         """List all jsons or filter by date."""
         stmt = (
             select(ParsedReplayJson)
-            .order_by(ParsedReplayJson.match_id, ParsedReplayJson.game_timestamp)
+            .order_by(ParsedReplayJson.game_timestamp.desc())
             .options(selectinload(ParsedReplayJson.match).selectinload(Match.players))
         )
 
