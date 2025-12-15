@@ -88,6 +88,9 @@ def reparse(
     fs = get_fs()
     existing_data = fs.read_text(json_path)
     existing = EnhancedReplay.model_validate_json(existing_data)
+    if utils.duration_minutes(existing) < 2.0:
+        logger.warning("Too short, skipping")
+        return None
 
     raw_replay = fs.read_bytes(replay_path)
     parsed_replay = parse_replay_data(raw_replay)
@@ -95,7 +98,7 @@ def reparse(
 
     if existing == parsed_replay:
         logger.warning("No change in replay, not resaving")
-        return existing, json_path
+        return None
 
     fs.write_text(json_path, parsed_replay.model_dump_json())
     return parsed_replay, json_path
