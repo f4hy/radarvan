@@ -66,6 +66,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     match_id = replay.replay_id()
     _winners = [p for p in replay.Summary if p.Win is True]
     notes = ""
+    duration_minutes = utils.duration_minutes(replay)
     if _winners:
         winner = _winners[0].Team
         incomplete = ""
@@ -77,6 +78,8 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
         incomplete = "Likely Mismatch :("
     elif winner == Team.NONE:
         notes = "No team won?"
+    if duration_minutes < 2:
+        incomplete = "Too Short"
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
     # wont be needed once cncstats fixes observers
     observers = {p.Name for p in replay.Header.Metadata.Players if p.Team == -1}
@@ -159,6 +162,18 @@ def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
             replay_manager.register_match(db_match)
 
 
+def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
+    reparsed = replay_files.reparse(match_id, replay_manager)
+    if reparsed is None:
+        logger.info("No reparse needed")
+        return None
+    parsed_replay, json_s3 = reparsed
+    update_match = replay_to_db_match(parsed_replay, json_s3)
+    replay_manager.update_match(update_match)
+    return match_from_replay(parsed_replay)
+    return parsed_replay
+
+
 def filter_match(db_match: db.Match) -> bool:
     # remove comp stomps
     teams: DefaultDict[int, list[str]] = defaultdict(list)
@@ -200,10 +215,12 @@ if __name__ == "__main__":
             notify=False,
         )
         with log_time("listing jsons"):
-            json_count = len(replay_manager.list_jsons(distinct=True))
-        print(json_count)
-        with log_time("get all matches"):
-            for _ in get_all_matches(replay_manager):
-                pass
-        with log_time("get all matches2"):
-            get_all_matches2(replay_manager)
+            jsons = replay_manager.list_jsons(distinct=False)
+        # print(json_count)
+        # with log_time("get all matches"):
+        #     for _ in get_all_matches(replay_manager):
+        #         pass
+        # with log_time("get all matches2"):
+        #     get_all_matches2(replay_manager)
+        for j in jsons:
+            reparse_replay(j.match_id, replay_manager)

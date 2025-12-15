@@ -174,6 +174,14 @@ def get_matches(
     m = sorted_deduped_matches(replay_manager).get(match_id)
     return m
 
+@app.get("/api/reprase/{match_id}")
+def reparse(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    """Rerun the replay parser on this match."""
+    return matches.reparse_replay(match_id, replay_manager)
+
 
 def empty_match_details(match_id: int) -> MatchDetails:
     return MatchDetails(

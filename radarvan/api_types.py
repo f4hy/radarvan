@@ -322,7 +322,7 @@ class MatchListing(BaseModel):
     json_s3_uri: str
     timestamp: datetime
     winning_team_id: int
-    filename: HttpUrl
+    filename: str
     notes: str
     players: list[PlayerListing]
 
@@ -333,7 +333,7 @@ class GameRecord(BaseModel):
     file_size_bytes: int | None = None
     game_timestamp: datetime
     match_id: int
-    replay_file_url: HttpUrl
+    replay_file_url: str
     created_at: datetime
     game_date: date
     match: MatchListing | None = None

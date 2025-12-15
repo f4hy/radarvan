@@ -76,6 +76,31 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
     return parsed_replay
 
 
+def reparse(
+    match_id: int, replay_manager: ReplayManager
+) -> tuple[EnhancedReplay, str] | None:
+    existing = replay_manager.get_replay_json_by_match_id(match_id)
+
+    json_path = existing.json_s3_uri
+    original_path = existing.replay_file_url
+    replay_path = existing.replay_file.s3_uri
+
+    fs = get_fs()
+    existing_data = fs.read_text(json_path)
+    existing = EnhancedReplay.model_validate_json(existing_data)
+
+    raw_replay = fs.read_bytes(replay_path)
+    parsed_replay = parse_replay_data(raw_replay)
+    parsed_replay.Header.FileName = original_path
+
+    if existing == parsed_replay:
+        logger.warning("No change in replay, not resaving")
+        return existing, json_path
+
+    fs.write_text(json_path, parsed_replay.model_dump_json())
+    return parsed_replay, json_path
+
+
 def path_filter(url: str) -> bool:
     multi_computer = re.search("HardAI.*HardAI", url)
     if multi_computer:

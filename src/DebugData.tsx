@@ -58,13 +58,14 @@ function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: b
   ]
   const first = data[0]
   return (<Box >
-    <TableContainer component={Paper}>
-      <Table>
+    <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
+      <Table stickyHeader  sx={{ maxHeight: "50%" }}>
         <TableHead>
           <TableRow>
             <TableCell>matchId</TableCell>
             <TableCell>gameDate</TableCell>
             <TableCell>replayFileUrl</TableCell>
+            <TableCell>Duration minutes</TableCell>
             <TableCell>Map</TableCell>
             <TableCell>Winner</TableCell>
             <TableCell>Players</TableCell>
@@ -75,8 +76,9 @@ function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: b
           {data.map((row) => (
             <TableRow>
               <TableCell><Tooltip title={JSON.stringify(row)}><Link>{row.matchId}</Link></Tooltip></TableCell>
-              <TableCell>{row.gameDate.toDateString()}</TableCell>
+              <TableCell>{row.gameDate.toISOString().split('T')[0]}</TableCell>
               <TableCell><Link href={row.replayFileUrl}>{row.replayFileUrl.split("/").pop()}</Link></TableCell>
+              <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
               <TableCell>{row.match?.map}</TableCell>
               <TableCell>{row.match?.winningTeamId}</TableCell>
               <TableCell>{((row.match?.players.map(p => `T${p.teamId}:${p.playerName}`)) ?? []).join(", ")}</TableCell>

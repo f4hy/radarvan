@@ -151,6 +151,16 @@ class ReplayManager:
             notify(f"Registered Match {db_match}")
         return db_match
 
+    def update_match(self, db_match: Match) -> Match:
+        """Register a new replay."""
+        logger.info(f"updating {db_match=}")
+        self.session.merge(db_match)
+        if self.auto_commit:
+            self.session.commit()
+        if self.notify:
+            notify(f"Update Match {db_match}")
+        return db_match
+
     def list_files(self) -> list[ReplayFile]:
         """List all files."""
         query = self.session.query(ReplayFile)
