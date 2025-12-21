@@ -138,7 +138,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
 
 
 def get_all_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
-    replay_jsons = replay_manager.list_jsons(distinct=True)
+    replay_jsons = replay_manager.list_jsons()
     for j in replay_jsons:
         db_match = j.match
         if (db_match) is None:
@@ -153,13 +153,18 @@ def get_all_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
 
 
 def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
-    replay_jsons = replay_manager.list_jsons(distinct=True)
+    replay_jsons = replay_manager.list_jsons()
     matches = {m.match_id: m for m in replay_manager.list_matches(0.0)}
     for j in replay_jsons:
         if matches.get(j.match_id) is None:
             parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
             db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
-            replay_manager.register_match(db_match)
+            try:
+                replay_manager.register_match(db_match)
+                matches[db_match.match_id] = db_match
+            except Exception as e:
+                logger.warning(f"Can not add match {repr(e)}")
+                continue
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
@@ -215,7 +220,7 @@ if __name__ == "__main__":
             notify=False,
         )
         with log_time("listing jsons"):
-            jsons = replay_manager.list_jsons(distinct=False)
+            jsons = replay_manager.list_jsons()
         # print(json_count)
         # with log_time("get all matches"):
         #     for _ in get_all_matches(replay_manager):

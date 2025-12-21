@@ -130,7 +130,7 @@ def list_files(
 def list_replays(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[GameRecord]:
-    listed = replay_manager.list_jsons(distinct=False)
+    listed = replay_manager.list_jsons()
     logger.info(f"Found {len(listed)=}")
     converted = [GameRecord.model_validate(l, from_attributes=True) for l in listed]
     return converted

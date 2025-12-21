@@ -167,7 +167,7 @@ class ReplayManager:
         return self.session.execute(query).scalars().all()
 
     def list_jsons(
-        self, date: date | None = None, distinct: bool = True
+        self, date: date | None = None
     ) -> list[ParsedReplayJson]:
         """List all jsons or filter by date."""
         stmt = (
@@ -176,8 +176,6 @@ class ReplayManager:
             .options(selectinload(ParsedReplayJson.match).selectinload(Match.players))
         )
 
-        if distinct:
-            stmt = stmt.distinct(ParsedReplayJson.match_id)
 
         if date:
             stmt = stmt.where(ParsedReplayJson.game_date == date)
