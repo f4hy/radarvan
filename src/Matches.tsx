@@ -57,7 +57,7 @@ function playerNameStyle(player: Player) {
 }
 
 function TeamCard(props: { players: Player[]; won: boolean }) {
-  const color = props.won ? "#c5e1a5" : "#e57373"
+		let color = props.won ? "#c5e1a5" : "#e57373"
   const team = props.players[0]?.team
   let title = (props.won ? "Won" : "Lost") + " Team:" + props.players[0]?.team
   let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
@@ -68,6 +68,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
   if (team === Team.NUMBER_MINUS_1) {
     title = "Observer"
     icon = <VisibilityIcon />
+		color = "#D3D3D3"
   }
   return (
     <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }}>
