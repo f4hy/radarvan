@@ -21,6 +21,8 @@ models/MatchInfoInput.ts
 models/MatchInfoOutput.ts
 models/MatchListing.ts
 models/Matches.ts
+models/MatchupResultInput.ts
+models/MatchupResultOutput.ts
 models/ObjectSummary.ts
 models/Player.ts
 models/PlayerListing.ts
@@ -34,6 +36,9 @@ models/PlayerSummary.ts
 models/Spent.ts
 models/SpentOverTime.ts
 models/Team.ts
+models/Tournament.ts
+models/TournamentResultInput.ts
+models/TournamentResultOutput.ts
 models/UpgradeEvent.ts
 models/Upgrades.ts
 models/ValidationError.ts

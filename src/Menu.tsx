@@ -29,6 +29,7 @@ import DisplayTeamStats from "./TeamStats"
 import WrappedYear from "./Wrapped"
 import DisplayDebugData from "./DebugData"
 import RedeemIcon from "@mui/icons-material/Redeem"
+import DisplayTournamentResults from "./Tournaments"
 const drawerWidth = 190
 
 interface QueryParams {
@@ -37,7 +38,7 @@ interface QueryParams {
 
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const [selection, setSelection] = React.useState<Selection>("Matches")
+  const [selection, setSelection] = React.useState<Selection>("Tournaments")
   const [queryParams, setQueryParams] = React.useState<QueryParams>({})
   React.useEffect(() => {
     // Get the query string from the current URL
@@ -84,15 +85,22 @@ export default function Menu() {
           icon={<MilitaryTechIcon />}
           callback={setSelection}
         />
-				{(queryParams["debug"] === "True") && (
         <MenuItem
-          value="DebugData"
-          text="DebugData"
+          value="Tournaments"
+          text="Tournaments"
           open={true}
-          icon={<TableView />}
+          icon={<MilitaryTechIcon />}
           callback={setSelection}
         />
-				)}
+        {(queryParams["debug"] === "True") && (
+          <MenuItem
+            value="DebugData"
+            text="DebugData"
+            open={true}
+            icon={<TableView />}
+            callback={setSelection}
+          />
+        )}
       </List>
       <Divider />
     </div>
@@ -183,6 +191,7 @@ type Selection =
   | "MapStats"
   | "PairStats"
   | "Wrapped"
+  | "Tournaments"
 
 interface MenuItemProps {
   open: boolean
@@ -203,6 +212,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayGeneralStats />
     case "TeamStats":
       return <DisplayTeamStats />
+    case "Tournaments":
+      return <DisplayTournamentResults />
     case "DebugData":
       return <DisplayDebugData />
     default:

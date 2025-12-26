@@ -21,6 +21,7 @@ import type {
   MatchDetails,
   Matches,
   PlayerStats,
+  TournamentResultOutput,
 } from '../models/index';
 import {
     GameRecordOutputFromJSON,
@@ -35,6 +36,8 @@ import {
     MatchesToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
+    TournamentResultOutputFromJSON,
+    TournamentResultOutputToJSON,
 } from '../models/index';
 
 export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
@@ -47,6 +50,10 @@ export interface GetMatchesApiMatchMatchIdGetRequest {
 
 export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
+}
+
+export interface ReparseApiRepraseMatchIdGetRequest {
+    matchId: number;
 }
 
 export interface ScrapeApiScrapeDaysGetRequest {
@@ -275,6 +282,37 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Tournament Results
+     */
+    async getTournamentResultsApiTournamentResultsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentResultOutput>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/tournament_results/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(TournamentResultOutputFromJSON));
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Tournament Results
+     */
+    async getTournamentResultsApiTournamentResultsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TournamentResultOutput>> {
+        const response = await this.getTournamentResultsApiTournamentResultsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * List Files
      */
     async listFilesApiFilesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -333,6 +371,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecordOutput>> {
         const response = await this.listReplaysApiReplaysGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Reparse
+     */
+    async reparseApiRepraseMatchIdGetRaw(requestParameters: ReparseApiRepraseMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling reparseApiRepraseMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/reprase/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Reparse
+     */
+    async reparseApiRepraseMatchIdGet(requestParameters: ReparseApiRepraseMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.reparseApiRepraseMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

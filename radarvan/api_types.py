@@ -64,8 +64,8 @@ class Matches(BaseModel):
 
 
 class WinLoss(BaseModel):
-    wins: int = 0
-    losses: int = 0
+    wins: int
+    losses: int
 
 
 class GeneralWL(BaseModel):
@@ -356,4 +356,4 @@ class TournamentResult(BaseModel):
     tournament: Tournament
     matchups: list[MatchupResult]
 
-    records: dict[tuple[str,...], WinLoss]
+    records: dict[tuple[str, ...], WinLoss]
