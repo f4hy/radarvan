@@ -4,10 +4,7 @@ from api_types import (
     PlayerSummary as APIPlayerSummary,
 )
 from cncstats_types import EnhancedReplay
-from api_types import (
-    MatchDetails,
-    SpentOverTime,
-)
+from api_types import MatchDetails, SpentOverTime, Team
 import logging
 from dataclasses import dataclass
 
@@ -58,6 +55,8 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
     player_summaries: list[APIPlayerSummary] = []
     for s in replay.Summary:
+        if s.Team == Team.OBSERVER:
+            continue
         d = s.model_dump()
         d["Color"] = color_map.get(s.Name, "black").lower().replace("color", "")
         APIPlayerSummary.model_validate(d)
