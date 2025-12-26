@@ -12,6 +12,7 @@ import player_stats
 import general_stats
 import replay_files
 import schedule
+import tournament
 from api_types import (
     MatchDetails,
     Matches,
@@ -20,6 +21,7 @@ from api_types import (
     GeneralStats,
     SpentOverTime,
     GameRecord,
+    TournamentResult,
 )
 from cachetools import TTLCache, cached
 from db_utils import DatabaseManager, ReplayManager
@@ -165,6 +167,19 @@ def get_matches(
     return Matches(matches=replays.values())
 
 
+@app.get("/api/tournament_results/")
+def get_tournament_results(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[TournamentResult]:
+    """Get listing of matches, up to a return count limit for paging."""
+    replays = sorted_deduped_matches(replay_manager)
+    tournament_games = tournament.tournament_games(replays.values())
+    logger.info(f"games {tournament_games}")
+    results = tournament.create_tournament_results(tournament_games)
+    logger.info(f"results {results}")
+    return results
+
+
 @app.get("/api/match/{match_id}")
 def get_matches(
     match_id: int,
@@ -173,6 +188,7 @@ def get_matches(
     """Get listing of matches, up to a return count limit for paging."""
     m = sorted_deduped_matches(replay_manager).get(match_id)
     return m
+
 
 @app.get("/api/reprase/{match_id}")
 def reparse(

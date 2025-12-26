@@ -12,33 +12,11 @@ from api_types import (
 )
 import replay_files
 import logging
+from player_ids import player_name_map
 
 logger = logging.getLogger(__name__)
 
 
-def player_name_map(name: str) -> str:
-    """Map all aliases"""
-
-    mapping = {
-        "skip": "Skip",
-        "mod": "Modus",
-        "131": "OneThree111",
-        "neo": "Neo",
-        "pan": "Pancake",
-        "pc": "Pancake",
-        "wld": "WildCard",
-        "wild": "WildCard",
-        "wildcard": "WildCard",
-        "cd": "CoreDawg",
-        "cd@wg": "CoreDawg",
-        "syn": "Syn",
-        "stm": "STM",
-        "ty": "Tytan",
-        "tyt": "Tytan",
-        "pcap": "pcap",
-        "grn": "Gorn",
-    }
-    return mapping.get(name.lower(), name)
 
 
 def total_games(player_stat: PlayerStat) -> int:

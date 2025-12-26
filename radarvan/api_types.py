@@ -64,8 +64,8 @@ class Matches(BaseModel):
 
 
 class WinLoss(BaseModel):
-    wins: int
-    losses: int
+    wins: int = 0
+    losses: int = 0
 
 
 class GeneralWL(BaseModel):
@@ -337,3 +337,23 @@ class GameRecord(BaseModel):
     created_at: datetime
     game_date: date
     match: MatchListing | None = None
+
+
+class Tournament(BaseModel, frozen=True):
+    name: str
+    start_date: date
+    end_date: date
+    teams: list[tuple[str, ...]]
+
+
+class MatchupResult(BaseModel):
+    tournament_name: str
+    matches: list[MatchInfo]
+    outcome: dict[tuple[str, ...], WinLoss]
+
+
+class TournamentResult(BaseModel):
+    tournament: Tournament
+    matchups: list[MatchupResult]
+
+    records: dict[tuple[str,...], WinLoss]
