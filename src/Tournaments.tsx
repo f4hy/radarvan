@@ -108,8 +108,8 @@ function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
           <Table stickyHeader sx={{ maxHeight: "50%" }} >
             <TableHead>
               <TableRow>
-                <TableCell>Team</TableCell>
-                <TableCell>wins</TableCell>
+                <TableCell style={{ width: '20%' }}>Team</TableCell>
+                <TableCell>Wins</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -131,32 +131,47 @@ function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
   )
 }
 
-function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }) }) {
+function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGames: number }) {
+  const total = props.totalGames
   return (
     <Stack>
       <Typography>Team Records</Typography>
       <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-        <Table stickyHeader sx={{ maxHeight: "50%" }}>
+        <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell>Team</TableCell>
-              <TableCell>wins</TableCell>
-              <TableCell>losses</TableCell>
-              <TableCell>games played</TableCell>
+              <TableCell  style={{ width: '20%' }}><Typography>Team</Typography></TableCell>
+              <TableCell style={{ width: '5%' }}><Typography>Wins</Typography></TableCell>
+              <TableCell style={{ width: '5%' }}><Typography>Losses</Typography></TableCell>
+              <TableCell><Typography>Progress</Typography></TableCell>
+              <TableCell><Typography>Max possible wins</Typography></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {
               Object.entries(props.records).map(
-                ([team, wl]) => (
-                  <TableRow>
-                    <TableCell>{team}</TableCell>
-                    <TableCell>{wl.wins}</TableCell>
-                    <TableCell>{wl.losses}</TableCell>
-                    <TableCell>{wl.wins + wl.losses}</TableCell>
-                  </TableRow>
-                )
-              )}
+            ([team, wl]) => {
+						const gamesPlayed = wl.wins + wl.losses
+						const maxPossibleWins = total - (wl.losses)
+            return (
+                    <TableRow>
+                      <TableCell>{team}</TableCell>
+                      <TableCell>{wl.wins}</TableCell>
+                      <TableCell>{wl.losses}</TableCell>
+                      <TableCell>
+												<Stack>
+													<LinearProgress color="info" sx={{ height: 25, borderRadius: 5 }} variant="determinate" value={100 * ((wl.wins + wl.losses)) / total} valueBuffer={100 * (total - (wl.losses)) / total} /><Typography>{wl.wins + wl.losses} / {total} games played</Typography>
+												</Stack>
+												</TableCell>
+                      <TableCell>												<Stack>
+													<LinearProgress color={"success"} sx={{ height: 25, borderRadius: 5 }} variant="buffer" value={100 * ((wl.wins )) / total} valueBuffer={100 * (total - (wl.losses)) / total} /><Typography>{wl.wins} wins with {maxPossibleWins} possible remaining</Typography>
+												</Stack>
+</TableCell>
+                    </TableRow>
+                  )
+                }
+              )
+            }
           </TableBody>
         </Table>
       </TableContainer    >
@@ -170,7 +185,7 @@ function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
     <Stack>
       <DisplayTournamentInfo tournament={props.result.tournament} />
       <Divider />
-      <DisplayRecords records={props.result.records} />
+      <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} />
       <Divider sx={{ height: '200px' }} />
       {props.result.matchups.map(m => (<DisplayMatchup matchup={m} />))}
     </Stack>

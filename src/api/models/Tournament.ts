@@ -43,6 +43,12 @@ export interface Tournament {
      * @memberof Tournament
      */
     teams: Array<Array<string>>;
+    /**
+     * 
+     * @type {number}
+     * @memberof Tournament
+     */
+    totalGamesPlayedPerTeam: number;
 }
 
 /**
@@ -53,6 +59,7 @@ export function instanceOfTournament(value: object): value is Tournament {
     if (!('startDate' in value) || value['startDate'] === undefined) return false;
     if (!('endDate' in value) || value['endDate'] === undefined) return false;
     if (!('teams' in value) || value['teams'] === undefined) return false;
+    if (!('totalGamesPlayedPerTeam' in value) || value['totalGamesPlayedPerTeam'] === undefined) return false;
     return true;
 }
 
@@ -70,6 +77,7 @@ export function TournamentFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'startDate': (new Date(json['start_date'])),
         'endDate': (new Date(json['end_date'])),
         'teams': json['teams'],
+        'totalGamesPlayedPerTeam': json['total_games_played_per_team'],
     };
 }
 
@@ -88,6 +96,7 @@ export function TournamentToJSONTyped(value?: Tournament | null, ignoreDiscrimin
         'start_date': value['startDate'].toISOString().substring(0,10),
         'end_date': value['endDate'].toISOString().substring(0,10),
         'teams': value['teams'],
+        'total_games_played_per_team': value['totalGamesPlayedPerTeam'],
     };
 }
 

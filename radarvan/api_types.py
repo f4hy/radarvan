@@ -344,6 +344,7 @@ class Tournament(BaseModel, frozen=True):
     start_date: date
     end_date: date
     teams: list[tuple[str, ...]]
+    total_games_played_per_team: int
 
 
 class MatchupResult(BaseModel):

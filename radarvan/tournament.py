@@ -35,6 +35,7 @@ TOURNAMENTS = [
             sorted_tuple(["Gorn", "EnragedFerret"]),
             sorted_tuple(["Modus", "Tytan"]),
         ],
+        total_games_played_per_team=30,
     )
 ]
 
@@ -197,8 +198,9 @@ def create_tournament_results(
                     team_records[team].wins += wl.wins
                     team_records[team].losses += wl.losses
 
-
-        sorted_team_records = sorted(team_records.items(), key=lambda item: item[1].wins, reverse=True)
+        sorted_team_records = sorted(
+            team_records.items(), key=lambda item: item[1].wins, reverse=True
+        )
         result = TournamentResult(
             tournament=tournament, matchups=matchups, records=dict(sorted_team_records)
         )
