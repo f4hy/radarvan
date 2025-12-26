@@ -40,7 +40,23 @@ function getTournamentResults(callback: (m: TournamentResultOutput[]) => void) {
     .then(callback)
     .catch((e) => alert(e))
 }
-
+const getWinRateStyle = (winRate: number) => {
+  if (winRate >= 55) {
+    return {
+      color: "success.dark",
+      fontWeight: 700,
+      fontSize: "1.1em"
+    };
+  }
+  if (winRate <= 45) {
+    return {
+      fontWeight: 500
+    };
+  }
+  return {
+    fontWeight: 400
+  };
+};
 
 function Loading() {
   return (
@@ -81,7 +97,18 @@ function ShowMatchesForMatchup(props: { matches: MatchInfoOutput[] }) {
     <Accordion defaultExpanded={false}>
       <AccordionSummary
         expandIcon={<ArrowDownwardIcon />}
-        sx={{ bgcolor: "green" }}
+        sx={{
+          bgcolor: "background.paper",
+          borderLeft: 3,
+          borderColor: "primary.main",
+          '&:hover': {
+            bgcolor: "action.hover"
+          },
+          '& .MuiAccordionSummary-content': {
+            fontWeight: 500,
+            color: "primary.main"
+          }
+        }}
       >
         See matches from this matchup
       </AccordionSummary>
@@ -153,12 +180,12 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
   }
   const chartData = Object.entries(props.records).map(([team, wl]) =>
   ({
-    team: team,
+    team: team.split(",").join("+"),
     wins: wl.wins,
     losses: wl.losses,
-				potentialWins: total - wl.losses - wl.wins,
-				gamesOutstanding: total - (wl.wins + wl.losses),
-				maxPossibleWins: total - (wl.losses)
+    potentialWins: total - wl.losses - wl.wins,
+    gamesOutstanding: total - (wl.wins + wl.losses),
+    maxPossibleWins: total - (wl.losses)
   }))
   return (
     <Stack>
@@ -168,8 +195,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
           <TableHead>
             <TableRow>
               <TableCell style={{ width: '20%' }}><Typography>Team</Typography></TableCell>
-              <TableCell style={{ width: '5%' }}><Typography>Wins</Typography></TableCell>
-              <TableCell style={{ width: '5%' }}><Typography>Losses</Typography></TableCell>
+              <TableCell style={{ width: '5%' }}><Typography>W-L</Typography></TableCell>
               <TableCell style={{ width: '5%' }}><Typography>Win %</Typography></TableCell>
               <TableCell><Typography>Progress</Typography></TableCell>
               <TableCell><Typography>Max possible wins</Typography></TableCell>
@@ -181,13 +207,12 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
                 ([team, wl]) => {
                   const gamesPlayed = wl.wins + wl.losses
                   const maxPossibleWins = total - (wl.losses)
-                  const winRate = gamesPlayed ? ((wl.wins / gamesPlayed) * 100).toFixed(1) : 0
+                  const winRate: number = gamesPlayed ? ((wl.wins / gamesPlayed) * 100) : 0
                   return (
                     <TableRow>
-                      <TableCell>{team}</TableCell>
-                      <TableCell>{wl.wins}</TableCell>
-                      <TableCell>{wl.losses}</TableCell>
-                      <TableCell>{winRate}%</TableCell>
+                      <TableCell>{team.split(",").join("+")}</TableCell>
+                      <TableCell><Typography>{wl.wins} - {wl.losses}</Typography></TableCell>
+                      <TableCell><Typography sx={getWinRateStyle(winRate)} > {winRate.toFixed(1)}%</Typography> </TableCell>
                       <TableCell>
                         <Stack>
                           <LinearProgress color="info" sx={{ height: 25, borderRadius: 5 }} variant="determinate" value={100 * ((wl.wins + wl.losses)) / total} valueBuffer={100 * (total - (wl.losses)) / total} /><Typography>{wl.wins + wl.losses} / {total} games played</Typography>
