@@ -52,6 +52,12 @@ export interface MatchupResultOutput {
      * @memberof MatchupResultOutput
      */
     outcome: { [key: string]: WinLoss; };
+    /**
+     * 
+     * @type {string}
+     * @memberof MatchupResultOutput
+     */
+    override?: string | null;
 }
 
 /**
@@ -77,6 +83,7 @@ export function MatchupResultOutputFromJSONTyped(json: any, ignoreDiscriminator:
         'tournamentName': json['tournament_name'],
         'matches': ((json['matches'] as Array<any>).map(MatchInfoOutputFromJSON)),
         'outcome': (mapValues(json['outcome'], WinLossFromJSON)),
+        'override': json['override'] == null ? undefined : json['override'],
     };
 }
 
@@ -94,6 +101,7 @@ export function MatchupResultOutputToJSONTyped(value?: MatchupResultOutput | nul
         'tournament_name': value['tournamentName'],
         'matches': ((value['matches'] as Array<any>).map(MatchInfoOutputToJSON)),
         'outcome': (mapValues(value['outcome'], WinLossToJSON)),
+        'override': value['override'],
     };
 }
 

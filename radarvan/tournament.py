@@ -41,6 +41,26 @@ TOURNAMENTS = [
 TOURNAMENT_MAP = {t.name: t for t in TOURNAMENTS}
 
 
+def overrides_for_tournament(tournament_id: str) -> list[MatchupResult]:
+    """Overrides in case matchupes were not recorred, e.g. missing from gentool uploade."""
+
+    logger.info(f"Getting overrides for {tournament_id}")
+    if tournament_id == "2025_2v2_tournament":
+        logger.warning("pancake+131 vs Neo and Coredawg was not uploaded to gentool")
+        return [
+            MatchupResult(
+                tournament_name="205_2v2_tournament",
+                matches=[],  # missing
+                outcome={
+                    sorted_tuple(["OneThree111", "Pancake"]): WinLoss(wins=4, losses=2),
+                    sorted_tuple(["Neo", "CoreDawg"]): WinLoss(wins=2, losses=4),
+                },
+                override="Matches not uploaded to gentool results manually added",
+            )
+        ]
+    return []
+
+
 def is_tournament_game(match_info: MatchInfo) -> str | None:
     if match_info.incomplete:
         return None
@@ -59,7 +79,6 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
     for tournament in TOURNAMENTS:
         if gamedate > tournament.end_date or gamedate < tournament.start_date:
             continue
-        logger.info(f"checking teams {teams} against {set(tournament.teams)}")
         if teams.issubset(set(tournament.teams)):
             return tournament.name
 
@@ -135,7 +154,6 @@ def create_tournament_results(
                 matchup_dict[matchup_key] = []
             matchup_dict[matchup_key].append(match)
 
-
         # Create MatchupResult objects
         matchups = []
         for matchup_teams, matchup_matches in matchup_dict.items():
@@ -159,7 +177,7 @@ def create_tournament_results(
                     team_tuple = tuple(sorted(player_set))
                     if team_enum == match.winning_team:
                         outcome[team_tuple].wins += 1
-                        team_records[team_tuple].wins +=1
+                        team_records[team_tuple].wins += 1
                     else:
                         outcome[team_tuple].losses += 1
                         team_records[team_tuple].losses += 1
@@ -171,19 +189,18 @@ def create_tournament_results(
             )
             matchups.append(matchup_result)
 
-        result = TournamentResult(
-            tournament=tournament, matchups=matchups, records=team_records
-        )
+        overrides = overrides_for_tournament(tournament.name)
+        if overrides:
+            matchups.extend(overrides)
+            for m in overrides:
+                for team, wl in m.outcome.items():
+                    team_records[team].wins += wl.wins
+                    team_records[team].losses += wl.losses
 
-        # BROKEN
-        broken_matchupes = [
-            MatchupResult(
-                tournament_name=m.tournament_name, matches=[], outcome=m.outcome
-            )
-            for m in matchups
-        ]
+
+        sorted_team_records = sorted(team_records.items(), key=lambda item: item[1].wins, reverse=True)
         result = TournamentResult(
-            tournament=tournament, matchups=broken_matchupes, records=team_records
+            tournament=tournament, matchups=matchups, records=dict(sorted_team_records)
         )
 
         results.append(result)

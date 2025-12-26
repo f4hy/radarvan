@@ -174,9 +174,9 @@ def get_tournament_results(
     """Get listing of matches, up to a return count limit for paging."""
     replays = sorted_deduped_matches(replay_manager)
     tournament_games = tournament.tournament_games(replays.values())
-    logger.info(f"games {tournament_games}")
+    # logger.info(f"games {tournament_games}")
     results = tournament.create_tournament_results(tournament_games)
-    logger.info(f"results {results}")
+    # logger.info(f"results {results}")
     return results
 
 

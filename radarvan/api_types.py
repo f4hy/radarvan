@@ -350,6 +350,7 @@ class MatchupResult(BaseModel):
     tournament_name: str
     matches: list[MatchInfo]
     outcome: dict[tuple[str, ...], WinLoss]
+    override: str | None = None
 
 
 class TournamentResult(BaseModel):

@@ -55,10 +55,21 @@ function DisplayTournamentInfo(props: { tournament: Tournament }) {
     </Stack>
   )
 }
+function DisplayOverrideBanner(props: { override: string | undefined | null}) {
+  if (props.override) {
+    return (
+      <Typography color="warning.main" style={{ fontWeight: "bold" }}>
+        {props.override}
+      </Typography>)
+  }
+  return (<></>)
+}
+
 function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
   return (
     <Stack>
       <Typography>Matchup</Typography>
+      <DisplayOverrideBanner override={props.matchup.override} />
       <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
         <Table stickyHeader sx={{ maxHeight: "50%" }}>
           <TableHead>
@@ -124,7 +135,7 @@ function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
       <DisplayTournamentInfo tournament={props.result.tournament} />
       <Divider />
       <DisplayRecords records={props.result.records} />
-      <Divider sx={{ height: '200px' }}/>
+      <Divider sx={{ height: '200px' }} />
       {props.result.matchups.map(m => (<DisplayMatchup matchup={m} />))}
     </Stack>
   )
