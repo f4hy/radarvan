@@ -2,7 +2,7 @@ import ListIcon from "@mui/icons-material/List"
 import LooksTwoIcon from "@mui/icons-material/LooksTwo"
 import MapIcon from "@mui/icons-material/Map"
 import TableView from "@mui/icons-material/TableView"
-
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import PeopleIcon from "@mui/icons-material/People"
@@ -89,7 +89,7 @@ export default function Menu() {
           value="Tournaments"
           text="Tournaments"
           open={true}
-          icon={<MilitaryTechIcon />}
+          icon={<EmojiEventsIcon />}
           callback={setSelection}
         />
         {(queryParams["debug"] === "True") && (

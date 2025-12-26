@@ -128,7 +128,7 @@ function displayTeam(team: Team): string {
   }
 }
 
-function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
+export function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
   const date = props.match.timestamp.toLocaleString()
   const winningTeam = displayTeam(props.match.winningTeam)

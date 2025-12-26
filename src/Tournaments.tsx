@@ -1,3 +1,7 @@
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
+import Accordion from "@mui/material/Accordion"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import AccordionSummary from "@mui/material/AccordionSummary"
 import Table from '@mui/material/Table';
 import Link from '@mui/material/Link';
 import TableBody from '@mui/material/TableBody';
@@ -24,10 +28,11 @@ import {
   YAxis,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss } from "./api"
+import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss, MatchInfoOutput } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
+import { DisplayMatchInfo } from './Matches';
 
 function getTournamentResults(callback: (m: TournamentResultOutput[]) => void) {
   Client.getTournamentResultsApiTournamentResultsGet()
@@ -55,7 +60,7 @@ function DisplayTournamentInfo(props: { tournament: Tournament }) {
     </Stack>
   )
 }
-function DisplayOverrideBanner(props: { override: string | undefined | null}) {
+function DisplayOverrideBanner(props: { override: string | undefined | null }) {
   if (props.override) {
     return (
       <Typography color="warning.main" style={{ fontWeight: "bold" }}>
@@ -65,35 +70,64 @@ function DisplayOverrideBanner(props: { override: string | undefined | null}) {
   return (<></>)
 }
 
-function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
+function ShowMatchesForMatchup(props: { matches: MatchInfoOutput[] }) {
+  if (props.matches.length == 0) {
+    return (<Typography color="warning.main" style={{ fontWeight: "bold" }}>
+      No recorded matches to show
+    </Typography>)
+  }
   return (
-    <Stack>
-      <Typography>Matchup</Typography>
-      <DisplayOverrideBanner override={props.matchup.override} />
-      <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-        <Table stickyHeader sx={{ maxHeight: "50%" }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Team</TableCell>
-              <TableCell>wins</TableCell>
-              <TableCell>losses</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {
-              Object.entries(props.matchup.outcome).map(
-                ([team, wl]) => (
-                  <TableRow>
-                    <TableCell>{team}</TableCell>
-                    <TableCell>{wl.wins}</TableCell>
-                    <TableCell>{wl.losses}</TableCell>
-                  </TableRow>
-                )
-              )}
-          </TableBody>
-        </Table>
-      </TableContainer    >
-    </Stack>
+    <Accordion defaultExpanded={false}>
+      <AccordionSummary
+        expandIcon={<ArrowDownwardIcon />}
+        sx={{ bgcolor: "green" }}
+      >
+        See matches from this matchup
+      </AccordionSummary>
+      <AccordionDetails>
+        {props.matches.map(
+          m =>
+          (
+            <DisplayMatchInfo match={m} idx={0} />
+          )
+        )
+        }
+      </AccordionDetails>
+    </Accordion>
+  )
+}
+
+function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
+  const header = Object.keys(props.matchup.outcome).join(" vs. ")
+  return (
+    <Box>
+      <Stack >
+        <Typography>Matchup {header}</Typography>
+        <DisplayOverrideBanner override={props.matchup.override} />
+        <TableContainer component={Paper} sx={{ maxHeight: "50%" }} >
+          <Table stickyHeader sx={{ maxHeight: "50%" }} >
+            <TableHead>
+              <TableRow>
+                <TableCell>Team</TableCell>
+                <TableCell>wins</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {
+                Object.entries(props.matchup.outcome).map(
+                  ([team, wl]) => (
+                    <TableRow>
+                      <TableCell>{team}</TableCell>
+                      <TableCell>{wl.wins}</TableCell>
+                    </TableRow>
+                  )
+                )}
+            </TableBody>
+          </Table>
+        </TableContainer    >
+        <ShowMatchesForMatchup matches={props.matchup.matches} />
+      </Stack>
+    </Box>
   )
 }
 
