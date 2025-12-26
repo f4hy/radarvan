@@ -142,6 +142,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }) }) {
               <TableCell>Team</TableCell>
               <TableCell>wins</TableCell>
               <TableCell>losses</TableCell>
+              <TableCell>games played</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -152,6 +153,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }) }) {
                     <TableCell>{team}</TableCell>
                     <TableCell>{wl.wins}</TableCell>
                     <TableCell>{wl.losses}</TableCell>
+                    <TableCell>{wl.wins + wl.losses}</TableCell>
                   </TableRow>
                 )
               )}
