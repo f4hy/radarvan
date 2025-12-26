@@ -143,6 +143,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
               <TableCell  style={{ width: '20%' }}><Typography>Team</Typography></TableCell>
               <TableCell style={{ width: '5%' }}><Typography>Wins</Typography></TableCell>
               <TableCell style={{ width: '5%' }}><Typography>Losses</Typography></TableCell>
+              <TableCell style={{ width: '5%' }}><Typography>Win %</Typography></TableCell>
               <TableCell><Typography>Progress</Typography></TableCell>
               <TableCell><Typography>Max possible wins</Typography></TableCell>
             </TableRow>
@@ -153,11 +154,13 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
             ([team, wl]) => {
 						const gamesPlayed = wl.wins + wl.losses
 						const maxPossibleWins = total - (wl.losses)
+						const winRate = gamesPlayed ? ((wl.wins / gamesPlayed)*100).toFixed(1) : 0
             return (
                     <TableRow>
                       <TableCell>{team}</TableCell>
                       <TableCell>{wl.wins}</TableCell>
                       <TableCell>{wl.losses}</TableCell>
+                      <TableCell>{winRate}%</TableCell>
                       <TableCell>
 												<Stack>
 													<LinearProgress color="info" sx={{ height: 25, borderRadius: 5 }} variant="determinate" value={100 * ((wl.wins + wl.losses)) / total} valueBuffer={100 * (total - (wl.losses)) / total} /><Typography>{wl.wins + wl.losses} / {total} games played</Typography>
