@@ -284,7 +284,7 @@ export default function ShowMatchDetails(props: { id: number }) {
         playerSummaries={details.playerSummary}
       />
       <Divider />
-      <ShowPlayerSummaries playerSummaries={details.playerSummary} />
+      <ShowPlayerSummaries playerSummaries={details.playerSummary.filter(s=> s.team != -1 )} />
       <Divider />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
       <ApmChart apms={details.apms} />
