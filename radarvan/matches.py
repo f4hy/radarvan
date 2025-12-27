@@ -20,6 +20,12 @@ from db_utils import DatabaseManager, ReplayManager
 logger = logging.getLogger(__name__)
 
 
+def winner_override(match_id: int) -> Team | None:
+    if match_id == 545219640:
+        return Team.TWO
+    return None
+
+
 def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     duration_minutes = utils.duration_minutes(replay)
     if duration_minutes < 2:
@@ -40,6 +46,8 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         notes = "No team won?"
     # if winner == Team.OBSERVER:
     #     notes = ""
+    if override := winner_override(replay.replay_id()):
+        winner = override
 
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
     # wont be needed once cncstats fixes observers
@@ -80,6 +88,10 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
         notes = "No team won?"
     if duration_minutes < 2:
         incomplete = "Too Short"
+
+    if override := winner_override(replay.replay_id()):
+        winner = override
+
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
     # wont be needed once cncstats fixes observers
     observers = {p.Name for p in replay.Header.Metadata.Players if p.Team == -1}
@@ -124,15 +136,19 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         )
         for p in db_players
     ]
+    winner = db_match.winning_team_id
+    if override := winner_override(db_match.match_id):
+        winner = override
+
     return MatchInfo(
         id=db_match.match_id,
         timestamp=db_match.timestamp,
         map=db_match.map,
-        winning_team=db_match.winning_team_id,
+        winning_team=winner,
         players=players,
         duration_minutes=db_match.duration_minutes,
         filename=db_match.filename,
-        incomplete=db_match.incomplete,
+        incomplete=db_match.incomplete or "",
         notes=db_match.notes,
     )
 
