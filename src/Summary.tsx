@@ -2,43 +2,43 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ThumbDownIcon from "@mui/icons-material/ThumbDown"
-import Button from "@mui/material/Button"
-import Card from "@mui/material/Card"
-import CardHeader from "@mui/material/CardHeader"
-import CardContent from "@mui/material/CardContent"
-import Grid from "@mui/material/Grid"
-import Stack from "@mui/material/Stack"
-import Divider from "@mui/material/Divider"
-import ListItem from "@mui/material/ListItem"
-import ListItemText from "@mui/material/ListItemText"
-import Paper from "@mui/material/Paper"
-import Typography from "@mui/material/Typography"
-import { blue, lightGreen, purple, red } from "@mui/material/colors"
-import Container from "@mui/material/Container"
-import _ from "lodash"
-import * as React from "react"
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
-import {
-  MatchDetails,
-  Spent,
-  Upgrades,
-  APM,
-  PlayerSummary,
-  ObjectSummary,
-} from "./api"
+import { ButtonGroup } from "@mui/material"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
-import { ButtonGroup } from "@mui/material"
+import Button from "@mui/material/Button"
+import Card from "@mui/material/Card"
+import CardContent from "@mui/material/CardContent"
+import CardHeader from "@mui/material/CardHeader"
+import Container from "@mui/material/Container"
+import Divider from "@mui/material/Divider"
+import Grid from "@mui/material/Grid"
+import ListItem from "@mui/material/ListItem"
+import ListItemText from "@mui/material/ListItemText"
+import Paper from "@mui/material/Paper"
+import Stack from "@mui/material/Stack"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import Typography from "@mui/material/Typography"
+import { blue, lightGreen, purple, red } from "@mui/material/colors"
+import _ from "lodash"
+import * as React from "react"
+import {
+    Bar,
+    BarChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts"
+import {
+    APM,
+    MatchDetails,
+    ObjectSummary,
+    PlayerSummary,
+    Spent,
+    Upgrades,
+} from "./api"
 
 function removeUnitPrefix(s: string): string {
   return s

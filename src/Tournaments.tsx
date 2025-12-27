@@ -126,11 +126,12 @@ function ShowMatchesForMatchup(props: { matches: MatchInfoOutput[] }) {
 }
 
 function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
-  const header = Object.keys(props.matchup.outcome).join(" vs. ")
+  const gameDate = props.matchup.matches.find(m => m.timestamp)?.timestamp?.toDateString() ?? ""
+  const header = Object.keys(props.matchup.outcome).join(" vs. ") + ` @ ${gameDate}`
   return (
     <Box>
       <Stack >
-        <Typography>Matchup {header}</Typography>
+        <Typography>{header}</Typography>
         <DisplayOverrideBanner override={props.matchup.override} />
         <TableContainer component={Paper} sx={{ maxHeight: "50%" }} >
           <Table stickyHeader sx={{ maxHeight: "50%" }} >
@@ -256,7 +257,10 @@ function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
       <DisplayTournamentInfo tournament={props.result.tournament} />
       <Divider />
       <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} />
-      <Divider sx={{ height: '200px' }} />
+      <Divider sx={{ height: '100px' }} />
+      <Typography sx={{ bgcolor: "lightblue", }}
+      >Matchups</Typography>
+      <Divider />
       {props.result.matchups.map(m => (<DisplayMatchup matchup={m} />))}
     </Stack>
   )
