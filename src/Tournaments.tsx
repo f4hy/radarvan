@@ -17,6 +17,7 @@ import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
+import { Chip, Tooltip as MuiTooltip } from '@mui/material';
 import * as React from "react"
 import {
   Bar,
@@ -57,6 +58,25 @@ const getWinRateStyle = (winRate: number) => {
     fontWeight: 400
   };
 };
+
+function teamAlias(players: string): string {
+  switch (players) {
+    case "OneThree111+Pancake":
+      return "Pan31"
+    case "CoreDawg+Neo":
+      return "NeDog"
+    case "EnragedFerret+Gorn":
+      return "Gorret"
+    case "Syn+WildCard":
+      return "Syld"
+    case "Modus+Tytan":
+      return "MoTy"
+    case "STM+Skip":
+      return "SkiTM"
+    default:
+      return players
+  }
+}
 
 function Loading() {
   return (
@@ -181,7 +201,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
   }
   const chartData = Object.entries(props.records).map(([team, wl]) =>
   ({
-    team: team.split(",").join("+"),
+    team: teamAlias(team.split(",").join("+")),
     wins: wl.wins,
     losses: wl.losses,
     potentialWins: total - wl.losses - wl.wins,
@@ -195,7 +215,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
         <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell style={{ width: '20%' }}><Typography>Team</Typography></TableCell>
+              <TableCell style={{ width: '10%' }}><Typography>Team</Typography></TableCell>
               <TableCell style={{ width: '5%' }}><Typography>W-L</Typography></TableCell>
               <TableCell style={{ width: '5%' }}><Typography>Win %</Typography></TableCell>
               <TableCell><Typography>Progress</Typography></TableCell>
@@ -209,9 +229,11 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
                   const gamesPlayed = wl.wins + wl.losses
                   const maxPossibleWins = total - (wl.losses)
                   const winRate: number = gamesPlayed ? ((wl.wins / gamesPlayed) * 100) : 0
+                  const teamMembers = (<Typography> {team.split(",").join("+")} </Typography>)
+                  const teamName: string = teamAlias(team.split(",").join("+"))
                   return (
                     <TableRow>
-                      <TableCell>{team.split(",").join("+")}</TableCell>
+                      <TableCell><MuiTooltip title={teamMembers} arrow><Chip label={teamName} color="primary"  /></MuiTooltip> </TableCell>
                       <TableCell><Typography>{wl.wins} - {wl.losses}</Typography></TableCell>
                       <TableCell><Typography sx={getWinRateStyle(winRate)} > {winRate.toFixed(1)}%</Typography> </TableCell>
                       <TableCell>
