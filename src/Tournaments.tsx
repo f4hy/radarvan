@@ -6,8 +6,11 @@ import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import Table from '@mui/material/Table';
 import Link from '@mui/material/Link';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import Box from '@mui/material/Box';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
@@ -15,11 +18,10 @@ import TableRow from '@mui/material/TableRow';
 import Stack from "@mui/material/Stack"
 import Skeleton from "@mui/material/Skeleton"
 import LinearProgress from "@mui/material/LinearProgress"
-import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
-import { Chip, Tooltip as MuiTooltip } from '@mui/material';
+import { ButtonGroup, Chip, Tooltip as MuiTooltip } from '@mui/material';
 import * as React from "react"
 import {
   Bar,
@@ -32,7 +34,7 @@ import {
   Legend,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss, MatchInfoOutput, Matchup } from "./api"
+import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss, MatchInfoOutput } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
@@ -116,34 +118,13 @@ function ShowMatchesForMatchup(props: { matches: MatchInfoOutput[] }) {
     </Typography>)
   }
   return (
-    <Accordion defaultExpanded={false}>
-      <AccordionSummary
-        expandIcon={<ArrowDownwardIcon />}
-        sx={{
-          bgcolor: "background.paper",
-          borderLeft: 3,
-          borderColor: "primary.main",
-          '&:hover': {
-            bgcolor: "action.hover"
-          },
-          '& .MuiAccordionSummary-content': {
-            fontWeight: 500,
-            color: "primary.main"
-          }
-        }}
-      >
-        See matches from this matchup
-      </AccordionSummary>
-      <AccordionDetails>
-        {props.matches.map(
-          m =>
-          (
-            <DisplayMatchInfo match={m} idx={0} />
-          )
-        )
-        }
-      </AccordionDetails>
-    </Accordion>
+    <Stack>
+      {props.matches.map(
+        m =>
+          (<DisplayMatchInfo match={m} idx={0} />)
+      )
+      }
+    </Stack>
   )
 }
 
@@ -275,19 +256,63 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
   )
 }
 
-function DisplayMatchupsPlayed(props: { matchups: Matchup[] }) {
+function DisplayMatchupsPlayed(props: { matchups: MatchupResultOutput[] }) {
+  const [selected, setSelected] = React.useState<number>(0);
+  const buttonsPerRow: number = 5;
+
+  const buttonNumbers: number[] = Array.from({ length: props.matchups.length }, (_, i) => i);
+  const rows: number[][] = [];
+  for (let i = 0; i < props.matchups.length; i += buttonsPerRow) {
+    rows.push(buttonNumbers.slice(i, i + buttonsPerRow));
+  }
+
+  const handleChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newValue: number | null
+  ) => {
+    if (newValue !== null) {
+      setSelected(newValue);
+    }
+  };
+
   return (
     <Stack>
       <Divider />
-      <Grid container spacing={1} justifyContent="flex-start" sx={{ textAlign: 'left' }}>
-        {
-          props.matchups.map(m => {
-            const icon = m.played ? (<CheckIcon color="success" />) : <ClearIcon color="error" />
-            return (<Grid item xs={2} >
-              <Typography>{icon}{teamAlias( m.team1.join("+"))} vs {teamAlias(m.team2.join("+"))}</Typography></Grid>
-            )
-          })}
-      </Grid>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {rows.map((row, rowIndex) => (
+          <ToggleButtonGroup
+            color="primary"
+            key={rowIndex}
+            value={selected}
+            exclusive
+            onChange={handleChange}
+            size="large"
+            sx={{ width: '100%' }}
+          >
+            {
+              row.map((buttonIndex) => {
+                const outcome = props.matchups[buttonIndex].outcome
+                const teams = Object.keys(outcome).map(tn => teamAlias(tn.split(",").join("+")))
+                const first_record = Object.values(outcome)[0]
+                const record = `${first_record.wins} - ${first_record.losses}`
+                const disabled = Object.entries(outcome).find(([tb, wl]) => wl.wins + wl.losses > 0) ? false : true
+                return (
+                  <ToggleButton
+                    key={buttonIndex}
+                    value={buttonIndex}
+                    disabled={disabled}
+                    sx={{
+                      flex: 1,  // Make buttons fill available space
+                      textTransform: 'none'  // Prevent all-caps
+                    }}
+                  >
+                    <Typography style={{ fontWeight: "bold" }}>{teams.join(" vs ")} {record}</Typography>
+                  </ToggleButton>
+                )
+              })}
+          </ToggleButtonGroup>))}
+      </Box>
+      <DisplayMatchup matchup={props.matchups[selected]} />
     </Stack>
   )
 }
@@ -300,14 +325,11 @@ function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
       <Divider />
       <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} />
       <Divider sx={{ height: '100px' }} />
-      <DisplayMatchupsPlayed matchups={props.result.playedMatchups} />
-      <Divider />
-      <Typography sx={{ bgcolor: "lightblue", }}
-      >
+      <Typography sx={{ bgcolor: "lightblue", }}>
         Matchups
       </Typography>
+      <DisplayMatchupsPlayed matchups={props.result.matchups} />
       <Divider />
-      {props.result.matchups.map(m => (<DisplayMatchup matchup={m} />))}
     </Stack>
   )
 }

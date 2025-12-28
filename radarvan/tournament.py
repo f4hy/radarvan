@@ -125,17 +125,6 @@ def create_tournament_results(
 
         tournament = TOURNAMENT_MAP[tournament_name]
 
-        all_matchups = [
-            Matchup(team1=i, team2=j, played=False)
-            for i, j in combinations(tournament.teams, 2)
-            if i != j
-        ]
-        logger.info(
-            f"all matchesup {len(all_matchups)} {[(m.team1, m.team2) for m in all_matchups]}"
-        )
-        for i in all_matchups:
-            logger.info(f"M {i}")
-
         # Build team records
         team_records: dict[tuple[str, ...], WinLoss] = {}
 
@@ -174,14 +163,6 @@ def create_tournament_results(
             # Calculate outcome for each team in this matchup
             outcome: dict[tuple[str, ...], WinLoss] = {}
 
-            for m in all_matchups:
-                if any(
-                    (m.team1 == t1 and m.team2 == t2)
-                    or (m.team1 == t2 and m.team2 == t1)
-                    for t1, t2 in permutations(matchup_teams, 2)
-                ):
-                    m.played = True
-
             for team in matchup_teams:
                 outcome[team] = WinLoss(wins=0, losses=0)
 
@@ -218,11 +199,38 @@ def create_tournament_results(
                 for team, wl in m.outcome.items():
                     team_records[team].wins += wl.wins
                     team_records[team].losses += wl.losses
-                for matchup in all_matchups:
-                    if ((matchup.team1, matchup.team2) == team) or (
-                        (matchup.team2, matchup.team1) == team
-                    ):
-                        matchup.played = True
+
+        all_matchups = [
+            Matchup(team1=i, team2=j, played=False)
+            for i, j in combinations(tournament.teams, 2)
+            if i != j
+        ]
+        logger.info(
+            f"all matchesup {len(all_matchups)} {[(m.team1, m.team2) for m in all_matchups]}"
+        )
+        for i in all_matchups:
+            logger.info(f"M {i}")
+
+        for ms in all_matchups:
+            found = False
+            for m in matchups:
+                logger.info(
+                    f" outcome {set(m.outcome.keys())} compared to {set([ms.team1, ms.team2])}"
+                )
+                if set(m.outcome.keys()) == set([ms.team1, ms.team2]):
+                    found = True
+            if not found:
+                matchups.append(
+                    MatchupResult(
+                        tournament_name=tournament_name,
+                        matches=[],
+                        outcome={
+                            ms.team1: WinLoss(wins=0, losses=0),
+                            ms.team2: WinLoss(wins=0, losses=0),
+                        },
+                        override="not played yet",
+                    )
+                )
 
         sorted_team_records = sorted(
             team_records.items(), key=lambda item: item[1].wins, reverse=True
@@ -230,7 +238,6 @@ def create_tournament_results(
 
         result = TournamentResult(
             tournament=tournament,
-            played_matchups=all_matchups,
             matchups=matchups,
             records=dict(sorted_team_records),
         )

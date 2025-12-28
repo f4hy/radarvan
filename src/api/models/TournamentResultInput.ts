@@ -20,13 +20,6 @@ import {
     WinLossToJSON,
     WinLossToJSONTyped,
 } from './WinLoss';
-import type { Matchup } from './Matchup';
-import {
-    MatchupFromJSON,
-    MatchupFromJSONTyped,
-    MatchupToJSON,
-    MatchupToJSONTyped,
-} from './Matchup';
 import type { Tournament } from './Tournament';
 import {
     TournamentFromJSON,
@@ -56,12 +49,6 @@ export interface TournamentResultInput {
     tournament: Tournament;
     /**
      * 
-     * @type {Array<Matchup>}
-     * @memberof TournamentResultInput
-     */
-    playedMatchups: Array<Matchup>;
-    /**
-     * 
      * @type {Array<MatchupResultInput>}
      * @memberof TournamentResultInput
      */
@@ -79,7 +66,6 @@ export interface TournamentResultInput {
  */
 export function instanceOfTournamentResultInput(value: object): value is TournamentResultInput {
     if (!('tournament' in value) || value['tournament'] === undefined) return false;
-    if (!('playedMatchups' in value) || value['playedMatchups'] === undefined) return false;
     if (!('matchups' in value) || value['matchups'] === undefined) return false;
     if (!('records' in value) || value['records'] === undefined) return false;
     return true;
@@ -96,7 +82,6 @@ export function TournamentResultInputFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'tournament': TournamentFromJSON(json['tournament']),
-        'playedMatchups': ((json['played_matchups'] as Array<any>).map(MatchupFromJSON)),
         'matchups': ((json['matchups'] as Array<any>).map(MatchupResultInputFromJSON)),
         'records': (mapValues(json['records'], WinLossFromJSON)),
     };
@@ -114,7 +99,6 @@ export function TournamentResultInputToJSONTyped(value?: TournamentResultInput |
     return {
         
         'tournament': TournamentToJSON(value['tournament']),
-        'played_matchups': ((value['playedMatchups'] as Array<any>).map(MatchupToJSON)),
         'matchups': ((value['matchups'] as Array<any>).map(MatchupResultInputToJSON)),
         'records': (mapValues(value['records'], WinLossToJSON)),
     };
