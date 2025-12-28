@@ -27,6 +27,13 @@ import {
     MatchupResultOutputToJSON,
     MatchupResultOutputToJSONTyped,
 } from './MatchupResultOutput';
+import type { Matchup } from './Matchup';
+import {
+    MatchupFromJSON,
+    MatchupFromJSONTyped,
+    MatchupToJSON,
+    MatchupToJSONTyped,
+} from './Matchup';
 import type { Tournament } from './Tournament';
 import {
     TournamentFromJSON,
@@ -49,6 +56,12 @@ export interface TournamentResultOutput {
     tournament: Tournament;
     /**
      * 
+     * @type {Array<Matchup>}
+     * @memberof TournamentResultOutput
+     */
+    playedMatchups: Array<Matchup>;
+    /**
+     * 
      * @type {Array<MatchupResultOutput>}
      * @memberof TournamentResultOutput
      */
@@ -66,6 +79,7 @@ export interface TournamentResultOutput {
  */
 export function instanceOfTournamentResultOutput(value: object): value is TournamentResultOutput {
     if (!('tournament' in value) || value['tournament'] === undefined) return false;
+    if (!('playedMatchups' in value) || value['playedMatchups'] === undefined) return false;
     if (!('matchups' in value) || value['matchups'] === undefined) return false;
     if (!('records' in value) || value['records'] === undefined) return false;
     return true;
@@ -82,6 +96,7 @@ export function TournamentResultOutputFromJSONTyped(json: any, ignoreDiscriminat
     return {
         
         'tournament': TournamentFromJSON(json['tournament']),
+        'playedMatchups': ((json['played_matchups'] as Array<any>).map(MatchupFromJSON)),
         'matchups': ((json['matchups'] as Array<any>).map(MatchupResultOutputFromJSON)),
         'records': (mapValues(json['records'], WinLossFromJSON)),
     };
@@ -99,6 +114,7 @@ export function TournamentResultOutputToJSONTyped(value?: TournamentResultOutput
     return {
         
         'tournament': TournamentToJSON(value['tournament']),
+        'played_matchups': ((value['playedMatchups'] as Array<any>).map(MatchupToJSON)),
         'matchups': ((value['matchups'] as Array<any>).map(MatchupResultOutputToJSON)),
         'records': (mapValues(value['records'], WinLossToJSON)),
     };

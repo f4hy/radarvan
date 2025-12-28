@@ -20,6 +20,7 @@ export * from './MatchInfoInput';
 export * from './MatchInfoOutput';
 export * from './MatchListing';
 export * from './Matches';
+export * from './Matchup';
 export * from './MatchupResultInput';
 export * from './MatchupResultOutput';
 export * from './ObjectSummary';

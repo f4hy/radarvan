@@ -354,8 +354,15 @@ class MatchupResult(BaseModel):
     override: str | None = None
 
 
+class Matchup(BaseModel):
+    team1: tuple[str, ...]
+    team2: tuple[str, ...]
+    played: bool
+
+
 class TournamentResult(BaseModel):
     tournament: Tournament
+    played_matchups: list[Matchup]
     matchups: list[MatchupResult]
 
     records: dict[tuple[str, ...], WinLoss]

@@ -184,7 +184,7 @@ def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
-    reparsed = replay_files.reparse(match_id, replay_manager)
+    reparsed = replay_files.reparse(match_id, replay_manager, force=True)
     if reparsed is None:
         logger.info("No reparse needed")
         return None

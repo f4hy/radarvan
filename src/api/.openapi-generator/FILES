@@ -21,6 +21,7 @@ models/MatchInfoInput.ts
 models/MatchInfoOutput.ts
 models/MatchListing.ts
 models/Matches.ts
+models/Matchup.ts
 models/MatchupResultInput.ts
 models/MatchupResultOutput.ts
 models/ObjectSummary.ts

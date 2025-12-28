@@ -1,4 +1,6 @@
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
+import ClearIcon from '@mui/icons-material/Clear';
+import CheckIcon from '@mui/icons-material/Check';
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -30,7 +32,7 @@ import {
   Legend,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss, MatchInfoOutput } from "./api"
+import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss, MatchInfoOutput, Matchup } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
@@ -233,7 +235,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
                   const teamName: string = teamAlias(team.split(",").join("+"))
                   return (
                     <TableRow>
-                      <TableCell><MuiTooltip title={teamMembers} arrow><Chip label={teamName} color="primary"  /></MuiTooltip> </TableCell>
+                      <TableCell><MuiTooltip title={teamMembers} arrow><Chip label={teamName} color="primary" /></MuiTooltip> </TableCell>
                       <TableCell><Typography>{wl.wins} - {wl.losses}</Typography></TableCell>
                       <TableCell><Typography sx={getWinRateStyle(winRate)} > {winRate.toFixed(1)}%</Typography> </TableCell>
                       <TableCell>
@@ -273,6 +275,24 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
   )
 }
 
+function DisplayMatchupsPlayed(props: { matchups: Matchup[] }) {
+  return (
+    <Stack>
+      <Divider />
+      <Grid container spacing={1} justifyContent="flex-start" sx={{ textAlign: 'left' }}>
+        {
+          props.matchups.map(m => {
+            const icon = m.played ? (<CheckIcon color="success" />) : <ClearIcon color="error" />
+            return (<Grid item xs={2} >
+              <Typography>{icon}{teamAlias( m.team1.join("+"))} vs {teamAlias(m.team2.join("+"))}</Typography></Grid>
+            )
+          })}
+      </Grid>
+    </Stack>
+  )
+}
+
+
 function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
   return (
     <Stack>
@@ -280,8 +300,12 @@ function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
       <Divider />
       <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} />
       <Divider sx={{ height: '100px' }} />
+      <DisplayMatchupsPlayed matchups={props.result.playedMatchups} />
+      <Divider />
       <Typography sx={{ bgcolor: "lightblue", }}
-      >Matchups</Typography>
+      >
+        Matchups
+      </Typography>
       <Divider />
       {props.result.matchups.map(m => (<DisplayMatchup matchup={m} />))}
     </Stack>

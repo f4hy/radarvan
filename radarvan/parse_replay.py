@@ -17,6 +17,12 @@ PARSE_URL = "https://cncstats.herokuapp.com/replay"
 def winner_override(match_id: int) -> Team | None:
     if match_id == 545219640:
         return Team.TWO
+    if match_id == 623834125:
+        return Team.THREE
+    if match_id == 352169906:
+        return Team.THREE
+    if match_id == 350832203:
+        return Team.NONE
     return None
 
 
@@ -28,12 +34,12 @@ def parse_replay_data(data: bytes, debug=False):
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
     logger.info(f"Pared replay in {response.elapsed.total_seconds()}s ")
     validated = EnhancedReplay.model_validate(response.json())
-    if override := winner_override(validated.replay_id()):
+    if (override := winner_override(validated.replay_id())) != None:
         for ps in validated.Summary:
+            override_value = ps.Team == override
             logger.warning(
                 f"Overriding {validated.replay_id()} {ps.Team} to {override}"
             )
-            override_value = ps.Team == override
             ps.Win = override_value
 
     return validated

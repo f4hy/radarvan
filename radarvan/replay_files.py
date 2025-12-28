@@ -77,9 +77,11 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
 
 
 def reparse(
-    match_id: int, replay_manager: ReplayManager
+        match_id: int, replay_manager: ReplayManager, force: bool = False
 ) -> tuple[EnhancedReplay, str] | None:
+    logger.info(f"Reparsing {match_id=}")
     existing = replay_manager.get_replay_json_by_match_id(match_id)
+    logger.info(f"Existing {existing=}")
 
     json_path = existing.json_s3_uri
     original_path = existing.replay_file_url
@@ -96,7 +98,7 @@ def reparse(
     parsed_replay = parse_replay_data(raw_replay)
     parsed_replay.Header.FileName = original_path
 
-    if existing == parsed_replay:
+    if existing == parsed_replay and force == False:
         logger.warning("No change in replay, not resaving")
         return None
 

@@ -85,7 +85,7 @@ class ReplayManager:
         fetched = self.session.get(ParsedReplayJson, json_uri)
         return fetched
 
-    def get_replay_json_by_match_id(self, match_id: str) -> ParsedReplayJson | None:
+    def get_replay_json_by_match_id(self, match_id: int) -> ParsedReplayJson | None:
         statement = (
             select(ParsedReplayJson)
             .where(ParsedReplayJson.match_id == match_id)
