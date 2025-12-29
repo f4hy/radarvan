@@ -17,8 +17,6 @@ from player_ids import player_name_map
 logger = logging.getLogger(__name__)
 
 
-
-
 def total_games(player_stat: PlayerStat) -> int:
     return sum(wl.wins + wl.losses for wl in player_stat.stats.values())
 

@@ -266,6 +266,19 @@ wheels = [
 ]
 
 [[package]]
+name = "cattrs"
+version = "25.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6e/00/2432bb2d445b39b5407f0a90e01b9a271475eea7caf913d7a86bcb956385/cattrs-25.3.0.tar.gz", hash = "sha256:1ac88d9e5eda10436c4517e390a4142d88638fe682c436c93db7ce4a277b884a", size = 509321, upload-time = "2025-10-07T12:26:08.737Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/2b/a40e1488fdfa02d3f9a653a61a5935ea08b3c2225ee818db6a76c7ba9695/cattrs-25.3.0-py3-none-any.whl", hash = "sha256:9896e84e0a5bf723bc7b4b68f4481785367ce07a8a02e7e9ee6eb2819bc306ff", size = 70738, upload-time = "2025-10-07T12:26:06.603Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2025.10.5"
 source = { registry = "https://pypi.org/simple" }
@@ -659,6 +672,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/00/2a/e867e8531cf3e36b41201936b7fa7ba7b5702dbef42922193f05c8976cd6/jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe", size = 25843, upload-time = "2022-06-17T18:00:12.224Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/b4/b9b800c45527aadd64d5b442f9b932b00648617eb5d63d2c7a6587b7cafc/jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980", size = 20256, upload-time = "2022-06-17T18:00:10.251Z" },
+]
+
+[[package]]
+name = "lsprotocol"
+version = "2025.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "cattrs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e9/26/67b84e6ec1402f0e6764ef3d2a0aaf9a79522cc1d37738f4e5bb0b21521a/lsprotocol-2025.0.0.tar.gz", hash = "sha256:e879da2b9301e82cfc3e60d805630487ac2f7ab17492f4f5ba5aaba94fe56c29", size = 74896, upload-time = "2025-06-17T21:30:18.156Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/f0/92f2d609d6642b5f30cb50a885d2bf1483301c69d5786286500d15651ef2/lsprotocol-2025.0.0-py3-none-any.whl", hash = "sha256:f9d78f25221f2a60eaa4a96d3b4ffae011b107537facee61d3da3313880995c7", size = 76250, upload-time = "2025-06-17T21:30:19.455Z" },
 ]
 
 [[package]]
@@ -1200,6 +1226,21 @@ wheels = [
 ]
 
 [[package]]
+name = "python-lsp-ruff"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cattrs" },
+    { name = "lsprotocol" },
+    { name = "python-lsp-server" },
+    { name = "ruff" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/af/79/2f6322c47bd2956447e0a6787084b4110b4473e3d2501b86aa47c802e6a0/python_lsp_ruff-2.3.0.tar.gz", hash = "sha256:647745b7f3010ac101e3c53a797b8f9deb1f52228b608d70ad0e8e056978c3b7", size = 17268, upload-time = "2025-09-29T20:14:02.994Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/85/c0/761e359e255fce641c263a3c3e43f7685d1667139e9d35a376c1cc9f6f70/python_lsp_ruff-2.3.0-py3-none-any.whl", hash = "sha256:b858b698fbaff5670f6d5e6c66afc632908f78639d73dc85dedd33ae5fdd204f", size = 12039, upload-time = "2025-09-29T20:14:01.56Z" },
+]
+
+[[package]]
 name = "python-lsp-server"
 version = "1.13.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1337,6 +1378,7 @@ dev = [
     { name = "mypy" },
     { name = "pylsp-mypy" },
     { name = "pytest" },
+    { name = "python-lsp-ruff" },
     { name = "python-lsp-server", extra = ["all"] },
     { name = "ruff" },
     { name = "s3cmd" },
@@ -1369,6 +1411,7 @@ dev = [
     { name = "mypy", specifier = ">=1.18.2" },
     { name = "pylsp-mypy", specifier = ">=0.7.0" },
     { name = "pytest", specifier = ">=8.1.1,<9" },
+    { name = "python-lsp-ruff", specifier = ">=2.3.0" },
     { name = "python-lsp-server", extras = ["all"], specifier = ">=1.13.1" },
     { name = "ruff", specifier = ">=0.14.0" },
     { name = "s3cmd", specifier = ">=2.4.0" },

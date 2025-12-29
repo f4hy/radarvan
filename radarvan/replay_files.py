@@ -77,7 +77,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
 
 
 def reparse(
-        match_id: int, replay_manager: ReplayManager, force: bool = False
+    match_id: int, replay_manager: ReplayManager, force: bool = False
 ) -> tuple[EnhancedReplay, str] | None:
     logger.info(f"Reparsing {match_id=}")
     existing = replay_manager.get_replay_json_by_match_id(match_id)

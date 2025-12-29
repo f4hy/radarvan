@@ -26,6 +26,7 @@ dev = [
   "mypy>=1.18.2",
   "pylsp-mypy>=0.7.0",
   "pytest >=8.1.1,<9",
+  "python-lsp-ruff>=2.3.0",
   "python-lsp-server[all]>=1.13.1",
   "ruff>=0.14.0",
   "s3cmd>=2.4.0",

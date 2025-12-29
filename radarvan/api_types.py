@@ -368,7 +368,6 @@ class TournamentResult(BaseModel):
 
 
 class WinnerOverride(BaseModel):
-
     match_id: int
     winning_team_id: Team
     incomplete: str | None = None
