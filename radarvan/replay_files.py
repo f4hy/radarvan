@@ -62,7 +62,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
     else:
         logger.info(f"Does not exist {json_path=}")
         raw_replay = fs.read_bytes(replay_path)
-        parsed_replay = parse_replay_data(raw_replay)
+        parsed_replay = parse_replay_data(raw_replay, replay_manager)
         fs.write_text(json_path, parsed_replay.model_dump_json())
         replay_manager.save_parsed_json(
             replay_id=parsed_replay.replay_id(),
@@ -95,7 +95,7 @@ def reparse(
         return None
 
     raw_replay = fs.read_bytes(replay_path)
-    parsed_replay = parse_replay_data(raw_replay)
+    parsed_replay = parse_replay_data(raw_replay, replay_manager)
     parsed_replay.Header.FileName = original_path
 
     if existing == parsed_replay and force == False:

@@ -158,3 +158,15 @@ class MatchPlayer(Base):
 
     def __repr__(self):
         return f"<Player({self.player_name=} {self.general_id=} {self.team_id=} {self.color=} {self.is_winner}) >\n"
+
+
+class WinnerOverride(Base):
+    __tablename__ = "winner_overrides"
+
+    match_id = Column(
+        Integer,
+        primary_key=True,
+        nullable=False,
+    )
+    winning_team_id = Column(SmallInteger, nullable=True)
+    incomplete = Column(String, default=False)

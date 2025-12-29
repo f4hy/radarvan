@@ -15,11 +15,13 @@ import schedule
 import tournament
 from api_types import (
     MatchDetails,
+    Team,
     Matches,
     MatchInfo,
     PlayerStats,
     GeneralStats,
     SpentOverTime,
+    WinnerOverride,
     GameRecord,
     TournamentResult,
 )
@@ -147,7 +149,7 @@ def get_dates(
     return listed
 
 
-@app.get("/api/scrape/{days}")
+@app.post("/api/scrape/{days}")
 def scrape(
     background_tasks: BackgroundTasks,
     days: int = 1,
@@ -190,7 +192,7 @@ def get_matches(
     return m
 
 
-@app.get("/api/reprase/{match_id}")
+@app.post("/api/reprase/{match_id}")
 def reparse(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -248,6 +250,33 @@ def get_generals_stats(
     games = sorted_deduped_matches(replay_manager)
     logger.info("getting player stats")
     return general_stats.get_player_stats(games.values())
+
+
+@app.get("/api/overrides")
+def get_overrides(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[WinnerOverride]:
+    """Get winner overrides."""
+    overrides = replay_manager.get_overrides()
+    return [
+        WinnerOverride(
+            match_id=o.match_id, winning_team_id=o.winning_team_id or Team.NONE
+        )
+        for o in overrides.values()
+    ]
+
+
+@app.post("/api/set_override/")
+def set_overrides(
+    match_id: int,
+    winner: Team,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> WinnerOverride:
+    """Set winner overrides."""
+    saved = replay_manager.set_override(match_id, winner=winner or None)
+    return WinnerOverride(
+        match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
+    )
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

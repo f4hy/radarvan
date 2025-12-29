@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from notify import notify
+from typing import Literal
 from db import (
     Base,
     ReplayFile,
@@ -13,6 +14,7 @@ from db import (
     Match,
     MatchPlayer,
     ProcessingStatus,
+    WinnerOverride,
 )
 import logging
 from pydantic import BaseModel
@@ -166,16 +168,13 @@ class ReplayManager:
         query = self.session.query(ReplayFile)
         return self.session.execute(query).scalars().all()
 
-    def list_jsons(
-        self, date: date | None = None
-    ) -> list[ParsedReplayJson]:
+    def list_jsons(self, date: date | None = None) -> list[ParsedReplayJson]:
         """List all jsons or filter by date."""
         stmt = (
             select(ParsedReplayJson)
             .order_by(ParsedReplayJson.game_timestamp.desc())
             .options(selectinload(ParsedReplayJson.match).selectinload(Match.players))
         )
-
 
         if date:
             stmt = stmt.where(ParsedReplayJson.game_date == date)
@@ -201,3 +200,32 @@ class ReplayManager:
         stmt = select(ParsedReplayJson.game_date).distinct()
         unique_dates = self.session.execute(stmt).scalars().all()
         return unique_dates
+
+    def get_overrides(self) -> dict[int, WinnerOverride]:
+        """Get winner overrides."""
+
+        stmt = select(WinnerOverride)
+        overrides = self.session.execute(stmt).scalars().all()
+        return {o.match_id: o for o in overrides}
+
+    def set_override(
+        self, match_id: int, winner: Literal[1, 2, 3, 4, -1] | None
+    ) -> WinnerOverride:
+        """Get winner overrides."""
+        logger.info(f"Setting override {match_id} {winner}")
+
+        new_override = WinnerOverride(
+            match_id=match_id,
+            winning_team_id=winner,
+        )
+
+        self.session.add(new_override)
+        if self.auto_commit:
+            self.session.commit()
+        if self.notify:
+            notify(f"Saved override {new_override}")
+        return new_override
+
+        stmt = select(WinnerOverride)
+        overrides = self.session.execute(stmt).scalars().all()
+        return {o.match_id: o for o in overrides}

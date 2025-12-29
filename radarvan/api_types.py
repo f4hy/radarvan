@@ -358,7 +358,6 @@ class Matchup(BaseModel):
     team1: tuple[str, ...]
     team2: tuple[str, ...]
     played: bool
-    
 
 
 class TournamentResult(BaseModel):
@@ -366,3 +365,10 @@ class TournamentResult(BaseModel):
     matchups: list[MatchupResult]
 
     records: dict[tuple[str, ...], WinLoss]
+
+
+class WinnerOverride(BaseModel):
+
+    match_id: int
+    winning_team_id: Team
+    incomplete: str | None = None

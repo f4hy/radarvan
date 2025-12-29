@@ -1,5 +1,8 @@
 """Parse replay file."""
 
+from db_utils import DatabaseManager
+
+import os
 from api_types import General, MatchInfo, Player, Team
 
 import sys
@@ -7,6 +10,7 @@ import pathlib
 import json
 import httpx
 from cncstats_types import EnhancedReplay
+from db_utils import ReplayManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,7 +30,7 @@ def winner_override(match_id: int) -> Team | None:
     return None
 
 
-def parse_replay_data(data: bytes, debug=False):
+def parse_replay_data(data: bytes, replay_manager: ReplayManager, debug=False):
     logger.info("Calling cncstats to parse replay")
     response = httpx.post(PARSE_URL, files={"file": data})
     if debug:
@@ -34,7 +38,10 @@ def parse_replay_data(data: bytes, debug=False):
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
     logger.info(f"Pared replay in {response.elapsed.total_seconds()}s ")
     validated = EnhancedReplay.model_validate(response.json())
-    if (override := winner_override(validated.replay_id())) != None:
+
+    overrides = replay_manager.get_overrides()
+    override = overrides.get(validated.replay_id(), None)
+    if override is not None:
         for ps in validated.Summary:
             override_value = ps.Team == override
             logger.warning(
@@ -47,6 +54,12 @@ def parse_replay_data(data: bytes, debug=False):
 
 if __name__ == "__main__":
     filename = sys.argv[1]
+    conn_str = os.getenv("DATABASE_URL")
+    db_manager = DatabaseManager(conn_str)
+
     path = pathlib.Path(filename)
     data = path.read_bytes()
-    validated = parse_replay_data(data, debug=True)
+    with db_manager.get_session() as session:
+        replay_manager = ReplayManager(session)
+
+        validated = parse_replay_data(data, replay_manager, debug=True)
