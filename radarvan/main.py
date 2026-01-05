@@ -39,8 +39,8 @@ db_manager = DatabaseManager(conn_str)
 
 
 def get_db_session() -> Generator[Session]:
-    """
-    Dependency that provides a database session.
+    """Dependency that provides a database session.
+
     Automatically handles commit/rollback and cleanup.
     """
     session = db_manager.SessionLocal()
@@ -61,6 +61,7 @@ def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayMana
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Setup and shutdown of the webserver."""
     logger.info("hello")
     logging.basicConfig(level=logging.INFO)
     replay_files.test_connection()
@@ -136,7 +137,7 @@ def list_replays(
 ) -> list[GameRecord]:
     listed = replay_manager.list_jsons()
     logger.info(f"Found {len(listed)=}")
-    converted = [GameRecord.model_validate(l, from_attributes=True) for l in listed]
+    converted = [GameRecord.model_validate(ls, from_attributes=True) for ls in listed]
     return converted
 
 

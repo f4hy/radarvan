@@ -43,9 +43,9 @@ def parse_replay_data(data: bytes, replay_manager: ReplayManager, debug=False):
     override = overrides.get(validated.replay_id(), None)
     if override is not None:
         for ps in validated.Summary:
-            override_value = ps.Team == override
+            override_value = ps.Team == override.winning_team_id
             logger.warning(
-                f"Overriding {validated.replay_id()} {ps.Team} to {override}"
+                f"Overriding {validated.replay_id()} {ps.Team} to {override.winning_team_id} {override_value=}"
             )
             ps.Win = override_value
 
