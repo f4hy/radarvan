@@ -63,9 +63,8 @@ function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
       <ListItemText
-        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${
-          props.winLoss?.losses ?? 0
-        }]`}
+        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${props.winLoss?.losses ?? 0
+          }]`}
       />
     </ListItem>
   )
@@ -123,12 +122,16 @@ function GeneralStatOverTime(props: { ot: PlayerRateOverTimeOutput[] }) {
   )
 }
 
-function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
+function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number, debug: boolean }) {
   const sorted = props.stat.stats
+  let total_wins = 0
+  let total_games = 0
   const data = Object.entries(sorted).map(([general, winLoss]) => {
     const wins = winLoss?.wins ?? 0
+    total_wins += wins
     const losses = winLoss?.losses ?? 0
     const tot = wins + losses
+    total_games += tot
     const rate = (wins / (tot > 0 ? tot : 1)) * 100
     return {
       general: toGeneralName(toGeneral(general)) + ":" + rate.toFixed() + "%",
@@ -136,11 +139,13 @@ function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number }) {
       losses: losses,
     }
   })
+  const win_rate = (total_wins / total_games) * 100
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Grid container spacing={3}>
         <Grid item xs={12} md={2}>
           <Typography variant="h3">{props.stat.playerName}</Typography>
+          {props.debug && <Typography variant="h5">{total_wins}/{total_games} {win_rate.toFixed(1)}%</Typography>}
           <List >
             {Object.entries(sorted).map(([general, winLoss]) => (
               <PlayerListItem general={toGeneral(general)} winLoss={winLoss} />
@@ -186,6 +191,9 @@ function Loading() {
 
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
+  const search = window.location.search;
+  const params = new URLSearchParams(search);
+  const debug = !!(params.get("debug"))
   React.useEffect(() => {
     getPlayerStats(setPlayerStats)
   }, [])
@@ -206,10 +214,10 @@ export default function DisplayPlayerStats() {
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
     <Paper>
-				<Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
+      <Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
       {playerStats.playerStats.map((m) => (
         <>
-          <DisplayPlayerStat stat={m} max={maxWinLoss} />
+          <DisplayPlayerStat stat={m} max={maxWinLoss} debug={debug} />
           <Divider />
         </>
       ))}

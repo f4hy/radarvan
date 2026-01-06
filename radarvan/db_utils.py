@@ -219,7 +219,7 @@ class ReplayManager:
             winning_team_id=winner,
         )
 
-        self.session.add(new_override)
+        self.session.merge(new_override)
         if self.auto_commit:
             self.session.commit()
         if self.notify:
