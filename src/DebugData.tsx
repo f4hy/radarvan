@@ -128,7 +128,7 @@ function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: b
               <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
               <TableCell>{row.match?.map}</TableCell>
               <TableCell>{row.match?.winningTeamId}</TableCell>
-              <TableCell>{((row.match?.players.map(p => `T${p.teamId}:${p.playerName}`)) ?? []).join(", ")}</TableCell>
+              <TableCell>{((row.match?.players.map(p => p.teamId >= 0 ?`T${p.teamId}:${p.playerName}`: "")) ?? []).join(", ")}</TableCell>
               <TableCell>{row.match?.incomplete}</TableCell>
             </TableRow>
           ))}

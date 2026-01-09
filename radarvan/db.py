@@ -133,7 +133,7 @@ class Match(Base):
     )
 
     def __repr__(self):
-        return f"<Match({self.match_id=} {self.map=} {self.players=})>"
+        return f"<Match({self.match_id=} {self.created_at=} {self.players=})>"
 
 
 class MatchPlayer(Base):
