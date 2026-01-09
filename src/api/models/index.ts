@@ -43,3 +43,4 @@ export * from './Upgrades';
 export * from './ValidationError';
 export * from './ValidationErrorLocInner';
 export * from './WinLoss';
+export * from './WinnerOverride';

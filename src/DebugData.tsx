@@ -17,6 +17,7 @@ import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
+import RefreshIcon from '@mui/icons-material/Refresh';
 import DisplayGeneral from "./Generals"
 import { GeneralWL, Faction, factionFromJSON, DateMessage } from "./proto/match"
 import { toGeneralName } from "./general_utils"
@@ -45,12 +46,19 @@ import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
+import { IconButton } from "@mui/material";
 
 function getGameData(callback: (m: GameRecordOutput[]) => void) {
   Client.listReplaysApiReplaysGet()
     .then(callback)
     .catch((e) => alert(e))
 }
+
+function reparse(matchId: number) {
+  Client.reparseApiRepraseMatchIdPost({ matchId: matchId })
+    .then(() => console.log("Parsed " + matchId))
+}
+
 function downloadURI(uri: string, name: string) {
   var link = document.createElement("a")
   link.download = name
@@ -67,13 +75,13 @@ function downloadReplay(url: string) {
   }
 }
 
-function DownloadButton(props: { url: string, title: string, text: string, disabled?: boolean  }) {
+function DownloadButton(props: { url: string, title: string, text: string, disabled?: boolean }) {
   return (<Tooltip title={props.title}>
     <Button
       variant="contained"
       onClick={() => downloadReplay(props.url)}
       endIcon={<DownloadIcon />}
-			disabled={props.disabled}
+      disabled={props.disabled}
     >
       {props.text}
     </Button>
@@ -92,6 +100,8 @@ function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: b
         <TableHead>
           <TableRow>
             <TableCell>matchId</TableCell>
+            <TableCell>parsed at</TableCell>
+            <TableCell>reparse</TableCell>
             <TableCell>gameDate</TableCell>
             <TableCell>replayFileUrl</TableCell>
             <TableCell>Prased Json</TableCell>
@@ -105,13 +115,15 @@ function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: b
         <TableBody>
           {data.map((row) => (
             <TableRow>
-              <TableCell><Tooltip title={JSON.stringify(row)}><Link>{row.matchId}</Link></Tooltip></TableCell>
+              <TableCell><Link>{row.matchId}</Link></TableCell>
+              <TableCell>{row.createdAt.toISOString().split('T')[0]}</TableCell>
+              <TableCell><IconButton color="primary" onClick={() => reparse(row.matchId)}><RefreshIcon /></IconButton></TableCell>
               <TableCell>{row.gameDate.toISOString().split('T')[0]}</TableCell>
               <TableCell>
                 <DownloadButton url={row.replayFileUrl} title={row.replayFileUrl} text="replay" />
               </TableCell>
               <TableCell>
-              <DownloadButton url={row.jsonS3Uri} title={"soon" + row.jsonS3Uri} text="parsed json" disabled={true} />
+                <DownloadButton url={row.jsonS3Uri} title={"soon" + row.jsonS3Uri} text="parsed json" disabled={true} />
               </TableCell>
               <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
               <TableCell>{row.match?.map}</TableCell>

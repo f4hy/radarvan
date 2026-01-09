@@ -21,7 +21,9 @@ import type {
   MatchDetails,
   Matches,
   PlayerStats,
+  Team,
   TournamentResultOutput,
+  WinnerOverride,
 } from '../models/index';
 import {
     GameRecordOutputFromJSON,
@@ -36,8 +38,12 @@ import {
     MatchesToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
+    TeamFromJSON,
+    TeamToJSON,
     TournamentResultOutputFromJSON,
     TournamentResultOutputToJSON,
+    WinnerOverrideFromJSON,
+    WinnerOverrideToJSON,
 } from '../models/index';
 
 export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
@@ -52,12 +58,17 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
 }
 
-export interface ReparseApiRepraseMatchIdGetRequest {
+export interface ReparseApiRepraseMatchIdPostRequest {
     matchId: number;
 }
 
-export interface ScrapeApiScrapeDaysGetRequest {
+export interface ScrapeApiScrapeDaysPostRequest {
     days: number;
+}
+
+export interface SetOverridesApiSetOverridePostRequest {
+    matchId: number;
+    winner: Team;
 }
 
 /**
@@ -251,6 +262,37 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get winner overrides.
+     * Get Overrides
+     */
+    async getOverridesApiOverridesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<WinnerOverride>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/overrides`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WinnerOverrideFromJSON));
+    }
+
+    /**
+     * Get winner overrides.
+     * Get Overrides
+     */
+    async getOverridesApiOverridesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WinnerOverride>> {
+        const response = await this.getOverridesApiOverridesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get player stats.
      * Get Player Stats
      */
@@ -378,11 +420,11 @@ export class DefaultApi extends runtime.BaseAPI {
      * Rerun the replay parser on this match.
      * Reparse
      */
-    async reparseApiRepraseMatchIdGetRaw(requestParameters: ReparseApiRepraseMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async reparseApiRepraseMatchIdPostRaw(requestParameters: ReparseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
-                'Required parameter "matchId" was null or undefined when calling reparseApiRepraseMatchIdGet().'
+                'Required parameter "matchId" was null or undefined when calling reparseApiRepraseMatchIdPost().'
             );
         }
 
@@ -396,7 +438,7 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const response = await this.request({
             path: urlPath,
-            method: 'GET',
+            method: 'POST',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
@@ -412,19 +454,19 @@ export class DefaultApi extends runtime.BaseAPI {
      * Rerun the replay parser on this match.
      * Reparse
      */
-    async reparseApiRepraseMatchIdGet(requestParameters: ReparseApiRepraseMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.reparseApiRepraseMatchIdGetRaw(requestParameters, initOverrides);
+    async reparseApiRepraseMatchIdPost(requestParameters: ReparseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.reparseApiRepraseMatchIdPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Scrape
      */
-    async scrapeApiScrapeDaysGetRaw(requestParameters: ScrapeApiScrapeDaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async scrapeApiScrapeDaysPostRaw(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['days'] == null) {
             throw new runtime.RequiredError(
                 'days',
-                'Required parameter "days" was null or undefined when calling scrapeApiScrapeDaysGet().'
+                'Required parameter "days" was null or undefined when calling scrapeApiScrapeDaysPost().'
             );
         }
 
@@ -438,7 +480,7 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const response = await this.request({
             path: urlPath,
-            method: 'GET',
+            method: 'POST',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
@@ -453,8 +495,61 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Scrape
      */
-    async scrapeApiScrapeDaysGet(requestParameters: ScrapeApiScrapeDaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.scrapeApiScrapeDaysGetRaw(requestParameters, initOverrides);
+    async scrapeApiScrapeDaysPost(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.scrapeApiScrapeDaysPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set winner overrides.
+     * Set Overrides
+     */
+    async setOverridesApiSetOverridePostRaw(requestParameters: SetOverridesApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling setOverridesApiSetOverridePost().'
+            );
+        }
+
+        if (requestParameters['winner'] == null) {
+            throw new runtime.RequiredError(
+                'winner',
+                'Required parameter "winner" was null or undefined when calling setOverridesApiSetOverridePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['matchId'] != null) {
+            queryParameters['match_id'] = requestParameters['matchId'];
+        }
+
+        if (requestParameters['winner'] != null) {
+            queryParameters['winner'] = requestParameters['winner'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/set_override/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WinnerOverrideFromJSON(jsonValue));
+    }
+
+    /**
+     * Set winner overrides.
+     * Set Overrides
+     */
+    async setOverridesApiSetOverridePost(requestParameters: SetOverridesApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {
+        const response = await this.setOverridesApiSetOverridePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

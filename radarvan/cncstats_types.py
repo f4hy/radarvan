@@ -76,6 +76,28 @@ class Money(BaseModel):
     PlayerMoney: list[int]
 
 
+class PlayerStatsData(BaseModel):
+    money_earned: list[int] | None = None
+    units_built: list[int] | None = None
+    units_lost: list[int] | None = None
+    buildings_built: list[int] | None = None
+    buildings_lost: list[int] | None = None
+    buildings_killed: list[list[int]] | None = None
+    units_killed: list[list[int]] | None = None
+    generals_points_total: list[int] | None = None
+    generals_points_used: list[int] | None = None
+    radars_built: list[int] | None = None
+    search_and_destroy: list[int] | None = None
+    hold_the_line: list[int] | None = None
+    bombardment: list[int] | None = None
+    xp: list[int] | None = None
+    xp_level: list[int] | None = None
+    tech_buildings_captured: list[int] | None = None
+    faction_buildings_captured: list[int] | None = None
+    power_total: list[int] | None = None
+    power_used: list[int] | None = None
+
+
 class EnhancedBodyChunk(BaseModel):
     TimeCode: int
     OrderCode: int
@@ -89,6 +111,7 @@ class EnhancedBodyChunk(BaseModel):
         int | float | bool | str | Position3D | ScreenPosition | ScreenRectangle
     ]
     PlayerMoney: Money | None = None
+    PlayerStats: PlayerStatsData | None = None
 
 
 class ObjectSummary(BaseModel):

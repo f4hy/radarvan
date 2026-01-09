@@ -7,7 +7,7 @@ from log_time import log_time
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 import db
@@ -190,6 +190,7 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
         return None
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
+    update_match.created_at = datetime.now(UTC)
     replay_manager.update_match(update_match)
     return match_from_replay(parsed_replay)
     return parsed_replay

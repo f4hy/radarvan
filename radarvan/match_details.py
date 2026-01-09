@@ -7,6 +7,7 @@ from cncstats_types import EnhancedReplay
 from api_types import MatchDetails, SpentOverTime, Team
 import logging
 from dataclasses import dataclass
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,43 @@ def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
     return md
 
 
+class StatsData(BaseModel):
+    xp: dict[int, dict[str, int]]
+    units_built: dict[int, dict[str, int]]
+    money_earned: dict[int, dict[str, int]]
+
+
+def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
+    """Get player money from replay."""
+
+    players = replay.Header.Metadata.Players
+    player_index_to_name = {i: p.Name for i, p in enumerate(players)}
+
+    data: dict[str,dict[int, dict[str, int]]]
+    prev_vals: dict[str, dict[str, int]]
+    data_types = ["xp", "units_built", "money_earned"]
+    data = {t: {} for t in data_types}
+    prev_vals = {t: {} for t in data_types}
+
+
+    for chunk in replay.Body:
+        if chunk.PlayerStats is None:
+            continue
+        for dt in data_types:
+            if (d := getattr(chunk.PlayerStats, dt)) is not None:
+                new_values = {
+                    name: d[i]
+                    for i, name in player_index_to_name.items()
+                }
+                if new_values != prev_vals[dt]:
+                    data[dt][chunk.TimeCode] = new_values
+                    prev_vals[dt] = new_values
+
+    sd = StatsData.model_validate(data)
+
+    return sd
+
+
 def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
     player_summaries: list[APIPlayerSummary] = []
@@ -66,6 +104,7 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
 
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
+    stats_data = stats_data_from_replay(replay)
     logger.info(f"Money {len(money.player_monies)}")
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
@@ -78,7 +117,10 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
             upgrades=[],
             total=[],
         ),
-        money_values=money.player_monies,
-        money_collected_values=money.player_collected,
+        # money_values=money.player_monies,
+        # money_collected_values=money.player_collected,
+        money_values={},
+        money_collected_values={},
+        stats_data=stats_data.model_dump(),
         player_summary=api_player_summaries(replay),
     )

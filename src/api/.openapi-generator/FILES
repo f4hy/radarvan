@@ -44,5 +44,6 @@ models/Upgrades.ts
 models/ValidationError.ts
 models/ValidationErrorLocInner.ts
 models/WinLoss.ts
+models/WinnerOverride.ts
 models/index.ts
 runtime.ts

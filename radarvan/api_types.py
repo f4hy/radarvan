@@ -52,7 +52,7 @@ class MatchInfo(BaseModel):
     players: list[Player]
     duration_minutes: float
     filename: str
-    incomplete: str
+    incomplete: str = ""
     notes: str
 
     class Config:
@@ -264,6 +264,9 @@ class MatchDetails(BaseModel):
     money_collected_values: dict[int, dict[str, int]] = Field(
         description="at a time value (int) map each player to the value"
     )
+    stats_data: dict[str, dict[int, dict[str, int]]] = Field(
+        description="at a time map each player to xp"
+    )
     player_summary: list[PlayerSummary]
 
     class Config:
@@ -317,7 +320,7 @@ class MatchListing(BaseModel):
     match_id: int
     map: str
     duration_minutes: float
-    incomplete: str
+    incomplete: str | None = None
     created_at: datetime
     json_s3_uri: str
     timestamp: datetime

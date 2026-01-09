@@ -42,6 +42,7 @@ const empty: MatchDetails = {
   },
   moneyValues: {},
   moneyCollectedValues: {},
+  statsData: {},
   playerSummary: [],
 }
 
@@ -168,7 +169,7 @@ function MoneyChart(props: {
       </>
     )
   } else {
-  return <div>{props.title} data unavailible for this replay</div>
+    return <div>{props.title} data unavailible for this replay</div>
   }
 }
 
@@ -218,7 +219,7 @@ function EventChart(props: {
 }
 
 function ApmChart(props: { apms: APM[] }) {
-  if (props.apms.length == 0) {
+  if (props.apms.length === 0) {
     return <div>APM data not yet availible</div>
   }
   const data = _.sortBy(props.apms, (a) => -a.apm)
@@ -290,6 +291,22 @@ export default function ShowMatchDetails(props: { id: number }) {
       <ApmChart apms={details.apms} />
       <Divider />
       <CostBreakdown costs={details.costs} />
+      <Divider />
+      <MoneyChart
+        title="XP"
+        money={details.statsData["xp"]}
+        playerSummaries={details.playerSummary}
+      />
+      <MoneyChart
+        title="Units Built"
+        money={details.statsData["units_built"]}
+        playerSummaries={details.playerSummary}
+      />
+      <MoneyChart
+        title="Money Earned"
+        money={details.statsData["money_earned"]}
+        playerSummaries={details.playerSummary}
+      />
     </>
   )
 }
