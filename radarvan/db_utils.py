@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from sqlalchemy import create_engine, select, func, and_
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, UTC
 from notify import notify
 from typing import Literal
 from db import (
@@ -156,6 +156,7 @@ class ReplayManager:
     def update_match(self, db_match: Match) -> Match:
         """Register a new replay."""
         logger.info(f"updating {db_match=}")
+        db_match.created_at = datetime.now(UTC)
         self.session.merge(db_match)
         if self.auto_commit:
             self.session.commit()
