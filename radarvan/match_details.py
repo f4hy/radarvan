@@ -28,12 +28,14 @@ def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
     """Get player money from replay."""
 
     players = replay.Header.Metadata.Players
-    player_index_to_name = {i: p.Name for i, p in enumerate(players)}
+    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
 
     md = MoneyData(player_monies={}, player_collected={})
 
-    previous = {player_index_to_name[i]: 1_000_000 for i, p in enumerate(players)}
-    sofar = {player_index_to_name[i]: 0 for i, p in enumerate(players)}
+    previous = {
+        player_index_to_name[i]: 1_000_000 for i, p in enumerate(players) if p.Team >= 0
+    }
+    sofar = {player_index_to_name[i]: 0 for i, p in enumerate(players) if p.Team >= 0}
 
     for chunk in replay.Body:
         if chunk.PlayerMoney is None:
@@ -62,24 +64,20 @@ def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
     """Get player money from replay."""
 
     players = replay.Header.Metadata.Players
-    player_index_to_name = {i: p.Name for i, p in enumerate(players)}
+    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
 
-    data: dict[str,dict[int, dict[str, int]]]
+    data: dict[str, dict[int, dict[str, int]]]
     prev_vals: dict[str, dict[str, int]]
     data_types = ["xp", "units_built", "money_earned"]
     data = {t: {} for t in data_types}
     prev_vals = {t: {} for t in data_types}
-
 
     for chunk in replay.Body:
         if chunk.PlayerStats is None:
             continue
         for dt in data_types:
             if (d := getattr(chunk.PlayerStats, dt)) is not None:
-                new_values = {
-                    name: d[i]
-                    for i, name in player_index_to_name.items()
-                }
+                new_values = {name: d[i] for i, name in player_index_to_name.items()}
                 if new_values != prev_vals[dt]:
                     data[dt][chunk.TimeCode] = new_values
                     prev_vals[dt] = new_values
