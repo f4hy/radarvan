@@ -9,6 +9,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -55,80 +56,24 @@ const shapes: (
   | "triangle"
 )[] = ["circle", "star", "square", "triangle"]
 
-interface SpendChartData {
-  atMinute: number
-  Bill: number
-  Brendan: number
-  Sean: number
-  Jared: number
-}
 
-type playername = "Bill" | "Brendan" | "Sean" | "Jared"
-
-function spendDataReducer(acc: SpendChartData[], cur: Spent): SpendChartData[] {
-  const next = { ...acc[acc.length - 1] }
-  next[cur.playerName as playername] = cur.accCost
-  next.atMinute = cur.atMinute
-  return [...acc, next]
-}
-
-function SpendingChart(props: {
-  spent: Spent[] | undefined
-  title: string
-  max: number
-}) {
-  if (props.spent) {
-    const init = { Bill: 0, Brendan: 0, Sean: 0, Jared: 0, atMinute: 0 }
-    const data = props.spent.reduce(spendDataReducer, [init])
-    return (
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart
-          height={300}
-          data={data}
-          margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" dataKey="atMinute" domain={[0, props.max]} />
-          <YAxis
-            label={{
-              value: "$",
-              position: "insideLeft",
-              offset: -5,
-              angle: -90,
-            }}
-          />
-          <Tooltip />
-          <Legend />
-          {["Bill", "Brendan", "Sean", "Jared"].map((n) => (
-            <Line
-              dataKey={n}
-              strokeWidth={2}
-              stroke={PlayerColor(n)}
-              dot={false}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
-    )
-  } else {
-    return <div>{props.title + " data unavailible for this replay"}</div>
-  }
-}
 
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
   title: string
   playerSummaries: PlayerSummary[]
+  horizontalLines?: number[]
 }) {
+const lines = props.horizontalLines ?? []
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
     const colors = props.playerSummaries.reduce(
       (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
       {},
     )
-    const data = Object.entries(props.money).map(([timecode, values]) => ({
+    const data = Object.entries(props.money).map(([atMinute, values]) => ({
       ...values,
-      timecode: timecode,
+      atMinute: atMinute,
     }))
     const max = Object.values(props.money).reduce((acc, cur) => {
       return Math.max(acc, ...Object.values(cur))
@@ -141,29 +86,43 @@ function MoneyChart(props: {
             title="Money $$"
             height={300}
             data={data}
-            margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
+            margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" dataKey="timecode" domain={[0, max_time]} />
+            <XAxis type="number" dataKey="atMinute" domain={[0, max_time]}
+              tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
+              name="minutes"
+            />
             <YAxis
               label={{
                 value: props.title,
                 position: "insideLeft",
-                offset: -5,
+                fontSize: 25,
+                strokeFill: "black",
+                offset: -30,
                 angle: -90,
               }}
               domain={[0, max]}
             />
-            <Tooltip />
+            <Tooltip labelFormatter={(t) => t.slice(0, 4) + "m"} />
             <Legend />
             {players.map((n, i) => (
               <Line
                 dataKey={n}
-                strokeWidth={2}
+                strokeWidth={2.5}
                 stroke={_.get(colors, n)}
                 dot={false}
               />
             ))}
+            {lines.map((value, i) => (
+              <ReferenceLine
+									y={value}
+										label={{ value: `${i+2}⭐`, position: "insideLeft"}}
+										stroke="blue"
+										strokeDasharray="3 3"
+									
+							/>
+            ))}
+
           </LineChart>
         </ResponsiveContainer>
       </>
@@ -173,13 +132,20 @@ function MoneyChart(props: {
   }
 }
 
+
 function EventChart(props: {
   upgrades: { [name: string]: Upgrades }
   max: number
+  playerSummaries: PlayerSummary[]
 }) {
   const names = Object.keys(props.upgrades).sort((x1, x2) =>
     x1.localeCompare(x2),
   )
+  const colors = props.playerSummaries.reduce(
+    (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
+    {},
+  )
+
   if (props.upgrades && names.length > 0) {
     return (
       <ResponsiveContainer width="100%" height={300}>
@@ -187,7 +153,7 @@ function EventChart(props: {
           {names.map((name, idx) => (
             <Scatter
               name={name}
-              fill={PlayerColor(name)}
+              fill={_.get(colors, name)}
               data={props.upgrades[name].upgrades}
               shape={shapes[idx]}
               legendType={shapes[idx]}
@@ -195,7 +161,9 @@ function EventChart(props: {
               {/* <LabelList dataKey="upgradeName" position="left" formatter={labelformater} offset={100} /> */}
             </Scatter>
           ))}
-          <XAxis type="number" dataKey="atMinute" domain={[0, props.max]} />
+          <XAxis type="number" dataKey="atMinute" domain={[0, props.max]}
+            tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
+          />
           <YAxis
             type="number"
             dataKey="cost"
@@ -207,7 +175,10 @@ function EventChart(props: {
             }}
           />
           <ZAxis dataKey="upgradeName" name="upgrade" />
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            labelFormatter={(t) => t.slice(0, 4) + "m"}
+          />
           <CartesianGrid />
           <Legend />
         </ScatterChart>
@@ -238,6 +209,7 @@ function ApmChart(props: { apms: APM[] }) {
             position: "insideLeft",
             offset: -5,
             angle: -90,
+            stroke: 5
           }}
         />
         <Tooltip cursor={false} />
@@ -246,21 +218,6 @@ function ApmChart(props: { apms: APM[] }) {
   )
 }
 
-function Spending(props: {
-  title: string
-  spend_data: Spent[] | undefined
-  max: number
-}) {
-  if ((props.spend_data ?? []).length === 0) {
-    return <div>{props.title} data not yet available</div>
-  }
-  return (
-    <>
-      <Typography>props.title</Typography>
-      <SpendingChart spent={props.spend_data} title="total" max={props.max} />
-    </>
-  )
-}
 
 export default function ShowMatchDetails(props: { id: number }) {
   const [details, setDetails] = React.useState<MatchDetails>(empty)
@@ -274,37 +231,33 @@ export default function ShowMatchDetails(props: { id: number }) {
   const maxMinute = Math.ceil(maxAtMinute ?? 1)
   return (
     <>
+      <Divider />
+      <ShowPlayerSummaries playerSummaries={details.playerSummary} />
+      <Divider />
+      <EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />
+      <ApmChart apms={details.apms} />
+      <Divider />
+      <CostBreakdown costs={details.costs} />
+      <Divider />
       <MoneyChart
         title="Money"
         money={details.moneyValues}
         playerSummaries={details.playerSummary}
       />
       <MoneyChart
-        title="$ Collected"
-        money={details.moneyCollectedValues}
+        title="$ Earned"
+        money={details.statsData["money_earned"]}
         playerSummaries={details.playerSummary}
       />
-      <Divider />
-      <ShowPlayerSummaries playerSummaries={details.playerSummary} />
-      <Divider />
-      <EventChart upgrades={details.upgradeEvents} max={maxMinute} />
-      <ApmChart apms={details.apms} />
-      <Divider />
-      <CostBreakdown costs={details.costs} />
-      <Divider />
       <MoneyChart
         title="XP"
         money={details.statsData["xp"]}
-        playerSummaries={details.playerSummary}
+					playerSummaries={details.playerSummary}
+					horizontalLines={[800, 1500, 2500, 5000]}
       />
       <MoneyChart
         title="Units Built"
         money={details.statsData["units_built"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="Money Earned"
-        money={details.statsData["money_earned"]}
         playerSummaries={details.playerSummary}
       />
     </>

@@ -67,6 +67,11 @@ class Power(BaseModel):
     Name: str
 
 
+class EventDetails(BaseModel):
+    Name: str
+    Cost: int | None = None
+
+
 class ArgMetadata(BaseModel):
     Type: int
     Count: int
@@ -105,7 +110,7 @@ class EnhancedBodyChunk(BaseModel):
     PlayerID: int
     PlayerName: str
     NumberOfArguments: int
-    # Details: Optional[Union[Unit, Building, Upgrade, Power]] = None
+    Details: EventDetails | None = None
     ArgMetadata: list[ArgMetadata]
     Arguments: list[
         int | float | bool | str | Position3D | ScreenPosition | ScreenRectangle

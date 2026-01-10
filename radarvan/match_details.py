@@ -3,19 +3,21 @@
 from api_types import (
     PlayerSummary as APIPlayerSummary,
 )
+from collections import defaultdict
 from cncstats_types import EnhancedReplay
-from api_types import MatchDetails, SpentOverTime, Team
+from api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades
 import logging
 from dataclasses import dataclass
 from pydantic import BaseModel
+from utils import minutess_per_step
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class MoneyData:
-    player_monies: dict[int, dict[str, int]]
-    player_collected: dict[int, dict[str, int]]
+    player_monies: dict[float, dict[str, int]]
+    player_collected: dict[float, dict[str, int]]
 
 
 def collected_value(current_val: int, prev_val: int) -> int:
@@ -27,6 +29,7 @@ def collected_value(current_val: int, prev_val: int) -> int:
 def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
     """Get player money from replay."""
 
+    scale = minutess_per_step(replay)
     players = replay.Header.Metadata.Players
     player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
 
@@ -40,7 +43,7 @@ def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
     for chunk in replay.Body:
         if chunk.PlayerMoney is None:
             continue
-        md.player_monies[chunk.TimeCode] = {
+        md.player_monies[chunk.TimeCode * scale] = {
             name: chunk.PlayerMoney.PlayerMoney[i]
             for i, name in player_index_to_name.items()
         }
@@ -49,24 +52,25 @@ def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
             collected = collected_value(current, previous[name])
             sofar[name] += collected
             previous[name] = current
-        md.player_collected[chunk.TimeCode] = sofar.copy()
+        md.player_collected[chunk.TimeCode * scale] = sofar.copy()
 
     return md
 
 
 class StatsData(BaseModel):
-    xp: dict[int, dict[str, int]]
-    units_built: dict[int, dict[str, int]]
-    money_earned: dict[int, dict[str, int]]
+    xp: dict[float, dict[str, int]]
+    units_built: dict[float, dict[str, int]]
+    money_earned: dict[float, dict[str, int]]
 
 
 def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
     """Get player money from replay."""
 
+    scale = minutess_per_step(replay)
     players = replay.Header.Metadata.Players
     player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
 
-    data: dict[str, dict[int, dict[str, int]]]
+    data: dict[str, dict[float, dict[str, int]]]
     prev_vals: dict[str, dict[str, int]]
     data_types = ["xp", "units_built", "money_earned"]
     data = {t: {} for t in data_types}
@@ -79,12 +83,40 @@ def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
             if (d := getattr(chunk.PlayerStats, dt)) is not None:
                 new_values = {name: d[i] for i, name in player_index_to_name.items()}
                 if new_values != prev_vals[dt]:
-                    data[dt][chunk.TimeCode] = new_values
+                    data[dt][chunk.TimeCode * scale] = new_values
                     prev_vals[dt] = new_values
 
     sd = StatsData.model_validate(data)
 
     return sd
+
+
+def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
+    scale = minutess_per_step(replay)
+    players = replay.Header.Metadata.Players
+    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
+
+    upgrades: dict[str, list[UpgradeEvent]] = {
+        name: [] for name in player_index_to_name.values()
+    }
+    has_details = [c.Details for c in replay.Body if c.Details]
+    logger.info(f"details {has_details=}")
+    for chunk in replay.Body:
+        if not chunk.OrderName.startswith("BuildUpgrade"):
+            continue
+        logger.info(f"details {chunk.Details=}")
+        if not chunk.Details:
+            continue
+        event = UpgradeEvent(
+            player_name=chunk.PlayerName,
+            timecode=chunk.TimeCode,
+            upgrade_name=chunk.Details.Name,
+            cost=chunk.Details.Cost or 0,
+            at_minute=chunk.TimeCode * scale,
+        )
+        upgrades[chunk.PlayerName].append(event)
+
+    return {name: Upgrades(upgrades=values) for name, values in upgrades.items()}
 
 
 def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
@@ -103,12 +135,13 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
+    upgrades = events_from_replay(replay)
     logger.info(f"Money {len(money.player_monies)}")
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
         costs=[],
         apms=[],
-        upgrade_events={},
+        upgrade_events=upgrades,
         spent=SpentOverTime(
             buildings=[],
             units=[],

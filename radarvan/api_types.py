@@ -258,13 +258,13 @@ class MatchDetails(BaseModel):
     apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
     spent: SpentOverTime
-    money_values: dict[int, dict[str, int]] = Field(
+    money_values: dict[float, dict[str, int]] = Field(
         description="at a time value (int) map each player to the value"
     )
-    money_collected_values: dict[int, dict[str, int]] = Field(
+    money_collected_values: dict[float, dict[str, int]] = Field(
         description="at a time value (int) map each player to the value"
     )
-    stats_data: dict[str, dict[int, dict[str, int]]] = Field(
+    stats_data: dict[str, dict[float, dict[str, int]]] = Field(
         description="at a time map each player to xp"
     )
     player_summary: list[PlayerSummary]

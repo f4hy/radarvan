@@ -115,6 +115,7 @@ class Match(Base):
     incomplete = Column(String, default=False)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
     replay_json = relationship("ParsedReplayJson", back_populates="match")
