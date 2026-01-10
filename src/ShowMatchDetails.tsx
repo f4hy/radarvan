@@ -64,7 +64,7 @@ function MoneyChart(props: {
   playerSummaries: PlayerSummary[]
   horizontalLines?: number[]
 }) {
-const lines = props.horizontalLines ?? []
+  const lines = props.horizontalLines ?? []
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
     const colors = props.playerSummaries.reduce(
@@ -81,9 +81,10 @@ const lines = props.horizontalLines ?? []
     const max_time = Math.max(...Object.keys(props.money).map((k) => Number(k)))
     return (
       <>
+        <Typography variant="h5">{props.title}</Typography>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart
-            title="Money $$"
+            title={props.title}
             height={300}
             data={data}
             margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
@@ -115,12 +116,12 @@ const lines = props.horizontalLines ?? []
             ))}
             {lines.map((value, i) => (
               <ReferenceLine
-									y={value}
-										label={{ value: `${i+2}⭐`, position: "insideLeft"}}
-										stroke="blue"
-										strokeDasharray="3 3"
-									
-							/>
+                y={value}
+                label={{ value: `${i + 2}⭐`, position: "insideLeft" }}
+                stroke="blue"
+                strokeDasharray="3 3"
+
+              />
             ))}
 
           </LineChart>
@@ -149,7 +150,7 @@ function EventChart(props: {
   if (props.upgrades && names.length > 0) {
     return (
       <ResponsiveContainer width="100%" height={300}>
-        <ScatterChart margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+        <ScatterChart margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
           {names.map((name, idx) => (
             <Scatter
               name={name}
@@ -170,14 +171,16 @@ function EventChart(props: {
             label={{
               value: "Cost",
               position: "insideLeft",
-              offset: -5,
+              fontSize: 25,
+              strokeFill: "black",
+              offset: -30,
               angle: -90,
             }}
           />
           <ZAxis dataKey="upgradeName" name="upgrade" />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
-            labelFormatter={(t) => t.slice(0, 4) + "m"}
+            labelFormatter={(t) => t + "m"}
           />
           <CartesianGrid />
           <Legend />
@@ -252,8 +255,8 @@ export default function ShowMatchDetails(props: { id: number }) {
       <MoneyChart
         title="XP"
         money={details.statsData["xp"]}
-					playerSummaries={details.playerSummary}
-					horizontalLines={[800, 1500, 2500, 5000]}
+        playerSummaries={details.playerSummary}
+        horizontalLines={[800, 1500, 2500, 5000]}
       />
       <MoneyChart
         title="Units Built"

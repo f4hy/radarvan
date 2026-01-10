@@ -42,8 +42,9 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     if not _winners:
         winner = Team.NONE
         incomplete = "Likely Mismatch :("
-    elif winner == Team.NONE:
+    elif winner == Team.NONE or winner == Team.OBSERVER:
         notes = "No team won?"
+        incomplete = "No team won?"
     # if winner == Team.OBSERVER:
     #     notes = ""
     if override := winner_override(replay.replay_id()):
@@ -84,8 +85,9 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     if not _winners:
         winner = Team.NONE
         incomplete = "Likely Mismatch :("
-    elif winner == Team.NONE:
+    elif winner == Team.NONE or winner == Team.OBSERVER:
         notes = "No team won?"
+        incomplete = "No team won?"
     if duration_minutes < 2:
         incomplete = "Too Short"
 

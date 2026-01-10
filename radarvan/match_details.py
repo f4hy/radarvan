@@ -110,7 +110,7 @@ def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
         event = UpgradeEvent(
             player_name=chunk.PlayerName,
             timecode=chunk.TimeCode,
-            upgrade_name=chunk.Details.Name,
+            upgrade_name=chunk.Details.Name.removeprefix("Upgrade_"),
             cost=chunk.Details.Cost or 0,
             at_minute=chunk.TimeCode * scale,
         )
