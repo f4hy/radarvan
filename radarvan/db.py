@@ -134,7 +134,7 @@ class Match(Base):
     )
 
     def __repr__(self):
-        return f"<Match({self.match_id=} {self.created_at=} {self.players=})>"
+        return f"<Match(match_id={self.match_id} {self.updated_at.isoformat()} players={self.players})>"
 
 
 class MatchPlayer(Base):
@@ -158,7 +158,7 @@ class MatchPlayer(Base):
     )
 
     def __repr__(self):
-        return f"<Player({self.player_name=} {self.general_id=} {self.team_id=} {self.color=} {self.is_winner}) >\n"
+        return f"<Player(name={self.player_name} general={self.general_id.name} team={self.team_id.name} winner={self.is_winner}) >\n"
 
 
 class WinnerOverride(Base):
