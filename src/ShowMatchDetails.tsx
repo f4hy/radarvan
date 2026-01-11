@@ -264,11 +264,6 @@ export default function ShowMatchDetails(props: { id: number }) {
         playerSummaries={details.playerSummary}
       />
       <MoneyChart
-        title="Buildings Killed"
-        money={details.statsData["buildings_killed"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
         title="Units Built"
         money={details.statsData["units_built"]}
         playerSummaries={details.playerSummary}
@@ -276,6 +271,11 @@ export default function ShowMatchDetails(props: { id: number }) {
       <MoneyChart
         title="Units Lost"
         money={details.statsData["units_lost"]}
+        playerSummaries={details.playerSummary}
+      />
+      <MoneyChart
+        title="Buildings Killed"
+        money={details.statsData["buildings_killed"]}
         playerSummaries={details.playerSummary}
       />
       <MoneyChart
