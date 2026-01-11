@@ -134,7 +134,8 @@ class Match(Base):
     )
 
     def __repr__(self):
-        return f"<Match(match_id={self.match_id} {self.updated_at.isoformat()} players={self.players})>"
+        date = self.updated_at or self.created_at
+        return f"<Match(match_id={self.match_id} {date.isoformat()} players={self.players})>"
 
 
 class MatchPlayer(Base):

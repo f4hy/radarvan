@@ -60,8 +60,16 @@ def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
 class StatsData(BaseModel):
     xp: dict[float, dict[str, int]]
     units_built: dict[float, dict[str, int]]
+    units_lost: dict[float, dict[str, int]]
     money_earned: dict[float, dict[str, int]]
+    units_killed: dict[float, dict[str, int]]
+    buildings_killed: dict[float, dict[str, int]]
+    buildings_lost: dict[float, dict[str, int]]
+    buildings_built: dict[float, dict[str, int]]
 
+
+def _sum(i: int | list[int]) -> int:
+    return sum(i) if isinstance(i, list) else i
 
 def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
     """Get player money from replay."""
@@ -72,7 +80,7 @@ def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
 
     data: dict[str, dict[float, dict[str, int]]]
     prev_vals: dict[str, dict[str, int]]
-    data_types = ["xp", "units_built", "money_earned"]
+    data_types = ["xp", "units_built", "units_lost", "buildings_built", "buildings_lost", "money_earned", "units_killed", "buildings_killed"]
     data = {t: {} for t in data_types}
     prev_vals = {t: {} for t in data_types}
 
@@ -81,7 +89,7 @@ def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
             continue
         for dt in data_types:
             if (d := getattr(chunk.PlayerStats, dt)) is not None:
-                new_values = {name: d[i] for i, name in player_index_to_name.items()}
+                new_values = {name: _sum(d[i]) for i, name in player_index_to_name.items()}
                 if new_values != prev_vals[dt]:
                     data[dt][chunk.TimeCode * scale] = new_values
                     prev_vals[dt] = new_values
