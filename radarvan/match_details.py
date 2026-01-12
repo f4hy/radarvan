@@ -89,7 +89,12 @@ def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
             continue
         for dt in data_types:
             if (d := getattr(chunk.PlayerStats, dt)) is not None:
-                new_values = {name: _sum(d[i]) for i, name in player_index_to_name.items()}
+                if isinstance(d[0], list):
+                    new_values = {
+                        name: sum(v[i] for v in d) for i, name in player_index_to_name.items()
+                    }
+                else:
+                    new_values = {name: d[i] for i, name in player_index_to_name.items()}
                 if new_values != prev_vals[dt]:
                     data[dt][chunk.TimeCode * scale] = new_values
                     prev_vals[dt] = new_values
