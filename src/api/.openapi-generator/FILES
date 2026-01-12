@@ -7,6 +7,7 @@ models/CostsInput.ts
 models/CostsOutput.ts
 models/DateMessage.ts
 models/Faction.ts
+models/FirstBlood.ts
 models/GameRecordInput.ts
 models/GameRecordOutput.ts
 models/General.ts

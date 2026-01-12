@@ -81,7 +81,7 @@ export interface MatchInfoInput {
      * @type {string}
      * @memberof MatchInfoInput
      */
-    incomplete: string;
+    incomplete?: string;
     /**
      * 
      * @type {string}
@@ -103,7 +103,6 @@ export function instanceOfMatchInfoInput(value: object): value is MatchInfoInput
     if (!('players' in value) || value['players'] === undefined) return false;
     if (!('durationMinutes' in value) || value['durationMinutes'] === undefined) return false;
     if (!('filename' in value) || value['filename'] === undefined) return false;
-    if (!('incomplete' in value) || value['incomplete'] === undefined) return false;
     if (!('notes' in value) || value['notes'] === undefined) return false;
     return true;
 }
@@ -125,7 +124,7 @@ export function MatchInfoInputFromJSONTyped(json: any, ignoreDiscriminator: bool
         'players': ((json['players'] as Array<any>).map(PlayerFromJSON)),
         'durationMinutes': json['duration_minutes'],
         'filename': json['filename'],
-        'incomplete': json['incomplete'],
+        'incomplete': json['incomplete'] == null ? undefined : json['incomplete'],
         'notes': json['notes'],
     };
 }

@@ -252,6 +252,12 @@ class PlayerSummary(BaseModel):
     PowersUsed: dict[str, int]
 
 
+class FirstBlood(BaseModel):
+    attacker: str
+    victim: str
+    atMinute: float
+
+
 class MatchDetails(BaseModel):
     match_id: int = Field(alias="matchId")
     costs: list[Costs]
@@ -267,6 +273,7 @@ class MatchDetails(BaseModel):
     stats_data: dict[str, dict[float, dict[str, int]]] = Field(
         description="at a time map each player to xp"
     )
+    first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
 
     class Config:

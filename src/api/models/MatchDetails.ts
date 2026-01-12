@@ -27,6 +27,13 @@ import {
     UpgradesToJSON,
     UpgradesToJSONTyped,
 } from './Upgrades';
+import type { FirstBlood } from './FirstBlood';
+import {
+    FirstBloodFromJSON,
+    FirstBloodFromJSONTyped,
+    FirstBloodToJSON,
+    FirstBloodToJSONTyped,
+} from './FirstBlood';
 import type { CostsOutput } from './CostsOutput';
 import {
     CostsOutputFromJSON,
@@ -105,6 +112,12 @@ export interface MatchDetails {
     statsData: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
     /**
      * 
+     * @type {FirstBlood}
+     * @memberof MatchDetails
+     */
+    firstBlood?: FirstBlood | null;
+    /**
+     * 
      * @type {Array<PlayerSummary>}
      * @memberof MatchDetails
      */
@@ -145,6 +158,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'moneyValues': json['money_values'],
         'moneyCollectedValues': json['money_collected_values'],
         'statsData': json['stats_data'],
+        'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
     };
 }
@@ -168,6 +182,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'money_values': value['moneyValues'],
         'money_collected_values': value['moneyCollectedValues'],
         'stats_data': value['statsData'],
+        'first_blood': FirstBloodToJSON(value['firstBlood']),
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
     };
 }

@@ -50,7 +50,7 @@ export interface MatchListing {
      * @type {string}
      * @memberof MatchListing
      */
-    incomplete: string;
+    incomplete?: string | null;
     /**
      * 
      * @type {Date}
@@ -102,7 +102,6 @@ export function instanceOfMatchListing(value: object): value is MatchListing {
     if (!('matchId' in value) || value['matchId'] === undefined) return false;
     if (!('map' in value) || value['map'] === undefined) return false;
     if (!('durationMinutes' in value) || value['durationMinutes'] === undefined) return false;
-    if (!('incomplete' in value) || value['incomplete'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('jsonS3Uri' in value) || value['jsonS3Uri'] === undefined) return false;
     if (!('timestamp' in value) || value['timestamp'] === undefined) return false;
@@ -126,7 +125,7 @@ export function MatchListingFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'matchId': json['match_id'],
         'map': json['map'],
         'durationMinutes': json['duration_minutes'],
-        'incomplete': json['incomplete'],
+        'incomplete': json['incomplete'] == null ? undefined : json['incomplete'],
         'createdAt': (new Date(json['created_at'])),
         'jsonS3Uri': json['json_s3_uri'],
         'timestamp': (new Date(json['timestamp'])),

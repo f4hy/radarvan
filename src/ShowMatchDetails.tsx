@@ -22,7 +22,8 @@ import { PlayerColor } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import { MatchDetails, Spent, Upgrades, APM, PlayerSummary } from "./api"
+import { MatchDetails, Spent, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
+import { Alert } from "@mui/material"
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
@@ -221,6 +222,17 @@ function ApmChart(props: { apms: APM[] }) {
   )
 }
 
+function DisplayFirstBlood(props: { first_blood?: FirstBlood }) {
+  if (props.first_blood === undefined) {
+    return <></>
+  }
+  return (
+    <>
+      <Alert severity="warning">{props.first_blood.attacker} drew first blood on {props.first_blood.victim} at {props.first_blood.atMinute.toFixed(2)}minutes</Alert>
+    </>
+  )
+}
+
 
 export default function ShowMatchDetails(props: { id: number }) {
   const [details, setDetails] = React.useState<MatchDetails>(empty)
@@ -235,6 +247,7 @@ export default function ShowMatchDetails(props: { id: number }) {
   return (
     <>
       <Divider />
+      <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} />
       <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />

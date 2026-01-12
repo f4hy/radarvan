@@ -57,6 +57,12 @@ def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
     return md
 
 
+class FirstBlood(BaseModel):
+    attacker: str
+    victim: str
+    atMinute: float
+
+
 class StatsData(BaseModel):
     xp: dict[float, dict[str, int]]
     units_built: dict[float, dict[str, int]]
@@ -68,10 +74,16 @@ class StatsData(BaseModel):
     buildings_built: dict[float, dict[str, int]]
 
 
+class AllExtractedData(BaseModel):
+    stats_data: StatsData
+    first_blood: FirstBlood | None
+
+
 def _sum(i: int | list[int]) -> int:
     return sum(i) if isinstance(i, list) else i
 
-def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
+
+def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
     """Get player money from replay."""
 
     scale = minutess_per_step(replay)
@@ -80,28 +92,53 @@ def stats_data_from_replay(replay: EnhancedReplay) -> StatsData:
 
     data: dict[str, dict[float, dict[str, int]]]
     prev_vals: dict[str, dict[str, int]]
-    data_types = ["xp", "units_built", "units_lost", "buildings_built", "buildings_lost", "money_earned", "units_killed", "buildings_killed"]
+    data_types = [
+        "xp",
+        "units_built",
+        "units_lost",
+        "buildings_built",
+        "buildings_lost",
+        "money_earned",
+        "units_killed",
+        "buildings_killed",
+    ]
     data = {t: {} for t in data_types}
     prev_vals = {t: {} for t in data_types}
+
+    first_blood: FirstBlood | None = None
 
     for chunk in replay.Body:
         if chunk.PlayerStats is None:
             continue
         for dt in data_types:
             if (d := getattr(chunk.PlayerStats, dt)) is not None:
+                if dt in {"units_killed", "buildings_killed"} and first_blood is None:
+                    print(d)
+                    if sum(sum(v) for v in d) > 0:
+                        for victim_idx, vs in enumerate(d):
+                            for killer_idx, ks in enumerate(vs):
+                                if ks > 0:
+                                    first_blood = FirstBlood(
+                                        attacker=player_index_to_name[killer_idx],
+                                        victim=player_index_to_name[victim_idx],
+                                        atMinute=chunk.TimeCode * scale,
+                                    )
+
                 if isinstance(d[0], list):
                     new_values = {
-                        name: sum(v[i] for v in d) for i, name in player_index_to_name.items()
+                        name: sum(v[i] for v in d)
+                        for i, name in player_index_to_name.items()
                     }
                 else:
-                    new_values = {name: d[i] for i, name in player_index_to_name.items()}
+                    new_values = {
+                        name: d[i] for i, name in player_index_to_name.items()
+                    }
                 if new_values != prev_vals[dt]:
                     data[dt][chunk.TimeCode * scale] = new_values
                     prev_vals[dt] = new_values
 
     sd = StatsData.model_validate(data)
-
-    return sd
+    return AllExtractedData(stats_data=sd, first_blood=first_blood)
 
 
 def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
@@ -148,8 +185,12 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
+    first_blood = (
+        stats_data.first_blood.model_dump() if stats_data.first_blood else None
+    )
     upgrades = events_from_replay(replay)
     logger.info(f"Money {len(money.player_monies)}")
+    logger.info(f"First blood {first_blood}")
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
         costs=[],
@@ -164,6 +205,7 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
         money_values=money.player_monies,
         # money_collected_values=money.player_collected,
         money_collected_values={},
-        stats_data=stats_data.model_dump(),
+        stats_data=stats_data.stats_data.model_dump(),
+        first_blood=first_blood,
         player_summary=api_player_summaries(replay),
     )

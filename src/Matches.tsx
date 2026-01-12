@@ -150,7 +150,7 @@ export function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) 
   const teams = _.groupBy(props.match.players, "team")
 
   const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: "20px" }
-
+		const incomplete = (props.match.incomplete ?? "").length ==0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
@@ -160,7 +160,7 @@ export function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) 
             {props.match.notes}
           </Typography>
         ) : null}
-        {props.match.incomplete.length ? (
+        {incomplete ? (
           <Typography color="error.main" style={{ fontWeight: "bold" }}>
             {props.match.incomplete}
           </Typography>
