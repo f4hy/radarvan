@@ -202,6 +202,17 @@ def reparse(
     return matches.reparse_replay(match_id, replay_manager)
 
 
+@app.post("/api/register_replay_url")
+def register_replay_url(
+    url_of_replay: str,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    """Rerun the replay parser on this match."""
+    replay = replay_files.parse_replay(url_of_replay, replay_manager)
+    matches.register_matches(replay_manager)
+    return matches.reparse_replay(replay.replay_id(), replay_manager)
+
+
 def empty_match_details(match_id: int) -> MatchDetails:
     return MatchDetails(
         match_id=match_id,

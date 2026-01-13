@@ -99,10 +99,16 @@ class ReplayManager:
     def register_replay(self, from_url: str, s3_uri: str) -> ReplayFile:
         """Register a new replay."""
         logger.info(f"Registering {from_url=} {s3_uri=}")
-        prefix = "https://www.gentool.net/data/zh/"
-        date_str = from_url.removeprefix(prefix).split("/")[0]
-        player = from_url.removeprefix(prefix).split("/")[2]
-        player_id = player.split("_")[-1]
+        prefix2 = "https://generals-public.s3.us-east-2.amazonaws.com/reps/"
+        if prefix2 in from_url:
+            date_str = "2025_10_December"
+            player_id = "5211058E5C33"
+        else:
+            prefix = "https://www.gentool.net/data/zh/"
+            base = from_url.removeprefix(prefix)
+            date_str = base.split("/")[0]
+            player = base.split("/")[2]
+            player_id = player.split("_")[-1]
         date = datetime.strptime(date_str, "%Y_%m_%B")
         replay_file = ReplayFile(
             original_url=from_url,

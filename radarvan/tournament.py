@@ -51,15 +51,15 @@ def overrides_for_tournament(tournament_id: str) -> list[MatchupResult]:
     if tournament_id == "2025_2v2_tournament":
         logger.warning("pancake+131 vs Neo and Coredawg was not uploaded to gentool")
         return [
-            MatchupResult(
-                tournament_name="205_2v2_tournament",
-                matches=[],  # missing
-                outcome={
-                    sorted_tuple(["OneThree111", "Pancake"]): WinLoss(wins=4, losses=2),
-                    sorted_tuple(["Neo", "CoreDawg"]): WinLoss(wins=2, losses=4),
-                },
-                override="Matches not uploaded to gentool results manually added",
-            )
+            # MatchupResult(
+            #     tournament_name="205_2v2_tournament",
+            #     matches=[],  # missing
+            #     outcome={
+            #         sorted_tuple(["OneThree111", "Pancake"]): WinLoss(wins=4, losses=2),
+            #         sorted_tuple(["Neo", "CoreDawg"]): WinLoss(wins=2, losses=4),
+            #     },
+            #     override="Matches not uploaded to gentool results manually added",
+            # )
         ]
     return []
 
