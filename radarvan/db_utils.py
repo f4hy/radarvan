@@ -152,6 +152,10 @@ class ReplayManager:
     def register_match(self, db_match: Match) -> Match:
         """Register a new replay."""
         logger.info(f"Registering {db_match=}")
+        existing = self.session.get(Match, db_match.match_id)
+        if existing is not None:
+            logger.warning(f"Match already exists! {db_match.match_id=}")
+            return existing
         self.session.add(db_match)
         if self.auto_commit:
             self.session.commit()

@@ -32,11 +32,11 @@ def winner_override(match_id: int) -> Team | None:
 
 def parse_replay_data(data: bytes, replay_manager: ReplayManager, debug=False):
     logger.info("Calling cncstats to parse replay")
-    response = httpx.post(PARSE_URL, files={"file": data})
+    response = httpx.post(PARSE_URL, files={"file": data}, timeout=30)
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
-    logger.info(f"Pared replay in {response.elapsed.total_seconds()}s ")
+    logger.info(f"ccnstats responded with replay in {response.elapsed.total_seconds()}s ")
     validated = EnhancedReplay.model_validate(response.json())
 
     overrides = replay_manager.get_overrides()
