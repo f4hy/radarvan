@@ -16,7 +16,7 @@ import {
   YAxis,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStatOutput, GeneralStats } from "./api"
+import { General, GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
@@ -54,7 +54,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   )
 }
 
-function DisplayGeneralStat(props: { stat: GeneralStatOutput; max: number }) {
+function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
   const sorted = props.stat.stats.sort((s1, s2) =>
     s1.playerName.localeCompare(s2.playerName, "en"),
   )

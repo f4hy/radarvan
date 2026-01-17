@@ -25,7 +25,7 @@ import DisplayGeneral from "./Generals"
 import Map from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
-import { MatchInfoInput, Matches, Player, Team } from "./api"
+import { MatchInfo, Matches, Player, Team } from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -128,7 +128,7 @@ function displayTeam(team: Team): string {
   }
 }
 
-export function DisplayMatchInfo(props: { match: MatchInfoInput; idx: number }) {
+export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
   const date = props.match.timestamp.toLocaleString()
   const winningTeam = displayTeam(props.match.winningTeam)

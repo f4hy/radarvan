@@ -26,11 +26,11 @@ import {
   General,
   GeneralFromJSON,
   instanceOfGeneral,
-  PlayerStatOutput,
+  PlayerStat,
   PlayerStats,
   WinLoss,
-  PlayerRateOverTimeOutput,
-  GameRecordOutput,
+  PlayerRateOverTime,
+  GameRecord,
   MatchListing,
   PlayerListing,
 } from "./api"
@@ -48,14 +48,14 @@ import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import { IconButton } from "@mui/material";
 
-function getGameData(callback: (m: GameRecordOutput[]) => void) {
+function getGameData(callback: (m: GameRecord[]) => void) {
   Client.listReplaysApiReplaysGet()
     .then(callback)
     .catch((e) => alert(e))
 }
 
 function reparse(matchId: number) {
-  Client.reparseApiRepraseMatchIdPost({ matchId: matchId })
+  Client.reparseApiReparseMatchIdPost({ matchId: matchId })
     .then(() => console.log("Parsed " + matchId))
 }
 
@@ -88,7 +88,7 @@ function DownloadButton(props: { url: string, title: string, text: string, disab
   </Tooltip>)
 }
 
-function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: boolean }) {
+function DisplayDataTable(props: { data: GameRecord[], exclude_unparsed: boolean }) {
   const data = props.exclude_unparsed ? props.data.filter((d => d.match)) : props.data
   const columns = [
     { field: "json_s3_uri", headerName: "json_s3_uri" }
@@ -128,7 +128,7 @@ function DisplayDataTable(props: { data: GameRecordOutput[], exclude_unparsed: b
               <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
               <TableCell>{row.match?.map}</TableCell>
               <TableCell>{row.match?.winningTeamId}</TableCell>
-              <TableCell>{((row.match?.players.map(p => p.teamId >= 0 ?`T${p.teamId}:${p.playerName}`: "")) ?? []).join(", ")}</TableCell>
+              <TableCell>{((row.match?.players.map(p => p.teamId >= 0 ? `T${p.teamId}:${p.playerName}` : "")) ?? []).join(", ")}</TableCell>
               <TableCell>{row.match?.incomplete}</TableCell>
             </TableRow>
           ))}
@@ -153,7 +153,7 @@ function Loading() {
 
 
 export default function DisplayDebugData() {
-  const [debugData, setDebugData] = React.useState<GameRecordOutput[]>([])
+  const [debugData, setDebugData] = React.useState<GameRecord[]>([])
   const [checked, setChecked] = React.useState(true);
   React.useEffect(() => {
     getGameData(setDebugData)

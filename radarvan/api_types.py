@@ -274,6 +274,7 @@ class MatchDetails(BaseModel):
         description="at a time map each player to xp"
     )
     first_blood: FirstBlood | None = None
+    building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
 
     class Config:

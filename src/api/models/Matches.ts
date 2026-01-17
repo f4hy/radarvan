@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { MatchInfoOutput } from './MatchInfoOutput';
+import type { MatchInfo } from './MatchInfo';
 import {
-    MatchInfoOutputFromJSON,
-    MatchInfoOutputFromJSONTyped,
-    MatchInfoOutputToJSON,
-    MatchInfoOutputToJSONTyped,
-} from './MatchInfoOutput';
+    MatchInfoFromJSON,
+    MatchInfoFromJSONTyped,
+    MatchInfoToJSON,
+    MatchInfoToJSONTyped,
+} from './MatchInfo';
 
 /**
  * 
@@ -29,10 +29,10 @@ import {
 export interface Matches {
     /**
      * 
-     * @type {Array<MatchInfoOutput>}
+     * @type {Array<MatchInfo>}
      * @memberof Matches
      */
-    matches: Array<MatchInfoOutput>;
+    matches: Array<MatchInfo>;
 }
 
 /**
@@ -53,7 +53,7 @@ export function MatchesFromJSONTyped(json: any, ignoreDiscriminator: boolean): M
     }
     return {
         
-        'matches': ((json['matches'] as Array<any>).map(MatchInfoOutputFromJSON)),
+        'matches': ((json['matches'] as Array<any>).map(MatchInfoFromJSON)),
     };
 }
 
@@ -68,7 +68,7 @@ export function MatchesToJSONTyped(value?: Matches | null, ignoreDiscriminator: 
 
     return {
         
-        'matches': ((value['matches'] as Array<any>).map(MatchInfoOutputToJSON)),
+        'matches': ((value['matches'] as Array<any>).map(MatchInfoToJSON)),
     };
 }
 

@@ -31,10 +31,10 @@ import {
   General,
   GeneralFromJSON,
   instanceOfGeneral,
-  PlayerStatOutput,
+  PlayerStat,
   PlayerStats,
   WinLoss,
-  PlayerRateOverTimeOutput,
+  PlayerRateOverTime,
 } from "./api"
 import { Client } from "./Client"
 
@@ -87,7 +87,7 @@ function rate(wl: WinLoss | undefined): number {
   return 0
 }
 
-function GeneralStatOverTime(props: { ot: PlayerRateOverTimeOutput[] }) {
+function GeneralStatOverTime(props: { ot: PlayerRateOverTime[] }) {
   const grouped = Object.entries(_.groupBy(props.ot, (x) => x.wl?.general))
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -122,7 +122,7 @@ function GeneralStatOverTime(props: { ot: PlayerRateOverTimeOutput[] }) {
   )
 }
 
-function DisplayPlayerStat(props: { stat: PlayerStatOutput; max: number, debug: boolean }) {
+function DisplayPlayerStat(props: { stat: PlayerStat; max: number, debug: boolean }) {
   const sorted = props.stat.stats
   let total_wins = 0
   let total_games = 0

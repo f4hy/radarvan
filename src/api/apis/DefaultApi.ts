@@ -15,19 +15,19 @@
 
 import * as runtime from '../runtime';
 import type {
-  GameRecordOutput,
+  GameRecord,
   GeneralStats,
   HTTPValidationError,
   MatchDetails,
   Matches,
   PlayerStats,
   Team,
-  TournamentResultOutput,
+  TournamentResult,
   WinnerOverride,
 } from '../models/index';
 import {
-    GameRecordOutputFromJSON,
-    GameRecordOutputToJSON,
+    GameRecordFromJSON,
+    GameRecordToJSON,
     GeneralStatsFromJSON,
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
@@ -40,8 +40,8 @@ import {
     PlayerStatsToJSON,
     TeamFromJSON,
     TeamToJSON,
-    TournamentResultOutputFromJSON,
-    TournamentResultOutputToJSON,
+    TournamentResultFromJSON,
+    TournamentResultToJSON,
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
@@ -58,7 +58,15 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
 }
 
-export interface ReparseApiRepraseMatchIdPostRequest {
+export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
+    urlOfReplay: string;
+}
+
+export interface ReparseApiReparseMatchIdPostRequest {
+    matchId: number;
+}
+
+export interface RepraseApiRepraseMatchIdPostRequest {
     matchId: number;
 }
 
@@ -327,7 +335,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Get listing of matches, up to a return count limit for paging.
      * Get Tournament Results
      */
-    async getTournamentResultsApiTournamentResultsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentResultOutput>>> {
+    async getTournamentResultsApiTournamentResultsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentResult>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -342,14 +350,14 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(TournamentResultOutputFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(TournamentResultFromJSON));
     }
 
     /**
      * Get listing of matches, up to a return count limit for paging.
      * Get Tournament Results
      */
-    async getTournamentResultsApiTournamentResultsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TournamentResultOutput>> {
+    async getTournamentResultsApiTournamentResultsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TournamentResult>> {
         const response = await this.getTournamentResultsApiTournamentResultsGetRaw(initOverrides);
         return await response.value();
     }
@@ -390,7 +398,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * List Replays
      */
-    async listReplaysApiReplaysGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecordOutput>>> {
+    async listReplaysApiReplaysGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecord>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -405,14 +413,60 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GameRecordOutputFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GameRecordFromJSON));
     }
 
     /**
      * List Replays
      */
-    async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecordOutput>> {
+    async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecord>> {
         const response = await this.listReplaysApiReplaysGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Register Replay Url
+     */
+    async registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['urlOfReplay'] == null) {
+            throw new runtime.RequiredError(
+                'urlOfReplay',
+                'Required parameter "urlOfReplay" was null or undefined when calling registerReplayUrlApiRegisterReplayUrlPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['urlOfReplay'] != null) {
+            queryParameters['url_of_replay'] = requestParameters['urlOfReplay'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/register_replay_url`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Register Replay Url
+     */
+    async registerReplayUrlApiRegisterReplayUrlPost(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -420,11 +474,54 @@ export class DefaultApi extends runtime.BaseAPI {
      * Rerun the replay parser on this match.
      * Reparse
      */
-    async reparseApiRepraseMatchIdPostRaw(requestParameters: ReparseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async reparseApiReparseMatchIdPostRaw(requestParameters: ReparseApiReparseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
-                'Required parameter "matchId" was null or undefined when calling reparseApiRepraseMatchIdPost().'
+                'Required parameter "matchId" was null or undefined when calling reparseApiReparseMatchIdPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/reparse/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Reparse
+     */
+    async reparseApiReparseMatchIdPost(requestParameters: ReparseApiReparseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.reparseApiReparseMatchIdPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Reprase
+     */
+    async repraseApiRepraseMatchIdPostRaw(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling repraseApiRepraseMatchIdPost().'
             );
         }
 
@@ -452,10 +549,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
     /**
      * Rerun the replay parser on this match.
-     * Reparse
+     * Reprase
      */
-    async reparseApiRepraseMatchIdPost(requestParameters: ReparseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.reparseApiRepraseMatchIdPostRaw(requestParameters, initOverrides);
+    async repraseApiRepraseMatchIdPost(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.repraseApiRepraseMatchIdPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

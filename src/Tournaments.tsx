@@ -34,13 +34,13 @@ import {
   Legend,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStatOutput, GeneralStats, Tournament, TournamentResultOutput, MatchupResultOutput, WinLoss, MatchInfoOutput } from "./api"
+import { General, GeneralStat, GeneralStats, Tournament, TournamentResult, MatchupResult, WinLoss, MatchInfo } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from './Matches';
 
-function getTournamentResults(callback: (m: TournamentResultOutput[]) => void) {
+function getTournamentResults(callback: (m: TournamentResult[]) => void) {
   Client.getTournamentResultsApiTournamentResultsGet()
     .then(callback)
     .catch((e) => alert(e))
@@ -111,7 +111,7 @@ function DisplayOverrideBanner(props: { override: string | undefined | null }) {
   return (<></>)
 }
 
-function ShowMatchesForMatchup(props: { matches: MatchInfoOutput[] }) {
+function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
   if (props.matches.length == 0) {
     return (<Typography color="warning.main" style={{ fontWeight: "bold" }}>
       No recorded matches to show
@@ -128,7 +128,7 @@ function ShowMatchesForMatchup(props: { matches: MatchInfoOutput[] }) {
   )
 }
 
-function DisplayMatchup(props: { matchup: MatchupResultOutput }) {
+function DisplayMatchup(props: { matchup: MatchupResult }) {
   const gameDate = props.matchup.matches.find(m => m.timestamp)?.timestamp?.toDateString() ?? ""
   const header = Object.keys(props.matchup.outcome).join(" vs. ") + ` @ ${gameDate}`
   return (
@@ -256,7 +256,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
   )
 }
 
-function DisplayMatchupsPlayed(props: { matchups: MatchupResultOutput[] }) {
+function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
   const [selected, setSelected] = React.useState<number>(0);
   const buttonsPerRow: number = 5;
 
@@ -318,7 +318,7 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResultOutput[] }) {
 }
 
 
-function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
+function DisplayTournamentResult(props: { result: TournamentResult }) {
   return (
     <Stack>
       <DisplayTournamentInfo tournament={props.result.tournament} />
@@ -334,9 +334,8 @@ function DisplayTournamentResult(props: { result: TournamentResultOutput }) {
   )
 }
 
-
 export default function DisplayTournamentResults() {
-  const [touramentResults, setTournamentResults] = React.useState<TournamentResultOutput[]>([])
+  const [touramentResults, setTournamentResults] = React.useState<TournamentResult[]>([])
   React.useEffect(() => {
     getTournamentResults(setTournamentResults)
   }, [])

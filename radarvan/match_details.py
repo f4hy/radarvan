@@ -74,9 +74,15 @@ class StatsData(BaseModel):
     buildings_built: dict[float, dict[str, int]]
 
 
+class TimelineEvent(BaseModel):
+    minute: float
+    event_name: str
+
+
 class AllExtractedData(BaseModel):
     stats_data: StatsData
     first_blood: FirstBlood | None
+    building_first_blood: FirstBlood | None
 
 
 def _sum(i: int | list[int]) -> int:
@@ -106,19 +112,29 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
     prev_vals = {t: {} for t in data_types}
 
     first_blood: FirstBlood | None = None
+    building_first_blood: FirstBlood | None = None
 
     for chunk in replay.Body:
         if chunk.PlayerStats is None:
             continue
         for dt in data_types:
             if (d := getattr(chunk.PlayerStats, dt)) is not None:
-                if dt in {"units_killed", "buildings_killed"} and first_blood is None:
-                    print(d)
+                if dt in {"units_killed"} and first_blood is None:
                     if sum(sum(v) for v in d) > 0:
                         for victim_idx, vs in enumerate(d):
                             for killer_idx, ks in enumerate(vs):
                                 if ks > 0:
                                     first_blood = FirstBlood(
+                                        attacker=player_index_to_name[killer_idx],
+                                        victim=player_index_to_name[victim_idx],
+                                        atMinute=chunk.TimeCode * scale,
+                                    )
+                if dt in {"buildings_killed"} and building_first_blood is None:
+                    if sum(sum(v) for v in d) > 0:
+                        for victim_idx, vs in enumerate(d):
+                            for killer_idx, ks in enumerate(vs):
+                                if ks > 0:
+                                    building_first_blood = FirstBlood(
                                         attacker=player_index_to_name[killer_idx],
                                         victim=player_index_to_name[victim_idx],
                                         atMinute=chunk.TimeCode * scale,
@@ -138,7 +154,11 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
                     prev_vals[dt] = new_values
 
     sd = StatsData.model_validate(data)
-    return AllExtractedData(stats_data=sd, first_blood=first_blood)
+    return AllExtractedData(
+        stats_data=sd,
+        first_blood=first_blood,
+        building_first_blood=building_first_blood,
+    )
 
 
 def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
@@ -188,6 +208,11 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     first_blood = (
         stats_data.first_blood.model_dump() if stats_data.first_blood else None
     )
+    building_first_blood = (
+        stats_data.building_first_blood.model_dump()
+        if stats_data.building_first_blood
+        else None
+    )
     upgrades = events_from_replay(replay)
     logger.info(f"Money {len(money.player_monies)}")
     logger.info(f"First blood {first_blood}")
@@ -207,5 +232,6 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
         money_collected_values={},
         stats_data=stats_data.stats_data.model_dump(),
         first_blood=first_blood,
+        building_first_blood=building_first_blood,
         player_summary=api_player_summaries(replay),
     )

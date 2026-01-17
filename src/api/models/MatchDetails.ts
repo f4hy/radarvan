@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { Costs } from './Costs';
+import {
+    CostsFromJSON,
+    CostsFromJSONTyped,
+    CostsToJSON,
+    CostsToJSONTyped,
+} from './Costs';
 import type { PlayerSummary } from './PlayerSummary';
 import {
     PlayerSummaryFromJSON,
@@ -34,13 +41,6 @@ import {
     FirstBloodToJSON,
     FirstBloodToJSONTyped,
 } from './FirstBlood';
-import type { CostsOutput } from './CostsOutput';
-import {
-    CostsOutputFromJSON,
-    CostsOutputFromJSONTyped,
-    CostsOutputToJSON,
-    CostsOutputToJSONTyped,
-} from './CostsOutput';
 import type { SpentOverTime } from './SpentOverTime';
 import {
     SpentOverTimeFromJSON,
@@ -70,10 +70,10 @@ export interface MatchDetails {
     matchId: number;
     /**
      * 
-     * @type {Array<CostsOutput>}
+     * @type {Array<Costs>}
      * @memberof MatchDetails
      */
-    costs: Array<CostsOutput>;
+    costs: Array<Costs>;
     /**
      * 
      * @type {Array<APM>}
@@ -118,6 +118,12 @@ export interface MatchDetails {
     firstBlood?: FirstBlood | null;
     /**
      * 
+     * @type {FirstBlood}
+     * @memberof MatchDetails
+     */
+    buildingFirstBlood?: FirstBlood | null;
+    /**
+     * 
      * @type {Array<PlayerSummary>}
      * @memberof MatchDetails
      */
@@ -151,7 +157,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
     return {
         
         'matchId': json['matchId'],
-        'costs': ((json['costs'] as Array<any>).map(CostsOutputFromJSON)),
+        'costs': ((json['costs'] as Array<any>).map(CostsFromJSON)),
         'apms': ((json['apms'] as Array<any>).map(APMFromJSON)),
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
         'spent': SpentOverTimeFromJSON(json['spent']),
@@ -159,6 +165,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'moneyCollectedValues': json['money_collected_values'],
         'statsData': json['stats_data'],
         'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
+        'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
     };
 }
@@ -175,7 +182,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
     return {
         
         'matchId': value['matchId'],
-        'costs': ((value['costs'] as Array<any>).map(CostsOutputToJSON)),
+        'costs': ((value['costs'] as Array<any>).map(CostsToJSON)),
         'apms': ((value['apms'] as Array<any>).map(APMToJSON)),
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
         'spent': SpentOverTimeToJSON(value['spent']),
@@ -183,6 +190,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'money_collected_values': value['moneyCollectedValues'],
         'stats_data': value['statsData'],
         'first_blood': FirstBloodToJSON(value['firstBlood']),
+        'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
     };
 }

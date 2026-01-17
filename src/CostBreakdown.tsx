@@ -15,7 +15,7 @@ import {
   Spent,
   Upgrades,
   APM,
-  CostsOutput,
+  Costs,
   CostsBuiltObject,
 } from "./api"
 
@@ -28,7 +28,7 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
   return bc
 }
 
-export default function CostBreakdown(props: { costs: CostsOutput[] }) {
+export default function CostBreakdown(props: { costs: Costs[] }) {
   if (props.costs.length == 0) {
     return <></>
   }

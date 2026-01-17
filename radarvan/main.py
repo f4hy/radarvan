@@ -98,13 +98,6 @@ app.add_middleware(
 app.add_middleware(middleware.RequestTimingMiddleware)
 
 
-# @app.get("/api/reparse")
-# def reparse() -> None:
-#     """Reparse the replays."""
-#     manual.parse_replay.cache_clear()
-#     for replay in manual.REPLAYS:
-#         logger.info(f"Reparsing {replay=}")
-#         manual.parse_replay(replay, reparse=True)
 def dont_cache_manager(replay_manager: ReplayManager) -> str:
     return "single_key"
 

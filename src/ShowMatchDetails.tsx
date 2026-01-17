@@ -222,13 +222,17 @@ function ApmChart(props: { apms: APM[] }) {
   )
 }
 
-function DisplayFirstBlood(props: { first_blood?: FirstBlood }) {
+function DisplayFirstBlood(props: { first_blood?: FirstBlood, building_first_blood?: FirstBlood }) {
   if (props.first_blood === undefined) {
     return <></>
   }
+  let msg = `${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)}minutes`
+  if (props.building_first_blood) {
+    msg += ` | ${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`
+  }
   return (
     <>
-      <Alert severity="warning">{props.first_blood.attacker} drew first blood on {props.first_blood.victim} at {props.first_blood.atMinute.toFixed(2)}minutes</Alert>
+      <Alert severity="warning">{msg}</Alert>
     </>
   )
 }
@@ -247,7 +251,7 @@ export default function ShowMatchDetails(props: { id: number }) {
   return (
     <>
       <Divider />
-      <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} />
+      <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} building_first_blood={details.buildingFirstBlood ?? undefined} />
       <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />

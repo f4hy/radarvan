@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { PlayerStatOutput } from './PlayerStatOutput';
+import type { PlayerStat } from './PlayerStat';
 import {
-    PlayerStatOutputFromJSON,
-    PlayerStatOutputFromJSONTyped,
-    PlayerStatOutputToJSON,
-    PlayerStatOutputToJSONTyped,
-} from './PlayerStatOutput';
+    PlayerStatFromJSON,
+    PlayerStatFromJSONTyped,
+    PlayerStatToJSON,
+    PlayerStatToJSONTyped,
+} from './PlayerStat';
 
 /**
  * 
@@ -29,10 +29,10 @@ import {
 export interface PlayerStats {
     /**
      * 
-     * @type {Array<PlayerStatOutput>}
+     * @type {Array<PlayerStat>}
      * @memberof PlayerStats
      */
-    playerStats: Array<PlayerStatOutput>;
+    playerStats: Array<PlayerStat>;
 }
 
 /**
@@ -53,7 +53,7 @@ export function PlayerStatsFromJSONTyped(json: any, ignoreDiscriminator: boolean
     }
     return {
         
-        'playerStats': ((json['playerStats'] as Array<any>).map(PlayerStatOutputFromJSON)),
+        'playerStats': ((json['playerStats'] as Array<any>).map(PlayerStatFromJSON)),
     };
 }
 
@@ -68,7 +68,7 @@ export function PlayerStatsToJSONTyped(value?: PlayerStats | null, ignoreDiscrim
 
     return {
         
-        'playerStats': ((value['playerStats'] as Array<any>).map(PlayerStatOutputToJSON)),
+        'playerStats': ((value['playerStats'] as Array<any>).map(PlayerStatToJSON)),
     };
 }
 

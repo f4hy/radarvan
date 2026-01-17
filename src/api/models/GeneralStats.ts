@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GeneralStatOutput } from './GeneralStatOutput';
+import type { GeneralStat } from './GeneralStat';
 import {
-    GeneralStatOutputFromJSON,
-    GeneralStatOutputFromJSONTyped,
-    GeneralStatOutputToJSON,
-    GeneralStatOutputToJSONTyped,
-} from './GeneralStatOutput';
+    GeneralStatFromJSON,
+    GeneralStatFromJSONTyped,
+    GeneralStatToJSON,
+    GeneralStatToJSONTyped,
+} from './GeneralStat';
 
 /**
  * 
@@ -29,10 +29,10 @@ import {
 export interface GeneralStats {
     /**
      * 
-     * @type {Array<GeneralStatOutput>}
+     * @type {Array<GeneralStat>}
      * @memberof GeneralStats
      */
-    generalStats: Array<GeneralStatOutput>;
+    generalStats: Array<GeneralStat>;
 }
 
 /**
@@ -53,7 +53,7 @@ export function GeneralStatsFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
-        'generalStats': ((json['general_stats'] as Array<any>).map(GeneralStatOutputFromJSON)),
+        'generalStats': ((json['general_stats'] as Array<any>).map(GeneralStatFromJSON)),
     };
 }
 
@@ -68,7 +68,7 @@ export function GeneralStatsToJSONTyped(value?: GeneralStats | null, ignoreDiscr
 
     return {
         
-        'general_stats': ((value['generalStats'] as Array<any>).map(GeneralStatOutputToJSON)),
+        'general_stats': ((value['generalStats'] as Array<any>).map(GeneralStatToJSON)),
     };
 }
 
