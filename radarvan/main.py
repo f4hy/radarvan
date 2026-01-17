@@ -194,6 +194,14 @@ def get_matches(
 
 
 @app.post("/api/reprase/{match_id}")
+def reprase(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    """Rerun the replay parser on this match."""
+    return matches.reparse_replay(match_id, replay_manager)
+
+@app.post("/api/reparse/{match_id}")
 def reparse(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
