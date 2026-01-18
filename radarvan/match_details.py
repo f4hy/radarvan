@@ -101,10 +101,10 @@ def is_action(order_name: str) -> bool:
 
 def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
     players = replay.Header.Metadata.Players
-    action_counts = {p.Name: 0 for p in players}
+    action_counts = {p.Name: 0 for p in players if p.Team >= 0}
 
     for chunk in replay.Body:
-        if not chunk.PlayerName:
+        if  chunk.PlayerName not in action_counts:
             continue
         if is_action(chunk.OrderName):
             action_counts[chunk.PlayerName] += 1

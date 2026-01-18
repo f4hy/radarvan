@@ -17,6 +17,7 @@ import {
   XAxis,
   YAxis,
   ZAxis,
+  Cell,
 } from "recharts"
 import { PlayerColor } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
@@ -62,7 +63,7 @@ const shapes: (
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
   title: string
-  playerSummaries: PlayerSummary[]
+playerSummaries: PlayerSummary[]
   horizontalLines?: number[]
 }) {
   const lines = props.horizontalLines ?? []
@@ -193,30 +194,29 @@ function EventChart(props: {
   }
 }
 
-function ApmChart(props: { apms: APM[] }) {
+function ApmChart(props: { apms: APM[] , playerSummaries: PlayerSummary[]}) {
   if (props.apms.length === 0) {
     return <div>APM data not yet availible</div>
   }
+    const colors = props.playerSummaries.reduce(
+      (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
+      {},
+    )
   const data = _.sortBy(props.apms, (a) => -a.apm)
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart
         data={data}
-        layout="horizontal"
+        layout="vertical"
         margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
       >
-        <Bar dataKey="apm" fill="#42A5F5" />
-        <XAxis dataKey="playerName" />
-        <YAxis
-          type="number"
-          label={{
-            value: "Actions Per Minute",
-            position: "insideLeft",
-            offset: -5,
-            angle: -90,
-            stroke: 5
-          }}
-        />
+        <XAxis type="number" dataKey="apm" label="actions per minute" />
+        <YAxis type="category" dataKey="playerName" />
+        <Bar dataKey="apm" >
+          {data.map((entry, index) =>
+            (<Cell key={`cell-${index}`} fill={_.get(colors, entry.playerName)} />            )
+            )}
+        </Bar>
         <Tooltip cursor={false} formatter={(value) => typeof value === 'number' ? value.toFixed(1) : value} />
       </BarChart>
     </ResponsiveContainer>
@@ -227,9 +227,9 @@ function DisplayFirstBlood(props: { first_blood?: FirstBlood, building_first_blo
   if (props.first_blood === undefined) {
     return <></>
   }
-  const msgs = [`${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)}minutes`]
+  const msgs = [`${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)} minutes`]
   if (props.building_first_blood) {
-    msgs.push(`${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`)
+    msgs.push(`${ props.building_first_blood.attacker } drew first building blood on ${ props.building_first_blood.victim } at ${ props.building_first_blood.atMinute.toFixed(2) }minutes`)
   }
   return (
     <Stack direction="row" spacing={0} sx={{
@@ -261,7 +261,7 @@ export default function ShowMatchDetails(props: { id: number }) {
       <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />
-      <ApmChart apms={details.apms} />
+      <ApmChart apms={details.apms} playerSummaries={details.playerSummary}/>
       <Divider />
       <CostBreakdown costs={details.costs} />
       <Divider />
@@ -273,7 +273,7 @@ export default function ShowMatchDetails(props: { id: number }) {
       <MoneyChart
         title="$ Earned"
         money={details.statsData["money_earned"]}
-        playerSummaries={details.playerSummary}
+					playerSummaries={details.playerSummary}
       />
       <MoneyChart
         title="XP"
