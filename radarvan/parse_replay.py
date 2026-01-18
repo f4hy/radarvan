@@ -15,7 +15,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-PARSE_URL = "https://cncstats.herokuapp.com/replay"
+# PARSE_URL = "https://cncstats.herokuapp.com/replay"
+PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
 
 
 def winner_override(match_id: int) -> Team | None:
