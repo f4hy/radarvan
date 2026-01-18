@@ -47,3 +47,6 @@ yarn-error.log*
 # Dependency directories (remove the comment below to include it)
 # vendor/
 /.env
+/jsons/
+/replays/
+/reps/

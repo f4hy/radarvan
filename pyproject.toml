@@ -35,6 +35,12 @@ dev = [
   "types-tqdm>=4.67.0.20250809",
 ]
 
+[tool.black]
+line-length = 88
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 88
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -70,7 +76,6 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.9
 target-version = "py313"
 
 [tool.ruff.lint]
@@ -78,7 +83,7 @@ target-version = "py313"
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 select = ["E4", "E7", "E9", "F", "UP"]
-ignore = []
+ignore = ["E501"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
