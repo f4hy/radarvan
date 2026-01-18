@@ -23,7 +23,7 @@ import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
 import { MatchDetails, Spent, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
-import { Alert } from "@mui/material"
+import { Alert, Stack } from "@mui/material"
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
@@ -226,14 +226,19 @@ function DisplayFirstBlood(props: { first_blood?: FirstBlood, building_first_blo
   if (props.first_blood === undefined) {
     return <></>
   }
-  let msg = `${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)}minutes`
+  const msgs = [`${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)}minutes`]
   if (props.building_first_blood) {
-    msg += ` | ${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`
+    msgs.push(`${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`)
   }
   return (
-    <>
-      <Alert severity="warning">{msg}</Alert>
-    </>
+    <Stack direction="row" spacing={0} sx={{
+      justifyContent: "space-between",
+      alignItems: "center",
+    }}>
+      {msgs.map(m =>
+        (<Alert severity="warning" sx={{ width: "100%" }}>{m}</Alert>)
+      )}
+    </Stack>
   )
 }
 
