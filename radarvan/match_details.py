@@ -91,7 +91,7 @@ def _sum(i: int | list[int]) -> int:
 
 def is_action(order_name: str) -> bool:
     match order_name:
-        case "Chunksum" | "DeclareUserId" | "EndReplay":
+        case "Chunksum" | "DeclareUserId" | "EndReplay" | "SetSelection":
             return False
         case _ if order_name.startswith("Unknown"):
             return False
@@ -99,20 +99,53 @@ def is_action(order_name: str) -> bool:
             return True
 
 
+ACTIVE_ACTIONS = {
+    "AttackMove",
+    "AttackObject",
+    "BuildObject",
+    "BuildUpgrade",
+    "CreateUnit",
+    "MoveTo",
+    "ForceAttackObjectGuard",
+    "FlamewallRocketPodContaminate",
+    "Sell",
+}
+
+
+def is_active_action(order_name: str) -> bool:
+    return order_name in ACTIVE_ACTIONS
+
+
 def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
     players = replay.Header.Metadata.Players
     action_counts = {p.Name: 0 for p in players if p.Team >= 0}
+    player_first_active = {p.Name: -1 for p in players if p.Team >= 0}
+    player_last_active = {p.Name: 0 for p in players if p.Team >= 0}
 
     for chunk in replay.Body:
-        if  chunk.PlayerName not in action_counts:
+        if chunk.PlayerName not in action_counts:
             continue
         if is_action(chunk.OrderName):
             action_counts[chunk.PlayerName] += 1
+        if is_active_action(chunk.OrderName):
+            player_last_active[chunk.PlayerName] = chunk.TimeCode
+            if player_first_active[chunk.PlayerName] < 0:
+                player_first_active[chunk.PlayerName] = chunk.TimeCode
 
-    minutes = duration_minutes(replay)
+    minutes_per = minutess_per_step(replay)
+
+    player_minutes = {
+        name: (player_last_active[name] - first ) * minutes_per
+        for name, first in player_first_active.items()
+    }
 
     return [
-        APM(player_name=name, action_count=count, minutes=minutes, apm=count / minutes)
+        APM(
+            player_name=name,
+            action_count=count,
+            minutes=player_minutes[name],
+            apm=count / player_minutes[name],
+        )
         for name, count in action_counts.items()
     ]
 

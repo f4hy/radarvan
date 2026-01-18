@@ -204,13 +204,13 @@ function ApmChart(props: { apms: APM[] , playerSummaries: PlayerSummary[]}) {
     )
   const data = _.sortBy(props.apms, (a) => -a.apm)
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={200}>
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
+        margin={{ top: 5, right: 10, left: 15, bottom: 20 }}
       >
-        <XAxis type="number" dataKey="apm" label="actions per minute" />
+        <XAxis type="number" dataKey="apm" label={{value: "Actions Per Minute", offset: 1, position: "bottom"}} />
         <YAxis type="category" dataKey="playerName" />
         <Bar dataKey="apm" >
           {data.map((entry, index) =>
