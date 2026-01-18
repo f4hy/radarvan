@@ -4,12 +4,12 @@ from api_types import (
     PlayerSummary as APIPlayerSummary,
 )
 from collections import defaultdict
-from cncstats_types import EnhancedReplay
-from api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades
+from cncstats_types import EnhancedReplay, EnhancedBodyChunk
+from api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades, APM
 import logging
 from dataclasses import dataclass
 from pydantic import BaseModel
-from utils import minutess_per_step
+from utils import minutess_per_step, duration_minutes
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,34 @@ class AllExtractedData(BaseModel):
 
 def _sum(i: int | list[int]) -> int:
     return sum(i) if isinstance(i, list) else i
+
+
+def is_action(order_name: str) -> bool:
+    match order_name:
+        case "Chunksum" | "DeclareUserId" | "EndReplay":
+            return False
+        case _ if order_name.startswith("Unknown"):
+            return False
+        case _:
+            return True
+
+
+def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
+    players = replay.Header.Metadata.Players
+    action_counts = {p.Name: 0 for p in players}
+
+    for chunk in replay.Body:
+        if not chunk.PlayerName:
+            continue
+        if is_action(chunk.OrderName):
+            action_counts[chunk.PlayerName] += 1
+
+    minutes = duration_minutes(replay)
+
+    return [
+        APM(player_name=name, action_count=count, minutes=minutes, apm=count / minutes)
+        for name, count in action_counts.items()
+    ]
 
 
 def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
@@ -204,6 +232,7 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
 
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     money = player_money_from_replay(replay)
+    apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
     first_blood = (
         stats_data.first_blood.model_dump() if stats_data.first_blood else None
@@ -219,7 +248,7 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
         costs=[],
-        apms=[],
+        apms=apms,
         upgrade_events=upgrades,
         spent=SpentOverTime(
             buildings=[],

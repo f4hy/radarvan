@@ -208,6 +208,7 @@ function ApmChart(props: { apms: APM[] }) {
         <Bar dataKey="apm" fill="#42A5F5" />
         <XAxis dataKey="playerName" />
         <YAxis
+          type="number"
           label={{
             value: "Actions Per Minute",
             position: "insideLeft",
@@ -216,7 +217,7 @@ function ApmChart(props: { apms: APM[] }) {
             stroke: 5
           }}
         />
-        <Tooltip cursor={false} />
+        <Tooltip cursor={false} formatter={(value) => typeof value === 'number' ? value.toFixed(1) : value} />
       </BarChart>
     </ResponsiveContainer>
   )
