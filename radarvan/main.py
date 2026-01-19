@@ -24,7 +24,8 @@ from api_types import (
     WinnerOverride,
     GameRecord,
     TournamentResult,
-    ReplayFileSchema, ParsedReplayJsonSchema
+    ReplayFileSchema,
+    ParsedReplayJsonSchema,
 )
 from cachetools import TTLCache, cached
 from db_utils import DatabaseManager, ReplayManager
@@ -289,8 +290,12 @@ def get_files_for_match_id(
     """Get winner overrides."""
     files = replay_manager.all_files_for_id(match_id)
     resp = {
-        "replay_files": [ReplayFileSchema.model_validate(r) for r in files.replay_files],
-        "parsed_files": [ParsedReplayJsonSchema.model_validate(p) for p in files.parsed_files],
+        "replay_files": [
+            ReplayFileSchema.model_validate(r) for r in files.replay_files
+        ],
+        "parsed_files": [
+            ParsedReplayJsonSchema.model_validate(p) for p in files.parsed_files
+        ],
     }
     return resp
 
@@ -306,6 +311,38 @@ def set_overrides(
     return WinnerOverride(
         match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
     )
+
+
+@app.post("/api/update_num_timestamps/")
+def update_num_timestamps(
+    max_to_update: int = 1000,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    missing_timestamp_count = replay_manager.list_jsons_without_num_timestamps()
+    updated = 0
+    for missing in missing_timestamp_count:
+        replay = replay_files.parse_replay(missing.replay_file_url, replay_manager)
+        num_time_stamps = replay.Header.NumTimeStamps
+        has_enhanced_stats = any(chunk.PlayerStats is not None for chunk in replay.Body)
+        result = replay_manager.update_parsed_json(
+            missing.json_s3_uri,
+            num_time_stamps,
+            has_player_stats=has_enhanced_stats,
+        )
+        logger.info(f"Updated {missing.match_id} success={result}")
+        if result:
+            updated += 1
+        if updated >= max_to_update:
+            break
+    return {"updated": updated}
+
+@app.get("/api/replays_without_playerstats/")
+def replays_without_playerstats(
+    max_to_return: int = 10,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    missing_player_stats = replay_manager.list_jsons_without_player_stats(max_to_return)
+    return missing_player_stats
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

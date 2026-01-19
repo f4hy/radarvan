@@ -2,7 +2,8 @@ from cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections.abc import Iterator
-from sqlalchemy import create_engine, select, func, and_
+from sqlalchemy import create_engine, select, func, and_, update, or_
+from sqlalchemy import desc, nulls_last
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date, UTC
@@ -110,7 +111,7 @@ class ReplayManager:
         statement = (
             select(ParsedReplayJson)
             .where(ParsedReplayJson.match_id == match_id)
-            .order_by(ParsedReplayJson.created_at.desc())
+            .order_by(nulls_last(desc(ParsedReplayJson.num_time_stamps)))
             .limit(1)
         )
         return self.session.scalar(statement)
@@ -148,8 +149,11 @@ class ReplayManager:
         parsed_replay: EnhancedReplay,
     ) -> ParsedReplayJson:
         """Save the result of parsing."""
-        game_timestamp = (datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin),)
+        game_timestamp = datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin)
         replay_id = parsed_replay.replay_id()
+        has_enhanced_stats = any(
+            chunk.PlayerStats is not None for chunk in parsed_replay.Body
+        )
         logger.info(
             f"Saving parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
         )
@@ -160,7 +164,8 @@ class ReplayManager:
             replay_file_url=original_replay_file_url,
             game_timestamp=game_timestamp,
             game_date=game_date,
-            num_timestamp=parsed_replay.Header.NumTimeStamps,
+            num_time_stamps=parsed_replay.Header.NumTimeStamps,
+            has_enhanced_stats=has_enhanced_stats,
         )
         self.session.merge(parsed_json)
         replay_file = self.session.get(ReplayFile, original_replay_file_url)
@@ -261,3 +266,66 @@ class ReplayManager:
         stmt = select(WinnerOverride)
         overrides = self.session.execute(stmt).scalars().all()
         return {o.match_id: o for o in overrides}
+
+    def list_jsons_without_num_timestamps(self) -> Iterator[ParsedReplayJson]:
+        stmt = (
+            select(ParsedReplayJson)
+            .where(
+                or_(
+                    ParsedReplayJson.num_time_stamps.is_(None),
+                    ParsedReplayJson.has_enhanced_stats.is_(None),
+                )
+            )
+            .order_by(desc(ParsedReplayJson.match_id))
+        )
+        for result in self.session.execute(stmt).scalars().all():
+            yield result
+
+    def list_jsons_without_player_stats(self, limit: int) -> Iterator[int]:
+        match_ids_with_enhanced = (
+            select(ParsedReplayJson.match_id)
+            .where(ParsedReplayJson.has_enhanced_stats.is_(True))
+            .distinct()
+            .scalar_subquery()
+        )
+
+        # Main query: all other match_ids
+        stmt = (
+            select(ParsedReplayJson.match_id, ParsedReplayJson.created_at)
+            .where(ParsedReplayJson.match_id.not_in(match_ids_with_enhanced))
+            .where(
+                and_(
+                    ParsedReplayJson.match_id.not_in(match_ids_with_enhanced),
+                    ParsedReplayJson.num_time_stamps > 5000,
+                )
+            )
+            .order_by(desc(ParsedReplayJson.created_at), ParsedReplayJson.match_id)
+            .distinct()
+            .limit(limit)
+        )
+        for res in self.session.execute(stmt).scalars().all():
+            yield res
+
+    def update_parsed_json(
+        self,
+        json_s3_uri: str,  # Primary key
+        num_time_stamps: int,
+        has_player_stats: bool,
+    ) -> bool:
+        """Update the file_size_bytes for a ParsedReplayJson record.
+
+        Returns:
+            bool: True if updated, False if not found
+        """
+        statement = (
+            update(ParsedReplayJson)
+            .where(ParsedReplayJson.json_s3_uri == json_s3_uri)
+            .values(
+                num_time_stamps=num_time_stamps, has_enhanced_stats=has_player_stats
+            )
+        )
+
+        result = self.session.execute(statement)
+        self.session.commit()
+
+        return result.rowcount > 0

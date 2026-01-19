@@ -408,5 +408,6 @@ class ParsedReplayJsonSchema(BaseModel):
     game_timestamp: datetime
     game_date: date
     updated_at: datetime | None = None
+    has_enhanced_stats: bool | None = None
 
     model_config = ConfigDict(from_attributes=True)

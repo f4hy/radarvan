@@ -79,6 +79,7 @@ class ParsedReplayJson(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     game_timestamp = Column(DateTime, nullable=False)
     game_date = Column(Date, index=True)
+    has_enhanced_stats = Column(Boolean, nullable=True)
     # Relationships
     replay_file = relationship("ReplayFile", back_populates="parsed_replay_json")
     match = relationship(
