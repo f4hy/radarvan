@@ -24,6 +24,7 @@ from api_types import (
     WinnerOverride,
     GameRecord,
     TournamentResult,
+    ReplayFileSchema, ParsedReplayJsonSchema
 )
 from cachetools import TTLCache, cached
 from db_utils import DatabaseManager, ReplayManager
@@ -194,6 +195,7 @@ def reprase(
     """Rerun the replay parser on this match."""
     return matches.reparse_replay(match_id, replay_manager)
 
+
 @app.post("/api/reparse/{match_id}")
 def reparse(
     match_id: int,
@@ -277,6 +279,20 @@ def get_overrides(
         )
         for o in overrides.values()
     ]
+
+
+@app.get("/api/files_for_match", response_model_exclude_none=True)
+def get_files_for_match_id(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    """Get winner overrides."""
+    files = replay_manager.all_files_for_id(match_id)
+    resp = {
+        "replay_files": [ReplayFileSchema.model_validate(r) for r in files.replay_files],
+        "parsed_files": [ParsedReplayJsonSchema.model_validate(p) for p in files.parsed_files],
+    }
+    return resp
 
 
 @app.post("/api/set_override/")

@@ -1,3 +1,4 @@
+from cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections.abc import Iterator
@@ -18,8 +19,15 @@ from db import (
 )
 import logging
 from pydantic import BaseModel
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class AllFilesForId:
+    replay_files: list[ReplayFile]
+    parsed_files: list[ParsedReplayJson]
 
 
 class FileListing(BaseModel):
@@ -87,6 +95,17 @@ class ReplayManager:
         fetched = self.session.get(ParsedReplayJson, json_uri)
         return fetched
 
+    def all_files_for_id(self, match_id: int) -> AllFilesForId:
+        stmt = (
+            select(ParsedReplayJson)
+            .where(ParsedReplayJson.match_id == match_id)
+            .options(joinedload(ParsedReplayJson.replay_file))
+        )
+
+        parsed_files = self.session.execute(stmt).scalars().all()
+        replay_files = [p.replay_file for p in parsed_files]
+        return AllFilesForId(replay_files=replay_files, parsed_files=parsed_files)
+
     def get_replay_json_by_match_id(self, match_id: int) -> ParsedReplayJson | None:
         statement = (
             select(ParsedReplayJson)
@@ -125,11 +144,12 @@ class ReplayManager:
     def save_parsed_json(
         self,
         json_s3_uri: str,
-        replay_id: int,
         original_replay_file_url: str,
-        game_timestamp: datetime,
+        parsed_replay: EnhancedReplay,
     ) -> ParsedReplayJson:
         """Save the result of parsing."""
+        game_timestamp = (datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin),)
+        replay_id = parsed_replay.replay_id()
         logger.info(
             f"Saving parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
         )
@@ -140,6 +160,7 @@ class ReplayManager:
             replay_file_url=original_replay_file_url,
             game_timestamp=game_timestamp,
             game_date=game_date,
+            num_timestamp=parsed_replay.Header.NumTimeStamps,
         )
         self.session.add(parsed_json)
         replay_file = self.session.get(ReplayFile, original_replay_file_url)

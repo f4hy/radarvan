@@ -382,3 +382,32 @@ class WinnerOverride(BaseModel):
     match_id: int
     winning_team_id: Team
     incomplete: str | None = None
+
+
+class ReplayFileSchema(BaseModel):
+    """Public API representation of ReplayFile"""
+
+    original_url: str
+    s3_uri: str
+    status: str
+    player_id: str
+    discovered_at: datetime
+    source_date: date
+    parsed_at: datetime | None = None
+    error_message: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)  # Allows ORM mode
+
+
+class ParsedReplayJsonSchema(BaseModel):
+    """Public API representation of ParsedReplayJson"""
+
+    json_s3_uri: str
+    match_id: int
+    replay_file_url: str
+    file_size_bytes: int | None = None
+    created_at: datetime
+    game_timestamp: datetime
+    game_date: date
+
+    model_config = ConfigDict(from_attributes=True)

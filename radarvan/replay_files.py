@@ -67,10 +67,9 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
         parsed_replay = parse_replay_data(raw_replay, replay_manager)
         fs.write_text(json_path, parsed_replay.model_dump_json())
         replay_manager.save_parsed_json(
-            replay_id=parsed_replay.replay_id(),
+            parsed_replay=parsed_replay,
             original_replay_file_url=path,
             json_s3_uri=json_path,
-            game_timestamp=datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin),
         )
 
     logger.info(f"Finished parsing replay {path=}")
