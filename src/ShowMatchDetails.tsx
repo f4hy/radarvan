@@ -1,4 +1,6 @@
+import { alpha } from '@mui/material/styles';
 import Divider from "@mui/material/Divider"
+import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
@@ -25,6 +27,15 @@ import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
 import { MatchDetails, Spent, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
 import { Alert, Stack } from "@mui/material"
+import Table from '@mui/material/Table';
+import Link from '@mui/material/Link';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
@@ -63,7 +74,7 @@ const shapes: (
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
   title: string
-playerSummaries: PlayerSummary[]
+  playerSummaries: PlayerSummary[]
   horizontalLines?: number[]
 }) {
   const lines = props.horizontalLines ?? []
@@ -194,14 +205,14 @@ function EventChart(props: {
   }
 }
 
-function ApmChart(props: { apms: APM[] , playerSummaries: PlayerSummary[]}) {
+function ApmChart(props: { apms: APM[], playerSummaries: PlayerSummary[] }) {
   if (props.apms.length === 0) {
     return <div>APM data not yet availible</div>
   }
-    const colors = props.playerSummaries.reduce(
-      (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
-      {},
-    )
+  const colors = props.playerSummaries.reduce(
+    (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
+    {},
+  )
   const data = _.sortBy(props.apms, (a) => -a.apm)
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -210,12 +221,12 @@ function ApmChart(props: { apms: APM[] , playerSummaries: PlayerSummary[]}) {
         layout="vertical"
         margin={{ top: 5, right: 10, left: 15, bottom: 20 }}
       >
-        <XAxis type="number" dataKey="apm" label={{value: "Actions Per Minute", offset: 1, position: "bottom"}} />
+        <XAxis type="number" dataKey="apm" label={{ value: "Actions Per Minute", offset: 1, position: "bottom" }} />
         <YAxis type="category" dataKey="playerName" />
         <Bar dataKey="apm" >
           {data.map((entry, index) =>
-            (<Cell key={`cell-${index}`} fill={_.get(colors, entry.playerName)} />            )
-            )}
+            (<Cell key={`cell-${index}`} fill={_.get(colors, entry.playerName)} />)
+          )}
         </Bar>
         <Tooltip cursor={false} formatter={(value) => typeof value === 'number' ? value.toFixed(1) : value} />
       </BarChart>
@@ -229,7 +240,7 @@ function DisplayFirstBlood(props: { first_blood?: FirstBlood, building_first_blo
   }
   const msgs = [`${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)} minutes`]
   if (props.building_first_blood) {
-    msgs.push(`${ props.building_first_blood.attacker } drew first building blood on ${ props.building_first_blood.victim } at ${ props.building_first_blood.atMinute.toFixed(2) }minutes`)
+    msgs.push(`${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`)
   }
   return (
     <Stack direction="row" spacing={0} sx={{
@@ -242,6 +253,154 @@ function DisplayFirstBlood(props: { first_blood?: FirstBlood, building_first_blo
     </Stack>
   )
 }
+
+interface TableRow {
+  player: string;
+  team: number;
+  won: boolean;
+  color: string;
+  general: string;
+  xp: number | null;
+  unitsBuilt: number | null;
+  buildingsBuilt: number | null;
+  unitsLost: number | null;
+  buildingsLost: number | null;
+  unitsKilled: number | null;
+		buildingsKilled: number | null;
+		tech_buildings_captured: number | null;
+		faction_buildings_captured: number | null;
+  moneySpent: number;
+  moneyCollected: number | null;
+}
+
+function renderCash(value: number | null): string {
+  if (value === null) {
+    return "?"
+  }
+  return "$" + value.toLocaleString("en-US")
+}
+
+const columns: Array<{
+  key: keyof TableRow;
+  label: string;
+  align?: 'left' | 'right' | 'center';
+  render?: (value: any) => React.ReactNode;
+}> = [
+    { key: 'player', label: 'Player' },
+    { key: 'team', label: 'Team' },
+    {
+      key: 'won', label: 'Won', align: 'right',
+      render: (value) => value ? "✅" : "❌"
+    },
+    { key: 'general', label: 'General' },
+    { key: 'xp', label: 'XP' },
+    { key: 'unitsBuilt', label: 'Units Built' },
+    { key: 'buildingsBuilt', label: 'Buildings Built' },
+    { key: 'unitsLost', label: 'Units Lost' },
+    { key: 'buildingsLost', label: 'Buildings Lost' },
+    { key: 'unitsKilled', label: 'Units Killed' },
+    { key: 'buildingsKilled', label: 'Buildings Killed' },
+    { key: 'tech_buildings_captured', label: 'Tech Buildings Captured' },
+    { key: 'faction_buildings_captured', label: 'Faction Buildings Captured' },
+    {
+      key: 'moneySpent',
+      label: 'Money Spent',
+      align: 'right',
+      render: renderCash,
+    },
+    {
+      key: 'moneyCollected', label: 'Money Collected', align: 'right', render: renderCash,
+    },
+  ];
+
+const getColorHex = (colorName: string): string => {
+  const colorMap: { [key: string]: string } = {
+    pink: '#FFC0CB',
+    red: '#FF0000',
+    blue: '#0000FF',
+    skyblue: '#87CEEB',
+    green: '#00FF00',
+    yellow: '#FFFF00',
+		purple: '#800080',
+		orange: '#FFA500',
+		gold: '#FFD700',
+    // add more as needed
+  };
+
+  return colorMap[colorName.toLowerCase()] || colorName;
+}
+
+function GameDetailsTable(props: {
+  matchDetails: MatchDetails
+}) {
+  const summaries = props.matchDetails.playerSummary
+  const statsData = props.matchDetails.statsData
+  function extractFromStatsData(key: string, name: string) {
+    const d = statsData[key]
+    if (d === undefined) {
+      return null
+    }
+    const vals = Object.values(d)
+    const last = vals[vals.length - 1]
+    if (last === undefined) {
+      return null
+    }
+    return last[name]
+  }
+  const data: TableRow[] = []
+  for (let s of summaries) {
+    const row = {
+      player: s.name,
+      team: s.team,
+      color: s.color,
+      won: s.win,
+      general: s.side,
+      moneySpent: s.moneySpent,
+      moneyCollected: extractFromStatsData("money_earned", s.name),
+      xp: extractFromStatsData("xp", s.name),
+      unitsBuilt: extractFromStatsData("units_built", s.name),
+      buildingsBuilt: extractFromStatsData("buildings_built", s.name),
+      unitsLost: extractFromStatsData("units_lost", s.name),
+      buildingsLost: extractFromStatsData("buildings_lost", s.name),
+      unitsKilled: extractFromStatsData("units_killed", s.name),
+      buildingsKilled: extractFromStatsData("buildings_killed", s.name),
+    tech_buildings_captured: extractFromStatsData("tech_buildings_captured", s.name),
+    faction_buildings_captured: extractFromStatsData("faction_buildings_captured", s.name)
+    }
+    data.push(row)
+  }
+
+  return (
+    <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
+      <Table stickyHeader sx={{ maxHeight: "50%" }}>
+        <TableHead>
+          <TableRow>
+            {columns.map((column) => (
+              <TableCell key={column.key} align={column.align}>
+                {column.label}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {data.map((row, index) => (
+            <TableRow key={index} sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}>
+              {columns.map((column) => (
+                <TableCell key={column.key} align={column.align}>
+                  {column.render ? column.render(row[column.key]) : row[column.key]}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+
+      </Table>
+    </TableContainer    >
+
+  )
+
+}
+
 
 
 export default function ShowMatchDetails(props: { id: number }) {
@@ -258,10 +417,11 @@ export default function ShowMatchDetails(props: { id: number }) {
     <>
       <Divider />
       <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} building_first_blood={details.buildingFirstBlood ?? undefined} />
+      <GameDetailsTable matchDetails={details} />
       <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       <Divider />
       <EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />
-      <ApmChart apms={details.apms} playerSummaries={details.playerSummary}/>
+      <ApmChart apms={details.apms} playerSummaries={details.playerSummary} />
       <Divider />
       <CostBreakdown costs={details.costs} />
       <Divider />
@@ -273,7 +433,7 @@ export default function ShowMatchDetails(props: { id: number }) {
       <MoneyChart
         title="$ Earned"
         money={details.statsData["money_earned"]}
-					playerSummaries={details.playerSummary}
+        playerSummaries={details.playerSummary}
       />
       <MoneyChart
         title="XP"

@@ -24,20 +24,20 @@ import { blue, lightGreen, purple, red } from "@mui/material/colors"
 import _ from "lodash"
 import * as React from "react"
 import {
-    Bar,
-    BarChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts"
 import {
-    APM,
-    MatchDetails,
-    ObjectSummary,
-    PlayerSummary,
-    Spent,
-    Upgrades,
+  APM,
+  MatchDetails,
+  ObjectSummary,
+  PlayerSummary,
+  Spent,
+  Upgrades,
 } from "./api"
 
 function removeUnitPrefix(s: string): string {
@@ -149,6 +149,7 @@ function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
     </Stack>
   )
 }
+
 
 export default function ShowPlayerSummaries(props: {
   playerSummaries: PlayerSummary[]

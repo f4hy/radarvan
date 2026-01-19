@@ -72,7 +72,8 @@ class StatsData(BaseModel):
     buildings_killed: dict[float, dict[str, int]]
     buildings_lost: dict[float, dict[str, int]]
     buildings_built: dict[float, dict[str, int]]
-
+    tech_buildings_captured: dict[float, dict[str, int]]
+    faction_buildings_captured: dict[float, dict[str, int]]
 
 class TimelineEvent(BaseModel):
     minute: float
@@ -170,6 +171,8 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
         "money_earned",
         "units_killed",
         "buildings_killed",
+        "tech_buildings_captured",
+        "faction_buildings_captured",
     ]
     data = {t: {} for t in data_types}
     prev_vals = {t: {} for t in data_types}
