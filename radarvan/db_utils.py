@@ -162,7 +162,7 @@ class ReplayManager:
             game_date=game_date,
             num_timestamp=parsed_replay.Header.NumTimeStamps,
         )
-        self.session.add(parsed_json)
+        self.session.merge(parsed_json)
         replay_file = self.session.get(ReplayFile, original_replay_file_url)
         replay_file.status = ProcessingStatus.PARSED
         if self.auto_commit:

@@ -49,10 +49,6 @@ class ReplayFile(Base):
     # Timestamps
     discovered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     source_date = Column(Date, nullable=False, index=True)
-    parsed_at = Column(DateTime, nullable=True)
-
-    # Error tracking
-    error_message = Column(Text, nullable=True)
 
     # Relationships
     parsed_replay_json = relationship(
@@ -80,6 +76,7 @@ class ParsedReplayJson(Base):
     # File info
     num_time_stamps = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     game_timestamp = Column(DateTime, nullable=False)
     game_date = Column(Date, index=True)
     # Relationships

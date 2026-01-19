@@ -103,6 +103,7 @@ def reparse(
         logger.warning("No change in replay, not resaving")
         return None
 
+    replay_manager.save_parsed_json(json_s3_uri, original_replay_file_url, parsed_replay)
     fs.write_text(json_path, parsed_replay.model_dump_json())
     return parsed_replay, json_path
 

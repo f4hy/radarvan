@@ -393,8 +393,6 @@ class ReplayFileSchema(BaseModel):
     player_id: str
     discovered_at: datetime
     source_date: date
-    parsed_at: datetime | None = None
-    error_message: str | None = None
 
     model_config = ConfigDict(from_attributes=True)  # Allows ORM mode
 
@@ -405,9 +403,10 @@ class ParsedReplayJsonSchema(BaseModel):
     json_s3_uri: str
     match_id: int
     replay_file_url: str
-    file_size_bytes: int | None = None
+    num_time_stamps: int | None = None
     created_at: datetime
     game_timestamp: datetime
     game_date: date
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
