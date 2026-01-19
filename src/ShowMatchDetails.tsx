@@ -1,3 +1,5 @@
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import { alpha } from '@mui/material/styles';
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -266,9 +268,9 @@ interface TableRow {
   unitsLost: number | null;
   buildingsLost: number | null;
   unitsKilled: number | null;
-		buildingsKilled: number | null;
-		tech_buildings_captured: number | null;
-		faction_buildings_captured: number | null;
+  buildingsKilled: number | null;
+  tech_buildings_captured: number | null;
+  faction_buildings_captured: number | null;
   moneySpent: number;
   moneyCollected: number | null;
 }
@@ -321,9 +323,9 @@ const getColorHex = (colorName: string): string => {
     skyblue: '#87CEEB',
     green: '#00FF00',
     yellow: '#FFFF00',
-		purple: '#800080',
-		orange: '#FFA500',
-		gold: '#FFD700',
+    purple: '#800080',
+    orange: '#FFA500',
+    gold: '#FFD700',
     // add more as needed
   };
 
@@ -364,8 +366,8 @@ function GameDetailsTable(props: {
       buildingsLost: extractFromStatsData("buildings_lost", s.name),
       unitsKilled: extractFromStatsData("units_killed", s.name),
       buildingsKilled: extractFromStatsData("buildings_killed", s.name),
-    tech_buildings_captured: extractFromStatsData("tech_buildings_captured", s.name),
-    faction_buildings_captured: extractFromStatsData("faction_buildings_captured", s.name)
+      tech_buildings_captured: extractFromStatsData("tech_buildings_captured", s.name),
+      faction_buildings_captured: extractFromStatsData("faction_buildings_captured", s.name)
     }
     data.push(row)
   }
@@ -401,26 +403,10 @@ function GameDetailsTable(props: {
 
 }
 
-
-
-export default function ShowMatchDetails(props: { id: number }) {
-  const [details, setDetails] = React.useState<MatchDetails>(empty)
-  React.useEffect(() => {
-    getDetails(props.id, setDetails)
-  }, [props.id])
-  const maxAtMinute =
-    details.spent !== undefined
-      ? _.max(details.spent.total.map((t) => t.atMinute))
-      : 1
-  const maxMinute = Math.ceil(maxAtMinute ?? 1)
+function DetailedGraphs(props: { details: MatchDetails }) {
+  const details = props.details
   return (
-    <>
-      <Divider />
-      <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} building_first_blood={details.buildingFirstBlood ?? undefined} />
-      <GameDetailsTable matchDetails={details} />
-      <ShowPlayerSummaries playerSummaries={details.playerSummary} />
-      <Divider />
-      <EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />
+    <Paper>
       <ApmChart apms={details.apms} playerSummaries={details.playerSummary} />
       <Divider />
       <CostBreakdown costs={details.costs} />
@@ -471,6 +457,62 @@ export default function ShowMatchDetails(props: { id: number }) {
         money={details.statsData["buildings_lost"]}
         playerSummaries={details.playerSummary}
       />
-    </>
+    </Paper>
+  )
+}
+
+type Displays = "Player Unit and spending breakdown" | "Event Chart" | "Detailed Graphs"
+
+export default function ShowMatchDetails(props: { id: number }) {
+  const [details, setDetails] = React.useState<MatchDetails>(empty)
+  const [selectedDisplay, setSelectedDisplay] = React.useState<Displays | null>(null)
+  React.useEffect(() => {
+    getDetails(props.id, setDetails)
+  }, [props.id])
+  const maxAtMinute =
+    details.spent !== undefined
+      ? _.max(details.spent.total.map((t) => t.atMinute))
+      : 1
+  const maxMinute = Math.ceil(maxAtMinute ?? 1)
+  const choices: Displays[] = ["Player Unit and spending breakdown", "Event Chart", "Detailed Graphs"]
+  const handleClick = (
+    event: React.MouseEvent<HTMLElement>,
+    newSelection: Displays | null,
+  ) => {
+    setSelectedDisplay(newSelection ?? null)
+  }
+			const buttonGroup = (
+			<>
+				<Typography>Select which detailed charts to show</Typography>
+    <ToggleButtonGroup
+      exclusive
+      value={selectedDisplay}
+      onChange={handleClick}
+      color="primary"
+    >
+      {choices.map((v, i) => {
+        return (
+          <ToggleButton size="large" value={v}>
+            {v}
+          </ToggleButton>
+        )
+      })}
+    </ToggleButtonGroup>
+		</>
+  )
+
+
+  return (
+    <Paper>
+      <Divider />
+      <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} building_first_blood={details.buildingFirstBlood ?? undefined} />
+      <GameDetailsTable matchDetails={details} />
+      {buttonGroup}
+      <Divider />
+      <Typography>{selectedDisplay}</Typography>
+      {(selectedDisplay == "Player Unit and spending breakdown") && (<ShowPlayerSummaries playerSummaries={details.playerSummary} />)}
+      {(selectedDisplay == "Event Chart") && (<EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />)}
+      {(selectedDisplay == "Detailed Graphs") && (<DetailedGraphs details={details} />)}
+    </Paper>
   )
 }
