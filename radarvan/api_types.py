@@ -407,6 +407,6 @@ class ParsedReplayJsonSchema(BaseModel):
     created_at: datetime
     game_timestamp: datetime
     game_date: date
-    updated_at: datetime
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
