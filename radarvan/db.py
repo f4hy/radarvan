@@ -78,7 +78,7 @@ class ParsedReplayJson(Base):
     )
 
     # File info
-    num_time_stamps = Column(Integer, nullable=False, default=0)
+    num_time_stamps = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     game_timestamp = Column(DateTime, nullable=False)
     game_date = Column(Date, index=True)
