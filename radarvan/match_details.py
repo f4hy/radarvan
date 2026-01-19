@@ -91,7 +91,9 @@ def _sum(i: int | list[int]) -> int:
 
 def is_action(order_name: str) -> bool:
     match order_name:
-        case "Chunksum" | "DeclareUserId" | "EndReplay" | "SetSelection":
+        case (
+            "Chunksum" | "DeclareUserId" | "EndReplay" | "SelectBox" | "ClearSelection"
+        ):
             return False
         case _ if order_name.startswith("Unknown"):
             return False
