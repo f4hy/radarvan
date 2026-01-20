@@ -282,29 +282,44 @@ class ReplayManager:
             yield result
 
     def list_jsons_without_player_stats(self, limit: int) -> Iterator[int]:
-        match_ids_with_enhanced = (
-            select(ParsedReplayJson.match_id)
-            .where(ParsedReplayJson.has_enhanced_stats.is_(True))
-            .distinct()
-            .scalar_subquery()
-        )
+        exclude_terms = ["HardAI", "MediAI", "EasyAI", "1v1v"]
+        ranked_subq = select(
+            ParsedReplayJson.match_id,
+            ParsedReplayJson.replay_file_url,
+            ParsedReplayJson.has_enhanced_stats,
+            ParsedReplayJson.created_at,
+            ParsedReplayJson.num_time_stamps,
+            func.row_number()
+            .over(
+                partition_by=ParsedReplayJson.match_id,
+                order_by=[
+                    ParsedReplayJson.num_time_stamps.desc(),
+                    ParsedReplayJson.created_at.desc(),  # Tiebreaker: most recent
+                ],
+            )
+            .label("rn"),
+        ).subquery()
 
-        # Main query: all other match_ids
         stmt = (
-            select(ParsedReplayJson.match_id, ParsedReplayJson.created_at)
-            .where(ParsedReplayJson.match_id.not_in(match_ids_with_enhanced))
+            select(ranked_subq.c.match_id, ranked_subq.c.replay_file_url)
             .where(
                 and_(
-                    ParsedReplayJson.match_id.not_in(match_ids_with_enhanced),
-                    ParsedReplayJson.num_time_stamps > 5000,
+                    ranked_subq.c.rn == 1,
+                    ranked_subq.c.has_enhanced_stats == False,
+                    ~or_(
+                        *[
+                            ranked_subq.c.replay_file_url.contains(term)
+                            for term in exclude_terms
+                        ]
+                    ),
+                    ranked_subq.c.num_time_stamps > 5000,
                 )
             )
-            .order_by(desc(ParsedReplayJson.created_at), ParsedReplayJson.match_id)
-            .distinct()
+            .order_by(ranked_subq.c.created_at.desc())
             .limit(limit)
         )
-        for res in self.session.execute(stmt).scalars().all():
-            yield res
+        for match_id, url in self.session.execute(stmt):
+            yield {"match_id": match_id, "url": url}
 
     def update_parsed_json(
         self,
