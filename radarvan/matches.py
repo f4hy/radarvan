@@ -178,7 +178,7 @@ def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
                 replay_manager.register_match(db_match)
                 matches[db_match.match_id] = db_match
             except Exception as e:
-                logger.warning(f"Can not add match {repr(e)}")
+                logger.warning(f"Can not add match {e!r}")
                 continue
 
 
@@ -217,7 +217,7 @@ def get_all_matches2(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):
         listing = replay_manager.list_matches(2.0)
-    filtered = [l for l in listing if filter_match(l)]
+    filtered = [x for x in listing if filter_match(x)]
 
     with log_time("convert"):
         converted = [match_to_matchinfo(m) for m in filtered]

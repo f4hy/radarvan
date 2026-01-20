@@ -1,7 +1,4 @@
-"""Computer player stats."""
-
-"""Get match info from a replay.
-"""
+"""Compute player stats."""
 
 from api_types import (
     MatchInfo,

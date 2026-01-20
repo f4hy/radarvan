@@ -157,7 +157,6 @@ class Metadata(BaseModel):
     C: str
     SR: str
     StartingCredits: str
-    O: str
     Players: list[Player]
 
 

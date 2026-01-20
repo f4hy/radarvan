@@ -277,8 +277,7 @@ class ReplayManager:
             )
             .order_by(desc(ParsedReplayJson.match_id))
         )
-        for result in self.session.execute(stmt).scalars().all():
-            yield result
+        yield from self.session.execute(stmt).scalars().all()
 
     def list_jsons_without_player_stats(self, limit: int) -> Iterator[int]:
         exclude_terms = ["HardAI", "MediAI", "EasyAI", "1v1v"]
@@ -304,7 +303,7 @@ class ReplayManager:
             .where(
                 and_(
                     ranked_subq.c.rn == 1,
-                    ranked_subq.c.has_enhanced_stats == False,
+                    ranked_subq.c.has_enhanced_stats.is_(False),
                     ~or_(
                         *[
                             ranked_subq.c.replay_file_url.contains(term)

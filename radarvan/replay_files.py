@@ -98,7 +98,7 @@ def reparse(
     parsed_replay = parse_replay_data(raw_replay, replay_manager)
     parsed_replay.Header.FileName = original_path
 
-    if existing == parsed_replay and force == False:
+    if existing == parsed_replay and not force:
         logger.warning("No change in replay, not resaving")
         return None
 

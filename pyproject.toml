@@ -30,6 +30,7 @@ dev = [
   "python-lsp-server[all]>=1.13.1",
   "ruff>=0.14.0",
   "s3cmd>=2.4.0",
+  "sqlalchemy[mypy]>=2.0.0",
   "tqdm>=4.67.1",
   "types-cachetools>=6.2.0.20250827",
   "types-tqdm>=4.67.0.20250809",

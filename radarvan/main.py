@@ -179,7 +179,7 @@ def get_tournament_results(
 
 
 @app.get("/api/match/{match_id}")
-def get_matches(
+def get_matche_by_id(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
