@@ -213,9 +213,9 @@ def create_tournament_results(
             found = False
             for m in matchups:
                 logger.info(
-                    f" outcome {set(m.outcome.keys())} compared to {set(ms.team1, ms.team2)}"
+                    f" outcome {set(m.outcome.keys())} compared to {{ms.team1, ms.team2}}"
                 )
-                if set(m.outcome.keys()) == set(ms.team1, ms.team2):
+                if set(m.outcome.keys()) == {ms.team1, ms.team2}:
                     found = True
             if not found:
                 matchups.append(
