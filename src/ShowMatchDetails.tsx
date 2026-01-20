@@ -291,27 +291,27 @@ const columns: Array<{
     { key: 'player', label: 'Player' },
     { key: 'team', label: 'Team' },
     {
-      key: 'won', label: 'Won', align: 'right',
+      key: 'won', label: 'Won',
       render: (value) => value ? "✅" : "❌"
     },
-    { key: 'general', label: 'General' },
+    { key: 'general', label: 'Side' },
     { key: 'xp', label: 'XP' },
-    { key: 'unitsBuilt', label: 'Units Built' },
-    { key: 'buildingsBuilt', label: 'Buildings Built' },
-    { key: 'unitsLost', label: 'Units Lost' },
-    { key: 'buildingsLost', label: 'Buildings Lost' },
-    { key: 'unitsKilled', label: 'Units Killed' },
-    { key: 'buildingsKilled', label: 'Buildings Killed' },
+    { key: 'unitsBuilt', label: '🛻 Built' },
+    { key: 'buildingsBuilt', label: '🏢 Built' },
+    { key: 'unitsLost', label: '🛻 Lost' },
+    { key: 'buildingsLost', label: '🏢 Lost' },
+    { key: 'unitsKilled', label: '🛻 Killed' },
+    { key: 'buildingsKilled', label: '🏢 Killed' },
     { key: 'tech_buildings_captured', label: 'Tech Buildings Captured' },
     { key: 'faction_buildings_captured', label: 'Faction Buildings Captured' },
     {
       key: 'moneySpent',
-      label: 'Money Spent',
+      label: '$ Spent',
       align: 'right',
       render: renderCash,
     },
     {
-      key: 'moneyCollected', label: 'Money Collected', align: 'right', render: renderCash,
+      key: 'moneyCollected', label: '$ Collected', align: 'right', render: renderCash,
     },
   ];
 
@@ -335,6 +335,8 @@ const getColorHex = (colorName: string): string => {
 function GameDetailsTable(props: {
   matchDetails: MatchDetails
 }) {
+  const [sortBy, setSortBy] = React.useState<null | keyof TableRow>("moneyCollected")
+
   const summaries = props.matchDetails.playerSummary
   const statsData = props.matchDetails.statsData
   function extractFromStatsData(key: string, name: string) {
@@ -372,20 +374,28 @@ function GameDetailsTable(props: {
     data.push(row)
   }
 
+			const sortedData = sortBy ? _.sortBy(data, sortBy) : data
+			
   return (
-    <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-      <Table stickyHeader sx={{ maxHeight: "50%" }}>
+    <TableContainer component={Paper}>
+      <Table stickyHeader >
         <TableHead>
           <TableRow>
             {columns.map((column) => (
               <TableCell key={column.key} align={column.align}>
-                {column.label}
+                <TableSortLabel
+                  active={column.key == sortBy}
+                  direction={'desc'}
+                  onClick={() => setSortBy(column.key)}
+                >
+                  {column.label}
+                </TableSortLabel >
               </TableCell>
             ))}
           </TableRow>
         </TableHead>
         <TableBody>
-          {data.map((row, index) => (
+          {sortedData.map((row, index) => (
             <TableRow key={index} sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}>
               {columns.map((column) => (
                 <TableCell key={column.key} align={column.align}>
@@ -481,24 +491,24 @@ export default function ShowMatchDetails(props: { id: number }) {
   ) => {
     setSelectedDisplay(newSelection ?? null)
   }
-			const buttonGroup = (
-			<>
-				<Typography>Select which detailed charts to show</Typography>
-    <ToggleButtonGroup
-      exclusive
-      value={selectedDisplay}
-      onChange={handleClick}
-      color="primary"
-    >
-      {choices.map((v, i) => {
-        return (
-          <ToggleButton size="large" value={v}>
-            {v}
-          </ToggleButton>
-        )
-      })}
-    </ToggleButtonGroup>
-		</>
+  const buttonGroup = (
+    <>
+      <Typography>Select which detailed charts to show</Typography>
+      <ToggleButtonGroup
+        exclusive
+        value={selectedDisplay}
+        onChange={handleClick}
+        color="primary"
+      >
+        {choices.map((v, i) => {
+          return (
+            <ToggleButton size="large" value={v}>
+              {v}
+            </ToggleButton>
+          )
+        })}
+      </ToggleButtonGroup>
+    </>
   )
 
 

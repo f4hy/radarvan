@@ -235,12 +235,9 @@ def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
     upgrades: dict[str, list[UpgradeEvent]] = {
         name: [] for name in player_index_to_name.values()
     }
-    has_details = [c.Details for c in replay.Body if c.Details]
-    logger.info(f"details {has_details=}")
     for chunk in replay.Body:
         if not chunk.OrderName.startswith("BuildUpgrade"):
             continue
-        logger.info(f"details {chunk.Details=}")
         if not chunk.Details:
             continue
         event = UpgradeEvent(
