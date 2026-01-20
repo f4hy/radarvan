@@ -294,7 +294,10 @@ const columns: Array<{
       key: 'won', label: 'Won',
       render: (value) => value ? "✅" : "❌"
     },
-    { key: 'general', label: 'Side' },
+    { key: 'general',
+		label: 'Side',
+		render: ((v) => v.split(" ").length > 1 ? v.split(" ")[1] : v)
+		},
     { key: 'xp', label: 'XP' },
     { key: 'unitsBuilt', label: '🛻 Built' },
     { key: 'buildingsBuilt', label: '🏢 Built' },
