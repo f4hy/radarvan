@@ -3,8 +3,6 @@
 from api_types import (
     MatchInfo,
     General,
-    PlayerStats,
-    PlayerStat,
     GeneralStat,
     GeneralStats,
     WinLoss,

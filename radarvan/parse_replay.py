@@ -3,7 +3,7 @@
 from db_utils import DatabaseManager
 
 import os
-from api_types import General, MatchInfo, Player, Team
+from api_types import Team
 
 import sys
 import pathlib
@@ -37,7 +37,9 @@ def parse_replay_data(data: bytes, replay_manager: ReplayManager, debug=False):
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
-    logger.info(f"ccnstats responded with replay in {response.elapsed.total_seconds()}s ")
+    logger.info(
+        f"ccnstats responded with replay in {response.elapsed.total_seconds()}s "
+    )
     validated = EnhancedReplay.model_validate(response.json())
 
     overrides = replay_manager.get_overrides()

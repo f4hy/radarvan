@@ -32,11 +32,13 @@ def duration_minutes(replay: EnhancedReplay) -> float:
     end = datetime.datetime.fromtimestamp(replay.Header.TimeStampEnd)
     return (end - start).total_seconds() / 60.0
 
+
 def minutess_per_step(replay: EnhancedReplay) -> float:
     """Scale factor to convert a timecode to minutes."""
     minutes = duration_minutes(replay)
     stamps = replay.Header.NumTimeStamps
     return minutes / stamps
+
 
 def side_to_general(side: str) -> General:
     match side:

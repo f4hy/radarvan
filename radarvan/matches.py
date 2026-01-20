@@ -1,19 +1,16 @@
 """Get match info from a replay."""
 
-from typing import DefaultDict
 from collections import defaultdict
 from collections.abc import Iterator
 from log_time import log_time
-import json
 import logging
 import os
 from datetime import datetime, UTC
-from pathlib import Path
 
 import db
 import replay_files
 import utils
-from api_types import General, MatchInfo, Player, Team
+from api_types import MatchInfo, Player, Team
 from cncstats_types import EnhancedReplay
 from db_utils import DatabaseManager, ReplayManager
 
@@ -200,7 +197,7 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
 
 def filter_match(db_match: db.Match) -> bool:
     # remove comp stomps
-    teams: DefaultDict[int, list[str]] = defaultdict(list)
+    teams: defaultdict[int, list[str]] = defaultdict(list)
     if len(db_match.players) == 2:
         return True
     for p in db_match.players:

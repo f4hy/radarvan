@@ -3,13 +3,12 @@
 from api_types import (
     PlayerSummary as APIPlayerSummary,
 )
-from collections import defaultdict
-from cncstats_types import EnhancedReplay, EnhancedBodyChunk
+from cncstats_types import EnhancedReplay
 from api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades, APM
 import logging
 from dataclasses import dataclass
 from pydantic import BaseModel
-from utils import minutess_per_step, duration_minutes
+from utils import minutess_per_step
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +74,7 @@ class StatsData(BaseModel):
     tech_buildings_captured: dict[float, dict[str, int]]
     faction_buildings_captured: dict[float, dict[str, int]]
 
+
 class TimelineEvent(BaseModel):
     minute: float
     event_name: str
@@ -138,7 +138,7 @@ def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
     minutes_per = minutess_per_step(replay)
 
     player_minutes = {
-        name: (player_last_active[name] - first ) * minutes_per
+        name: (player_last_active[name] - first) * minutes_per
         for name, first in player_first_active.items()
     }
 

@@ -336,6 +336,7 @@ def update_num_timestamps(
             break
     return {"updated": updated}
 
+
 @app.get("/api/replays_without_playerstats/")
 def replays_without_playerstats(
     max_to_return: int = 10,

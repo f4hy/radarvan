@@ -9,7 +9,6 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     CheckConstraint,
-    UniqueConstraint,
     Index,
     SmallInteger,
 )

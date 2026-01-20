@@ -10,7 +10,6 @@ from parse_replay import parse_replay_data
 import utils
 from log_time import log_time
 from db_utils import ReplayManager
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
@@ -103,7 +102,11 @@ def reparse(
         logger.warning("No change in replay, not resaving")
         return None
 
-    replay_manager.save_parsed_json(json_s3_uri=json_path, original_replay_file_url=original_path, parsed_replay=parsed_replay)
+    replay_manager.save_parsed_json(
+        json_s3_uri=json_path,
+        original_replay_file_url=original_path,
+        parsed_replay=parsed_replay,
+    )
     fs.write_text(json_path, parsed_replay.model_dump_json())
     return parsed_replay, json_path
 

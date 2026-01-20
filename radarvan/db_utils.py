@@ -2,7 +2,7 @@ from cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections.abc import Iterator
-from sqlalchemy import create_engine, select, func, and_, update, or_
+from sqlalchemy import create_engine, func, and_, update, or_
 from sqlalchemy import desc, nulls_last
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
@@ -14,7 +14,6 @@ from db import (
     ReplayFile,
     ParsedReplayJson,
     Match,
-    MatchPlayer,
     ProcessingStatus,
     WinnerOverride,
 )

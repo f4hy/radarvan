@@ -1,8 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime, date
 from enum import IntEnum
-from pydantic import BaseModel, Field, HttpUrl
-from typing import Optional
 
 
 class General(IntEnum):

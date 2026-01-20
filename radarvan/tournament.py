@@ -1,15 +1,13 @@
 import logging
-from itertools import combinations, permutations
+from itertools import combinations
 from player_ids import player_name_map
 from datetime import date
-from pydantic import BaseModel
-from typing import DefaultDict, Sequence
+from collections.abc import Sequence
 from collections import defaultdict
 from api_types import (
     MatchInfo,
     Matchup,
     Team,
-    Player,
     Tournament,
     MatchupResult,
     TournamentResult,
@@ -68,7 +66,7 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
     if match_info.incomplete:
         return None
     gamedate = match_info.timestamp.date()
-    team_map: DefaultDict[Team, set[str]] = defaultdict(set)
+    team_map: defaultdict[Team, set[str]] = defaultdict(set)
     for p in match_info.players:
         if p.team == Team.OBSERVER:
             continue
