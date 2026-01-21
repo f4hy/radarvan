@@ -1,4 +1,4 @@
-from cncstats_types import EnhancedReplay
+from .cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections.abc import Iterator
@@ -7,9 +7,9 @@ from sqlalchemy import desc, nulls_last
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date, UTC
-from notify import notify
+from .notify import notify
 from typing import Literal
-from db import (
+from .db import (
     Base,
     ReplayFile,
     ParsedReplayJson,
@@ -299,7 +299,10 @@ class ReplayManager:
         ).subquery()
 
         stmt = (
-            select(ranked_subq.c.match_id, ranked_subq.c.replay_file_url)
+            select(
+                ranked_subq.c.match_id, ranked_subq.c.replay_file_url, ReplayFile.s3_uri
+            )
+            .join(ReplayFile, ReplayFile.original_url == ranked_subq.c.replay_file_url)
             .where(
                 and_(
                     ranked_subq.c.rn == 1,
@@ -316,8 +319,8 @@ class ReplayManager:
             .order_by(ranked_subq.c.created_at.desc())
             .limit(limit)
         )
-        for match_id, url in self.session.execute(stmt):
-            yield {"match_id": match_id, "url": url}
+        for match_id, url, s3_path in self.session.execute(stmt):
+            yield {"match_id": match_id, "url": url, "s3_path": s3_path}
 
     def update_parsed_json(
         self,

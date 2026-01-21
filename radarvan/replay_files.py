@@ -4,12 +4,12 @@ import re
 from collections.abc import Iterator
 import logging
 import fsspec
-from cncstats_types import EnhancedReplay
+from .cncstats_types import EnhancedReplay
 from functools import cache
-from parse_replay import parse_replay_data
-import utils
-from log_time import log_time
-from db_utils import ReplayManager
+from .parse_replay import parse_replay_data
+from . import utils
+from .log_time import log_time
+from .db_utils import ReplayManager
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
@@ -21,6 +21,11 @@ s3_root = "s3://generals-stats/radarvan/dev/"
 @cache
 def get_fs() -> fsspec.AbstractFileSystem():
     return fsspec.filesystem("s3")
+
+
+def presigned_url(s3_path: str) -> str:
+    """preSign a s3_path"""
+    return get_fs().sign(s3_path)
 
 
 def test_connection():

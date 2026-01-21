@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import notify
+from . import notify
 
 
 def setup_error_handling(app: FastAPI):

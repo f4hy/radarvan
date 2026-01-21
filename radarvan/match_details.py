@@ -1,14 +1,14 @@
 """Get match info from a replay."""
 
-from api_types import (
+from .api_types import (
     PlayerSummary as APIPlayerSummary,
 )
-from cncstats_types import EnhancedReplay
-from api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades, APM
+from .cncstats_types import EnhancedReplay
+from .api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades, APM
 import logging
 from dataclasses import dataclass
 from pydantic import BaseModel
-from utils import minutess_per_step
+from .utils import minutess_per_step
 
 logger = logging.getLogger(__name__)
 

@@ -131,8 +131,7 @@ class Match(Base):
     )
 
     def __repr__(self):
-        date = self.updated_at or self.created_at
-        return f"<Match(match_id=`{self.match_id}` \n`winner={self.winning_team_id}`\n `{date}` players=\n{self.players})>"
+        return f"<Match(match_id=`{self.match_id}` \n`winner={self.winning_team_id}`\n updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
 
 
 class MatchPlayer(Base):

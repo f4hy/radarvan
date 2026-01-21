@@ -1,8 +1,8 @@
 """Shared logic about replay computing."""
 
 import datetime
-from api_types import Player, General, Team
-from cncstats_types import EnhancedReplay, PlayerSummary
+from .api_types import Player, General, Team
+from .cncstats_types import EnhancedReplay, PlayerSummary
 import logging
 import time
 import functools

@@ -1,4 +1,4 @@
-from db_utils import DatabaseManager, ReplayManager
+from .db_utils import DatabaseManager, ReplayManager
 import asyncio
 import httpx  # <-- Only change needed
 from bs4 import BeautifulSoup
@@ -7,11 +7,11 @@ from urllib.parse import urljoin
 import os
 from datetime import datetime, timedelta
 import logging
-import player_ids
+from . import player_ids
 from functools import cache
 from cachetools import TTLCache
 from cachetools_async import cached
-import replay_files
+from . import replay_files
 
 logger = logging.getLogger(__name__)
 BASE = "https://www.gentool.net/data/zh/"

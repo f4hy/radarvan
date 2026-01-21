@@ -3,17 +3,17 @@ import os
 from contextlib import asynccontextmanager
 from collections.abc import Generator
 from fastapi import FastAPI, BackgroundTasks
-import exception_handling
+from . import exception_handling
 
-import middleware
-import match_details
-import matches
-import player_stats
-import general_stats
-import replay_files
-import schedule
-import tournament
-from api_types import (
+from . import middleware
+from . import match_details
+from . import matches
+from . import player_stats
+from . import general_stats
+from . import replay_files
+from . import schedule
+from . import tournament
+from radarvan.api_types import (
     MatchDetails,
     Team,
     Matches,
@@ -28,7 +28,7 @@ from api_types import (
     ParsedReplayJsonSchema,
 )
 from cachetools import TTLCache, cached
-from db_utils import DatabaseManager, ReplayManager
+from .db_utils import DatabaseManager, ReplayManager
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -343,7 +343,9 @@ def replays_without_playerstats(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
     missing_player_stats = replay_manager.list_jsons_without_player_stats(max_to_return)
-    return missing_player_stats
+    for row in missing_player_stats:
+        row["presigned_url"] = replay_files.presigned_url(row["s3_path"])
+        yield row
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

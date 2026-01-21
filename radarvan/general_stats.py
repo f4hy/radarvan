@@ -1,13 +1,13 @@
 """Compute generals stats."""
 
-from api_types import (
+from .api_types import (
     MatchInfo,
     General,
     GeneralStat,
     GeneralStats,
     WinLoss,
 )
-import replay_files
+from . import replay_files
 import logging
 
 logger = logging.getLogger(__name__)

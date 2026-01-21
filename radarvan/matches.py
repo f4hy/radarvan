@@ -2,17 +2,17 @@
 
 from collections import defaultdict
 from collections.abc import Iterator
-from log_time import log_time
+from .log_time import log_time
 import logging
 import os
 from datetime import datetime, UTC
 
-import db
-import replay_files
-import utils
-from api_types import MatchInfo, Player, Team
-from cncstats_types import EnhancedReplay
-from db_utils import DatabaseManager, ReplayManager
+from . import db
+from . import replay_files
+from . import utils
+from .api_types import MatchInfo, Player, Team
+from .cncstats_types import EnhancedReplay
+from .db_utils import DatabaseManager, ReplayManager
 
 logger = logging.getLogger(__name__)
 

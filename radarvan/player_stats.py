@@ -1,15 +1,15 @@
 """Compute player stats."""
 
-from api_types import (
+from .api_types import (
     MatchInfo,
     General,
     PlayerStats,
     PlayerStat,
     WinLoss,
 )
-import replay_files
+from . import replay_files
 import logging
-from player_ids import player_name_map
+from .player_ids import player_name_map
 
 logger = logging.getLogger(__name__)
 

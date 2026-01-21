@@ -1,16 +1,16 @@
 """Parse replay file."""
 
-from db_utils import DatabaseManager
+from .db_utils import DatabaseManager
 
 import os
-from api_types import Team
+from .api_types import Team
 
 import sys
 import pathlib
 import json
 import httpx
-from cncstats_types import EnhancedReplay
-from db_utils import ReplayManager
+from .cncstats_types import EnhancedReplay
+from .db_utils import ReplayManager
 import logging
 
 logger = logging.getLogger(__name__)

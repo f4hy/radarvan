@@ -1,10 +1,10 @@
 import logging
 from itertools import combinations
-from player_ids import player_name_map
+from .player_ids import player_name_map
 from datetime import date
 from collections.abc import Sequence
 from collections import defaultdict
-from api_types import (
+from .api_types import (
     MatchInfo,
     Matchup,
     Team,

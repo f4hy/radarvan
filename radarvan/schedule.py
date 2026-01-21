@@ -1,10 +1,10 @@
-from db_utils import ReplayManager
-from matches import register_matches
+from .db_utils import ReplayManager
+from .matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
-import scrape_games
+from . import scrape_games
 import logging
-from notify import notify
+from .notify import notify
 
 logger = logging.getLogger(__name__)
 
