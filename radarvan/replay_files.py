@@ -10,6 +10,9 @@ from .parse_replay import parse_replay_data
 from . import utils
 from .log_time import log_time
 from .db_utils import ReplayManager
+import boto3
+from urllib.parse import urlparse
+from botocore.config import Config
 
 logger = logging.getLogger(__name__)
 modus = "Modus_09BAC013F91C"
@@ -25,7 +28,21 @@ def get_fs() -> fsspec.AbstractFileSystem():
 
 def presigned_url(s3_path: str) -> str:
     """preSign a s3_path"""
-    return get_fs().sign(s3_path, expiration=6000)
+    parsed = urlparse(s3_path)
+    bucket = parsed.netloc
+    key = parsed.path.lstrip("/")
+
+    # Create S3 client
+    s3_client = boto3.client("s3", region_name="us-east-2", config=Config(signature_version="s3v4"))
+
+    # Generate presigned URL
+    url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket, "Key": key},
+        ExpiresIn=3600,
+    )
+
+    return url
 
 
 def test_connection():
