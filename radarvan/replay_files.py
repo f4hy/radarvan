@@ -25,7 +25,7 @@ def get_fs() -> fsspec.AbstractFileSystem():
 
 def presigned_url(s3_path: str) -> str:
     """preSign a s3_path"""
-    return get_fs().sign(s3_path)
+    return get_fs().sign(s3_path, expiration=6000)
 
 
 def test_connection():
