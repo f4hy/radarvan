@@ -294,10 +294,11 @@ const columns: Array<{
       key: 'won', label: 'Won',
       render: (value) => value ? "✅" : "❌"
     },
-    { key: 'general',
-		label: 'Side',
-		render: ((v) => v.split(" ").length > 1 ? v.split(" ")[1] : v)
-		},
+    {
+      key: 'general',
+      label: 'Side',
+      render: ((v) => v.split(" ").length > 1 ? v.split(" ")[1] : v)
+    },
     { key: 'xp', label: 'XP' },
     { key: 'unitsBuilt', label: '🛻 Built' },
     { key: 'buildingsBuilt', label: '🏢 Built' },
@@ -331,6 +332,10 @@ const getColorHex = (colorName: string): string => {
     gold: '#FFD700',
     // add more as needed
   };
+  if (colorName === "-1") {
+    return '#000000'
+  }
+
 
   return colorMap[colorName.toLowerCase()] || colorName;
 }
@@ -377,8 +382,8 @@ function GameDetailsTable(props: {
     data.push(row)
   }
 
-			const sortedData = sortBy ? _.sortBy(data, sortBy) : data
-			
+  const sortedData = sortBy ? _.sortBy(data, sortBy) : data
+
   return (
     <TableContainer component={Paper}>
       <Table stickyHeader >
