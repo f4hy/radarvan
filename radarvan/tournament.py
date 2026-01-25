@@ -1,3 +1,8 @@
+from dataclasses import dataclass
+from collections import Counter
+from typing import Callable
+from . import match_details
+from .db_utils import DatabaseManager, ReplayManager
 import logging
 from itertools import combinations
 from .player_ids import player_name_map
@@ -5,6 +10,7 @@ from datetime import date
 from collections.abc import Sequence
 from collections import defaultdict
 from .api_types import (
+    MatchDetails,
     MatchInfo,
     Matchup,
     Team,
@@ -12,6 +18,8 @@ from .api_types import (
     MatchupResult,
     TournamentResult,
     WinLoss,
+    TournamentReport,
+    TournamentStat,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,7 +33,7 @@ TOURNAMENTS = [
     Tournament(
         name="2025_2v2_tournament",
         start_date=date(2025, 11, 1),
-        end_date=date(2026, 2, 1),
+        end_date=date(2026, 1, 25),
         teams=[
             sorted_tuple(["Syn", "WildCard"]),
             sorted_tuple(["OneThree111", "Pancake"]),
@@ -234,12 +242,109 @@ def create_tournament_results(
             team_records.items(), key=lambda item: item[1].wins, reverse=True
         )
 
+        complete = (
+            min(r.wins + r.losses for (_, r) in sorted_team_records)
+            == tournament.total_games_played_per_team
+        )
+
         result = TournamentResult(
             tournament=tournament,
             matchups=matchups,
             records=dict(sorted_team_records),
+            complete=complete,
         )
 
         results.append(result)
 
     return results
+
+
+@dataclass
+class TournamentStatFunctor:
+    name: str
+    func: Callable[MatchDetails, TournamentStat]
+
+
+def earlest_first_blood(matches: list[MatchDetails]) -> TournamentStat:
+    earliest = min(
+        (m for m in matches if m.first_blood), key=lambda x: x.first_blood.atMinute
+    )
+    return TournamentStat(
+        stat_name="Earliest First Blood",
+        value=f"{earliest.first_blood.atMinute:.2f}m",
+        player=earliest.first_blood.attacker,
+        match_id=earliest.match_id,
+    )
+
+
+def most_first_bloods(matches: list[MatchDetails]) -> TournamentStat:
+    counter = Counter(m.first_blood.attacker for m in matches if m.first_blood)
+    most, count = counter.most_common(1)[0]
+    return TournamentStat(
+        stat_name="Most First Bloods",
+        value=count,
+        player=most,
+    )
+
+
+def last_val(d: dict[float, dict[str, int]]) -> dict[str, int]:
+    return next(reversed(d.values()))
+
+
+def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
+    data_types = [
+        "xp",
+        "units_built",
+        "units_lost",
+        "buildings_built",
+        "buildings_lost",
+        "money_earned",
+        "units_killed",
+        "buildings_killed",
+        "tech_buildings_captured",
+        "faction_buildings_captured",
+    ]
+    stats: list[TournamentStat] = []
+    for dt in data_types:
+        counter = sum(
+            (
+                Counter(last_val(m.stats_data["units_killed"]))
+                for m in matches
+                if m.stats_data and m.stats_data["units_killed"]
+            ),
+            Counter(),
+        )
+        most, most_count = counter.most_common(1)[0]
+        logger.info(f"{most=} {most_count=}")
+        fewest, min_count = min(counter.items(), key=lambda x: x[1])
+        txt = " ".join(dt.split("_")).title()
+        stats.append(
+            TournamentStat(
+                stat_name=f"Most {txt}",
+                value=most_count,
+                player=most,
+            )
+        )
+        stats.append(
+            TournamentStat(
+                stat_name=f"Fewest {txt}",
+                value=min_count,
+                player=fewest,
+            )
+        )
+    return stats
+
+
+def tournament_report(
+    tournament_name: str,
+    tournament_match_details: list[MatchDetails],
+) -> TournamentReport:
+    details = tournament_match_details
+
+    stats: list[TournamentStat] = [
+        earlest_first_blood(details),
+        most_first_bloods(details),
+        *min_max_stats(details),
+    ]
+
+    return TournamentReport(name=tournament_name, stats=stats)

@@ -374,7 +374,20 @@ class TournamentResult(BaseModel):
     matchups: list[MatchupResult]
 
     records: dict[tuple[str, ...], WinLoss]
+    complete: bool
 
+
+class TournamentStat(BaseModel, frozen=True):
+    stat_name: str
+    value: float | str | None = None
+    player: str | None = None
+    match_id: int | None = None
+
+
+class TournamentReport(BaseModel, frozen=True):
+    name: str
+
+    stats: list[ TournamentStat]
 
 class WinnerOverride(BaseModel):
     match_id: int
