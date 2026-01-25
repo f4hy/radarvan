@@ -210,17 +210,25 @@ def details_from_id(match_id: int, replay_manager: ReplayManager) -> MatchDetail
 semaphore = asyncio.Semaphore(value=1)
 
 
-async def save_report(name: str, replay_manager: ReplayManager) -> None:
+async def save_report(
+    name: str, replay_manager: ReplayManager, save: bool = True
+) -> TournamentReport:
     async with semaphore:
         replays = sorted_deduped_matches(replay_manager)
-        tournament_games = tournament.tournament_games(replays.values())
-        for t in list(tournament_games.values()):
-            details = await asyncio.gather(
-                *[asyncio.to_thread(details_from_id, g.id, replay_manager) for g in t]
-            )
-            logger.info(f"finished details {len(details)}")
-    results = tournament.tournament_report(name, details)
-    replay_manager.save_tournament_report(results)
+        tournament_games = tournament.tournament_games(replays.values()).get(name, [])
+        if save is False:
+            tournament_games = tournament_games[:5]
+        details = await asyncio.gather(
+            *[
+                asyncio.to_thread(details_from_id, g.id, replay_manager)
+                for g in tournament_games
+            ]
+        )
+        logger.info(f"finished details {len(details)}")
+    results = tournament.tournament_report(name, tournament_games, details)
+    if save:
+        replay_manager.save_tournament_report(results)
+    return results
 
 
 @app.get("/api/tournament_report/{tournament_name}")
@@ -236,6 +244,26 @@ async def get_tournament_report(
         return TournamentReport(name="", stats=[])
 
     return existing
+
+
+@app.post("/api/generate_tournament_report/{tournament_name}")
+async def generate_tournament_report(
+    background_tasks: BackgroundTasks,
+    tournament_name: str = "2025_2v2_tournament",
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> str:
+    background_tasks.add_task(save_report, tournament_name, replay_manager)
+    return "OK"
+
+
+@app.post("/api/test_tournament_report/{tournament_name}")
+async def test_tournament_report(
+    background_tasks: BackgroundTasks,
+    tournament_name: str = "2025_2v2_tournament",
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> TournamentReport:
+    report = await save_report(tournament_name, replay_manager, save=False)
+    return report
 
 
 @app.get("/api/match/{match_id}")

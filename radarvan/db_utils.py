@@ -355,7 +355,7 @@ class ReplayManager:
     def save_tournament_report(
         self,
         pydantic_report: PydanticTournamentReport,
-    ) -> TournamentReport:  # Returns the SQLAlchemy model
+    ) -> None:
         """
         Save a Pydantic TournamentReport to the database.
 
@@ -366,8 +366,16 @@ class ReplayManager:
         Returns:
             The saved SQLAlchemy TournamentReport instance
         """
-        # Create the report
-        db_report = TournamentReport(name=pydantic_report.name)
+        stmt = select(TournamentReport).where(
+            TournamentReport.name == pydantic_report.name
+        )
+        db_report = self.session.scalar(stmt)
+        if db_report is not None:
+            # Update existing report - remove old stats
+            db_report.stats.clear()
+        else:
+            # Create new report
+            db_report = TournamentReport(name=pydantic_report.name)
 
         # Create and associate stats
         for pydantic_stat in pydantic_report.stats:
@@ -388,9 +396,7 @@ class ReplayManager:
         # Add to session and commit
         self.session.add(db_report)
         self.session.commit()
-        self.session.refresh(db_report)
-
-        return db_report
+        return None
 
     def get_tournament_report_by_name(
         self, name: str
@@ -430,6 +436,8 @@ class ReplayManager:
             )
             pydantic_stats.append(pydantic_stat)
 
-        pydantic_report = PydanticTournamentReport(name=db_report.name, stats=pydantic_stats)
+        pydantic_report = PydanticTournamentReport(
+            name=db_report.name, stats=pydantic_stats
+        )
 
         return pydantic_report

@@ -1,3 +1,4 @@
+import statistics
 from dataclasses import dataclass
 from collections import Counter
 from collections.abc import Callable
@@ -264,13 +265,15 @@ def earlest_first_blood(matches: list[MatchDetails]) -> TournamentStat:
     return TournamentStat(
         stat_name="Earliest First Blood",
         value=f"{earliest.first_blood.atMinute:.2f}m",
-        player=earliest.first_blood.attacker,
+        player=player_name_map(earliest.first_blood.attacker),
         match_id=earliest.match_id,
     )
 
 
 def most_first_bloods(matches: list[MatchDetails]) -> TournamentStat:
-    counter = Counter(m.first_blood.attacker for m in matches if m.first_blood)
+    counter = Counter(
+        player_name_map(m.first_blood.attacker) for m in matches if m.first_blood
+    )
     most, count = counter.most_common(1)[0]
     return TournamentStat(
         stat_name="Most First Bloods",
@@ -280,7 +283,9 @@ def most_first_bloods(matches: list[MatchDetails]) -> TournamentStat:
 
 
 def last_val(d: dict[float, dict[str, int]]) -> dict[str, int]:
-    return next(reversed(d.values()))
+    last = next(reversed(d.values()))
+    name_mapped = {player_name_map(k): v for k, v in last.items()}
+    return name_mapped
 
 
 def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
@@ -327,8 +332,80 @@ def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     return stats
 
 
+def fastest_win(matches: list[MatchInfo]) -> TournamentStat:
+    fastest = min((m for m in matches), key=lambda x: x.duration_minutes)
+    winners = [
+        player_name_map(p.name)
+        for p in fastest.players
+        if p.team == fastest.winning_team
+    ]
+    losers = [
+        player_name_map(p.name)
+        for p in fastest.players
+        if p.team != fastest.winning_team and p.team > 0
+    ]
+    return TournamentStat(
+        stat_name="Fastest win",
+        value=f"{fastest.duration_minutes:.1f}m",
+        player="✅" + "+".join(winners) + " vs " + "+".join(losers) + "❌",
+        match_id=fastest.id,
+    )
+
+
+def slowest_win(matches: list[MatchInfo]) -> TournamentStat:
+    slowest = max((m for m in matches), key=lambda x: x.duration_minutes)
+    winners = [
+        player_name_map(p.name)
+        for p in slowest.players
+        if p.team == slowest.winning_team
+    ]
+    losers = [
+        player_name_map(p.name)
+        for p in slowest.players
+        if p.team != slowest.winning_team and p.team > 0
+    ]
+    return TournamentStat(
+        stat_name="Slowest win",
+        value=f"{slowest.duration_minutes:.1f}m",
+        player="✅" + "+".join(winners) + " vs " + "+".join(losers) + "❌",
+        match_id=slowest.id,
+    )
+
+
+def group_by_team(
+    tournament_name: str, matches: list[MatchInfo]
+) -> dict[tuple[str, str], list[MatchInfo]]:
+    teams = TOURNAMENT_MAP[tournament_name].teams
+    grouped: dict[tuple[str, str], list[MatchInfo]] = defaultdict(list)
+    for m in matches:
+        player_names = {player_name_map(p.name) for p in m.players if p.team > 0}
+        for team in teams:
+            if set(team).issubset(player_names):
+                grouped[team].append(m)
+    return grouped
+
+
+def ave_times(tournament_name: str, matches: list[MatchInfo]) -> list[TournamentStat]:
+    grouped = group_by_team(tournament_name, matches)
+    ret: list[TournamentStat] = []
+    for players, matches in grouped.items():
+        times = [m.duration_minutes for m in matches]
+        ave = statistics.mean(times)
+
+        ret.append(
+            TournamentStat(
+                stat_name="Average match duration",
+                value=f"{ave:.1f}m",
+                player="+".join(players),
+            )
+        )
+    logger.info(f"AVe times {ret}")
+    return ret
+
+
 def tournament_report(
     tournament_name: str,
+    tournament_matches: list[MatchInfo],
     tournament_match_details: list[MatchDetails],
 ) -> TournamentReport:
     details = tournament_match_details
@@ -336,7 +413,10 @@ def tournament_report(
     stats: list[TournamentStat] = [
         earlest_first_blood(details),
         most_first_bloods(details),
+        fastest_win(tournament_matches),
+        slowest_win(tournament_matches),
         *min_max_stats(details),
+        *ave_times(tournament_name, tournament_matches),
     ]
 
     return TournamentReport(name=tournament_name, stats=stats)

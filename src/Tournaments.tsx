@@ -176,7 +176,7 @@ function DisplayMatchup(props: { matchup: MatchupResult }) {
 }
 
 
-function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGames: number }) {
+function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGames: number, complete: boolean }) {
   const total = props.totalGames
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -248,7 +248,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
           </TableBody>
         </Table>
       </TableContainer    >
-      <ResponsiveContainer width="100%" height={400}>
+      {props.complete || <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={chartData}
           layout="vertical"
@@ -263,7 +263,7 @@ function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGa
           <Bar dataKey="potentialWins" stackId="a" fill="#93c5fd" name="Potential Additional Wins" />
           <Bar dataKey="losses" stackId="a" fill="#f87171" name="Losses" />
         </BarChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer>}
     </Stack>
   )
 }
@@ -385,7 +385,7 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
     <Stack>
       <DisplayTournamentInfo tournament={props.result.tournament} />
       <Divider />
-      <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} />
+      <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} complete={props.result.complete} />
       <Divider sx={{ height: '100px' }} />
       <DisplayTournamentStats result={props.result} />
       <Typography sx={{ bgcolor: "lightblue", }}>
