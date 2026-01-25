@@ -4,11 +4,12 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
+| [**getMatchByIdApiMatchMatchIdGet**](DefaultApi.md#getmatchbyidapimatchmatchidget) | **GET** /api/match/{match_id} | Get Match By Id |
 | [**getMatchDetailsApiDetailsMatchIdGet**](DefaultApi.md#getmatchdetailsapidetailsmatchidget) | **GET** /api/details/{match_id} | Get Match Details |
-| [**getMatcheByIdApiMatchMatchIdGet**](DefaultApi.md#getmatchebyidapimatchmatchidget) | **GET** /api/match/{match_id} | Get Matche By Id |
 | [**getMatchesApiMatchesMatchCountGet**](DefaultApi.md#getmatchesapimatchesmatchcountget) | **GET** /api/matches/{match_count} | Get Matches |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
@@ -22,8 +23,75 @@ All URIs are relative to *http://localhost*
 | [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
 | [**setOverridesApiSetOverridePost**](DefaultApi.md#setoverridesapisetoverridepost) | **POST** /api/set_override/ | Set Overrides |
+| [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
 | [**updateNumTimestampsApiUpdateNumTimestampsPost**](DefaultApi.md#updatenumtimestampsapiupdatenumtimestampspost) | **POST** /api/update_num_timestamps/ | Update Num Timestamps |
 
+
+
+## generateTournamentReportApiGenerateTournamentReportTournamentNamePost
+
+> string generateTournamentReportApiGenerateTournamentReportTournamentNamePost(tournamentName)
+
+Generate Tournament Report
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string
+    tournamentName: tournamentName_example,
+  } satisfies GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest;
+
+  try {
+    const data = await api.generateTournamentReportApiGenerateTournamentReportTournamentNamePost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **tournamentName** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**string**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getDatesApiDatesGet
@@ -210,6 +278,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getMatchByIdApiMatchMatchIdGet
+
+> MatchInfo getMatchByIdApiMatchMatchIdGet(matchId)
+
+Get Match By Id
+
+Get listing of matches, up to a return count limit for paging.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetMatchByIdApiMatchMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies GetMatchByIdApiMatchMatchIdGetRequest;
+
+  try {
+    const data = await api.getMatchByIdApiMatchMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MatchInfo**](MatchInfo.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getMatchDetailsApiDetailsMatchIdGet
 
 > MatchDetails getMatchDetailsApiDetailsMatchIdGet(matchId)
@@ -258,74 +394,6 @@ example().catch(console.error);
 ### Return type
 
 [**MatchDetails**](MatchDetails.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## getMatcheByIdApiMatchMatchIdGet
-
-> any getMatcheByIdApiMatchMatchIdGet(matchId)
-
-Get Matche By Id
-
-Get listing of matches, up to a return count limit for paging.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from '';
-import type { GetMatcheByIdApiMatchMatchIdGetRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
-
-  const body = {
-    // number
-    matchId: 56,
-  } satisfies GetMatcheByIdApiMatchMatchIdGetRequest;
-
-  try {
-    const data = await api.getMatcheByIdApiMatchMatchIdGet(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **matchId** | `number` |  | [Defaults to `undefined`] |
-
-### Return type
-
-**any**
 
 ### Authorization
 
@@ -1160,6 +1228,72 @@ example().catch(console.error);
 ### Return type
 
 [**WinnerOverride**](WinnerOverride.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## testTournamentReportApiTestTournamentReportTournamentNamePost
+
+> TournamentReport testTournamentReportApiTestTournamentReportTournamentNamePost(tournamentName)
+
+Test Tournament Report
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { TestTournamentReportApiTestTournamentReportTournamentNamePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string
+    tournamentName: tournamentName_example,
+  } satisfies TestTournamentReportApiTestTournamentReportTournamentNamePostRequest;
+
+  try {
+    const data = await api.testTournamentReportApiTestTournamentReportTournamentNamePost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **tournamentName** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**TournamentReport**](TournamentReport.md)
 
 ### Authorization
 

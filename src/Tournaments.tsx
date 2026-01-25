@@ -15,6 +15,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
+import Button from '@mui/material/Button';
 import Stack from "@mui/material/Stack"
 import Skeleton from "@mui/material/Skeleton"
 import LinearProgress from "@mui/material/LinearProgress"
@@ -48,6 +49,11 @@ function getTournamentResults(callback: (m: TournamentResult[]) => void) {
 
 function getTournamentReport(name: string, callback: (m: TournamentReport) => void) {
   Client.getTournamentReportApiTournamentReportTournamentNameGet({ tournamentName: name })
+    .then(callback)
+    .catch((e) => alert(e))
+}
+function getMatch(matchId: number, callback: (m: MatchInfo) => void) {
+  Client.getMatchByIdApiMatchMatchIdGet({ matchId: matchId })
     .then(callback)
     .catch((e) => alert(e))
 }
@@ -133,6 +139,17 @@ function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
       }
     </Stack>
   )
+}
+
+function LoadAndShowMatch(props: { matchId: number }) {
+  const [match, setMatch] = React.useState<MatchInfo | null>(null)
+  React.useEffect(() => {
+    getMatch(props.matchId, setMatch)
+  }, [props.matchId])
+  if (match === null || match.durationMinutes === undefined) {
+    return (<><Loading /><Typography>{JSON.stringify(match?.durationMinutes)}</Typography></>)
+  }
+  return (<DisplayMatchInfo match={match} idx={props.matchId} />)
 }
 
 function DisplayMatchup(props: { matchup: MatchupResult }) {
@@ -331,6 +348,7 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
 
 function DisplayTournamentStats(props: { result: TournamentResult }) {
   const [touramentStats, setTournamentStats] = React.useState<TournamentReport | null>(null)
+  const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
   const search = window.location.search;
   const params = new URLSearchParams(search);
   const debug = !!(params.get("debug"))
@@ -347,7 +365,15 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   if (touramentStats == null) {
     return (<></>)
   }
+  function matchButton(mId: number | null | undefined) {
+    if (mId === null || mId === undefined) {
+      return (<></>)
+    }
+    return (<Button sx={{ "minWidth": 200 }} variant="contained" onClick={() => setSelectedMatch(mId)}> {mId} </Button>)
+  }
+
   return (<Paper>
+    {selectedMatch && (<LoadAndShowMatch matchId={selectedMatch} />)}
     <TableContainer component={Paper} sx={{ maxHeight: "50%" }} >
       <Table stickyHeader sx={{ maxHeight: "50%" }} >
         <TableHead>
@@ -360,18 +386,20 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
         </TableHead>
         <TableBody>
           {touramentStats.stats.map((s) => {
-            return (<TableRow sx={{
-              '&:nth-of-type(odd)': {
-                backgroundColor: 'action.hover', // Uses theme's hover color
-              },
-              '&:last-child td, &:last-child th': { border: 0 },
-            }}>
+            return (
+              <TableRow sx={{
+                '&:nth-of-type(odd)': {
+                  backgroundColor: 'action.hover', // Uses theme's hover color
+                },
+                '&:last-child td, &:last-child th': { border: 0 },
+              }}>
 
-              <TableCell>{s.statName}</TableCell>
-              <TableCell>{s.value}</TableCell>
-              <TableCell>{s.player}</TableCell>
-              <TableCell>{s.matchId}</TableCell>
-            </TableRow>)
+                <TableCell>{s.statName}</TableCell>
+                <TableCell>{s.value}</TableCell>
+                <TableCell>{s.player}</TableCell>
+                <TableCell>{matchButton(s.matchId)}</TableCell>
+              </TableRow>
+            )
           })}
         </TableBody>
       </Table>

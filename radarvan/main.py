@@ -267,10 +267,10 @@ async def test_tournament_report(
 
 
 @app.get("/api/match/{match_id}")
-def get_matche_by_id(
+def get_match_by_id(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> MatchInfo:
     """Get listing of matches, up to a return count limit for paging."""
     m = sorted_deduped_matches(replay_manager).get(match_id)
     return m

@@ -19,6 +19,7 @@ import type {
   GeneralStats,
   HTTPValidationError,
   MatchDetails,
+  MatchInfo,
   Matches,
   PlayerStats,
   Team,
@@ -35,6 +36,8 @@ import {
     HTTPValidationErrorToJSON,
     MatchDetailsFromJSON,
     MatchDetailsToJSON,
+    MatchInfoFromJSON,
+    MatchInfoToJSON,
     MatchesFromJSON,
     MatchesToJSON,
     PlayerStatsFromJSON,
@@ -49,15 +52,19 @@ import {
     WinnerOverrideToJSON,
 } from '../models/index';
 
+export interface GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest {
+    tournamentName: string;
+}
+
 export interface GetFilesForMatchIdApiFilesForMatchGetRequest {
     matchId: number;
 }
 
-export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
+export interface GetMatchByIdApiMatchMatchIdGetRequest {
     matchId: number;
 }
 
-export interface GetMatcheByIdApiMatchMatchIdGetRequest {
+export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
     matchId: number;
 }
 
@@ -94,6 +101,10 @@ export interface SetOverridesApiSetOverridePostRequest {
     winner: Team;
 }
 
+export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRequest {
+    tournamentName: string;
+}
+
 export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
     maxToUpdate?: number;
 }
@@ -102,6 +113,47 @@ export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Generate Tournament Report
+     */
+    async generateTournamentReportApiGenerateTournamentReportTournamentNamePostRaw(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
+        if (requestParameters['tournamentName'] == null) {
+            throw new runtime.RequiredError(
+                'tournamentName',
+                'Required parameter "tournamentName" was null or undefined when calling generateTournamentReportApiGenerateTournamentReportTournamentNamePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/generate_tournament_report/{tournament_name}`;
+        urlPath = urlPath.replace(`{${"tournament_name"}}`, encodeURIComponent(String(requestParameters['tournamentName'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<string>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Generate Tournament Report
+     */
+    async generateTournamentReportApiGenerateTournamentReportTournamentNamePost(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
+        const response = await this.generateTournamentReportApiGenerateTournamentReportTournamentNamePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Get Dates
@@ -214,6 +266,45 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Match By Id
+     */
+    async getMatchByIdApiMatchMatchIdGetRaw(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getMatchByIdApiMatchMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Match By Id
+     */
+    async getMatchByIdApiMatchMatchIdGet(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
+        const response = await this.getMatchByIdApiMatchMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get details about a particular match
      * Get Match Details
      */
@@ -249,49 +340,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchDetailsApiDetailsMatchIdGet(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
         const response = await this.getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get listing of matches, up to a return count limit for paging.
-     * Get Matche By Id
-     */
-    async getMatcheByIdApiMatchMatchIdGetRaw(requestParameters: GetMatcheByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['matchId'] == null) {
-            throw new runtime.RequiredError(
-                'matchId',
-                'Required parameter "matchId" was null or undefined when calling getMatcheByIdApiMatchMatchIdGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/api/match/{match_id}`;
-        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
-    }
-
-    /**
-     * Get listing of matches, up to a return count limit for paging.
-     * Get Matche By Id
-     */
-    async getMatcheByIdApiMatchMatchIdGet(requestParameters: GetMatcheByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getMatcheByIdApiMatchMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -788,6 +836,43 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async setOverridesApiSetOverridePost(requestParameters: SetOverridesApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {
         const response = await this.setOverridesApiSetOverridePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Test Tournament Report
+     */
+    async testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
+        if (requestParameters['tournamentName'] == null) {
+            throw new runtime.RequiredError(
+                'tournamentName',
+                'Required parameter "tournamentName" was null or undefined when calling testTournamentReportApiTestTournamentReportTournamentNamePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/test_tournament_report/{tournament_name}`;
+        urlPath = urlPath.replace(`{${"tournament_name"}}`, encodeURIComponent(String(requestParameters['tournamentName'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TournamentReportFromJSON(jsonValue));
+    }
+
+    /**
+     * Test Tournament Report
+     */
+    async testTournamentReportApiTestTournamentReportTournamentNamePost(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
+        const response = await this.testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
