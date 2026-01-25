@@ -1,4 +1,3 @@
-import threading
 import asyncio
 import traceback
 from fastapi import FastAPI, Request
@@ -7,7 +6,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from collections.abc import Generator
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import BackgroundTasks
 from . import exception_handling
 
 from . import middleware
@@ -202,18 +201,16 @@ def dont_cache_manager2(match_id: int, replay_manager: ReplayManager) -> str:
     return str(match_id)
 
 
-@cached(cache={}, key=dont_cache_manager2)
 def details_from_id(match_id: int, replay_manager: ReplayManager) -> MatchDetails:
     rep = replay_manager.get_replay_json_by_match_id(match_id)
     par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
     return match_details.match_details_from_replay(par)
 
 
-report_ready = False
 semaphore = asyncio.Semaphore(value=1)
 
 
-async def cache_report(replay_manager: ReplayManager) -> None:
+async def save_report(name: str, replay_manager: ReplayManager) -> None:
     async with semaphore:
         replays = sorted_deduped_matches(replay_manager)
         tournament_games = tournament.tournament_games(replays.values())
@@ -222,8 +219,8 @@ async def cache_report(replay_manager: ReplayManager) -> None:
                 *[asyncio.to_thread(details_from_id, g.id, replay_manager) for g in t]
             )
             logger.info(f"finished details {len(details)}")
-    global report_ready
-    report_ready = True
+    results = tournament.tournament_report(name, details)
+    replay_manager.save_tournament_report(results)
 
 
 @app.get("/api/tournament_report/{tournament_name}")
@@ -233,21 +230,12 @@ async def get_tournament_report(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> TournamentReport:
     """Get listing of matches, up to a return count limit for paging."""
-    if report_ready is False:
-        background_tasks.add_task(cache_report, replay_manager)
+    existing = replay_manager.get_tournament_report_by_name(tournament_name)
+    if not existing:
+        background_tasks.add_task(save_report, tournament_name, replay_manager)
         return TournamentReport(name="", stats=[])
 
-    replays = sorted_deduped_matches(replay_manager)
-    tournament_games = tournament.tournament_games(replays.values())
-    t = list(tournament_games[tournament_name])
-
-    details = await asyncio.gather(
-        *[asyncio.to_thread(details_from_id, g.id, replay_manager) for g in t]
-    )
-
-    results = tournament.tournament_report(tournament_name, details)
-    logger.info(f"results {results}")
-    return results
+    return existing
 
 
 @app.get("/api/match/{match_id}")

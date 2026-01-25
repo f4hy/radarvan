@@ -386,8 +386,8 @@ class TournamentStat(BaseModel, frozen=True):
 
 class TournamentReport(BaseModel, frozen=True):
     name: str
+    stats: list[TournamentStat]
 
-    stats: list[ TournamentStat]
 
 class WinnerOverride(BaseModel):
     match_id: int

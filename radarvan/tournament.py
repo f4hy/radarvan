@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from collections import Counter
-from typing import Callable
-from . import match_details
-from .db_utils import DatabaseManager, ReplayManager
+from collections.abc import Callable
 import logging
 from itertools import combinations
 from .player_ids import player_name_map
@@ -257,12 +255,6 @@ def create_tournament_results(
         results.append(result)
 
     return results
-
-
-@dataclass
-class TournamentStatFunctor:
-    name: str
-    func: Callable[MatchDetails, TournamentStat]
 
 
 def earlest_first_blood(matches: list[MatchDetails]) -> TournamentStat:

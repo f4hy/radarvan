@@ -33,7 +33,9 @@ def presigned_url(s3_path: str) -> str:
     key = parsed.path.lstrip("/")
 
     # Create S3 client
-    s3_client = boto3.client("s3", region_name="us-east-2", config=Config(signature_version="s3v4"))
+    s3_client = boto3.client(
+        "s3", region_name="us-east-2", config=Config(signature_version="s3v4")
+    )
 
     # Generate presigned URL
     url = s3_client.generate_presigned_url(

@@ -13,6 +13,7 @@ from sqlalchemy import (
     SmallInteger,
 )
 from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from datetime import datetime
 import enum
@@ -168,3 +169,34 @@ class WinnerOverride(Base):
     )
     winning_team_id = Column(SmallInteger, nullable=True)
     incomplete = Column(String, default=False)
+
+
+class TournamentReport(Base):
+    __tablename__ = "tournament_reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+
+    # Relationship to stats
+    stats: Mapped[list["TournamentStat"]] = relationship(
+        back_populates="tournament_report", cascade="all, delete-orphan"
+    )
+
+
+class TournamentStat(Base):
+    __tablename__ = "tournament_stats"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    stat_name: Mapped[str] = mapped_column(String, nullable=False)
+    value_float: Mapped[float | None] = mapped_column(Float, nullable=True)
+    value_str: Mapped[str | None] = mapped_column(String, nullable=True)
+    player: Mapped[str | None] = mapped_column(String, nullable=True)
+    match_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Foreign key to tournament_report
+    tournament_report_id: Mapped[int] = mapped_column(
+        ForeignKey("tournament_reports.id"), nullable=False
+    )
+
+    # Relationship back to report
+    tournament_report: Mapped["TournamentReport"] = relationship(back_populates="stats")

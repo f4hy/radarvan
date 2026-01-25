@@ -16,6 +16,12 @@ from .db import (
     Match,
     ProcessingStatus,
     WinnerOverride,
+    TournamentReport,
+    TournamentStat,
+)
+from .api_types import (
+    TournamentReport as PydanticTournamentReport,
+    TournamentStat as PydanticTournamentStat,
 )
 import logging
 from pydantic import BaseModel
@@ -345,3 +351,85 @@ class ReplayManager:
         self.session.commit()
 
         return result.rowcount > 0
+
+    def save_tournament_report(
+        self,
+        pydantic_report: PydanticTournamentReport,
+    ) -> TournamentReport:  # Returns the SQLAlchemy model
+        """
+        Save a Pydantic TournamentReport to the database.
+
+        Args:
+            session: SQLAlchemy session
+            pydantic_report: Pydantic TournamentReport object
+
+        Returns:
+            The saved SQLAlchemy TournamentReport instance
+        """
+        # Create the report
+        db_report = TournamentReport(name=pydantic_report.name)
+
+        # Create and associate stats
+        for pydantic_stat in pydantic_report.stats:
+            db_stat = TournamentStat(
+                stat_name=pydantic_stat.stat_name,
+                player=pydantic_stat.player,
+                match_id=pydantic_stat.match_id,
+                tournament_report=db_report,
+            )
+
+            # Handle the value field - determine if it's float or str
+            if pydantic_stat.value is not None:
+                if isinstance(pydantic_stat.value, (int, float)):
+                    db_stat.value_float = float(pydantic_stat.value)
+                else:
+                    db_stat.value_str = str(pydantic_stat.value)
+
+        # Add to session and commit
+        self.session.add(db_report)
+        self.session.commit()
+        self.session.refresh(db_report)
+
+        return db_report
+
+    def get_tournament_report_by_name(
+        self, name: str
+    ) -> PydanticTournamentReport | None:  # Returns Pydantic model
+        """
+        Retrieve a TournamentReport by name and convert to Pydantic model.
+
+        Args:
+            session: SQLAlchemy session
+            name: Name of the tournament report
+
+        Returns:
+            Pydantic TournamentReport object or None if not found
+        """
+        # Query the database
+        stmt = select(TournamentReport).where(TournamentReport.name == name)
+        db_report = self.session.scalar(stmt)
+
+        if db_report is None:
+            return None
+
+        # Convert SQLAlchemy model to Pydantic model
+        pydantic_stats = []
+        for db_stat in db_report.stats:
+            # Determine which value field to use
+            value = (
+                db_stat.value_float
+                if db_stat.value_float is not None
+                else db_stat.value_str
+            )
+
+            pydantic_stat = PydanticTournamentStat(
+                stat_name=db_stat.stat_name,
+                value=value,
+                player=db_stat.player,
+                match_id=db_stat.match_id,
+            )
+            pydantic_stats.append(pydantic_stat)
+
+        pydantic_report = PydanticTournamentReport(name=db_report.name, stats=pydantic_stats)
+
+        return pydantic_report
