@@ -59,6 +59,12 @@ export interface TournamentResult {
      * @memberof TournamentResult
      */
     records: { [key: string]: WinLoss; };
+    /**
+     * 
+     * @type {boolean}
+     * @memberof TournamentResult
+     */
+    complete: boolean;
 }
 
 /**
@@ -68,6 +74,7 @@ export function instanceOfTournamentResult(value: object): value is TournamentRe
     if (!('tournament' in value) || value['tournament'] === undefined) return false;
     if (!('matchups' in value) || value['matchups'] === undefined) return false;
     if (!('records' in value) || value['records'] === undefined) return false;
+    if (!('complete' in value) || value['complete'] === undefined) return false;
     return true;
 }
 
@@ -84,6 +91,7 @@ export function TournamentResultFromJSONTyped(json: any, ignoreDiscriminator: bo
         'tournament': TournamentFromJSON(json['tournament']),
         'matchups': ((json['matchups'] as Array<any>).map(MatchupResultFromJSON)),
         'records': (mapValues(json['records'], WinLossFromJSON)),
+        'complete': json['complete'],
     };
 }
 
@@ -101,6 +109,7 @@ export function TournamentResultToJSONTyped(value?: TournamentResult | null, ign
         'tournament': TournamentToJSON(value['tournament']),
         'matchups': ((value['matchups'] as Array<any>).map(MatchupResultToJSON)),
         'records': (mapValues(value['records'], WinLossToJSON)),
+        'complete': value['complete'],
     };
 }
 

@@ -34,7 +34,7 @@ import {
   Legend,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStat, GeneralStats, Tournament, TournamentResult, MatchupResult, WinLoss, MatchInfo } from "./api"
+import { General, GeneralStat, GeneralStats, Tournament, TournamentResult, MatchupResult, WinLoss, MatchInfo, TournamentStat, TournamentReport } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
@@ -45,6 +45,13 @@ function getTournamentResults(callback: (m: TournamentResult[]) => void) {
     .then(callback)
     .catch((e) => alert(e))
 }
+
+function getTournamentReport(name: string, callback: (m: TournamentReport) => void) {
+  Client.getTournamentReportApiTournamentReportTournamentNameGet({ tournamentName: name })
+    .then(callback)
+    .catch((e) => alert(e))
+}
+
 const getWinRateStyle = (winRate: number) => {
   if (winRate >= 55) {
     return {
@@ -148,7 +155,12 @@ function DisplayMatchup(props: { matchup: MatchupResult }) {
               {
                 Object.entries(props.matchup.outcome).map(
                   ([team, wl]) => (
-                    <TableRow>
+                    <TableRow sx={{
+                      '&:nth-of-type(odd)': {
+                        backgroundColor: 'action.hover', // Uses theme's hover color
+                      },
+                      '&:last-child td, &:last-child th': { border: 0 },
+                    }}>
                       <TableCell>{team}</TableCell>
                       <TableCell>{wl.wins}</TableCell>
                     </TableRow>
@@ -317,6 +329,56 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
   )
 }
 
+function DisplayTournamentStats(props: { result: TournamentResult }) {
+  const [touramentStats, setTournamentStats] = React.useState<TournamentReport | null>(null)
+  const search = window.location.search;
+  const params = new URLSearchParams(search);
+  const debug = !!(params.get("debug"))
+  const show = (props.result.complete == true) || debug
+  React.useEffect(() => {
+    getTournamentReport(props.result.tournament.name, setTournamentStats)
+  }, [])
+
+  if (!show) {
+    return (<Paper>
+      <Typography>Tournament still in progress</Typography>
+    </Paper>)
+  }
+  if (touramentStats == null) {
+    return (<></>)
+  }
+  return (<Paper>
+    <TableContainer component={Paper} sx={{ maxHeight: "50%" }} >
+      <Table stickyHeader sx={{ maxHeight: "50%" }} >
+        <TableHead>
+          <TableRow>
+            <TableCell style={{ width: '20%' }}>Stat</TableCell>
+            <TableCell>Value</TableCell>
+            <TableCell>Player</TableCell>
+            <TableCell>MatchId</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {touramentStats.stats.map((s) => {
+            return (<TableRow sx={{
+              '&:nth-of-type(odd)': {
+                backgroundColor: 'action.hover', // Uses theme's hover color
+              },
+              '&:last-child td, &:last-child th': { border: 0 },
+            }}>
+
+              <TableCell>{s.statName}</TableCell>
+              <TableCell>{s.value}</TableCell>
+              <TableCell>{s.player}</TableCell>
+              <TableCell>{s.matchId}</TableCell>
+            </TableRow>)
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer    >
+    <Divider />
+  </Paper>)
+}
 
 function DisplayTournamentResult(props: { result: TournamentResult }) {
   return (
@@ -325,6 +387,7 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
       <Divider />
       <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} />
       <Divider sx={{ height: '100px' }} />
+      <DisplayTournamentStats result={props.result} />
       <Typography sx={{ bgcolor: "lightblue", }}>
         Matchups
       </Typography>
@@ -333,6 +396,7 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
     </Stack>
   )
 }
+
 
 export default function DisplayTournamentResults() {
   const [touramentResults, setTournamentResults] = React.useState<TournamentResult[]>([])

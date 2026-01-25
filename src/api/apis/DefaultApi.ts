@@ -22,6 +22,7 @@ import type {
   Matches,
   PlayerStats,
   Team,
+  TournamentReport,
   TournamentResult,
   WinnerOverride,
 } from '../models/index';
@@ -40,22 +41,32 @@ import {
     PlayerStatsToJSON,
     TeamFromJSON,
     TeamToJSON,
+    TournamentReportFromJSON,
+    TournamentReportToJSON,
     TournamentResultFromJSON,
     TournamentResultToJSON,
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
 
+export interface GetFilesForMatchIdApiFilesForMatchGetRequest {
+    matchId: number;
+}
+
 export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
     matchId: number;
 }
 
-export interface GetMatchesApiMatchMatchIdGetRequest {
+export interface GetMatcheByIdApiMatchMatchIdGetRequest {
     matchId: number;
 }
 
 export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
+}
+
+export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest {
+    tournamentName: string;
 }
 
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
@@ -64,6 +75,10 @@ export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
 
 export interface ReparseApiReparseMatchIdPostRequest {
     matchId: number;
+}
+
+export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest {
+    maxToReturn?: number;
 }
 
 export interface RepraseApiRepraseMatchIdPostRequest {
@@ -77,6 +92,10 @@ export interface ScrapeApiScrapeDaysPostRequest {
 export interface SetOverridesApiSetOverridePostRequest {
     matchId: number;
     winner: Team;
+}
+
+export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
+    maxToUpdate?: number;
 }
 
 /**
@@ -114,6 +133,52 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.getDatesApiDatesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get winner overrides.
+     * Get Files For Match Id
+     */
+    async getFilesForMatchIdApiFilesForMatchGetRaw(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getFilesForMatchIdApiFilesForMatchGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['matchId'] != null) {
+            queryParameters['match_id'] = requestParameters['matchId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/files_for_match`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Get winner overrides.
+     * Get Files For Match Id
+     */
+    async getFilesForMatchIdApiFilesForMatchGet(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getFilesForMatchIdApiFilesForMatchGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -189,13 +254,13 @@ export class DefaultApi extends runtime.BaseAPI {
 
     /**
      * Get listing of matches, up to a return count limit for paging.
-     * Get Matches
+     * Get Matche By Id
      */
-    async getMatchesApiMatchMatchIdGetRaw(requestParameters: GetMatchesApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getMatcheByIdApiMatchMatchIdGetRaw(requestParameters: GetMatcheByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
-                'Required parameter "matchId" was null or undefined when calling getMatchesApiMatchMatchIdGet().'
+                'Required parameter "matchId" was null or undefined when calling getMatcheByIdApiMatchMatchIdGet().'
             );
         }
 
@@ -223,10 +288,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
     /**
      * Get listing of matches, up to a return count limit for paging.
-     * Get Matches
+     * Get Matche By Id
      */
-    async getMatchesApiMatchMatchIdGet(requestParameters: GetMatchesApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getMatchesApiMatchMatchIdGetRaw(requestParameters, initOverrides);
+    async getMatcheByIdApiMatchMatchIdGet(requestParameters: GetMatcheByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getMatcheByIdApiMatchMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -328,6 +393,45 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerStatsApiPlayerstatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
         const response = await this.getPlayerStatsApiPlayerstatsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Tournament Report
+     */
+    async getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
+        if (requestParameters['tournamentName'] == null) {
+            throw new runtime.RequiredError(
+                'tournamentName',
+                'Required parameter "tournamentName" was null or undefined when calling getTournamentReportApiTournamentReportTournamentNameGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/tournament_report/{tournament_name}`;
+        urlPath = urlPath.replace(`{${"tournament_name"}}`, encodeURIComponent(String(requestParameters['tournamentName'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TournamentReportFromJSON(jsonValue));
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Tournament Report
+     */
+    async getTournamentReportApiTournamentReportTournamentNameGet(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
+        const response = await this.getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -514,6 +618,43 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Replays Without Playerstats
+     */
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToReturn'] != null) {
+            queryParameters['max_to_return'] = requestParameters['maxToReturn'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/replays_without_playerstats/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Replays Without Playerstats
+     */
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Rerun the replay parser on this match.
      * Reprase
      */
@@ -647,6 +788,43 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async setOverridesApiSetOverridePost(requestParameters: SetOverridesApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {
         const response = await this.setOverridesApiSetOverridePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update Num Timestamps
+     */
+    async updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/update_num_timestamps/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Update Num Timestamps
+     */
+    async updateNumTimestampsApiUpdateNumTimestampsPost(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -215,7 +215,7 @@ async def get_tournament_report(
     """Get listing of matches, up to a return count limit for paging."""
     replays = sorted_deduped_matches(replay_manager)
     tournament_games = tournament.tournament_games(replays.values())
-    t = list(tournament_games[tournament_name])[:5]  # TODO, do right
+    t = list(tournament_games[tournament_name])
 
 
     details = await asyncio.gather(

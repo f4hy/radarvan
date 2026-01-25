@@ -308,9 +308,9 @@ def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     for dt in data_types:
         counter = sum(
             (
-                Counter(last_val(m.stats_data["units_killed"]))
+                Counter(last_val(m.stats_data[dt]))
                 for m in matches
-                if m.stats_data and m.stats_data["units_killed"]
+                if m.stats_data and m.stats_data[dt]
             ),
             Counter(),
         )
