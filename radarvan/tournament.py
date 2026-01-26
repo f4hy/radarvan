@@ -13,6 +13,7 @@ from .api_types import (
     MatchInfo,
     Matchup,
     Team,
+    General,
     Tournament,
     MatchupResult,
     TournamentResult,
@@ -219,7 +220,7 @@ def create_tournament_results(
         for ms in all_matchups:
             found = False
             for m in matchups:
-                logger.info(
+                logger.debug(
                     f" outcome {set(m.outcome.keys())} compared to {{ms.team1, ms.team2}}"
                 )
                 if set(m.outcome.keys()) == {ms.team1, ms.team2}:
@@ -256,6 +257,121 @@ def create_tournament_results(
         results.append(result)
 
     return results
+
+
+def highest_apm(matches: list[MatchDetails]) -> TournamentStat:
+    highest_apm_match = max(
+        (m for m in matches if m.apms), key=lambda x: max((a.apm for a in x.apms))
+    )
+    highest_apm = max((a for a in highest_apm_match.apms), key=lambda x: x.apm)
+    return TournamentStat(
+        stat_name="Highest APM",
+        value=round(highest_apm.apm, 2),
+        player=player_name_map(highest_apm.player_name),
+        match_id=highest_apm_match.match_id,
+    )
+
+
+def highest_ave_apm(matches: list[MatchDetails]) -> list[TournamentStat]:
+    player_apms: dict[str, list[float]] = defaultdict(list)
+    for m in matches:
+        if not m.apms:
+            continue
+        for a in m.apms:
+            player_apms[player_name_map(a.player_name)].append(a.apm)
+
+    averages = {p: statistics.mean(v) for p, v in player_apms.items()}
+    player, max_ave = max(averages.items(), key=lambda x: x[1])
+    return TournamentStat(
+        stat_name="Highest Average APM",
+        value=round(max_ave, 2),
+        player=player_name_map(player),
+    )
+
+
+def faction_stats(matches: list[MatchInfo]) -> list[TournamentStat]:
+    all_zeros = Counter({General(i): 0 for i in range(12)})
+    generals_played = (
+        Counter((p.general for m in matches for p in m.players if p.team > 0))
+        + all_zeros
+    )
+    generals_won = (
+        Counter(
+            p.general for m in matches for p in m.players if p.team == m.winning_team
+        )
+        + all_zeros
+    )
+
+    most_played, most_count = generals_played.most_common(1)[0]
+    most_won, most_won_count = generals_won.most_common(1)[0]
+    fewest_played, fewest_count = min(generals_played.items(), key=lambda x: x[1])
+    fewest_won, fewest_won_count = min(generals_won.items(), key=lambda x: x[1])
+
+    ratios = {k: generals_won[k] / (generals_played[k] or 1) for k in generals_played}
+
+    highest_win_rate_gen, highest_win_rate = max(ratios.items(), key=lambda x: x[1])
+    lowest_win_rate_gen, lowest_win_rate = min(ratios.items(), key=lambda x: x[1])
+
+    return [
+        TournamentStat(
+            stat_name="Most played general",
+            value=most_count,
+            player=General(most_played).name,
+        ),
+        TournamentStat(
+            stat_name="Least played general",
+            value=fewest_count,
+            player=General(fewest_played).name,
+        ),
+        TournamentStat(
+            stat_name="General with most wins",
+            value=most_won_count,
+            player=General(most_won).name,
+        ),
+        TournamentStat(
+            stat_name="General with fewest wins",
+            value=fewest_won_count,
+            player=General(fewest_won).name,
+        ),
+        TournamentStat(
+            stat_name="General best win rate",
+            value=round(highest_win_rate, 3),
+            player=General(highest_win_rate_gen).name,
+        ),
+        TournamentStat(
+            stat_name="General lowest win rate",
+            value=round(lowest_win_rate, 3),
+            player=General(lowest_win_rate_gen).name,
+        ),
+    ]
+
+
+def unit_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
+    units_created = [s.UnitsCreated for m in matches for s in m.player_summary]
+    mapped = [{c.split("_")[-1]: v.Count} for d in units_created for c, v in d.items()]
+    unit_counts = sum((Counter(d) for d in mapped), Counter())
+
+    return [
+        TournamentStat(
+            stat_name="Unit built",
+            value=v,
+            player=c,
+        )
+        for c, v in unit_counts.most_common()
+    ]
+def building_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
+    buildings_created = [s.BuildingsBuilt for m in matches for s in m.player_summary]
+    mapped = [{c.split("_")[-1]: v.Count} for d in buildings_created for c, v in d.items()]
+    building_counts = sum((Counter(d) for d in mapped), Counter())
+
+    return [
+        TournamentStat(
+            stat_name="Building built",
+            value=v,
+            player=c,
+        )
+        for c, v in building_counts.most_common()
+    ]
 
 
 def earlest_first_blood(matches: list[MatchDetails]) -> TournamentStat:
@@ -312,7 +428,6 @@ def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
             Counter(),
         )
         most, most_count = counter.most_common(1)[0]
-        logger.info(f"{most=} {most_count=}")
         fewest, min_count = min(counter.items(), key=lambda x: x[1])
         txt = " ".join(dt.split("_")).title()
         stats.append(
@@ -413,10 +528,15 @@ def tournament_report(
     stats: list[TournamentStat] = [
         earlest_first_blood(details),
         most_first_bloods(details),
+        *faction_stats(tournament_matches),
+        highest_apm(details),
+        highest_ave_apm(details),
         fastest_win(tournament_matches),
         slowest_win(tournament_matches),
         *min_max_stats(details),
         *ave_times(tournament_name, tournament_matches),
+        *unit_stats(details),
+        *building_stats(details),
     ]
 
     return TournamentReport(name=tournament_name, stats=stats)
