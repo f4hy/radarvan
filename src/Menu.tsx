@@ -38,7 +38,7 @@ interface QueryParams {
 
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const [selection, setSelection] = React.useState<Selection>("Tournaments")
+  const [selection, setSelection] = React.useState<Selection>("Matches")
   const [queryParams, setQueryParams] = React.useState<QueryParams>({})
   React.useEffect(() => {
     // Get the query string from the current URL

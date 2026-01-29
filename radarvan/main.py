@@ -201,6 +201,7 @@ def dont_cache_manager2(match_id: int, replay_manager: ReplayManager) -> str:
     return str(match_id)
 
 
+@cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager2)
 def details_from_id(match_id: int, replay_manager: ReplayManager) -> MatchDetails:
     rep = replay_manager.get_replay_json_by_match_id(match_id)
     par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
