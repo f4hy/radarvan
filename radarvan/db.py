@@ -127,7 +127,7 @@ class Match(Base):
         Index("idx_matches_winning_team", "winning_team_id"),
     )
 
-    compostion = relationship("MatchCompostion", back_populates="match", uselist=False)
+    composition = relationship("MatchCompostion", back_populates="match", uselist=False)
 
     def __repr__(self):
         return f"<Match(match_id=`{self.match_id}` \n`winner={self.winning_team_id}`\n updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
