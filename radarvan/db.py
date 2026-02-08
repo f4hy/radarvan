@@ -1,18 +1,14 @@
+from sqlalchemy import Column, Integer, String, Boolean, ARRAY, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy import (
-    Column,
-    Integer,
     Date,
-    String,
     Float,
-    Boolean,
     Text,
     DateTime,
-    ForeignKey,
     CheckConstraint,
     Index,
     SmallInteger,
 )
-from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -131,6 +127,8 @@ class Match(Base):
         Index("idx_matches_winning_team", "winning_team_id"),
     )
 
+    compostion = relationship("MatchCompostion", back_populates="match", uselist=False)
+
     def __repr__(self):
         return f"<Match(match_id=`{self.match_id}` \n`winner={self.winning_team_id}`\n updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
 
@@ -200,3 +198,25 @@ class TournamentStat(Base):
 
     # Relationship back to report
     tournament_report: Mapped["TournamentReport"] = relationship(back_populates="stats")
+
+
+class MatchCompostion(Base):
+    __tablename__ = "match_compostion"
+
+    match_id = Column(
+        Integer, ForeignKey("matches.match_id", ondelete="CASCADE"), primary_key=True
+    )
+    category = Column(String)
+    is_comp_stomp = Column(Boolean)
+    is_ffa = Column(Boolean)
+    num_teams = Column(Integer)
+    team_sizes = Column(ARRAY(Integer))
+    total_players = Column(Integer)
+    num_humans = Column(Integer)
+    num_computers = Column(Integer)
+    is_balanced = Column(Boolean)
+    is_1v1 = Column(Boolean)
+    is_team_game = Column(Boolean)
+
+    # Optional: relationship back to game
+    match = relationship("Match", back_populates="metadata")

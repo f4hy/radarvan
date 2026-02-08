@@ -1,7 +1,5 @@
 import statistics
-from dataclasses import dataclass
 from collections import Counter
-from collections.abc import Callable
 import logging
 from itertools import combinations
 from .player_ids import player_name_map
@@ -261,7 +259,7 @@ def create_tournament_results(
 
 def highest_apm(matches: list[MatchDetails]) -> TournamentStat:
     highest_apm_match = max(
-        (m for m in matches if m.apms), key=lambda x: max((a.apm for a in x.apms))
+        (m for m in matches if m.apms), key=lambda x: max(a.apm for a in x.apms)
     )
     highest_apm = max((a for a in highest_apm_match.apms), key=lambda x: x.apm)
     return TournamentStat(
@@ -292,8 +290,7 @@ def highest_ave_apm(matches: list[MatchDetails]) -> list[TournamentStat]:
 def faction_stats(matches: list[MatchInfo]) -> list[TournamentStat]:
     all_zeros = Counter({General(i): 0 for i in range(12)})
     generals_played = (
-        Counter((p.general for m in matches for p in m.players if p.team > 0))
-        + all_zeros
+        Counter(p.general for m in matches for p in m.players if p.team > 0) + all_zeros
     )
     generals_won = (
         Counter(
@@ -359,9 +356,13 @@ def unit_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
         )
         for c, v in unit_counts.most_common()
     ]
+
+
 def building_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     buildings_created = [s.BuildingsBuilt for m in matches for s in m.player_summary]
-    mapped = [{c.split("_")[-1]: v.Count} for d in buildings_created for c, v in d.items()]
+    mapped = [
+        {c.split("_")[-1]: v.Count} for d in buildings_created for c, v in d.items()
+    ]
     building_counts = sum((Counter(d) for d in mapped), Counter())
 
     return [
