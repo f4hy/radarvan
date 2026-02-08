@@ -219,4 +219,4 @@ class MatchCompostion(Base):
     is_team_game = Column(Boolean)
 
     # Optional: relationship back to game
-    match = relationship("Match", back_populates="metadata")
+    match = relationship("Match", back_populates="composition")
