@@ -462,14 +462,19 @@ PlayerEnum = Enum(
 
 
 class SelectedPLayers(BaseModel):
-    players: list[PlayerEnum]
+    players: list[PlayerEnum] = []
 
 
 @app.get("/api/balance_teams/")
 def balance_teams(
-    players: SelectedPLayers = Query(default=[]),
+    players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
+    if players is None:
+        return {}
+    if len(players.players) < 4:
+        return {}
+
     games = sorted_deduped_matches(replay_manager)
 
     team_scores = player_rating.balance_teams(

@@ -1,6 +1,6 @@
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import { alpha } from '@mui/material/styles';
+import { alpha } from "@mui/material/styles"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
@@ -27,17 +27,24 @@ import { PlayerColor } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import { MatchDetails, Spent, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
+import {
+  MatchDetails,
+  Spent,
+  Upgrades,
+  APM,
+  PlayerSummary,
+  FirstBlood,
+} from "./api"
 import { Alert, Stack } from "@mui/material"
-import Table from '@mui/material/Table';
-import Link from '@mui/material/Link';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import TableSortLabel from '@mui/material/TableSortLabel';
+import Table from "@mui/material/Table"
+import Link from "@mui/material/Link"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TablePagination from "@mui/material/TablePagination"
+import TableRow from "@mui/material/TableRow"
+import TableSortLabel from "@mui/material/TableSortLabel"
 
 function getDetails(id: number, callback: (m: MatchDetails) => void) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
@@ -71,8 +78,6 @@ const shapes: (
   | "triangle"
 )[] = ["circle", "star", "square", "triangle"]
 
-
-
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
   title: string
@@ -104,7 +109,10 @@ function MoneyChart(props: {
             data={data}
             margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
           >
-            <XAxis type="number" dataKey="atMinute" domain={[0, max_time]}
+            <XAxis
+              type="number"
+              dataKey="atMinute"
+              domain={[0, max_time]}
               tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
               name="minutes"
             />
@@ -135,10 +143,8 @@ function MoneyChart(props: {
                 label={{ value: `${i + 2}⭐`, position: "insideLeft" }}
                 stroke="blue"
                 strokeDasharray="3 3"
-
               />
             ))}
-
           </LineChart>
         </ResponsiveContainer>
       </>
@@ -147,7 +153,6 @@ function MoneyChart(props: {
     return <div>{props.title} data unavailible for this replay</div>
   }
 }
-
 
 function EventChart(props: {
   upgrades: { [name: string]: Upgrades }
@@ -177,7 +182,10 @@ function EventChart(props: {
               {/* <LabelList dataKey="upgradeName" position="left" formatter={labelformater} offset={100} /> */}
             </Scatter>
           ))}
-          <XAxis type="number" dataKey="atMinute" domain={[0, props.max]}
+          <XAxis
+            type="number"
+            dataKey="atMinute"
+            domain={[0, props.max]}
             tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
           />
           <YAxis
@@ -207,7 +215,7 @@ function EventChart(props: {
   }
 }
 
-function ApmChart(props: { apms: APM[], playerSummaries: PlayerSummary[] }) {
+function ApmChart(props: { apms: APM[]; playerSummaries: PlayerSummary[] }) {
   if (props.apms.length === 0) {
     return <div>APM data not yet availible</div>
   }
@@ -223,56 +231,81 @@ function ApmChart(props: { apms: APM[], playerSummaries: PlayerSummary[] }) {
         layout="vertical"
         margin={{ top: 5, right: 10, left: 15, bottom: 20 }}
       >
-        <XAxis type="number" dataKey="apm" label={{ value: "Actions Per Minute", offset: 1, position: "bottom" }} />
+        <XAxis
+          type="number"
+          dataKey="apm"
+          label={{ value: "Actions Per Minute", offset: 1, position: "bottom" }}
+        />
         <YAxis type="category" dataKey="playerName" />
-        <Bar dataKey="apm" >
-          {data.map((entry, index) =>
-            (<Cell key={`cell-${index}`} fill={_.get(colors, entry.playerName)} />)
-          )}
+        <Bar dataKey="apm">
+          {data.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={_.get(colors, entry.playerName)}
+            />
+          ))}
         </Bar>
-        <Tooltip cursor={false} formatter={(value) => typeof value === 'number' ? value.toFixed(1) : value} />
+        <Tooltip
+          cursor={false}
+          formatter={(value) =>
+            typeof value === "number" ? value.toFixed(1) : value
+          }
+        />
       </BarChart>
     </ResponsiveContainer>
   )
 }
 
-function DisplayFirstBlood(props: { first_blood?: FirstBlood, building_first_blood?: FirstBlood }) {
+function DisplayFirstBlood(props: {
+  first_blood?: FirstBlood
+  building_first_blood?: FirstBlood
+}) {
   if (props.first_blood === undefined) {
     return <></>
   }
-  const msgs = [`${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)} minutes`]
+  const msgs = [
+    `${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)} minutes`,
+  ]
   if (props.building_first_blood) {
-    msgs.push(`${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`)
+    msgs.push(
+      `${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`,
+    )
   }
   return (
-    <Stack direction="row" spacing={0} sx={{
-      justifyContent: "space-between",
-      alignItems: "center",
-    }}>
-      {msgs.map(m =>
-        (<Alert severity="warning" sx={{ width: "100%" }}>{m}</Alert>)
-      )}
+    <Stack
+      direction="row"
+      spacing={0}
+      sx={{
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      {msgs.map((m) => (
+        <Alert severity="warning" sx={{ width: "100%" }}>
+          {m}
+        </Alert>
+      ))}
     </Stack>
   )
 }
 
 interface TableRow {
-  player: string;
-  team: number;
-  won: boolean;
-  color: string;
-  general: string;
-  xp: number | null;
-  unitsBuilt: number | null;
-  buildingsBuilt: number | null;
-  unitsLost: number | null;
-  buildingsLost: number | null;
-  unitsKilled: number | null;
-  buildingsKilled: number | null;
-  tech_buildings_captured: number | null;
-  faction_buildings_captured: number | null;
-  moneySpent: number;
-  moneyCollected: number | null;
+  player: string
+  team: number
+  won: boolean
+  color: string
+  general: string
+  xp: number | null
+  unitsBuilt: number | null
+  buildingsBuilt: number | null
+  unitsLost: number | null
+  buildingsLost: number | null
+  unitsKilled: number | null
+  buildingsKilled: number | null
+  tech_buildings_captured: number | null
+  faction_buildings_captured: number | null
+  moneySpent: number
+  moneyCollected: number | null
 }
 
 function renderCash(value: number | null): string {
@@ -283,67 +316,70 @@ function renderCash(value: number | null): string {
 }
 
 const columns: Array<{
-  key: keyof TableRow;
-  label: string;
-  align?: 'left' | 'right' | 'center';
-  render?: (value: any) => React.ReactNode;
+  key: keyof TableRow
+  label: string
+  align?: "left" | "right" | "center"
+  render?: (value: any) => React.ReactNode
 }> = [
-    { key: 'player', label: 'Player' },
-    { key: 'team', label: 'Team' },
-    {
-      key: 'won', label: 'Won',
-      render: (value) => value ? "✅" : "❌"
-    },
-    {
-      key: 'general',
-      label: 'Side',
-      render: ((v) => v.split(" ").length > 1 ? v.split(" ")[1] : v)
-    },
-    { key: 'xp', label: 'XP' },
-    { key: 'unitsBuilt', label: '🛻 Built' },
-    { key: 'buildingsBuilt', label: '🏢 Built' },
-    { key: 'unitsLost', label: '🛻 Lost' },
-    { key: 'buildingsLost', label: '🏢 Lost' },
-    { key: 'unitsKilled', label: '🛻 Killed' },
-    { key: 'buildingsKilled', label: '🏢 Killed' },
-    { key: 'tech_buildings_captured', label: 'Tech Buildings Captured' },
-    { key: 'faction_buildings_captured', label: 'Faction Buildings Captured' },
-    {
-      key: 'moneySpent',
-      label: '$ Spent',
-      align: 'right',
-      render: renderCash,
-    },
-    {
-      key: 'moneyCollected', label: '$ Collected', align: 'right', render: renderCash,
-    },
-  ];
+  { key: "player", label: "Player" },
+  { key: "team", label: "Team" },
+  {
+    key: "won",
+    label: "Won",
+    render: (value) => (value ? "✅" : "❌"),
+  },
+  {
+    key: "general",
+    label: "Side",
+    render: (v) => (v.split(" ").length > 1 ? v.split(" ")[1] : v),
+  },
+  { key: "xp", label: "XP" },
+  { key: "unitsBuilt", label: "🛻 Built" },
+  { key: "buildingsBuilt", label: "🏢 Built" },
+  { key: "unitsLost", label: "🛻 Lost" },
+  { key: "buildingsLost", label: "🏢 Lost" },
+  { key: "unitsKilled", label: "🛻 Killed" },
+  { key: "buildingsKilled", label: "🏢 Killed" },
+  { key: "tech_buildings_captured", label: "Tech Buildings Captured" },
+  { key: "faction_buildings_captured", label: "Faction Buildings Captured" },
+  {
+    key: "moneySpent",
+    label: "$ Spent",
+    align: "right",
+    render: renderCash,
+  },
+  {
+    key: "moneyCollected",
+    label: "$ Collected",
+    align: "right",
+    render: renderCash,
+  },
+]
 
 const getColorHex = (colorName: string): string => {
   const colorMap: { [key: string]: string } = {
-    pink: '#FFC0CB',
-    red: '#FF0000',
-    blue: '#0000FF',
-    skyblue: '#87CEEB',
-    green: '#00FF00',
-    yellow: '#FFFF00',
-    purple: '#800080',
-    orange: '#FFA500',
-    gold: '#FFD700',
+    pink: "#FFC0CB",
+    red: "#FF0000",
+    blue: "#0000FF",
+    skyblue: "#87CEEB",
+    green: "#00FF00",
+    yellow: "#FFFF00",
+    purple: "#800080",
+    orange: "#FFA500",
+    gold: "#FFD700",
     // add more as needed
-  };
+  }
   if (colorName === "-1") {
-    return '#000000'
+    return "#000000"
   }
 
-
-  return colorMap[colorName.toLowerCase()] || colorName;
+  return colorMap[colorName.toLowerCase()] || colorName
 }
 
-function GameDetailsTable(props: {
-  matchDetails: MatchDetails
-}) {
-  const [sortBy, setSortBy] = React.useState<null | keyof TableRow>("moneyCollected")
+function GameDetailsTable(props: { matchDetails: MatchDetails }) {
+  const [sortBy, setSortBy] = React.useState<null | keyof TableRow>(
+    "moneyCollected",
+  )
 
   const summaries = props.matchDetails.playerSummary
   const statsData = props.matchDetails.statsData
@@ -376,8 +412,14 @@ function GameDetailsTable(props: {
       buildingsLost: extractFromStatsData("buildings_lost", s.name),
       unitsKilled: extractFromStatsData("units_killed", s.name),
       buildingsKilled: extractFromStatsData("buildings_killed", s.name),
-      tech_buildings_captured: extractFromStatsData("tech_buildings_captured", s.name),
-      faction_buildings_captured: extractFromStatsData("faction_buildings_captured", s.name)
+      tech_buildings_captured: extractFromStatsData(
+        "tech_buildings_captured",
+        s.name,
+      ),
+      faction_buildings_captured: extractFromStatsData(
+        "faction_buildings_captured",
+        s.name,
+      ),
     }
     data.push(row)
   }
@@ -386,39 +428,41 @@ function GameDetailsTable(props: {
 
   return (
     <TableContainer component={Paper}>
-      <Table stickyHeader >
+      <Table stickyHeader>
         <TableHead>
           <TableRow>
             {columns.map((column) => (
               <TableCell key={column.key} align={column.align}>
                 <TableSortLabel
                   active={column.key == sortBy}
-                  direction={'desc'}
+                  direction={"desc"}
                   onClick={() => setSortBy(column.key)}
                 >
                   {column.label}
-                </TableSortLabel >
+                </TableSortLabel>
               </TableCell>
             ))}
           </TableRow>
         </TableHead>
         <TableBody>
           {sortedData.map((row, index) => (
-            <TableRow key={index} sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}>
+            <TableRow
+              key={index}
+              sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}
+            >
               {columns.map((column) => (
                 <TableCell key={column.key} align={column.align}>
-                  {column.render ? column.render(row[column.key]) : row[column.key]}
+                  {column.render
+                    ? column.render(row[column.key])
+                    : row[column.key]}
                 </TableCell>
               ))}
             </TableRow>
           ))}
         </TableBody>
-
       </Table>
-    </TableContainer    >
-
+    </TableContainer>
   )
-
 }
 
 function DetailedGraphs(props: { details: MatchDetails }) {
@@ -479,11 +523,16 @@ function DetailedGraphs(props: { details: MatchDetails }) {
   )
 }
 
-type Displays = "Player Unit and spending breakdown" | "Event Chart" | "Detailed Graphs"
+type Displays =
+  | "Player Unit and spending breakdown"
+  | "Event Chart"
+  | "Detailed Graphs"
 
 export default function ShowMatchDetails(props: { id: number }) {
   const [details, setDetails] = React.useState<MatchDetails>(empty)
-  const [selectedDisplay, setSelectedDisplay] = React.useState<Displays | null>(null)
+  const [selectedDisplay, setSelectedDisplay] = React.useState<Displays | null>(
+    null,
+  )
   React.useEffect(() => {
     getDetails(props.id, setDetails)
   }, [props.id])
@@ -492,7 +541,11 @@ export default function ShowMatchDetails(props: { id: number }) {
       ? _.max(details.spent.total.map((t) => t.atMinute))
       : 1
   const maxMinute = Math.ceil(maxAtMinute ?? 1)
-  const choices: Displays[] = ["Player Unit and spending breakdown", "Event Chart", "Detailed Graphs"]
+  const choices: Displays[] = [
+    "Player Unit and spending breakdown",
+    "Event Chart",
+    "Detailed Graphs",
+  ]
   const handleClick = (
     event: React.MouseEvent<HTMLElement>,
     newSelection: Displays | null,
@@ -519,18 +572,30 @@ export default function ShowMatchDetails(props: { id: number }) {
     </>
   )
 
-
   return (
     <Paper>
       <Divider />
-      <DisplayFirstBlood first_blood={details.firstBlood ?? undefined} building_first_blood={details.buildingFirstBlood ?? undefined} />
+      <DisplayFirstBlood
+        first_blood={details.firstBlood ?? undefined}
+        building_first_blood={details.buildingFirstBlood ?? undefined}
+      />
       <GameDetailsTable matchDetails={details} />
       {buttonGroup}
       <Divider />
       <Typography>{selectedDisplay}</Typography>
-      {(selectedDisplay == "Player Unit and spending breakdown") && (<ShowPlayerSummaries playerSummaries={details.playerSummary} />)}
-      {(selectedDisplay == "Event Chart") && (<EventChart upgrades={details.upgradeEvents} max={maxMinute} playerSummaries={details.playerSummary} />)}
-      {(selectedDisplay == "Detailed Graphs") && (<DetailedGraphs details={details} />)}
+      {selectedDisplay == "Player Unit and spending breakdown" && (
+        <ShowPlayerSummaries playerSummaries={details.playerSummary} />
+      )}
+      {selectedDisplay == "Event Chart" && (
+        <EventChart
+          upgrades={details.upgradeEvents}
+          max={maxMinute}
+          playerSummaries={details.playerSummary}
+        />
+      )}
+      {selectedDisplay == "Detailed Graphs" && (
+        <DetailedGraphs details={details} />
+      )}
     </Paper>
   )
 }

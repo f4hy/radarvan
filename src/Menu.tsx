@@ -1,8 +1,9 @@
 import ListIcon from "@mui/icons-material/List"
+import BalanceIcon from "@mui/icons-material/Balance"
 import LooksTwoIcon from "@mui/icons-material/LooksTwo"
 import MapIcon from "@mui/icons-material/Map"
 import TableView from "@mui/icons-material/TableView"
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import PeopleIcon from "@mui/icons-material/People"
@@ -22,6 +23,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import DisplayGeneralStats from "./GeneralStats"
 import DisplayMapStats from "./MapStats"
+import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPairStats from "./PairStats"
 import DisplayPlayerStats from "./PlayerStats"
@@ -38,7 +40,7 @@ interface QueryParams {
 
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const [selection, setSelection] = React.useState<Selection>("Matches")
+  const [selection, setSelection] = React.useState<Selection>("BalanceTeams")
   const [queryParams, setQueryParams] = React.useState<QueryParams>({})
   React.useEffect(() => {
     // Get the query string from the current URL
@@ -92,7 +94,14 @@ export default function Menu() {
           icon={<EmojiEventsIcon />}
           callback={setSelection}
         />
-        {(queryParams["debug"] === "True") && (
+        <MenuItem
+          value="BalanceTeams"
+          text="BalanceTeams"
+          open={true}
+          icon={<BalanceIcon />}
+          callback={setSelection}
+        />
+        {queryParams["debug"] === "True" && (
           <MenuItem
             value="DebugData"
             text="DebugData"
@@ -192,6 +201,7 @@ type Selection =
   | "PairStats"
   | "Wrapped"
   | "Tournaments"
+  | "BalanceTeams"
 
 interface MenuItemProps {
   open: boolean
@@ -214,6 +224,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayTeamStats />
     case "Tournaments":
       return <DisplayTournamentResults />
+    case "BalanceTeams":
+      return <DisplayBalanceTeams />
     case "DebugData":
       return <DisplayDebugData />
     default:

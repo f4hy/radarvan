@@ -21,6 +21,8 @@ import type {
   MatchDetails,
   MatchInfo,
   Matches,
+  PlayerEnum,
+  PlayerRatings,
   PlayerStats,
   Team,
   TournamentReport,
@@ -40,6 +42,10 @@ import {
     MatchInfoToJSON,
     MatchesFromJSON,
     MatchesToJSON,
+    PlayerEnumFromJSON,
+    PlayerEnumToJSON,
+    PlayerRatingsFromJSON,
+    PlayerRatingsToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
     TeamFromJSON,
@@ -51,6 +57,10 @@ import {
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
+
+export interface BalanceTeamsApiBalanceTeamsGetRequest {
+    players?: Array<PlayerEnum>;
+}
 
 export interface GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest {
     tournamentName: string;
@@ -113,6 +123,43 @@ export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Balance Teams
+     */
+    async balanceTeamsApiBalanceTeamsGetRaw(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['players'] != null) {
+            queryParameters['players'] = requestParameters['players'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/balance_teams/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Balance Teams
+     */
+    async balanceTeamsApiBalanceTeamsGet(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.balanceTeamsApiBalanceTeamsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Generate Tournament Report
@@ -410,6 +457,35 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getOverridesApiOverridesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WinnerOverride>> {
         const response = await this.getOverridesApiOverridesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Player Ratings
+     */
+    async getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerRatings>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_ratings/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerRatingsFromJSON));
+    }
+
+    /**
+     * Get Player Ratings
+     */
+    async getPlayerRatingsApiPlayerRatingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerRatings>> {
+        const response = await this.getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides);
         return await response.value();
     }
 

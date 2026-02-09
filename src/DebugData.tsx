@@ -1,9 +1,9 @@
 import Button from "@mui/material/Button"
 import DownloadIcon from "@mui/icons-material/Download"
-import FormGroup from '@mui/material/FormGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
+import FormGroup from "@mui/material/FormGroup"
+import FormControlLabel from "@mui/material/FormControlLabel"
 import Stack from "@mui/material/Stack"
-import Switch from '@mui/material/Switch';
+import Switch from "@mui/material/Switch"
 import Skeleton from "@mui/material/Skeleton"
 import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
@@ -17,7 +17,7 @@ import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
-import RefreshIcon from '@mui/icons-material/Refresh';
+import RefreshIcon from "@mui/icons-material/Refresh"
 import DisplayGeneral from "./Generals"
 import { GeneralWL, Faction, factionFromJSON, DateMessage } from "./proto/match"
 import { toGeneralName } from "./general_utils"
@@ -35,18 +35,18 @@ import {
   PlayerListing,
 } from "./api"
 import { Client } from "./Client"
-import Table from '@mui/material/Table';
-import Link from '@mui/material/Link';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import TableSortLabel from '@mui/material/TableSortLabel';
-import Toolbar from '@mui/material/Toolbar';
-import Tooltip from '@mui/material/Tooltip';
-import { IconButton } from "@mui/material";
+import Table from "@mui/material/Table"
+import Link from "@mui/material/Link"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TablePagination from "@mui/material/TablePagination"
+import TableRow from "@mui/material/TableRow"
+import TableSortLabel from "@mui/material/TableSortLabel"
+import Toolbar from "@mui/material/Toolbar"
+import Tooltip from "@mui/material/Tooltip"
+import { IconButton } from "@mui/material"
 
 function getGameData(callback: (m: GameRecord[]) => void) {
   Client.listReplaysApiReplaysGet()
@@ -55,8 +55,9 @@ function getGameData(callback: (m: GameRecord[]) => void) {
 }
 
 function reparse(matchId: number) {
-  Client.reparseApiReparseMatchIdPost({ matchId: matchId })
-    .then(() => console.log("Parsed " + matchId))
+  Client.reparseApiReparseMatchIdPost({ matchId: matchId }).then(() =>
+    console.log("Parsed " + matchId),
+  )
 }
 
 function downloadURI(uri: string, name: string) {
@@ -75,68 +76,107 @@ function downloadReplay(url: string) {
   }
 }
 
-function DownloadButton(props: { url: string, title: string, text: string, disabled?: boolean }) {
-  return (<Tooltip title={props.title}>
-    <Button
-      variant="contained"
-      onClick={() => downloadReplay(props.url)}
-      endIcon={<DownloadIcon />}
-      disabled={props.disabled}
-    >
-      {props.text}
-    </Button>
-  </Tooltip>)
+function DownloadButton(props: {
+  url: string
+  title: string
+  text: string
+  disabled?: boolean
+}) {
+  return (
+    <Tooltip title={props.title}>
+      <Button
+        variant="contained"
+        onClick={() => downloadReplay(props.url)}
+        endIcon={<DownloadIcon />}
+        disabled={props.disabled}
+      >
+        {props.text}
+      </Button>
+    </Tooltip>
+  )
 }
 
-function DisplayDataTable(props: { data: GameRecord[], exclude_unparsed: boolean }) {
-  const data = props.exclude_unparsed ? props.data.filter((d => d.match)) : props.data
-  const columns = [
-    { field: "json_s3_uri", headerName: "json_s3_uri" }
-  ]
+function DisplayDataTable(props: {
+  data: GameRecord[]
+  exclude_unparsed: boolean
+}) {
+  const data = props.exclude_unparsed
+    ? props.data.filter((d) => d.match)
+    : props.data
+  const columns = [{ field: "json_s3_uri", headerName: "json_s3_uri" }]
   const first = data[0]
-  return (<Box >
-    <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-      <Table stickyHeader sx={{ maxHeight: "50%" }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>matchId</TableCell>
-            <TableCell>parsed at</TableCell>
-            <TableCell>reparse</TableCell>
-            <TableCell>gameDate</TableCell>
-            <TableCell>replayFileUrl</TableCell>
-            <TableCell>Prased Json</TableCell>
-            <TableCell>Duration minutes</TableCell>
-            <TableCell>Map</TableCell>
-            <TableCell>Winner</TableCell>
-            <TableCell>Players</TableCell>
-            <TableCell>Incomplete?</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {data.map((row) => (
+  return (
+    <Box>
+      <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
+        <Table stickyHeader sx={{ maxHeight: "50%" }}>
+          <TableHead>
             <TableRow>
-              <TableCell><Link>{row.matchId}</Link></TableCell>
-              <TableCell>{row.createdAt.toISOString().split('T')[0]}</TableCell>
-              <TableCell><IconButton color="primary" onClick={() => reparse(row.matchId)}><RefreshIcon /></IconButton></TableCell>
-              <TableCell>{row.gameDate.toISOString().split('T')[0]}</TableCell>
-              <TableCell>
-                <DownloadButton url={row.replayFileUrl} title={row.replayFileUrl} text="replay" />
-              </TableCell>
-              <TableCell>
-                <DownloadButton url={row.jsonS3Uri} title={"soon" + row.jsonS3Uri} text="parsed json" disabled={true} />
-              </TableCell>
-              <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
-              <TableCell>{row.match?.map}</TableCell>
-              <TableCell>{row.match?.winningTeamId}</TableCell>
-              <TableCell>{((row.match?.players.map(p => p.teamId >= 0 ? `T${p.teamId}:${p.playerName}` : "")) ?? []).join(", ")}</TableCell>
-              <TableCell>{row.match?.incomplete}</TableCell>
+              <TableCell>matchId</TableCell>
+              <TableCell>parsed at</TableCell>
+              <TableCell>reparse</TableCell>
+              <TableCell>gameDate</TableCell>
+              <TableCell>replayFileUrl</TableCell>
+              <TableCell>Prased Json</TableCell>
+              <TableCell>Duration minutes</TableCell>
+              <TableCell>Map</TableCell>
+              <TableCell>Winner</TableCell>
+              <TableCell>Players</TableCell>
+              <TableCell>Incomplete?</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-
-      </Table>
-    </TableContainer    >
-  </Box>)
+          </TableHead>
+          <TableBody>
+            {data.map((row) => (
+              <TableRow>
+                <TableCell>
+                  <Link>{row.matchId}</Link>
+                </TableCell>
+                <TableCell>
+                  {row.createdAt.toISOString().split("T")[0]}
+                </TableCell>
+                <TableCell>
+                  <IconButton
+                    color="primary"
+                    onClick={() => reparse(row.matchId)}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </TableCell>
+                <TableCell>
+                  {row.gameDate.toISOString().split("T")[0]}
+                </TableCell>
+                <TableCell>
+                  <DownloadButton
+                    url={row.replayFileUrl}
+                    title={row.replayFileUrl}
+                    text="replay"
+                  />
+                </TableCell>
+                <TableCell>
+                  <DownloadButton
+                    url={row.jsonS3Uri}
+                    title={"soon" + row.jsonS3Uri}
+                    text="parsed json"
+                    disabled={true}
+                  />
+                </TableCell>
+                <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
+                <TableCell>{row.match?.map}</TableCell>
+                <TableCell>{row.match?.winningTeamId}</TableCell>
+                <TableCell>
+                  {(
+                    row.match?.players.map((p) =>
+                      p.teamId >= 0 ? `T${p.teamId}:${p.playerName}` : "",
+                    ) ?? []
+                  ).join(", ")}
+                </TableCell>
+                <TableCell>{row.match?.incomplete}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  )
 }
 
 function Loading() {
@@ -151,10 +191,9 @@ function Loading() {
   )
 }
 
-
 export default function DisplayDebugData() {
   const [debugData, setDebugData] = React.useState<GameRecord[]>([])
-  const [checked, setChecked] = React.useState(true);
+  const [checked, setChecked] = React.useState(true)
   React.useEffect(() => {
     getGameData(setDebugData)
   }, [])
@@ -162,17 +201,17 @@ export default function DisplayDebugData() {
     return <Loading />
   }
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setChecked(event.target.checked);
-  };
+    setChecked(event.target.checked)
+  }
 
   return (
     <Paper>
-      <Typography variant="h4">Listing of all data toggle to show all replays not just 1 per matchid</Typography>
+      <Typography variant="h4">
+        Listing of all data toggle to show all replays not just 1 per matchid
+      </Typography>
       <FormGroup>
-        <FormControlLabel control={<Switch
-          checked={checked}
-          onChange={handleChange}
-        />}
+        <FormControlLabel
+          control={<Switch checked={checked} onChange={handleChange} />}
           label="Toggle on shows just one replay per match"
         />
       </FormGroup>

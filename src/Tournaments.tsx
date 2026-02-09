@@ -1,28 +1,28 @@
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-import ClearIcon from '@mui/icons-material/Clear';
-import CheckIcon from '@mui/icons-material/Check';
+import ClearIcon from "@mui/icons-material/Clear"
+import CheckIcon from "@mui/icons-material/Check"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
-import Table from '@mui/material/Table';
-import Link from '@mui/material/Link';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import Box from '@mui/material/Box';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import Button from '@mui/material/Button';
+import Table from "@mui/material/Table"
+import Link from "@mui/material/Link"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import Box from "@mui/material/Box"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TablePagination from "@mui/material/TablePagination"
+import TableRow from "@mui/material/TableRow"
+import Button from "@mui/material/Button"
 import Stack from "@mui/material/Stack"
 import Skeleton from "@mui/material/Skeleton"
 import LinearProgress from "@mui/material/LinearProgress"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
-import { ButtonGroup, Chip, Tooltip as MuiTooltip } from '@mui/material';
+import { ButtonGroup, Chip, Tooltip as MuiTooltip } from "@mui/material"
 import * as React from "react"
 import {
   Bar,
@@ -35,11 +35,22 @@ import {
   Legend,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStat, GeneralStats, Tournament, TournamentResult, MatchupResult, WinLoss, MatchInfo, TournamentStat, TournamentReport } from "./api"
+import {
+  General,
+  GeneralStat,
+  GeneralStats,
+  Tournament,
+  TournamentResult,
+  MatchupResult,
+  WinLoss,
+  MatchInfo,
+  TournamentStat,
+  TournamentReport,
+} from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
-import { DisplayMatchInfo } from './Matches';
+import { DisplayMatchInfo } from "./Matches"
 
 function getTournamentResults(callback: (m: TournamentResult[]) => void) {
   Client.getTournamentResultsApiTournamentResultsGet()
@@ -47,8 +58,13 @@ function getTournamentResults(callback: (m: TournamentResult[]) => void) {
     .catch((e) => alert(e))
 }
 
-function getTournamentReport(name: string, callback: (m: TournamentReport) => void) {
-  Client.getTournamentReportApiTournamentReportTournamentNameGet({ tournamentName: name })
+function getTournamentReport(
+  name: string,
+  callback: (m: TournamentReport) => void,
+) {
+  Client.getTournamentReportApiTournamentReportTournamentNameGet({
+    tournamentName: name,
+  })
     .then(callback)
     .catch((e) => alert(e))
 }
@@ -63,18 +79,18 @@ const getWinRateStyle = (winRate: number) => {
     return {
       color: "success.dark",
       fontWeight: 700,
-      fontSize: "1.1em"
-    };
+      fontSize: "1.1em",
+    }
   }
   if (winRate <= 45) {
     return {
-      fontWeight: 500
-    };
+      fontWeight: 500,
+    }
   }
   return {
-    fontWeight: 400
-  };
-};
+    fontWeight: 400,
+  }
+}
 
 function teamAlias(players: string): string {
   switch (players) {
@@ -119,24 +135,25 @@ function DisplayOverrideBanner(props: { override: string | undefined | null }) {
     return (
       <Typography color="warning.main" style={{ fontWeight: "bold" }}>
         {props.override}
-      </Typography>)
+      </Typography>
+    )
   }
-  return (<></>)
+  return <></>
 }
 
 function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
   if (props.matches.length == 0) {
-    return (<Typography color="warning.main" style={{ fontWeight: "bold" }}>
-      No recorded matches to show
-    </Typography>)
+    return (
+      <Typography color="warning.main" style={{ fontWeight: "bold" }}>
+        No recorded matches to show
+      </Typography>
+    )
   }
   return (
     <Stack>
-      {props.matches.map(
-        m =>
-          (<DisplayMatchInfo match={m} idx={0} />)
-      )
-      }
+      {props.matches.map((m) => (
+        <DisplayMatchInfo match={m} idx={0} />
+      ))}
     </Stack>
   )
 }
@@ -147,167 +164,238 @@ function LoadAndShowMatch(props: { matchId: number }) {
     getMatch(props.matchId, setMatch)
   }, [props.matchId])
   if (match === null || match.durationMinutes === undefined) {
-    return (<><Loading /><Typography>{JSON.stringify(match?.durationMinutes)}</Typography></>)
+    return (
+      <>
+        <Loading />
+        <Typography>{JSON.stringify(match?.durationMinutes)}</Typography>
+      </>
+    )
   }
-  return (<DisplayMatchInfo match={match} idx={props.matchId} />)
+  return <DisplayMatchInfo match={match} idx={props.matchId} />
 }
 
 function DisplayMatchup(props: { matchup: MatchupResult }) {
-  const gameDate = props.matchup.matches.find(m => m.timestamp)?.timestamp?.toDateString() ?? ""
-  const header = Object.keys(props.matchup.outcome).join(" vs. ") + ` @ ${gameDate}`
+  const gameDate =
+    props.matchup.matches.find((m) => m.timestamp)?.timestamp?.toDateString() ??
+    ""
+  const header =
+    Object.keys(props.matchup.outcome).join(" vs. ") + ` @ ${gameDate}`
   return (
     <Box>
-      <Stack >
+      <Stack>
         <Typography>{header}</Typography>
         <DisplayOverrideBanner override={props.matchup.override} />
-        <TableContainer component={Paper} sx={{ maxHeight: "50%" }} >
-          <Table stickyHeader sx={{ maxHeight: "50%" }} >
+        <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
+          <Table stickyHeader sx={{ maxHeight: "50%" }}>
             <TableHead>
               <TableRow>
-                <TableCell style={{ width: '20%' }}>Team</TableCell>
+                <TableCell style={{ width: "20%" }}>Team</TableCell>
                 <TableCell>Wins</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {
-                Object.entries(props.matchup.outcome).map(
-                  ([team, wl]) => (
-                    <TableRow sx={{
-                      '&:nth-of-type(odd)': {
-                        backgroundColor: 'action.hover', // Uses theme's hover color
-                      },
-                      '&:last-child td, &:last-child th': { border: 0 },
-                    }}>
-                      <TableCell>{team}</TableCell>
-                      <TableCell>{wl.wins}</TableCell>
-                    </TableRow>
-                  )
-                )}
+              {Object.entries(props.matchup.outcome).map(([team, wl]) => (
+                <TableRow
+                  sx={{
+                    "&:nth-of-type(odd)": {
+                      backgroundColor: "action.hover", // Uses theme's hover color
+                    },
+                    "&:last-child td, &:last-child th": { border: 0 },
+                  }}
+                >
+                  <TableCell>{team}</TableCell>
+                  <TableCell>{wl.wins}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
-        </TableContainer    >
+        </TableContainer>
         <ShowMatchesForMatchup matches={props.matchup.matches} />
       </Stack>
     </Box>
   )
 }
 
-
-function DisplayRecords(props: { records: ({ [key: string]: WinLoss; }), totalGames: number, complete: boolean }) {
+function DisplayRecords(props: {
+  records: { [key: string]: WinLoss }
+  totalGames: number
+  complete: boolean
+}) {
   const total = props.totalGames
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const data = payload[0].payload
       return (
         <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
           <p className="font-bold text-sm mb-1">{data.team}</p>
           <p className="text-sm">Current Wins: {data.wins}</p>
           <p className="text-sm">Losses: {data.losses}</p>
-          <p className="text-sm">Games Played: {data.wins + data.losses}/{total}</p>
+          <p className="text-sm">
+            Games Played: {data.wins + data.losses}/{total}
+          </p>
           <p className="text-sm">Outstanding: {data.gamesOutstanding}</p>
-          <p className="text-sm text-blue-600">Max Possible: {data.maxPossibleWins}</p>
+          <p className="text-sm text-blue-600">
+            Max Possible: {data.maxPossibleWins}
+          </p>
         </div>
-      );
+      )
     }
-    return null;
+    return null
   }
-  const chartData = Object.entries(props.records).map(([team, wl]) =>
-  ({
+  const chartData = Object.entries(props.records).map(([team, wl]) => ({
     team: teamAlias(team.split(",").join("+")),
     wins: wl.wins,
     losses: wl.losses,
     potentialWins: total - wl.losses - wl.wins,
     gamesOutstanding: total - (wl.wins + wl.losses),
-    maxPossibleWins: total - (wl.losses)
+    maxPossibleWins: total - wl.losses,
   }))
   return (
     <Stack>
       <Typography>Team Records</Typography>
       <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-        <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: 'fixed' }}>
+        <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: "fixed" }}>
           <TableHead>
             <TableRow>
-              <TableCell style={{ width: '10%' }}><Typography>Team</Typography></TableCell>
-              <TableCell style={{ width: '5%' }}><Typography>W-L</Typography></TableCell>
-              <TableCell style={{ width: '5%' }}><Typography>Win %</Typography></TableCell>
-              <TableCell><Typography>Progress</Typography></TableCell>
-              <TableCell><Typography>Max possible wins</Typography></TableCell>
+              <TableCell style={{ width: "10%" }}>
+                <Typography>Team</Typography>
+              </TableCell>
+              <TableCell style={{ width: "5%" }}>
+                <Typography>W-L</Typography>
+              </TableCell>
+              <TableCell style={{ width: "5%" }}>
+                <Typography>Win %</Typography>
+              </TableCell>
+              <TableCell>
+                <Typography>Progress</Typography>
+              </TableCell>
+              <TableCell>
+                <Typography>Max possible wins</Typography>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {
-              Object.entries(props.records).map(
-                ([team, wl]) => {
-                  const gamesPlayed = wl.wins + wl.losses
-                  const maxPossibleWins = total - (wl.losses)
-                  const winRate: number = gamesPlayed ? ((wl.wins / gamesPlayed) * 100) : 0
-                  const teamMembers = (<Typography> {team.split(",").join("+")} </Typography>)
-                  const teamName: string = teamAlias(team.split(",").join("+"))
-                  return (
-                    <TableRow>
-                      <TableCell><MuiTooltip title={teamMembers} arrow><Chip label={teamName} color="primary" /></MuiTooltip> </TableCell>
-                      <TableCell><Typography>{wl.wins} - {wl.losses}</Typography></TableCell>
-                      <TableCell><Typography sx={getWinRateStyle(winRate)} > {winRate.toFixed(1)}%</Typography> </TableCell>
-                      <TableCell>
-                        <Stack>
-                          <LinearProgress color="info" sx={{ height: 25, borderRadius: 5 }} variant="determinate" value={100 * ((wl.wins + wl.losses)) / total} valueBuffer={100 * (total - (wl.losses)) / total} /><Typography>{wl.wins + wl.losses} / {total} games played</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>                       <Stack>
-                        <LinearProgress color={"success"} sx={{ height: 25, borderRadius: 5 }} variant="buffer" value={100 * ((wl.wins)) / total} valueBuffer={100 * (total - (wl.losses)) / total} /><Typography>{wl.wins} wins with {maxPossibleWins} possible remaining</Typography>
-                      </Stack>
-                      </TableCell>
-                    </TableRow>
-                  )
-                }
+            {Object.entries(props.records).map(([team, wl]) => {
+              const gamesPlayed = wl.wins + wl.losses
+              const maxPossibleWins = total - wl.losses
+              const winRate: number = gamesPlayed
+                ? (wl.wins / gamesPlayed) * 100
+                : 0
+              const teamMembers = (
+                <Typography> {team.split(",").join("+")} </Typography>
               )
-            }
+              const teamName: string = teamAlias(team.split(",").join("+"))
+              return (
+                <TableRow>
+                  <TableCell>
+                    <MuiTooltip title={teamMembers} arrow>
+                      <Chip label={teamName} color="primary" />
+                    </MuiTooltip>{" "}
+                  </TableCell>
+                  <TableCell>
+                    <Typography>
+                      {wl.wins} - {wl.losses}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography sx={getWinRateStyle(winRate)}>
+                      {" "}
+                      {winRate.toFixed(1)}%
+                    </Typography>{" "}
+                  </TableCell>
+                  <TableCell>
+                    <Stack>
+                      <LinearProgress
+                        color="info"
+                        sx={{ height: 25, borderRadius: 5 }}
+                        variant="determinate"
+                        value={(100 * (wl.wins + wl.losses)) / total}
+                        valueBuffer={(100 * (total - wl.losses)) / total}
+                      />
+                      <Typography>
+                        {wl.wins + wl.losses} / {total} games played
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    {" "}
+                    <Stack>
+                      <LinearProgress
+                        color={"success"}
+                        sx={{ height: 25, borderRadius: 5 }}
+                        variant="buffer"
+                        value={(100 * wl.wins) / total}
+                        valueBuffer={(100 * (total - wl.losses)) / total}
+                      />
+                      <Typography>
+                        {wl.wins} wins with {maxPossibleWins} possible remaining
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
-      </TableContainer    >
-      {props.complete || <ResponsiveContainer width="100%" height={400}>
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" domain={[0, total]} />
-          <YAxis dataKey="team" type="category" width={140} />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <Bar dataKey="wins" stackId="a" fill="#10b981" name="Current Wins" />
-          <Bar dataKey="potentialWins" stackId="a" fill="#93c5fd" name="Potential Additional Wins" />
-          <Bar dataKey="losses" stackId="a" fill="#f87171" name="Losses" />
-        </BarChart>
-      </ResponsiveContainer>}
+      </TableContainer>
+      {props.complete || (
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart
+            data={chartData}
+            layout="vertical"
+            margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" domain={[0, total]} />
+            <YAxis dataKey="team" type="category" width={140} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend />
+            <Bar
+              dataKey="wins"
+              stackId="a"
+              fill="#10b981"
+              name="Current Wins"
+            />
+            <Bar
+              dataKey="potentialWins"
+              stackId="a"
+              fill="#93c5fd"
+              name="Potential Additional Wins"
+            />
+            <Bar dataKey="losses" stackId="a" fill="#f87171" name="Losses" />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </Stack>
   )
 }
 
 function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
-  const [selected, setSelected] = React.useState<number>(0);
-  const buttonsPerRow: number = 5;
+  const [selected, setSelected] = React.useState<number>(0)
+  const buttonsPerRow: number = 5
 
-  const buttonNumbers: number[] = Array.from({ length: props.matchups.length }, (_, i) => i);
-  const rows: number[][] = [];
+  const buttonNumbers: number[] = Array.from(
+    { length: props.matchups.length },
+    (_, i) => i,
+  )
+  const rows: number[][] = []
   for (let i = 0; i < props.matchups.length; i += buttonsPerRow) {
-    rows.push(buttonNumbers.slice(i, i + buttonsPerRow));
+    rows.push(buttonNumbers.slice(i, i + buttonsPerRow))
   }
 
   const handleChange = (
     event: React.MouseEvent<HTMLElement>,
-    newValue: number | null
+    newValue: number | null,
   ) => {
     if (newValue !== null) {
-      setSelected(newValue);
+      setSelected(newValue)
     }
-  };
+  }
 
   return (
     <Stack>
       <Divider />
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         {rows.map((row, rowIndex) => (
           <ToggleButtonGroup
             color="primary"
@@ -316,30 +404,38 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
             exclusive
             onChange={handleChange}
             size="large"
-            sx={{ width: '100%' }}
+            sx={{ width: "100%" }}
           >
-            {
-              row.map((buttonIndex) => {
-                const outcome = props.matchups[buttonIndex].outcome
-                const teams = Object.keys(outcome).map(tn => teamAlias(tn.split(",").join("+")))
-                const first_record = Object.values(outcome)[0]
-                const record = `${first_record.wins} - ${first_record.losses}`
-                const disabled = Object.entries(outcome).find(([tb, wl]) => wl.wins + wl.losses > 0) ? false : true
-                return (
-                  <ToggleButton
-                    key={buttonIndex}
-                    value={buttonIndex}
-                    disabled={disabled}
-                    sx={{
-                      flex: 1,  // Make buttons fill available space
-                      textTransform: 'none'  // Prevent all-caps
-                    }}
-                  >
-                    <Typography style={{ fontWeight: "bold" }}>{teams.join(" vs ")} {record}</Typography>
-                  </ToggleButton>
-                )
-              })}
-          </ToggleButtonGroup>))}
+            {row.map((buttonIndex) => {
+              const outcome = props.matchups[buttonIndex].outcome
+              const teams = Object.keys(outcome).map((tn) =>
+                teamAlias(tn.split(",").join("+")),
+              )
+              const first_record = Object.values(outcome)[0]
+              const record = `${first_record.wins} - ${first_record.losses}`
+              const disabled = Object.entries(outcome).find(
+                ([tb, wl]) => wl.wins + wl.losses > 0,
+              )
+                ? false
+                : true
+              return (
+                <ToggleButton
+                  key={buttonIndex}
+                  value={buttonIndex}
+                  disabled={disabled}
+                  sx={{
+                    flex: 1, // Make buttons fill available space
+                    textTransform: "none", // Prevent all-caps
+                  }}
+                >
+                  <Typography style={{ fontWeight: "bold" }}>
+                    {teams.join(" vs ")} {record}
+                  </Typography>
+                </ToggleButton>
+              )
+            })}
+          </ToggleButtonGroup>
+        ))}
       </Box>
       <DisplayMatchup matchup={props.matchups[selected]} />
     </Stack>
@@ -347,65 +443,80 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
 }
 
 function DisplayTournamentStats(props: { result: TournamentResult }) {
-  const [touramentStats, setTournamentStats] = React.useState<TournamentReport | null>(null)
+  const [touramentStats, setTournamentStats] =
+    React.useState<TournamentReport | null>(null)
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
-  const search = window.location.search;
-  const params = new URLSearchParams(search);
-  const debug = !!(params.get("debug"))
-  const show = (props.result.complete == true) || debug
+  const search = window.location.search
+  const params = new URLSearchParams(search)
+  const debug = !!params.get("debug")
+  const show = props.result.complete == true || debug
   React.useEffect(() => {
     getTournamentReport(props.result.tournament.name, setTournamentStats)
   }, [])
 
   if (!show) {
-    return (<Paper>
-      <Typography>Tournament still in progress</Typography>
-    </Paper>)
+    return (
+      <Paper>
+        <Typography>Tournament still in progress</Typography>
+      </Paper>
+    )
   }
   if (touramentStats == null) {
-    return (<></>)
+    return <></>
   }
   function matchButton(mId: number | null | undefined) {
     if (mId === null || mId === undefined) {
-      return (<></>)
+      return <></>
     }
-    return (<Button sx={{ "minWidth": 200 }} variant="contained" onClick={() => setSelectedMatch(mId)}> {mId} </Button>)
+    return (
+      <Button
+        sx={{ minWidth: 200 }}
+        variant="contained"
+        onClick={() => setSelectedMatch(mId)}
+      >
+        {" "}
+        {mId}{" "}
+      </Button>
+    )
   }
 
-  return (<Paper>
-    {selectedMatch && (<LoadAndShowMatch matchId={selectedMatch} />)}
-    <TableContainer component={Paper} sx={{ maxHeight: "50%" }} >
-      <Table stickyHeader sx={{ maxHeight: "50%" }} >
-        <TableHead>
-          <TableRow>
-            <TableCell style={{ width: '20%' }}>Stat</TableCell>
-            <TableCell>Value</TableCell>
-            <TableCell>Player</TableCell>
-            <TableCell>MatchId</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {touramentStats.stats.map((s) => {
-            return (
-              <TableRow sx={{
-                '&:nth-of-type(odd)': {
-                  backgroundColor: 'action.hover', // Uses theme's hover color
-                },
-                '&:last-child td, &:last-child th': { border: 0 },
-              }}>
-
-                <TableCell>{s.statName}</TableCell>
-                <TableCell>{s.value}</TableCell>
-                <TableCell>{s.player}</TableCell>
-                <TableCell>{matchButton(s.matchId)}</TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer    >
-    <Divider />
-  </Paper>)
+  return (
+    <Paper>
+      {selectedMatch && <LoadAndShowMatch matchId={selectedMatch} />}
+      <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
+        <Table stickyHeader sx={{ maxHeight: "50%" }}>
+          <TableHead>
+            <TableRow>
+              <TableCell style={{ width: "20%" }}>Stat</TableCell>
+              <TableCell>Value</TableCell>
+              <TableCell>Player</TableCell>
+              <TableCell>MatchId</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {touramentStats.stats.map((s) => {
+              return (
+                <TableRow
+                  sx={{
+                    "&:nth-of-type(odd)": {
+                      backgroundColor: "action.hover", // Uses theme's hover color
+                    },
+                    "&:last-child td, &:last-child th": { border: 0 },
+                  }}
+                >
+                  <TableCell>{s.statName}</TableCell>
+                  <TableCell>{s.value}</TableCell>
+                  <TableCell>{s.player}</TableCell>
+                  <TableCell>{matchButton(s.matchId)}</TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <Divider />
+    </Paper>
+  )
 }
 
 function DisplayTournamentResult(props: { result: TournamentResult }) {
@@ -413,32 +524,37 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
     <Stack>
       <DisplayTournamentInfo tournament={props.result.tournament} />
       <Divider />
-      <DisplayRecords records={props.result.records} totalGames={props.result.tournament.totalGamesPlayedPerTeam} complete={props.result.complete} />
-      <Divider sx={{ height: '100px' }} />
+      <DisplayRecords
+        records={props.result.records}
+        totalGames={props.result.tournament.totalGamesPlayedPerTeam}
+        complete={props.result.complete}
+      />
+      <Divider sx={{ height: "100px" }} />
       <DisplayTournamentStats result={props.result} />
-      <Typography sx={{ bgcolor: "lightblue", }}>
-        Matchups
-      </Typography>
+      <Typography sx={{ bgcolor: "lightblue" }}>Matchups</Typography>
       <DisplayMatchupsPlayed matchups={props.result.matchups} />
       <Divider />
     </Stack>
   )
 }
 
-
 export default function DisplayTournamentResults() {
-  const [touramentResults, setTournamentResults] = React.useState<TournamentResult[]>([])
+  const [touramentResults, setTournamentResults] = React.useState<
+    TournamentResult[]
+  >([])
   React.useEffect(() => {
     getTournamentResults(setTournamentResults)
   }, [])
   if (touramentResults.length === 0) {
-    return (<Loading />)
+    return <Loading />
   }
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Tournament Results!</Typography>
       {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
-      {touramentResults.map(r => (<DisplayTournamentResult result={r} />))}
+      {touramentResults.map((r) => (
+        <DisplayTournamentResult result={r} />
+      ))}
     </Paper>
   )
 }

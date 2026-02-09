@@ -22,8 +22,10 @@ docs/Matches.md
 docs/MatchupResult.md
 docs/ObjectSummary.md
 docs/Player.md
+docs/PlayerEnum.md
 docs/PlayerListing.md
 docs/PlayerRateOverTime.md
+docs/PlayerRatings.md
 docs/PlayerStat.md
 docs/PlayerStatFactionWL.md
 docs/PlayerStats.md
@@ -63,8 +65,10 @@ models/Matches.ts
 models/MatchupResult.ts
 models/ObjectSummary.ts
 models/Player.ts
+models/PlayerEnum.ts
 models/PlayerListing.ts
 models/PlayerRateOverTime.ts
+models/PlayerRatings.ts
 models/PlayerStat.ts
 models/PlayerStatFactionWL.ts
 models/PlayerStats.ts

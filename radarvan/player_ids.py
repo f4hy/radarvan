@@ -40,7 +40,7 @@ NAME_MAPPING = {
     "cpu": "HardArmy",
 }
 
-PLAYER_NAMES = set(NAME_MAPPING.values()) | {"CPU"}
+PLAYER_NAMES = set(NAME_MAPPING.values())
 
 
 def player_name_map(name: str) -> str:

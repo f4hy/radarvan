@@ -150,7 +150,6 @@ function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
   )
 }
 
-
 export default function ShowPlayerSummaries(props: {
   playerSummaries: PlayerSummary[]
 }) {

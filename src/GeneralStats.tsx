@@ -21,7 +21,6 @@ import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
 
-
 function getGeneralStats(callback: (m: GeneralStats) => void) {
   Client.getGeneralsStatsApiGeneralstatsGet()
     .then(callback)
@@ -65,7 +64,11 @@ function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
     losses: s.winLoss?.losses ?? 0,
   }))
   const data = [
-    { name: "all players", wins: overall?.wins ?? 0, losses: overall?.losses ?? 0 },
+    {
+      name: "all players",
+      wins: overall?.wins ?? 0,
+      losses: overall?.losses ?? 0,
+    },
     ...pdata,
   ].map((x) => {
     const tot = x.losses + x.wins
@@ -108,7 +111,6 @@ function Loading() {
   )
 }
 
-
 const empty = { generalStats: [] }
 
 export default function DisplayGeneralStats() {
@@ -122,11 +124,13 @@ export default function DisplayGeneralStats() {
   )
   const maxWinLoss = roundUpNearest5(maxwl + 1)
   if (generalStats.generalStats.length === 0) {
-    return (<Loading />)
+    return <Loading />
   }
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-      <Typography variant="h4">Stats computed only from 1v1 2v2 3v3 and 4v4 games</Typography>
+      <Typography variant="h4">
+        Stats computed only from 1v1 2v2 3v3 and 4v4 games
+      </Typography>
       {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
       <DisplayOverallGeneralStat stats={generalStats} />
       <Divider sx={{ mt: 8 }} />
