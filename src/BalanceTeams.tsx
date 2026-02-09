@@ -293,7 +293,7 @@ export default function DisplayBalanceTeams() {
       {selectedTab === "balanceTeams" && <BalanceTeams selectedPlayers={selectedPlayers} />}
       {selectedTab === "partitionTeams" && <PartitionTeams selectedPlayers={selectedPlayers} />}
       <Divider sx={{ height: 40 }} />
-      <Typography>Results are computed using all recorded 2v2 3v3 4v4 games and the <Link href="https://jmlr.org/papers/volume12/weng11a/weng11a.pdf">Baysean Plackett-Luce model by Weng and Lin</Link> which is an extension of the "TrueSkill" algorithm used by xbox-live.</Typography>
+      <Typography>Results are computed using all recorded 2v2 3v3 4v4 games and the <Link href="https://jmlr.org/papers/volume12/weng11a/weng11a.pdf">Bayesian Plackett-Luce model by Weng and Lin</Link> which is an extension of the "TrueSkill" algorithm used by xbox-live.</Typography>
     </Paper>
   )
 }
