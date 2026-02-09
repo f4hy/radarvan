@@ -1,4 +1,12 @@
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import Slider from '@mui/material/Slider';
 import Alert from '@mui/material/Alert';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import ClearIcon from "@mui/icons-material/Clear"
 import CheckIcon from "@mui/icons-material/Check"
@@ -75,6 +83,21 @@ function getTeamWinRating(
     .catch((e) => alert(e))
 }
 
+function getTeamPartition(
+  players: PlayerEnum[],
+  teamSize: number,
+  callback: (m: string[][]) => void,
+) {
+  if (players.length < 6 || players.length % 2 !== 0 || players.length % teamSize !== 0) {
+    callback([])
+    return
+  }
+  Client.partitionTeamsApiPartitionTeamsTeamSizeGet({ teamSize: teamSize, players: players })
+    .then(callback)
+    .catch((e) => alert(e))
+}
+
+
 const getScoreStyle = (score: number) => {
   if (score >= 90) {
     return "success"
@@ -150,8 +173,62 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   )
 }
 
+function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
+  const [teamPartition, setTeamPartition] = React.useState<string[][]>([])
+  const [teamSize, setTeamSize] = React.useState<number>(2)
+
+  React.useEffect(() => {
+    getTeamPartition(props.selectedPlayers, teamSize, setTeamPartition)
+  }, [props.selectedPlayers, teamSize])
+
+  if (props.selectedPlayers.length % 2 !== 0) {
+    return (
+      <Alert severity="warning">
+        Not an even number of selected players
+      </Alert>
+    )
+  }
+  if (teamPartition.length === 0) {
+    return (
+      <Alert severity="warning">
+        Need to select at least 6 players for a tournament
+      </Alert>
+    )
+  }
+  const colors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E8BAFF'];
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>, value: string) => {
+    setTeamSize(parseInt(value));
+  };
+  return (
+    <Stack>
+      <RadioGroup
+        row
+        value={teamSize}
+        onChange={handleChange}
+        name="row-radio-buttons-group"
+      >
+        <FormControlLabel value={2} control={<Radio />} label="Teams of 2" />
+        <FormControlLabel value={3} control={<Radio />} label="Teams of 3" />
+        <FormControlLabel value={4} control={<Radio />} label="Teams of 4" />
+      </RadioGroup>
+      <Grid container spacing={2}>
+        {teamPartition.map((team, i) => (
+          <Grid item>
+            <Paper sx={{ padding: 2, background: colors[i] }} >
+              {team.map((t) => (<Chip label={t} color="primary" sx={{ padding: 2 }} />))}
+              <Divider />
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+    </Stack >
+  )
+}
+
+
 export default function DisplayBalanceTeams() {
   const [selectedPlayers, setSelectedPlayers] = React.useState<PlayerEnum[]>([])
+  const [selectedTab, setSelectedTab] = React.useState<string>("balanceTeams");
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = event.target
@@ -166,8 +243,16 @@ export default function DisplayBalanceTeams() {
       }
     })
   }
-
   const players = Object.values(PlayerEnum).sort()
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+    setSelectedTab(newValue);
+    if (newValue == "partitionTeams" && selectedPlayers.length < 6) {
+      const allPlayers = players.filter((p) => p !== "HardArmy")
+      setSelectedPlayers(allPlayers)
+    }
+  };
+
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
@@ -189,7 +274,24 @@ export default function DisplayBalanceTeams() {
           ))}
         </Box>
       </FormGroup>
-      <BalanceTeams selectedPlayers={selectedPlayers} />
+      <Tabs
+        sx={{ width: "100%" }}
+        value={selectedTab}
+        onChange={handleTabChange}
+      >
+        <Tab
+          sx={{ width: "50%" }}
+          value="balanceTeams"
+          label="Balance players into two teams"
+        />
+        <Tab
+          sx={{ width: "50%" }}
+          value="partitionTeams"
+          label="Create teams for tournmanet"
+        />
+      </Tabs>
+      {selectedTab === "balanceTeams" && <BalanceTeams selectedPlayers={selectedPlayers} />}
+      {selectedTab === "partitionTeams" && <PartitionTeams selectedPlayers={selectedPlayers} />}
       <Divider sx={{ height: 40 }} />
       <Typography>Results are computed using all recorded 2v2 3v3 4v4 games and the <Link href="https://jmlr.org/papers/volume12/weng11a/weng11a.pdf">Baysean Plackett-Luce model by Weng and Lin</Link> which is an extension of the "TrueSkill" algorithm used by xbox-live.</Typography>
     </Paper>
