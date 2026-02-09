@@ -172,7 +172,7 @@ export default function DisplayBalanceTeams() {
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Determine Balanced Teams</Typography>
-      <Typography >Select at least 4 players radar van will determine the most balanced teams.</Typography>
+      <Typography >Select at least 4 players and the balance of each team combination will be ranked</Typography>
       <FormGroup>
         <Box sx={{ display: "flex", alignItems: "center", padding: 1 }}>
           {players.map((option) => (

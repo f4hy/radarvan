@@ -33,7 +33,6 @@ NAME_MAPPING = {
     "stm": "STM",
     "ty": "Tytan",
     "tyt": "Tytan",
-    "pcap": "pcap",
     "grn": "Gorn",
     "fer": "EnragedFerret",
     "ferret": "EnragedFerret",

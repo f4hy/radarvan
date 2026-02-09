@@ -42,7 +42,7 @@ class Player(BaseModel):
     color: str
 
 
-class MatchInfo(BaseModel):
+class MatchInfo(BaseModel, frozen=True):
     id: int
     timestamp: datetime
     map: str
