@@ -21,6 +21,7 @@ from . import replay_files
 from . import schedule
 from . import tournament
 from . import player_rating
+from . import create_teams
 from radarvan.api_types import (
     MatchDetails,
     Team,
@@ -477,11 +478,25 @@ def balance_teams(
 
     games = sorted_deduped_matches(replay_manager)
 
-    team_scores = player_rating.balance_teams(
+    team_scores = create_teams.balance_teams(
         list(games.values()), player_list=players.players
     )
     logger.info(f"Team Scores {team_scores}")
     return {",".join(i): v for i, v in team_scores.items()}
+
+
+@app.get("/api/partition_teams/{team_size}")
+def partition_teams(
+    team_size: int = 2,
+    players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    games = list(sorted_deduped_matches(replay_manager).values())
+    teams = create_teams.create_balanced_teams(
+        games, player_list=players.players, team_size=team_size
+    )
+
+    return teams
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

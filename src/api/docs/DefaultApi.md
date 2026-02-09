@@ -19,6 +19,7 @@ All URIs are relative to *http://localhost*
 | [**getTournamentResultsApiTournamentResultsGet**](DefaultApi.md#gettournamentresultsapitournamentresultsget) | **GET** /api/tournament_results/ | Get Tournament Results |
 | [**listFilesApiFilesGet**](DefaultApi.md#listfilesapifilesget) | **GET** /api/files/ | List Files |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
+| [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
 | [**registerReplayUrlApiRegisterReplayUrlPost**](DefaultApi.md#registerreplayurlapiregisterreplayurlpost) | **POST** /api/register_replay_url | Register Replay Url |
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
@@ -962,6 +963,75 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## partitionTeamsApiPartitionTeamsTeamSizeGet
+
+> any partitionTeamsApiPartitionTeamsTeamSizeGet(teamSize, players)
+
+Partition Teams
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PartitionTeamsApiPartitionTeamsTeamSizeGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number
+    teamSize: 56,
+    // Array<PlayerEnum> (optional)
+    players: ...,
+  } satisfies PartitionTeamsApiPartitionTeamsTeamSizeGetRequest;
+
+  try {
+    const data = await api.partitionTeamsApiPartitionTeamsTeamSizeGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **teamSize** | `number` |  | [Defaults to `undefined`] |
+| **players** | `Array<PlayerEnum>` |  | [Optional] |
+
+### Return type
+
+**any**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

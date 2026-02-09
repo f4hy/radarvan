@@ -86,6 +86,11 @@ export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest 
     tournamentName: string;
 }
 
+export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
+    teamSize: number;
+    players?: Array<PlayerEnum>;
+}
+
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
     urlOfReplay: string;
 }
@@ -649,6 +654,51 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecord>> {
         const response = await this.listReplaysApiReplaysGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Partition Teams
+     */
+    async partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['teamSize'] == null) {
+            throw new runtime.RequiredError(
+                'teamSize',
+                'Required parameter "teamSize" was null or undefined when calling partitionTeamsApiPartitionTeamsTeamSizeGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['players'] != null) {
+            queryParameters['players'] = requestParameters['players'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/partition_teams/{team_size}`;
+        urlPath = urlPath.replace(`{${"team_size"}}`, encodeURIComponent(String(requestParameters['teamSize'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Partition Teams
+     */
+    async partitionTeamsApiPartitionTeamsTeamSizeGet(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -130,28 +130,3 @@ def compute_player_ratings(games: list[MatchInfo]):
         )
 
     return sorted_ratings
-
-
-def balance_teams(games: list[MatchInfo], player_list: set[str]):
-    team_size = len(player_list) // 2
-    ratings = compute_player_ratings(games)
-
-    player_ratings = {r.name: r for r in ratings}
-
-    model = get_model()
-    day_players = [player_ids.player_name_map(n) for n in player_list]
-    team_win_pct = {}
-    for team1 in combinations(day_players, team_size):
-        if tuple(team1) in team_win_pct:
-            continue
-        team2 = [p for p in day_players if p not in team1]
-        team1_ratings = [player_ratings.get(p) for p in team1]
-        team2_ratings = [player_ratings.get(p) for p in team2]
-        win1_prop, win2_prop = model.predict_win([team1_ratings, team2_ratings])
-        logger.info(f"Team1 {team1} team2{team2} {win1_prop} {win2_prop}")
-        if win1_prop >= 0.5:
-            team_win_pct[tuple(team1)] = win1_prop
-        if win2_prop >= 0.5:
-            team_win_pct[tuple(team2)] = win2_prop
-    logger.info(f"Team win probs {team_win_pct}")
-    return dict(sorted(team_win_pct.items(), key=lambda x: x[1]))
