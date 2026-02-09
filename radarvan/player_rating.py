@@ -62,16 +62,18 @@ def initialize_player(name, model):
     """
     experience_level: 'beginner', 'casual', 'average', 'experienced', 'expert'
     """
-
-    beginners = {"EnragedFerret", "Neo"}
-    casual = {"CPU"}
-    # experienced = {"Gorn", "Tytan"}
-    experienced = {}
+    compters = {"CPU", "HardArmy"}
+    beginners = {"EnragedFerret"}
+    casual = {"Neo"}
+    experienced = {"Gorn", "Tytan"}
+    # experienced = {}
 
     if name in beginners:
-        return model.rating(name=name, mu=15, sigma=12)
+        return model.rating(name=name, mu=10, sigma=12)
+    if name in compters:
+        return model.rating(name=name, mu=10, sigma=6)
     if name in casual:
-        return model.rating(name=name, mu=20, sigma=10)
+        return model.rating(name=name, mu=15, sigma=6)
     if name in experienced:
         return model.rating(name=name, mu=30, sigma=6)
 
