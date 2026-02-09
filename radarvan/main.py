@@ -1,6 +1,8 @@
+from enum import Enum
+from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from fastapi.responses import JSONResponse
 import logging
 import os
@@ -9,6 +11,7 @@ from collections.abc import Generator
 from fastapi import BackgroundTasks
 from . import exception_handling
 
+from . import player_ids
 from . import middleware
 from . import match_details
 from . import matches
@@ -17,6 +20,7 @@ from . import general_stats
 from . import replay_files
 from . import schedule
 from . import tournament
+from . import player_rating
 from radarvan.api_types import (
     MatchDetails,
     Team,
@@ -31,6 +35,7 @@ from radarvan.api_types import (
     ReplayFileSchema,
     ParsedReplayJsonSchema,
     TournamentReport,
+    PlayerRatings,
 )
 from cachetools import TTLCache, cached
 from .db_utils import DatabaseManager, ReplayManager
@@ -435,6 +440,43 @@ def replays_without_playerstats(
     for row in missing_player_stats:
         row["presigned_url"] = replay_files.presigned_url(row["s3_path"])
         yield row
+
+
+@app.get("/api/player_ratings/")
+def get_player_ratings(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerRatings]:
+    games = sorted_deduped_matches(replay_manager)
+
+    ratings = player_rating.compute_player_ratings(list(games.values()))
+    converted = [
+        PlayerRatings(name=r.name, ordinal=r.ordinal(), mu=r.mu, sigma=r.sigma)
+        for r in ratings
+    ]
+    return converted
+
+
+PlayerEnum = Enum(
+    "PlayerEnum", {v.upper(): v for v in player_ids.PLAYER_NAMES}, type=str
+)
+
+
+class SelectedPLayers(BaseModel):
+    players: list[PlayerEnum]
+
+
+@app.get("/api/balance_teams/")
+def balance_teams(
+    players: SelectedPLayers = Query(default=[]),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    games = sorted_deduped_matches(replay_manager)
+
+    team_scores = player_rating.balance_teams(
+        list(games.values()), player_list=players.players
+    )
+    logger.info(f"Team Scores {team_scores}")
+    return {",".join(i): v for i, v in team_scores.items()}
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

@@ -13,31 +13,37 @@ PLAYERS = {
     "Fer": "C6D491FD7F19",
 }
 
+NAME_MAPPING = {
+    "skip": "Skip",
+    "mod": "Modus",
+    "131": "OneThree111",
+    "neo": "Neo",
+    "pan": "Pancake",
+    "pc": "Pancake",
+    "wld": "WildCard",
+    "wild": "WildCard",
+    "wildcard": "WildCard",
+    "cd": "CoreDawg",
+    "cd@wg": "CoreDawg",
+    "cdawg": "CoreDawg",
+    "cdog": "CoreDawg",
+    "cdg": "CoreDawg",
+    "cdwg": "CoreDawg",
+    "syn": "Syn",
+    "stm": "STM",
+    "ty": "Tytan",
+    "tyt": "Tytan",
+    "pcap": "pcap",
+    "grn": "Gorn",
+    "fer": "EnragedFerret",
+    "ferret": "EnragedFerret",
+    "cpu": "HardArmy",
+}
+
+PLAYER_NAMES = set(NAME_MAPPING.values()) | {"CPU"}
+
 
 def player_name_map(name: str) -> str:
     """Map all aliases"""
 
-    mapping = {
-        "skip": "Skip",
-        "mod": "Modus",
-        "131": "OneThree111",
-        "neo": "Neo",
-        "pan": "Pancake",
-        "pc": "Pancake",
-        "wld": "WildCard",
-        "wild": "WildCard",
-        "wildcard": "WildCard",
-        "cd": "CoreDawg",
-        "cd@wg": "CoreDawg",
-        "cdawg": "CoreDawg",
-        "cdog": "CoreDawg",
-        "cdg": "CoreDawg",
-        "syn": "Syn",
-        "stm": "STM",
-        "ty": "Tytan",
-        "tyt": "Tytan",
-        "pcap": "pcap",
-        "grn": "Gorn",
-        "fer": "EnragedFerret",
-    }
-    return mapping.get(name.lower(), name)
+    return NAME_MAPPING.get(name.lower(), name)

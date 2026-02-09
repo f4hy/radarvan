@@ -422,3 +422,11 @@ class ParsedReplayJsonSchema(BaseModel):
     has_enhanced_stats: bool | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PlayerRatings(BaseModel):
+    name: str
+    ordinal: float
+    mu: float
+    sigma: float
+    model_config = ConfigDict(from_attributes=True)
