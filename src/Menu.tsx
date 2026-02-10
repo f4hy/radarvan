@@ -30,7 +30,9 @@ import DisplayPlayerStats from "./PlayerStats"
 import DisplayTeamStats from "./TeamStats"
 import WrappedYear from "./Wrapped"
 import DisplayDebugData from "./DebugData"
+import DisplayPlayerRatings from "./PlayerRatings"
 import RedeemIcon from "@mui/icons-material/Redeem"
+import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import DisplayTournamentResults from "./Tournaments"
 const drawerWidth = 190
 
@@ -96,11 +98,20 @@ export default function Menu() {
         />
         <MenuItem
           value="BalanceTeams"
-          text="BalanceTeams"
+          text="Balance Teams"
           open={true}
           icon={<BalanceIcon />}
           callback={setSelection}
         />
+        {queryParams["debug"] === "True" && (
+          <MenuItem
+            value="PlayerRating"
+            text="Player Ratings"
+            open={true}
+            icon={<LeaderboardIcon />}
+            callback={setSelection}
+          />
+        )}
         {queryParams["debug"] === "True" && (
           <MenuItem
             value="DebugData"
@@ -202,6 +213,7 @@ type Selection =
   | "Wrapped"
   | "Tournaments"
   | "BalanceTeams"
+  | "PlayerRating"
 
 interface MenuItemProps {
   open: boolean
@@ -226,6 +238,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayTournamentResults />
     case "BalanceTeams":
       return <DisplayBalanceTeams />
+    case "PlayerRating":
+      return <DisplayPlayerRatings />
     case "DebugData":
       return <DisplayDebugData />
     default:
