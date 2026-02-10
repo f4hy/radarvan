@@ -66,7 +66,7 @@ def initialize_player(name, model):
     beginners = {"EnragedFerret"}
     # casual = {"Neo"}
     casual = {}
-    experienced = {"Gorn", "Tytan", "WildCard"}
+    experienced = {}
     # experienced = {}
 
     if name in beginners:

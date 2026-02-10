@@ -90,7 +90,12 @@ function getPlayerRatings(
     .catch((e) => alert(e))
 }
 
-
+function formatLabel(val: string | number): string {
+  if (typeof (val) == 'number') {
+    return `${Number(val).toFixed(1)}`;
+  }
+  return val
+}
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatings[]>([])
   React.useEffect(() => {
@@ -110,7 +115,7 @@ export default function DisplayPlayerRatings() {
             fill="blue"
           >
             <LabelList dataKey="ordinal" position="bottom" offset={40} formatter={(s: number) => s.toFixed(2)} fontSize={25} />
-            <ErrorBar								
+            <ErrorBar
               dataKey="sigma"
               width={10}
               strokeWidth={5}
@@ -138,6 +143,7 @@ export default function DisplayPlayerRatings() {
           <ZAxis type="number" range={[100, 100]} />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
+            formatter={formatLabel}
           />
           <CartesianGrid />
         </ScatterChart>

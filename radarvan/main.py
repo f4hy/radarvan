@@ -307,6 +307,8 @@ def register_replay_url(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
     """Rerun the replay parser on this match."""
+    if replay_manager.get_replay_file(url_of_replay):
+        return None
     replay = replay_files.parse_replay(url_of_replay, replay_manager)
     matches.register_matches(replay_manager)
     return matches.reparse_replay(replay.replay_id(), replay_manager)
