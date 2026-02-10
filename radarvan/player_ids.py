@@ -17,6 +17,7 @@ NAME_MAPPING = {
     "skip": "Skip",
     "skp": "Skip",
     "sk": "Skip",
+    "skippy": "Skip",
     "mod": "Modus",
     "131": "OneThree111",
     "neo": "Neo",
