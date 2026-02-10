@@ -148,6 +148,24 @@ export default function DisplayPlayerRatings() {
           <CartesianGrid />
         </ScatterChart>
       </ResponsiveContainer>
+      <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={data} layout="horizontal"  margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="5 5" vertical={false} />
+        <Bar dataKey="gameCount" fill="#42A5F5" />
+        <XAxis dataKey="name" />
+        <YAxis
+				            label={{
+              value: "# games",
+              position: "insideLeft",
+              fontSize: 25,
+              strokeFill: "black",
+              offset: -10,
+              angle: -90,
+            }}
+/>
+        <Tooltip cursor={false} />
+      </BarChart>
+      </ResponsiveContainer>
     </Paper>
   )
 }

@@ -22,7 +22,7 @@ NAME_MAPPING = {
     "131": "OneThree111",
     "neo": "Neo",
     "pan": "Pancake",
-    "pc": "Pancake",
+    "cake": "Pancake",
     "w": "WildCard",
     "wld": "WildCard",
     "wild": "WildCard",
@@ -45,6 +45,9 @@ NAME_MAPPING = {
     "fer": "EnragedFerret",
     "ferret": "EnragedFerret",
     "cpu": "HardArmy",
+    "pc": "pcap",
+    "pcaps": "pcap",
+    # "[ooe]excal^": "[OoE]Excal^",
 }
 
 PLAYER_NAMES = set(NAME_MAPPING.values())

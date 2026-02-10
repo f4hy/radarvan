@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from cachetools import TTLCache, cached
 from itertools import combinations, permutations
-from openskill.models import PlackettLuce
+from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
 from . import player_ids
 from radarvan.api_types import (
@@ -58,7 +59,7 @@ logger = logging.getLogger(__name__)
 # players = {name: initialize_player(level) for name, level in player_info.items()}
 
 
-def initialize_player(name, model):
+def initialize_player(name, model) -> PlackettLuceRating:
     """
     experience_level: 'beginner', 'casual', 'average', 'experienced', 'expert'
     """
@@ -67,7 +68,7 @@ def initialize_player(name, model):
     # casual = {"Neo"}
     casual = {}
     experienced = {}
-    # experienced = {}
+    expert = {"[OoE]Excal^"}
 
     if name in beginners:
         return model.rating(name=name, mu=5, sigma=12)
@@ -77,6 +78,8 @@ def initialize_player(name, model):
         return model.rating(name=name, mu=15, sigma=6)
     if name in experienced:
         return model.rating(name=name, mu=30, sigma=10)
+    if name in expert:
+        return model.rating(name=name, mu=40, sigma=10)
 
     return model.rating(name=name)
 
@@ -85,6 +88,11 @@ def initialize_player(name, model):
 def get_model() -> PlackettLuce:
     return PlackettLuce()
 
+
+@dataclass
+class RatingsAndCounts:
+    ratings: list[PlackettLuceRating]
+    game_counts: dict[str, int]
 
 def compute_player_ratings(games: list[MatchInfo]):
     model = get_model()
@@ -120,7 +128,7 @@ def compute_player_ratings(games: list[MatchInfo]):
             for p in t:
                 players[p.name] = p
 
-    ratings = [r for r in players.values() if game_counts.get(r.name, 0) > 3]
+    ratings = [r for r in players.values() if (game_counts.get(r.name, 0) > 10)]
     sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
     # Display results
     for rating in sorted_ratings:
@@ -130,4 +138,4 @@ def compute_player_ratings(games: list[MatchInfo]):
             f"{rating.name}[games={game_counts.get(rating.name)}]: {rating.ordinal():.1f} (μ={rating.mu:.1f}, σ={rating.sigma:.1f})"
         )
 
-    return sorted_ratings
+    return RatingsAndCounts(ratings=sorted_ratings, game_counts=game_counts)

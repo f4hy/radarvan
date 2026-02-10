@@ -43,6 +43,12 @@ export interface PlayerRatings {
      * @memberof PlayerRatings
      */
     sigma: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PlayerRatings
+     */
+    gameCount: number;
 }
 
 /**
@@ -53,6 +59,7 @@ export function instanceOfPlayerRatings(value: object): value is PlayerRatings {
     if (!('ordinal' in value) || value['ordinal'] === undefined) return false;
     if (!('mu' in value) || value['mu'] === undefined) return false;
     if (!('sigma' in value) || value['sigma'] === undefined) return false;
+    if (!('gameCount' in value) || value['gameCount'] === undefined) return false;
     return true;
 }
 
@@ -70,6 +77,7 @@ export function PlayerRatingsFromJSONTyped(json: any, ignoreDiscriminator: boole
         'ordinal': json['ordinal'],
         'mu': json['mu'],
         'sigma': json['sigma'],
+        'gameCount': json['game_count'],
     };
 }
 
@@ -88,6 +96,7 @@ export function PlayerRatingsToJSONTyped(value?: PlayerRatings | null, ignoreDis
         'ordinal': value['ordinal'],
         'mu': value['mu'],
         'sigma': value['sigma'],
+        'game_count': value['gameCount'],
     };
 }
 

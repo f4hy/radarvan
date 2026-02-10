@@ -43,6 +43,6 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
             else:
                 player_stats[name].stats[player.general].losses += 1
 
-    filtered = [stat for stat in player_stats.values() if total_games(stat) > 4]
+    filtered = [stat for stat in player_stats.values() if total_games(stat) > 8]
 
     return PlayerStats(player_stats=sorted(filtered, key=total_games, reverse=True))

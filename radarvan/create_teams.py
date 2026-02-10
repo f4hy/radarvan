@@ -27,7 +27,7 @@ from .player_rating import get_model, compute_player_ratings
 
 def balance_teams(games: list[MatchInfo], player_list: set[str]):
     team_size = len(player_list) // 2
-    ratings = compute_player_ratings(games)
+    ratings = compute_player_ratings(games).ratings
 
     player_ratings = {r.name: r for r in ratings}
 
@@ -92,7 +92,7 @@ def partition_into_teams(players: list[str], team_size: int):
 def create_balanced_teams(
     games: list[MatchInfo], player_list: set[str], team_size: int = 2
 ):
-    ratings = compute_player_ratings(games)
+    ratings = compute_player_ratings(games).ratings
 
     player_ratings = {r.name: r for r in ratings}
 

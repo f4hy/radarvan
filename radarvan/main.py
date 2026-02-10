@@ -451,10 +451,11 @@ def get_player_ratings(
 ) -> list[PlayerRatings]:
     games = sorted_deduped_matches(replay_manager)
 
-    ratings = player_rating.compute_player_ratings(list(games.values()))
+    ratings_and_counts = player_rating.compute_player_ratings(list(games.values()))
+    counts = ratings_and_counts.game_counts
     converted = [
-        PlayerRatings(name=r.name, ordinal=r.ordinal(), mu=r.mu, sigma=r.sigma)
-        for r in ratings
+        PlayerRatings(name=r.name, ordinal=r.ordinal(), mu=r.mu, sigma=r.sigma, game_count=counts.get(r.name))
+        for r in ratings_and_counts.ratings
     ]
     return converted
 

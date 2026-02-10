@@ -10,6 +10,7 @@ Name | Type
 `ordinal` | number
 `mu` | number
 `sigma` | number
+`gameCount` | number
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "ordinal": null,
   "mu": null,
   "sigma": null,
+  "gameCount": null,
 } satisfies PlayerRatings
 
 console.log(example)

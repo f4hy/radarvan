@@ -429,4 +429,5 @@ class PlayerRatings(BaseModel):
     ordinal: float
     mu: float
     sigma: float
+    game_count: int
     model_config = ConfigDict(from_attributes=True)
