@@ -196,6 +196,13 @@ class ReplayManager:
 
     def update_match(self, db_match: Match) -> Match:
         """Register a new replay."""
+        existing = self.session.get(Match, db_match.match_id)
+        if existing and existing.winning_team_id != db_match.winning_team_id:
+            notify(
+                f"Update to Match id {db_match.match_id} is changing the winner"
+                f" from {existing.winning_team_id} to {db_match.winning_team_id}"
+            )
+
         logger.info(f"updating {db_match=}")
         db_match.created_at = datetime.now(UTC)
         self.session.merge(db_match)
