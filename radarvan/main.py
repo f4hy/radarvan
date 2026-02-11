@@ -444,7 +444,6 @@ def update_matches_missing_data(
         max_to_update
     )
     logger.info(f"{len(missing_game_version)=}")
-    logger.info(f"{missing_game_version[0]=}")
     updated_count = 0
     for missing in missing_game_version:
         replay = replay_files.parse_json(missing.json_s3_uri)
