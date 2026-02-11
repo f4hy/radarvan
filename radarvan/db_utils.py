@@ -239,6 +239,14 @@ class ReplayManager:
         )
         return self.session.scalars(stmt).all()
 
+    def list_matches_without_game_version(self) -> Iterator[Match]:
+        """List all files."""
+        stmt = (
+            select(Match)
+            .where(Match.game_version is None)
+        )
+        yield from self.session.scalars(stmt).all()
+
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)
         return set(self.session.execute(query).scalars().all())

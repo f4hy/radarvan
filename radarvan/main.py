@@ -433,6 +433,25 @@ def update_num_timestamps(
             break
     return {"updated": updated}
 
+@app.post("/api/update_matches_missing_data/")
+def update_matches_missing_data(
+    max_to_update: int = 1,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    missing_game_version = replay_manager.list_matches_without_game_version()
+    updated = 0
+    for missing in missing_game_version:
+        replay = replay_files.parse_json(missing.json_s3_uri, replay_manager)
+        game_version = replay.Header.Version
+        missing.game_version = game_version
+        result = replay_manager.update_match(missing)
+        logger.info(f"Updated {missing.match_id} success={result}")
+        if result:
+            updated += 1
+        if updated >= max_to_update:
+            break
+    return {"updated": updated}
+
 
 @app.get("/api/replays_without_playerstats/")
 def replays_without_playerstats(

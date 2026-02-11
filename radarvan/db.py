@@ -110,6 +110,7 @@ class Match(Base):
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    game_version = Column(String(10))
 
     # Relationships
     replay_json = relationship("ParsedReplayJson", back_populates="match")

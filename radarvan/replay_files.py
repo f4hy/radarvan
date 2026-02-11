@@ -66,6 +66,14 @@ def save_replay_if_missing(
     replay_manager.register_replay(replay_path, save_path)
 
 
+def parse_json(json_path: str) -> EnhancedReplay:
+    fs = get_fs()
+    with log_time(f"reading {json_path}", logger):
+        json_data = fs.read_text(json_path)
+    with log_time(f"Validing {json_path}", logger):
+        parsed_replay = EnhancedReplay.model_validate_json(json_data)
+    return parsed_replay
+
 # @cached(cache=LRUCache(maxsize=12))
 @utils.log_duration
 def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
