@@ -258,6 +258,7 @@ class FirstBlood(BaseModel):
 
 class MatchDetails(BaseModel):
     match_id: int = Field(alias="matchId")
+    game_version: str | None = Field(None)
     costs: list[Costs]
     apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")

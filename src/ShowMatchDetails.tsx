@@ -575,6 +575,7 @@ export default function ShowMatchDetails(props: { id: number }) {
   return (
     <Paper>
       <Divider />
+			<Typography>{`Game Version ${details.gameVersion}`}</Typography>
       <DisplayFirstBlood
         first_blood={details.firstBlood ?? undefined}
         building_first_blood={details.buildingFirstBlood ?? undefined}

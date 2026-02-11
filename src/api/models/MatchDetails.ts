@@ -70,6 +70,12 @@ export interface MatchDetails {
     matchId: number;
     /**
      * 
+     * @type {string}
+     * @memberof MatchDetails
+     */
+    gameVersion?: string | null;
+    /**
+     * 
      * @type {Array<Costs>}
      * @memberof MatchDetails
      */
@@ -157,6 +163,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
     return {
         
         'matchId': json['matchId'],
+        'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
         'costs': ((json['costs'] as Array<any>).map(CostsFromJSON)),
         'apms': ((json['apms'] as Array<any>).map(APMFromJSON)),
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
@@ -182,6 +189,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
     return {
         
         'matchId': value['matchId'],
+        'game_version': value['gameVersion'],
         'costs': ((value['costs'] as Array<any>).map(CostsToJSON)),
         'apms': ((value['apms'] as Array<any>).map(APMToJSON)),
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),

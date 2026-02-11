@@ -282,6 +282,7 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
     logger.info(f"First blood {first_blood}")
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
+        game_version=replay.Header.Version,
         costs=[],
         apms=apms,
         upgrade_events=upgrades,

@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `matchId` | number
+`gameVersion` | string
 `costs` | [Array&lt;Costs&gt;](Costs.md)
 `apms` | [Array&lt;APM&gt;](APM.md)
 `upgradeEvents` | [{ [key: string]: Upgrades; }](Upgrades.md)
@@ -26,6 +27,7 @@ import type { MatchDetails } from ''
 // TODO: Update the object below with actual values
 const example = {
   "matchId": null,
+  "gameVersion": null,
   "costs": null,
   "apms": null,
   "upgradeEvents": null,
