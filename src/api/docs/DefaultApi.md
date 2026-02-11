@@ -27,6 +27,7 @@ All URIs are relative to *http://localhost*
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
 | [**setOverridesApiSetOverridePost**](DefaultApi.md#setoverridesapisetoverridepost) | **POST** /api/set_override/ | Set Overrides |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
+| [**updateMatchesMissingDataApiUpdateMatchesMissingDataPost**](DefaultApi.md#updatematchesmissingdataapiupdatematchesmissingdatapost) | **POST** /api/update_matches_missing_data/ | Update Matches Missing Data |
 | [**updateNumTimestampsApiUpdateNumTimestampsPost**](DefaultApi.md#updatenumtimestampsapiupdatenumtimestampspost) | **POST** /api/update_num_timestamps/ | Update Num Timestamps |
 
 
@@ -1489,6 +1490,72 @@ example().catch(console.error);
 ### Return type
 
 [**TournamentReport**](TournamentReport.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMatchesMissingDataApiUpdateMatchesMissingDataPost
+
+> any updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
+
+Update Matches Missing Data
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest;
+
+  try {
+    const data = await api.updateMatchesMissingDataApiUpdateMatchesMissingDataPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `1`] |
+
+### Return type
+
+**any**
 
 ### Authorization
 

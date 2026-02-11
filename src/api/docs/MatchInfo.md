@@ -15,6 +15,7 @@ Name | Type
 `filename` | string
 `incomplete` | string
 `notes` | string
+`gameVersion` | string
 
 ## Example
 
@@ -32,6 +33,7 @@ const example = {
   "filename": null,
   "incomplete": null,
   "notes": null,
+  "gameVersion": null,
 } satisfies MatchInfo
 
 console.log(example)

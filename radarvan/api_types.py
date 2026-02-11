@@ -52,7 +52,7 @@ class MatchInfo(BaseModel, frozen=True):
     filename: str
     incomplete: str = ""
     notes: str
-    game_version: str = ""
+    game_version: str | None = None
 
     class Config:
         populate_by_name = True

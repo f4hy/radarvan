@@ -120,6 +120,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
         filename=replay.Header.FileName,
         incomplete=incomplete,
         notes=notes,
+        game_version=replay.Header.Version.lower().replace("version", "").strip(),
     )
 
 
@@ -149,6 +150,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         filename=db_match.filename,
         incomplete=db_match.incomplete or "",
         notes=db_match.notes,
+        game_version=db_match.game_version,
     )
 
 
@@ -189,8 +191,12 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
         return None
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
-    update_match.created_at = datetime.now(UTC)
-    replay_manager.update_match(update_match)
+    replay_manager.update_match(
+        update_match,
+        json_s3=json_s3,
+        winning_team_id=update_match.winning_team_id,
+        game_version=update_match.game_version,
+    )
     return match_from_replay(parsed_replay)
     return parsed_replay
 

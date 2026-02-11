@@ -120,6 +120,10 @@ export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRe
     tournamentName: string;
 }
 
+export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest {
+    maxToUpdate?: number;
+}
+
 export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
     maxToUpdate?: number;
 }
@@ -999,6 +1003,43 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async testTournamentReportApiTestTournamentReportTournamentNamePost(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
         const response = await this.testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update Matches Missing Data
+     */
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/update_matches_missing_data/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Update Matches Missing Data
+     */
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

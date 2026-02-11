@@ -88,6 +88,12 @@ export interface MatchInfo {
      * @memberof MatchInfo
      */
     notes: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MatchInfo
+     */
+    gameVersion?: string | null;
 }
 
 
@@ -126,6 +132,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'filename': json['filename'],
         'incomplete': json['incomplete'] == null ? undefined : json['incomplete'],
         'notes': json['notes'],
+        'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
     };
 }
 
@@ -149,6 +156,7 @@ export function MatchInfoToJSONTyped(value?: MatchInfo | null, ignoreDiscriminat
         'filename': value['filename'],
         'incomplete': value['incomplete'],
         'notes': value['notes'],
+        'game_version': value['gameVersion'],
     };
 }
 

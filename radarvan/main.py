@@ -1,3 +1,4 @@
+from copy import copy
 from enum import Enum
 from pydantic import BaseModel
 import asyncio
@@ -433,24 +434,30 @@ def update_num_timestamps(
             break
     return {"updated": updated}
 
+
 @app.post("/api/update_matches_missing_data/")
 def update_matches_missing_data(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
-    missing_game_version = replay_manager.list_matches_without_game_version()
-    updated = 0
+    missing_game_version = replay_manager.list_matches_without_game_version(
+        max_to_update
+    )
+    logger.info(f"{len(missing_game_version)=}")
+    logger.info(f"{missing_game_version[0]=}")
+    updated_count = 0
     for missing in missing_game_version:
-        replay = replay_files.parse_json(missing.json_s3_uri, replay_manager)
-        game_version = replay.Header.Version
-        missing.game_version = game_version
-        result = replay_manager.update_match(missing)
+        replay = replay_files.parse_json(missing.json_s3_uri)
+        game_version = replay.Header.Version.lower().replace("version", "").strip()
+        result = replay_manager.update_match(
+            missing.match_id, game_version=game_version
+        )
         logger.info(f"Updated {missing.match_id} success={result}")
         if result:
-            updated += 1
-        if updated >= max_to_update:
+            updated_count += 1
+        if updated_count >= max_to_update:
             break
-    return {"updated": updated}
+    return {"updated": updated_count}
 
 
 @app.get("/api/replays_without_playerstats/")
@@ -473,7 +480,13 @@ def get_player_ratings(
     ratings_and_counts = player_rating.compute_player_ratings(list(games.values()))
     counts = ratings_and_counts.game_counts
     converted = [
-        PlayerRatings(name=r.name, ordinal=r.ordinal(), mu=r.mu, sigma=r.sigma, game_count=counts.get(r.name))
+        PlayerRatings(
+            name=r.name,
+            ordinal=r.ordinal(),
+            mu=r.mu,
+            sigma=r.sigma,
+            game_count=counts.get(r.name),
+        )
         for r in ratings_and_counts.ratings
     ]
     return converted

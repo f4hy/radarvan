@@ -143,7 +143,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
         props.match.map.split("/").slice(-1) +
         " Duration:" +
         props.match.durationMinutes.toFixed(2) +
-        " minutes"}
+        " minutes GameVersion:" + props.match.gameVersion}
     </Typography>
   )
 

@@ -194,23 +194,34 @@ class ReplayManager:
             notify(f"Registered Match {db_match}")
         return db_match
 
-    def update_match(self, db_match: Match) -> Match:
+    def update_match(
+        self,
+        match_id: int,
+        json_s3: str | None = None,
+        winning_team_id: int | None = None,
+        game_version: str | None = None,
+    ) -> Match | None:
         """Register a new replay."""
-        existing = self.session.get(Match, db_match.match_id)
-        if existing and existing.winning_team_id != db_match.winning_team_id:
+        existing = self.session.get(Match, match_id)
+        if existing is None:
+            return None
+        if winning_team_id is not None and existing.winning_team_id != winning_team_id:
             notify(
-                f"Update to Match id {db_match.match_id} is changing the winner"
-                f" from {existing.winning_team_id} to {db_match.winning_team_id}"
+                f"Update to Match id {match_id} is changing the winner"
+                f" from {existing.winning_team_id} to {winning_team_id}"
             )
+        if json_s3 is not None:
+            existing.json_s3_uri = json_s3
+        if winning_team_id is not None:
+            existing.winning_team_id = winning_team_id
+        if game_version is not None:
+            existing.game_version = game_version
 
-        logger.info(f"updating {db_match=}")
-        db_match.created_at = datetime.now(UTC)
-        self.session.merge(db_match)
         if self.auto_commit:
             self.session.commit()
         if self.notify:
-            notify(f"Update Match {db_match}")
-        return db_match
+            notify(f"Update Match {existing}")
+        return existing
 
     def list_files(self) -> list[ReplayFile]:
         """List all files."""
@@ -239,13 +250,10 @@ class ReplayManager:
         )
         return self.session.scalars(stmt).all()
 
-    def list_matches_without_game_version(self) -> Iterator[Match]:
+    def list_matches_without_game_version(self, limit: int = 10) -> list[Match]:
         """List all files."""
-        stmt = (
-            select(Match)
-            .where(Match.game_version is None)
-        )
-        yield from self.session.scalars(stmt).all()
+        stmt = select(Match).where(Match.game_version.is_(None)).limit(limit)
+        return self.session.scalars(stmt).all()
 
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)

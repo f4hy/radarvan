@@ -131,7 +131,7 @@ class Match(Base):
     composition = relationship("MatchCompostion", back_populates="match", uselist=False)
 
     def __repr__(self):
-        return f"<Match(match_id=`{self.match_id}` \n`winner={self.winning_team_id}`\n updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
+        return f"<Match(match_id=`{self.match_id}` game_version=`{self.game_version}` \n`winner={self.winning_team_id}`\n updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
 
 
 class MatchPlayer(Base):
@@ -155,7 +155,7 @@ class MatchPlayer(Base):
     )
 
     def __repr__(self):
-        return f"<Player(name={self.player_name} general={self.general_id.name} team={self.team_id.name} winner={self.is_winner}) >\n"
+        return f"<Player(name={self.player_name} general={self.general_id} team={self.team_id} winner={self.is_winner}) >\n"
 
 
 class WinnerOverride(Base):
