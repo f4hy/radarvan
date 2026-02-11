@@ -192,7 +192,7 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(
-        update_match,
+        update_match.match_id,
         json_s3=json_s3,
         winning_team_id=update_match.winning_team_id,
         game_version=update_match.game_version,
