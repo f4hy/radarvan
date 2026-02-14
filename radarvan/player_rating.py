@@ -1,23 +1,10 @@
 from dataclasses import dataclass
-from cachetools import TTLCache, cached
-from itertools import combinations, permutations
+from cachetools import cached
 from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
 from . import player_ids
 from radarvan.api_types import (
-    MatchDetails,
-    Team,
-    Matches,
     MatchInfo,
-    PlayerStats,
-    GeneralStats,
-    SpentOverTime,
-    WinnerOverride,
-    GameRecord,
-    TournamentResult,
-    ReplayFileSchema,
-    ParsedReplayJsonSchema,
-    TournamentReport,
 )
 import logging
 
@@ -94,13 +81,14 @@ class RatingsAndCounts:
     ratings: list[PlackettLuceRating]
     game_counts: dict[str, int]
 
+
 def compute_player_ratings(games: list[MatchInfo]):
     model = get_model()
 
     all_players = {
         player_ids.player_name_map(p.name) for game in games for p in game.players
     }
-    game_counts = {p: 0 for p in all_players}
+    game_counts = dict.fromkeys(all_players, 0)
 
     players = {name: initialize_player(name, model) for name in all_players}
     logger.info(f"players: {players}")

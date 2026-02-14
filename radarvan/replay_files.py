@@ -74,6 +74,7 @@ def parse_json(json_path: str) -> EnhancedReplay:
         parsed_replay = EnhancedReplay.model_validate_json(json_data)
     return parsed_replay
 
+
 # @cached(cache=LRUCache(maxsize=12))
 @utils.log_duration
 def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:

@@ -48,6 +48,12 @@ export interface MatchInfo {
     timestamp: Date;
     /**
      * 
+     * @type {Date}
+     * @memberof MatchInfo
+     */
+    date: Date;
+    /**
+     * 
      * @type {string}
      * @memberof MatchInfo
      */
@@ -104,6 +110,7 @@ export interface MatchInfo {
 export function instanceOfMatchInfo(value: object): value is MatchInfo {
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('timestamp' in value) || value['timestamp'] === undefined) return false;
+    if (!('date' in value) || value['date'] === undefined) return false;
     if (!('map' in value) || value['map'] === undefined) return false;
     if (!('winningTeam' in value) || value['winningTeam'] === undefined) return false;
     if (!('players' in value) || value['players'] === undefined) return false;
@@ -125,6 +132,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         
         'id': json['id'],
         'timestamp': (new Date(json['timestamp'])),
+        'date': (new Date(json['date'])),
         'map': json['map'],
         'winningTeam': TeamFromJSON(json['winning_team']),
         'players': ((json['players'] as Array<any>).map(PlayerFromJSON)),
@@ -149,6 +157,7 @@ export function MatchInfoToJSONTyped(value?: MatchInfo | null, ignoreDiscriminat
         
         'id': value['id'],
         'timestamp': value['timestamp'].toISOString(),
+        'date': value['date'].toISOString().substring(0,10),
         'map': value['map'],
         'winning_team': TeamToJSON(value['winningTeam']),
         'players': ((value['players'] as Array<any>).map(PlayerToJSON)),

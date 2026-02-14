@@ -82,6 +82,10 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
 }
 
+export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
+    date: Date;
+}
+
 export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest {
     tournamentName: string;
 }
@@ -435,6 +439,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchesApiMatchesMatchCountGet(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
         const response = await this.getMatchesApiMatchesMatchCountGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Matches By Date
+     */
+    async getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+        if (requestParameters['date'] == null) {
+            throw new runtime.RequiredError(
+                'date',
+                'Required parameter "date" was null or undefined when calling getMatchesByDateApiMatchesByDateDateGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/matches/by_date/{date}`;
+        if (requestParameters['date'] instanceof Date) {
+            urlPath = urlPath.replace(`{${"date"}}`, encodeURIComponent(requestParameters['date'].toISOString().substring(0,10)));
+        } else {
+            urlPath = urlPath.replace(`{${"date"}}`, encodeURIComponent(String(requestParameters['date'])));
+        }
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchesFromJSON(jsonValue));
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Matches By Date
+     */
+    async getMatchesByDateApiMatchesByDateDateGet(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
+        const response = await this.getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

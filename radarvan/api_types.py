@@ -45,6 +45,7 @@ class Player(BaseModel):
 class MatchInfo(BaseModel, frozen=True):
     id: int
     timestamp: datetime
+    date: date
     map: str
     winning_team: Team
     players: list[Player]

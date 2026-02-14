@@ -1,22 +1,8 @@
-from cachetools import TTLCache, cached
-from itertools import combinations, permutations
-from openskill.models import PlackettLuce, PlackettLuceRating
-from collections import defaultdict
+from itertools import combinations
+from openskill.models import PlackettLuceRating
 from . import player_ids
 from radarvan.api_types import (
-    MatchDetails,
-    Team,
-    Matches,
     MatchInfo,
-    PlayerStats,
-    GeneralStats,
-    SpentOverTime,
-    WinnerOverride,
-    GameRecord,
-    TournamentResult,
-    ReplayFileSchema,
-    ParsedReplayJsonSchema,
-    TournamentReport,
 )
 import logging
 

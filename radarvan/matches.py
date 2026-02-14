@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from .log_time import log_time
 import logging
 import os
-from datetime import datetime, UTC
+from datetime import datetime
 
 from . import db
 from . import replay_files
@@ -56,6 +56,7 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     return MatchInfo(
         id=replay.replay_id(),
         timestamp=replay.Header.TimeStampBegin,
+        date=datetime.fromtimestamp(replay.Header.TimeStampBegin).date(),
         map=replay.Header.Metadata.MapFile,
         winning_team=winner,
         players=players,
@@ -143,6 +144,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
     return MatchInfo(
         id=db_match.match_id,
         timestamp=db_match.timestamp,
+        date=db_match.replay_json.game_date,
         map=db_match.map,
         winning_team=winner,
         players=players,
@@ -152,21 +154,6 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         notes=db_match.notes,
         game_version=db_match.game_version,
     )
-
-
-def get_all_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
-    replay_jsons = replay_manager.list_jsons()
-    for j in replay_jsons:
-        db_match = j.match
-        if (db_match) is None:
-            logger.info(f"Match was None, going to parse {j.replay_file_url}")
-            parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
-            db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
-            replay_manager.register_match(db_match)
-        converted = match_to_matchinfo(db_match)
-        if converted.duration_minutes < 2:
-            continue
-        yield converted
 
 
 def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
@@ -198,7 +185,6 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
         game_version=update_match.game_version,
     )
     return match_from_replay(parsed_replay)
-    return parsed_replay
 
 
 def filter_match(db_match: db.Match) -> bool:
@@ -210,16 +196,16 @@ def filter_match(db_match: db.Match) -> bool:
         teams[p.team_id].append(p.player_name)
     for team in teams.values():
         if set(team) == {"CPU"}:
-            logger.info(f"Filtering compstom {teams}")
+            # logger.info(f"Filtering compstom {teams}")
             return False
     # remove ffa
     if len(set(teams.keys())) == 1:
-        logger.info(f"Filtering ffa {teams}")
+        # logger.info(f"Filtering ffa {teams}")
         return False
     return True
 
 
-def get_all_matches2(replay_manager: ReplayManager) -> list[MatchInfo]:
+def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):
         listing = replay_manager.list_matches(2.0)

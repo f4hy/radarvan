@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, func, and_, update, or_
 from sqlalchemy import desc, nulls_last
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
-from datetime import datetime, timedelta, date, UTC
+from datetime import datetime, timedelta, date
 from .notify import notify
 from typing import Literal
 from .db import (
@@ -247,6 +247,7 @@ class ReplayManager:
             select(Match)
             .where(Match.duration_minutes > duration_cutoff)
             .options(selectinload(Match.players))
+            .options(selectinload(Match.replay_json))
         )
         return self.session.scalars(stmt).all()
 
@@ -261,10 +262,12 @@ class ReplayManager:
 
     def list_dates_with_games(self) -> list[date]:
         """Get the set of dates which have games."""
-
-        stmt = select(ParsedReplayJson.game_date).distinct()
-        unique_dates = self.session.execute(stmt).scalars().all()
-        return unique_dates
+        stmt = (
+            select(ParsedReplayJson.game_date)
+            .distinct()
+            .order_by(ParsedReplayJson.game_date.desc())
+        )
+        return list(self.session.scalars(stmt))
 
     def get_overrides(self) -> dict[int, WinnerOverride]:
         """Get winner overrides."""

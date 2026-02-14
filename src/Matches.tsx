@@ -29,8 +29,15 @@ import { MatchInfo, Matches, Player, Team } from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
-function getMatches(count: number, callback: (m: Matches) => void) {
-  Client.getMatchesApiMatchesMatchCountGet({ matchCount: count })
+
+function getDates(callback: (m: Date[]) => void) {
+  Client.getDatesApiDatesGet()
+    .then(callback)
+    .catch((e) => alert(e))
+}
+
+function getMatches(date: Date, callback: (m: Matches) => void) {
+  Client.getMatchesByDateApiMatchesByDateDateGet({ date: date })
     .then(callback)
     .catch((e) => alert(e))
 }
@@ -234,38 +241,59 @@ function Loading() {
   )
 }
 
-export default function DisplayMatches() {
-  const [getAll, setGetAll] = React.useState<boolean>(false)
+function DisplayMatchesForDate(props: { date: Date, idx: number }) {
+  const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0);
   const [matchList, setMatchList] = React.useState<Matches>(empty)
-  const partialCount = 50
-  const maxCount = 2000
   React.useEffect(() => {
-    getMatches(getAll ? maxCount : partialCount, setMatchList)
-  }, [getAll])
-  const showAll = () => {
-    setGetAll(true)
-  }
-  const byDate = _.groupBy(matchList.matches, (m) =>
-    subtractHours(m.timestamp, 4).toLocaleDateString(),
+    if (expanded && matchList.matches.length === 0) {
+      getMatches(props.date, setMatchList)
+    }
+  }, [expanded])
+
+
+  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    if (matchList.matches.length === 0) {
+      getMatches(props.date, setMatchList)
+    }
+    setExpanded(isExpanded);
+  };
+
+  const date = props.date
+  const idx = props.idx
+
+  return (
+    <Accordion expanded={expanded === true} onChange={handleChange(`${idx}`)}>
+      <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
+        <Typography>{date}</Typography>
+        <Typography>{expanded} </Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Typography>{date} </Typography>
+        <AccordionDetails>
+          {
+            matchList.matches.map((m, idx) => (
+              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
+            ))
+          }
+        </AccordionDetails>
+      </AccordionDetails>
+    </Accordion>
   )
-  if (matchList.matches.length === 0) {
+}
+
+export default function DisplayMatches() {
+  const [dates, setDates] = React.useState<Date[]>([])
+  React.useEffect(() => {
+    getDates(setDates)
+  }, [])
+  if (dates.length === 0) {
     return <Loading />
   }
   return (
-    <>
-      {Object.entries(byDate).map(([date, group], idx) => (
-        <Accordion defaultExpanded={idx === 0}>
-          <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-            <Typography>{date + ": " + group.length + " Matches"} </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            {group.map((m, idx) => (
-              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
-            ))}
-          </AccordionDetails>
-        </Accordion>
+    <Stack>
+      {dates.map((date, idx) => (
+        <DisplayMatchesForDate date={date} idx={idx} />
       ))}
-      {getAll ? null : <Button onClick={() => showAll()}>Show All</Button>}
-    </>
+    </Stack>
   )
 }

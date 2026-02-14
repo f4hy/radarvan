@@ -1,4 +1,4 @@
-from copy import copy
+from datetime import date
 from enum import Enum
 from pydantic import BaseModel
 import asyncio
@@ -132,7 +132,7 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     # replays = replay_files.get_all_replays(replay_manager)
     # match_infos = (matches.match_from_replay(replay) for replay in replays)
-    match_infos = matches.get_all_matches2(replay_manager)
+    match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
     logger.info(f"Got {len(deduped)} parsed replays")
     sorted_matches = dict(
@@ -164,9 +164,9 @@ def list_replays(
 def get_dates(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
-    listed = replay_manager.list_dates_with_games()
-    logger.info(f"Found {len(listed)=}")
-    return listed
+    replays = sorted_deduped_matches(replay_manager)
+    dates = {r.date for r in replays.values()}
+    return sorted(dates, reverse=True)
 
 
 @app.post("/api/scrape/{days}")
@@ -189,6 +189,16 @@ def get_matches(
     """Get listing of matches, up to a return count limit for paging."""
     replays = sorted_deduped_matches(replay_manager)
     return Matches(matches=replays.values())
+
+
+@app.get("/api/matches/by_date/{date}")
+def get_matches_by_date(
+    date: date,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> Matches:
+    """Get listing of matches, up to a return count limit for paging."""
+    replays = sorted_deduped_matches(replay_manager)
+    return Matches(matches=[r for r in replays.values() if r.date == date])
 
 
 @app.get("/api/tournament_results/")

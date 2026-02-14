@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `id` | number
 `timestamp` | Date
+`date` | Date
 `map` | string
 `winningTeam` | [Team](Team.md)
 `players` | [Array&lt;Player&gt;](Player.md)
@@ -26,6 +27,7 @@ import type { MatchInfo } from ''
 const example = {
   "id": null,
   "timestamp": null,
+  "date": null,
   "map": null,
   "winningTeam": null,
   "players": null,
