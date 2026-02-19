@@ -169,6 +169,7 @@ class ReplayManager:
             replay_file_url=original_replay_file_url,
             game_timestamp=game_timestamp,
             game_date=game_date,
+            game_version=parsed_replay.Header.Version,
             num_time_stamps=parsed_replay.Header.NumTimeStamps,
             has_enhanced_stats=has_enhanced_stats,
         )

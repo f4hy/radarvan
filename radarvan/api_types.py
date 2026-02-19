@@ -348,6 +348,7 @@ class GameRecord(BaseModel):
     replay_file_url: str
     created_at: datetime
     game_date: date
+    game_version: str | None = None
     match: MatchListing | None = None
 
 

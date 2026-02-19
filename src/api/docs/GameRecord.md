@@ -13,6 +13,7 @@ Name | Type
 `replayFileUrl` | string
 `createdAt` | Date
 `gameDate` | Date
+`gameVersion` | string
 `match` | [MatchListing](MatchListing.md)
 
 ## Example
@@ -29,6 +30,7 @@ const example = {
   "replayFileUrl": null,
   "createdAt": null,
   "gameDate": null,
+  "gameVersion": null,
   "match": null,
 } satisfies GameRecord
 

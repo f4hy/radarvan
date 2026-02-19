@@ -71,6 +71,12 @@ export interface GameRecord {
     gameDate: Date;
     /**
      * 
+     * @type {string}
+     * @memberof GameRecord
+     */
+    gameVersion?: string | null;
+    /**
+     * 
      * @type {MatchListing}
      * @memberof GameRecord
      */
@@ -107,6 +113,7 @@ export function GameRecordFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'replayFileUrl': json['replay_file_url'],
         'createdAt': (new Date(json['created_at'])),
         'gameDate': (new Date(json['game_date'])),
+        'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
         'match': json['match'] == null ? undefined : MatchListingFromJSON(json['match']),
     };
 }
@@ -129,6 +136,7 @@ export function GameRecordToJSONTyped(value?: GameRecord | null, ignoreDiscrimin
         'replay_file_url': value['replayFileUrl'],
         'created_at': value['createdAt'].toISOString(),
         'game_date': value['gameDate'].toISOString().substring(0,10),
+        'game_version': value['gameVersion'],
         'match': MatchListingToJSON(value['match']),
     };
 }

@@ -112,6 +112,7 @@ function DisplayDataTable(props: {
           <TableHead>
             <TableRow>
               <TableCell>matchId</TableCell>
+              <TableCell>gameVersion</TableCell>
               <TableCell>parsed at</TableCell>
               <TableCell>reparse</TableCell>
               <TableCell>gameDate</TableCell>
@@ -129,6 +130,9 @@ function DisplayDataTable(props: {
               <TableRow>
                 <TableCell>
                   <Link>{row.matchId}</Link>
+                </TableCell>
+                <TableCell>
+                  <Link>{row.gameVersion}</Link>
                 </TableCell>
                 <TableCell>
                   {row.createdAt.toISOString().split("T")[0]}
