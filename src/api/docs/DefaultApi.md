@@ -982,7 +982,7 @@ No authorization required
 
 ## listReplaysApiReplaysGet
 
-> Array&lt;GameRecord&gt; listReplaysApiReplaysGet()
+> Array&lt;GameRecord&gt; listReplaysApiReplaysGet(matchId, gameDate)
 
 List Replays
 
@@ -999,8 +999,15 @@ async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new DefaultApi();
 
+  const body = {
+    // number (optional)
+    matchId: 56,
+    // Date (optional)
+    gameDate: 2013-10-20,
+  } satisfies ListReplaysApiReplaysGetRequest;
+
   try {
-    const data = await api.listReplaysApiReplaysGet();
+    const data = await api.listReplaysApiReplaysGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -1013,7 +1020,11 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **gameDate** | `Date` |  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -1033,6 +1044,7 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

@@ -114,7 +114,8 @@ export default function DisplayPlayerRatings() {
             shape="triangle"
             fill="blue"
           >
-            <LabelList dataKey="ordinal" position="bottom" offset={40} formatter={(s: number) => s.toFixed(2)} fontSize={25} />
+            <LabelList dataKey="ordinal" position="bottom" offset={40} formatter={(s: number) => s.toFixed(1)} fontSize={20} />
+            <LabelList dataKey="mu" position="right" offset={1} formatter={(s: number) => s.toFixed(2)} fontSize={20} />
             <ErrorBar
               dataKey="sigma"
               width={10}

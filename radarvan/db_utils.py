@@ -169,7 +169,7 @@ class ReplayManager:
             replay_file_url=original_replay_file_url,
             game_timestamp=game_timestamp,
             game_date=game_date,
-            game_version=parsed_replay.Header.Version,
+            game_version=parsed_replay.Header.Version.replace("Version ", ""),
             num_time_stamps=parsed_replay.Header.NumTimeStamps,
             has_enhanced_stats=has_enhanced_stats,
         )
@@ -313,13 +313,14 @@ class ReplayManager:
         yield from self.session.execute(stmt).scalars().all()
 
     def list_jsons_without_player_stats(self, limit: int) -> Iterator[int]:
-        exclude_terms = ["HardAI", "MediAI", "EasyAI", "1v1v"]
+        exclude_terms = ["HardAI_HardAI", "MediAI", "EasyAI", "1v1v"]
         ranked_subq = select(
             ParsedReplayJson.match_id,
             ParsedReplayJson.replay_file_url,
             ParsedReplayJson.has_enhanced_stats,
             ParsedReplayJson.created_at,
             ParsedReplayJson.num_time_stamps,
+            ParsedReplayJson.game_version,
             func.row_number()
             .over(
                 partition_by=ParsedReplayJson.match_id,
@@ -333,7 +334,7 @@ class ReplayManager:
 
         stmt = (
             select(
-                ranked_subq.c.match_id, ranked_subq.c.replay_file_url, ReplayFile.s3_uri
+                ranked_subq.c.match_id, ranked_subq.c.replay_file_url, ReplayFile.s3_uri, ranked_subq.c.game_version
             )
             .join(ReplayFile, ReplayFile.original_url == ranked_subq.c.replay_file_url)
             .where(
@@ -352,8 +353,8 @@ class ReplayManager:
             .order_by(ranked_subq.c.created_at.desc())
             .limit(limit)
         )
-        for match_id, url, s3_path in self.session.execute(stmt):
-            yield {"match_id": match_id, "url": url, "s3_path": s3_path}
+        for match_id, url, s3_path, game_version in self.session.execute(stmt):
+            yield {"match_id": match_id, "url": url, "s3_path": s3_path, "version": game_version}
 
     def update_parsed_json(
         self,

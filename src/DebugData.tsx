@@ -14,6 +14,7 @@ import ListItem from "@mui/material/ListItem"
 import ListItemAvatar from "@mui/material/ListItemAvatar"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
+import { TextField } from '@mui/material';
 import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
@@ -48,8 +49,8 @@ import Toolbar from "@mui/material/Toolbar"
 import Tooltip from "@mui/material/Tooltip"
 import { IconButton } from "@mui/material"
 
-function getGameData(callback: (m: GameRecord[]) => void) {
-  Client.listReplaysApiReplaysGet()
+function getGameData(matchId: number, callback: (m: GameRecord[]) => void) {
+  Client.listReplaysApiReplaysGet({ matchId: matchId })
     .then(callback)
     .catch((e) => alert(e))
 }
@@ -98,13 +99,12 @@ function DownloadButton(props: {
 
 function DisplayDataTable(props: {
   data: GameRecord[]
-  exclude_unparsed: boolean
 }) {
-  const data = props.exclude_unparsed
-    ? props.data.filter((d) => d.match)
-    : props.data
-  const columns = [{ field: "json_s3_uri", headerName: "json_s3_uri" }]
-  const first = data[0]
+  const data = props.data
+  if (data.length === 0) {
+    return <Typography>No matching files</Typography>
+  }
+
   return (
     <Box>
       <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
@@ -132,7 +132,7 @@ function DisplayDataTable(props: {
                   <Link>{row.matchId}</Link>
                 </TableCell>
                 <TableCell>
-                  <Link>{row.gameVersion}</Link>
+                 {row.gameVersion}
                 </TableCell>
                 <TableCell>
                   {row.createdAt.toISOString().split("T")[0]}
@@ -197,15 +197,23 @@ function Loading() {
 
 export default function DisplayDebugData() {
   const [debugData, setDebugData] = React.useState<GameRecord[]>([])
-  const [checked, setChecked] = React.useState(true)
-  React.useEffect(() => {
-    getGameData(setDebugData)
-  }, [])
-  if (debugData.length === 0) {
-    return <Loading />
-  }
+  const [matchId, setMatchId] = React.useState<string | null>(null);
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setChecked(event.target.checked)
+    const newValue = event.target.value;
+    // Replace any non-digit character globally with an empty string
+    const onlyNums = newValue.replace(/[^0-9]/g, '');
+
+    setMatchId(onlyNums);
+  };
+
+  const submit = () => {
+    if (matchId !== null) {
+      const num = Number(matchId)
+      if (!isNaN(num)) {
+        getGameData(num, setDebugData)
+      }
+    }
+
   }
 
   return (
@@ -214,12 +222,22 @@ export default function DisplayDebugData() {
         Listing of all data toggle to show all replays not just 1 per matchid
       </Typography>
       <FormGroup>
-        <FormControlLabel
-          control={<Switch checked={checked} onChange={handleChange} />}
-          label="Toggle on shows just one replay per match"
+        <TextField
+          label="matchId"
+          value={matchId}
+          onChange={handleChange}
+          type="text" // Use type="text" to enable maxLength and custom validation
+          inputProps={{
+            inputMode: 'numeric', // Shows a numeric keyboard on mobile devices
+            pattern: '[0-9]*', // Provides a regex pattern hint to the browser
+            maxLength: 20 // Example: restricts to a max length of 10 digits
+          }}
         />
+        <Button onClick={submit} variant="contained">
+          submit
+        </Button>
       </FormGroup>
-      <DisplayDataTable data={debugData} exclude_unparsed={checked} />
+      <DisplayDataTable data={debugData} />
     </Paper>
   )
 }

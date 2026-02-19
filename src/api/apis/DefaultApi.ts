@@ -90,6 +90,11 @@ export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest 
     tournamentName: string;
 }
 
+export interface ListReplaysApiReplaysGetRequest {
+    matchId?: number | null;
+    gameDate?: Date | null;
+}
+
 export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     teamSize: number;
     players?: Array<PlayerEnum>;
@@ -682,8 +687,16 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * List Replays
      */
-    async listReplaysApiReplaysGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecord>>> {
+    async listReplaysApiReplaysGetRaw(requestParameters: ListReplaysApiReplaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecord>>> {
         const queryParameters: any = {};
+
+        if (requestParameters['matchId'] != null) {
+            queryParameters['match_id'] = requestParameters['matchId'];
+        }
+
+        if (requestParameters['gameDate'] != null) {
+            queryParameters['game_date'] = (requestParameters['gameDate'] as any).toISOString().substring(0,10);
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -703,8 +716,8 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * List Replays
      */
-    async listReplaysApiReplaysGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecord>> {
-        const response = await this.listReplaysApiReplaysGetRaw(initOverrides);
+    async listReplaysApiReplaysGet(requestParameters: ListReplaysApiReplaysGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecord>> {
+        const response = await this.listReplaysApiReplaysGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

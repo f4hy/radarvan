@@ -150,11 +150,21 @@ def list_files(
     return listed
 
 
+class ReplayFilters(BaseModel):
+    match_id: int | None = None
+    game_date: date | None = None
+
+
 @app.get("/api/replays/")
 def list_replays(
+    filters: ReplayFilters = Query(defulat=ReplayFilters(match_id=None, game_date=date.today())),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[GameRecord]:
     listed = replay_manager.list_jsons()
+    if filters.match_id:
+        listed = [l for l in listed if l.match_id == filters.match_id]
+    if filters.game_date:
+        listed = [l for l in listed if l.game_date == filters.game_date]
     logger.info(f"Found {len(listed)=}")
     converted = [GameRecord.model_validate(ls, from_attributes=True) for ls in listed]
     return converted
