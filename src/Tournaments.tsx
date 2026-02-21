@@ -505,7 +505,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
                   }}
                 >
                   <TableCell>{s.statName}</TableCell>
-                  <TableCell>{s.value}</TableCell>
+                  <TableCell>{"" + s.value}</TableCell>
                   <TableCell>{s.player}</TableCell>
                   <TableCell>{matchButton(s.matchId)}</TableCell>
                 </TableRow>
