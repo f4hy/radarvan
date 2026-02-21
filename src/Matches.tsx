@@ -14,6 +14,7 @@ import LinearProgress from "@mui/material/LinearProgress"
 import CardContent from "@mui/material/CardContent"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
+import Slider from "@mui/material/Slider"
 import Divider from "@mui/material/Divider"
 import ListItem from "@mui/material/ListItem"
 import ListItemText from "@mui/material/ListItemText"
@@ -282,20 +283,62 @@ function DisplayMatchesForDate(props: { date: Date, count: number, idx: number }
     </Accordion>
   )
 }
+
+
+interface YearRangePickerProps {
+  years: number[];  // e.g. [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+  value: [number, number];
+  onChange: (range: [number, number]) => void;
+}
+
+function YearRangePicker({ years, value, onChange }: YearRangePickerProps) {
+  const min = Math.min(...years);
+  const max = Math.max(...years);
+
+  return (
+    <Box sx={{ px: 2, maxWidth: 400 }}>
+      <Typography gutterBottom>Years: {value[0]} – {value[1]}</Typography>
+      <Slider
+        value={value}
+        onChange={(_, newValue) => onChange(newValue as [number, number])}
+        min={min}
+        max={max}
+        step={1}
+        marks={years.map(y => ({ value: y, label: String(y) }))}
+        valueLabelDisplay="auto"
+      />
+    </Box>
+  );
+}
+
+function groupByYear(dateCounts: Record<string, number>): Record<string, Record<string, number>> {
+  const years: Record<string, Record<string, number>> = {};
+  for (const [date, count] of Object.entries(dateCounts)) {
+    const year = date.slice(0, 4);
+    if (!years[year]) years[year] = {};
+    years[year][date] = count;
+  }
+  return years;
+}
+
+function getEndDate(date: Date): Date {
+  const now = new Date();
+  if (date.getFullYear() === now.getFullYear()) {
+    return now;
+  }
+  return new Date(date.getFullYear(), 11, 31);
+}
+
 function toActivityData(dateCounts: Record<string, number>) {
   const dates = Object.keys(dateCounts).sort();
   if (dates.length === 0) return [];
-
-  let start = new Date(dates[0]);
-  const startOf2024 = new Date("2024-01-01")
-  if (start < startOf2024) {
-    start = startOf2024
-  }
-  const end = new Date(dates[dates.length - 1]);
+  const first = dates[0]
+  const yearStart = new Date(`${first.slice(0, 4)}-01-01`)
+  const end = getEndDate(new Date(dates[dates.length - 1]))
   const maxCount = Math.max(...Object.values(dateCounts));
 
   const data = [];
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+  for (let d = new Date(yearStart); d <= end; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split('T')[0];
     const count = dateCounts[dateStr] ?? 0;
     const level = count === 0 ? 0 : Math.ceil((count / maxCount) * 4) as 0 | 1 | 2 | 3 | 4;
@@ -315,40 +358,49 @@ export default function DisplayMatches() {
   if (dates.length === 0) {
     return <Loading />
   }
-  const activityData = toActivityData(dates)
-  const totalTeamGames = Object.values(dates).reduce((sum, count) => sum + count, 0)
-  const labels = { totalCount: `${totalTeamGames} team games` }
+  const dataByYear = groupByYear(dates)
 
+  const totalTeamGames = Object.values(dates).reduce((sum, count) => sum + count, 0)
   return (
     <Stack>
-      <Box ref={containerRef} sx={{ overflowX: 'auto', p: 2, maxWidth: "80%" }}>
-        {activityData.length > 0 ? <ActivityCalendar
-          data={activityData}
-          weekStart={1}
-          showWeekdayLabels
-          blockSize={10}
-          blockMargin={4}
-          labels={labels}
-          colorScheme="light"
-          theme={{
-            light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-          }}
-          tooltips={{
-            activity: {
-              text: activity => `  ${activity.count} team games on ${activity.date}`,
-              placement: 'bottom',
-              offset: 6,
-              hoverRestMs: 10,
-              transitionStyles: {
-                duration: 50,
-                common: { fontFamily: 'monospace' },
-              },
-              withArrow: true,
-            },
-          }}
-        />
-          : <Loading />}
-      </Box>
+      <Grid container sx={{ width: '80%', margin: '0' }}>
+        {Object.entries(dataByYear).map(([year, yearData], idx) => (
+          <Grid xs={6}>
+            <Box ref={containerRef} sx={{ overflowX: 'auto', p: 2 }} key={year}>
+              <Typography>{year}</Typography>
+              {Object.keys(yearData).length > 0 ? <ActivityCalendar
+                data={toActivityData(yearData)}
+                weekStart={1}
+                showWeekdayLabels={['wed', 'sat']}
+                blockSize={10}
+                blockMargin={4}
+                showColorLegend={idx == 0}
+                labels={{
+                  totalCount: '{{count}} team games in {{year}}',
+                }}
+                colorScheme="light"
+                theme={{
+                  light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+                }}
+                tooltips={{
+                  activity: {
+                    text: activity => `  ${activity.count} team games on ${activity.date}`,
+                    placement: 'bottom',
+                    offset: 6,
+                    hoverRestMs: 10,
+                    transitionStyles: {
+                      duration: 50,
+                      common: { fontFamily: 'monospace' },
+                    },
+                    withArrow: true,
+                  },
+                }}
+              />
+                : <Loading />}
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
       {Object.entries(dates).map(([date, count], idx) => (
         <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} />
       ))}
