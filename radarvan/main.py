@@ -157,7 +157,9 @@ class ReplayFilters(BaseModel):
 
 @app.get("/api/replays/")
 def list_replays(
-    filters: ReplayFilters = Query(defulat=ReplayFilters(match_id=None, game_date=date.today())),
+    filters: ReplayFilters = Query(
+        defulat=ReplayFilters(match_id=None, game_date=date.today())
+    ),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[GameRecord]:
     listed = replay_manager.list_jsons()
@@ -383,7 +385,7 @@ def get_generals_stats(
     """Get generals stats."""
     games = sorted_deduped_matches(replay_manager)
     logger.info("getting player stats")
-    return general_stats.get_player_stats(games.values())
+    return general_stats.get_generals_stats(games.values())
 
 
 @app.get("/api/overrides")
@@ -495,6 +497,24 @@ def fix_incomplete(
         matches.reparse_replay(need_fix.match_id, replay_manager)
         logger.info(f"Updated {need_fix}")
         updated_count += 1
+        if updated_count >= max_to_update:
+            break
+    return {"updated": updated_count}
+
+
+@app.post("/api/fix_unk_player/")
+def fix_unk_players(
+    max_to_update: int = 1,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    match_ids = replay_manager.list_matches_with_player_unk(max_to_update*10)
+    logger.info(f"{len(match_ids)=} ")
+    updated_count = 0
+    for match_id in match_ids:
+        updated = matches.reparse_replay(match_id, replay_manager)
+        logger.info(f"Updated {updated}")
+        if updated:
+            updated_count += 1
         if updated_count >= max_to_update:
             break
     return {"updated": updated_count}

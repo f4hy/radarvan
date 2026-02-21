@@ -2,7 +2,7 @@
 
 import datetime
 from .api_types import Player, General, Team
-from .cncstats_types import EnhancedReplay, PlayerSummary
+from .cncstats_types import EnhancedReplay, PlayerSummary, GeneralsHeader
 import logging
 import time
 import functools
@@ -72,19 +72,61 @@ def side_to_general(side: str) -> General:
     return General.UNRECOGNIZED
 
 
-def player_summary_to_player(
-    p: PlayerSummary, color_map: dict[str, str], observers: set[str]
-) -> Player:
-    color = color_map.get(p.Name, "black").lower().replace("color", "")
-    team = Team.OBSERVER if p.Name in observers else p.Team
-    if not p.Name:
-        color = "grey"
-    return Player(
-        name=p.Name or "CPU",
-        general=side_to_general(p.Side),
-        team=team,
-        color=color,
-    )
+def cncstats_faction_to_general(side: int) -> General:
+    match side:
+        case -2:
+            return General.UNRECOGNIZED
+        case -1:
+            return General.UNRECOGNIZED
+        case 2:
+            return General.USA
+        case 3:
+            return General.CHINA
+        case 4:
+            return General.GLA
+        case 5:
+            return General.SUPER
+        case 6:
+            return General.LASER
+        case 7:
+            return General.AIR
+        case 8:
+            return General.TANK
+        case 9:
+            return General.INFANTRY
+        case 10:
+            return General.NUKE
+        case 11:
+            return General.TOXIN
+        case 12:
+            return General.DEMO
+        case 13:
+            return General.STEALTH
+    raise ValueError(f"Unknown side {side=}")
+
+
+def players_from_replay(replay: EnhancedReplay) -> list[Player]:
+    players: list[Player] = []
+    summaries = {s.Name: s for s in replay.Summary}
+    for p in replay.Header.Metadata.Players:
+        logger.info(f"Player {p=}")
+        color = p.Color.lower().replace("color", "")
+        team = p.Team
+        faction = cncstats_faction_to_general(p.Faction)
+        if faction == General.UNRECOGNIZED:
+            # try the summary
+            my_sum = summaries.get(p.Name)
+            if my_sum:
+                faction = side_to_general(my_sum.Side)
+        players.append(
+            Player(
+                name=p.Name or "CPU",
+                general=faction,
+                team=team,
+                color=color,
+            )
+        )
+    return players
 
 
 # def minute_per_timestep(replay: EnhancedReplay) -> float:

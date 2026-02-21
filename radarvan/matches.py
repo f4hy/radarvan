@@ -42,17 +42,10 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     elif winner == Team.NONE or winner == Team.OBSERVER:
         notes = "No team won?"
         incomplete = "No team won?"
-    # if winner == Team.OBSERVER:
-    #     notes = ""
     if override := winner_override(replay.replay_id()):
         winner = override
 
-    color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
-    # wont be needed once cncstats fixes observers
-    observers = {p.Name for p in replay.Header.Metadata.Players if p.Team == -1}
-    players = [
-        utils.player_summary_to_player(p, color_map, observers) for p in replay.Summary
-    ]
+    players = utils.players_from_replay(replay)
     return MatchInfo(
         id=replay.replay_id(),
         timestamp=replay.Header.TimeStampBegin,
@@ -92,12 +85,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     if override := winner_override(replay.replay_id()):
         winner = override
 
-    color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
-    # wont be needed once cncstats fixes observers
-    observers = {p.Name for p in replay.Header.Metadata.Players if p.Team == -1}
-    players = [
-        utils.player_summary_to_player(p, color_map, observers) for p in replay.Summary
-    ]
+    players = utils.players_from_replay(replay)
     db_players = [
         db.MatchPlayer(
             match_id=match_id,
@@ -183,6 +171,7 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
         json_s3=json_s3,
         winning_team_id=update_match.winning_team_id,
         game_version=update_match.game_version,
+        players=update_match.players,
     )
     return match_from_replay(parsed_replay)
 

@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_player_stats(games: list[MatchInfo]) -> GeneralStats:
+def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
     general_stats: dict[str, GeneralStat] = {}
 
     for game in games:

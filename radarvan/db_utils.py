@@ -18,6 +18,7 @@ from .db import (
     WinnerOverride,
     TournamentReport,
     TournamentStat,
+    MatchPlayer,
 )
 from .api_types import (
     TournamentReport as PydanticTournamentReport,
@@ -28,7 +29,6 @@ from pydantic import BaseModel
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
-
 
 
 @dataclass(frozen=True)
@@ -202,6 +202,7 @@ class ReplayManager:
         json_s3: str | None = None,
         winning_team_id: int | None = None,
         game_version: str | None = None,
+        players: list[MatchPlayer] | None = None,
     ) -> Match | None:
         """Register a new replay."""
         existing = self.session.get(Match, match_id)
@@ -219,6 +220,12 @@ class ReplayManager:
             existing.incomplete = None
         if game_version is not None:
             existing.game_version = game_version
+        if players:
+            for p in players:
+                existing_player = next(
+                    e for e in existing.players if e.player_name == p.player_name
+                )
+                existing_player.general_id = p.general_id
 
         if self.auto_commit:
             self.session.commit()
@@ -275,6 +282,20 @@ class ReplayManager:
             .limit(limit)
         )
         return self.session.execute(stmt).all()
+
+    def list_matches_with_player_unk(
+        self, limit: int = 10
+    ) -> list[int]:
+        stmt = (
+            select(MatchPlayer.match_id)
+            .where(
+                MatchPlayer.general_id < 0,
+                MatchPlayer.team_id > 0,
+            )
+            .limit(limit)
+            .distinct()
+        )
+        return self.session.scalars(stmt).all()
 
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)

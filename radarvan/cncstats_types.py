@@ -143,7 +143,7 @@ class Player(BaseModel):
     Port: str
     FT: str
     Color: str
-    Faction: str
+    Faction: int
     StartingPosition: str
     Team: int
     Unknown: str
