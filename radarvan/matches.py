@@ -65,6 +65,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     """replay to match."""
     match_id = replay.replay_id()
     _winners = [p for p in replay.Summary if p.Win is True]
+    logger.info(f"Winners {_winners}")
     notes = ""
     duration_minutes = utils.duration_minutes(replay)
     if _winners:
@@ -84,6 +85,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
 
     if override := winner_override(replay.replay_id()):
         winner = override
+    logger.info(f"Winners {_winners=} {winner=}")
 
     players = utils.players_from_replay(replay)
     db_players = [

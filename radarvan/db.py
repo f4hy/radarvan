@@ -174,7 +174,7 @@ class MatchPlayer(Base):
     )
 
     def __repr__(self):
-        return f"<{self.player_name}[{General(self.general_id).name}] team={self.team_id} {'🏆' if self.is_winner else '❌'}>\n"
+        return f"<{self.player_name}[{General(self.general_id).name}] team={self.team_id} {'W🏆' if self.is_winner else 'L❌'}>\n"
 
 
 class WinnerOverride(Base):
