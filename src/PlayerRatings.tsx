@@ -90,11 +90,11 @@ function getPlayerRatings(
     .catch((e) => alert(e))
 }
 
-function formatLabel(val: string | number): string {
+function formatLabel(val: any): string {
   if (typeof (val) == 'number') {
     return `${Number(val).toFixed(1)}`;
   }
-  return val
+  return String(val ?? "")
 }
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatings[]>([])
@@ -114,8 +114,8 @@ export default function DisplayPlayerRatings() {
             shape="triangle"
             fill="blue"
           >
-            <LabelList dataKey="ordinal" position="bottom" offset={40} formatter={(s: number) => s.toFixed(1)} fontSize={20} />
-            <LabelList dataKey="mu" position="right" offset={1} formatter={(s: number) => s.toFixed(2)} fontSize={20} />
+            <LabelList dataKey="ordinal" position="bottom" offset={40} formatter={(s) => Number(s).toFixed(1)} fontSize={20} />
+            <LabelList dataKey="mu" position="right" offset={1} formatter={(s) => Number(s).toFixed(2)} fontSize={20} />
             <ErrorBar
               dataKey="sigma"
               width={10}
@@ -132,7 +132,6 @@ export default function DisplayPlayerRatings() {
               value: "Estimated Skill",
               position: "insideLeft",
               fontSize: 25,
-              strokeFill: "black",
               offset: -10,
               angle: -90,
             }}
@@ -150,22 +149,21 @@ export default function DisplayPlayerRatings() {
         </ScatterChart>
       </ResponsiveContainer>
       <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={data} layout="horizontal"  margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="5 5" vertical={false} />
-        <Bar dataKey="gameCount" fill="#42A5F5" />
-        <XAxis dataKey="name" />
-        <YAxis
-				            label={{
+        <BarChart data={data} layout="horizontal" margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="5 5" vertical={false} />
+          <Bar dataKey="gameCount" fill="#42A5F5" />
+          <XAxis dataKey="name" />
+          <YAxis
+            label={{
               value: "# games",
               position: "insideLeft",
               fontSize: 25,
-              strokeFill: "black",
               offset: -10,
               angle: -90,
             }}
-/>
-        <Tooltip cursor={false} />
-      </BarChart>
+          />
+          <Tooltip cursor={false} />
+        </BarChart>
       </ResponsiveContainer>
     </Paper>
   )

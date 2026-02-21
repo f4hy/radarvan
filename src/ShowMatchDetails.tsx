@@ -121,7 +121,6 @@ function MoneyChart(props: {
                 value: props.title,
                 position: "insideLeft",
                 fontSize: 25,
-                strokeFill: "black",
                 offset: -30,
                 angle: -90,
               }}
@@ -195,7 +194,6 @@ function EventChart(props: {
               value: "Cost",
               position: "insideLeft",
               fontSize: 25,
-              strokeFill: "black",
               offset: -30,
               angle: -90,
             }}

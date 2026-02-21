@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box"
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
@@ -29,6 +30,7 @@ import { MatchInfo, Matches, Player, Team } from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
+import { ActivityCalendar } from 'react-activity-calendar';
 
 function getDates(callback: (m: ({ [key: string]: number; })) => void) {
   Client.getDatesApiDatesGet()
@@ -280,19 +282,75 @@ function DisplayMatchesForDate(props: { date: Date, count: number, idx: number }
     </Accordion>
   )
 }
+function toActivityData(dateCounts: Record<string, number>) {
+  const dates = Object.keys(dateCounts).sort();
+  if (dates.length === 0) return [];
+
+  let start = new Date(dates[0]);
+  const startOf2024 = new Date("2024-01-01")
+  if (start < startOf2024) {
+    start = startOf2024
+  }
+  const end = new Date(dates[dates.length - 1]);
+  const maxCount = Math.max(...Object.values(dateCounts));
+
+  const data = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    const count = dateCounts[dateStr] ?? 0;
+    const level = count === 0 ? 0 : Math.ceil((count / maxCount) * 4) as 0 | 1 | 2 | 3 | 4;
+    data.push({ date: dateStr, count, level });
+  }
+
+  return data;
+}
+
 
 export default function DisplayMatches() {
   const [dates, setDates] = React.useState<{ [key: string]: number; }>(({}))
+  const containerRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     getDates(setDates)
   }, [])
   if (dates.length === 0) {
     return <Loading />
   }
+  const activityData = toActivityData(dates)
+  const totalTeamGames = Object.values(dates).reduce((sum, count) => sum + count, 0)
+  const labels = { totalCount: `${totalTeamGames} team games` }
+
   return (
     <Stack>
+      <Box ref={containerRef} sx={{ overflowX: 'auto', p: 2, maxWidth: "80%" }}>
+        {activityData.length > 0 ? <ActivityCalendar
+          data={activityData}
+          weekStart={1}
+          showWeekdayLabels
+          blockSize={10}
+          blockMargin={4}
+          labels={labels}
+          colorScheme="light"
+          theme={{
+            light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+          }}
+          tooltips={{
+            activity: {
+              text: activity => `  ${activity.count} team games on ${activity.date}`,
+              placement: 'bottom',
+              offset: 6,
+              hoverRestMs: 10,
+              transitionStyles: {
+                duration: 50,
+                common: { fontFamily: 'monospace' },
+              },
+              withArrow: true,
+            },
+          }}
+        />
+          : <Loading />}
+      </Box>
       {Object.entries(dates).map(([date, count], idx) => (
-      <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} />
+        <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} />
       ))}
     </Stack>
   )

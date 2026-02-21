@@ -27,7 +27,6 @@ import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPairStats from "./PairStats"
 import DisplayPlayerStats from "./PlayerStats"
-import DisplayTeamStats from "./TeamStats"
 import WrappedYear from "./Wrapped"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings from "./PlayerRatings"
@@ -207,7 +206,6 @@ type Selection =
   | "GeneralStats"
   | "PlayerStats"
   | "DebugData"
-  | "TeamStats"
   | "MapStats"
   | "PairStats"
   | "Wrapped"
@@ -232,8 +230,6 @@ function Main(props: { selection: Selection }) {
       return <DisplayPlayerStats />
     case "GeneralStats":
       return <DisplayGeneralStats />
-    case "TeamStats":
-      return <DisplayTeamStats />
     case "Tournaments":
       return <DisplayTournamentResults />
     case "BalanceTeams":
