@@ -479,6 +479,27 @@ def update_matches_missing_data(
     return {"updated": updated_count}
 
 
+@app.post("/api/fix_incomplete/")
+def fix_incomplete(
+    max_to_update: int = 1,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+):
+    winner_but_incomplete = replay_manager.list_matches_with_winner_but_incomplete(
+        max_to_update
+    )
+    logger.info(f"{len(winner_but_incomplete)=} ")
+    updated_count = 0
+    for need_fix, has_stats in winner_but_incomplete:
+        logger.info(need_fix.incomplete)
+        logger.info(f"{need_fix.winning_team_id=}  {has_stats}")
+        matches.reparse_replay(need_fix.match_id, replay_manager)
+        logger.info(f"Updated {need_fix}")
+        updated_count += 1
+        if updated_count >= max_to_update:
+            break
+    return {"updated": updated_count}
+
+
 @app.get("/api/replays_without_playerstats/")
 def replays_without_playerstats(
     max_to_return: int = 10,

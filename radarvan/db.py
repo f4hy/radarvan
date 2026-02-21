@@ -14,6 +14,24 @@ from sqlalchemy.sql import func
 from datetime import datetime
 import enum
 from sqlalchemy import Enum
+from enum import IntEnum
+
+
+class General(IntEnum):
+    USA = 0
+    AIR = 1
+    LASER = 2
+    SUPER = 3
+    CHINA = 4
+    NUKE = 5
+    TANK = 6
+    INFANTRY = 7
+    GLA = 8
+    TOXIN = 9
+    STEALTH = 10
+    DEMO = 11
+    UNRECOGNIZED = -1
+
 
 Base = declarative_base()
 
@@ -156,7 +174,7 @@ class MatchPlayer(Base):
     )
 
     def __repr__(self):
-        return f"<Player(name={self.player_name} general={self.general_id} team={self.team_id} winner={self.is_winner}) >\n"
+        return f"<{self.player_name}[{General(self.general_id).name}] team={self.team_id} {'🏆' if self.is_winner else '❌'}>\n"
 
 
 class WinnerOverride(Base):

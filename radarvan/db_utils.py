@@ -30,6 +30,7 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 
+
 @dataclass(frozen=True)
 class AllFilesForId:
     replay_files: list[ReplayFile]
@@ -215,6 +216,7 @@ class ReplayManager:
             existing.json_s3_uri = json_s3
         if winning_team_id is not None:
             existing.winning_team_id = winning_team_id
+            existing.incomplete = None
         if game_version is not None:
             existing.game_version = game_version
 
@@ -256,6 +258,23 @@ class ReplayManager:
         """List all files."""
         stmt = select(Match).where(Match.game_version.is_(None)).limit(limit)
         return self.session.scalars(stmt).all()
+
+    def list_matches_with_winner_but_incomplete(
+        self, limit: int = 10
+    ) -> list[tuple[Match, bool]]:
+        stmt = (
+            select(Match, ParsedReplayJson.has_enhanced_stats)
+            .join(Match.replay_json)
+            .where(
+                Match.incomplete.isnot(None),
+                Match.incomplete != "",
+                Match.incomplete != "Too Short",
+                Match.winning_team_id > 0,
+                # ParsedReplayJson.has_enhanced_stats is True,
+            )
+            .limit(limit)
+        )
+        return self.session.execute(stmt).all()
 
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)
@@ -334,7 +353,10 @@ class ReplayManager:
 
         stmt = (
             select(
-                ranked_subq.c.match_id, ranked_subq.c.replay_file_url, ReplayFile.s3_uri, ranked_subq.c.game_version
+                ranked_subq.c.match_id,
+                ranked_subq.c.replay_file_url,
+                ReplayFile.s3_uri,
+                ranked_subq.c.game_version,
             )
             .join(ReplayFile, ReplayFile.original_url == ranked_subq.c.replay_file_url)
             .where(
@@ -354,7 +376,12 @@ class ReplayManager:
             .limit(limit)
         )
         for match_id, url, s3_path, game_version in self.session.execute(stmt):
-            yield {"match_id": match_id, "url": url, "s3_path": s3_path, "version": game_version}
+            yield {
+                "match_id": match_id,
+                "url": url,
+                "s3_path": s3_path,
+                "version": game_version,
+            }
 
     def update_parsed_json(
         self,
