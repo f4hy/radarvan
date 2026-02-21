@@ -5,6 +5,8 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
+| [**fixIncompleteApiFixIncompletePost**](DefaultApi.md#fixincompleteapifixincompletepost) | **POST** /api/fix_incomplete/ | Fix Incomplete |
+| [**fixUnkPlayersApiFixUnkPlayerPost**](DefaultApi.md#fixunkplayersapifixunkplayerpost) | **POST** /api/fix_unk_player/ | Fix Unk Players |
 | [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
@@ -99,6 +101,138 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## fixIncompleteApiFixIncompletePost
+
+> any fixIncompleteApiFixIncompletePost(maxToUpdate)
+
+Fix Incomplete
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { FixIncompleteApiFixIncompletePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies FixIncompleteApiFixIncompletePostRequest;
+
+  try {
+    const data = await api.fixIncompleteApiFixIncompletePost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `1`] |
+
+### Return type
+
+**any**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## fixUnkPlayersApiFixUnkPlayerPost
+
+> any fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
+
+Fix Unk Players
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { FixUnkPlayersApiFixUnkPlayerPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies FixUnkPlayersApiFixUnkPlayerPostRequest;
+
+  try {
+    const data = await api.fixUnkPlayersApiFixUnkPlayerPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `1`] |
+
+### Return type
+
+**any**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## generateTournamentReportApiGenerateTournamentReportTournamentNamePost
 
 > string generateTournamentReportApiGenerateTournamentReportTournamentNamePost(tournamentName)
@@ -167,7 +301,7 @@ No authorization required
 
 ## getDatesApiDatesGet
 
-> any getDatesApiDatesGet()
+> { [key: string]: number; } getDatesApiDatesGet()
 
 Get Dates
 
@@ -202,7 +336,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-**any**
+**{ [key: string]: number; }**
 
 ### Authorization
 

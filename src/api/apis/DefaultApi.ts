@@ -62,6 +62,14 @@ export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<PlayerEnum>;
 }
 
+export interface FixIncompleteApiFixIncompletePostRequest {
+    maxToUpdate?: number;
+}
+
+export interface FixUnkPlayersApiFixUnkPlayerPostRequest {
+    maxToUpdate?: number;
+}
+
 export interface GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest {
     tournamentName: string;
 }
@@ -180,6 +188,80 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Fix Incomplete
+     */
+    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/fix_incomplete/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Fix Incomplete
+     */
+    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.fixIncompleteApiFixIncompletePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Fix Unk Players
+     */
+    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/fix_unk_player/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Fix Unk Players
+     */
+    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Generate Tournament Report
      */
     async generateTournamentReportApiGenerateTournamentReportTournamentNamePostRaw(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
@@ -223,7 +305,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Dates
      */
-    async getDatesApiDatesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getDatesApiDatesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -238,17 +320,13 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
      * Get Dates
      */
-    async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+    async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.getDatesApiDatesGetRaw(initOverrides);
         return await response.value();
     }

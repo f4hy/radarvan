@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import date
 from enum import Enum
 from pydantic import BaseModel
@@ -175,10 +176,10 @@ def list_replays(
 @app.get("/api/dates/")
 def get_dates(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[date, int]:
     replays = sorted_deduped_matches(replay_manager)
-    dates = {r.date for r in replays.values()}
-    return sorted(dates, reverse=True)
+    dates = Counter(r.date for r in replays.values())
+    return dict(sorted(dates.items(), reverse=True))
 
 
 @app.post("/api/scrape/{days}")

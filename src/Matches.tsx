@@ -30,7 +30,7 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 
-function getDates(callback: (m: Date[]) => void) {
+function getDates(callback: (m: ({ [key: string]: number; })) => void) {
   Client.getDatesApiDatesGet()
     .then(callback)
     .catch((e) => alert(e))
@@ -241,7 +241,7 @@ function Loading() {
   )
 }
 
-function DisplayMatchesForDate(props: { date: Date, idx: number }) {
+function DisplayMatchesForDate(props: { date: Date, count: number, idx: number }) {
   const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0);
   const [matchList, setMatchList] = React.useState<Matches>(empty)
   React.useEffect(() => {
@@ -257,18 +257,18 @@ function DisplayMatchesForDate(props: { date: Date, idx: number }) {
     }
     setExpanded(isExpanded);
   };
-
-  const date = props.date
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const date = fmt(props.date)
   const idx = props.idx
 
   return (
     <Accordion expanded={expanded === true} onChange={handleChange(`${idx}`)}>
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-        <Typography>{date}</Typography>
+        <Typography>{`${date} gameCount=${props.count}`}</Typography>
         <Typography>{expanded} </Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <Typography>{date} </Typography>
+        <Typography>{date}</Typography>
         <AccordionDetails>
           {
             matchList.matches.map((m, idx) => (
@@ -282,7 +282,7 @@ function DisplayMatchesForDate(props: { date: Date, idx: number }) {
 }
 
 export default function DisplayMatches() {
-  const [dates, setDates] = React.useState<Date[]>([])
+  const [dates, setDates] = React.useState<{ [key: string]: number; }>(({}))
   React.useEffect(() => {
     getDates(setDates)
   }, [])
@@ -291,8 +291,8 @@ export default function DisplayMatches() {
   }
   return (
     <Stack>
-      {dates.map((date, idx) => (
-        <DisplayMatchesForDate date={date} idx={idx} />
+      {Object.entries(dates).map(([date, count], idx) => (
+      <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} />
       ))}
     </Stack>
   )
