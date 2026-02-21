@@ -244,7 +244,7 @@ function Loading() {
   )
 }
 
-function DisplayMatchesForDate(props: { date: Date, count: number, idx: number }) {
+function DisplayMatchesForDate(props: { date: Date, count: number, idx: number, selected: boolean }) {
   const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0);
   const [matchList, setMatchList] = React.useState<Matches>(empty)
   React.useEffect(() => {
@@ -263,9 +263,9 @@ function DisplayMatchesForDate(props: { date: Date, count: number, idx: number }
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const date = fmt(props.date)
   const idx = props.idx
-
+			const borderProps = props.selected ? ({ border: '3px solid green' }) : ({})
   return (
-    <Accordion expanded={expanded === true} onChange={handleChange(`${idx}`)}>
+    <Accordion expanded={expanded === true} onChange={handleChange(`${idx}`)} sx={borderProps} >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
         <Typography>{`${date} gameCount=${props.count}`}</Typography>
         <Typography>{expanded} </Typography>
@@ -351,7 +351,8 @@ function toActivityData(dateCounts: Record<string, number>) {
 
 export default function DisplayMatches() {
   const [dates, setDates] = React.useState<{ [key: string]: number; }>(({}))
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null)
+  const itemRefs = React.useRef<(HTMLDivElement | null)[]>([]);
   React.useEffect(() => {
     getDates(setDates)
   }, [])
@@ -360,13 +361,12 @@ export default function DisplayMatches() {
   }
   const dataByYear = groupByYear(dates)
 
-  const totalTeamGames = Object.values(dates).reduce((sum, count) => sum + count, 0)
   return (
     <Stack>
       <Grid container sx={{ width: '80%', margin: '0' }}>
         {Object.entries(dataByYear).map(([year, yearData], idx) => (
           <Grid xs={6}>
-            <Box ref={containerRef} sx={{ overflowX: 'auto', p: 2 }} key={year}>
+            <Box sx={{ overflowX: 'auto', p: 2 }} key={year}>
               <Typography>{year}</Typography>
               {Object.keys(yearData).length > 0 ? <ActivityCalendar
                 data={toActivityData(yearData)}
@@ -395,6 +395,18 @@ export default function DisplayMatches() {
                     withArrow: true,
                   },
                 }}
+                renderBlock={(block, activity) => (
+										 <g
+                    onClick={() => {
+										 const i = Object.keys(dates).findIndex(d => d === activity.date);
+                        itemRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+										 setSelectedDate(activity.date)
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {block}
+                  </g>
+                )}
               />
                 : <Loading />}
             </Box>
@@ -402,7 +414,9 @@ export default function DisplayMatches() {
         ))}
       </Grid>
       {Object.entries(dates).map(([date, count], idx) => (
-        <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} />
+        <div key={idx} ref={el => itemRefs.current[idx] = el}>
+          <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} selected={date == selectedDate} />
+        </div>
       ))}
     </Stack>
   )
