@@ -508,7 +508,7 @@ def fix_unk_players(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ):
-    match_ids = replay_manager.list_matches_with_player_unk(max_to_update*10)
+    match_ids = replay_manager.list_matches_with_player_unk(max_to_update * 10)
     logger.info(f"{len(match_ids)=} ")
     updated_count = 0
     for match_id in match_ids:

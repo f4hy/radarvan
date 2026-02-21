@@ -283,9 +283,7 @@ class ReplayManager:
         )
         return self.session.execute(stmt).all()
 
-    def list_matches_with_player_unk(
-        self, limit: int = 10
-    ) -> list[int]:
+    def list_matches_with_player_unk(self, limit: int = 10) -> list[int]:
         stmt = (
             select(MatchPlayer.match_id)
             .where(

@@ -74,7 +74,7 @@ def initialize_player(name, model) -> PlackettLuceRating:
 @cached(cache={})
 def get_model() -> PlackettLuce:
     # return PlackettLuce(beta=(25.0/3.0), tau=(25.0 / 200.0))
-    return PlackettLuce(beta=(25.0/3.0))
+    return PlackettLuce(beta=(25.0 / 3.0))
 
 
 @dataclass
