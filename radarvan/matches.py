@@ -13,14 +13,35 @@ from . import utils
 from .api_types import MatchInfo, Player, Team
 from .cncstats_types import EnhancedReplay
 from .db_utils import DatabaseManager, ReplayManager
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 
-def winner_override(match_id: int) -> Team | None:
-    if match_id == 545219640:
-        return Team.TWO
-    return None
+@dataclass
+class WinnerAndNotes:
+    wining_team: int
+    notes: str = ""
+    incomplete: str = ""
+
+
+def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAndNotes:
+    _winners = [p for p in replay.Summary if p.Win is True]
+    if not _winners:
+        return WinnerAndNotes(
+            wining_team=Team.NONE,
+            incomplete="Likely Mismatch :(",
+        )
+    player_map = {p.name: p for p in players}
+    winning_team = player_map[_winners[0].Name].team
+    if winning_team == Team.NONE or winning_team == Team.OBSERVER:
+        logger.info(f"No winner found in replay {replay.Summary=}")
+        return WinnerAndNotes(
+            wining_team=Team.NONE, notes="No team won?", incomplete="No team won?"
+        )
+    return WinnerAndNotes(
+        wining_team=winning_team,
+    )
 
 
 def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
@@ -28,35 +49,20 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
     if duration_minutes < 2:
         logger.info("under 2 minutes, not a real game")
         return None
-    _winners = [p for p in replay.Summary if p.Win is True]
-    notes = ""
-    if _winners:
-        winner = _winners[0].Team
-        incomplete = ""
-        logger.info(f"\n winner {winner} \n")
-        if winner == Team.NONE:
-            logger.info(f"No winner found in replay {replay.Summary=}")
-    if not _winners:
-        winner = Team.NONE
-        incomplete = "Likely Mismatch :("
-    elif winner == Team.NONE or winner == Team.OBSERVER:
-        notes = "No team won?"
-        incomplete = "No team won?"
-    if override := winner_override(replay.replay_id()):
-        winner = override
-
     players = utils.players_from_replay(replay)
+    winner_data = determine_winner(replay, players)
+
     return MatchInfo(
         id=replay.replay_id(),
         timestamp=replay.Header.TimeStampBegin,
         date=datetime.fromtimestamp(replay.Header.TimeStampBegin).date(),
         map=replay.Header.Metadata.MapFile,
-        winning_team=winner,
+        winning_team=winner_data.wining_team,
         players=players,
         duration_minutes=duration_minutes,
         filename=replay.Header.FileName,
-        incomplete=incomplete,
-        notes=notes,
+        incomplete=winner_data.incomplete,
+        notes=winner_data.notes,
     )
 
 
@@ -64,30 +70,13 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
 def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     """replay to match."""
     match_id = replay.replay_id()
-    _winners = [p for p in replay.Summary if p.Win is True]
-    logger.info(f"Winners {_winners}")
-    notes = ""
-    duration_minutes = utils.duration_minutes(replay)
-    if _winners:
-        winner = _winners[0].Team
-        incomplete = ""
-        logger.info(f"\n winner {winner} \n")
-        if winner == Team.NONE:
-            logger.info(f"No winner found in replay {replay.Summary=}")
-    if not _winners:
-        winner = Team.NONE
-        incomplete = "Likely Mismatch :("
-    elif winner == Team.NONE or winner == Team.OBSERVER:
-        notes = "No team won?"
-        incomplete = "No team won?"
-    if duration_minutes < 2:
-        incomplete = "Too Short"
-
-    if override := winner_override(replay.replay_id()):
-        winner = override
-    logger.info(f"Winners {_winners=} {winner=}")
-
     players = utils.players_from_replay(replay)
+    winner_data = determine_winner(replay, players)
+
+    duration_minutes = utils.duration_minutes(replay)
+    if duration_minutes < 2:
+        winner_data.incomplete = "Too Short"
+
     db_players = [
         db.MatchPlayer(
             match_id=match_id,
@@ -95,7 +84,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
             general_id=p.general,
             team_id=p.team,
             color=p.color,
-            is_winner=p.team == winner,
+            is_winner=p.team == winner_data.wining_team,
         )
         for p in players
     ]
@@ -105,12 +94,12 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
         json_s3_uri=json_s3_uri,
         timestamp=datetime.fromtimestamp(replay.Header.TimeStampBegin),
         map=replay.Header.Metadata.MapFile,
-        winning_team_id=winner,
+        winning_team_id=winner_data.wining_team,
         players=db_players,
         duration_minutes=utils.duration_minutes(replay),
         filename=replay.Header.FileName,
-        incomplete=incomplete,
-        notes=notes,
+        incomplete=winner_data.incomplete,
+        notes=winner_data.notes,
         game_version=replay.Header.Version.lower().replace("version", "").strip(),
     )
 
@@ -128,8 +117,6 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         for p in db_players
     ]
     winner = db_match.winning_team_id
-    if override := winner_override(db_match.match_id):
-        winner = override
 
     return MatchInfo(
         id=db_match.match_id,

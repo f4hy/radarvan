@@ -1,8 +1,8 @@
 """Shared logic about replay computing."""
 
 import datetime
-from .api_types import Player, General
-from .cncstats_types import EnhancedReplay
+from .api_types import Player, General, Team
+from .cncstats_types import EnhancedReplay, PlayerSummary, Player as HeaderPlayer
 import logging
 import time
 import functools
@@ -105,19 +105,40 @@ def cncstats_faction_to_general(side: int) -> General:
     raise ValueError(f"Unknown side {side=}")
 
 
+def determine_team(
+    player_header: HeaderPlayer, player_summary: PlayerSummary | None
+) -> Team:
+    if player_header.Faction == -2:
+        return Team(Team.OBSERVER)
+    if player_header.Team < 0:
+        return Team(Team.NONE)
+    return Team(player_header.Team + 1)
+
+
+def determin_general(
+    player_header: HeaderPlayer, player_summary: PlayerSummary | None
+) -> General:
+    faction = cncstats_faction_to_general(player_header.Faction)
+    if faction == General.UNRECOGNIZED:
+        # try the summary
+        if player_summary:
+            faction = side_to_general(player_summary.Side)
+    return faction
+
+
 def players_from_replay(replay: EnhancedReplay) -> list[Player]:
     players: list[Player] = []
+    real_players = [p for p in replay.Header.Metadata.Players if p.Faction > 0]
     summaries = {s.Name: s for s in replay.Summary}
-    for p in replay.Header.Metadata.Players:
+    for i, p in enumerate(replay.Header.Metadata.Players, 1):
         logger.info(f"Player {p=}")
         color = p.Color.lower().replace("color", "")
-        team = p.Team
-        faction = cncstats_faction_to_general(p.Faction)
-        if faction == General.UNRECOGNIZED:
-            # try the summary
-            my_sum = summaries.get(p.Name)
-            if my_sum:
-                faction = side_to_general(my_sum.Side)
+        if len(real_players) == 2:
+            # its a 1v1, just mark them team 1 and 2
+            team = i
+        else:
+            team = determine_team(p, player_summary=summaries.get(p.Name))
+        faction = determin_general(p, player_summary=summaries.get(p.Name))
         players.append(
             Player(
                 name=p.Name or "CPU",
@@ -127,10 +148,3 @@ def players_from_replay(replay: EnhancedReplay) -> list[Player]:
             )
         )
     return players
-
-
-# def minute_per_timestep(replay: EnhancedReplay) -> float:
-#     """Get the minute per timestep for this replay."""
-#     minutes = duration_minutes(replay)
-#     last_timecode = replay.Body[-1]
-#     return minutes /

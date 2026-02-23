@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from .notify import notify
-from typing import Literal
+from typing import Any, Literal
 from .db import (
     Base,
     ReplayFile,
@@ -45,6 +45,16 @@ class ReplayToProcess:
     url: str
     s3_path: str
     version: str | None
+
+
+@dataclass(frozen=True)
+class MatchDebugData:
+    matches: Match | None
+    match_players: list[MatchPlayer]
+    match_compostion: MatchCompostion | None
+    winner_overrides: WinnerOverride | None
+    parsed_replay_json: list[ParsedReplayJson]
+    replay_files: list[ReplayFile]
 
 
 
@@ -97,6 +107,9 @@ class ReplayManager:
         self.session = session
         self.notify = notify
         self.auto_commit = auto_commit
+
+    def get_match(self, match_id: int) -> Match | None:
+        return self.session.get(Match, match_id)
 
     def get_replay_file(self, url: str) -> ReplayFile | None:
         fetched = self.session.get(ReplayFile, url)
@@ -231,6 +244,7 @@ class ReplayManager:
                     e for e in existing.players if e.player_name == p.player_name
                 )
                 existing_player.general_id = p.general_id
+                existing_player.team_id = p.team_id
 
         if self.auto_commit:
             self.session.commit()
@@ -502,6 +516,40 @@ class ReplayManager:
         self.session.add(db_report)
         self.session.commit()
         return None
+
+    def get_all_data_for_match(self, match_id: int) -> MatchDebugData:
+        """Fetch every row related to a match_id across all tables."""
+        match = self.session.get(Match, match_id)
+        players = list(
+            self.session.scalars(
+                select(MatchPlayer).where(MatchPlayer.match_id == match_id)
+            ).all()
+        )
+        composition = self.session.get(MatchCompostion, match_id)
+        override = self.session.get(WinnerOverride, match_id)
+        parsed_jsons = list(
+            self.session.scalars(
+                select(ParsedReplayJson).where(ParsedReplayJson.match_id == match_id)
+            ).all()
+        )
+        replay_file_urls = [p.replay_file_url for p in parsed_jsons]
+        replay_files = (
+            list(
+                self.session.scalars(
+                    select(ReplayFile).where(ReplayFile.original_url.in_(replay_file_urls))
+                ).all()
+            )
+            if replay_file_urls
+            else []
+        )
+        return MatchDebugData(
+            matches=match,
+            match_players=players,
+            match_compostion=composition,
+            winner_overrides=override,
+            parsed_replay_json=parsed_jsons,
+            replay_files=replay_files,
+        )
 
     def get_tournament_report_by_name(
         self, name: str

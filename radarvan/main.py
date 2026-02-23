@@ -10,6 +10,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator, Generator
+from typing import Any
 from fastapi import BackgroundTasks
 from . import exception_handling
 
@@ -41,7 +42,7 @@ from radarvan.api_types import (
     PlayerRatings,
 )
 from cachetools import TTLCache, cached
-from .db_utils import DatabaseManager, ReplayManager
+from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
 from .game_composition import GameComposition
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -205,6 +206,47 @@ def get_matches(
     return Matches(matches=replays.values())
 
 
+def _row_to_dict(obj: Any) -> dict[str, Any]:
+    """Convert a SQLAlchemy mapped row to a plain dict using its table columns."""
+    return {col.name: getattr(obj, col.name) for col in obj.__table__.columns}
+
+
+def _debug_data_to_dict(data: MatchDebugData) -> dict[str, Any]:
+    return {
+        "matches": _row_to_dict(data.matches) if data.matches else None,
+        "match_players": [_row_to_dict(p) for p in data.match_players],
+        "match_compostion": _row_to_dict(data.match_compostion)
+        if data.match_compostion
+        else None,
+        "winner_overrides": _row_to_dict(data.winner_overrides)
+        if data.winner_overrides
+        else None,
+        "parsed_replay_json": [_row_to_dict(p) for p in data.parsed_replay_json],
+        "replay_files": [_row_to_dict(f) for f in data.replay_files],
+    }
+
+
+@app.get("/api/debug/match/{match_id}")
+def debug_match(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, Any]:
+    """Return every row related to a match_id across all tables, keyed by table name."""
+    return _debug_data_to_dict(replay_manager.get_all_data_for_match(match_id))
+
+
+@app.get("/api/debug/json_url/{match_id}")
+def get_match_json_url(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Return a presigned S3 URL for the parsed JSON of a match."""
+    match = replay_manager.get_match(match_id)
+    if match is None:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+    return {"url": replay_files.presigned_url(match.json_s3_uri)}
+
+
 @app.post("/api/matches/{match_id}/composition")
 def compute_match_composition(
     match_id: int,
@@ -332,7 +374,9 @@ def reprase(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo | None:
     """Rerun the replay parser on this match."""
-    return matches.reparse_replay(match_id, replay_manager)
+    replay = matches.reparse_replay(match_id, replay_manager)
+    replay_manager.compute_and_save_composition(match_id)
+    return replay
 
 
 @app.post("/api/reparse/{match_id}")
@@ -341,7 +385,9 @@ def reparse(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo | None:
     """Rerun the replay parser on this match."""
-    return matches.reparse_replay(match_id, replay_manager)
+    replay = matches.reparse_replay(match_id, replay_manager)
+    replay_manager.compute_and_save_composition(match_id)
+    return replay
 
 
 @app.post("/api/register_replay_url")
