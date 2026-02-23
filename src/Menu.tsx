@@ -114,7 +114,7 @@ export default function Menu() {
         {queryParams["debug"] === "True" && (
           <MenuItem
             value="DebugData"
-            text="DebugData"
+            text="Debug Matchid"
             open={true}
             icon={<TableView />}
             callback={setSelection}

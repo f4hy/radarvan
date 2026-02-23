@@ -230,7 +230,7 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
 def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
     scale = minutess_per_step(replay)
     players = replay.Header.Metadata.Players
-    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
+    player_index_to_name = {i: p.Name for i, p in enumerate(players)}
 
     upgrades: dict[str, list[UpgradeEvent]] = {
         name: [] for name in player_index_to_name.values()

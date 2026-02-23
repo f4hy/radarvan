@@ -7,6 +7,7 @@ docs/DateMessage.md
 docs/DefaultApi.md
 docs/Faction.md
 docs/FirstBlood.md
+docs/GameComposition.md
 docs/GameRecord.md
 docs/General.md
 docs/GeneralStat.md
@@ -53,6 +54,7 @@ models/CostsBuiltObject.ts
 models/DateMessage.ts
 models/Faction.ts
 models/FirstBlood.ts
+models/GameComposition.ts
 models/GameRecord.ts
 models/General.ts
 models/GeneralStat.ts

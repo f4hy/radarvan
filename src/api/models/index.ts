@@ -6,6 +6,7 @@ export * from './CostsBuiltObject';
 export * from './DateMessage';
 export * from './Faction';
 export * from './FirstBlood';
+export * from './GameComposition';
 export * from './GameRecord';
 export * from './General';
 export * from './GeneralStat';

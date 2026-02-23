@@ -1,3 +1,4 @@
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import Button from "@mui/material/Button"
 import DownloadIcon from "@mui/icons-material/Download"
 import FormGroup from "@mui/material/FormGroup"
@@ -14,7 +15,7 @@ import ListItem from "@mui/material/ListItem"
 import ListItemAvatar from "@mui/material/ListItemAvatar"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
-import { TextField } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, TextField } from '@mui/material';
 import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
@@ -54,6 +55,13 @@ function getGameData(matchId: number, callback: (m: GameRecord[]) => void) {
     .then(callback)
     .catch((e) => alert(e))
 }
+
+function getDebugData(matchId: number, callback: (m: { [key: string]: any; }) => void) {
+  Client.debugMatchApiDebugMatchMatchIdGet({ matchId: matchId })
+    .then(callback)
+    .catch((e) => alert(e))
+}
+
 
 function reparse(matchId: number) {
   Client.reparseApiReparseMatchIdPost({ matchId: matchId }).then(() =>
@@ -132,7 +140,7 @@ function DisplayDataTable(props: {
                   <Link>{row.matchId}</Link>
                 </TableCell>
                 <TableCell>
-                 {row.gameVersion}
+                  {row.gameVersion}
                 </TableCell>
                 <TableCell>
                   {row.createdAt.toISOString().split("T")[0]}
@@ -197,6 +205,7 @@ function Loading() {
 
 export default function DisplayDebugData() {
   const [debugData, setDebugData] = React.useState<GameRecord[]>([])
+  const [matchDebugData, setMatchDebugData] = React.useState<{ [key: string]: any; }>(({}))
   const [matchId, setMatchId] = React.useState<string | null>(null);
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
@@ -211,6 +220,7 @@ export default function DisplayDebugData() {
       const num = Number(matchId)
       if (!isNaN(num)) {
         getGameData(num, setDebugData)
+        getDebugData(num, setMatchDebugData)
       }
     }
 
@@ -238,6 +248,29 @@ export default function DisplayDebugData() {
         </Button>
       </FormGroup>
       <DisplayDataTable data={debugData} />
+      {
+        Object.entries(matchDebugData).map(([name, data]) => (
+          <Stack>
+            <Accordion defaultExpanded={true}>
+              <AccordionSummary
+                expandIcon={<ArrowDownwardIcon />}
+                sx={{ bgcolor: "text.disabled" }}
+              >
+                <Typography>
+                  {name}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography>
+                  {JSON.stringify(data)}
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+          </Stack>
+        )
+
+        )
+      }
     </Paper>
   )
 }

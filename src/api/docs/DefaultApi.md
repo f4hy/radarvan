@@ -5,6 +5,8 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
+| [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
+| [**debugMatchApiDebugMatchMatchIdGet**](DefaultApi.md#debugmatchapidebugmatchmatchidget) | **GET** /api/debug/match/{match_id} | Debug Match |
 | [**fixIncompleteApiFixIncompletePost**](DefaultApi.md#fixincompleteapifixincompletepost) | **POST** /api/fix_incomplete/ | Fix Incomplete |
 | [**fixUnkPlayersApiFixUnkPlayerPost**](DefaultApi.md#fixunkplayersapifixunkplayerpost) | **POST** /api/fix_unk_player/ | Fix Unk Players |
 | [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
@@ -13,6 +15,7 @@ All URIs are relative to *http://localhost*
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
 | [**getMatchByIdApiMatchMatchIdGet**](DefaultApi.md#getmatchbyidapimatchmatchidget) | **GET** /api/match/{match_id} | Get Match By Id |
 | [**getMatchDetailsApiDetailsMatchIdGet**](DefaultApi.md#getmatchdetailsapidetailsmatchidget) | **GET** /api/details/{match_id} | Get Match Details |
+| [**getMatchJsonUrlApiDebugJsonUrlMatchIdGet**](DefaultApi.md#getmatchjsonurlapidebugjsonurlmatchidget) | **GET** /api/debug/json_url/{match_id} | Get Match Json Url |
 | [**getMatchesApiMatchesMatchCountGet**](DefaultApi.md#getmatchesapimatchesmatchcountget) | **GET** /api/matches/{match_count} | Get Matches |
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
@@ -81,6 +84,142 @@ example().catch(console.error);
 ### Return type
 
 **{ [key: string]: number; }**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## computeMatchCompositionApiMatchesMatchIdCompositionPost
+
+> GameComposition computeMatchCompositionApiMatchesMatchIdCompositionPost(matchId)
+
+Compute Match Composition
+
+Compute and persist the composition (teams, humans vs CPUs, category) for a match.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest;
+
+  try {
+    const data = await api.computeMatchCompositionApiMatchesMatchIdCompositionPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**GameComposition**](GameComposition.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## debugMatchApiDebugMatchMatchIdGet
+
+> { [key: string]: any; } debugMatchApiDebugMatchMatchIdGet(matchId)
+
+Debug Match
+
+Return every row related to a match_id across all tables, keyed by table name.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { DebugMatchApiDebugMatchMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies DebugMatchApiDebugMatchMatchIdGetRequest;
+
+  try {
+    const data = await api.debugMatchApiDebugMatchMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**{ [key: string]: any; }**
 
 ### Authorization
 
@@ -599,6 +738,74 @@ example().catch(console.error);
 ### Return type
 
 [**MatchDetails**](MatchDetails.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getMatchJsonUrlApiDebugJsonUrlMatchIdGet
+
+> { [key: string]: string; } getMatchJsonUrlApiDebugJsonUrlMatchIdGet(matchId)
+
+Get Match Json Url
+
+Return a presigned S3 URL for the parsed JSON of a match.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest;
+
+  try {
+    const data = await api.getMatchJsonUrlApiDebugJsonUrlMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**{ [key: string]: string; }**
 
 ### Authorization
 

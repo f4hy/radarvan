@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  GameComposition,
   GameRecord,
   GeneralStats,
   HTTPValidationError,
@@ -32,6 +33,8 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
+    GameCompositionFromJSON,
+    GameCompositionToJSON,
     GameRecordFromJSON,
     GameRecordToJSON,
     GeneralStatsFromJSON,
@@ -68,6 +71,14 @@ export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<PlayerEnum>;
 }
 
+export interface ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest {
+    matchId: number;
+}
+
+export interface DebugMatchApiDebugMatchMatchIdGetRequest {
+    matchId: number;
+}
+
 export interface FixIncompleteApiFixIncompletePostRequest {
     maxToUpdate?: number;
 }
@@ -89,6 +100,10 @@ export interface GetMatchByIdApiMatchMatchIdGetRequest {
 }
 
 export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
+    matchId: number;
+}
+
+export interface GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest {
     matchId: number;
 }
 
@@ -186,6 +201,84 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async balanceTeamsApiBalanceTeamsGet(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.balanceTeamsApiBalanceTeamsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Compute and persist the composition (teams, humans vs CPUs, category) for a match.
+     * Compute Match Composition
+     */
+    async computeMatchCompositionApiMatchesMatchIdCompositionPostRaw(requestParameters: ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameComposition>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling computeMatchCompositionApiMatchesMatchIdCompositionPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/matches/{match_id}/composition`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GameCompositionFromJSON(jsonValue));
+    }
+
+    /**
+     * Compute and persist the composition (teams, humans vs CPUs, category) for a match.
+     * Compute Match Composition
+     */
+    async computeMatchCompositionApiMatchesMatchIdCompositionPost(requestParameters: ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameComposition> {
+        const response = await this.computeMatchCompositionApiMatchesMatchIdCompositionPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Return every row related to a match_id across all tables, keyed by table name.
+     * Debug Match
+     */
+    async debugMatchApiDebugMatchMatchIdGetRaw(requestParameters: DebugMatchApiDebugMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling debugMatchApiDebugMatchMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/debug/match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Return every row related to a match_id across all tables, keyed by table name.
+     * Debug Match
+     */
+    async debugMatchApiDebugMatchMatchIdGet(requestParameters: DebugMatchApiDebugMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any; }> {
+        const response = await this.debugMatchApiDebugMatchMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -473,6 +566,45 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchDetailsApiDetailsMatchIdGet(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
         const response = await this.getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Return a presigned S3 URL for the parsed JSON of a match.
+     * Get Match Json Url
+     */
+    async getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getMatchJsonUrlApiDebugJsonUrlMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/debug/json_url/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Return a presigned S3 URL for the parsed JSON of a match.
+     * Get Match Json Url
+     */
+    async getMatchJsonUrlApiDebugJsonUrlMatchIdGet(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
