@@ -304,6 +304,7 @@ def get_match_by_id(
 ) -> MatchInfo:
     """Get listing of matches, up to a return count limit for paging."""
     m = sorted_deduped_matches(replay_manager).get(match_id)
+
     return m
 
 

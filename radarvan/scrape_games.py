@@ -1,6 +1,6 @@
 from .db_utils import DatabaseManager, ReplayManager
 import asyncio
-import httpx  # <-- Only change needed
+import httpx
 from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urljoin

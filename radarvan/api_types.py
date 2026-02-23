@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime, date
 from enum import IntEnum
+from typing import Literal
 
 
 class General(IntEnum):
@@ -41,8 +42,16 @@ class Player(BaseModel):
     team: Team
     color: str
 
+    @property
+    def Type(self) -> Literal["Human", "Cpu"]:
+        if self.name.lower() in ["cpu", "hardai", "hardarmy", "mediai", "easyai"]:
+            return "Cpu"
+        return "Human"
 
-class MatchInfo(BaseModel, frozen=True):
+
+class MatchInfo(BaseModel):
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
     id: int
     timestamp: datetime
     date: date
@@ -54,9 +63,6 @@ class MatchInfo(BaseModel, frozen=True):
     incomplete: str = ""
     notes: str
     game_version: str | None = None
-
-    class Config:
-        populate_by_name = True
 
 
 class Matches(BaseModel):
