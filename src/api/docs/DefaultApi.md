@@ -37,7 +37,7 @@ All URIs are relative to *http://localhost*
 
 ## balanceTeamsApiBalanceTeamsGet
 
-> any balanceTeamsApiBalanceTeamsGet(players)
+> { [key: string]: number; } balanceTeamsApiBalanceTeamsGet(players)
 
 Balance Teams
 
@@ -80,7 +80,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -103,7 +103,7 @@ No authorization required
 
 ## fixIncompleteApiFixIncompletePost
 
-> any fixIncompleteApiFixIncompletePost(maxToUpdate)
+> { [key: string]: number; } fixIncompleteApiFixIncompletePost(maxToUpdate)
 
 Fix Incomplete
 
@@ -146,7 +146,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -169,7 +169,7 @@ No authorization required
 
 ## fixUnkPlayersApiFixUnkPlayerPost
 
-> any fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
+> { [key: string]: number; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
 
 Fix Unk Players
 
@@ -212,7 +212,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -358,7 +358,7 @@ No authorization required
 
 ## getFilesForMatchIdApiFilesForMatchGet
 
-> any getFilesForMatchIdApiFilesForMatchGet(matchId)
+> { [key: string]: ResponseGetFilesForMatchIdApiFilesForMatchGetValue; } getFilesForMatchIdApiFilesForMatchGet(matchId)
 
 Get Files For Match Id
 
@@ -403,7 +403,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+[**{ [key: string]: ResponseGetFilesForMatchIdApiFilesForMatchGetValue; }**](ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md)
 
 ### Authorization
 
@@ -1059,7 +1059,7 @@ No authorization required
 
 ## listFilesApiFilesGet
 
-> any listFilesApiFilesGet()
+> Array&lt;string&gt; listFilesApiFilesGet()
 
 List Files
 
@@ -1094,7 +1094,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-**any**
+**Array<string>**
 
 ### Authorization
 
@@ -1185,7 +1185,7 @@ No authorization required
 
 ## partitionTeamsApiPartitionTeamsTeamSizeGet
 
-> any partitionTeamsApiPartitionTeamsTeamSizeGet(teamSize, players)
+> Array&lt;Array&lt;string&gt;&gt; partitionTeamsApiPartitionTeamsTeamSizeGet(teamSize, players)
 
 Partition Teams
 
@@ -1231,7 +1231,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**Array<Array<string>>**
 
 ### Authorization
 
@@ -1254,7 +1254,7 @@ No authorization required
 
 ## registerReplayUrlApiRegisterReplayUrlPost
 
-> any registerReplayUrlApiRegisterReplayUrlPost(urlOfReplay)
+> MatchInfo registerReplayUrlApiRegisterReplayUrlPost(urlOfReplay)
 
 Register Replay Url
 
@@ -1299,7 +1299,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+[**MatchInfo**](MatchInfo.md)
 
 ### Authorization
 
@@ -1322,7 +1322,7 @@ No authorization required
 
 ## reparseApiReparseMatchIdPost
 
-> any reparseApiReparseMatchIdPost(matchId)
+> MatchInfo reparseApiReparseMatchIdPost(matchId)
 
 Reparse
 
@@ -1367,7 +1367,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+[**MatchInfo**](MatchInfo.md)
 
 ### Authorization
 
@@ -1456,7 +1456,7 @@ No authorization required
 
 ## repraseApiRepraseMatchIdPost
 
-> any repraseApiRepraseMatchIdPost(matchId)
+> MatchInfo repraseApiRepraseMatchIdPost(matchId)
 
 Reprase
 
@@ -1501,7 +1501,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+[**MatchInfo**](MatchInfo.md)
 
 ### Authorization
 
@@ -1524,7 +1524,7 @@ No authorization required
 
 ## scrapeApiScrapeDaysPost
 
-> any scrapeApiScrapeDaysPost(days)
+> { [key: string]: string; } scrapeApiScrapeDaysPost(days)
 
 Scrape
 
@@ -1567,7 +1567,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**{ [key: string]: string; }**
 
 ### Authorization
 
@@ -1727,7 +1727,7 @@ No authorization required
 
 ## updateMatchesMissingDataApiUpdateMatchesMissingDataPost
 
-> any updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
+> { [key: string]: number; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
 
 Update Matches Missing Data
 
@@ -1770,7 +1770,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -1793,7 +1793,7 @@ No authorization required
 
 ## updateNumTimestampsApiUpdateNumTimestampsPost
 
-> any updateNumTimestampsApiUpdateNumTimestampsPost(maxToUpdate)
+> { [key: string]: number; } updateNumTimestampsApiUpdateNumTimestampsPost(maxToUpdate)
 
 Update Num Timestamps
 
@@ -1836,7 +1836,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**{ [key: string]: number; }**
 
 ### Authorization
 

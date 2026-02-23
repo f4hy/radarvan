@@ -21,6 +21,7 @@ docs/MatchListing.md
 docs/Matches.md
 docs/MatchupResult.md
 docs/ObjectSummary.md
+docs/ParsedReplayJsonSchema.md
 docs/Player.md
 docs/PlayerEnum.md
 docs/PlayerListing.md
@@ -30,6 +31,8 @@ docs/PlayerStat.md
 docs/PlayerStatFactionWL.md
 docs/PlayerStats.md
 docs/PlayerSummary.md
+docs/ReplayFileSchema.md
+docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
 docs/Spent.md
 docs/SpentOverTime.md
 docs/Team.md
@@ -64,6 +67,7 @@ models/MatchListing.ts
 models/Matches.ts
 models/MatchupResult.ts
 models/ObjectSummary.ts
+models/ParsedReplayJsonSchema.ts
 models/Player.ts
 models/PlayerEnum.ts
 models/PlayerListing.ts
@@ -73,6 +77,8 @@ models/PlayerStat.ts
 models/PlayerStatFactionWL.ts
 models/PlayerStats.ts
 models/PlayerSummary.ts
+models/ReplayFileSchema.ts
+models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
 models/Spent.ts
 models/SpentOverTime.ts
 models/Team.ts
