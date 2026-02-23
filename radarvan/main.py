@@ -70,7 +70,7 @@ def get_db_session() -> Generator[Session]:
 
 
 def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayManager:
-    """Dependency that provides a MatchRepository instance."""
+    """Dependency that provides a ReplayManager instance."""
     return ReplayManager(session, notify=True)
 
 
@@ -209,7 +209,7 @@ def get_matches_by_date(
     date: date,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> Matches:
-    """Get listing of matches, up to a return count limit for paging."""
+    """Get all matches for a specific date."""
     replays = sorted_deduped_matches(replay_manager)
     return Matches(matches=[r for r in replays.values() if r.date == date])
 
@@ -218,7 +218,7 @@ def get_matches_by_date(
 def get_tournament_results(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[TournamentResult]:
-    """Get listing of matches, up to a return count limit for paging."""
+    """Get results for all tournaments."""
     replays = sorted_deduped_matches(replay_manager)
     tournament_games = tournament.tournament_games(replays.values())
     # logger.info(f"games {tournament_games}")
@@ -268,7 +268,7 @@ async def get_tournament_report(
     tournament_name: str = "2025_2v2_tournament",
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> TournamentReport:
-    """Get listing of matches, up to a return count limit for paging."""
+    """Get report for a specific tournament."""
     existing = replay_manager.get_tournament_report_by_name(tournament_name)
     if not existing:
         background_tasks.add_task(save_report, tournament_name, replay_manager)
@@ -302,7 +302,7 @@ def get_match_by_id(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo:
-    """Get listing of matches, up to a return count limit for paging."""
+    """Get a single match by its ID."""
     m = sorted_deduped_matches(replay_manager).get(match_id)
 
     return m
@@ -331,7 +331,7 @@ def register_replay_url(
     url_of_replay: str,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo | None:
-    """Rerun the replay parser on this match."""
+    """Register and parse a new replay from a URL."""
     if replay_manager.get_replay_file(url_of_replay):
         return None
     replay = replay_files.parse_replay(url_of_replay, replay_manager)
@@ -386,7 +386,7 @@ def get_generals_stats(
 ) -> GeneralStats:
     """Get generals stats."""
     games = sorted_deduped_matches(replay_manager)
-    logger.info("getting player stats")
+    logger.info("getting generals stats")
     return general_stats.get_generals_stats(games.values())
 
 
@@ -409,7 +409,7 @@ def get_files_for_match_id(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, list[ReplayFileSchema] | list[ParsedReplayJsonSchema]]:
-    """Get winner overrides."""
+    """Get all replay and parsed files for a match."""
     files = replay_manager.all_files_for_id(match_id)
     resp = {
         "replay_files": [
@@ -423,12 +423,12 @@ def get_files_for_match_id(
 
 
 @app.post("/api/set_override/")
-def set_overrides(
+def set_override(
     match_id: int,
     winner: Team,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> WinnerOverride:
-    """Set winner overrides."""
+    """Set a winner override for a match."""
     saved = replay_manager.set_override(match_id, winner=winner or None)
     return WinnerOverride(
         match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE

@@ -28,7 +28,7 @@ All URIs are relative to *http://localhost*
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
 | [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
-| [**setOverridesApiSetOverridePost**](DefaultApi.md#setoverridesapisetoverridepost) | **POST** /api/set_override/ | Set Overrides |
+| [**setOverrideApiSetOverridePost**](DefaultApi.md#setoverrideapisetoverridepost) | **POST** /api/set_override/ | Set Override |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
 | [**updateMatchesMissingDataApiUpdateMatchesMissingDataPost**](DefaultApi.md#updatematchesmissingdataapiupdatematchesmissingdatapost) | **POST** /api/update_matches_missing_data/ | Update Matches Missing Data |
 | [**updateNumTimestampsApiUpdateNumTimestampsPost**](DefaultApi.md#updatenumtimestampsapiupdatenumtimestampspost) | **POST** /api/update_num_timestamps/ | Update Num Timestamps |
@@ -362,7 +362,7 @@ No authorization required
 
 Get Files For Match Id
 
-Get winner overrides.
+Get all replay and parsed files for a match.
 
 ### Example
 
@@ -489,7 +489,7 @@ No authorization required
 
 Get Match By Id
 
-Get listing of matches, up to a return count limit for paging.
+Get a single match by its ID.
 
 ### Example
 
@@ -693,7 +693,7 @@ No authorization required
 
 Get Matches By Date
 
-Get listing of matches, up to a return count limit for paging.
+Get all matches for a specific date.
 
 ### Example
 
@@ -936,7 +936,7 @@ No authorization required
 
 Get Tournament Report
 
-Get listing of matches, up to a return count limit for paging.
+Get report for a specific tournament.
 
 ### Example
 
@@ -1004,7 +1004,7 @@ No authorization required
 
 Get Tournament Results
 
-Get listing of matches, up to a return count limit for paging.
+Get results for all tournaments.
 
 ### Example
 
@@ -1258,7 +1258,7 @@ No authorization required
 
 Register Replay Url
 
-Rerun the replay parser on this match.
+Register and parse a new replay from a URL.
 
 ### Example
 
@@ -1588,13 +1588,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## setOverridesApiSetOverridePost
+## setOverrideApiSetOverridePost
 
-> WinnerOverride setOverridesApiSetOverridePost(matchId, winner)
+> WinnerOverride setOverrideApiSetOverridePost(matchId, winner)
 
-Set Overrides
+Set Override
 
-Set winner overrides.
+Set a winner override for a match.
 
 ### Example
 
@@ -1603,7 +1603,7 @@ import {
   Configuration,
   DefaultApi,
 } from '';
-import type { SetOverridesApiSetOverridePostRequest } from '';
+import type { SetOverrideApiSetOverridePostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
@@ -1614,10 +1614,10 @@ async function example() {
     matchId: 56,
     // Team
     winner: ...,
-  } satisfies SetOverridesApiSetOverridePostRequest;
+  } satisfies SetOverrideApiSetOverridePostRequest;
 
   try {
-    const data = await api.setOverridesApiSetOverridePost(body);
+    const data = await api.setOverrideApiSetOverridePost(body);
     console.log(data);
   } catch (error) {
     console.error(error);

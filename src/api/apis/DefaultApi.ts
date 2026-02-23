@@ -131,7 +131,7 @@ export interface ScrapeApiScrapeDaysPostRequest {
     days: number;
 }
 
-export interface SetOverridesApiSetOverridePostRequest {
+export interface SetOverrideApiSetOverridePostRequest {
     matchId: number;
     winner: Team;
 }
@@ -323,7 +323,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get winner overrides.
+     * Get all replay and parsed files for a match.
      * Get Files For Match Id
      */
     async getFilesForMatchIdApiFilesForMatchGetRaw(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseGetFilesForMatchIdApiFilesForMatchGetValue; }>> {
@@ -356,7 +356,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get winner overrides.
+     * Get all replay and parsed files for a match.
      * Get Files For Match Id
      */
     async getFilesForMatchIdApiFilesForMatchGet(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseGetFilesForMatchIdApiFilesForMatchGetValue; }> {
@@ -396,7 +396,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get a single match by its ID.
      * Get Match By Id
      */
     async getMatchByIdApiMatchMatchIdGetRaw(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
@@ -426,7 +426,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get a single match by its ID.
      * Get Match By Id
      */
     async getMatchByIdApiMatchMatchIdGet(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
@@ -513,7 +513,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get all matches for a specific date.
      * Get Matches By Date
      */
     async getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
@@ -547,7 +547,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get all matches for a specific date.
      * Get Matches By Date
      */
     async getMatchesByDateApiMatchesByDateDateGet(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
@@ -647,7 +647,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get report for a specific tournament.
      * Get Tournament Report
      */
     async getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
@@ -677,7 +677,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get report for a specific tournament.
      * Get Tournament Report
      */
     async getTournamentReportApiTournamentReportTournamentNameGet(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
@@ -686,7 +686,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get results for all tournaments.
      * Get Tournament Results
      */
     async getTournamentResultsApiTournamentResultsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentResult>>> {
@@ -708,7 +708,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get results for all tournaments.
      * Get Tournament Results
      */
     async getTournamentResultsApiTournamentResultsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TournamentResult>> {
@@ -824,7 +824,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rerun the replay parser on this match.
+     * Register and parse a new replay from a URL.
      * Register Replay Url
      */
     async registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
@@ -857,7 +857,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rerun the replay parser on this match.
+     * Register and parse a new replay from a URL.
      * Register Replay Url
      */
     async registerReplayUrlApiRegisterReplayUrlPost(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
@@ -1018,21 +1018,21 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set winner overrides.
-     * Set Overrides
+     * Set a winner override for a match.
+     * Set Override
      */
-    async setOverridesApiSetOverridePostRaw(requestParameters: SetOverridesApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
+    async setOverrideApiSetOverridePostRaw(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
-                'Required parameter "matchId" was null or undefined when calling setOverridesApiSetOverridePost().'
+                'Required parameter "matchId" was null or undefined when calling setOverrideApiSetOverridePost().'
             );
         }
 
         if (requestParameters['winner'] == null) {
             throw new runtime.RequiredError(
                 'winner',
-                'Required parameter "winner" was null or undefined when calling setOverridesApiSetOverridePost().'
+                'Required parameter "winner" was null or undefined when calling setOverrideApiSetOverridePost().'
             );
         }
 
@@ -1062,11 +1062,11 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set winner overrides.
-     * Set Overrides
+     * Set a winner override for a match.
+     * Set Override
      */
-    async setOverridesApiSetOverridePost(requestParameters: SetOverridesApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {
-        const response = await this.setOverridesApiSetOverridePostRaw(requestParameters, initOverrides);
+    async setOverrideApiSetOverridePost(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {
+        const response = await this.setOverrideApiSetOverridePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
