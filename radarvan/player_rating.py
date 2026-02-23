@@ -26,7 +26,6 @@ class NamedRating:
         return model.rating(name=self.name, mu=self.mu, sigma=self.sigma)
 
 
-
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     """
     experience_level: 'beginner', 'casual', 'average', 'experienced', 'expert'

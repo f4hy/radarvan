@@ -8,7 +8,9 @@ from .player_rating import get_model, compute_player_ratings, NamedRating
 logger = logging.getLogger(__name__)
 
 
-def balance_teams(games: list[MatchInfo], player_list: set[str]) -> dict[tuple[str, ...], float]:
+def balance_teams(
+    games: list[MatchInfo], player_list: set[str]
+) -> dict[tuple[str, ...], float]:
     team_size = len(player_list) // 2
     ratings = compute_player_ratings(games).ratings
 
@@ -21,8 +23,12 @@ def balance_teams(games: list[MatchInfo], player_list: set[str]) -> dict[tuple[s
         if tuple(team1) in team_win_pct:
             continue
         team2 = [p for p in day_players if p not in team1]
-        team1_ratings = [player_ratings[p].to_rating(model) for p in team1 if p in player_ratings]
-        team2_ratings = [player_ratings[p].to_rating(model) for p in team2 if p in player_ratings]
+        team1_ratings = [
+            player_ratings[p].to_rating(model) for p in team1 if p in player_ratings
+        ]
+        team2_ratings = [
+            player_ratings[p].to_rating(model) for p in team2 if p in player_ratings
+        ]
         if not team1_ratings or not team2_ratings:
             continue
         win1_prop, win2_prop = model.predict_win([team1_ratings, team2_ratings])
@@ -35,7 +41,9 @@ def balance_teams(games: list[MatchInfo], player_list: set[str]) -> dict[tuple[s
     return dict(sorted(team_win_pct.items(), key=lambda x: x[1]))
 
 
-def partition_into_teams(players: list[str], team_size: int) -> Iterator[list[list[str]]]:
+def partition_into_teams(
+    players: list[str], team_size: int
+) -> Iterator[list[list[str]]]:
     """
     Generate all possible ways to partition players into teams.
 
@@ -52,7 +60,9 @@ def partition_into_teams(players: list[str], team_size: int) -> Iterator[list[li
     if n % team_size != 0:
         raise ValueError(f"Cannot divide {n} players into teams of {team_size}")
 
-    def partition_recursive(remaining: list[str], current_partition: list[list[str]], teams_formed: int) -> Iterator[list[list[str]]]:
+    def partition_recursive(
+        remaining: list[str], current_partition: list[list[str]], teams_formed: int
+    ) -> Iterator[list[list[str]]]:
         if teams_formed == num_teams:
             yield current_partition
             return

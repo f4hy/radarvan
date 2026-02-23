@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import logging
 import os
 from contextlib import asynccontextmanager
-from collections.abc import Generator
+from collections.abc import AsyncIterator, Generator
 from fastapi import BackgroundTasks
 from . import exception_handling
 
@@ -75,7 +75,7 @@ def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayMana
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Setup and shutdown of the webserver."""
     logger.info("hello")
     logging.basicConfig(level=logging.INFO)
@@ -114,7 +114,7 @@ app.add_middleware(middleware.RequestTimingMiddleware)
 
 
 @app.exception_handler(Exception)
-async def my_exception_handler(request: Request, exc: Exception):
+async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     tb_lines = traceback.format_exception(type(exc), exc, exc.__traceback__, limit=5)
 
     logger.info("".join(tb_lines))
@@ -145,7 +145,7 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
 @app.get("/api/files/")
 def list_files(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> list[str]:
     listed = list(replay_manager.list_files())
     logger.info(f"Found {len(listed)=}")
     return listed
@@ -187,7 +187,7 @@ def scrape(
     background_tasks: BackgroundTasks,
     days: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, str]:
     sorted_deduped_matches.cache_clear()
     details_from_id.cache_clear()
     background_tasks.add_task(schedule.update_games, replay_manager, days=days)
@@ -312,7 +312,7 @@ def get_match_by_id(
 def reprase(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> MatchInfo | None:
     """Rerun the replay parser on this match."""
     return matches.reparse_replay(match_id, replay_manager)
 
@@ -321,7 +321,7 @@ def reprase(
 def reparse(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> MatchInfo | None:
     """Rerun the replay parser on this match."""
     return matches.reparse_replay(match_id, replay_manager)
 
@@ -330,7 +330,7 @@ def reparse(
 def register_replay_url(
     url_of_replay: str,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> MatchInfo | None:
     """Rerun the replay parser on this match."""
     if replay_manager.get_replay_file(url_of_replay):
         return None
@@ -408,7 +408,7 @@ def get_overrides(
 def get_files_for_match_id(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, list[ReplayFileSchema] | list[ParsedReplayJsonSchema]]:
     """Get winner overrides."""
     files = replay_manager.all_files_for_id(match_id)
     resp = {
@@ -439,7 +439,7 @@ def set_overrides(
 def update_num_timestamps(
     max_to_update: int = 1000,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, int]:
     missing_timestamp_count = replay_manager.list_jsons_without_num_timestamps()
     updated = 0
     for missing in missing_timestamp_count:
@@ -463,7 +463,7 @@ def update_num_timestamps(
 def update_matches_missing_data(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, int]:
     missing_game_version = replay_manager.list_matches_without_game_version(
         max_to_update
     )
@@ -487,7 +487,7 @@ def update_matches_missing_data(
 def fix_incomplete(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, int]:
     winner_but_incomplete = replay_manager.list_matches_with_winner_but_incomplete(
         max_to_update
     )
@@ -508,7 +508,7 @@ def fix_incomplete(
 def fix_unk_players(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, int]:
     match_ids = replay_manager.list_matches_with_player_unk(max_to_update * 10)
     logger.info(f"{len(match_ids)=} ")
     updated_count = 0
@@ -526,7 +526,7 @@ def fix_unk_players(
 def replays_without_playerstats(
     max_to_return: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+):  # Generator return type - FastAPI streams this
     missing_player_stats = replay_manager.list_jsons_without_player_stats(max_to_return)
     for row in missing_player_stats:
         row["presigned_url"] = replay_files.presigned_url(row["s3_path"])
@@ -567,7 +567,7 @@ class SelectedPLayers(BaseModel):
 def balance_teams(
     players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> dict[str, float]:
     if players is None:
         return {}
     if len(players.players) < 4:
@@ -587,7 +587,7 @@ def partition_teams(
     team_size: int = 2,
     players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):
+) -> list[list[str]]:
     games = list(sorted_deduped_matches(replay_manager).values())
     teams = create_teams.create_balanced_teams(
         games, player_list=players.players, team_size=team_size
