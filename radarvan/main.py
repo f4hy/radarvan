@@ -541,8 +541,13 @@ def replays_without_playerstats(
 ):  # Generator return type - FastAPI streams this
     missing_player_stats = replay_manager.list_jsons_without_player_stats(max_to_return)
     for row in missing_player_stats:
-        row["presigned_url"] = replay_files.presigned_url(row["s3_path"])
-        yield row
+        yield {
+            "match_id": row.match_id,
+            "url": row.url,
+            "s3_path": row.s3_path,
+            "version": row.version,
+            "presigned_url": replay_files.presigned_url(row.s3_path),
+        }
 
 
 @app.get("/api/player_ratings/")

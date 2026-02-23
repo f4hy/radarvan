@@ -1,20 +1,21 @@
-from sqlalchemy import Column, Integer, String, Boolean, ARRAY, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import (
-    Date,
-    Float,
-    Text,
-    DateTime,
-    CheckConstraint,
-    Index,
-    SmallInteger,
-)
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
-from datetime import datetime
+from datetime import datetime, date
 import enum
-from sqlalchemy import Enum
 from enum import IntEnum
+from sqlalchemy import (
+    ARRAY,
+    CheckConstraint,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    Float,
+    DateTime,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 
 
 class General(IntEnum):
@@ -33,7 +34,8 @@ class General(IntEnum):
     UNRECOGNIZED = -1
 
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 class ProcessingStatus(enum.Enum):
@@ -48,28 +50,25 @@ class ReplayFile(Base):
 
     __tablename__ = "replay_files"
 
-    original_url = Column(
-        String, unique=True, primary_key=True, nullable=False, index=True
-    )
-    s3_uri = Column(String, unique=True, nullable=False, index=True)
-    status = Column(
+    original_url: Mapped[str] = mapped_column(String, primary_key=True, unique=True, index=True)
+    s3_uri: Mapped[str] = mapped_column(String, unique=True, index=True)
+    status: Mapped[ProcessingStatus] = mapped_column(
         Enum(ProcessingStatus),
         default=ProcessingStatus.PENDING,
-        nullable=False,
         index=True,
     )
-    player_id = Column(String, nullable=False, index=True)
+    player_id: Mapped[str] = mapped_column(String, index=True)
 
     # Timestamps
-    discovered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    source_date = Column(Date, nullable=False, index=True)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    source_date: Mapped[date] = mapped_column(index=True)
 
     # Relationships
-    parsed_replay_json = relationship(
-        "ParsedReplayJson", back_populates="replay_file", uselist=False
+    parsed_replay_json: Mapped["ParsedReplayJson | None"] = relationship(
+        back_populates="replay_file"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ReplayFile(url={self.original_url}, status={self.status})>"
 
 
@@ -78,30 +77,27 @@ class ParsedReplayJson(Base):
 
     __tablename__ = "parsed_replay_json"
 
-    json_s3_uri = Column(String, primary_key=True, nullable=False)
-    match_id = Column(Integer, nullable=False, index=True)
-    replay_file_url = Column(
-        String,
+    json_s3_uri: Mapped[str] = mapped_column(String, primary_key=True)
+    match_id: Mapped[int] = mapped_column(index=True)
+    replay_file_url: Mapped[str] = mapped_column(
         ForeignKey("replay_files.original_url", ondelete="CASCADE"),
         unique=True,
-        nullable=False,
     )
 
     # File info
-    num_time_stamps = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    game_timestamp = Column(DateTime, nullable=False)
-    game_date = Column(Date, index=True)
-    game_version = Column(String(10))
-    has_enhanced_stats = Column(Boolean, nullable=True)
-    # Relationships
-    replay_file = relationship("ReplayFile", back_populates="parsed_replay_json")
-    match = relationship(
-        "Match", back_populates="replay_json", uselist=False, lazy="joined"
-    )
+    num_time_stamps: Mapped[int | None] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    game_timestamp: Mapped[datetime] = mapped_column(DateTime)
+    game_date: Mapped[date | None] = mapped_column(index=True)
+    game_version: Mapped[str | None] = mapped_column(String(10))
+    has_enhanced_stats: Mapped[bool | None] = mapped_column()
 
-    def __repr__(self):
+    # Relationships
+    replay_file: Mapped[ReplayFile] = relationship(back_populates="parsed_replay_json")
+    match: Mapped["Match | None"] = relationship(back_populates="replay_json", lazy="joined")
+
+    def __repr__(self) -> str:
         return (
             f"<ParsedReplayJson(s3_uri={self.json_s3_uri}, match_id={self.match_id})>"
         )
@@ -110,35 +106,20 @@ class ParsedReplayJson(Base):
 class Match(Base):
     __tablename__ = "matches"
 
-    match_id = Column(
-        Integer,
-        primary_key=True,
-        nullable=False,
-    )
-    json_s3_uri = Column(
-        String,
+    match_id: Mapped[int] = mapped_column(primary_key=True)
+    json_s3_uri: Mapped[str] = mapped_column(
         ForeignKey("parsed_replay_json.json_s3_uri", ondelete="CASCADE"),
-        nullable=False,
     )
-    timestamp = Column(DateTime(timezone=True), nullable=False)
-    map = Column(String(100), nullable=False)
-    winning_team_id = Column(SmallInteger)
-    duration_minutes = Column(Float, nullable=False)
-    filename = Column(String(255), nullable=False)
-    incomplete = Column(String, default=False)
-    notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    game_version = Column(String(10))
-
-    # Relationships
-    replay_json = relationship("ParsedReplayJson", back_populates="match")
-    players = relationship(
-        "MatchPlayer",
-        back_populates="match",
-        cascade="all, delete-orphan",
-        lazy="selectin",
-    )
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    map: Mapped[str] = mapped_column(String(100))
+    winning_team_id: Mapped[int | None] = mapped_column(SmallInteger)
+    duration_minutes: Mapped[float] = mapped_column(Float)
+    filename: Mapped[str] = mapped_column(String(255))
+    incomplete: Mapped[str | None] = mapped_column(String, default=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    game_version: Mapped[str | None] = mapped_column(String(10))
 
     __table_args__ = (
         CheckConstraint("duration_minutes >= 0", name="check_duration_positive"),
@@ -147,55 +128,59 @@ class Match(Base):
         Index("idx_matches_winning_team", "winning_team_id"),
     )
 
-    composition = relationship("MatchCompostion", back_populates="match", uselist=False)
+    # Relationships
+    replay_json: Mapped["ParsedReplayJson | None"] = relationship(back_populates="match")
+    players: Mapped[list["MatchPlayer"]] = relationship(
+        back_populates="match",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    composition: Mapped["MatchCompostion | None"] = relationship(back_populates="match")
 
-    def __repr__(self):
-        return f"<Match(match_id=`{self.match_id}` game_version=`{self.game_version}` \n`winner={self.winning_team_id}`\n updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
+    def __repr__(self) -> str:
+        return (
+            f"<Match(match_id=`{self.match_id}` game_version=`{self.game_version}` \n"
+            f"`winner={self.winning_team_id}`\n"
+            f" updated_at=`{self.updated_at}` created_at=`{self.created_at}` players=\n{self.players})>"
+        )
 
 
 class MatchPlayer(Base):
     __tablename__ = "match_players"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    match_id = Column(
-        Integer, ForeignKey("matches.match_id", ondelete="CASCADE"), nullable=False
-    )
-    player_name = Column(String(100), nullable=False)
-    general_id = Column(SmallInteger, nullable=False)
-    team_id = Column(SmallInteger, nullable=False)
-    color = Column(String(20), nullable=False)
-    is_winner = Column(Boolean, nullable=False)
-
-    match = relationship("Match", back_populates="players")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.match_id", ondelete="CASCADE"))
+    player_name: Mapped[str] = mapped_column(String(100))
+    general_id: Mapped[int] = mapped_column(SmallInteger)
+    team_id: Mapped[int] = mapped_column(SmallInteger)
+    color: Mapped[str] = mapped_column(String(20))
+    is_winner: Mapped[bool] = mapped_column()
 
     __table_args__ = (
         Index("idx_match_players_match", "match_id"),
         Index("idx_match_players_player", "player_name"),
     )
 
-    def __repr__(self):
+    match: Mapped[Match] = relationship(back_populates="players")
+
+    def __repr__(self) -> str:
         return f"<{self.player_name}[{General(self.general_id).name}] team={self.team_id} {'W🏆' if self.is_winner else 'L❌'}>\n"
 
 
 class WinnerOverride(Base):
     __tablename__ = "winner_overrides"
 
-    match_id = Column(
-        Integer,
-        primary_key=True,
-        nullable=False,
-    )
-    winning_team_id = Column(SmallInteger, nullable=True)
-    incomplete = Column(String, default=False)
+    match_id: Mapped[int] = mapped_column(primary_key=True)
+    winning_team_id: Mapped[int | None] = mapped_column(SmallInteger)
+    incomplete: Mapped[str | None] = mapped_column(String, default=False)
 
 
 class TournamentReport(Base):
     __tablename__ = "tournament_reports"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String)
 
-    # Relationship to stats
     stats: Mapped[list["TournamentStat"]] = relationship(
         back_populates="tournament_report", cascade="all, delete-orphan"
     )
@@ -205,38 +190,32 @@ class TournamentStat(Base):
     __tablename__ = "tournament_stats"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    stat_name: Mapped[str] = mapped_column(String, nullable=False)
-    value_float: Mapped[float | None] = mapped_column(Float, nullable=True)
-    value_str: Mapped[str | None] = mapped_column(String, nullable=True)
-    player: Mapped[str | None] = mapped_column(String, nullable=True)
-    match_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stat_name: Mapped[str] = mapped_column(String)
+    value_float: Mapped[float | None] = mapped_column(Float)
+    value_str: Mapped[str | None] = mapped_column(String)
+    player: Mapped[str | None] = mapped_column(String)
+    match_id: Mapped[int | None] = mapped_column()
 
-    # Foreign key to tournament_report
-    tournament_report_id: Mapped[int] = mapped_column(
-        ForeignKey("tournament_reports.id"), nullable=False
-    )
-
-    # Relationship back to report
-    tournament_report: Mapped["TournamentReport"] = relationship(back_populates="stats")
+    tournament_report_id: Mapped[int] = mapped_column(ForeignKey("tournament_reports.id"))
+    tournament_report: Mapped[TournamentReport] = relationship(back_populates="stats")
 
 
 class MatchCompostion(Base):
     __tablename__ = "match_compostion"
 
-    match_id = Column(
-        Integer, ForeignKey("matches.match_id", ondelete="CASCADE"), primary_key=True
+    match_id: Mapped[int] = mapped_column(
+        ForeignKey("matches.match_id", ondelete="CASCADE"), primary_key=True
     )
-    category = Column(String)
-    is_comp_stomp = Column(Boolean)
-    is_ffa = Column(Boolean)
-    num_teams = Column(Integer)
-    team_sizes = Column(ARRAY(Integer))
-    total_players = Column(Integer)
-    num_humans = Column(Integer)
-    num_computers = Column(Integer)
-    is_balanced = Column(Boolean)
-    is_1v1 = Column(Boolean)
-    is_team_game = Column(Boolean)
+    category: Mapped[str | None] = mapped_column(String)
+    is_comp_stomp: Mapped[bool | None] = mapped_column()
+    is_ffa: Mapped[bool | None] = mapped_column()
+    num_teams: Mapped[int | None] = mapped_column()
+    team_sizes: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))
+    total_players: Mapped[int | None] = mapped_column()
+    num_humans: Mapped[int | None] = mapped_column()
+    num_computers: Mapped[int | None] = mapped_column()
+    is_balanced: Mapped[bool | None] = mapped_column()
+    is_1v1: Mapped[bool | None] = mapped_column()
+    is_team_game: Mapped[bool | None] = mapped_column()
 
-    # Optional: relationship back to game
-    match = relationship("Match", back_populates="composition")
+    match: Mapped[Match] = relationship(back_populates="composition")

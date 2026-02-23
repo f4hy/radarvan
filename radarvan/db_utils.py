@@ -1,8 +1,8 @@
 from .cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from collections.abc import Iterator
-from sqlalchemy import create_engine, func, and_, update, or_
+from collections.abc import Generator, Iterator
+from sqlalchemy import create_engine, func, and_, update, or_, text
 from sqlalchemy import desc, nulls_last
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
@@ -37,6 +37,14 @@ class AllFilesForId:
     parsed_files: list[ParsedReplayJson]
 
 
+@dataclass(frozen=True)
+class ReplayToProcess:
+    match_id: int
+    url: str
+    s3_path: str
+    version: str | None
+
+
 class FileListing(BaseModel):
     original_path: str
     match_id: int
@@ -52,16 +60,16 @@ class DatabaseManager:
         self.engine = create_engine(con_str, echo=False)
         self.SessionLocal = sessionmaker(bind=self.engine)
 
-    def create_all_tables(self):
+    def create_all_tables(self) -> None:
         """Create all tables in the database."""
         Base.metadata.create_all(self.engine)
 
-    def drop_all_tables(self):
-        """Drop all tables - USE WITH CAUTION!"""
-        Base.metadata.drop_all(self.engine)
+    # def drop_all_tables(self) -> None:
+    #     """Drop all tables - USE WITH CAUTION!"""
+    #     Base.metadata.drop_all(self.engine)
 
     @contextmanager
-    def get_session(self):
+    def get_session(self) -> Generator[Session, None, None]:
         """Context manager for database sessions."""
         session = self.SessionLocal()
         try:
@@ -72,13 +80,6 @@ class DatabaseManager:
             raise
         finally:
             session.close()
-
-    def refresh_materialized_views(self):
-        """Refresh materialized views for aggregated stats."""
-        with self.engine.connect() as conn:
-            conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY player_general_stats")
-            conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY map_stats_view")
-            conn.commit()
 
 
 class ReplayManager:
@@ -109,7 +110,7 @@ class ReplayManager:
             .options(joinedload(ParsedReplayJson.replay_file))
         )
 
-        parsed_files = self.session.execute(stmt).scalars().all()
+        parsed_files = list(self.session.execute(stmt).scalars().all())
         replay_files = [p.replay_file for p in parsed_files]
         return AllFilesForId(replay_files=replay_files, parsed_files=parsed_files)
 
@@ -176,7 +177,8 @@ class ReplayManager:
         )
         self.session.merge(parsed_json)
         replay_file = self.session.get(ReplayFile, original_replay_file_url)
-        replay_file.status = ProcessingStatus.PARSED
+        if replay_file is not None:
+            replay_file.status = ProcessingStatus.PARSED
         if self.auto_commit:
             self.session.flush()
             self.session.commit()
@@ -236,7 +238,7 @@ class ReplayManager:
     def list_files(self) -> list[ReplayFile]:
         """List all files."""
         query = self.session.query(ReplayFile)
-        return self.session.execute(query).scalars().all()
+        return list(self.session.execute(query).scalars().all())
 
     def list_jsons(self, date: date | None = None) -> list[ParsedReplayJson]:
         """List all jsons or filter by date."""
@@ -249,7 +251,7 @@ class ReplayManager:
         if date:
             stmt = stmt.where(ParsedReplayJson.game_date == date)
 
-        return self.session.scalars(stmt).all()
+        return list(self.session.scalars(stmt).all())
 
     def list_matches(self, duration_cutoff: float) -> list[Match]:
         """List all files."""
@@ -259,16 +261,16 @@ class ReplayManager:
             .options(selectinload(Match.players))
             .options(selectinload(Match.replay_json))
         )
-        return self.session.scalars(stmt).all()
+        return list(self.session.scalars(stmt).all())
 
     def list_matches_without_game_version(self, limit: int = 10) -> list[Match]:
         """List all files."""
         stmt = select(Match).where(Match.game_version.is_(None)).limit(limit)
-        return self.session.scalars(stmt).all()
+        return list(self.session.scalars(stmt).all())
 
     def list_matches_with_winner_but_incomplete(
         self, limit: int = 10
-    ) -> list[tuple[Match, bool]]:
+    ) -> list[tuple[Match, bool | None]]:
         stmt = (
             select(Match, ParsedReplayJson.has_enhanced_stats)
             .join(Match.replay_json)
@@ -281,7 +283,10 @@ class ReplayManager:
             )
             .limit(limit)
         )
-        return self.session.execute(stmt).all()
+        # Row[tuple[...]] is a tuple subclass at runtime but SQLAlchemy stubs
+        # don't express this, so the Sequence[Row[...]] → list[tuple[...]] conversion
+        # isn't accepted without an ignore.
+        return list(self.session.execute(stmt).all())  # type: ignore[arg-type]
 
     def list_matches_with_player_unk(self, limit: int = 10) -> list[int]:
         stmt = (
@@ -293,7 +298,7 @@ class ReplayManager:
             .limit(limit)
             .distinct()
         )
-        return self.session.scalars(stmt).all()
+        return list(self.session.scalars(stmt).all())
 
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)
@@ -333,10 +338,6 @@ class ReplayManager:
             notify(f"Saved override {new_override}")
         return new_override
 
-        stmt = select(WinnerOverride)
-        overrides = self.session.execute(stmt).scalars().all()
-        return {o.match_id: o for o in overrides}
-
     def list_jsons_without_num_timestamps(self) -> Iterator[ParsedReplayJson]:
         stmt = (
             select(ParsedReplayJson)
@@ -350,7 +351,7 @@ class ReplayManager:
         )
         yield from self.session.execute(stmt).scalars().all()
 
-    def list_jsons_without_player_stats(self, limit: int) -> Iterator[int]:
+    def list_jsons_without_player_stats(self, limit: int) -> Iterator[ReplayToProcess]:
         exclude_terms = ["HardAI_HardAI", "MediAI", "EasyAI", "1v1v"]
         ranked_subq = select(
             ParsedReplayJson.match_id,
@@ -395,12 +396,12 @@ class ReplayManager:
             .limit(limit)
         )
         for match_id, url, s3_path, game_version in self.session.execute(stmt):
-            yield {
-                "match_id": match_id,
-                "url": url,
-                "s3_path": s3_path,
-                "version": game_version,
-            }
+            yield ReplayToProcess(
+                match_id=match_id,
+                url=url,
+                s3_path=s3_path,
+                version=game_version,
+            )
 
     def update_parsed_json(
         self,
@@ -424,7 +425,9 @@ class ReplayManager:
         result = self.session.execute(statement)
         self.session.commit()
 
-        return result.rowcount > 0
+        # SQLAlchemy stubs type Session.execute() as Result[Any], but DML
+        # statements always return CursorResult which has rowcount.
+        return result.rowcount > 0  # type: ignore[attr-defined, no-any-return]
 
     def save_tournament_report(
         self,
