@@ -4,7 +4,7 @@ from enum import Enum
 from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import JSONResponse
 import logging
 import os
@@ -42,6 +42,7 @@ from radarvan.api_types import (
 )
 from cachetools import TTLCache, cached
 from .db_utils import DatabaseManager, ReplayManager
+from .game_composition import GameComposition
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -202,6 +203,18 @@ def get_matches(
     """Get listing of matches, up to a return count limit for paging."""
     replays = sorted_deduped_matches(replay_manager)
     return Matches(matches=replays.values())
+
+
+@app.post("/api/matches/{match_id}/composition")
+def compute_match_composition(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> GameComposition:
+    """Compute and persist the composition (teams, humans vs CPUs, category) for a match."""
+    result = replay_manager.compute_and_save_composition(match_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+    return result
 
 
 @app.get("/api/matches/by_date/{date}")

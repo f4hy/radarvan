@@ -1,6 +1,9 @@
 from collections import Counter
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Protocol, Literal
+from .db import MatchPlayer
 
 
 class Player(Protocol):
@@ -73,7 +76,7 @@ class GameComposition(BaseModel):
     )
 
 
-def categorize_game_type(players: list[Player]) -> GameComposition:
+def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     """
     Analyze the composition of an RTS game based on the player list.
 
@@ -194,3 +197,31 @@ def categorize_game_type(players: list[Player]) -> GameComposition:
     return create_composition(
         category, is_comp_stomp, category == "FFA", num_teams, team_sizes
     )
+
+
+# Matches the CPU name check in api_types.Player.Type
+_CPU_NAMES = frozenset({"cpu", "hardai", "hardarmy", "mediai", "easyai"})
+
+
+@dataclass
+class _MatchPlayerAdapter:
+    """Adapts a DB MatchPlayer to satisfy the Player protocol."""
+
+    player: MatchPlayer
+
+    @property
+    def Team(self) -> int:
+        return self.player.team_id
+
+    @property
+    def Type(self) -> Literal["Human", "Cpu"]:
+        return "Cpu" if self.player.player_name.lower() in _CPU_NAMES else "Human"
+
+
+def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition:
+    """Compute match composition from DB MatchPlayer records.
+
+    Separated from persistence so it can be reused outside of the DB layer.
+    """
+    adapters = [_MatchPlayerAdapter(p) for p in players]
+    return categorize_game_type(adapters)

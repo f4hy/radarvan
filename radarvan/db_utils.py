@@ -14,12 +14,14 @@ from .db import (
     ReplayFile,
     ParsedReplayJson,
     Match,
+    MatchCompostion,
     ProcessingStatus,
     WinnerOverride,
     TournamentReport,
     TournamentStat,
     MatchPlayer,
 )
+from .game_composition import GameComposition, compute_match_composition
 from .api_types import (
     TournamentReport as PydanticTournamentReport,
     TournamentStat as PydanticTournamentStat,
@@ -43,6 +45,7 @@ class ReplayToProcess:
     url: str
     s3_path: str
     version: str | None
+
 
 
 class FileListing(BaseModel):
@@ -234,6 +237,31 @@ class ReplayManager:
         if self.notify:
             notify(f"Update Match {existing}")
         return existing
+
+    def compute_and_save_composition(self, match_id: int) -> GameComposition | None:
+        """Compute match composition and persist to match_compostion table."""
+        match = self.session.get(Match, match_id)
+        if match is None:
+            return None
+        comp = compute_match_composition(match.players)
+        db_comp = MatchCompostion(
+            match_id=match_id,
+            category=comp.category,
+            is_comp_stomp=comp.is_comp_stomp,
+            is_ffa=comp.is_ffa,
+            num_teams=comp.num_teams,
+            team_sizes=comp.team_sizes,
+            total_players=comp.total_players,
+            num_humans=comp.num_humans,
+            num_computers=comp.num_computers,
+            is_balanced=comp.is_balanced,
+            is_1v1=comp.is_1v1,
+            is_team_game=comp.is_team_game,
+        )
+        self.session.merge(db_comp)
+        if self.auto_commit:
+            self.session.commit()
+        return comp
 
     def list_files(self) -> list[ReplayFile]:
         """List all files."""
