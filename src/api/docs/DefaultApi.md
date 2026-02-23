@@ -1059,7 +1059,7 @@ No authorization required
 
 ## listFilesApiFilesGet
 
-> Array&lt;string&gt; listFilesApiFilesGet()
+> Array&lt;ReplayFileSchema&gt; listFilesApiFilesGet()
 
 List Files
 
@@ -1094,7 +1094,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-**Array<string>**
+[**Array&lt;ReplayFileSchema&gt;**](ReplayFileSchema.md)
 
 ### Authorization
 

@@ -145,10 +145,10 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
 @app.get("/api/files/")
 def list_files(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> list[str]:
+) -> list[ReplayFileSchema]:
     listed = list(replay_manager.list_files())
     logger.info(f"Found {len(listed)=}")
-    return listed
+    return [ReplayFileSchema.model_validate(f) for f in listed]
 
 
 class ReplayFilters(BaseModel):
@@ -165,9 +165,9 @@ def list_replays(
 ) -> list[GameRecord]:
     listed = replay_manager.list_jsons()
     if filters.match_id:
-        listed = [l for l in listed if l.match_id == filters.match_id]
+        listed = [x for x in listed if x.match_id == filters.match_id]
     if filters.game_date:
-        listed = [l for l in listed if l.game_date == filters.game_date]
+        listed = [x for x in listed if x.game_date == filters.game_date]
     logger.info(f"Found {len(listed)=}")
     converted = [GameRecord.model_validate(ls, from_attributes=True) for ls in listed]
     return converted
@@ -220,7 +220,7 @@ def get_tournament_results(
 ) -> list[TournamentResult]:
     """Get results for all tournaments."""
     replays = sorted_deduped_matches(replay_manager)
-    tournament_games = tournament.tournament_games(replays.values())
+    tournament_games = tournament.tournament_games(list(replays.values()))
     # logger.info(f"games {tournament_games}")
     results = tournament.create_tournament_results(tournament_games)
     # logger.info(f"results {results}")
@@ -232,8 +232,12 @@ def dont_cache_manager2(match_id: int, replay_manager: ReplayManager) -> str:
 
 
 @cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager2)
-def details_from_id(match_id: int, replay_manager: ReplayManager) -> MatchDetails:
+def details_from_id(
+    match_id: int, replay_manager: ReplayManager
+) -> MatchDetails | None:
     rep = replay_manager.get_replay_json_by_match_id(match_id)
+    if rep is None:
+        return None
     par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
     return match_details.match_details_from_replay(par)
 
@@ -246,7 +250,9 @@ async def save_report(
 ) -> TournamentReport:
     async with semaphore:
         replays = sorted_deduped_matches(replay_manager)
-        tournament_games = tournament.tournament_games(replays.values()).get(name, [])
+        tournament_games = tournament.tournament_games(list(replays.values())).get(
+            name, []
+        )
         if save is False:
             tournament_games = tournament_games[:5]
         details = await asyncio.gather(
@@ -256,7 +262,8 @@ async def save_report(
             ]
         )
         logger.info(f"finished details {len(details)}")
-    results = tournament.tournament_report(name, tournament_games, details)
+    valid_details = [d for d in details if d is not None]
+    results = tournament.tournament_report(name, tournament_games, valid_details)
     if save:
         replay_manager.save_tournament_report(results)
     return results
@@ -301,11 +308,9 @@ async def test_tournament_report(
 def get_match_by_id(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> MatchInfo:
+) -> MatchInfo | None:
     """Get a single match by its ID."""
-    m = sorted_deduped_matches(replay_manager).get(match_id)
-
-    return m
+    return sorted_deduped_matches(replay_manager).get(match_id)
 
 
 @app.post("/api/reprase/{match_id}")
@@ -352,6 +357,8 @@ def empty_match_details(match_id: int) -> MatchDetails:
             total=[],
         ),
         money_values={},
+        money_collected_values={},
+        stats_data={},
         player_summary=[],
     )
 
@@ -362,12 +369,12 @@ def get_match_details(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchDetails:
     """Get details about a particular match"""
-    replay = replay_manager.get_replay_json_by_match_id(match_id)
-    if not replay:
+    replay_json = replay_manager.get_replay_json_by_match_id(match_id)
+    if not replay_json:
         return empty_match_details(match_id)
-    replay = replay_files.parse_replay(replay.replay_file_url, replay_manager)
+    replay = replay_files.parse_replay(replay_json.replay_file_url, replay_manager)
     details = match_details.match_details_from_replay(replay)
-    return details
+    return details or empty_match_details(match_id)
 
 
 @app.get("/api/playerstats")
@@ -377,7 +384,7 @@ def get_player_stats(
     """Get player stats."""
     games = sorted_deduped_matches(replay_manager)
     logger.info("getting player stats")
-    return player_stats.get_player_stats(games.values())
+    return player_stats.get_player_stats(list(games.values()))
 
 
 @app.get("/api/generalstats")
@@ -387,7 +394,7 @@ def get_generals_stats(
     """Get generals stats."""
     games = sorted_deduped_matches(replay_manager)
     logger.info("getting generals stats")
-    return general_stats.get_generals_stats(games.values())
+    return general_stats.get_generals_stats(list(games.values()))
 
 
 @app.get("/api/overrides")
@@ -411,7 +418,7 @@ def get_files_for_match_id(
 ) -> dict[str, list[ReplayFileSchema] | list[ParsedReplayJsonSchema]]:
     """Get all replay and parsed files for a match."""
     files = replay_manager.all_files_for_id(match_id)
-    resp = {
+    return {
         "replay_files": [
             ReplayFileSchema.model_validate(r) for r in files.replay_files
         ],
@@ -419,7 +426,6 @@ def get_files_for_match_id(
             ParsedReplayJsonSchema.model_validate(p) for p in files.parsed_files
         ],
     }
-    return resp
 
 
 @app.post("/api/set_override/")
@@ -443,6 +449,8 @@ def update_num_timestamps(
     missing_timestamp_count = replay_manager.list_jsons_without_num_timestamps()
     updated = 0
     for missing in missing_timestamp_count:
+        if missing.json_s3_uri is None:
+            continue
         replay = replay_files.parse_replay(missing.replay_file_url, replay_manager)
         num_time_stamps = replay.Header.NumTimeStamps
         has_enhanced_stats = any(chunk.PlayerStats is not None for chunk in replay.Body)
@@ -470,6 +478,8 @@ def update_matches_missing_data(
     logger.info(f"{len(missing_game_version)=}")
     updated_count = 0
     for missing in missing_game_version:
+        if missing.json_s3_uri is None or missing.match_id is None:
+            continue
         replay = replay_files.parse_json(missing.json_s3_uri)
         game_version = replay.Header.Version.lower().replace("version", "").strip()
         result = replay_manager.update_match(
@@ -494,6 +504,8 @@ def fix_incomplete(
     logger.info(f"{len(winner_but_incomplete)=} ")
     updated_count = 0
     for need_fix, has_stats in winner_but_incomplete:
+        if need_fix.match_id is None:
+            continue
         logger.info(need_fix.incomplete)
         logger.info(f"{need_fix.winning_team_id=}  {has_stats}")
         matches.reparse_replay(need_fix.match_id, replay_manager)
@@ -568,15 +580,13 @@ def balance_teams(
     players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, float]:
-    if players is None:
-        return {}
     if len(players.players) < 4:
         return {}
 
     games = sorted_deduped_matches(replay_manager)
 
     team_scores = create_teams.balance_teams(
-        list(games.values()), player_list=players.players
+        list(games.values()), player_list={str(p.value) for p in players.players}
     )
     logger.info(f"Team Scores {team_scores}")
     return {",".join(i): v for i, v in team_scores.items()}
@@ -590,7 +600,7 @@ def partition_teams(
 ) -> list[list[str]]:
     games = list(sorted_deduped_matches(replay_manager).values())
     teams = create_teams.create_balanced_teams(
-        games, player_list=players.players, team_size=team_size
+        games, player_list={str(p.value) for p in players.players}, team_size=team_size
     )
 
     return teams

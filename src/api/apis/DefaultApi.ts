@@ -24,6 +24,7 @@ import type {
   PlayerEnum,
   PlayerRatings,
   PlayerStats,
+  ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
   Team,
   TournamentReport,
@@ -49,6 +50,8 @@ import {
     PlayerRatingsToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
+    ReplayFileSchemaFromJSON,
+    ReplayFileSchemaToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
     TeamFromJSON,
@@ -719,7 +722,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * List Files
      */
-    async listFilesApiFilesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
+    async listFilesApiFilesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayFileSchema>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -734,13 +737,13 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReplayFileSchemaFromJSON));
     }
 
     /**
      * List Files
      */
-    async listFilesApiFilesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string>> {
+    async listFilesApiFilesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReplayFileSchema>> {
         const response = await this.listFilesApiFilesGetRaw(initOverrides);
         return await response.value();
     }

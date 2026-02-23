@@ -47,7 +47,7 @@ def presigned_url(s3_path: str) -> str:
     return url
 
 
-def test_connection():
+def test_connection() -> None:
     fs = get_fs()
     fs.write_text(f"{s3_root}test.txt", "test")
     listing = fs.ls(s3_root)
