@@ -268,17 +268,18 @@ def compute_match_composition(
     return result
 
 
-@app.post("/api/backfile/composition")
-def backfil_match_composition(
-    match_id: int,
+@app.post("/api/backfill/composition")
+def backfill_match_composition(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> GameComposition:
-    """Backfil and persist the composition (teams, humans vs CPUs, category) for a match."""
-
-    result = replay_manager.compute_and_save_composition(match_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
-    return result
+) -> int:
+    """Backfill and persist the composition for a match."""
+    count = 0
+    for match_id in replay_manager.list_matches_without_composition():
+        count += 1
+        result = replay_manager.compute_and_save_composition(match_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+    return count
 
 
 @app.get("/api/matches/by_date/{date}")
