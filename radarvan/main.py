@@ -144,6 +144,17 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
+@cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager)
+def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
+    all_matches = sorted_deduped_matches(replay_manager)
+    filtered = {
+        m.id: m
+        for m in all_matches.values()
+        if matches.competitive_game_filter(comp=m.composition)
+    }
+    return filtered
+
+
 @app.get("/api/files/pending_unprocessed")
 def list_pending_unprocessed(
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -477,7 +488,7 @@ def get_player_stats(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerStats:
     """Get player stats."""
-    games = sorted_deduped_matches(replay_manager)
+    games = competitive_matches(replay_manager)
     logger.info("getting player stats")
     return player_stats.get_player_stats(list(games.values()))
 
@@ -487,7 +498,7 @@ def get_generals_stats(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> GeneralStats:
     """Get generals stats."""
-    games = sorted_deduped_matches(replay_manager)
+    games = competitive_matches(replay_manager)
     logger.info("getting generals stats")
     return general_stats.get_generals_stats(list(games.values()))
 
@@ -677,7 +688,7 @@ def replays_without_playerstats(
 def get_player_ratings(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[PlayerRatings]:
-    games = sorted_deduped_matches(replay_manager)
+    games = competitive_matches(replay_manager)
 
     ratings_and_counts = player_rating.compute_player_ratings(list(games.values()))
     counts = ratings_and_counts.game_counts
@@ -711,7 +722,7 @@ def balance_teams(
     if len(players.players) < 4:
         return {}
 
-    games = sorted_deduped_matches(replay_manager)
+    games = competitive_matches(replay_manager)
 
     team_scores = create_teams.balance_teams(
         list(games.values()), player_list={str(p.value) for p in players.players}
@@ -726,7 +737,7 @@ def partition_teams(
     players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[list[str]]:
-    games = list(sorted_deduped_matches(replay_manager).values())
+    games = list(competitive_matches(replay_manager).values())
     teams = create_teams.create_balanced_teams(
         games, player_list={str(p.value) for p in players.players}, team_size=team_size
     )

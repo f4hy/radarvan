@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime, date
 from enum import IntEnum
 from typing import Literal
+from .game_composition import GameComposition
 
 
 class General(IntEnum):
@@ -67,6 +68,7 @@ class MatchInfo(BaseModel):
     incomplete: str = ""
     notes: str
     game_version: str | None = None
+    composition: GameComposition | None = None
 
 
 class Matches(BaseModel):

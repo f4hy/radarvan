@@ -20,6 +20,13 @@ import {
     PlayerToJSON,
     PlayerToJSONTyped,
 } from './Player';
+import type { GameComposition } from './GameComposition';
+import {
+    GameCompositionFromJSON,
+    GameCompositionFromJSONTyped,
+    GameCompositionToJSON,
+    GameCompositionToJSONTyped,
+} from './GameComposition';
 import type { Team } from './Team';
 import {
     TeamFromJSON,
@@ -100,6 +107,12 @@ export interface MatchInfo {
      * @memberof MatchInfo
      */
     gameVersion?: string | null;
+    /**
+     * 
+     * @type {GameComposition}
+     * @memberof MatchInfo
+     */
+    composition?: GameComposition | null;
 }
 
 
@@ -141,6 +154,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'incomplete': json['incomplete'] == null ? undefined : json['incomplete'],
         'notes': json['notes'],
         'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
+        'composition': json['composition'] == null ? undefined : GameCompositionFromJSON(json['composition']),
     };
 }
 
@@ -166,6 +180,7 @@ export function MatchInfoToJSONTyped(value?: MatchInfo | null, ignoreDiscriminat
         'incomplete': value['incomplete'],
         'notes': value['notes'],
         'game_version': value['gameVersion'],
+        'composition': GameCompositionToJSON(value['composition']),
     };
 }
 

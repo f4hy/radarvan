@@ -79,6 +79,10 @@ export interface DebugMatchApiDebugMatchMatchIdGetRequest {
     matchId: number;
 }
 
+export interface DeleteOverrideApiOverrideMatchIdDeleteRequest {
+    matchId: number;
+}
+
 export interface FixIncompleteApiFixIncompletePostRequest {
     maxToUpdate?: number;
 }
@@ -115,6 +119,10 @@ export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
 }
 
+export interface GetReplayByUrlApiReplayGetRequest {
+    urlOfReplay: string;
+}
+
 export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest {
     tournamentName: string;
 }
@@ -145,6 +153,10 @@ export interface RepraseApiRepraseMatchIdPostRequest {
     matchId: number;
 }
 
+export interface ResetMatchApiMatchMatchIdDeleteRequest {
+    matchId: number;
+}
+
 export interface ScrapeApiScrapeDaysPostRequest {
     days: number;
 }
@@ -170,6 +182,41 @@ export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Backfill and persist the composition for a match.
+     * Backfill Match Composition
+     */
+    async backfillMatchCompositionApiBackfillCompositionPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<number>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/backfill/composition`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<number>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Backfill and persist the composition for a match.
+     * Backfill Match Composition
+     */
+    async backfillMatchCompositionApiBackfillCompositionPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<number> {
+        const response = await this.backfillMatchCompositionApiBackfillCompositionPostRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Balance Teams
@@ -279,6 +326,45 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async debugMatchApiDebugMatchMatchIdGet(requestParameters: DebugMatchApiDebugMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any; }> {
         const response = await this.debugMatchApiDebugMatchMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Delete a winner override for a match.
+     * Delete Override
+     */
+    async deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling deleteOverrideApiOverrideMatchIdDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/override/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Delete a winner override for a match.
+     * Delete Override
+     */
+    async deleteOverrideApiOverrideMatchIdDelete(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -782,6 +868,46 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get Replay By Url
+     */
+    async getReplayByUrlApiReplayGetRaw(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+        if (requestParameters['urlOfReplay'] == null) {
+            throw new runtime.RequiredError(
+                'urlOfReplay',
+                'Required parameter "urlOfReplay" was null or undefined when calling getReplayByUrlApiReplayGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['urlOfReplay'] != null) {
+            queryParameters['url_of_replay'] = requestParameters['urlOfReplay'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/replay`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Get Replay By Url
+     */
+    async getReplayByUrlApiReplayGet(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.getReplayByUrlApiReplayGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get report for a specific tournament.
      * Get Tournament Report
      */
@@ -877,6 +1003,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async listFilesApiFilesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReplayFileSchema>> {
         const response = await this.listFilesApiFilesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Return replay files that are pending but have no parsed JSON.
+     * List Pending Unprocessed
+     */
+    async listPendingUnprocessedApiFilesPendingUnprocessedGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayFileSchema>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/files/pending_unprocessed`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReplayFileSchemaFromJSON));
+    }
+
+    /**
+     * Return replay files that are pending but have no parsed JSON.
+     * List Pending Unprocessed
+     */
+    async listPendingUnprocessedApiFilesPendingUnprocessedGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReplayFileSchema>> {
+        const response = await this.listPendingUnprocessedApiFilesPendingUnprocessedGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -1112,6 +1269,45 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async repraseApiRepraseMatchIdPost(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
         const response = await this.repraseApiRepraseMatchIdPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
+     * Reset Match
+     */
+    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling resetMatchApiMatchMatchIdDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
+     * Reset Match
+     */
+    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+        const response = await this.resetMatchApiMatchMatchIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

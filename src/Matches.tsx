@@ -146,6 +146,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     <Typography>
       {" MatchId:" +
         props.match.id +
+        " " + props.match.composition?.category +
         ` Winner:${winningTeam}` +
         " Date:" +
         date +
@@ -153,7 +154,8 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
         props.match.map.split("/").slice(-1) +
         " Duration:" +
         props.match.durationMinutes.toFixed(2) +
-        " minutes GameVersion:" + props.match.gameVersion}
+        " minutes GameVersion:" + props.match.gameVersion
+      }
     </Typography>
   )
 
@@ -263,7 +265,7 @@ function DisplayMatchesForDate(props: { date: Date, count: number, idx: number, 
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const date = fmt(props.date)
   const idx = props.idx
-			const borderProps = props.selected ? ({ border: '3px solid green' }) : ({})
+  const borderProps = props.selected ? ({ border: '3px solid green' }) : ({})
   return (
     <Accordion expanded={expanded === true} onChange={handleChange(`${idx}`)} sx={borderProps} >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
@@ -396,11 +398,11 @@ export default function DisplayMatches() {
                   },
                 }}
                 renderBlock={(block, activity) => (
-										 <g
+                  <g
                     onClick={() => {
-										 const i = Object.keys(dates).findIndex(d => d === activity.date);
-                        itemRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-										 setSelectedDate(activity.date)
+                      const i = Object.keys(dates).findIndex(d => d === activity.date);
+                      itemRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      setSelectedDate(activity.date)
                     }}
                     style={{ cursor: 'pointer' }}
                   >

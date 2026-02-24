@@ -13,6 +13,7 @@ from . import utils
 from .api_types import MatchInfo, Player, Team
 from .cncstats_types import EnhancedReplay
 from .db_utils import DatabaseManager, ReplayManager
+from .game_composition import GameComposition
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -117,7 +118,8 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         for p in db_players
     ]
     winner = db_match.winning_team_id
-
+    c = db_match.composition
+    comp = GameComposition.model_validate(c, from_attributes=True) if c else None
     return MatchInfo(
         id=db_match.match_id,
         timestamp=db_match.timestamp,
@@ -130,6 +132,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         incomplete=db_match.incomplete or "",
         notes=db_match.notes,
         game_version=db_match.game_version,
+        composition=comp,
     )
 
 
@@ -167,18 +170,40 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
 
 def filter_match(db_match: db.Match) -> bool:
     # remove comp stomps
-    teams: defaultdict[int, list[str]] = defaultdict(list)
-    if len(db_match.players) == 2:
-        return True
-    for p in db_match.players:
-        teams[p.team_id].append(p.player_name)
-    for team in teams.values():
-        if set(team) == {"CPU"}:
-            # logger.info(f"Filtering compstom {teams}")
-            return False
-    # remove ffa
-    if len(set(teams.keys())) == 1:
-        # logger.info(f"Filtering ffa {teams}")
+    return True
+    # if db_match.composition.is_comp_stomp:
+    #     return False
+    # if not db_match.composition.is_balanced:
+    #     return False
+    # if db_match.composition.is_team_game:
+    #     return True
+    # return False
+    # teams: defaultdict[int, list[str]] = defaultdict(list)
+    # if len(db_match.players) == 2:
+    #     return True
+    # for p in db_match.players:
+    #     teams[p.team_id].append(p.player_name)
+    # for team in teams.values():
+    #     if set(team) == {"CPU"}:
+    #         # logger.info(f"Filtering compstom {teams}")
+    #         return False
+    # # remove ffa
+    # if len(set(teams.keys())) == 1:
+    #     # logger.info(f"Filtering ffa {teams}")
+    #     return False
+    # return True
+
+
+def competitive_game_filter(comp: GameComposition | None) -> bool:
+    if comp is None:
+        return False
+    if comp.num_computers > 1:
+        return False
+    if comp.is_comp_stomp:
+        return False
+    if not comp.is_balanced:
+        return False
+    if not comp.is_team_game:
         return False
     return True
 

@@ -2,13 +2,13 @@ from .cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections.abc import Generator, Iterator
-from sqlalchemy import create_engine, func, and_, update, or_, text
+from sqlalchemy import create_engine, func, and_, update, or_
 from sqlalchemy import desc, nulls_last
 from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from .notify import notify
-from typing import Any, Literal
+from typing import Literal
 from .db import (
     Base,
     ReplayFile,
@@ -81,7 +81,7 @@ class DatabaseManager:
     #     Base.metadata.drop_all(self.engine)
 
     @contextmanager
-    def get_session(self) -> Generator[Session, None, None]:
+    def get_session(self) -> Generator[Session]:
         """Context manager for database sessions."""
         session = self.SessionLocal()
         try:
@@ -299,6 +299,7 @@ class ReplayManager:
         stmt = (
             select(Match)
             .where(Match.duration_minutes > duration_cutoff)
+            .options(selectinload(Match.composition))
             .options(selectinload(Match.players))
             .options(selectinload(Match.replay_json))
         )
@@ -624,7 +625,9 @@ class ReplayManager:
         replay_files = (
             list(
                 self.session.scalars(
-                    select(ReplayFile).where(ReplayFile.original_url.in_(replay_file_urls))
+                    select(ReplayFile).where(
+                        ReplayFile.original_url.in_(replay_file_urls)
+                    )
                 ).all()
             )
             if replay_file_urls

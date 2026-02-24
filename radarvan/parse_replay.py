@@ -3,7 +3,6 @@
 from .db_utils import DatabaseManager
 
 import os
-from .api_types import Team
 
 import sys
 import pathlib
@@ -11,9 +10,8 @@ import json
 import httpx
 from .cncstats_types import EnhancedReplay, Player
 from .db_utils import ReplayManager
-from .utils import players_from_replay
 import logging
-from .game_composition import compute_match_composition, categorize_game_type
+from .game_composition import categorize_game_type
 
 logger = logging.getLogger(__name__)
 

@@ -149,7 +149,6 @@ class Player(BaseModel):
     Unknown: str
 
 
-
 class Metadata(BaseModel):
     MapFile: str
     MapCRC: str

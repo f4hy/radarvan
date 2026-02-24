@@ -17,6 +17,7 @@ Name | Type
 `incomplete` | string
 `notes` | string
 `gameVersion` | string
+`composition` | [GameComposition](GameComposition.md)
 
 ## Example
 
@@ -36,6 +37,7 @@ const example = {
   "incomplete": null,
   "notes": null,
   "gameVersion": null,
+  "composition": null,
 } satisfies MatchInfo
 
 console.log(example)
