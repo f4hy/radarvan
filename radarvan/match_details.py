@@ -158,7 +158,8 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
 
     scale = minutess_per_step(replay)
     players = replay.Header.Metadata.Players
-    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
+
+    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Faction >= -2}
 
     data: dict[str, dict[float, dict[str, int]]]
     prev_vals: dict[str, dict[str, int]]
@@ -192,7 +193,9 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
                                 if ks > 0:
                                     first_blood = FirstBlood(
                                         attacker=player_index_to_name[killer_idx],
-                                        victim=player_index_to_name[victim_idx],
+                                        victim=player_index_to_name.get(
+                                            victim_idx, "unk"
+                                        ),
                                         atMinute=chunk.TimeCode * scale,
                                     )
                 if dt in {"buildings_killed"} and building_first_blood is None:
@@ -202,7 +205,9 @@ def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
                                 if ks > 0:
                                     building_first_blood = FirstBlood(
                                         attacker=player_index_to_name[killer_idx],
-                                        victim=player_index_to_name[victim_idx],
+                                        victim=player_index_to_name.get(
+                                            victim_idx, "unk"
+                                        ),
                                         atMinute=chunk.TimeCode * scale,
                                     )
 

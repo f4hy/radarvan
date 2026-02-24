@@ -24,7 +24,7 @@ from .db import (
 from .game_composition import GameComposition, compute_match_composition
 from .api_types import (
     TournamentReport as PydanticTournamentReport,
-    TournamentStat as PydanticTournamentStat,
+    Statistic as PydanticTournamentStat,
 )
 import logging
 from pydantic import BaseModel

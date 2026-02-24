@@ -393,7 +393,7 @@ class TournamentResult(BaseModel):
     complete: bool
 
 
-class TournamentStat(BaseModel, frozen=True):
+class Statistic(BaseModel, frozen=True):
     stat_name: str
     value: float | str | None = None
     player: str | None = None
@@ -402,7 +402,7 @@ class TournamentStat(BaseModel, frozen=True):
 
 class TournamentReport(BaseModel, frozen=True):
     name: str
-    stats: list[TournamentStat]
+    stats: list[Statistic]
 
 
 class WinnerOverride(BaseModel):

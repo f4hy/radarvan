@@ -24,6 +24,7 @@ from . import replay_files
 from . import schedule
 from . import tournament
 from . import player_rating
+from . import superlatives
 from . import create_teams
 from radarvan.api_types import (
     MatchDetails,
@@ -491,6 +492,16 @@ def get_player_stats(
     games = competitive_matches(replay_manager)
     logger.info("getting player stats")
     return player_stats.get_player_stats(list(games.values()))
+
+
+@app.get("/api/superlatives")
+def get_superlatives(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> superlatives.Superlatives:
+    """Get player stats."""
+    games = competitive_matches(replay_manager)
+    logger.info("getting superlatives")
+    return superlatives.get_superlatives(list(games.values()))
 
 
 @app.get("/api/generalstats")

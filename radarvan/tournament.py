@@ -17,7 +17,7 @@ from .api_types import (
     TournamentResult,
     WinLoss,
     TournamentReport,
-    TournamentStat,
+    Statistic,
 )
 
 logger = logging.getLogger(__name__)
@@ -257,12 +257,12 @@ def create_tournament_results(
     return results
 
 
-def highest_apm(matches: list[MatchDetails]) -> TournamentStat:
+def highest_apm(matches: list[MatchDetails]) -> Statistic:
     highest_apm_match = max(
         (m for m in matches if m.apms), key=lambda x: max(a.apm for a in x.apms)
     )
     highest_apm = max((a for a in highest_apm_match.apms), key=lambda x: x.apm)
-    return TournamentStat(
+    return Statistic(
         stat_name="Highest APM",
         value=round(highest_apm.apm, 2),
         player=player_name_map(highest_apm.player_name),
@@ -270,7 +270,7 @@ def highest_apm(matches: list[MatchDetails]) -> TournamentStat:
     )
 
 
-def highest_ave_apm(matches: list[MatchDetails]) -> list[TournamentStat]:
+def highest_ave_apm(matches: list[MatchDetails]) -> list[Statistic]:
     player_apms: dict[str, list[float]] = defaultdict(list)
     for m in matches:
         if not m.apms:
@@ -280,14 +280,14 @@ def highest_ave_apm(matches: list[MatchDetails]) -> list[TournamentStat]:
 
     averages = {p: statistics.mean(v) for p, v in player_apms.items()}
     player, max_ave = max(averages.items(), key=lambda x: x[1])
-    return TournamentStat(
+    return Statistic(
         stat_name="Highest Average APM",
         value=round(max_ave, 2),
         player=player_name_map(player),
     )
 
 
-def faction_stats(matches: list[MatchInfo]) -> list[TournamentStat]:
+def faction_stats(matches: list[MatchInfo]) -> list[Statistic]:
     all_zeros = Counter({General(i): 0 for i in range(12)})
     generals_played = (
         Counter(p.general for m in matches for p in m.players if p.team > 0) + all_zeros
@@ -310,32 +310,32 @@ def faction_stats(matches: list[MatchInfo]) -> list[TournamentStat]:
     lowest_win_rate_gen, lowest_win_rate = min(ratios.items(), key=lambda x: x[1])
 
     return [
-        TournamentStat(
+        Statistic(
             stat_name="Most played general",
             value=most_count,
             player=General(most_played).name,
         ),
-        TournamentStat(
+        Statistic(
             stat_name="Least played general",
             value=fewest_count,
             player=General(fewest_played).name,
         ),
-        TournamentStat(
+        Statistic(
             stat_name="General with most wins",
             value=most_won_count,
             player=General(most_won).name,
         ),
-        TournamentStat(
+        Statistic(
             stat_name="General with fewest wins",
             value=fewest_won_count,
             player=General(fewest_won).name,
         ),
-        TournamentStat(
+        Statistic(
             stat_name="General best win rate",
             value=round(highest_win_rate, 3),
             player=General(highest_win_rate_gen).name,
         ),
-        TournamentStat(
+        Statistic(
             stat_name="General lowest win rate",
             value=round(lowest_win_rate, 3),
             player=General(lowest_win_rate_gen).name,
@@ -343,13 +343,13 @@ def faction_stats(matches: list[MatchInfo]) -> list[TournamentStat]:
     ]
 
 
-def unit_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
+def unit_stats(matches: list[MatchDetails]) -> list[Statistic]:
     units_created = [s.UnitsCreated for m in matches for s in m.player_summary]
     mapped = [{c.split("_")[-1]: v.Count} for d in units_created for c, v in d.items()]
     unit_counts = sum((Counter(d) for d in mapped), Counter())
 
     return [
-        TournamentStat(
+        Statistic(
             stat_name="Unit built",
             value=v,
             player=c,
@@ -358,7 +358,7 @@ def unit_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     ]
 
 
-def building_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
+def building_stats(matches: list[MatchDetails]) -> list[Statistic]:
     buildings_created = [s.BuildingsBuilt for m in matches for s in m.player_summary]
     mapped = [
         {c.split("_")[-1]: v.Count} for d in buildings_created for c, v in d.items()
@@ -366,7 +366,7 @@ def building_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     building_counts = sum((Counter(d) for d in mapped), Counter())
 
     return [
-        TournamentStat(
+        Statistic(
             stat_name="Building built",
             value=v,
             player=c,
@@ -375,11 +375,11 @@ def building_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     ]
 
 
-def earlest_first_blood(matches: list[MatchDetails]) -> TournamentStat:
+def earlest_first_blood(matches: list[MatchDetails]) -> Statistic:
     earliest = min(
         (m for m in matches if m.first_blood), key=lambda x: x.first_blood.atMinute
     )
-    return TournamentStat(
+    return Statistic(
         stat_name="Earliest First Blood",
         value=f"{earliest.first_blood.atMinute:.2f}m",
         player=player_name_map(earliest.first_blood.attacker),
@@ -387,12 +387,12 @@ def earlest_first_blood(matches: list[MatchDetails]) -> TournamentStat:
     )
 
 
-def most_first_bloods(matches: list[MatchDetails]) -> TournamentStat:
+def most_first_bloods(matches: list[MatchDetails]) -> Statistic:
     counter = Counter(
         player_name_map(m.first_blood.attacker) for m in matches if m.first_blood
     )
     most, count = counter.most_common(1)[0]
-    return TournamentStat(
+    return Statistic(
         stat_name="Most First Bloods",
         value=count,
         player=most,
@@ -405,7 +405,7 @@ def last_val(d: dict[float, dict[str, int]]) -> dict[str, int]:
     return name_mapped
 
 
-def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
+def min_max_stats(matches: list[MatchDetails]) -> list[Statistic]:
     data_types = [
         "xp",
         "units_built",
@@ -418,7 +418,7 @@ def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
         "tech_buildings_captured",
         "faction_buildings_captured",
     ]
-    stats: list[TournamentStat] = []
+    stats: list[Statistic] = []
     for dt in data_types:
         counter = sum(
             (
@@ -432,14 +432,14 @@ def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
         fewest, min_count = min(counter.items(), key=lambda x: x[1])
         txt = " ".join(dt.split("_")).title()
         stats.append(
-            TournamentStat(
+            Statistic(
                 stat_name=f"Most {txt}",
                 value=most_count,
                 player=most,
             )
         )
         stats.append(
-            TournamentStat(
+            Statistic(
                 stat_name=f"Fewest {txt}",
                 value=min_count,
                 player=fewest,
@@ -448,7 +448,7 @@ def min_max_stats(matches: list[MatchDetails]) -> list[TournamentStat]:
     return stats
 
 
-def fastest_win(matches: list[MatchInfo]) -> TournamentStat:
+def fastest_win(matches: list[MatchInfo]) -> Statistic:
     fastest = min((m for m in matches), key=lambda x: x.duration_minutes)
     winners = [
         player_name_map(p.name)
@@ -460,7 +460,7 @@ def fastest_win(matches: list[MatchInfo]) -> TournamentStat:
         for p in fastest.players
         if p.team != fastest.winning_team and p.team > 0
     ]
-    return TournamentStat(
+    return Statistic(
         stat_name="Fastest win",
         value=f"{fastest.duration_minutes:.1f}m",
         player="✅" + "+".join(winners) + " vs " + "+".join(losers) + "❌",
@@ -468,7 +468,7 @@ def fastest_win(matches: list[MatchInfo]) -> TournamentStat:
     )
 
 
-def slowest_win(matches: list[MatchInfo]) -> TournamentStat:
+def slowest_win(matches: list[MatchInfo]) -> Statistic:
     slowest = max((m for m in matches), key=lambda x: x.duration_minutes)
     winners = [
         player_name_map(p.name)
@@ -480,7 +480,7 @@ def slowest_win(matches: list[MatchInfo]) -> TournamentStat:
         for p in slowest.players
         if p.team != slowest.winning_team and p.team > 0
     ]
-    return TournamentStat(
+    return Statistic(
         stat_name="Slowest win",
         value=f"{slowest.duration_minutes:.1f}m",
         player="✅" + "+".join(winners) + " vs " + "+".join(losers) + "❌",
@@ -501,15 +501,15 @@ def group_by_team(
     return grouped
 
 
-def ave_times(tournament_name: str, matches: list[MatchInfo]) -> list[TournamentStat]:
+def ave_times(tournament_name: str, matches: list[MatchInfo]) -> list[Statistic]:
     grouped = group_by_team(tournament_name, matches)
-    ret: list[TournamentStat] = []
+    ret: list[Statistic] = []
     for players, matches in grouped.items():
         times = [m.duration_minutes for m in matches]
         ave = statistics.mean(times)
 
         ret.append(
-            TournamentStat(
+            Statistic(
                 stat_name="Average match duration",
                 value=f"{ave:.1f}m",
                 player="+".join(players),
@@ -526,7 +526,7 @@ def tournament_report(
 ) -> TournamentReport:
     details = tournament_match_details
 
-    stats: list[TournamentStat] = [
+    stats: list[Statistic] = [
         earlest_first_blood(details),
         most_first_bloods(details),
         *faction_stats(tournament_matches),
