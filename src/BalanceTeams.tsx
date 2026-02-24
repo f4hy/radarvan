@@ -159,10 +159,10 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </Alert>
     )
   }
-
+			const filtered = Object.entries(teamRating).filter(([team, winRate], i) => (((1.0 - Math.abs(winRate - 0.5)) > .75)) || (i < 3))
   return (
-    <Stack>
-      {Object.entries(teamRating).map(([team, winRate]) => (
+			<Stack>
+      {filtered.map(([team, winRate]) => (
         <ScoreBar
           team={team}
           score={(1.0 - Math.abs(winRate - 0.5) * 2.0) * 100}
