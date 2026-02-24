@@ -57,7 +57,6 @@ class MatchDebugData:
     replay_files: list[ReplayFile]
 
 
-
 class FileListing(BaseModel):
     original_path: str
     match_id: int
@@ -342,6 +341,18 @@ class ReplayManager:
         )
         return list(self.session.scalars(stmt).all())
 
+    def list_pending_without_parsed(self) -> list[ReplayFile]:
+        """Return ReplayFiles in PENDING status that have no ParsedReplayJson."""
+        stmt = (
+            select(ReplayFile)
+            .outerjoin(ReplayFile.parsed_replay_json)
+            .where(
+                ReplayFile.status == ProcessingStatus.PENDING,
+                ParsedReplayJson.json_s3_uri.is_(None),
+            )
+        )
+        return list(self.session.scalars(stmt).all())
+
     def already_scraped(self) -> set[str]:
         query = self.session.query(ReplayFile.original_url)
         return set(self.session.execute(query).scalars().all())
@@ -379,6 +390,83 @@ class ReplayManager:
         if self.notify:
             notify(f"Saved override {new_override}")
         return new_override
+
+    def delete_override(self, match_id: int) -> bool:
+        """Delete a winner override for a match. Returns True if deleted, False if not found."""
+        override = self.session.get(WinnerOverride, match_id)
+        if override is None:
+            return False
+        self.session.delete(override)
+        if self.auto_commit:
+            self.session.commit()
+        return True
+
+    def reset_match(self, match_id: int) -> dict[str, int]:
+        """Delete all data for a match except the ReplayFile; reset ReplayFile status to PENDING.
+
+        Deletion order respects FK constraints:
+          1. WinnerOverride (no FK dependency)
+          2. MatchCompostion (FK → matches, deleted before Match)
+          3. Match (ORM cascade deletes MatchPlayers)
+          4. ParsedReplayJson (FK ← Match now gone)
+          5. ReplayFile status reset to PENDING
+        """
+        counts: dict[str, int] = {
+            "winner_overrides": 0,
+            "match_composition": 0,
+            "match": 0,
+            "parsed_replay_json": 0,
+            "replay_files_reset": 0,
+        }
+
+        override = self.session.get(WinnerOverride, match_id)
+        if override:
+            self.session.delete(override)
+            counts["winner_overrides"] = 1
+
+        composition = self.session.get(MatchCompostion, match_id)
+        if composition:
+            self.session.delete(composition)
+            counts["match_composition"] = 1
+
+        match = self.session.get(Match, match_id)
+        if match:
+            self.session.delete(match)
+            counts["match"] = 1
+
+        # Flush so the Match delete is visible before we touch ParsedReplayJson
+        self.session.flush()
+
+        parsed_jsons = list(
+            self.session.scalars(
+                select(ParsedReplayJson).where(ParsedReplayJson.match_id == match_id)
+            ).all()
+        )
+        replay_file_urls = [p.replay_file_url for p in parsed_jsons]
+        for p in parsed_jsons:
+            self.session.delete(p)
+        counts["parsed_replay_json"] = len(parsed_jsons)
+
+        self.session.flush()
+
+        for url in replay_file_urls:
+            rf = self.session.get(ReplayFile, url)
+            if rf:
+                rf.status = ProcessingStatus.PENDING
+                counts["replay_files_reset"] += 1
+
+        if self.auto_commit:
+            self.session.commit()
+        return counts
+
+    def list_matches_without_composition(self) -> Iterator[int]:
+        """Yield match_ids for matches that have no MatchCompostion row."""
+        stmt = (
+            select(Match.match_id)
+            .outerjoin(MatchCompostion, MatchCompostion.match_id == Match.match_id)
+            .where(MatchCompostion.match_id.is_(None))
+        )
+        yield from self.session.scalars(stmt).all()
 
     def list_jsons_without_num_timestamps(self) -> Iterator[ParsedReplayJson]:
         stmt = (

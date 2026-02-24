@@ -121,7 +121,7 @@ def is_active_action(order_name: str) -> bool:
 
 def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
     players = replay.Header.Metadata.Players
-    action_counts = {p.Name: 0 for p in players if p.Team >= 0}
+    action_counts = {p.Name: 0 for p in players if p.Team >= 0 and p.Type != "C"}
     player_first_active = {p.Name: -1 for p in players if p.Team >= 0}
     player_last_active = {p.Name: 0 for p in players if p.Team >= 0}
 

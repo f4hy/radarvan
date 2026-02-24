@@ -137,7 +137,7 @@ class PlayerSummary(BaseModel):
 
 
 class Player(BaseModel):
-    Type: str
+    Type: Literal["H", "C"]
     Name: str
     IP: str
     Port: str
@@ -148,11 +148,6 @@ class Player(BaseModel):
     Team: int
     Unknown: str
 
-    @property
-    def Type(self) -> Literal["Human", "Cpu"]:
-        if self.Type == "C":
-            return "Cpu"
-        return "Human"
 
 
 class Metadata(BaseModel):

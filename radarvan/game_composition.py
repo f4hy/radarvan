@@ -1,9 +1,12 @@
+import logging
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Protocol, Literal
 from .db import MatchPlayer
+
+logger = logging.getLogger(__name__)
 
 
 class Player(Protocol):
@@ -12,7 +15,7 @@ class Player(Protocol):
         """Team the player is on."""
 
     @property
-    def Type(self) -> Literal["Human", "Cpu"]:
+    def Type(self) -> Literal["H", "C"]:
         """If its a human or cpu player."""
 
 
@@ -86,9 +89,10 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     Returns:
         GameComposition object with detailed game information
     """
+    logger.info(f"Computing match comp on {players}")
     total_players = len(players)
-    num_humans = sum(1 for p in players if p.Type == "Human")
-    num_computers = sum(1 for p in players if p.Type == "Cpu")
+    num_humans = sum(1 for p in players if p.Type == "H")
+    num_computers = sum(1 for p in players if p.Type == "C")
 
     def create_composition(
         category: str,
@@ -132,6 +136,9 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     num_teams = len(valid_teams)
     team_sizes = sorted(valid_teams.values()) if valid_teams else []
 
+    if len(players) == 2:
+        return create_composition("1v1", False, False, 2, [1, 1])
+
     # Case 1: Mixed FFA and team players
     if ffa_player_count > 0 and valid_teams:
         return create_composition("FFA", False, True, num_teams, team_sizes)
@@ -162,9 +169,9 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
         if player.Team > 0:
             if player.Team not in team_compositions:
                 team_compositions[player.Team] = {"humans": 0, "computers": 0}
-            if player.Type == "Human":
+            if player.Type == "H":
                 team_compositions[player.Team]["humans"] += 1
-            elif player.Type == "Cpu":
+            elif player.Type == "C":
                 team_compositions[player.Team]["computers"] += 1
 
     human_only_teams = [
@@ -214,8 +221,8 @@ class _MatchPlayerAdapter:
         return self.player.team_id
 
     @property
-    def Type(self) -> Literal["Human", "Cpu"]:
-        return "Cpu" if self.player.player_name.lower() in _CPU_NAMES else "Human"
+    def Type(self) -> Literal["H", "C"]:
+        return "C" if self.player.player_name.lower() in _CPU_NAMES else "H"
 
 
 def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition:

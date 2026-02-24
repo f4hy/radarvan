@@ -144,6 +144,15 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
+@app.get("/api/files/pending_unprocessed")
+def list_pending_unprocessed(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[ReplayFileSchema]:
+    """Return replay files that are pending but have no parsed JSON."""
+    files = replay_manager.list_pending_without_parsed()
+    return [ReplayFileSchema.model_validate(f) for f in files]
+
+
 @app.get("/api/files/")
 def list_files(
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -253,6 +262,19 @@ def compute_match_composition(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> GameComposition:
     """Compute and persist the composition (teams, humans vs CPUs, category) for a match."""
+    result = replay_manager.compute_and_save_composition(match_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+    return result
+
+
+@app.post("/api/backfile/composition")
+def backfil_match_composition(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> GameComposition:
+    """Backfil and persist the composition (teams, humans vs CPUs, category) for a match."""
+
     result = replay_manager.compute_and_save_composition(match_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
@@ -396,11 +418,24 @@ def register_replay_url(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo | None:
     """Register and parse a new replay from a URL."""
-    if replay_manager.get_replay_file(url_of_replay):
-        return None
+    existing = replay_manager.get_replay_file(url_of_replay)
+    if existing:
+        if existing.parsed_replay_json:
+            logger.info("Already parsed, skipping")
+            return None
     replay = replay_files.parse_replay(url_of_replay, replay_manager)
-    matches.register_matches(replay_manager)
     return matches.reparse_replay(replay.replay_id(), replay_manager)
+
+
+@app.get("/api/replay")
+def get_replay_by_url(
+    url_of_replay: str,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    replay = replay_manager.get_replay_file(url_of_replay)
+    if not replay:
+        return {}
+    return {"original_url": replay.original_url, "status": replay.status}
 
 
 def empty_match_details(match_id: int) -> MatchDetails:
@@ -498,6 +533,34 @@ def set_override(
     return WinnerOverride(
         match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
     )
+
+
+@app.delete("/api/match/{match_id}")
+def reset_match(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Delete all parsed data for a match and reset its ReplayFile(s) to pending."""
+    counts = replay_manager.reset_match(match_id)
+    if not any(counts.values()):
+        raise HTTPException(
+            status_code=404, detail=f"No data found for match {match_id}"
+        )
+    return counts
+
+
+@app.delete("/api/override/{match_id}")
+def delete_override(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Delete a winner override for a match."""
+    deleted = replay_manager.delete_override(match_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=404, detail=f"No override found for match {match_id}"
+        )
+    return {"status": "deleted", "match_id": str(match_id)}
 
 
 @app.post("/api/update_num_timestamps/")

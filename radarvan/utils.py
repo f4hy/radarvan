@@ -128,16 +128,11 @@ def determin_general(
 
 def players_from_replay(replay: EnhancedReplay) -> list[Player]:
     players: list[Player] = []
-    real_players = [p for p in replay.Header.Metadata.Players if p.Faction > 0]
     summaries = {s.Name: s for s in replay.Summary}
-    for i, p in enumerate(replay.Header.Metadata.Players, 1):
+    for p in replay.Header.Metadata.Players:
         logger.info(f"Player {p=}")
         color = p.Color.lower().replace("color", "")
-        if len(real_players) == 2:
-            # its a 1v1, just mark them team 1 and 2
-            team = i
-        else:
-            team = determine_team(p, player_summary=summaries.get(p.Name))
+        team = determine_team(p, player_summary=summaries.get(p.Name))
         faction = determin_general(p, player_summary=summaries.get(p.Name))
         players.append(
             Player(

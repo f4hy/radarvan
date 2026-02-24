@@ -43,10 +43,14 @@ class Player(BaseModel):
     color: str
 
     @property
-    def Type(self) -> Literal["Human", "Cpu"]:
+    def Type(self) -> Literal["H", "C"]:
         if self.name.lower() in ["cpu", "hardai", "hardarmy", "mediai", "easyai"]:
-            return "Cpu"
-        return "Human"
+            return "C"
+        return "H"
+
+    @property
+    def Team(self) -> Team:
+        return self.team
 
 
 class MatchInfo(BaseModel):
