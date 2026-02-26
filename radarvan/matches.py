@@ -1,6 +1,5 @@
 """Get match info from a replay."""
 
-from collections import defaultdict
 from collections.abc import Iterator
 from .log_time import log_time
 import logging
@@ -194,18 +193,6 @@ def filter_match(db_match: db.Match) -> bool:
     # return True
 
 
-def competitive_game_filter(comp: GameComposition | None) -> bool:
-    if comp is None:
-        return False
-    if comp.num_computers > 1:
-        return False
-    if comp.is_comp_stomp:
-        return False
-    if not comp.is_balanced:
-        return False
-    if not comp.is_team_game:
-        return False
-    return True
 
 
 def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:

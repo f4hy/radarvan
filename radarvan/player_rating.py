@@ -3,9 +3,11 @@ from cachetools import cached
 from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
 from . import player_ids
+from . import game_composition
 from radarvan.api_types import (
     MatchInfo,
 )
+from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,7 @@ class NamedRating:
     name: str
     mu: float
     sigma: float
+    at_date: date | None = None
 
     def ordinal(self) -> float:
         return self.mu - 3 * self.sigma
@@ -34,7 +37,7 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     beginners = {"EnragedFerret"}
     # casual = {"Neo"}
     casual: set[str] = set()
-    experienced: set[str] = set()
+    experienced: set[str] = set(["WildCard", "Tytan", "Gorn"])
     expert = {"[OoE]Excal^"}
 
     if name in beginners:
@@ -44,7 +47,7 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     if name in casual:
         return NamedRating(name=name, mu=15, sigma=6)
     if name in experienced:
-        return NamedRating(name=name, mu=30, sigma=10)
+        return NamedRating(name=name, mu=30, sigma=15)
     if name in expert:
         return NamedRating(name=name, mu=40, sigma=10)
 
@@ -62,6 +65,7 @@ def get_model() -> PlackettLuce:
 class RatingsAndCounts:
     ratings: list[NamedRating]
     game_counts: dict[str, int]
+    over_time: dict[str, list[NamedRating]]
 
 
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
@@ -74,15 +78,18 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     players = {name: initialize_player(name, model) for name in all_players}
     logger.info(f"players: {players}")
+    rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in all_players}
 
     # Process games
-    for game in games:
+    for game in sorted(games, key=lambda x: x.timestamp):
+        if not game.composition:
+            continue
+        if not game_composition.competitive_game_filter(game.composition):
+            continue
+        if game.composition.is_1v1:
+            continue
         teams = defaultdict(list)
         actual_players = [p for p in game.players if p.team > 0]
-        if sum((1 if p.Type == "Cpu" else 0) for p in actual_players) > 1:
-            continue
-        if len(actual_players) < 3:
-            continue
         logger.info(f"game: {game.id} players {game.players}")
         for player in actual_players:
             teams[player.team].append(player_ids.player_name_map(player.name))
@@ -99,7 +106,11 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
         for t in new_ratings:
             for p in t:
                 if p.name is not None:
-                    players[p.name] = NamedRating(name=p.name, mu=p.mu, sigma=p.sigma)
+                    new_rate = NamedRating(
+                        name=p.name, mu=p.mu, sigma=p.sigma, at_date=game.date
+                    )
+                    players[p.name] = new_rate
+                    rating_over_time[p.name].append(new_rate)
 
     ratings = [r for r in players.values() if game_counts.get(r.name, 0) > 10]
     sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
@@ -111,4 +122,10 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             f"{rating.name}[games={game_counts.get(rating.name)}]: {rating.ordinal():.1f} (μ={rating.mu:.1f}, σ={rating.sigma:.1f})"
         )
 
-    return RatingsAndCounts(ratings=sorted_ratings, game_counts=game_counts)
+    over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
+
+    return RatingsAndCounts(
+        ratings=sorted_ratings,
+        game_counts=game_counts,
+        over_time=over_time_filtered,
+    )

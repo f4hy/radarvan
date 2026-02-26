@@ -1,70 +1,69 @@
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import CheckIcon from "@mui/icons-material/Check";
+import ClearIcon from "@mui/icons-material/Clear";
+import { ButtonGroup, Chip, Tooltip as MuiTooltip, Typography } from "@mui/material";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import Alert from '@mui/material/Alert';
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import Divider from "@mui/material/Divider";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
+import Grid from "@mui/material/Grid";
+import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
+import Skeleton from "@mui/material/Skeleton";
 import Slider from '@mui/material/Slider';
-import Alert from '@mui/material/Alert';
+import Stack from "@mui/material/Stack";
 import Tab from '@mui/material/Tab';
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TablePagination from "@mui/material/TablePagination";
+import TableRow from "@mui/material/TableRow";
 import Tabs from '@mui/material/Tabs';
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-import ClearIcon from "@mui/icons-material/Clear"
-import CheckIcon from "@mui/icons-material/Check"
-import Accordion from "@mui/material/Accordion"
-import AccordionDetails from "@mui/material/AccordionDetails"
-import AccordionSummary from "@mui/material/AccordionSummary"
-import Table from "@mui/material/Table"
-import Link from "@mui/material/Link"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import Box from "@mui/material/Box"
-import TableContainer from "@mui/material/TableContainer"
-import TableHead from "@mui/material/TableHead"
-import TablePagination from "@mui/material/TablePagination"
-import TableRow from "@mui/material/TableRow"
-import Button from "@mui/material/Button"
-import Stack from "@mui/material/Stack"
-import Skeleton from "@mui/material/Skeleton"
-import LinearProgress from "@mui/material/LinearProgress"
-import Divider from "@mui/material/Divider"
-import FormGroup from "@mui/material/FormGroup"
-import FormControlLabel from "@mui/material/FormControlLabel"
-import Paper from "@mui/material/Paper"
-import Grid from "@mui/material/Grid"
-import Checkbox from "@mui/material/Checkbox"
-import { ButtonGroup, Chip, Tooltip as MuiTooltip } from "@mui/material"
-import * as React from "react"
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import * as React from "react";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  Legend,
-} from "recharts"
-import DisplayGeneral from "./Generals"
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Legend,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 import {
-  General,
-  GeneralStat,
-  GeneralStats,
-  Tournament,
-  TournamentResult,
-  MatchupResult,
-  WinLoss,
-  MatchInfo,
-  TournamentStat,
-  TournamentReport,
-  PlayerEnum,
-} from "./api"
-import { PlayerEnumFromJSON } from "./api"
-import { Client } from "./Client"
-import { toGeneralName } from "./general_utils"
-import { Typography } from "@mui/material"
-import { DisplayMatchInfo } from "./Matches"
+	General,
+	GeneralStat,
+	GeneralStats,
+	MatchInfo,
+	MatchupResult,
+	PlayerEnum,
+	PlayerEnumFromJSON,
+	Statistic,
+	Tournament,
+	TournamentReport,
+	TournamentResult,
+	WinLoss,
+} from "./api";
+import { Client } from "./Client";
+import { toGeneralName } from "./general_utils";
+import DisplayGeneral from "./Generals";
+import { DisplayMatchInfo } from "./Matches";
 
 interface TeamWinRating {
   [key: string]: number
@@ -159,9 +158,9 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </Alert>
     )
   }
-			const filtered = Object.entries(teamRating).filter(([team, winRate], i) => (((1.0 - Math.abs(winRate - 0.5)) > .75)) || (i < 3))
+  const filtered = Object.entries(teamRating).filter(([team, winRate], i) => (((1.0 - Math.abs(winRate - 0.5)) > .75)) || (i < 3))
   return (
-			<Stack>
+    <Stack>
       {filtered.map(([team, winRate]) => (
         <ScoreBar
           team={team}

@@ -1,32 +1,26 @@
 
-# PlayerRatings
+# ShortPlayerRating
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`name` | string
-`ordinal` | number
 `mu` | number
 `sigma` | number
-`gameCount` | number
 `atdate` | Date
 
 ## Example
 
 ```typescript
-import type { PlayerRatings } from ''
+import type { ShortPlayerRating } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "name": null,
-  "ordinal": null,
   "mu": null,
   "sigma": null,
-  "gameCount": null,
   "atdate": null,
-} satisfies PlayerRatings
+} satisfies ShortPlayerRating
 
 console.log(example)
 
@@ -35,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PlayerRatings
+const exampleParsed = JSON.parse(exampleJSON) as ShortPlayerRating
 console.log(exampleParsed)
 ```
 

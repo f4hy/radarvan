@@ -1,6 +1,6 @@
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-
+import { TooltipProps } from 'recharts';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Slider from '@mui/material/Slider';
@@ -52,6 +52,9 @@ import {
   YAxis,
   ZAxis,
   Legend,
+  Line,
+  AreaChart,
+  Area,
 } from "recharts"
 import DisplayGeneral from "./Generals"
 import {
@@ -63,15 +66,17 @@ import {
   MatchupResult,
   WinLoss,
   MatchInfo,
-  TournamentStat,
+  Statistic,
   TournamentReport,
   PlayerEnum,
   PlayerRatings,
+  PlayerRatingData,
 } from "./api"
 import { PlayerEnumFromJSON } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { DisplayMatchInfo } from "./Matches"
+import { LineChart } from 'recharts';
 
 const shapes: (
   | "circle"
@@ -83,12 +88,14 @@ const shapes: (
 )[] = ["circle", "star", "square", "triangle"]
 
 function getPlayerRatings(
-  callback: (m: PlayerRatings[]) => void,
+  callback: (m: PlayerRatingData) => void,
 ) {
   Client.getPlayerRatingsApiPlayerRatingsGet()
     .then(callback)
     .catch((e) => alert(e))
 }
+
+
 
 function formatLabel(val: any): string {
   if (typeof (val) == 'number') {
@@ -96,13 +103,78 @@ function formatLabel(val: any): string {
   }
   return String(val ?? "")
 }
+
+const formatDate = (tickItem: number): string => {
+  return new Date(tickItem).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+function formatSkill(v: any): string {
+  const ave = ((v[0] + v[1]) / 2)
+  const val = ave.toFixed(1)
+  const ebar = (ave - v[0]).toFixed(1)
+  return `${val}±${ebar}`
+};
+
+
+function RatingsOverTime(props: { data: PlayerRatingData }) {
+
+  const data = Object.entries((props.data.playerRatingOvertime ?? ({})))
+  if (data.length < 1) {
+    <Typography>{JSON.stringify(data)}</Typography>
+  }
+  return (
+    <Stack>
+      {data.map(([name, d]) => (
+        <Stack>
+          <Typography>{name}</Typography>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart
+              data={d.map(x => ({ mu: x.mu, sigma: x.sigma, skill: [x.mu - x.sigma, x.mu + x.sigma], atdate: (new Date(x.atdate ?? 0)).getTime() }))}
+              layout="horizontal"
+              margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="5 5" vertical={false} />
+              <Area dataKey="skill" fill="#42A5F5" connectNulls type="linear" >
+              </Area>
+              <XAxis dataKey="atdate" type="number"
+                domain={[(new Date("2024-01-01")).getTime(), Date.now()]}
+                tickFormatter={formatDate}
+              />
+              <YAxis
+                label={{
+                  value: "# games",
+                  position: "insideLeft",
+                  fontSize: 25,
+                  offset: -10,
+                  angle: -90,
+                }}
+                domain={[0, 50]}
+              />
+              <Tooltip cursor={false} labelFormatter={(v) => formatDate(v)} formatter={(v) => (v !== null ? formatSkill(v) : "")} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Stack>
+      )
+      )}
+    </Stack>
+  )
+
+}
+
+
+const emptyPlayerRatingData = { playerRating: [], playerRatingOverTime: ({}) }
 export default function DisplayPlayerRatings() {
-  const [playerRatings, setPlayerRatings] = React.useState<PlayerRatings[]>([])
+  const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(emptyPlayerRatingData)
   React.useEffect(() => {
     getPlayerRatings(setPlayerRatings)
   }, [])
 
-  const data = playerRatings.map((r) => ({ ...r, variance: (r.sigma * r.sigma) }))
+
+
+  const data = playerRatings.playerRating.map((r) => ({ ...r, variance: (r.sigma * r.sigma) }))
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Player Ratings (debug only)</Typography>
@@ -165,6 +237,7 @@ export default function DisplayPlayerRatings() {
           <Tooltip cursor={false} />
         </BarChart>
       </ResponsiveContainer>
+      <RatingsOverTime data={playerRatings} />
     </Paper>
   )
 }

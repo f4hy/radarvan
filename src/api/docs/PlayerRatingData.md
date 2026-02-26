@@ -1,32 +1,24 @@
 
-# PlayerRatings
+# PlayerRatingData
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`name` | string
-`ordinal` | number
-`mu` | number
-`sigma` | number
-`gameCount` | number
-`atdate` | Date
+`playerRating` | [Array&lt;PlayerRatings&gt;](PlayerRatings.md)
+`playerRatingOvertime` | { [key: string]: Array&lt;ShortPlayerRating&gt;; }
 
 ## Example
 
 ```typescript
-import type { PlayerRatings } from ''
+import type { PlayerRatingData } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "name": null,
-  "ordinal": null,
-  "mu": null,
-  "sigma": null,
-  "gameCount": null,
-  "atdate": null,
-} satisfies PlayerRatings
+  "playerRating": null,
+  "playerRatingOvertime": null,
+} satisfies PlayerRatingData
 
 console.log(example)
 
@@ -35,7 +27,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PlayerRatings
+const exampleParsed = JSON.parse(exampleJSON) as PlayerRatingData
 console.log(exampleParsed)
 ```
 

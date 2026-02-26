@@ -49,6 +49,12 @@ export interface PlayerRatings {
      * @memberof PlayerRatings
      */
     gameCount: number;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PlayerRatings
+     */
+    atdate?: Date | null;
 }
 
 /**
@@ -78,6 +84,7 @@ export function PlayerRatingsFromJSONTyped(json: any, ignoreDiscriminator: boole
         'mu': json['mu'],
         'sigma': json['sigma'],
         'gameCount': json['game_count'],
+        'atdate': json['atdate'] == null ? undefined : (new Date(json['atdate'])),
     };
 }
 
@@ -97,6 +104,7 @@ export function PlayerRatingsToJSONTyped(value?: PlayerRatings | null, ignoreDis
         'mu': value['mu'],
         'sigma': value['sigma'],
         'game_count': value['gameCount'],
+        'atdate': value['atdate'] == null ? value['atdate'] : value['atdate'].toISOString().substring(0,10),
     };
 }
 

@@ -232,3 +232,17 @@ def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition
     """
     adapters = [_MatchPlayerAdapter(p) for p in players]
     return categorize_game_type(adapters)
+
+
+def competitive_game_filter(comp: GameComposition | None) -> bool:
+    if comp is None:
+        return False
+    if comp.num_computers > 1:
+        return False
+    if comp.is_comp_stomp:
+        return False
+    if not comp.is_balanced:
+        return False
+    if not comp.is_team_game:
+        return False
+    return True

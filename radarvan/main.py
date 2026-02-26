@@ -14,6 +14,7 @@ from typing import Any
 from fastapi import BackgroundTasks
 from . import exception_handling
 
+from . import game_composition
 from . import player_ids
 from . import middleware
 from . import match_details
@@ -27,7 +28,7 @@ from . import player_rating
 from . import superlatives
 from . import create_teams
 from radarvan.api_types import (
-    MatchDetails,
+    MatchDetails, ShortPlayerRating,
     Team,
     Matches,
     MatchInfo,
@@ -41,6 +42,7 @@ from radarvan.api_types import (
     ParsedReplayJsonSchema,
     TournamentReport,
     PlayerRatings,
+    PlayerRatingData,
 )
 from cachetools import TTLCache, cached
 from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
@@ -151,7 +153,7 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     filtered = {
         m.id: m
         for m in all_matches.values()
-        if matches.competitive_game_filter(comp=m.composition)
+        if game_composition.competitive_game_filter(comp=m.composition)
     }
     return filtered
 
@@ -698,22 +700,39 @@ def replays_without_playerstats(
 @app.get("/api/player_ratings/")
 def get_player_ratings(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> list[PlayerRatings]:
+) -> PlayerRatingData:
     games = competitive_matches(replay_manager)
 
     ratings_and_counts = player_rating.compute_player_ratings(list(games.values()))
     counts = ratings_and_counts.game_counts
-    converted = [
-        PlayerRatings(
-            name=r.name,
-            ordinal=r.ordinal(),
-            mu=r.mu,
-            sigma=r.sigma,
-            game_count=counts.get(r.name),
+
+    def convert(rating: player_rating.NamedRating) -> PlayerRatings:
+        return PlayerRatings(
+            name=rating.name,
+            ordinal=rating.ordinal(),
+            mu=rating.mu,
+            sigma=rating.sigma,
+            atdate=rating.at_date,
+            game_count=counts.get(rating.name),
         )
-        for r in ratings_and_counts.ratings
-    ]
-    return converted
+
+    def convert_short(rating: player_rating.NamedRating) -> ShortPlayerRating:
+        return ShortPlayerRating(
+            mu=rating.mu,
+            sigma=rating.sigma,
+            atdate=rating.at_date,
+        )
+
+    converted = [convert(r) for r in ratings_and_counts.ratings]
+    over_time = {
+        name: [convert_short(r) for r in ratings]
+        for name, ratings in ratings_and_counts.over_time.items()
+    }
+    logger.info(f"over time data {over_time}")
+    return PlayerRatingData(
+        player_rating=converted,
+        player_rating_overtime=over_time,
+    )
 
 
 PlayerEnum = Enum(

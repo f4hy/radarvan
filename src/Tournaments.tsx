@@ -44,7 +44,7 @@ import {
   MatchupResult,
   WinLoss,
   MatchInfo,
-  TournamentStat,
+  Statistic,
   TournamentReport,
 } from "./api"
 import { Client } from "./Client"

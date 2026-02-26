@@ -7,7 +7,7 @@
 Name | Type
 ------------ | -------------
 `name` | string
-`stats` | [Array&lt;TournamentStat&gt;](TournamentStat.md)
+`stats` | [Array&lt;Statistic&gt;](Statistic.md)
 
 ## Example
 

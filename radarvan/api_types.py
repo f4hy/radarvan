@@ -446,4 +446,18 @@ class PlayerRatings(BaseModel):
     mu: float
     sigma: float
     game_count: int
+    atdate: date | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShortPlayerRating(BaseModel):
+    mu: float
+    sigma: float
+    atdate: date | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PlayerRatingData(BaseModel):
+    player_rating: list[PlayerRatings]
+    player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
     model_config = ConfigDict(from_attributes=True)

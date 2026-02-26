@@ -23,10 +23,11 @@ import type {
   MatchInfo,
   Matches,
   PlayerEnum,
-  PlayerRatings,
+  PlayerRatingData,
   PlayerStats,
   ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
+  Superlatives,
   Team,
   TournamentReport,
   TournamentResult,
@@ -49,14 +50,16 @@ import {
     MatchesToJSON,
     PlayerEnumFromJSON,
     PlayerEnumToJSON,
-    PlayerRatingsFromJSON,
-    PlayerRatingsToJSON,
+    PlayerRatingDataFromJSON,
+    PlayerRatingDataToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
     ReplayFileSchemaFromJSON,
     ReplayFileSchemaToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
+    SuperlativesFromJSON,
+    SuperlativesToJSON,
     TeamFromJSON,
     TeamToJSON,
     TournamentReportFromJSON,
@@ -810,7 +813,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Player Ratings
      */
-    async getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerRatings>>> {
+    async getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerRatingData>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -825,13 +828,13 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerRatingsFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlayerRatingDataFromJSON(jsonValue));
     }
 
     /**
      * Get Player Ratings
      */
-    async getPlayerRatingsApiPlayerRatingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerRatings>> {
+    async getPlayerRatingsApiPlayerRatingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerRatingData> {
         const response = await this.getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides);
         return await response.value();
     }
@@ -904,6 +907,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getReplayByUrlApiReplayGet(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
         const response = await this.getReplayByUrlApiReplayGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get player stats.
+     * Get Superlatives
+     */
+    async getSuperlativesApiSuperlativesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Superlatives>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/superlatives`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SuperlativesFromJSON(jsonValue));
+    }
+
+    /**
+     * Get player stats.
+     * Get Superlatives
+     */
+    async getSuperlativesApiSuperlativesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Superlatives> {
+        const response = await this.getSuperlativesApiSuperlativesGetRaw(initOverrides);
         return await response.value();
     }
 

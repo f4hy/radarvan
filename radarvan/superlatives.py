@@ -1,17 +1,12 @@
 from pydantic import BaseModel
 
-from collections import Counter
 from .api_types import (
     MatchInfo,
     General,
-    GeneralStat,
-    GeneralStats,
     WinLoss,
     PlayerStat,
 )
-from . import replay_files
 import logging
-from . import tournament
 from . import player_stats
 
 logger = logging.getLogger(__name__)
@@ -51,9 +46,10 @@ def get_player_highest_winrate(games: list[MatchInfo]) -> list[Statistic]:
             wl = s.stats[general]
             if wl.losses == 0:
                 return 0.0
-            return ((float(wl.wins) / (wl.wins + wl.losses)) - player_winrates[
-                s.player_name
-            ])*100
+            return (
+                (float(wl.wins) / (wl.wins + wl.losses))
+                - player_winrates[s.player_name]
+            ) * 100
 
         highest_winrate = max(_player_stats, key=win_rate)
         stats.append(

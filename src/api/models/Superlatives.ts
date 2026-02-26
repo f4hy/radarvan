@@ -24,59 +24,59 @@ import {
 /**
  * 
  * @export
- * @interface TournamentReport
+ * @interface Superlatives
  */
-export interface TournamentReport {
+export interface Superlatives {
     /**
      * 
-     * @type {string}
-     * @memberof TournamentReport
+     * @type {number}
+     * @memberof Superlatives
      */
-    name: string;
+    matchCount: number;
     /**
      * 
      * @type {Array<Statistic>}
-     * @memberof TournamentReport
+     * @memberof Superlatives
      */
     stats: Array<Statistic>;
 }
 
 /**
- * Check if a given object implements the TournamentReport interface.
+ * Check if a given object implements the Superlatives interface.
  */
-export function instanceOfTournamentReport(value: object): value is TournamentReport {
-    if (!('name' in value) || value['name'] === undefined) return false;
+export function instanceOfSuperlatives(value: object): value is Superlatives {
+    if (!('matchCount' in value) || value['matchCount'] === undefined) return false;
     if (!('stats' in value) || value['stats'] === undefined) return false;
     return true;
 }
 
-export function TournamentReportFromJSON(json: any): TournamentReport {
-    return TournamentReportFromJSONTyped(json, false);
+export function SuperlativesFromJSON(json: any): Superlatives {
+    return SuperlativesFromJSONTyped(json, false);
 }
 
-export function TournamentReportFromJSONTyped(json: any, ignoreDiscriminator: boolean): TournamentReport {
+export function SuperlativesFromJSONTyped(json: any, ignoreDiscriminator: boolean): Superlatives {
     if (json == null) {
         return json;
     }
     return {
         
-        'name': json['name'],
+        'matchCount': json['match_count'],
         'stats': ((json['stats'] as Array<any>).map(StatisticFromJSON)),
     };
 }
 
-export function TournamentReportToJSON(json: any): TournamentReport {
-    return TournamentReportToJSONTyped(json, false);
+export function SuperlativesToJSON(json: any): Superlatives {
+    return SuperlativesToJSONTyped(json, false);
 }
 
-export function TournamentReportToJSONTyped(value?: TournamentReport | null, ignoreDiscriminator: boolean = false): any {
+export function SuperlativesToJSONTyped(value?: Superlatives | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
 
     return {
         
-        'name': value['name'],
+        'match_count': value['matchCount'],
         'stats': ((value['stats'] as Array<any>).map(StatisticToJSON)),
     };
 }
