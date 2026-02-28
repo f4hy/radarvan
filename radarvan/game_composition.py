@@ -130,7 +130,7 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     team_counts = Counter(player.Team for player in players)
 
     # Team 0 means no team (FFA players)
-    ffa_player_count = team_counts.get(0, 0)
+    ffa_player_count = team_counts.get(0, 0) + team_counts.get(-1, 0)
     valid_teams = {team: count for team, count in team_counts.items() if team > 0}
 
     num_teams = len(valid_teams)

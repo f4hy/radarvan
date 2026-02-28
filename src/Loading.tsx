@@ -55,9 +55,24 @@ export function MatchRowLoading() {
     <Stack spacing={1} sx={{ p: 1 }}>
       <Skeleton variant="text" width="60%" animation="wave" />
       <Stack direction="row" spacing={1}>
-        <Skeleton variant="rectangular" width="45%" height={100} animation="wave" />
-        <Skeleton variant="rectangular" width="45%" height={100} animation="wave" />
-        <Skeleton variant="rectangular" width="10%" height={100} animation="wave" />
+        <Skeleton
+          variant="rectangular"
+          width="45%"
+          height={100}
+          animation="wave"
+        />
+        <Skeleton
+          variant="rectangular"
+          width="45%"
+          height={100}
+          animation="wave"
+        />
+        <Skeleton
+          variant="rectangular"
+          width="10%"
+          height={100}
+          animation="wave"
+        />
       </Stack>
     </Stack>
   )

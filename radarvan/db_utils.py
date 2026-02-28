@@ -446,11 +446,16 @@ class ReplayManager:
         return counts
 
     def list_matches_without_composition(self) -> Iterator[int]:
-        """Yield match_ids for matches that have no MatchCompostion row."""
+        """Yield match_ids for matches with no MatchCompostion row or an Unknown category."""
         stmt = (
             select(Match.match_id)
             .outerjoin(MatchCompostion, MatchCompostion.match_id == Match.match_id)
-            .where(MatchCompostion.match_id.is_(None))
+            .where(
+                or_(
+                    MatchCompostion.match_id.is_(None),
+                    MatchCompostion.category == "Unknown",
+                )
+            )
         )
         yield from self.session.scalars(stmt).all()
 
