@@ -4,3 +4,4 @@ coverage
 public
 jsons
 src/generated_client
+src/api

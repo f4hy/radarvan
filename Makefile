@@ -1,4 +1,6 @@
-.PHONY: help format lint typecheck check build clean install test all
+.PHONY: help format lint lint-fix typecheck check \
+        ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check \
+        build clean install test all
 
 # Default target
 .DEFAULT_GOAL := help
@@ -7,30 +9,55 @@ help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: ## Install dependencies using uv
+install: ## Install Python and Node dependencies
 	uv sync
+	npm install
 
-format: ## Format code with ruff
+# ── Python ────────────────────────────────────────────────────────────────────
+
+format: ## Format Python code with ruff
 	uv run ruff format radarvan/
 
-lint: ## Lint code with ruff
+lint: ## Lint Python code with ruff
 	uv run ruff check radarvan/
 
-lint-fix: ## Lint and auto-fix issues with ruff
+lint-fix: ## Lint and auto-fix Python issues with ruff
 	uv run ruff check --fix radarvan/
 
-typecheck: ## Run mypy type checking
+typecheck: ## Type-check Python code with mypy
 	uv run mypy radarvan/
 
-check: lint typecheck ## Run all linting and type checking (without formatting)
-	@echo "✓ All checks passed!"
+check: lint typecheck ## Run all Python checks (no formatting)
+	@echo "✓ Python checks passed!"
 
-all: format lint-fix typecheck ## Format, lint with fixes, and type check
+# ── TypeScript / React ────────────────────────────────────────────────────────
+
+ts-format: ## Format TypeScript/React code with prettier
+	npm run format
+
+ts-format-check: ## Check TypeScript/React formatting (no write)
+	npm run format:check
+
+ts-lint: ## Lint TypeScript/React code with ESLint
+	npm run lint
+
+ts-lint-fix: ## Lint and auto-fix TypeScript/React issues with ESLint
+	npm run lint:fix
+
+ts-typecheck: ## Type-check TypeScript code with tsc
+	npm run typecheck
+
+ts-check: ts-format-check ts-lint ts-typecheck ## Run all TypeScript checks (no formatting)
+	@echo "✓ TypeScript checks passed!"
+
+# ── Combined ──────────────────────────────────────────────────────────────────
+
+all: format lint-fix typecheck ts-format ts-lint-fix ts-typecheck ## Format, lint, and type-check all code
 	@echo "✓ All formatting and checks complete!"
 
-build: check ## Build the package
+build: check ts-check ## Build after running all checks
 	uv build
 	@echo "✓ Package built successfully!"
 
@@ -46,7 +73,7 @@ clean: ## Clean build artifacts and cache files
 	find . -type f -name "*.pyo" -delete
 	@echo "✓ Cleaned all build artifacts and caches!"
 
-test: ## Run tests (add your test command here)
+test: ## Run tests
 	@echo "Add your test command (e.g., uv run pytest)"
 	# uv run pytest
 

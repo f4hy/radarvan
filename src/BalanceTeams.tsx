@@ -1,69 +1,74 @@
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
+import Card from "@mui/material/Card"
+import CardContent from "@mui/material/CardContent"
 
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import CheckIcon from "@mui/icons-material/Check";
-import ClearIcon from "@mui/icons-material/Clear";
-import { ButtonGroup, Chip, Tooltip as MuiTooltip, Typography } from "@mui/material";
-import Accordion from "@mui/material/Accordion";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import Alert from '@mui/material/Alert';
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
-import Divider from "@mui/material/Divider";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import FormGroup from "@mui/material/FormGroup";
-import Grid from "@mui/material/Grid";
-import LinearProgress from "@mui/material/LinearProgress";
-import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
-import Skeleton from "@mui/material/Skeleton";
-import Slider from '@mui/material/Slider';
-import Stack from "@mui/material/Stack";
-import Tab from '@mui/material/Tab';
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
-import TableRow from "@mui/material/TableRow";
-import Tabs from '@mui/material/Tabs';
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import * as React from "react";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
+import CheckIcon from "@mui/icons-material/Check"
+import ClearIcon from "@mui/icons-material/Clear"
 import {
-	Bar,
-	BarChart,
-	CartesianGrid,
-	Legend,
-	ResponsiveContainer,
-	Tooltip,
-	XAxis,
-	YAxis,
-} from "recharts";
+  ButtonGroup,
+  Chip,
+  Tooltip as MuiTooltip,
+  Typography,
+} from "@mui/material"
+import Accordion from "@mui/material/Accordion"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import AccordionSummary from "@mui/material/AccordionSummary"
+import Alert from "@mui/material/Alert"
+import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
+import Checkbox from "@mui/material/Checkbox"
+import Divider from "@mui/material/Divider"
+import FormControlLabel from "@mui/material/FormControlLabel"
+import FormGroup from "@mui/material/FormGroup"
+import Grid from "@mui/material/Grid"
+import LinearProgress from "@mui/material/LinearProgress"
+import Link from "@mui/material/Link"
+import Paper from "@mui/material/Paper"
+import Radio from "@mui/material/Radio"
+import RadioGroup from "@mui/material/RadioGroup"
+import Skeleton from "@mui/material/Skeleton"
+import Slider from "@mui/material/Slider"
+import Stack from "@mui/material/Stack"
+import Tab from "@mui/material/Tab"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TablePagination from "@mui/material/TablePagination"
+import TableRow from "@mui/material/TableRow"
+import Tabs from "@mui/material/Tabs"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import * as React from "react"
 import {
-	General,
-	GeneralStat,
-	GeneralStats,
-	MatchInfo,
-	MatchupResult,
-	PlayerEnum,
-	PlayerEnumFromJSON,
-	Statistic,
-	Tournament,
-	TournamentReport,
-	TournamentResult,
-	WinLoss,
-} from "./api";
-import { Client } from "./Client";
-import { toGeneralName } from "./general_utils";
-import DisplayGeneral from "./Generals";
-import { DisplayMatchInfo } from "./Matches";
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import {
+  General,
+  GeneralStat,
+  GeneralStats,
+  MatchInfo,
+  MatchupResult,
+  PlayerEnum,
+  PlayerEnumFromJSON,
+  Statistic,
+  Tournament,
+  TournamentReport,
+  TournamentResult,
+  WinLoss,
+} from "./api"
+import { Client } from "./Client"
+import { toGeneralName } from "./general_utils"
+import DisplayGeneral from "./Generals"
+import { DisplayMatchInfo } from "./Matches"
 
 interface TeamWinRating {
   [key: string]: number
@@ -87,15 +92,21 @@ function getTeamPartition(
   teamSize: number,
   callback: (m: string[][]) => void,
 ) {
-  if (players.length < 6 || players.length % 2 !== 0 || players.length % teamSize !== 0) {
+  if (
+    players.length < 6 ||
+    players.length % 2 !== 0 ||
+    players.length % teamSize !== 0
+  ) {
     callback([])
     return
   }
-  Client.partitionTeamsApiPartitionTeamsTeamSizeGet({ teamSize: teamSize, players: players })
+  Client.partitionTeamsApiPartitionTeamsTeamSizeGet({
+    teamSize: teamSize,
+    players: players,
+  })
     .then(callback)
     .catch((e) => alert(e))
 }
-
 
 const getScoreStyle = (score: number) => {
   if (score >= 90) {
@@ -158,7 +169,9 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </Alert>
     )
   }
-  const filtered = Object.entries(teamRating).filter(([team, winRate], i) => (((1.0 - Math.abs(winRate - 0.5)) > .75)) || (i < 3))
+  const filtered = Object.entries(teamRating).filter(
+    ([team, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3,
+  )
   return (
     <Stack>
       {filtered.map(([team, winRate]) => (
@@ -182,9 +195,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
 
   if (props.selectedPlayers.length % 2 !== 0) {
     return (
-      <Alert severity="warning">
-        Not an even number of selected players
-      </Alert>
+      <Alert severity="warning">Not an even number of selected players</Alert>
     )
   }
   if (teamPartition.length === 0) {
@@ -194,10 +205,20 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </Alert>
     )
   }
-  const colors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E8BAFF'];
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>, value: string) => {
-    setTeamSize(parseInt(value));
-  };
+  const colors = [
+    "#FFB3BA",
+    "#FFDFBA",
+    "#FFFFBA",
+    "#BAFFC9",
+    "#BAE1FF",
+    "#E8BAFF",
+  ]
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    value: string,
+  ) => {
+    setTeamSize(parseInt(value))
+  }
   return (
     <Stack>
       <RadioGroup
@@ -213,21 +234,22 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       <Grid container spacing={2}>
         {teamPartition.map((team, i) => (
           <Grid item>
-            <Paper sx={{ padding: 2, background: colors[i] }} >
-              {team.map((t) => (<Chip label={t} color="primary" sx={{ padding: 2 }} />))}
+            <Paper sx={{ padding: 2, background: colors[i] }}>
+              {team.map((t) => (
+                <Chip label={t} color="primary" sx={{ padding: 2 }} />
+              ))}
               <Divider />
             </Paper>
           </Grid>
         ))}
       </Grid>
-    </Stack >
+    </Stack>
   )
 }
 
-
 export default function DisplayBalanceTeams() {
   const [selectedPlayers, setSelectedPlayers] = React.useState<PlayerEnum[]>([])
-  const [selectedTab, setSelectedTab] = React.useState<string>("balanceTeams");
+  const [selectedTab, setSelectedTab] = React.useState<string>("balanceTeams")
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = event.target
@@ -245,18 +267,20 @@ export default function DisplayBalanceTeams() {
   const players = Object.values(PlayerEnum).sort()
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
-    setSelectedTab(newValue);
+    setSelectedTab(newValue)
     if (newValue == "partitionTeams" && selectedPlayers.length < 6) {
       const allPlayers = players.filter((p) => p !== "HardArmy")
       setSelectedPlayers(allPlayers)
     }
-  };
-
+  }
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Determine Balanced Teams</Typography>
-      <Typography >Select at least 4 players and the balance of each team combination will be ranked</Typography>
+      <Typography>
+        Select at least 4 players and the balance of each team combination will
+        be ranked
+      </Typography>
       <FormGroup>
         <Box sx={{ display: "flex", alignItems: "center", padding: 1 }}>
           {players.map((option) => (
@@ -289,10 +313,20 @@ export default function DisplayBalanceTeams() {
           label="Create teams for tournmanet"
         />
       </Tabs>
-      {selectedTab === "balanceTeams" && <BalanceTeams selectedPlayers={selectedPlayers} />}
-      {selectedTab === "partitionTeams" && <PartitionTeams selectedPlayers={selectedPlayers} />}
+      {selectedTab === "balanceTeams" && (
+        <BalanceTeams selectedPlayers={selectedPlayers} />
+      )}
+      {selectedTab === "partitionTeams" && (
+        <PartitionTeams selectedPlayers={selectedPlayers} />
+      )}
       <Divider sx={{ height: 40 }} />
-      <Typography>Results are computed using all recorded 2v2 3v3 4v4 games and the <Link href="https://jmlr.org/papers/volume12/weng11a/weng11a.pdf">Bayesian Plackett-Luce model by Weng and Lin</Link> which is an extension of the "TrueSkill" algorithm used by xbox-live.</Typography>
+      <Typography>
+        Results are computed using all recorded 2v2 3v3 4v4 games and the{" "}
+        <Link href="https://jmlr.org/papers/volume12/weng11a/weng11a.pdf">
+          Bayesian Plackett-Luce model by Weng and Lin
+        </Link>{" "}
+        which is an extension of the "TrueSkill" algorithm used by xbox-live.
+      </Typography>
     </Paper>
   )
 }

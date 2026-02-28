@@ -31,9 +31,9 @@ import { MatchInfo, Matches, Player, Team } from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
-import { ActivityCalendar } from 'react-activity-calendar';
+import { ActivityCalendar } from "react-activity-calendar"
 
-function getDates(callback: (m: ({ [key: string]: number; })) => void) {
+function getDates(callback: (m: { [key: string]: number }) => void) {
   Client.getDatesApiDatesGet()
     .then(callback)
     .catch((e) => alert(e))
@@ -146,7 +146,8 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     <Typography>
       {" MatchId:" +
         props.match.id +
-        " " + props.match.composition?.category +
+        " " +
+        props.match.composition?.category +
         ` Winner:${winningTeam}` +
         " Date:" +
         date +
@@ -154,8 +155,8 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
         props.match.map.split("/").slice(-1) +
         " Duration:" +
         props.match.durationMinutes.toFixed(2) +
-        " minutes GameVersion:" + props.match.gameVersion
-      }
+        " minutes GameVersion:" +
+        props.match.gameVersion}
     </Typography>
   )
 
@@ -246,8 +247,13 @@ function Loading() {
   )
 }
 
-function DisplayMatchesForDate(props: { date: Date, count: number, idx: number, selected: boolean }) {
-  const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0);
+function DisplayMatchesForDate(props: {
+  date: Date
+  count: number
+  idx: number
+  selected: boolean
+}) {
+  const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0)
   const [matchList, setMatchList] = React.useState<Matches>(empty)
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
@@ -255,19 +261,24 @@ function DisplayMatchesForDate(props: { date: Date, count: number, idx: number, 
     }
   }, [expanded])
 
-
-  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    if (matchList.matches.length === 0) {
-      getMatches(props.date, setMatchList)
+  const handleChange =
+    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+      if (matchList.matches.length === 0) {
+        getMatches(props.date, setMatchList)
+      }
+      setExpanded(isExpanded)
     }
-    setExpanded(isExpanded);
-  };
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
   const date = fmt(props.date)
   const idx = props.idx
-  const borderProps = props.selected ? ({ border: '3px solid green' }) : ({})
+  const borderProps = props.selected ? { border: "3px solid green" } : {}
   return (
-    <Accordion expanded={expanded === true} onChange={handleChange(`${idx}`)} sx={borderProps} >
+    <Accordion
+      expanded={expanded === true}
+      onChange={handleChange(`${idx}`)}
+      sx={borderProps}
+    >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
         <Typography>{`${date} gameCount=${props.count}`}</Typography>
         <Typography>{expanded} </Typography>
@@ -275,86 +286,87 @@ function DisplayMatchesForDate(props: { date: Date, count: number, idx: number, 
       <AccordionDetails>
         <Typography>{date}</Typography>
         <AccordionDetails>
-          {
-            matchList.matches.map((m, idx) => (
-              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
-            ))
-          }
+          {matchList.matches.map((m, idx) => (
+            <DisplayMatchInfo match={m} key={m.id} idx={idx} />
+          ))}
         </AccordionDetails>
       </AccordionDetails>
     </Accordion>
   )
 }
 
-
 interface YearRangePickerProps {
-  years: number[];  // e.g. [2020, 2021, 2022, 2023, 2024, 2025, 2026]
-  value: [number, number];
-  onChange: (range: [number, number]) => void;
+  years: number[] // e.g. [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+  value: [number, number]
+  onChange: (range: [number, number]) => void
 }
 
 function YearRangePicker({ years, value, onChange }: YearRangePickerProps) {
-  const min = Math.min(...years);
-  const max = Math.max(...years);
+  const min = Math.min(...years)
+  const max = Math.max(...years)
 
   return (
     <Box sx={{ px: 2, maxWidth: 400 }}>
-      <Typography gutterBottom>Years: {value[0]} – {value[1]}</Typography>
+      <Typography gutterBottom>
+        Years: {value[0]} – {value[1]}
+      </Typography>
       <Slider
         value={value}
         onChange={(_, newValue) => onChange(newValue as [number, number])}
         min={min}
         max={max}
         step={1}
-        marks={years.map(y => ({ value: y, label: String(y) }))}
+        marks={years.map((y) => ({ value: y, label: String(y) }))}
         valueLabelDisplay="auto"
       />
     </Box>
-  );
+  )
 }
 
-function groupByYear(dateCounts: Record<string, number>): Record<string, Record<string, number>> {
-  const years: Record<string, Record<string, number>> = {};
+function groupByYear(
+  dateCounts: Record<string, number>,
+): Record<string, Record<string, number>> {
+  const years: Record<string, Record<string, number>> = {}
   for (const [date, count] of Object.entries(dateCounts)) {
-    const year = date.slice(0, 4);
-    if (!years[year]) years[year] = {};
-    years[year][date] = count;
+    const year = date.slice(0, 4)
+    if (!years[year]) years[year] = {}
+    years[year][date] = count
   }
-  return years;
+  return years
 }
 
 function getEndDate(date: Date): Date {
-  const now = new Date();
+  const now = new Date()
   if (date.getFullYear() === now.getFullYear()) {
-    return now;
+    return now
   }
-  return new Date(date.getFullYear(), 11, 31);
+  return new Date(date.getFullYear(), 11, 31)
 }
 
 function toActivityData(dateCounts: Record<string, number>) {
-  const dates = Object.keys(dateCounts).sort();
-  if (dates.length === 0) return [];
+  const dates = Object.keys(dateCounts).sort()
+  if (dates.length === 0) return []
   const first = dates[0]
   const yearStart = new Date(`${first.slice(0, 4)}-01-01`)
   const end = getEndDate(new Date(dates[dates.length - 1]))
-  const maxCount = Math.max(...Object.values(dateCounts));
+  const maxCount = Math.max(...Object.values(dateCounts))
 
-  const data = [];
+  const data = []
   for (let d = new Date(yearStart); d <= end; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0];
-    const count = dateCounts[dateStr] ?? 0;
-    const level = count === 0 ? 0 : Math.ceil((count / maxCount) * 4) as 0 | 1 | 2 | 3 | 4;
-    data.push({ date: dateStr, count, level });
+    const dateStr = d.toISOString().split("T")[0]
+    const count = dateCounts[dateStr] ?? 0
+    const level =
+      count === 0 ? 0 : (Math.ceil((count / maxCount) * 4) as 0 | 1 | 2 | 3 | 4)
+    data.push({ date: dateStr, count, level })
   }
 
-  return data;
+  return data
 }
 
-
 export default function DisplayMatches() {
-  const [dates, setDates] = React.useState<{ [key: string]: number; }>(({}))
+  const [dates, setDates] = React.useState<{ [key: string]: number }>({})
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null)
-  const itemRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+  const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
   React.useEffect(() => {
     getDates(setDates)
   }, [])
@@ -365,59 +377,79 @@ export default function DisplayMatches() {
 
   return (
     <Stack>
-      <Grid container sx={{ width: '80%', margin: '0' }}>
+      <Grid container sx={{ width: "80%", margin: "0" }}>
         {Object.entries(dataByYear).map(([year, yearData], idx) => (
           <Grid xs={6}>
-            <Box sx={{ overflowX: 'auto', p: 2 }} key={year}>
+            <Box sx={{ overflowX: "auto", p: 2 }} key={year}>
               <Typography>{year}</Typography>
-              {Object.keys(yearData).length > 0 ? <ActivityCalendar
-                data={toActivityData(yearData)}
-                weekStart={1}
-                showWeekdayLabels={['wed', 'sat']}
-                blockSize={10}
-                blockMargin={4}
-                showColorLegend={idx == 0}
-                labels={{
-                  totalCount: '{{count}} team games in {{year}}',
-                }}
-                colorScheme="light"
-                theme={{
-                  light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-                }}
-                tooltips={{
-                  activity: {
-                    text: activity => `  ${activity.count} team games on ${activity.date}`,
-                    placement: 'bottom',
-                    offset: 6,
-                    hoverRestMs: 10,
-                    transitionStyles: {
-                      duration: 50,
-                      common: { fontFamily: 'monospace' },
+              {Object.keys(yearData).length > 0 ? (
+                <ActivityCalendar
+                  data={toActivityData(yearData)}
+                  weekStart={1}
+                  showWeekdayLabels={["wed", "sat"]}
+                  blockSize={10}
+                  blockMargin={4}
+                  showColorLegend={idx == 0}
+                  labels={{
+                    totalCount: "{{count}} team games in {{year}}",
+                  }}
+                  colorScheme="light"
+                  theme={{
+                    light: [
+                      "#ebedf0",
+                      "#9be9a8",
+                      "#40c463",
+                      "#30a14e",
+                      "#216e39",
+                    ],
+                  }}
+                  tooltips={{
+                    activity: {
+                      text: (activity) =>
+                        `  ${activity.count} team games on ${activity.date}`,
+                      placement: "bottom",
+                      offset: 6,
+                      hoverRestMs: 10,
+                      transitionStyles: {
+                        duration: 50,
+                        common: { fontFamily: "monospace" },
+                      },
+                      withArrow: true,
                     },
-                    withArrow: true,
-                  },
-                }}
-                renderBlock={(block, activity) => (
-                  <g
-                    onClick={() => {
-                      const i = Object.keys(dates).findIndex(d => d === activity.date);
-                      itemRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      setSelectedDate(activity.date)
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {block}
-                  </g>
-                )}
-              />
-                : <Loading />}
+                  }}
+                  renderBlock={(block, activity) => (
+                    <g
+                      onClick={() => {
+                        const i = Object.keys(dates).findIndex(
+                          (d) => d === activity.date,
+                        )
+                        itemRefs.current[i]?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        })
+                        setSelectedDate(activity.date)
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {block}
+                    </g>
+                  )}
+                />
+              ) : (
+                <Loading />
+              )}
             </Box>
           </Grid>
         ))}
       </Grid>
       {Object.entries(dates).map(([date, count], idx) => (
-        <div key={idx} ref={el => itemRefs.current[idx] = el}>
-          <DisplayMatchesForDate date={new Date(date)} count={count} idx={idx} selected={date == selectedDate} />
+        <div key={idx} ref={(el) => (itemRefs.current[idx] = el)}>
+          <DisplayMatchesForDate
+            date={new Date(date)}
+            count={count}
+            idx={idx}
+            selected={date == selectedDate}
+          />
         </div>
       ))}
     </Stack>

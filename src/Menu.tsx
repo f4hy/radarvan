@@ -31,7 +31,7 @@ import WrappedYear from "./Wrapped"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings from "./PlayerRatings"
 import RedeemIcon from "@mui/icons-material/Redeem"
-import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import DisplayTournamentResults from "./Tournaments"
 const drawerWidth = 190
 
