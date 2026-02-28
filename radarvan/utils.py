@@ -134,9 +134,9 @@ def players_from_replay(replay: EnhancedReplay) -> list[Player]:
     for p in replay.Header.Metadata.Players:
         logger.info(f"Player {p=}")
         color = p.Color.lower().replace("color", "")
-        team = determine_team(p, player_summary=summaries.get(p.Name))
-        faction = determin_general(p, player_summary=summaries.get(p.Name))
         summary = summaries.get(p.Name)
+        team = determine_team(p, player_summary=summary)
+        faction = determin_general(p, player_summary=summary)
         players.append(
             Player(
                 name=p.Name or "CPU",
