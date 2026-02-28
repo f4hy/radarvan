@@ -9,7 +9,7 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Button from "@mui/material/Button"
 import Stack from "@mui/material/Stack"
-import Skeleton from "@mui/material/Skeleton"
+import Loading from "./Loading"
 import LinearProgress from "@mui/material/LinearProgress"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -94,18 +94,6 @@ function teamAlias(players: string): string {
     default:
       return players
   }
-}
-
-function Loading() {
-  return (
-    <Stack>
-      <LinearProgress />
-      <Stack direction="row">
-        <Skeleton variant="rectangular" height={150} />
-        <Skeleton variant="rectangular" height={150} />
-      </Stack>
-    </Stack>
-  )
 }
 
 function DisplayTournamentInfo(props: { tournament: Tournament }) {

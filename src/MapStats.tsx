@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box"
 import Stack from "@mui/material/Stack"
 import Paper from "@mui/material/Paper"
+import Loading from "./Loading"
 import Typography from "@mui/material/Typography"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import _ from "lodash"
@@ -149,6 +150,9 @@ export default function DisplayMapstats() {
     getMapStats(setMapstats)
   }, [])
   const isBig = useMediaQuery("(min-width:1200px)")
+  if (mapstats.mapStats.length === 0) {
+    return <Loading />
+  }
 
   const max = mapstats.mapStats.reduce((max, s) => Math.max(max, s.wins), 0)
   const initial: Red[] = []

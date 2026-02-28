@@ -9,7 +9,7 @@ import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
 import Card from "@mui/material/Card"
 import CardHeader from "@mui/material/CardHeader"
-import LinearProgress from "@mui/material/LinearProgress"
+import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
 import CardContent from "@mui/material/CardContent"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
@@ -18,7 +18,7 @@ import ListItem from "@mui/material/ListItem"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
-import Skeleton from "@mui/material/Skeleton"
+
 import _ from "lodash"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
@@ -208,20 +208,6 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
 
 const empty = { matches: [] }
 
-function Loading() {
-  return (
-    <Stack>
-      <LinearProgress />
-      {[...Array(5)].map((i) => (
-        <>
-          <Skeleton variant="text" animation="wave" />{" "}
-          <Skeleton variant="rectangular" height={80} />
-        </>
-      ))}
-    </Stack>
-  )
-}
-
 function DisplayMatchesForDate(props: {
   date: Date
   count: number
@@ -261,9 +247,13 @@ function DisplayMatchesForDate(props: {
       <AccordionDetails>
         <Typography>{date}</Typography>
         <AccordionDetails>
-          {matchList.matches.map((m, idx) => (
-            <DisplayMatchInfo match={m} key={m.id} idx={idx} />
-          ))}
+          {matchList.matches.length === 0 ? (
+            <MatchRowLoading />
+          ) : (
+            matchList.matches.map((m, idx) => (
+              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
+            ))
+          )}
         </AccordionDetails>
       </AccordionDetails>
     </Accordion>
@@ -318,7 +308,7 @@ export default function DisplayMatches() {
     getDates(setDates)
   }, [])
   if (dates.length === 0) {
-    return <Loading />
+    return <MatchesLoading />
   }
   const dataByYear = groupByYear(dates)
 

@@ -21,6 +21,7 @@ import {
 } from "recharts"
 import { PlayerRatingData } from "./api"
 import { Client } from "./Client"
+import Loading from "./Loading"
 
 function getPlayerRatings(callback: (m: PlayerRatingData) => void) {
   Client.getPlayerRatingsApiPlayerRatingsGet()
@@ -116,6 +117,9 @@ export default function DisplayPlayerRatings() {
     getPlayerRatings(setPlayerRatings)
   }, [])
 
+  if (playerRatings.playerRating.length === 0) {
+    return <Loading />
+  }
   const data = playerRatings.playerRating.map((r) => ({
     ...r,
     variance: r.sigma * r.sigma,

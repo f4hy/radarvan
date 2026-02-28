@@ -1,7 +1,5 @@
-import Stack from "@mui/material/Stack"
-import Skeleton from "@mui/material/Skeleton"
-import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
+import Loading from "./Loading"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import List from "@mui/material/List"
@@ -127,18 +125,6 @@ function DisplayPlayerStat(props: {
 }
 
 const empty = { playerStats: [] }
-
-function Loading() {
-  return (
-    <Stack>
-      <LinearProgress />
-      <Stack direction="row">
-        <Skeleton variant="rectangular" height={150} />
-        <Skeleton variant="rectangular" height={150} />
-      </Stack>
-    </Stack>
-  )
-}
 
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)

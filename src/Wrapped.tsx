@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { Wrapped } from "./proto/match"
 import { General } from "./proto/match"
+import Loading from "./Loading"
 
 const players = ["Bill", "Brendan", "Jared", "Sean"]
 const maxPage = 4
@@ -193,6 +194,8 @@ export default function WrappedYear() {
           >
             {wrappedData ? (
               <WrappedPage player={player} page={page} data={wrappedData} />
+            ) : player ? (
+              <Loading />
             ) : null}
           </Box>
           <Stack

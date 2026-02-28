@@ -28,6 +28,7 @@ import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
 import { MatchDetails, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
 import { Alert, Stack } from "@mui/material"
+import Loading from "./Loading"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
@@ -524,6 +525,9 @@ export default function ShowMatchDetails(props: { id: number }) {
   React.useEffect(() => {
     getDetails(props.id, setDetails)
   }, [props.id])
+  if (details.matchId === 0) {
+    return <Loading />
+  }
   const maxAtMinute =
     details.spent !== undefined
       ? _.max(details.spent.total.map((t) => t.atMinute))

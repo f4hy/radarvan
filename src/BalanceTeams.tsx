@@ -7,6 +7,7 @@ import FormControlLabel from "@mui/material/FormControlLabel"
 import FormGroup from "@mui/material/FormGroup"
 import Grid from "@mui/material/Grid"
 import LinearProgress from "@mui/material/LinearProgress"
+import Loading from "./Loading"
 import Link from "@mui/material/Link"
 import Paper from "@mui/material/Paper"
 import Radio from "@mui/material/Radio"
@@ -116,6 +117,12 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
         Not an even number of selected players. Try adding a HardArmy
       </Alert>
     )
+  }
+  if (
+    props.selectedPlayers.length >= 2 &&
+    Object.keys(teamRating).length === 0
+  ) {
+    return <Loading />
   }
   const filtered = Object.entries(teamRating).filter(
     ([team, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3,

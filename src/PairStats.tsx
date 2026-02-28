@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
+import Loading from "./Loading"
 import _ from "lodash"
 import * as React from "react"
 import {
@@ -116,6 +117,9 @@ export default function DisplayPairstats() {
     getPairStats(setPairstats)
   }, [])
   const teams = _.sortBy(Object.keys(pairstats.teamPairs), (x) => x)
+  if (teams.length === 0) {
+    return <Loading />
+  }
   return (
     <>
       <Box sx={{ flexGrow: 1, maxWidth: 1600 }}>

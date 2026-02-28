@@ -1,7 +1,5 @@
-import Stack from "@mui/material/Stack"
-import Skeleton from "@mui/material/Skeleton"
-import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
+import Loading from "./Loading"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
@@ -97,18 +95,6 @@ function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
 }
 function roundUpNearest5(num: number) {
   return Math.ceil(num / 5) * 5
-}
-
-function Loading() {
-  return (
-    <Stack>
-      <LinearProgress />
-      <Stack direction="row">
-        <Skeleton variant="rectangular" height={150} />
-        <Skeleton variant="rectangular" height={150} />
-      </Stack>
-    </Stack>
-  )
 }
 
 const empty = { generalStats: [] }
