@@ -56,8 +56,8 @@ def setup_database() -> None:
     """Run this once to set up your database."""
 
     # Drop all
-    print("droping tables")
-    db_manager.drop_all_tables()
+    # print("droping tables")
+    # db_manager.drop_all_tables()
     print("droped tables")
     # Create all tables
     db_manager.create_all_tables()
