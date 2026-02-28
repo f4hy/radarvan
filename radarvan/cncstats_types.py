@@ -164,6 +164,11 @@ class GeneralsHeader(BaseModel):
     GameType: str
     TimeStampBegin: int
     TimeStampEnd: int
+    Desync: list[int] = []
+    UnusedDesync: list[int] | None = None
+    MoreUnusedDesync: list[int] | None = None
+    QuitEarly: list[int] = []
+    Disconnect: list[int] = []
     NumTimeStamps: int
     FileName: str
     Year: int

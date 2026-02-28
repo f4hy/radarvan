@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 class WinnerAndNotes:
     wining_team: int
     notes: str = ""
-    incomplete: str = ""
 
 
 def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAndNotes:
@@ -30,18 +29,37 @@ def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAnd
     if not _winners:
         return WinnerAndNotes(
             wining_team=Team.NONE,
-            incomplete="Likely Mismatch :(",
         )
     player_map = {p.name: p for p in players}
     winning_team = player_map[_winners[0].Name].team
     if winning_team == Team.NONE or winning_team == Team.OBSERVER:
         logger.info(f"No winner found in replay {replay.Summary=}")
-        return WinnerAndNotes(
-            wining_team=Team.NONE, notes="No team won?", incomplete="No team won?"
-        )
+        return WinnerAndNotes(wining_team=Team.NONE, notes="No team won?")
     return WinnerAndNotes(
         wining_team=winning_team,
     )
+
+
+def is_incomplete(replay: EnhancedReplay) -> str | None:
+    head = replay.Header
+    if (
+        sum(head.Desync or [])
+        + sum(head.UnusedDesync or [])
+        + sum(head.MoreUnusedDesync or [])
+    ) > 0:
+        return "Replay header Mismatch"
+    if (sum(head.QuitEarly or [])) > 0:
+        return "Quit Early"
+    if (sum(head.Disconnect or [])) > 0:
+        return "Disconnect"
+
+    duration_minutes = utils.duration_minutes(replay)
+    if duration_minutes < 2:
+        return "Too Short"
+    _winners = [p for p in replay.Summary if p.Win is True]
+    if not _winners:
+        return "No team won"
+    return ""
 
 
 def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
@@ -51,6 +69,7 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         return None
     players = utils.players_from_replay(replay)
     winner_data = determine_winner(replay, players)
+    incomplete = is_incomplete(replay=replay)
 
     return MatchInfo(
         id=replay.replay_id(),
@@ -61,8 +80,8 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         players=players,
         duration_minutes=duration_minutes,
         filename=replay.Header.FileName,
-        incomplete=winner_data.incomplete,
-        notes=winner_data.notes,
+        incomplete=incomplete,
+        notes=incomplete,
     )
 
 
@@ -72,10 +91,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     match_id = replay.replay_id()
     players = utils.players_from_replay(replay)
     winner_data = determine_winner(replay, players)
-
-    duration_minutes = utils.duration_minutes(replay)
-    if duration_minutes < 2:
-        winner_data.incomplete = "Too Short"
+    incomplete = is_incomplete(replay=replay)
 
     db_players = [
         db.MatchPlayer(
@@ -98,8 +114,8 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
         players=db_players,
         duration_minutes=utils.duration_minutes(replay),
         filename=replay.Header.FileName,
-        incomplete=winner_data.incomplete,
-        notes=winner_data.notes,
+        incomplete=incomplete or None,
+        notes=incomplete,
         game_version=replay.Header.Version.lower().replace("version", "").strip(),
     )
 
@@ -157,13 +173,7 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
         return None
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
-    replay_manager.update_match(
-        update_match.match_id,
-        json_s3=json_s3,
-        winning_team_id=update_match.winning_team_id,
-        game_version=update_match.game_version,
-        players=update_match.players,
-    )
+    replay_manager.update_match(update_match)
     return match_from_replay(parsed_replay)
 
 
@@ -191,8 +201,6 @@ def filter_match(db_match: db.Match) -> bool:
     #     # logger.info(f"Filtering ffa {teams}")
     #     return False
     # return True
-
-
 
 
 def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:

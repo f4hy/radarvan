@@ -213,43 +213,31 @@ class ReplayManager:
             notify(f"Registered Match {db_match}")
         return db_match
 
-    def update_match(
-        self,
-        match_id: int,
-        json_s3: str | None = None,
-        winning_team_id: int | None = None,
-        game_version: str | None = None,
-        players: list[MatchPlayer] | None = None,
-    ) -> Match | None:
-        """Register a new replay."""
-        existing = self.session.get(Match, match_id)
+    def update_match(self, new_match: Match) -> Match | None:
+        """Replace the existing match record with data from new_match."""
+        existing = self.session.get(Match, new_match.match_id)
         if existing is None:
             return None
-        if winning_team_id is not None and existing.winning_team_id != winning_team_id:
+        if (
+            new_match.winning_team_id is not None
+            and existing.winning_team_id != new_match.winning_team_id
+        ):
             notify(
-                f"Update to Match id {match_id} is changing the winner"
-                f" from {existing.winning_team_id} to {winning_team_id}"
+                f"Update to Match id {new_match.match_id} is changing the winner"
+                f" from {existing.winning_team_id} to {new_match.winning_team_id}"
             )
-        if json_s3 is not None:
-            existing.json_s3_uri = json_s3
-        if winning_team_id is not None:
-            existing.winning_team_id = winning_team_id
-            existing.incomplete = None
-        if game_version is not None:
-            existing.game_version = game_version
-        if players:
-            for p in players:
-                existing_player = next(
-                    e for e in existing.players if e.player_name == p.player_name
-                )
-                existing_player.general_id = p.general_id
-                existing_player.team_id = p.team_id
-
+        # Preserve the original creation timestamp since new_match won't have it set.
+        new_match.created_at = existing.created_at
+        # Clear players before merge: new MatchPlayer objects have no id, so merge
+        # would insert duplicates rather than replace the existing rows.
+        existing.players.clear()
+        self.session.flush()
+        merged = self.session.merge(new_match)
         if self.auto_commit:
             self.session.commit()
         if self.notify:
-            notify(f"Update Match {existing}")
-        return existing
+            notify(f"Update Match {merged}")
+        return merged
 
     def compute_and_save_composition(self, match_id: int) -> GameComposition | None:
         """Compute match composition and persist to match_compostion table."""

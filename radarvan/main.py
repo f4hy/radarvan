@@ -28,7 +28,8 @@ from . import player_rating
 from . import superlatives
 from . import create_teams
 from radarvan.api_types import (
-    MatchDetails, ShortPlayerRating,
+    MatchDetails,
+    ShortPlayerRating,
     Team,
     Matches,
     MatchInfo,
@@ -255,7 +256,12 @@ def debug_match(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, Any]:
     """Return every row related to a match_id across all tables, keyed by table name."""
-    return _debug_data_to_dict(replay_manager.get_all_data_for_match(match_id))
+    debug_data = _debug_data_to_dict(replay_manager.get_all_data_for_match(match_id))
+    rep = replay_manager.get_replay_json_by_match_id(match_id)
+    if rep:
+        par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
+        debug_data["header"] = par.Header.model_dump_json()
+    return debug_data
 
 
 @app.get("/api/debug/json_url/{match_id}")
@@ -394,6 +400,24 @@ async def test_tournament_report(
 ) -> TournamentReport:
     report = await save_report(tournament_name, replay_manager, save=False)
     return report
+
+
+@app.get("/api/team_games_without_winner/")
+def get_team_games_without_winner(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[dict[str, Any]]:
+    """Return match IDs and dates for team games with no winner (winning_team=0)."""
+    all_matches = sorted_deduped_matches(replay_manager)
+    return [
+        {"match_id": m.id, "date": m.date}
+        for m in all_matches.values()
+        if m.composition is not None
+        and m.composition.is_team_game
+        and m.composition.num_teams == 2
+        and m.composition.num_humans > 2
+        and m.winning_team == Team.NONE
+        and (m.incomplete == "" or m.incomplete is None or "no team" in m.incomplete.lower())
+    ]
 
 
 @app.get("/api/match/{match_id}")
@@ -629,9 +653,11 @@ def update_matches_missing_data(
             continue
         replay = replay_files.parse_json(missing.json_s3_uri)
         game_version = replay.Header.Version.lower().replace("version", "").strip()
-        result = replay_manager.update_match(
-            missing.match_id, game_version=game_version
-        )
+        existing = replay_manager.get_match(missing.match_id)
+        if existing is None:
+            continue
+        existing.game_version = game_version
+        result = replay_manager.update_match(existing)
         logger.info(f"Updated {missing.match_id} success={result}")
         if result:
             updated_count += 1
