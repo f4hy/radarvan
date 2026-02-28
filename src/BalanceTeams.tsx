@@ -1,21 +1,6 @@
-import Card from "@mui/material/Card"
-import CardContent from "@mui/material/CardContent"
-
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-import CheckIcon from "@mui/icons-material/Check"
-import ClearIcon from "@mui/icons-material/Clear"
-import {
-  ButtonGroup,
-  Chip,
-  Tooltip as MuiTooltip,
-  Typography,
-} from "@mui/material"
-import Accordion from "@mui/material/Accordion"
-import AccordionDetails from "@mui/material/AccordionDetails"
-import AccordionSummary from "@mui/material/AccordionSummary"
+import { Chip, Typography } from "@mui/material"
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
-import Button from "@mui/material/Button"
 import Checkbox from "@mui/material/Checkbox"
 import Divider from "@mui/material/Divider"
 import FormControlLabel from "@mui/material/FormControlLabel"
@@ -26,49 +11,12 @@ import Link from "@mui/material/Link"
 import Paper from "@mui/material/Paper"
 import Radio from "@mui/material/Radio"
 import RadioGroup from "@mui/material/RadioGroup"
-import Skeleton from "@mui/material/Skeleton"
-import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
 import Tab from "@mui/material/Tab"
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableContainer from "@mui/material/TableContainer"
-import TableHead from "@mui/material/TableHead"
-import TablePagination from "@mui/material/TablePagination"
-import TableRow from "@mui/material/TableRow"
 import Tabs from "@mui/material/Tabs"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import * as React from "react"
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
-import {
-  General,
-  GeneralStat,
-  GeneralStats,
-  MatchInfo,
-  MatchupResult,
-  PlayerEnum,
-  PlayerEnumFromJSON,
-  Statistic,
-  Tournament,
-  TournamentReport,
-  TournamentResult,
-  WinLoss,
-} from "./api"
+import { PlayerEnum, PlayerEnumFromJSON } from "./api"
 import { Client } from "./Client"
-import { toGeneralName } from "./general_utils"
-import DisplayGeneral from "./Generals"
-import { DisplayMatchInfo } from "./Matches"
 
 interface TeamWinRating {
   [key: string]: number
@@ -268,7 +216,7 @@ export default function DisplayBalanceTeams() {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
     setSelectedTab(newValue)
-    if (newValue == "partitionTeams" && selectedPlayers.length < 6) {
+    if (newValue === "partitionTeams" && selectedPlayers.length < 6) {
       const allPlayers = players.filter((p) => p !== "HardArmy")
       setSelectedPlayers(allPlayers)
     }

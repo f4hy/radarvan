@@ -1,4 +1,4 @@
-import { DefaultApi, Configuration, DefaultConfig } from "./api"
+import { DefaultApi, Configuration } from "./api"
 
 function getConfig(): Configuration {
   // Using a framework-agnostic check for NODE_ENV

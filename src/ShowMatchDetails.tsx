@@ -23,26 +23,16 @@ import {
   ZAxis,
   Cell,
 } from "recharts"
-import { PlayerColor } from "./Colors"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import {
-  MatchDetails,
-  Spent,
-  Upgrades,
-  APM,
-  PlayerSummary,
-  FirstBlood,
-} from "./api"
+import { MatchDetails, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
 import { Alert, Stack } from "@mui/material"
 import Table from "@mui/material/Table"
-import Link from "@mui/material/Link"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
-import TablePagination from "@mui/material/TablePagination"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
 
@@ -287,7 +277,7 @@ function DisplayFirstBlood(props: {
   )
 }
 
-interface TableRow {
+interface StyledTableRow {
   player: string
   team: number
   won: boolean
@@ -314,7 +304,7 @@ function renderCash(value: number | null): string {
 }
 
 const columns: Array<{
-  key: keyof TableRow
+  key: keyof StyledTableRow
   label: string
   align?: "left" | "right" | "center"
   render?: (value: any) => React.ReactNode
@@ -375,7 +365,7 @@ const getColorHex = (colorName: string): string => {
 }
 
 function GameDetailsTable(props: { matchDetails: MatchDetails }) {
-  const [sortBy, setSortBy] = React.useState<null | keyof TableRow>(
+  const [sortBy, setSortBy] = React.useState<null | keyof StyledTableRow>(
     "moneyCollected",
   )
 
@@ -393,7 +383,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
     }
     return last[name]
   }
-  const data: TableRow[] = []
+  const data: StyledTableRow[] = []
   for (let s of summaries) {
     const row = {
       player: s.name,
@@ -432,7 +422,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
             {columns.map((column) => (
               <TableCell key={column.key} align={column.align}>
                 <TableSortLabel
-                  active={column.key == sortBy}
+                  active={column.key === sortBy}
                   direction={"desc"}
                   onClick={() => setSortBy(column.key)}
                 >
@@ -581,17 +571,17 @@ export default function ShowMatchDetails(props: { id: number }) {
       {buttonGroup}
       <Divider />
       <Typography>{selectedDisplay}</Typography>
-      {selectedDisplay == "Player Unit and spending breakdown" && (
+      {selectedDisplay === "Player Unit and spending breakdown" && (
         <ShowPlayerSummaries playerSummaries={details.playerSummary} />
       )}
-      {selectedDisplay == "Event Chart" && (
+      {selectedDisplay === "Event Chart" && (
         <EventChart
           upgrades={details.upgradeEvents}
           max={maxMinute}
           playerSummaries={details.playerSummary}
         />
       )}
-      {selectedDisplay == "Detailed Graphs" && (
+      {selectedDisplay === "Detailed Graphs" && (
         <DetailedGraphs details={details} />
       )}
     </Paper>

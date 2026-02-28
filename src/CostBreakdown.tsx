@@ -10,14 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import {
-  MatchDetails,
-  Spent,
-  Upgrades,
-  APM,
-  Costs,
-  CostsBuiltObject,
-} from "./api"
+import { Costs, CostsBuiltObject } from "./api"
 
 function formatCosts(data: CostsBuiltObject[], name: string) {
   const sorted = _.sortBy(data, (d) => -d.totalSpent)
@@ -29,7 +22,7 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
 }
 
 export default function CostBreakdown(props: { costs: Costs[] }) {
-  if (props.costs.length == 0) {
+  if (props.costs.length === 0) {
     return <></>
   }
   const building_data = props.costs.map((x) =>

@@ -44,7 +44,7 @@ export default function DisplayGeneral(props: { general: General }) {
       sx={{ width: "2rem", height: "2.1rem" }}
     />
   )
-  if (general == "UNRECOGNIZED") {
+  if (general === "UNRECOGNIZED") {
     general = null
     avatar = (
       <Avatar key={props.general} sx={{ width: "2rem", height: "2.1rem" }}>

@@ -2,7 +2,6 @@ import Box from "@mui/material/Box"
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
-import ThumbDownIcon from "@mui/icons-material/ThumbDown"
 import ErrorIcon from "@mui/icons-material/Error"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
@@ -14,7 +13,6 @@ import LinearProgress from "@mui/material/LinearProgress"
 import CardContent from "@mui/material/CardContent"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
-import Slider from "@mui/material/Slider"
 import Divider from "@mui/material/Divider"
 import ListItem from "@mui/material/ListItem"
 import ListItemText from "@mui/material/ListItemText"
@@ -43,23 +41,6 @@ function getMatches(date: Date, callback: (m: Matches) => void) {
   Client.getMatchesByDateApiMatchesByDateDateGet({ date: date })
     .then(callback)
     .catch((e) => alert(e))
-}
-
-function MatchCard(props: {
-  avatar: React.ReactNode
-  title: React.ReactNode
-  color: string
-}) {
-  return (
-    <Card sx={{ backgroundColor: props.color }}>
-      <CardHeader
-        sx={{ m: { md: 1, xs: 0 } }}
-        title={props.title}
-        avatar={props.avatar}
-        component="div"
-      />
-    </Card>
-  )
 }
 
 function playerNameStyle(player: Player) {
@@ -163,7 +144,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
   const teams = _.groupBy(props.match.players, "team")
 
   const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: "20px" }
-  const incomplete = (props.match.incomplete ?? "").length == 0
+  const incomplete = (props.match.incomplete ?? "").length === 0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
@@ -227,12 +208,6 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
 
 const empty = { matches: [] }
 
-function subtractHours(d: Date, hoursToSubtract: number): Date {
-  const shifted = new Date(d)
-  shifted.setHours(d.getHours() - hoursToSubtract)
-  return shifted
-}
-
 function Loading() {
   return (
     <Stack>
@@ -259,7 +234,7 @@ function DisplayMatchesForDate(props: {
     if (expanded && matchList.matches.length === 0) {
       getMatches(props.date, setMatchList)
     }
-  }, [expanded])
+  }, [expanded, matchList.matches.length, props.date])
 
   const handleChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -292,34 +267,6 @@ function DisplayMatchesForDate(props: {
         </AccordionDetails>
       </AccordionDetails>
     </Accordion>
-  )
-}
-
-interface YearRangePickerProps {
-  years: number[] // e.g. [2020, 2021, 2022, 2023, 2024, 2025, 2026]
-  value: [number, number]
-  onChange: (range: [number, number]) => void
-}
-
-function YearRangePicker({ years, value, onChange }: YearRangePickerProps) {
-  const min = Math.min(...years)
-  const max = Math.max(...years)
-
-  return (
-    <Box sx={{ px: 2, maxWidth: 400 }}>
-      <Typography gutterBottom>
-        Years: {value[0]} – {value[1]}
-      </Typography>
-      <Slider
-        value={value}
-        onChange={(_, newValue) => onChange(newValue as [number, number])}
-        min={min}
-        max={max}
-        step={1}
-        marks={years.map((y) => ({ value: y, label: String(y) }))}
-        valueLabelDisplay="auto"
-      />
-    </Box>
   )
 }
 
@@ -389,7 +336,7 @@ export default function DisplayMatches() {
                   showWeekdayLabels={["wed", "sat"]}
                   blockSize={10}
                   blockMargin={4}
-                  showColorLegend={idx == 0}
+                  showColorLegend={idx === 0}
                   labels={{
                     totalCount: "{{count}} team games in {{year}}",
                   }}
@@ -448,7 +395,7 @@ export default function DisplayMatches() {
             date={new Date(date)}
             count={count}
             idx={idx}
-            selected={date == selectedDate}
+            selected={date === selectedDate}
           />
         </div>
       ))}

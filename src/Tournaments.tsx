@@ -1,11 +1,4 @@
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-import ClearIcon from "@mui/icons-material/Clear"
-import CheckIcon from "@mui/icons-material/Check"
-import Accordion from "@mui/material/Accordion"
-import AccordionDetails from "@mui/material/AccordionDetails"
-import AccordionSummary from "@mui/material/AccordionSummary"
 import Table from "@mui/material/Table"
-import Link from "@mui/material/Link"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import TableBody from "@mui/material/TableBody"
@@ -13,7 +6,6 @@ import TableCell from "@mui/material/TableCell"
 import Box from "@mui/material/Box"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
-import TablePagination from "@mui/material/TablePagination"
 import TableRow from "@mui/material/TableRow"
 import Button from "@mui/material/Button"
 import Stack from "@mui/material/Stack"
@@ -21,8 +13,7 @@ import Skeleton from "@mui/material/Skeleton"
 import LinearProgress from "@mui/material/LinearProgress"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
-import Grid from "@mui/material/Grid"
-import { ButtonGroup, Chip, Tooltip as MuiTooltip } from "@mui/material"
+import { Chip, Tooltip as MuiTooltip } from "@mui/material"
 import * as React from "react"
 import {
   Bar,
@@ -34,21 +25,15 @@ import {
   YAxis,
   Legend,
 } from "recharts"
-import DisplayGeneral from "./Generals"
 import {
-  General,
-  GeneralStat,
-  GeneralStats,
   Tournament,
   TournamentResult,
   MatchupResult,
   WinLoss,
   MatchInfo,
-  Statistic,
   TournamentReport,
 } from "./api"
 import { Client } from "./Client"
-import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from "./Matches"
 
@@ -142,7 +127,7 @@ function DisplayOverrideBanner(props: { override: string | undefined | null }) {
 }
 
 function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
-  if (props.matches.length == 0) {
+  if (props.matches.length === 0) {
     return (
       <Typography color="warning.main" style={{ fontWeight: "bold" }}>
         No recorded matches to show
@@ -449,10 +434,10 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   const search = window.location.search
   const params = new URLSearchParams(search)
   const debug = !!params.get("debug")
-  const show = props.result.complete == true || debug
+  const show = props.result.complete === true || debug
   React.useEffect(() => {
     getTournamentReport(props.result.tournament.name, setTournamentStats)
-  }, [])
+  }, [props.result.tournament.name])
 
   if (!show) {
     return (

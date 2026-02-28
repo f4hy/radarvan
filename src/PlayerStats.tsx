@@ -10,21 +10,17 @@ import ListItemAvatar from "@mui/material/ListItemAvatar"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
-import _ from "lodash"
 import * as React from "react"
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { GeneralWL, Faction, factionFromJSON, DateMessage } from "./proto/match"
 import { toGeneralName } from "./general_utils"
 
 import {
@@ -34,7 +30,6 @@ import {
   PlayerStat,
   PlayerStats,
   WinLoss,
-  PlayerRateOverTime,
 } from "./api"
 import { Client } from "./Client"
 
@@ -70,59 +65,6 @@ function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
     </ListItem>
   )
 }
-function pad(n: number): string {
-  return n.toString().padStart(2, "0")
-}
-
-function datemsgtoString(datemsg: DateMessage | undefined) {
-  if (datemsg) {
-    return `${datemsg.Year}-${pad(datemsg.Month)}-${pad(datemsg.Day)}`
-  }
-  return "unknown"
-}
-
-function rate(wl: WinLoss | undefined): number {
-  if (wl) {
-    return (100 * wl.wins) / (wl.losses + wl.wins)
-  }
-  return 0
-}
-
-function GeneralStatOverTime(props: { ot: PlayerRateOverTime[] }) {
-  const grouped = Object.entries(_.groupBy(props.ot, (x) => x.wl?.general))
-  return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Grid container rowSpacing={3}>
-        {grouped.map(([g, data]) => (
-          <Grid item xs={12} lg={3}>
-            <DisplayGeneral general={toGeneral(g)} />
-            <ResponsiveContainer width="99%" height={150}>
-              <LineChart
-                data={data.map((d) => ({
-                  date: d.date,
-                  rate: rate(d.wl?.winLoss),
-                }))}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" type="category" />
-                <YAxis domain={[0, 100]} type="number" />
-                <Tooltip formatter={(v) => (v as number).toFixed(2) + "%"} />
-                <Line dataKey="rate" strokeWidth={3} />
-              </LineChart>
-            </ResponsiveContainer>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  )
-}
-
 function DisplayPlayerStat(props: {
   stat: PlayerStat
   max: number

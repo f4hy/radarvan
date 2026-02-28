@@ -16,7 +16,7 @@ import {
   YAxis,
 } from "recharts"
 import DisplayGeneral from "./Generals"
-import { General, GeneralStat, GeneralStats } from "./api"
+import { GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
@@ -76,7 +76,7 @@ function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
     return {
       wins: x.wins,
       losses: x.losses,
-      name: "winrate" + ":" + rate.toFixed() + "%",
+      name: "winrate:" + rate.toFixed() + "%",
     }
   })
   return (

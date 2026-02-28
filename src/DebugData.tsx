@@ -2,18 +2,8 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import Button from "@mui/material/Button"
 import DownloadIcon from "@mui/icons-material/Download"
 import FormGroup from "@mui/material/FormGroup"
-import FormControlLabel from "@mui/material/FormControlLabel"
 import Stack from "@mui/material/Stack"
-import Switch from "@mui/material/Switch"
-import Skeleton from "@mui/material/Skeleton"
-import LinearProgress from "@mui/material/LinearProgress"
 import Box from "@mui/material/Box"
-import Divider from "@mui/material/Divider"
-import Grid from "@mui/material/Grid"
-import List from "@mui/material/List"
-import ListItem from "@mui/material/ListItem"
-import ListItemAvatar from "@mui/material/ListItemAvatar"
-import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import {
   Accordion,
@@ -22,25 +12,9 @@ import {
   TextField,
 } from "@mui/material"
 import Typography from "@mui/material/Typography"
-import _ from "lodash"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
-import DisplayGeneral from "./Generals"
-import { GeneralWL, Faction, factionFromJSON, DateMessage } from "./proto/match"
-import { toGeneralName } from "./general_utils"
-
-import {
-  General,
-  GeneralFromJSON,
-  instanceOfGeneral,
-  PlayerStat,
-  PlayerStats,
-  WinLoss,
-  PlayerRateOverTime,
-  GameRecord,
-  MatchListing,
-  PlayerListing,
-} from "./api"
+import { GameRecord } from "./api"
 import { Client } from "./Client"
 import Table from "@mui/material/Table"
 import Link from "@mui/material/Link"
@@ -48,10 +22,7 @@ import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
-import TablePagination from "@mui/material/TablePagination"
 import TableRow from "@mui/material/TableRow"
-import TableSortLabel from "@mui/material/TableSortLabel"
-import Toolbar from "@mui/material/Toolbar"
 import Tooltip from "@mui/material/Tooltip"
 import { IconButton } from "@mui/material"
 
@@ -277,18 +248,6 @@ function JsonDisplay({ data }: { data: any }) {
         </Box>
       ))}
     </Box>
-  )
-}
-
-function Loading() {
-  return (
-    <Stack>
-      <LinearProgress />
-      <Stack direction="row">
-        <Skeleton variant="rectangular" height={150} />
-        <Skeleton variant="rectangular" height={150} />
-      </Stack>
-    </Stack>
   )
 }
 
