@@ -11,7 +11,7 @@ print("!!", constring)
 db_manager = DatabaseManager(constring)
 
 
-def restore_replay_files():
+def restore_replay_files() -> None:
     replay_dump_path = Path("./file_dump.json")
     if not replay_dump_path.exists():
         return
@@ -30,7 +30,7 @@ def restore_replay_files():
         session.commit()
 
 
-def restore_jsons():
+def restore_jsons() -> None:
     replay_dump_path = Path("./replay_json_dump.json")
     if not replay_dump_path.exists():
         return
@@ -50,7 +50,7 @@ def restore_jsons():
         session.commit()
 
 
-def setup_database():
+def setup_database() -> None:
     """Run this once to set up your database."""
 
     # Drop all

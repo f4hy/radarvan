@@ -7,25 +7,25 @@ from pydantic import BaseModel, Field, RootModel
 from typing import Annotated, Literal
 
 
-class ByteArray2(RootModel):
+class ByteArray2(RootModel[list[int]]):
     """Array of exactly 2 bytes (0-255)"""
 
     root: Annotated[list[int], Field(min_length=2, max_length=2)]
 
 
-class ByteArray4(RootModel):
+class ByteArray4(RootModel[list[int]]):
     """Array of exactly 4 bytes (0-255)"""
 
     root: Annotated[list[int], Field(min_length=4, max_length=4)]
 
 
-class ByteArray8(RootModel):
+class ByteArray8(RootModel[list[int]]):
     """Array of exactly 8 bytes (0-255)"""
 
     root: Annotated[list[int], Field(min_length=8, max_length=8)]
 
 
-class ByteArray12(RootModel):
+class ByteArray12(RootModel[list[int]]):
     """Array of exactly 12 bytes (0-255)"""
 
     root: Annotated[list[int], Field(min_length=12, max_length=12)]
@@ -42,7 +42,7 @@ class ScreenPosition(BaseModel):
     Y: int
 
 
-class ScreenRectangle(RootModel):
+class ScreenRectangle(RootModel[list[ScreenPosition]]):
     """Array of exactly 2 ScreenPosition objects"""
 
     root: Annotated[list[ScreenPosition], Field(min_length=2, max_length=2)]

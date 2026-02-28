@@ -3,9 +3,11 @@ from fastapi.responses import JSONResponse
 from . import notify
 
 
-def setup_error_handling(app: FastAPI):
+def setup_error_handling(app: FastAPI) -> None:
     @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception):
+    async def global_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         notify.notify(f"Unhandled Exception {request.url.path} {exc!r}")
         return JSONResponse(
             status_code=500,

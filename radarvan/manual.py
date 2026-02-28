@@ -19,7 +19,7 @@ bill = "131_5211058E5C33"
 
 s3_root = "s3://generals-stats/radarvan/dev/"
 
-REPLAYS = []
+REPLAYS: list[str] = []
 
 if os.getenv("DEV"):
     REPLAYS = REPLAYS[:10]
@@ -30,7 +30,7 @@ def get_fs() -> fsspec.AbstractFileSystem():
     return fsspec.filesystem("s3")
 
 
-def test_connection():
+def test_connection() -> None:
     fs = get_fs()
     fs.write_text(f"{s3_root}test.txt", "test")
     listing = fs.ls(s3_root)

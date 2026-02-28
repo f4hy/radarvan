@@ -408,7 +408,7 @@ def get_team_games_without_winner(
 ) -> list[dict[str, Any]]:
     """Return match IDs and dates for team games with no winner (winning_team=0)."""
     all_matches = sorted_deduped_matches(replay_manager)
-    games_with_no_winner= [
+    games_with_no_winner = [
         {"match_id": m.id, "date": m.date}
         for m in all_matches.values()
         if m.composition is not None
@@ -416,7 +416,11 @@ def get_team_games_without_winner(
         and m.composition.num_teams == 2
         and m.composition.num_humans > 2
         and m.winning_team == Team.NONE
-        and (m.incomplete == "" or m.incomplete is None or "no team" in m.incomplete.lower())
+        and (
+            m.incomplete == ""
+            or m.incomplete is None
+            or "no team" in m.incomplete.lower()
+        )
     ]
     # if os.getenv("DEV"):
     # for g in games_with_no_winner:
@@ -716,7 +720,7 @@ def fix_unk_players(
 def replays_without_playerstats(
     max_to_return: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-):  # Generator return type - FastAPI streams this
+) -> Generator[dict[str, Any]]:  # Generator return type - FastAPI streams this
     missing_player_stats = replay_manager.list_jsons_without_player_stats(max_to_return)
     for row in missing_player_stats:
         yield {

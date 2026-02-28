@@ -37,7 +37,7 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     beginners = {"EnragedFerret"}
     # casual = {"Neo"}
     casual: set[str] = set()
-    experienced: set[str] = set(["WildCard", "Tytan", "Gorn"])
+    experienced: set[str] = set("WildCard", "Tytan", "Gorn")
     expert = {"[OoE]Excal^"}
 
     if name in beginners:

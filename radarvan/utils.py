@@ -1,6 +1,8 @@
 """Shared logic about replay computing."""
 
 import datetime
+from collections.abc import Callable
+from typing import Any, cast
 from .api_types import Player, General, Team
 from .cncstats_types import EnhancedReplay, PlayerSummary, Player as HeaderPlayer
 import logging
@@ -10,13 +12,13 @@ import functools
 logger = logging.getLogger(__name__)
 
 
-def log_duration(func):
+def log_duration[F: Callable[..., Any]](func: F) -> F:
     """
     A decorator that logs the execution duration of the decorated function.
     """
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
@@ -24,7 +26,7 @@ def log_duration(func):
         logger.info(f"Function '{func.__name__}' executed in {duration:.4f} seconds.")
         return result
 
-    return wrapper
+    return cast(F, wrapper)
 
 
 def duration_minutes(replay: EnhancedReplay) -> float:

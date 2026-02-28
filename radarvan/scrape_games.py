@@ -1,4 +1,5 @@
 from .db_utils import DatabaseManager, ReplayManager
+from typing import Any
 import asyncio
 import httpx
 from bs4 import BeautifulSoup
@@ -37,7 +38,7 @@ async def get_url(url: str) -> httpx.Response:
     return response
 
 
-def generate_directories(n_days, base_path="."):
+def generate_directories(n_days: int, base_path: str = ".") -> Any:
     """
     Generate directory structure for the last N days.
 
@@ -77,7 +78,7 @@ def generate_directories(n_days, base_path="."):
     return reversed(created_dirs)
 
 
-async def matching_links(base_url: str, patterns: list[str]):
+async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
     """
     Download files from an Apache directory listing that match a pattern.
 
@@ -161,7 +162,7 @@ async def get_replay_urls(
     days: int,
     base: str,
     replay_manager: ReplayManager,
-):
+) -> list[Any]:
     existing_paths = replay_manager.already_scraped()
     all_paths = await search_dates(days, base)
     all_replay_paths = []

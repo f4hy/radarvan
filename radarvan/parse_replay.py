@@ -32,7 +32,7 @@ def reassign_1v1_teams(players: list[Player]) -> list[Player]:
 
 
 def parse_replay_data(
-    data: bytes, replay_manager: ReplayManager, debug=False
+    data: bytes, replay_manager: ReplayManager, debug: bool = False
 ) -> EnhancedReplay:
     logger.info("Calling cncstats to parse replay")
     response = httpx.post(PARSE_URL, files={"file": data}, timeout=30)
