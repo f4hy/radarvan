@@ -587,7 +587,9 @@ def set_override(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> WinnerOverride:
     """Set a winner override for a match."""
-    saved = replay_manager.set_override(match_id, winner=winner.value if winner else None)
+    saved = replay_manager.set_override(
+        match_id, winner=winner.value if winner else None
+    )
     return WinnerOverride(
         match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
     )
@@ -764,7 +766,7 @@ def get_player_ratings(
     )
 
 
-PlayerEnum = Enum(
+PlayerEnum = Enum(  # type: ignore[misc]
     "PlayerEnum", {v.upper(): v for v in player_ids.PLAYER_NAMES}, type=str
 )
 

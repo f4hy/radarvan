@@ -134,7 +134,8 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
     winner = db_match.winning_team_id
     c = db_match.composition
     comp = GameComposition.model_validate(c, from_attributes=True) if c else None
-    assert db_match.replay_json is not None
+    if db_match.replay_json is None:
+        raise ValueError(f"Match {db_match.match_id} has no associated replay JSON")
     return MatchInfo(
         id=db_match.match_id,
         timestamp=db_match.timestamp,
@@ -217,7 +218,8 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     constring = os.getenv("DATABASE_URL")
-    assert constring is not None
+    if constring is None:
+        raise RuntimeError("DATABASE_URL environment variable is not set")
     print("!!", constring)
     db_manager = DatabaseManager(constring)
     with db_manager.SessionLocal() as session:

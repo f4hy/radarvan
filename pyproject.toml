@@ -23,6 +23,7 @@ dependencies = [
 dev = [
   "alembic>=1.17.2",
   "beautifulsoup4>=4.14.2",
+  "boto3-stubs[s3]>=1.42.59",
   "click>=8.3.0",
   "mypy>=1.18.2",
   "pylsp-mypy>=0.7.0",
@@ -33,6 +34,7 @@ dev = [
   "s3cmd>=2.4.0",
   "sqlalchemy[mypy]>=2.0.0",
   "tqdm>=4.67.1",
+  "boto3-stubs[s3]>=1.42.0",
   "types-cachetools>=6.2.0.20250827",
   "types-tqdm>=4.67.0.20250809",
 ]
@@ -167,11 +169,13 @@ pretty = true
 
 # Per-module overrides
 [[tool.mypy.overrides]]
-# Third-party libraries without complete type stubs
+# Third-party libraries without type stubs or py.typed marker
 module = [
     "uvicorn.*",
     "alembic.*",
-    # Add other untyped libraries as needed
+    "fsspec.*",   # no stubs available: https://github.com/fsspec/filesystem_spec/issues/451
+    "s3fs.*",     # built on fsspec, no stubs
+    "apscheduler.*",  # no stubs available
 ]
 ignore_missing_imports = true
 

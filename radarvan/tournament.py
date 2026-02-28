@@ -378,9 +378,13 @@ def building_stats(matches: list[MatchDetails]) -> list[Statistic]:
 
 def earlest_first_blood(matches: list[MatchDetails]) -> Statistic:
     earliest = min(
-        (m for m in matches if m.first_blood), key=lambda x: x.first_blood.atMinute  # type: ignore[union-attr]
+        (m for m in matches if m.first_blood),
+        key=lambda x: x.first_blood.atMinute,  # type: ignore[union-attr]
     )
-    assert earliest.first_blood is not None
+    if earliest.first_blood is None:
+        raise RuntimeError(
+            "earliest match has no first_blood despite being filtered for it"
+        )
     return Statistic(
         stat_name="Earliest First Blood",
         value=f"{earliest.first_blood.atMinute:.2f}m",

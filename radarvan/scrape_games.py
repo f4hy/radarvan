@@ -181,7 +181,8 @@ if __name__ == "__main__":
     pattern = "09BAC013F91C"
     logging.basicConfig(level=logging.INFO)
     conn_str = os.getenv("DATABASE_URL")
-    assert conn_str is not None
+    if conn_str is None:
+        raise RuntimeError("DATABASE_URL environment variable is not set")
     db_manager = DatabaseManager(conn_str)
     with db_manager.get_session() as session:
         replay_manager = ReplayManager(session)

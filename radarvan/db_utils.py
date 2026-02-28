@@ -361,9 +361,7 @@ class ReplayManager:
         overrides = self.session.execute(stmt).scalars().all()
         return {o.match_id: o for o in overrides}
 
-    def set_override(
-        self, match_id: int, winner: int | None
-    ) -> WinnerOverride:
+    def set_override(self, match_id: int, winner: int | None) -> WinnerOverride:
         """Get winner overrides."""
         logger.info(f"Setting override {match_id} {winner}")
 
