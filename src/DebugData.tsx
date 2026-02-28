@@ -191,6 +191,56 @@ function DisplayDataTable(props: {
   )
 }
 
+function JsonDisplay({ data }: { data: any }) {
+  if (data === null || data === undefined) {
+    return <Typography variant="body2" color="text.secondary" component="span">null</Typography>
+  }
+  if (typeof data !== "object") {
+    return <Typography variant="body2" component="span">{String(data)}</Typography>
+  }
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return <Typography variant="body2" color="text.secondary" component="span">[]</Typography>
+    }
+    return (
+      <Box sx={{ pl: 1 }}>
+        {data.map((item, i) => (
+          <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "flex-start", py: 0.25 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 30, flexShrink: 0, pt: 0.3 }}>
+              [{i}]
+            </Typography>
+            <Box sx={{ borderLeft: "2px solid", borderColor: "divider", pl: 1 }}>
+              <JsonDisplay data={item} />
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    )
+  }
+  const entries = Object.entries(data)
+  if (entries.length === 0) {
+    return <Typography variant="body2" color="text.secondary" component="span">{"{}"}</Typography>
+  }
+  return (
+    <Box>
+      {entries.map(([key, value]) => (
+        <Box key={key} sx={{ display: "flex", gap: 1, alignItems: "flex-start", py: 0.25 }}>
+          <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 180, flexShrink: 0 }}>
+            {key}:
+          </Typography>
+          {typeof value === "object" && value !== null ? (
+            <Box sx={{ borderLeft: "2px solid", borderColor: "divider", pl: 1 }}>
+              <JsonDisplay data={value} />
+            </Box>
+          ) : (
+            <Typography variant="body2" component="span">{String(value)}</Typography>
+          )}
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
 function Loading() {
   return (
     <Stack>
@@ -206,6 +256,7 @@ function Loading() {
 export default function DisplayDebugData() {
   const [debugData, setDebugData] = React.useState<GameRecord[]>([])
   const [matchDebugData, setMatchDebugData] = React.useState<{ [key: string]: any; }>(({}))
+  const [jsonDownloadUrl, setJsonDownloadUrl] = React.useState<string | null>(null)
   const [matchId, setMatchId] = React.useState<string | null>(null);
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
@@ -221,6 +272,10 @@ export default function DisplayDebugData() {
       if (!isNaN(num)) {
         getGameData(num, setDebugData)
         getDebugData(num, setMatchDebugData)
+        setJsonDownloadUrl(null)
+        Client.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
+          .then((result) => setJsonDownloadUrl(result["url"]))
+          .catch((e) => alert(e))
       }
     }
 
@@ -247,6 +302,15 @@ export default function DisplayDebugData() {
           submit
         </Button>
       </FormGroup>
+      {jsonDownloadUrl && (
+        <Box sx={{ p: 1 }}>
+          <DownloadButton
+            url={jsonDownloadUrl}
+            title="Download full parsed replay JSON"
+            text="Download Parsed JSON"
+          />
+        </Box>
+      )}
       <DisplayDataTable data={debugData} />
       {
         Object.entries(matchDebugData).map(([name, data]) => (
@@ -261,9 +325,7 @@ export default function DisplayDebugData() {
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography>
-                  {JSON.stringify(data)}
-                </Typography>
+                <JsonDisplay data={data} />
               </AccordionDetails>
             </Accordion>
           </Stack>
