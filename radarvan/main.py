@@ -483,7 +483,7 @@ def get_replay_by_url(
     replay = replay_manager.get_replay_file(url_of_replay)
     if not replay:
         return {}
-    return {"original_url": replay.original_url, "status": replay.status}
+    return {"original_url": replay.original_url, "status": replay.status.value}
 
 
 def empty_match_details(match_id: int) -> MatchDetails:
@@ -587,7 +587,7 @@ def set_override(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> WinnerOverride:
     """Set a winner override for a match."""
-    saved = replay_manager.set_override(match_id, winner=winner or None)
+    saved = replay_manager.set_override(match_id, winner=winner.value if winner else None)
     return WinnerOverride(
         match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
     )
@@ -629,8 +629,6 @@ def update_num_timestamps(
     missing_timestamp_count = replay_manager.list_jsons_without_num_timestamps()
     updated = 0
     for missing in missing_timestamp_count:
-        if missing.json_s3_uri is None:
-            continue
         replay = replay_files.parse_replay(missing.replay_file_url, replay_manager)
         num_time_stamps = replay.Header.NumTimeStamps
         has_enhanced_stats = any(chunk.PlayerStats is not None for chunk in replay.Body)
@@ -658,8 +656,6 @@ def update_matches_missing_data(
     logger.info(f"{len(missing_game_version)=}")
     updated_count = 0
     for missing in missing_game_version:
-        if missing.json_s3_uri is None or missing.match_id is None:
-            continue
         replay = replay_files.parse_json(missing.json_s3_uri)
         game_version = replay.Header.Version.lower().replace("version", "").strip()
         existing = replay_manager.get_match(missing.match_id)
@@ -686,8 +682,6 @@ def fix_incomplete(
     logger.info(f"{len(winner_but_incomplete)=} ")
     updated_count = 0
     for need_fix, has_stats in winner_but_incomplete:
-        if need_fix.match_id is None:
-            continue
         logger.info(need_fix.incomplete)
         logger.info(f"{need_fix.winning_team_id=}  {has_stats}")
         matches.reparse_replay(need_fix.match_id, replay_manager)

@@ -22,7 +22,7 @@ s3_root = "s3://generals-stats/radarvan/dev/"
 
 
 @cache
-def get_fs() -> fsspec.AbstractFileSystem():
+def get_fs() -> fsspec.AbstractFileSystem:
     return fsspec.filesystem("s3")
 
 
@@ -44,7 +44,7 @@ def presigned_url(s3_path: str) -> str:
         ExpiresIn=3600,
     )
 
-    return url
+    return str(url)
 
 
 def test_connection() -> None:
@@ -116,14 +116,17 @@ def reparse(
     existing = replay_manager.get_replay_json_by_match_id(match_id)
     logger.info(f"Existing {existing=}")
 
+    if existing is None:
+        return None
+
     json_path = existing.json_s3_uri
     original_path = existing.replay_file_url
     replay_path = existing.replay_file.s3_uri
 
     fs = get_fs()
     existing_data = fs.read_text(json_path)
-    existing = EnhancedReplay.model_validate_json(existing_data)
-    if utils.duration_minutes(existing) < 2.0:
+    existing_replay = EnhancedReplay.model_validate_json(existing_data)
+    if utils.duration_minutes(existing_replay) < 2.0:
         logger.warning("Too short, skipping")
         return None
 
@@ -131,7 +134,7 @@ def reparse(
     parsed_replay = parse_replay_data(raw_replay, replay_manager)
     parsed_replay.Header.FileName = original_path
 
-    if existing == parsed_replay and not force:
+    if existing_replay == parsed_replay and not force:
         logger.warning("No change in replay, not resaving")
         return None
 

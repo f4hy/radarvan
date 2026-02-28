@@ -265,8 +265,7 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
             continue
         d = s.model_dump()
         d["Color"] = color_map.get(s.Name, "black").lower().replace("color", "")
-        APIPlayerSummary.model_validate(d)
-        player_summaries.append(d)
+        player_summaries.append(APIPlayerSummary.model_validate(d))
     return player_summaries
 
 

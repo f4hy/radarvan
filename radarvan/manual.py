@@ -26,7 +26,7 @@ if os.getenv("DEV"):
 
 
 @cache
-def get_fs() -> fsspec.AbstractFileSystem():
+def get_fs() -> fsspec.AbstractFileSystem:
     return fsspec.filesystem("s3")
 
 

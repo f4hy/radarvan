@@ -99,7 +99,7 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
     links = []
     for link in soup.find_all("a", href=True):
         # print("link?", link)
-        href = link["href"]
+        href = str(link["href"])
 
         if href in ["../", "../"]:
             continue
@@ -137,7 +137,7 @@ async def get_player_dirs(root: str) -> list[str]:
     return player_dirs
 
 
-async def search_dates(days: int, base: str) -> list[str]:
+async def search_dates(days: int, base: str) -> list[list[str]]:
     dir_list_coro = []
     for d in generate_directories(days):
         date_path = f"{base}{d}/"
@@ -148,7 +148,7 @@ async def search_dates(days: int, base: str) -> list[str]:
     return dir_lists
 
 
-async def search_replays(urls_to_list: str) -> list[str]:
+async def search_replays(urls_to_list: list[str]) -> list[list[str]]:
     dir_list_coro = []
     for url in urls_to_list:
         logger.info(f"Searching {url}")
@@ -181,6 +181,7 @@ if __name__ == "__main__":
     pattern = "09BAC013F91C"
     logging.basicConfig(level=logging.INFO)
     conn_str = os.getenv("DATABASE_URL")
+    assert conn_str is not None
     db_manager = DatabaseManager(conn_str)
     with db_manager.get_session() as session:
         replay_manager = ReplayManager(session)

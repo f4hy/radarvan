@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
-    general_stats: dict[str, GeneralStat] = {}
+    general_stats: dict[General, GeneralStat] = {}
     cpu_names = {"cpu", "hardarmy"}
     for game in games:
         if game.incomplete or game.winning_team < 1:

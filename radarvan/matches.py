@@ -1,6 +1,5 @@
 """Get match info from a replay."""
 
-from collections.abc import Iterator
 from .log_time import log_time
 import logging
 import os
@@ -135,6 +134,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
     winner = db_match.winning_team_id
     c = db_match.composition
     comp = GameComposition.model_validate(c, from_attributes=True) if c else None
+    assert db_match.replay_json is not None
     return MatchInfo(
         id=db_match.match_id,
         timestamp=db_match.timestamp,
@@ -151,7 +151,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
     )
 
 
-def register_matches(replay_manager: ReplayManager) -> Iterator[MatchInfo]:
+def register_matches(replay_manager: ReplayManager) -> None:
     replay_jsons = replay_manager.list_jsons()
     matches = {m.match_id: m for m in replay_manager.list_matches(0.0)}
     for j in replay_jsons:
@@ -217,6 +217,7 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     constring = os.getenv("DATABASE_URL")
+    assert constring is not None
     print("!!", constring)
     db_manager = DatabaseManager(constring)
     with db_manager.SessionLocal() as session:

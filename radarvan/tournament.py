@@ -78,7 +78,7 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
             continue
         team_map[p.team].add(player_name_map(p.name))
 
-    teams = {sorted_tuple(t) for t in team_map.values()}
+    teams = {sorted_tuple(list(t)) for t in team_map.values()}
 
     if len(team_map) != 2:
         return None
@@ -88,6 +88,7 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
             continue
         if teams.issubset(set(tournament.teams)):
             return tournament.name
+    return None
 
 
 def tournament_games(matches: list[MatchInfo]) -> dict[str, list[MatchInfo]]:
@@ -106,7 +107,7 @@ def tournament_games(matches: list[MatchInfo]) -> dict[str, list[MatchInfo]]:
     return games
 
 
-def winning_team(m: MatchInfo, tournament: Tournament) -> frozenset[str]:
+def winning_team(m: MatchInfo, tournament: Tournament) -> tuple[str, ...]:
     for p in m.players:
         if p.team == m.winning_team:
             for team in tournament.teams:
@@ -172,7 +173,7 @@ def create_tournament_results(
 
             # Count wins/losses for each team in this specific matchup
             for match in matchup_matches:
-                teams_in_match: dict[Team, set[str]] = {}
+                teams_in_match = {}
                 for player in match.players:
                     if player.team == Team.OBSERVER:
                         continue
@@ -270,7 +271,7 @@ def highest_apm(matches: list[MatchDetails]) -> Statistic:
     )
 
 
-def highest_ave_apm(matches: list[MatchDetails]) -> list[Statistic]:
+def highest_ave_apm(matches: list[MatchDetails]) -> Statistic:
     player_apms: dict[str, list[float]] = defaultdict(list)
     for m in matches:
         if not m.apms:
@@ -377,8 +378,9 @@ def building_stats(matches: list[MatchDetails]) -> list[Statistic]:
 
 def earlest_first_blood(matches: list[MatchDetails]) -> Statistic:
     earliest = min(
-        (m for m in matches if m.first_blood), key=lambda x: x.first_blood.atMinute
+        (m for m in matches if m.first_blood), key=lambda x: x.first_blood.atMinute  # type: ignore[union-attr]
     )
+    assert earliest.first_blood is not None
     return Statistic(
         stat_name="Earliest First Blood",
         value=f"{earliest.first_blood.atMinute:.2f}m",
@@ -490,9 +492,9 @@ def slowest_win(matches: list[MatchInfo]) -> Statistic:
 
 def group_by_team(
     tournament_name: str, matches: list[MatchInfo]
-) -> dict[tuple[str, str], list[MatchInfo]]:
+) -> dict[tuple[str, ...], list[MatchInfo]]:
     teams = TOURNAMENT_MAP[tournament_name].teams
-    grouped: dict[tuple[str, str], list[MatchInfo]] = defaultdict(list)
+    grouped: dict[tuple[str, ...], list[MatchInfo]] = defaultdict(list)
     for m in matches:
         player_names = {player_name_map(p.name) for p in m.players if p.team > 0}
         for team in teams:

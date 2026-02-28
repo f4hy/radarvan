@@ -8,7 +8,6 @@ from sqlalchemy.orm import sessionmaker, Session, joinedload
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from .notify import notify
-from typing import Literal
 from .db import (
     Base,
     ReplayFile,
@@ -363,7 +362,7 @@ class ReplayManager:
         return {o.match_id: o for o in overrides}
 
     def set_override(
-        self, match_id: int, winner: Literal[1, 2, 3, 4, -1] | None
+        self, match_id: int, winner: int | None
     ) -> WinnerOverride:
         """Get winner overrides."""
         logger.info(f"Setting override {match_id} {winner}")
