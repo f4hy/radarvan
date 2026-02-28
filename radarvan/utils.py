@@ -136,12 +136,14 @@ def players_from_replay(replay: EnhancedReplay) -> list[Player]:
         color = p.Color.lower().replace("color", "")
         team = determine_team(p, player_summary=summaries.get(p.Name))
         faction = determin_general(p, player_summary=summaries.get(p.Name))
+        summary = summaries.get(p.Name)
         players.append(
             Player(
                 name=p.Name or "CPU",
                 general=faction,
                 team=team,
                 color=color,
+                won=summary.Win if summary else False,
             )
         )
     return players

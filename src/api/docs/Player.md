@@ -10,6 +10,7 @@ Name | Type
 `general` | [General](General.md)
 `team` | [Team](Team.md)
 `color` | string
+`won` | boolean
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "general": null,
   "team": null,
   "color": null,
+  "won": null,
 } satisfies Player
 
 console.log(example)

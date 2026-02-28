@@ -100,7 +100,7 @@ export interface MatchInfo {
      * @type {string}
      * @memberof MatchInfo
      */
-    notes: string;
+    notes?: string;
     /**
      * 
      * @type {string}
@@ -129,7 +129,6 @@ export function instanceOfMatchInfo(value: object): value is MatchInfo {
     if (!('players' in value) || value['players'] === undefined) return false;
     if (!('durationMinutes' in value) || value['durationMinutes'] === undefined) return false;
     if (!('filename' in value) || value['filename'] === undefined) return false;
-    if (!('notes' in value) || value['notes'] === undefined) return false;
     return true;
 }
 
@@ -152,7 +151,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'durationMinutes': json['duration_minutes'],
         'filename': json['filename'],
         'incomplete': json['incomplete'] == null ? undefined : json['incomplete'],
-        'notes': json['notes'],
+        'notes': json['notes'] == null ? undefined : json['notes'],
         'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
         'composition': json['composition'] == null ? undefined : GameCompositionFromJSON(json['composition']),
     };

@@ -109,7 +109,7 @@ def tournament_games(matches: list[MatchInfo]) -> dict[str, list[MatchInfo]]:
 
 def winning_team(m: MatchInfo, tournament: Tournament) -> tuple[str, ...]:
     for p in m.players:
-        if p.team == m.winning_team:
+        if p.won:
             for team in tournament.teams:
                 if player_name_map(p.name) in team:
                     return team
@@ -174,16 +174,19 @@ def create_tournament_results(
             # Count wins/losses for each team in this specific matchup
             for match in matchup_matches:
                 teams_in_match = {}
+                player_won: dict[str, bool] = {}
                 for player in match.players:
                     if player.team == Team.OBSERVER:
                         continue
                     if player.team not in teams_in_match:
                         teams_in_match[player.team] = set()
-                    teams_in_match[player.team].add(player_name_map(player.name))
+                    name = player_name_map(player.name)
+                    teams_in_match[player.team].add(name)
+                    player_won[name] = player.won
 
                 for team_enum, player_set in teams_in_match.items():
                     team_tuple = tuple(sorted(player_set))
-                    if team_enum == match.winning_team:
+                    if any(player_won.get(name, False) for name in player_set):
                         outcome[team_tuple].wins += 1
                         team_records[team_tuple].wins += 1
                     else:
@@ -294,10 +297,7 @@ def faction_stats(matches: list[MatchInfo]) -> list[Statistic]:
         Counter(p.general for m in matches for p in m.players if p.team > 0) + all_zeros
     )
     generals_won = (
-        Counter(
-            p.general for m in matches for p in m.players if p.team == m.winning_team
-        )
-        + all_zeros
+        Counter(p.general for m in matches for p in m.players if p.won) + all_zeros
     )
 
     most_played, most_count = generals_played.most_common(1)[0]
@@ -456,15 +456,9 @@ def min_max_stats(matches: list[MatchDetails]) -> list[Statistic]:
 
 def fastest_win(matches: list[MatchInfo]) -> Statistic:
     fastest = min((m for m in matches), key=lambda x: x.duration_minutes)
-    winners = [
-        player_name_map(p.name)
-        for p in fastest.players
-        if p.team == fastest.winning_team
-    ]
+    winners = [player_name_map(p.name) for p in fastest.players if p.won]
     losers = [
-        player_name_map(p.name)
-        for p in fastest.players
-        if p.team != fastest.winning_team and p.team > 0
+        player_name_map(p.name) for p in fastest.players if not p.won and p.team > 0
     ]
     return Statistic(
         stat_name="Fastest win",
@@ -476,15 +470,9 @@ def fastest_win(matches: list[MatchInfo]) -> Statistic:
 
 def slowest_win(matches: list[MatchInfo]) -> Statistic:
     slowest = max((m for m in matches), key=lambda x: x.duration_minutes)
-    winners = [
-        player_name_map(p.name)
-        for p in slowest.players
-        if p.team == slowest.winning_team
-    ]
+    winners = [player_name_map(p.name) for p in slowest.players if p.won]
     losers = [
-        player_name_map(p.name)
-        for p in slowest.players
-        if p.team != slowest.winning_team and p.team > 0
+        player_name_map(p.name) for p in slowest.players if not p.won and p.team > 0
     ]
     return Statistic(
         stat_name="Slowest win",

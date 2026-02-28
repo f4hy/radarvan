@@ -11,7 +11,7 @@ from . import utils
 from .api_types import MatchInfo, Player, Team
 from .cncstats_types import EnhancedReplay
 from .db_utils import DatabaseManager, ReplayManager
-from .game_composition import GameComposition
+from .game_composition import GameComposition, categorize_game_type
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,10 @@ def is_incomplete(replay: EnhancedReplay) -> str | None:
         return "Too Short"
     _winners = [p for p in replay.Summary if p.Win is True]
     if not _winners:
+        real_players = [p for p in replay.Header.Metadata.Players if p.Faction > -2]
+        composition = categorize_game_type(real_players)
+        if composition.is_ffa:
+            return None
         return "No team won"
     return ""
 
@@ -79,8 +83,8 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
         players=players,
         duration_minutes=duration_minutes,
         filename=replay.Header.FileName,
-        incomplete=incomplete,
-        notes=incomplete,
+        incomplete=incomplete or "",
+        notes=incomplete or "",
     )
 
 
@@ -99,7 +103,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
             general_id=p.general,
             team_id=p.team,
             color=p.color,
-            is_winner=p.team == winner_data.wining_team,
+            is_winner=p.won,
         )
         for p in players
     ]
@@ -128,6 +132,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
             general=p.general_id,
             team=p.team_id,
             color=p.color,
+            won=p.is_winner,
         )
         for p in db_players
     ]
@@ -146,7 +151,7 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         duration_minutes=db_match.duration_minutes,
         filename=db_match.filename,
         incomplete=db_match.incomplete or "",
-        notes=db_match.notes,
+        notes=db_match.notes or "",
         game_version=db_match.game_version,
         composition=comp,
     )

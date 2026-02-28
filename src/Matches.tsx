@@ -86,6 +86,85 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
   )
 }
 
+function FfaPlayerCard(props: { player: Player }) {
+  const { player } = props
+  const bgColor = player.won ? "#c5e1a5" : "#eeeeee"
+  return (
+    <Card sx={{ backgroundColor: bgColor, minWidth: 160 }}>
+      <CardContent component="div">
+        <Stack spacing={1} alignItems="center">
+          {player.won ? (
+            <EmojiEventsIcon color="success" />
+          ) : (
+            <ErrorIcon color="disabled" />
+          )}
+          <DisplayGeneral general={player.general} />
+          <Typography
+            variant="h6"
+            color={player.color}
+            fontWeight="fontWeightBold"
+            sx={playerNameStyle(player)}
+          >
+            {player.name}
+          </Typography>
+        </Stack>
+      </CardContent>
+    </Card>
+  )
+}
+
+function FfaMatchDisplay(props: { match: MatchInfo }) {
+  const { match } = props
+  const [details, setDetails] = React.useState<boolean>(false)
+  const date = match.timestamp.toLocaleString()
+  const header = (
+    <Typography>
+      {"MatchId:" +
+        match.id +
+        " FFA" +
+        " Date:" +
+        date +
+        " on Map:" +
+        match.map.split("/").slice(-1) +
+        " Duration:" +
+        match.durationMinutes.toFixed(2) +
+        " minutes GameVersion:" +
+        match.gameVersion}
+    </Typography>
+  )
+  return (
+    <Paper
+      sx={{ width: "99%", maxWidth: 1600, borderRadius: "20px" }}
+      variant="outlined"
+    >
+      <ListItem>
+        <ListItemText primary={header} />
+      </ListItem>
+      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ p: 1 }}>
+        {match.players.map((p) => (
+          <FfaPlayerCard key={p.name} player={p} />
+        ))}
+        <Map mapname={match.map} />
+      </Stack>
+      <Stack direction="row">
+        <Button variant="contained" onClick={() => setDetails(!details)}>
+          Match Details
+        </Button>
+        <Tooltip title={match.filename}>
+          <Button
+            variant="contained"
+            onClick={() => downloadReplay(match.filename)}
+            endIcon={<DownloadIcon />}
+          >
+            Download Replay
+          </Button>
+        </Tooltip>
+      </Stack>
+      {details ? <ShowMatchDetails id={match.id} /> : null}
+    </Paper>
+  )
+}
+
 function downloadURI(uri: string, name: string) {
   var link = document.createElement("a")
   link.download = name
@@ -121,6 +200,11 @@ function displayTeam(team: Team): string {
 
 export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
+
+  if (props.match.composition?.isFfa && !props.match.incomplete) {
+    return <FfaMatchDisplay match={props.match} />
+  }
+
   const date = props.match.timestamp.toLocaleString()
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (

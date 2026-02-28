@@ -86,7 +86,7 @@ export interface MatchListing {
      * @type {string}
      * @memberof MatchListing
      */
-    notes: string;
+    notes?: string | null;
     /**
      * 
      * @type {Array<PlayerListing>}
@@ -107,7 +107,6 @@ export function instanceOfMatchListing(value: object): value is MatchListing {
     if (!('timestamp' in value) || value['timestamp'] === undefined) return false;
     if (!('winningTeamId' in value) || value['winningTeamId'] === undefined) return false;
     if (!('filename' in value) || value['filename'] === undefined) return false;
-    if (!('notes' in value) || value['notes'] === undefined) return false;
     if (!('players' in value) || value['players'] === undefined) return false;
     return true;
 }
@@ -131,7 +130,7 @@ export function MatchListingFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'timestamp': (new Date(json['timestamp'])),
         'winningTeamId': json['winning_team_id'],
         'filename': json['filename'],
-        'notes': json['notes'],
+        'notes': json['notes'] == null ? undefined : json['notes'],
         'players': ((json['players'] as Array<any>).map(PlayerListingFromJSON)),
     };
 }

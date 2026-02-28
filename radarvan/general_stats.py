@@ -36,7 +36,7 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
                 continue
             if player.name.lower() in cpu_names:
                 continue
-            if player.team == game.winning_team:
+            if player.won:
                 general_stats[player.general].total.wins += 1
             else:
                 general_stats[player.general].total.losses += 1

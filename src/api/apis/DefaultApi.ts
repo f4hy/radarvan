@@ -942,6 +942,37 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Return match IDs and dates for team games with no winner (winning_team=0).
+     * Get Team Games Without Winner
+     */
+    async getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/team_games_without_winner/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Return match IDs and dates for team games with no winner (winning_team=0).
+     * Get Team Games Without Winner
+     */
+    async getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<{ [key: string]: any; }>> {
+        const response = await this.getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get report for a specific tournament.
      * Get Tournament Report
      */
@@ -1233,7 +1264,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Replays Without Playerstats
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToReturn'] != null) {
@@ -1252,17 +1283,13 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
      * Replays Without Playerstats
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<{ [key: string]: any; }>> {
         const response = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }

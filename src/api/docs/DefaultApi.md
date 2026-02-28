@@ -25,6 +25,7 @@ All URIs are relative to *http://localhost*
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
 | [**getSuperlativesApiSuperlativesGet**](DefaultApi.md#getsuperlativesapisuperlativesget) | **GET** /api/superlatives | Get Superlatives |
+| [**getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet**](DefaultApi.md#getteamgameswithoutwinnerapiteamgameswithoutwinnerget) | **GET** /api/team_games_without_winner/ | Get Team Games Without Winner |
 | [**getTournamentReportApiTournamentReportTournamentNameGet**](DefaultApi.md#gettournamentreportapitournamentreporttournamentnameget) | **GET** /api/tournament_report/{tournament_name} | Get Tournament Report |
 | [**getTournamentResultsApiTournamentResultsGet**](DefaultApi.md#gettournamentresultsapitournamentresultsget) | **GET** /api/tournament_results/ | Get Tournament Results |
 | [**listFilesApiFilesGet**](DefaultApi.md#listfilesapifilesget) | **GET** /api/files/ | List Files |
@@ -1395,6 +1396,65 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet
+
+> Array&lt;{ [key: string]: any; }&gt; getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet()
+
+Get Team Games Without Winner
+
+Return match IDs and dates for team games with no winner (winning_team&#x3D;0).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  try {
+    const data = await api.getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**Array<{ [key: string]: any; }>**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getTournamentReportApiTournamentReportTournamentNameGet
 
 > TournamentReport getTournamentReportApiTournamentReportTournamentNameGet(tournamentName)
@@ -1914,7 +1974,7 @@ No authorization required
 
 ## replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet
 
-> any replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(maxToReturn)
+> Array&lt;{ [key: string]: any; }&gt; replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(maxToReturn)
 
 Replays Without Playerstats
 
@@ -1957,7 +2017,7 @@ example().catch(console.error);
 
 ### Return type
 
-**any**
+**Array<{ [key: string]: any; }>**
 
 ### Authorization
 

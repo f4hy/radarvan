@@ -37,8 +37,7 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
                 )
             if player.general == General.UNRECOGNIZED:
                 continue
-            logger.info(f"adding {player.general=} win for {game.winning_team}")
-            if player.team == game.winning_team:
+            if player.won:
                 player_stats[name].stats[player.general].wins += 1
             else:
                 player_stats[name].stats[player.general].losses += 1

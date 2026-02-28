@@ -42,6 +42,7 @@ class Player(BaseModel):
     general: General
     team: Team
     color: str
+    won: bool = False
 
     @property
     def Type(self) -> Literal["H", "C"]:
@@ -66,7 +67,7 @@ class MatchInfo(BaseModel):
     duration_minutes: float
     filename: str
     incomplete: str = ""
-    notes: str
+    notes: str = ""
     game_version: str | None = None
     composition: GameComposition | None = None
 
@@ -347,7 +348,7 @@ class MatchListing(BaseModel):
     timestamp: datetime
     winning_team_id: int
     filename: str
-    notes: str
+    notes: str | None = None
     players: list[PlayerListing]
 
 
