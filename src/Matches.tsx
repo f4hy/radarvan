@@ -233,7 +233,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">
         <ListItemText key="match-text" primary={header} />
-        {props.match.notes.length ? (
+        {props.match?.notes?.length ? (
           <Typography color="warning.main" style={{ fontWeight: "bold" }}>
             {props.match.notes}
           </Typography>
