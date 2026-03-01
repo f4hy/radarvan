@@ -26,30 +26,13 @@ import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings from "./PlayerRatings"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import DisplayTournamentResults from "./Tournaments"
+import { isDebug } from "./utils"
 const drawerWidth = 190
-
-interface QueryParams {
-  [key: string]: string | null
-}
 
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [selection, setSelection] = React.useState<Selection>("Matches")
-  const [queryParams, setQueryParams] = React.useState<QueryParams>({})
-  React.useEffect(() => {
-    // Get the query string from the current URL
-    const search = window.location.search
-
-    // Create a URLSearchParams object to easily parse the query string
-    const params = new URLSearchParams(search)
-
-    // Convert URLSearchParams to a plain object for easier consumption
-    const newQueryParams: QueryParams = {}
-    for (const [key, value] of params.entries()) {
-      newQueryParams[key] = value
-    }
-    setQueryParams(newQueryParams)
-  }, []) // The empty dependency array ensures this runs only once on mount
+  const debug = isDebug()
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -95,7 +78,7 @@ export default function Menu() {
           icon={<BalanceIcon />}
           callback={setSelection}
         />
-        {queryParams["debug"] === "True" && (
+        {debug && (
           <MenuItem
             value="PlayerRating"
             text="Player Ratings"
@@ -104,7 +87,7 @@ export default function Menu() {
             callback={setSelection}
           />
         )}
-        {queryParams["debug"] === "True" && (
+        {debug && (
           <MenuItem
             value="DebugData"
             text="Debug Matchid"

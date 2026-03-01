@@ -34,6 +34,7 @@ import {
   TournamentReport,
 } from "./api"
 import { Client } from "./Client"
+import { isDebug } from "./utils"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from "./Matches"
 
@@ -420,9 +421,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   const [touramentStats, setTournamentStats] =
     React.useState<TournamentReport | null>(null)
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
-  const search = window.location.search
-  const params = new URLSearchParams(search)
-  const debug = !!params.get("debug")
+  const debug = isDebug()
   const show = props.result.complete === true || debug
   React.useEffect(() => {
     getTournamentReport(props.result.tournament.name, setTournamentStats)

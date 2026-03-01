@@ -2,7 +2,8 @@ import Stack from "@mui/material/Stack"
 import Paper from "@mui/material/Paper"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import { Typography } from "@mui/material"
+import { Typography, useTheme } from "@mui/material"
+import useMediaQuery from "@mui/material/useMediaQuery"
 
 import * as React from "react"
 import {
@@ -38,11 +39,10 @@ function formatLabel(val: any): string {
   return String(val ?? "")
 }
 
-const formatDate = (tickItem: number): string => {
+const formatDate = (tickItem: number, short = false): string => {
   return new Date(tickItem).toLocaleDateString("en-US", {
     month: "short",
-    day: "numeric",
-    year: "numeric",
+    ...(short ? { year: "2-digit" } : { day: "numeric", year: "numeric" }),
   })
 }
 
@@ -55,6 +55,8 @@ function formatSkill(v: any): string {
 
 function RatingsOverTime(props: { data: PlayerRatingData }) {
   const [startYear, setStartYear] = React.useState(2024)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
   const allEntries = Object.entries(props.data.playerRatingOvertime ?? {})
   const earliestYear = allEntries.length > 0
@@ -92,7 +94,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
       {data.map(([name, d]) => (
         <Stack key={name}>
           <Typography>{name}</Typography>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
             <AreaChart
               data={d
                 .map((x) => ({
@@ -103,7 +105,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 }))
                 .filter((x) => x.atdate >= startMs)}
               layout="horizontal"
-              margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
+              margin={{ top: 5, right: 5, left: isMobile ? 30 : 50, bottom: isMobile ? 35 : 5 }}
             >
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
               <Area
@@ -116,17 +118,21 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 dataKey="atdate"
                 type="number"
                 domain={[startMs, Date.now()]}
-                tickFormatter={formatDate}
+                tickFormatter={(v) => formatDate(v, isMobile)}
+                angle={isMobile ? -35 : 0}
+                textAnchor={isMobile ? "end" : "middle"}
+                height={isMobile ? 50 : 30}
               />
               <YAxis
-                label={{
-                  value: "# games",
+                label={isMobile ? undefined : {
+                  value: "skill",
                   position: "insideLeft",
-                  fontSize: 25,
+                  fontSize: 14,
                   offset: -10,
                   angle: -90,
                 }}
                 domain={[0, 50]}
+                width={isMobile ? 30 : 50}
               />
               <Tooltip
                 cursor={false}
@@ -150,53 +156,58 @@ export default function DisplayPlayerRatings() {
     getPlayerRatings(setPlayerRatings)
   }, [])
 
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+
   if (playerRatings.playerRating.length === 0) {
     return <Loading />
   }
-  const data = playerRatings.playerRating.map((r) => ({
-    ...r,
-    variance: r.sigma * r.sigma,
-  }))
+  const data = playerRatings.playerRating
+    .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
+    .sort((a, b) => b.mu - a.mu)
+  const labelFontSize = isMobile ? 11 : 20
+  const leftMargin = isMobile ? 30 : 50
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Player Ratings (debug only)</Typography>
-      <ResponsiveContainer width="100%" height={500}>
-        <ScatterChart margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={isMobile ? 300 : 500}>
+        <ScatterChart margin={{ top: 5, right: isMobile ? 30 : 10, left: leftMargin, bottom: isMobile ? 30 : 5 }}>
           <Scatter name="skill" data={data} shape="triangle" fill="blue">
             <LabelList
               dataKey="ordinal"
               position="bottom"
-              offset={40}
+              offset={isMobile ? 15 : 40}
               formatter={(s) => Number(s).toFixed(1)}
-              fontSize={20}
+              fontSize={labelFontSize}
             />
             <LabelList
               dataKey="mu"
               position="right"
               offset={1}
-              formatter={(s) => Number(s).toFixed(2)}
-              fontSize={20}
+              formatter={(s) => Number(s).toFixed(isMobile ? 1 : 2)}
+              fontSize={labelFontSize}
             />
             <ErrorBar
               dataKey="sigma"
-              width={10}
-              strokeWidth={5}
+              width={isMobile ? 4 : 10}
+              strokeWidth={isMobile ? 2 : 5}
               stroke="skyblue"
               direction="y"
             />
           </Scatter>
-          <XAxis dataKey="name" />
+          <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
           <YAxis
-            label={{
+            label={isMobile ? undefined : {
               value: "Estimated Skill",
               position: "insideLeft",
-              fontSize: 25,
+              fontSize: 16,
               offset: -10,
               angle: -90,
             }}
             type="number"
             dataKey="mu"
             domain={[0, 50]}
+            width={leftMargin}
           />
           <ZAxis type="number" range={[100, 100]} />
           <Tooltip
@@ -206,23 +217,24 @@ export default function DisplayPlayerRatings() {
           <CartesianGrid />
         </ScatterChart>
       </ResponsiveContainer>
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
         <BarChart
           data={data}
           layout="horizontal"
-          margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
+          margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="5 5" vertical={false} />
           <Bar dataKey="gameCount" fill="#42A5F5" />
-          <XAxis dataKey="name" />
+          <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
           <YAxis
-            label={{
+            label={isMobile ? undefined : {
               value: "# games",
               position: "insideLeft",
-              fontSize: 25,
+              fontSize: 16,
               offset: -10,
               angle: -90,
             }}
+            width={leftMargin}
           />
           <Tooltip cursor={false} />
         </BarChart>

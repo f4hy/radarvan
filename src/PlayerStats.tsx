@@ -33,6 +33,7 @@ import {
   WinLoss,
 } from "./api"
 import { Client } from "./Client"
+import { isDebug, winRate } from "./utils"
 
 function getPlayerStats(callback: (m: PlayerStats) => void) {
   Client.getPlayerStatsApiPlayerstatsGet()
@@ -143,9 +144,8 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
       const losses = winLoss?.losses ?? 0
       const total = wins + losses
       if (total < MIN_GAMES_FOR_BEST) continue
-      const winRate = wins / total
       const list = generalMap.get(generalNum) ?? []
-      list.push({ playerName: stat.playerName, winRate, wins, losses })
+      list.push({ playerName: stat.playerName, winRate: winRate(wins, losses), wins, losses })
       generalMap.set(generalNum, list)
     }
   }
@@ -224,10 +224,10 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
       const losses = winLoss?.losses ?? 0
       const total = wins + losses
       if (total < MIN_GAMES_FOR_BEST) continue
-      const winRate = wins / total
-      const relativeDiff = winRate - overallWinRate
+      const wr = winRate(wins, losses)
+      const relativeDiff = wr - overallWinRate
       const list = generalMap.get(generalNum) ?? []
-      list.push({ playerName: stat.playerName, winRate, overallWinRate, relativeDiff, wins, losses })
+      list.push({ playerName: stat.playerName, winRate: wr, overallWinRate, relativeDiff, wins, losses })
       generalMap.set(generalNum, list)
     }
   }
@@ -306,7 +306,7 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
       const losses = winLoss?.losses ?? 0
       const total = wins + losses
       if (total < MIN_GAMES_FOR_BEST) continue
-      qualifying.push({ general: toGeneral(generalNum), winRate: wins / total })
+      qualifying.push({ general: toGeneral(generalNum), winRate: winRate(wins, losses) })
     }
     if (qualifying.length < 2) continue
     const sorted = qualifying.sort((a, b) => b.winRate - a.winRate)
@@ -384,9 +384,7 @@ const empty = { playerStats: [] }
 
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
-  const search = window.location.search
-  const params = new URLSearchParams(search)
-  const debug = !!params.get("debug")
+  const debug = isDebug()
   React.useEffect(() => {
     getPlayerStats(setPlayerStats)
   }, [])

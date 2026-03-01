@@ -18,6 +18,7 @@ import Tabs from "@mui/material/Tabs"
 import * as React from "react"
 import { PlayerEnum, PlayerEnumFromJSON } from "./api"
 import { Client } from "./Client"
+import { isDebug } from "./utils"
 
 interface TeamWinRating {
   [key: string]: number
@@ -76,30 +77,27 @@ function ScoreBar(props: {
   const team2 = props.selectedPlayers.filter((p) => !team1.includes(p))
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", padding: 1 }}>
-      <Box sx={{ width: "20%", mr: 1 }}>
+    <Box sx={{ padding: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.5, mb: 0.5 }}>
         {team1.map((p) => (
-          <Chip key={p} label={p} color="primary" />
+          <Chip key={p} label={p} color="primary" size="small" />
         ))}
-      </Box>
-      <Typography>Vs.</Typography>
-      <Box sx={{ width: "20%", mr: 1 }}>
+        <Typography variant="body2" sx={{ mx: 0.5 }}>vs</Typography>
         {team2.map((p) => (
-          <Chip key={p} label={p} color="secondary" />
+          <Chip key={p} label={p} color="secondary" size="small" />
         ))}
       </Box>
-      <Box sx={{ width: "50%", mr: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <LinearProgress
-          sx={{ height: 10, borderRadius: 5 }}
+          sx={{ flex: 1, height: 10, borderRadius: 5 }}
           color={getScoreStyle(props.score)}
           variant="determinate"
           value={props.score}
         />
+        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+          {`${Math.round(props.score)}% Balanced`}
+        </Typography>
       </Box>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-      >{`${Math.round(props.score)}% Balanced`}</Typography>
     </Box>
   )
 }
@@ -130,9 +128,10 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   if (loading && Object.keys(teamRating).length === 0) {
     return <Loading />
   }
-  const filtered = Object.entries(teamRating).filter(
-    ([team, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3,
-  )
+  const entries = Object.entries(teamRating)
+  const filtered = isDebug()
+    ? entries
+    : entries.filter(([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3)
   return (
     <Stack>
       {loading && <LinearProgress />}
@@ -262,7 +261,7 @@ export default function DisplayBalanceTeams() {
         be ranked
       </Typography>
       <FormGroup>
-        <Box sx={{ display: "flex", alignItems: "center", padding: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", padding: 1 }}>
           {players.map((option) => (
             <FormControlLabel
               key={option}
@@ -284,14 +283,14 @@ export default function DisplayBalanceTeams() {
         onChange={handleTabChange}
       >
         <Tab
-          sx={{ width: "50%" }}
+          sx={{ width: "50%", whiteSpace: "normal", lineHeight: 1.3, py: 1 }}
           value="balanceTeams"
           label="Balance players into two teams"
         />
         <Tab
-          sx={{ width: "50%" }}
+          sx={{ width: "50%", whiteSpace: "normal", lineHeight: 1.3, py: 1 }}
           value="partitionTeams"
-          label="Create teams for tournmanet"
+          label="Create teams for tournament"
         />
       </Tabs>
       {selectedTab === "balanceTeams" && (

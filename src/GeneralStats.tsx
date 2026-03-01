@@ -11,7 +11,6 @@ import {
   BarChart,
   CartesianGrid,
   LabelList,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,16 +21,12 @@ import { GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography } from "@mui/material"
+import { winRate } from "./utils"
 
 function getGeneralStats(callback: (m: GeneralStats) => void) {
   Client.getGeneralsStatsApiGeneralstatsGet()
     .then(callback)
     .catch((e) => alert(e))
-}
-
-function winRate(wins: number, losses: number): number {
-  const tot = wins + losses
-  return tot > 0 ? wins / tot : 0
 }
 
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
@@ -61,20 +56,11 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   )
 }
 
-function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
+function DisplayGeneralStat(props: { stat: GeneralStat }) {
   const overall = props.stat.total
   const overallWins = overall?.wins ?? 0
   const overallLosses = overall?.losses ?? 0
   const rate = winRate(overallWins, overallLosses)
-
-  const data = props.stat.stats
-    .map((s) => ({
-      name: s.playerName,
-      wins: s.winLoss?.wins ?? 0,
-      losses: s.winLoss?.losses ?? 0,
-      rate: winRate(s.winLoss?.wins ?? 0, s.winLoss?.losses ?? 0),
-    }))
-    .sort((a, b) => b.rate - a.rate)
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -94,10 +80,6 @@ function DisplayGeneralStat(props: { stat: GeneralStat; max: number }) {
   )
 }
 
-function roundUpNearest5(num: number) {
-  return Math.ceil(num / 5) * 5
-}
-
 const empty = { generalStats: [] }
 
 export default function DisplayGeneralStats() {
@@ -105,20 +87,20 @@ export default function DisplayGeneralStats() {
   React.useEffect(() => {
     getGeneralStats(setGeneralStats)
   }, [])
-  const maxwl = generalStats.generalStats.reduce(
-    (acc, s) => Math.max(acc, s.total?.wins ?? 0, s.total?.losses ?? 0),
-    0,
+
+  const sorted = React.useMemo(
+    () =>
+      [...generalStats.generalStats].sort(
+        (a, b) =>
+          winRate(b.total?.wins ?? 0, b.total?.losses ?? 0) -
+          winRate(a.total?.wins ?? 0, a.total?.losses ?? 0),
+      ),
+    [generalStats.generalStats],
   )
-  const maxWinLoss = roundUpNearest5(maxwl + 1)
+
   if (generalStats.generalStats.length === 0) {
     return <Loading />
   }
-
-  const sorted = [...generalStats.generalStats].sort((a, b) => {
-    const rateA = winRate(a.total?.wins ?? 0, a.total?.losses ?? 0)
-    const rateB = winRate(b.total?.wins ?? 0, b.total?.losses ?? 0)
-    return rateB - rateA
-  })
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
@@ -131,7 +113,7 @@ export default function DisplayGeneralStats() {
       <Grid container spacing={2}>
         {sorted.map((m) => (
           <Grid key={m.general} item xs={12} sm={6} md={8}>
-            <DisplayGeneralStat stat={m} max={maxWinLoss} />
+            <DisplayGeneralStat stat={m} />
           </Grid>
         ))}
       </Grid>
