@@ -129,9 +129,11 @@ function DisplayPlayerStat(props: {
 
 const MIN_GAMES_FOR_BEST = 10
 
+const RANK_MEDALS = ["🥇", "🥈", "🥉"]
+
 function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
   type BestEntry = { playerName: string; winRate: number; wins: number; losses: number }
-  const generalMap = new Map<number, BestEntry>()
+  const generalMap = new Map<number, BestEntry[]>()
 
   for (const stat of props.playerStats.playerStats) {
     for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
@@ -142,14 +144,15 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
       const total = wins + losses
       if (total < MIN_GAMES_FOR_BEST) continue
       const winRate = wins / total
-      const current = generalMap.get(generalNum)
-      if (!current || winRate > current.winRate) {
-        generalMap.set(generalNum, { playerName: stat.playerName, winRate, wins, losses })
-      }
+      const list = generalMap.get(generalNum) ?? []
+      list.push({ playerName: stat.playerName, winRate, wins, losses })
+      generalMap.set(generalNum, list)
     }
   }
 
-  const entries = Array.from(generalMap.entries()).sort((a, b) => a[0] - b[0])
+  const entries = Array.from(generalMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([generalNum, list]) => [generalNum, list.sort((a, b) => b.winRate - a.winRate).slice(0, 3)] as const)
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -160,21 +163,25 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
         </Tooltip>
       </Stack>
       <Grid container spacing={1}>
-        {entries.map(([generalNum, best]) => {
+        {entries.map(([generalNum, topPlayers]) => {
           const general = toGeneral(generalNum)
           return (
             <Grid key={generalNum} item>
-              <Paper sx={{ p: 1, textAlign: "center", minWidth: 100 }} variant="outlined">
+              <Paper sx={{ p: 1, textAlign: "center", minWidth: 110 }} variant="outlined">
                 <DisplayGeneral general={general} />
                 <Typography variant="caption" display="block">
                   {toGeneralName(general)}
                 </Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {best.playerName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {(best.winRate * 100).toFixed(0)}% ({best.wins}W-{best.losses}L)
-                </Typography>
+                {topPlayers.map((player, rank) => (
+                  <Box key={player.playerName} sx={{ mt: 0.5 }}>
+                    <Typography variant="body2" fontWeight={rank === 0 ? "bold" : "normal"}>
+                      {RANK_MEDALS[rank]} {player.playerName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {(player.winRate * 100).toFixed(0)}% ({player.wins}W-{player.losses}L)
+                    </Typography>
+                  </Box>
+                ))}
               </Paper>
             </Grid>
           )
@@ -207,7 +214,7 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
     }
   }
 
-  const generalMap = new Map<number, RelativeEntry>()
+  const generalMap = new Map<number, RelativeEntry[]>()
   for (const stat of props.playerStats.playerStats) {
     const overallWinRate = playerOverallRate.get(stat.playerName) ?? 0
     for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
@@ -219,14 +226,15 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
       if (total < MIN_GAMES_FOR_BEST) continue
       const winRate = wins / total
       const relativeDiff = winRate - overallWinRate
-      const current = generalMap.get(generalNum)
-      if (!current || relativeDiff > current.relativeDiff) {
-        generalMap.set(generalNum, { playerName: stat.playerName, winRate, overallWinRate, relativeDiff, wins, losses })
-      }
+      const list = generalMap.get(generalNum) ?? []
+      list.push({ playerName: stat.playerName, winRate, overallWinRate, relativeDiff, wins, losses })
+      generalMap.set(generalNum, list)
     }
   }
 
-  const entries = Array.from(generalMap.entries()).sort((a, b) => a[0] - b[0])
+  const entries = Array.from(generalMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([generalNum, list]) => [generalNum, list.sort((a, b) => b.relativeDiff - a.relativeDiff).slice(0, 3)] as const)
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -237,32 +245,38 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
         </Tooltip>
       </Stack>
       <Grid container spacing={1}>
-        {entries.map(([generalNum, best]) => {
+        {entries.map(([generalNum, topPlayers]) => {
           const general = toGeneral(generalNum)
-          const diffSign = best.relativeDiff >= 0 ? "+" : ""
           return (
             <Grid key={generalNum} item>
-              <Tooltip title={`Overall win rate: ${(best.overallWinRate * 100).toFixed(0)}%`}>
-                <Paper sx={{ p: 1, textAlign: "center", minWidth: 100 }} variant="outlined">
-                  <DisplayGeneral general={general} />
-                  <Typography variant="caption" display="block">
-                    {toGeneralName(general)}
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {best.playerName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {(best.winRate * 100).toFixed(0)}% ({best.wins}W-{best.losses}L)
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    display="block"
-                    color={best.relativeDiff >= 0 ? "success.main" : "error.main"}
-                  >
-                    {diffSign}{(best.relativeDiff * 100).toFixed(0)}% vs their avg
-                  </Typography>
-                </Paper>
-              </Tooltip>
+              <Paper sx={{ p: 1, textAlign: "center", minWidth: 110 }} variant="outlined">
+                <DisplayGeneral general={general} />
+                <Typography variant="caption" display="block">
+                  {toGeneralName(general)}
+                </Typography>
+                {topPlayers.map((player, rank) => {
+                  const diffSign = player.relativeDiff >= 0 ? "+" : ""
+                  return (
+                    <Box key={player.playerName} sx={{ mt: 0.5 }}>
+                      <Tooltip title={`Overall win rate: ${(player.overallWinRate * 100).toFixed(0)}%`}>
+                        <Typography variant="body2" fontWeight={rank === 0 ? "bold" : "normal"}>
+                          {RANK_MEDALS[rank]} {player.playerName}
+                        </Typography>
+                      </Tooltip>
+                      <Typography variant="caption" color="text.secondary">
+                        {(player.winRate * 100).toFixed(0)}% ({player.wins}W-{player.losses}L)
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        color={player.relativeDiff >= 0 ? "success.main" : "error.main"}
+                      >
+                        {diffSign}{(player.relativeDiff * 100).toFixed(0)}% vs their avg
+                      </Typography>
+                    </Box>
+                  )
+                })}
+              </Paper>
             </Grid>
           )
         })}
