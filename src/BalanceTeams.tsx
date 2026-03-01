@@ -106,9 +106,18 @@ function ScoreBar(props: {
 
 function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const [teamRating, setTeamRating] = React.useState<TeamWinRating>({})
+  const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
-    getTeamWinRating(props.selectedPlayers, setTeamRating)
+    if (props.selectedPlayers.length >= 2) {
+      setLoading(true)
+      getTeamWinRating(props.selectedPlayers, (data) => {
+        setTeamRating(data)
+        setLoading(false)
+      })
+    } else {
+      setTeamRating({})
+    }
   }, [props.selectedPlayers])
 
   if (props.selectedPlayers.length % 2 !== 0) {
@@ -118,10 +127,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </Alert>
     )
   }
-  if (
-    props.selectedPlayers.length >= 2 &&
-    Object.keys(teamRating).length === 0
-  ) {
+  if (loading && Object.keys(teamRating).length === 0) {
     return <Loading />
   }
   const filtered = Object.entries(teamRating).filter(
@@ -129,6 +135,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   )
   return (
     <Stack>
+      {loading && <LinearProgress />}
       {filtered.map(([team, winRate]) => (
         <ScoreBar
           key={team}
@@ -144,9 +151,22 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
 function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const [teamPartition, setTeamPartition] = React.useState<string[][]>([])
   const [teamSize, setTeamSize] = React.useState<number>(2)
+  const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
-    getTeamPartition(props.selectedPlayers, teamSize, setTeamPartition)
+    const eligible =
+      props.selectedPlayers.length >= 6 &&
+      props.selectedPlayers.length % 2 === 0 &&
+      props.selectedPlayers.length % teamSize === 0
+    if (eligible) {
+      setLoading(true)
+      getTeamPartition(props.selectedPlayers, teamSize, (data) => {
+        setTeamPartition(data)
+        setLoading(false)
+      })
+    } else {
+      setTeamPartition([])
+    }
   }, [props.selectedPlayers, teamSize])
 
   if (props.selectedPlayers.length % 2 !== 0) {
@@ -154,7 +174,10 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       <Alert severity="warning">Not an even number of selected players</Alert>
     )
   }
-  if (teamPartition.length === 0) {
+  if (loading && teamPartition.length === 0) {
+    return <Loading />
+  }
+  if (!loading && teamPartition.length === 0) {
     return (
       <Alert severity="warning">
         Need to select at least 6 players for a tournament
@@ -177,6 +200,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   }
   return (
     <Stack>
+      {loading && <LinearProgress />}
       <RadioGroup
         row
         value={teamSize}
