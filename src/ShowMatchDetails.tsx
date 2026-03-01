@@ -121,6 +121,7 @@ function MoneyChart(props: {
             <Legend />
             {players.map((n, i) => (
               <Line
+                key={n}
                 dataKey={n}
                 strokeWidth={2.5}
                 stroke={_.get(colors, n)}
@@ -129,6 +130,7 @@ function MoneyChart(props: {
             ))}
             {lines.map((value, i) => (
               <ReferenceLine
+                key={i}
                 y={value}
                 label={{ value: `${i + 2}⭐`, position: "insideLeft" }}
                 stroke="blue"
@@ -163,6 +165,7 @@ function EventChart(props: {
         <ScatterChart margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
           {names.map((name, idx) => (
             <Scatter
+              key={name}
               name={name}
               fill={_.get(colors, name)}
               data={props.upgrades[name].upgrades}
@@ -270,7 +273,7 @@ function DisplayFirstBlood(props: {
       }}
     >
       {msgs.map((m) => (
-        <Alert severity="warning" sx={{ width: "100%" }}>
+        <Alert key={m} severity="warning" sx={{ width: "100%" }}>
           {m}
         </Alert>
       ))}
@@ -555,7 +558,7 @@ export default function ShowMatchDetails(props: { id: number }) {
       >
         {choices.map((v, i) => {
           return (
-            <ToggleButton size="large" value={v}>
+            <ToggleButton key={v} size="large" value={v}>
               {v}
             </ToggleButton>
           )

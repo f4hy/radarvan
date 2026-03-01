@@ -79,13 +79,13 @@ function ScoreBar(props: {
     <Box sx={{ display: "flex", alignItems: "center", padding: 1 }}>
       <Box sx={{ width: "20%", mr: 1 }}>
         {team1.map((p) => (
-          <Chip label={p} color="primary" />
+          <Chip key={p} label={p} color="primary" />
         ))}
       </Box>
       <Typography>Vs.</Typography>
       <Box sx={{ width: "20%", mr: 1 }}>
         {team2.map((p) => (
-          <Chip label={p} color="secondary" />
+          <Chip key={p} label={p} color="secondary" />
         ))}
       </Box>
       <Box sx={{ width: "50%", mr: 1 }}>
@@ -131,6 +131,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
     <Stack>
       {filtered.map(([team, winRate]) => (
         <ScoreBar
+          key={team}
           team={team}
           score={(1.0 - Math.abs(winRate - 0.5) * 2.0) * 100}
           selectedPlayers={props.selectedPlayers}
@@ -188,10 +189,10 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </RadioGroup>
       <Grid container spacing={2}>
         {teamPartition.map((team, i) => (
-          <Grid item>
+          <Grid key={i} item>
             <Paper sx={{ padding: 2, background: colors[i] }}>
               {team.map((t) => (
-                <Chip label={t} color="primary" sx={{ padding: 2 }} />
+                <Chip key={t} label={t} color="primary" sx={{ padding: 2 }} />
               ))}
               <Divider />
             </Paper>
@@ -240,6 +241,7 @@ export default function DisplayBalanceTeams() {
         <Box sx={{ display: "flex", alignItems: "center", padding: 1 }}>
           {players.map((option) => (
             <FormControlLabel
+              key={option}
               control={
                 <Checkbox
                   checked={selectedPlayers.includes(option)}

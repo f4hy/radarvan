@@ -118,7 +118,7 @@ function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
       <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
       <Divider />
       {Object.entries(props.playerSummary.powersUsed).map(([name, count]) => {
-        return <Typography>{"Powers Used: " + name + " " + count}</Typography>
+        return <Typography key={name}>{"Powers Used: " + name + " " + count}</Typography>
       })}
     </Stack>
   )
@@ -143,7 +143,7 @@ export default function ShowPlayerSummaries(props: {
     >
       {props.playerSummaries.map((sum, i) => {
         return (
-          <ToggleButton size="large" value={i}>
+          <ToggleButton key={sum?.name ?? i} size="large" value={i}>
             {sum?.name}
           </ToggleButton>
         )

@@ -125,7 +125,7 @@ function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
   return (
     <Stack>
       {props.matches.map((m) => (
-        <DisplayMatchInfo match={m} idx={0} />
+        <DisplayMatchInfo key={m.id} match={m} idx={0} />
       ))}
     </Stack>
   )
@@ -169,6 +169,7 @@ function DisplayMatchup(props: { matchup: MatchupResult }) {
             <TableBody>
               {Object.entries(props.matchup.outcome).map(([team, wl]) => (
                 <TableRow
+                  key={team}
                   sx={{
                     "&:nth-of-type(odd)": {
                       backgroundColor: "action.hover", // Uses theme's hover color
@@ -259,7 +260,7 @@ function DisplayRecords(props: {
               )
               const teamName: string = teamAlias(team.split(",").join("+"))
               return (
-                <TableRow>
+                <TableRow key={team}>
                   <TableCell>
                     <MuiTooltip title={teamMembers} arrow>
                       <Chip label={teamName} color="primary" />
@@ -470,6 +471,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
             {touramentStats.stats.map((s) => {
               return (
                 <TableRow
+                  key={s.statName}
                   sx={{
                     "&:nth-of-type(odd)": {
                       backgroundColor: "action.hover", // Uses theme's hover color
@@ -526,7 +528,7 @@ export default function DisplayTournamentResults() {
       <Typography variant="h4">Tournament Results!</Typography>
       {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
       {touramentResults.map((r) => (
-        <DisplayTournamentResult result={r} />
+        <DisplayTournamentResult key={r.tournament.name} result={r} />
       ))}
     </Paper>
   )

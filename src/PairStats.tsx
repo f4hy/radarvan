@@ -77,7 +77,7 @@ function PairBarChart(props: {
     <Paper>
       <Typography variant="h3">Team {props.team} pairs!</Typography>
       {chunks.map((chunk, idx) => (
-        <ResponsiveContainer width="99%" height={500}>
+        <ResponsiveContainer key={idx} width="99%" height={500}>
           <BarChart
             data={chunk}
             layout="horizontal"
@@ -124,10 +124,10 @@ export default function DisplayPairstats() {
     <>
       <Box sx={{ flexGrow: 1, maxWidth: 1600 }}>
         {teams.map((team) => (
-          <PairBarChart pairdata={pairstats.factionPairs[team]} team={team} />
+          <PairBarChart key={team} pairdata={pairstats.factionPairs[team]} team={team} />
         ))}
         {teams.map((team) => (
-          <PairBarChart pairdata={pairstats.teamPairs[team]} team={team} />
+          <PairBarChart key={team} pairdata={pairstats.teamPairs[team]} team={team} />
         ))}
       </Box>
     </>

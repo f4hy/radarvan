@@ -97,7 +97,7 @@ function DisplayPlayerStat(props: {
           )}
           <List>
             {Object.entries(sorted).map(([general, winLoss]) => (
-              <PlayerListItem general={toGeneral(general)} winLoss={winLoss} />
+              <PlayerListItem key={general} general={toGeneral(general)} winLoss={winLoss} />
             ))}
           </List>
         </Grid>
@@ -155,10 +155,10 @@ export default function DisplayPlayerStats() {
         Stats computed only from 1v1 2v2 3v3 and 4v4 games
       </Typography>
       {playerStats.playerStats.map((m) => (
-        <>
+        <React.Fragment key={m.playerName}>
           <DisplayPlayerStat stat={m} max={maxWinLoss} debug={debug} />
           <Divider />
-        </>
+        </React.Fragment>
       ))}
     </Paper>
   )

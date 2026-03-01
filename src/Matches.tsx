@@ -7,6 +7,7 @@ import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
+import Chip from "@mui/material/Chip"
 import Card from "@mui/material/Card"
 import CardHeader from "@mui/material/CardHeader"
 import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
@@ -65,11 +66,10 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }}>
       <CardHeader title={title} avatar={icon} component="div" />
       {props.players.map((p) => (
-        <CardContent component="div">
+        <CardContent key={p?.name + "-" + p.general} component="div">
           <Stack direction="row" divider={<Divider flexItem />} spacing={4}>
             <DisplayGeneral
               general={p!.general}
-              key={p?.name + "-" + p.general + "-general"}
             />{" "}
             <Typography
               variant="h5"
@@ -247,6 +247,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
       <Stack direction="row" justifyContent="flex-start">
         {Object.values(teams).map((team) => (
           <TeamCard
+            key={team[0].team}
             players={team}
             won={team[0].team === props.match.winningTeam}
           />
@@ -325,11 +326,34 @@ function DisplayMatchesForDate(props: {
       sx={borderProps}
     >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-        <Typography>{`${date} gameCount=${props.count}`}</Typography>
-        <Typography>{expanded} </Typography>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1, flexWrap: "wrap" }}>
+          <Typography fontWeight="bold">{date}</Typography>
+          <Typography color="text.secondary">
+            {props.count} {props.count === 1 ? "game" : "games"}
+          </Typography>
+          {matchList.matches.length > 0 && (
+            <>
+              {Object.entries(
+                _.groupBy(matchList.matches, (m) =>
+                  m.composition?.isFfa ? "FFA" : (m.composition?.category ?? "?"),
+                ),
+              ).map(([cat, ms]) => (
+                <Chip key={cat} label={`${ms.length}× ${cat}`} size="small" variant="outlined" />
+              ))}
+              <Typography variant="body2" color="text.secondary">
+                {_.uniq(
+                  matchList.matches.flatMap((m) =>
+                    m.players
+                      .filter((p) => p.team !== Team.NUMBER_MINUS_1)
+                      .map((p) => p.name),
+                  ),
+                ).join(" · ")}
+              </Typography>
+            </>
+          )}
+        </Stack>
       </AccordionSummary>
       <AccordionDetails>
-        <Typography>{date}</Typography>
         <AccordionDetails>
           {matchList.matches.length === 0 ? (
             <MatchRowLoading />
@@ -400,8 +424,8 @@ export default function DisplayMatches() {
     <Stack>
       <Grid container sx={{ width: "80%", margin: "0" }}>
         {Object.entries(dataByYear).map(([year, yearData], idx) => (
-          <Grid xs={6}>
-            <Box sx={{ overflowX: "auto", p: 2 }} key={year}>
+          <Grid key={year} xs={6}>
+            <Box sx={{ overflowX: "auto", p: 2 }}>
               <Typography>{year}</Typography>
               {Object.keys(yearData).length > 0 ? (
                 <ActivityCalendar

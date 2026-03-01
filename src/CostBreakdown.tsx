@@ -79,7 +79,7 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
           margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
         >
           {building_names.map((n, i) => (
-            <Bar dataKey={n} fill={colors[i % colors.length]} stackId="a" />
+            <Bar key={n} dataKey={n} fill={colors[i % colors.length]} stackId="a" />
           ))}
           <XAxis dataKey="name" />
           <YAxis
@@ -105,7 +105,7 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
           }}
         >
           {unit_names.map((n, i) => (
-            <Bar dataKey={n} fill={colors[i % colors.length]} stackId="a" />
+            <Bar key={n} dataKey={n} fill={colors[i % colors.length]} stackId="a" />
           ))}
           <XAxis dataKey="name" />
           <YAxis
@@ -131,7 +131,7 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
           }}
         >
           {upgrade_names.map((n, i) => (
-            <Bar dataKey={n} fill={colors[i % colors.length]} stackId="a" />
+            <Bar key={n} dataKey={n} fill={colors[i % colors.length]} stackId="a" />
           ))}
           <XAxis dataKey="name" />
           <YAxis

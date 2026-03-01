@@ -194,8 +194,8 @@ export default function DisplayMapstats() {
     <Paper>
       <Typography variant="h2">Map stats.</Typography>
       <Box sx={{ flexGrow: 1, maxWidth: 1600, textAlign: "center" }}>
-        {chunks.map((chunk) => (
-          <ResponsiveContainer width="99%" height={800}>
+        {chunks.map((chunk, idx) => (
+          <ResponsiveContainer key={idx} width="99%" height={800}>
             <BarChart
               data={chunk}
               layout="horizontal"
@@ -224,7 +224,7 @@ export default function DisplayMapstats() {
       </Box>
       <Stack spacing={2}>
         {sorted_over_time_keys.map((m) => (
-          <MapStatOverTime stat={mapstats.overTime[m].results} />
+          <MapStatOverTime key={m} stat={mapstats.overTime[m].results} />
         ))}
       </Stack>
     </Paper>

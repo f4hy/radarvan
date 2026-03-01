@@ -122,7 +122,7 @@ export default function DisplayGeneralStats() {
       <Divider sx={{ mt: 8 }} />
       <Grid container spacing={2}>
         {generalStats.generalStats.map((m) => (
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid key={m.general} item xs={12} sm={6} md={3}>
             <DisplayGeneralStat stat={m} max={maxWinLoss} />
           </Grid>
         ))}

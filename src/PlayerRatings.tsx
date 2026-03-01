@@ -59,7 +59,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
   return (
     <Stack>
       {data.map(([name, d]) => (
-        <Stack>
+        <Stack key={name}>
           <Typography>{name}</Typography>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart

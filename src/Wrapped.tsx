@@ -169,6 +169,7 @@ export default function WrappedYear() {
         >
           {players.map((p) => (
             <Button
+              key={p}
               variant="contained"
               onClick={() => {
                 setPlayer(p)

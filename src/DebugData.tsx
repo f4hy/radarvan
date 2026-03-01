@@ -111,7 +111,7 @@ function DisplayDataTable(props: { data: GameRecord[] }) {
           </TableHead>
           <TableBody>
             {data.map((row) => (
-              <TableRow>
+              <TableRow key={row.matchId}>
                 <TableCell>
                   <Link>{row.matchId}</Link>
                 </TableCell>
@@ -314,7 +314,7 @@ export default function DisplayDebugData() {
       )}
       <DisplayDataTable data={debugData} />
       {Object.entries(matchDebugData).map(([name, data]) => (
-        <Stack>
+        <Stack key={name}>
           <Accordion defaultExpanded={true}>
             <AccordionSummary
               expandIcon={<ArrowDownwardIcon />}
