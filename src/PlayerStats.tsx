@@ -7,14 +7,17 @@ import ListItem from "@mui/material/ListItem"
 import ListItemAvatar from "@mui/material/ListItemAvatar"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
+import Stack from "@mui/material/Stack"
+import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import * as React from "react"
 import {
   Bar,
   BarChart,
   CartesianGrid,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts"
@@ -115,10 +118,154 @@ function DisplayPlayerStat(props: {
                 interval={0}
               />
               <YAxis domain={[0, props.max]} />
-              <Tooltip cursor={false} />
+              <RechartsTooltip cursor={false} />
             </BarChart>
           </ResponsiveContainer>
         </Grid>
+      </Grid>
+    </Box>
+  )
+}
+
+const MIN_GAMES_FOR_BEST = 10
+
+function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
+  type BestEntry = { playerName: string; winRate: number; wins: number; losses: number }
+  const generalMap = new Map<number, BestEntry>()
+
+  for (const stat of props.playerStats.playerStats) {
+    for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
+      const generalNum = parseInt(generalStr)
+      if (generalNum < 0) continue
+      const wins = winLoss?.wins ?? 0
+      const losses = winLoss?.losses ?? 0
+      const total = wins + losses
+      if (total < MIN_GAMES_FOR_BEST) continue
+      const winRate = wins / total
+      const current = generalMap.get(generalNum)
+      if (!current || winRate > current.winRate) {
+        generalMap.set(generalNum, { playerName: stat.playerName, winRate, wins, losses })
+      }
+    }
+  }
+
+  const entries = Array.from(generalMap.entries()).sort((a, b) => a[0] - b[0])
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <Typography variant="h5">Best Player Per General</Typography>
+        <Tooltip title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown`}>
+          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
+        </Tooltip>
+      </Stack>
+      <Grid container spacing={1}>
+        {entries.map(([generalNum, best]) => {
+          const general = toGeneral(generalNum)
+          return (
+            <Grid key={generalNum} item>
+              <Paper sx={{ p: 1, textAlign: "center", minWidth: 100 }} variant="outlined">
+                <DisplayGeneral general={general} />
+                <Typography variant="caption" display="block">
+                  {toGeneralName(general)}
+                </Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {best.playerName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(best.winRate * 100).toFixed(0)}% ({best.wins}W-{best.losses}L)
+                </Typography>
+              </Paper>
+            </Grid>
+          )
+        })}
+      </Grid>
+    </Box>
+  )
+}
+
+function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
+  type RelativeEntry = {
+    playerName: string
+    winRate: number
+    overallWinRate: number
+    relativeDiff: number
+    wins: number
+    losses: number
+  }
+
+  const playerOverallRate = new Map<string, number>()
+  for (const stat of props.playerStats.playerStats) {
+    let totalWins = 0
+    let totalGames = 0
+    for (const winLoss of Object.values(stat.stats)) {
+      totalWins += winLoss?.wins ?? 0
+      totalGames += (winLoss?.wins ?? 0) + (winLoss?.losses ?? 0)
+    }
+    if (totalGames > 0) {
+      playerOverallRate.set(stat.playerName, totalWins / totalGames)
+    }
+  }
+
+  const generalMap = new Map<number, RelativeEntry>()
+  for (const stat of props.playerStats.playerStats) {
+    const overallWinRate = playerOverallRate.get(stat.playerName) ?? 0
+    for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
+      const generalNum = parseInt(generalStr)
+      if (generalNum < 0) continue
+      const wins = winLoss?.wins ?? 0
+      const losses = winLoss?.losses ?? 0
+      const total = wins + losses
+      if (total < MIN_GAMES_FOR_BEST) continue
+      const winRate = wins / total
+      const relativeDiff = winRate - overallWinRate
+      const current = generalMap.get(generalNum)
+      if (!current || relativeDiff > current.relativeDiff) {
+        generalMap.set(generalNum, { playerName: stat.playerName, winRate, overallWinRate, relativeDiff, wins, losses })
+      }
+    }
+  }
+
+  const entries = Array.from(generalMap.entries()).sort((a, b) => a[0] - b[0])
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <Typography variant="h5">Best Relative Performance Per General</Typography>
+        <Tooltip title={`Shows which player performs best on each general relative to their own overall win rate. Requires at least ${MIN_GAMES_FOR_BEST} games on that general.`}>
+          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
+        </Tooltip>
+      </Stack>
+      <Grid container spacing={1}>
+        {entries.map(([generalNum, best]) => {
+          const general = toGeneral(generalNum)
+          const diffSign = best.relativeDiff >= 0 ? "+" : ""
+          return (
+            <Grid key={generalNum} item>
+              <Tooltip title={`Overall win rate: ${(best.overallWinRate * 100).toFixed(0)}%`}>
+                <Paper sx={{ p: 1, textAlign: "center", minWidth: 100 }} variant="outlined">
+                  <DisplayGeneral general={general} />
+                  <Typography variant="caption" display="block">
+                    {toGeneralName(general)}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {best.playerName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {(best.winRate * 100).toFixed(0)}% ({best.wins}W-{best.losses}L)
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color={best.relativeDiff >= 0 ? "success.main" : "error.main"}
+                  >
+                    {diffSign}{(best.relativeDiff * 100).toFixed(0)}% vs their avg
+                  </Typography>
+                </Paper>
+              </Tooltip>
+            </Grid>
+          )
+        })}
       </Grid>
     </Box>
   )
@@ -154,6 +301,10 @@ export default function DisplayPlayerStats() {
       <Typography variant="h4">
         Stats computed only from 1v1 2v2 3v3 and 4v4 games
       </Typography>
+      <BestPlayerPerGeneral playerStats={playerStats} />
+      <Divider sx={{ mb: 2 }} />
+      <BestRelativePlayerPerGeneral playerStats={playerStats} />
+      <Divider sx={{ mb: 2 }} />
       {playerStats.playerStats.map((m) => (
         <React.Fragment key={m.playerName}>
           <DisplayPlayerStat stat={m} max={maxWinLoss} debug={debug} />
