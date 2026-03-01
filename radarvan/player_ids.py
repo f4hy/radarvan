@@ -47,6 +47,8 @@ NAME_MAPPING = {
     "cpu": "HardArmy",
     "pc": "pcap",
     "pcaps": "pcap",
+    "g.c": "pcap",
+    "gc": "pcap",
     # "[ooe]excal^": "[OoE]Excal^",
 }
 
