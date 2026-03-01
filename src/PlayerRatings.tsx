@@ -1,5 +1,7 @@
 import Stack from "@mui/material/Stack"
 import Paper from "@mui/material/Paper"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import { Typography } from "@mui/material"
 
 import * as React from "react"
@@ -52,23 +54,54 @@ function formatSkill(v: any): string {
 }
 
 function RatingsOverTime(props: { data: PlayerRatingData }) {
-  const data = Object.entries(props.data.playerRatingOvertime ?? {})
+  const [startYear, setStartYear] = React.useState(2024)
+
+  const allEntries = Object.entries(props.data.playerRatingOvertime ?? {})
+  const earliestYear = allEntries.length > 0
+    ? Math.min(...allEntries.flatMap(([, d]) => d.map((x) => new Date(x.atdate ?? 0).getFullYear())))
+    : 2022
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: currentYear - earliestYear + 1 }, (_, i) => earliestYear + i)
+
+  const startMs = new Date(`${startYear}-01-01`).getTime()
+
+  const data = allEntries
+    .map(([name, d]) => {
+      const sorted = [...d].sort((a, b) => new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime())
+      const finalMu = sorted[sorted.length - 1]?.mu ?? 0
+      return [name, d, finalMu] as const
+    })
+    .sort((a, b) => b[2] - a[2])
+
   if (data.length < 1) {
     ;<Typography>{JSON.stringify(data)}</Typography>
   }
   return (
     <Stack>
+      <ToggleButtonGroup
+        exclusive
+        value={startYear}
+        onChange={(_, v) => { if (v !== null) setStartYear(v) }}
+        size="small"
+        sx={{ mb: 1 }}
+      >
+        {years.map((y) => (
+          <ToggleButton key={y} value={y}>{y}</ToggleButton>
+        ))}
+      </ToggleButtonGroup>
       {data.map(([name, d]) => (
         <Stack key={name}>
           <Typography>{name}</Typography>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart
-              data={d.map((x) => ({
-                mu: x.mu,
-                sigma: x.sigma,
-                skill: [x.mu - x.sigma, x.mu + x.sigma],
-                atdate: new Date(x.atdate ?? 0).getTime(),
-              }))}
+              data={d
+                .map((x) => ({
+                  mu: x.mu,
+                  sigma: x.sigma,
+                  skill: [x.mu - x.sigma, x.mu + x.sigma],
+                  atdate: new Date(x.atdate ?? 0).getTime(),
+                }))
+                .filter((x) => x.atdate >= startMs)}
               layout="horizontal"
               margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
             >
@@ -82,7 +115,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
               <XAxis
                 dataKey="atdate"
                 type="number"
-                domain={[new Date("2024-01-01").getTime(), Date.now()]}
+                domain={[startMs, Date.now()]}
                 tickFormatter={formatDate}
               />
               <YAxis
