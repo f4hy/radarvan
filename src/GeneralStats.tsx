@@ -41,7 +41,6 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
       const losses = x?.total?.losses ?? 0
       return { wins, losses, name: toGeneralName(x.general), rate: winRate(wins, losses) }
     })
-    .sort((a, b) => b.rate - a.rate)
 
   return (
     <ResponsiveContainer width="99%" height={600}>
@@ -49,6 +48,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
         <CartesianGrid strokeDasharray="5 5" vertical={false} />
         <Bar dataKey="wins" fill="#42A5F5" name="Wins">
           <LabelList dataKey="wins" position="top" fontSize={11} />
+          <LabelList dataKey="rate" position="insideTop" fontSize={11} fill="white" formatter={(v: any) => `${(v * 100).toFixed(0)}%`} />
         </Bar>
         <Bar dataKey="losses" fill="#FF7043" name="Losses">
           <LabelList dataKey="losses" position="top" fontSize={11} />
@@ -125,7 +125,7 @@ export default function DisplayGeneralStats() {
       <Typography variant="h4">
         Stats computed only from 1v1 2v2 3v3 and 4v4 games
       </Typography>
-      <DisplayOverallGeneralStat stats={{ generalStats: sorted }} />
+      <DisplayOverallGeneralStat stats={{ generalStats: generalStats.generalStats }} />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Typography variant="h4">Ordered by winrate </Typography>
       <Grid container spacing={2}>
