@@ -127,7 +127,7 @@ function DisplayPlayerStat(props: {
   )
 }
 
-const MIN_GAMES_FOR_BEST = 10
+const MIN_GAMES_FOR_BEST = 8
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"]
 
