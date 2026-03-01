@@ -285,6 +285,101 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
   )
 }
 
+function GeneralConsistency(props: { playerStats: PlayerStats }) {
+  type PlayerConsistency = {
+    playerName: string
+    spread: number
+    bestWinRate: number
+    bestGeneral: General
+    worstWinRate: number
+    worstGeneral: General
+    qualifyingCount: number
+  }
+
+  const rows: PlayerConsistency[] = []
+  for (const stat of props.playerStats.playerStats) {
+    const qualifying: { general: General; winRate: number }[] = []
+    for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
+      const generalNum = parseInt(generalStr)
+      if (generalNum < 0) continue
+      const wins = winLoss?.wins ?? 0
+      const losses = winLoss?.losses ?? 0
+      const total = wins + losses
+      if (total < MIN_GAMES_FOR_BEST) continue
+      qualifying.push({ general: toGeneral(generalNum), winRate: wins / total })
+    }
+    if (qualifying.length < 2) continue
+    const sorted = qualifying.sort((a, b) => b.winRate - a.winRate)
+    const best = sorted[0]
+    const worst = sorted[sorted.length - 1]
+    rows.push({
+      playerName: stat.playerName,
+      spread: best.winRate - worst.winRate,
+      bestWinRate: best.winRate,
+      bestGeneral: best.general,
+      worstWinRate: worst.winRate,
+      worstGeneral: worst.general,
+      qualifyingCount: qualifying.length,
+    })
+  }
+
+  const ranked = rows.sort((a, b) => a.spread - b.spread)
+  if (ranked.length < 2) return null
+
+  const mostConsistent = ranked[0]
+  const mostVariable = ranked[ranked.length - 1]
+
+  function ConsistencyCard(props: {
+    player: PlayerConsistency
+    label: string
+    emoji: string
+    accentColor: string
+  }) {
+    return (
+      <Paper variant="outlined" sx={{ p: 2, flex: 1, textAlign: "center" }}>
+        <Typography variant="subtitle2" color={props.accentColor} sx={{ mb: 0.5 }}>
+          {props.emoji} {props.label}
+        </Typography>
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
+          {props.player.playerName}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+          {props.player.spread * 100 < 1 ? "<1" : (props.player.spread * 100).toFixed(0)}% spread across {props.player.qualifyingCount} generals
+        </Typography>
+        <Stack direction="row" justifyContent="center" spacing={3}>
+          <Stack alignItems="center" spacing={0.5}>
+            <DisplayGeneral general={props.player.bestGeneral} />
+            <Typography variant="caption" color="success.main">
+              ▲ {toGeneralName(props.player.bestGeneral)}
+            </Typography>
+          </Stack>
+          <Stack alignItems="center" spacing={0.5}>
+            <DisplayGeneral general={props.player.worstGeneral} />
+            <Typography variant="caption" color="error.main">
+              ▼ {toGeneralName(props.player.worstGeneral)}
+            </Typography>
+          </Stack>
+        </Stack>
+      </Paper>
+    )
+  }
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <Typography variant="h5">General Consistency</Typography>
+        <Tooltip title={`Spread between a player's best and worst general win rate. Only generals with at least ${MIN_GAMES_FOR_BEST} games qualify. Players need at least 2 qualifying generals.`}>
+          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
+        </Tooltip>
+      </Stack>
+      <Stack direction="row" spacing={2}>
+        <ConsistencyCard player={mostConsistent} label="Most Consistent" emoji="🎯" accentColor="success.main" />
+        <ConsistencyCard player={mostVariable} label="Most Variable" emoji="🎲" accentColor="error.main" />
+      </Stack>
+    </Box>
+  )
+}
+
 const empty = { playerStats: [] }
 
 export default function DisplayPlayerStats() {
@@ -318,6 +413,8 @@ export default function DisplayPlayerStats() {
       <BestPlayerPerGeneral playerStats={playerStats} />
       <Divider sx={{ mb: 2 }} />
       <BestRelativePlayerPerGeneral playerStats={playerStats} />
+      <Divider sx={{ mb: 2 }} />
+      <GeneralConsistency playerStats={playerStats} />
       <Divider sx={{ mb: 2 }} />
       {playerStats.playerStats.map((m) => (
         <React.Fragment key={m.playerName}>
