@@ -13,7 +13,8 @@ import Loading from "./Loading"
 import LinearProgress from "@mui/material/LinearProgress"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
-import { Chip, Tooltip as MuiTooltip } from "@mui/material"
+import { Chip, Tooltip as MuiTooltip, useTheme } from "@mui/material"
+import useMediaQuery from "@mui/material/useMediaQuery"
 import * as React from "react"
 import {
   Bar,
@@ -196,6 +197,8 @@ function DisplayRecords(props: {
   totalGames: number
   complete: boolean
 }) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const total = props.totalGames
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -318,11 +321,11 @@ function DisplayRecords(props: {
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+            margin={{ top: 5, right: 30, left: isMobile ? 5 : 150, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" domain={[0, total]} />
-            <YAxis dataKey="team" type="category" width={140} />
+            <YAxis dataKey="team" type="category" width={isMobile ? 65 : 140} tick={{ fontSize: isMobile ? 10 : 14 }} />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Bar
@@ -347,7 +350,9 @@ function DisplayRecords(props: {
 
 function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
   const [selected, setSelected] = React.useState<number>(0)
-  const buttonsPerRow: number = 5
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+  const buttonsPerRow: number = isMobile ? 2 : 5
 
   const buttonNumbers: number[] = Array.from(
     { length: props.matchups.length },
@@ -378,7 +383,7 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
             value={selected}
             exclusive
             onChange={handleChange}
-            size="large"
+            size={isMobile ? "small" : "large"}
             sx={{ width: "100%" }}
           >
             {row.map((buttonIndex) => {
@@ -403,7 +408,7 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
                     textTransform: "none", // Prevent all-caps
                   }}
                 >
-                  <Typography style={{ fontWeight: "bold" }}>
+                  <Typography style={{ fontWeight: "bold" }} variant={isMobile ? "caption" : "body1"}>
                     {teams.join(" vs ")} {record}
                   </Typography>
                 </ToggleButton>

@@ -63,7 +63,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     color = "#D3D3D3"
   }
   return (
-    <Card sx={{ backgroundColor: color, minWidth: 300, width: 1 / 2 }}>
+    <Card sx={{ backgroundColor: color, width: { xs: "100%", sm: "50%" }, minWidth: 0 }}>
       <CardHeader title={title} avatar={icon} component="div" />
       {props.players.map((p) => (
         <CardContent key={p?.name + "-" + p.general} component="div">
@@ -118,19 +118,14 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
   const [details, setDetails] = React.useState<boolean>(false)
   const date = match.timestamp.toLocaleString()
   const header = (
-    <Typography>
-      {"MatchId:" +
-        match.id +
-        " FFA" +
-        " Date:" +
-        date +
-        " on Map:" +
-        match.map.split("/").slice(-1) +
-        " Duration:" +
-        match.durationMinutes.toFixed(2) +
-        " minutes GameVersion:" +
-        match.gameVersion}
-    </Typography>
+    <Box>
+      <Typography variant="body2" fontWeight="bold">
+        FFA · {date}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Map: {match.map.split("/").slice(-1)} · {match.durationMinutes.toFixed(1)}min · v{match.gameVersion} · ID:{match.id}
+      </Typography>
+    </Box>
   )
   return (
     <Paper
@@ -208,21 +203,14 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
   const date = props.match.timestamp.toLocaleString()
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
-    <Typography>
-      {" MatchId:" +
-        props.match.id +
-        " " +
-        props.match.composition?.category +
-        ` Winner:${winningTeam}` +
-        " Date:" +
-        date +
-        " on Map:" +
-        props.match.map.split("/").slice(-1) +
-        " Duration:" +
-        props.match.durationMinutes.toFixed(2) +
-        " minutes GameVersion:" +
-        props.match.gameVersion}
-    </Typography>
+    <Box>
+      <Typography variant="body2" fontWeight="bold">
+        {props.match.composition?.category} · Winner: {winningTeam} · {date}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Map: {props.match.map.split("/").slice(-1)} · {props.match.durationMinutes.toFixed(1)}min · v{props.match.gameVersion} · ID:{props.match.id}
+      </Typography>
+    </Box>
   )
 
   const teams = _.groupBy(props.match.players, "team")
@@ -244,7 +232,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
           </Typography>
         ) : null}
       </ListItem>
-      <Stack direction="row" justifyContent="flex-start">
+      <Stack direction="row" justifyContent="flex-start" flexWrap="wrap">
         {Object.values(teams).map((team) => (
           <TeamCard
             key={team[0].team}

@@ -372,7 +372,7 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
           <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
         </Tooltip>
       </Stack>
-      <Stack direction="row" spacing={2}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <ConsistencyCard player={mostConsistent} label="Most Consistent" emoji="🎯" accentColor="success.main" />
         <ConsistencyCard player={mostVariable} label="Most Variable" emoji="🎲" accentColor="error.main" />
       </Stack>

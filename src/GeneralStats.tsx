@@ -20,7 +20,8 @@ import DisplayGeneral from "./Generals"
 import { GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
-import { Typography } from "@mui/material"
+import { Typography, useTheme } from "@mui/material"
+import useMediaQuery from "@mui/material/useMediaQuery"
 import { winRate } from "./utils"
 
 function getGeneralStats(callback: (m: GeneralStats) => void) {
@@ -30,6 +31,9 @@ function getGeneralStats(callback: (m: GeneralStats) => void) {
 }
 
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+
   const data = props.stats.generalStats
     .map((x) => {
       const wins = x?.total?.wins ?? 0
@@ -38,18 +42,18 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
     })
 
   return (
-    <ResponsiveContainer width="99%" height={600}>
-      <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 20, left: 10, bottom: 60 }}>
+    <ResponsiveContainer width="99%" height={isMobile ? 350 : 600}>
+      <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 10, left: 5, bottom: isMobile ? 80 : 60 }}>
         <CartesianGrid strokeDasharray="5 5" vertical={false} />
         <Bar dataKey="wins" fill="#42A5F5" name="Wins">
-          <LabelList dataKey="wins" position="top" fontSize={11} />
-          <LabelList dataKey="rate" position="insideTop" fontSize={11} fill="white" formatter={(v: any) => `${(v * 100).toFixed(0)}%`} />
+          {!isMobile && <LabelList dataKey="wins" position="top" fontSize={11} />}
+          <LabelList dataKey="rate" position="insideTop" fontSize={isMobile ? 9 : 11} fill="white" formatter={(v: any) => `${(v * 100).toFixed(0)}%`} />
         </Bar>
         <Bar dataKey="losses" fill="#FF7043" name="Losses">
-          <LabelList dataKey="losses" position="top" fontSize={11} />
+          {!isMobile && <LabelList dataKey="losses" position="top" fontSize={11} />}
         </Bar>
-        <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} />
-        <YAxis />
+        <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: isMobile ? 9 : 12 }} />
+        <YAxis tick={{ fontSize: isMobile ? 9 : 12 }} />
         <Tooltip cursor={false} />
       </BarChart>
     </ResponsiveContainer>
