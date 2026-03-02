@@ -9,7 +9,7 @@ from .api_types import (
 )
 from . import replay_files
 import logging
-from .player_ids import player_name_map
+from .player_ids import resolve_player_name
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
         if not replay_files.path_filter(game.filename):
             continue
         for player in game.players:
-            name = player_name_map(player.name)
+            name = resolve_player_name(player.name, player.color)
             if name not in player_stats:
                 player_stats[name] = PlayerStat(
                     player_name=name,

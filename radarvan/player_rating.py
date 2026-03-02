@@ -72,7 +72,9 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     model = get_model()
 
     all_players = {
-        player_ids.player_name_map(p.name) for game in games for p in game.players
+        player_ids.resolve_player_name(p.name, p.color)
+        for game in games
+        for p in game.players
     }
     game_counts = dict.fromkeys(all_players, 0)
 
@@ -92,8 +94,10 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
         actual_players = [p for p in game.players if p.team > 0]
         logger.info(f"game: {game.id} players {game.players}")
         for player in actual_players:
-            teams[player.team].append(player_ids.player_name_map(player.name))
-            game_counts[player_ids.player_name_map(player.name)] += 1
+            teams[player.team].append(
+                player_ids.resolve_player_name(player.name, player.color)
+            )
+            game_counts[player_ids.resolve_player_name(player.name, player.color)] += 1
         if len(teams) != 2:
             continue
 

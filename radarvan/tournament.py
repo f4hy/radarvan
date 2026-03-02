@@ -2,7 +2,7 @@ import statistics
 from collections import Counter
 import logging
 from itertools import combinations
-from .player_ids import player_name_map
+from .player_ids import resolve_player_name
 from datetime import date
 from collections.abc import Sequence
 from collections import defaultdict
@@ -76,7 +76,7 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
     for p in match_info.players:
         if p.team == Team.OBSERVER:
             continue
-        team_map[p.team].add(player_name_map(p.name))
+        team_map[p.team].add(resolve_player_name(p.name, p.color))
 
     teams = {sorted_tuple(list(t)) for t in team_map.values()}
 
@@ -111,7 +111,7 @@ def winning_team(m: MatchInfo, tournament: Tournament) -> tuple[str, ...]:
     for p in m.players:
         if p.won:
             for team in tournament.teams:
-                if player_name_map(p.name) in team:
+                if resolve_player_name(p.name, p.color) in team:
                     return team
     raise ValueError("Winner not in tournament")
 
@@ -148,7 +148,9 @@ def create_tournament_results(
                     continue
                 if player.team not in teams_in_match:
                     teams_in_match[player.team] = set()
-                teams_in_match[player.team].add(player_name_map(player.name))
+                teams_in_match[player.team].add(
+                    resolve_player_name(player.name, player.color)
+                )
 
             # Convert to sorted tuples
             team_tuples = [
@@ -180,7 +182,7 @@ def create_tournament_results(
                         continue
                     if player.team not in teams_in_match:
                         teams_in_match[player.team] = set()
-                    name = player_name_map(player.name)
+                    name = resolve_player_name(player.name, player.color)
                     teams_in_match[player.team].add(name)
                     player_won[name] = player.won
 
@@ -269,7 +271,7 @@ def highest_apm(matches: list[MatchDetails]) -> Statistic:
     return Statistic(
         stat_name="Highest APM",
         value=round(highest_apm.apm, 2),
-        player=player_name_map(highest_apm.player_name),
+        player=resolve_player_name(highest_apm.player_name),
         match_id=highest_apm_match.match_id,
     )
 
@@ -280,14 +282,14 @@ def highest_ave_apm(matches: list[MatchDetails]) -> Statistic:
         if not m.apms:
             continue
         for a in m.apms:
-            player_apms[player_name_map(a.player_name)].append(a.apm)
+            player_apms[resolve_player_name(a.player_name)].append(a.apm)
 
     averages = {p: statistics.mean(v) for p, v in player_apms.items()}
     player, max_ave = max(averages.items(), key=lambda x: x[1])
     return Statistic(
         stat_name="Highest Average APM",
         value=round(max_ave, 2),
-        player=player_name_map(player),
+        player=resolve_player_name(player),
     )
 
 
@@ -388,14 +390,14 @@ def earlest_first_blood(matches: list[MatchDetails]) -> Statistic:
     return Statistic(
         stat_name="Earliest First Blood",
         value=f"{earliest.first_blood.atMinute:.2f}m",
-        player=player_name_map(earliest.first_blood.attacker),
+        player=resolve_player_name(earliest.first_blood.attacker),
         match_id=earliest.match_id,
     )
 
 
 def most_first_bloods(matches: list[MatchDetails]) -> Statistic:
     counter = Counter(
-        player_name_map(m.first_blood.attacker) for m in matches if m.first_blood
+        resolve_player_name(m.first_blood.attacker) for m in matches if m.first_blood
     )
     most, count = counter.most_common(1)[0]
     return Statistic(
@@ -407,7 +409,7 @@ def most_first_bloods(matches: list[MatchDetails]) -> Statistic:
 
 def last_val(d: dict[float, dict[str, int]]) -> dict[str, int]:
     last = next(reversed(d.values()))
-    name_mapped = {player_name_map(k): v for k, v in last.items()}
+    name_mapped = {resolve_player_name(k): v for k, v in last.items()}
     return name_mapped
 
 
@@ -456,9 +458,11 @@ def min_max_stats(matches: list[MatchDetails]) -> list[Statistic]:
 
 def fastest_win(matches: list[MatchInfo]) -> Statistic:
     fastest = min((m for m in matches), key=lambda x: x.duration_minutes)
-    winners = [player_name_map(p.name) for p in fastest.players if p.won]
+    winners = [resolve_player_name(p.name, p.color) for p in fastest.players if p.won]
     losers = [
-        player_name_map(p.name) for p in fastest.players if not p.won and p.team > 0
+        resolve_player_name(p.name, p.color)
+        for p in fastest.players
+        if not p.won and p.team > 0
     ]
     return Statistic(
         stat_name="Fastest win",
@@ -470,9 +474,11 @@ def fastest_win(matches: list[MatchInfo]) -> Statistic:
 
 def slowest_win(matches: list[MatchInfo]) -> Statistic:
     slowest = max((m for m in matches), key=lambda x: x.duration_minutes)
-    winners = [player_name_map(p.name) for p in slowest.players if p.won]
+    winners = [resolve_player_name(p.name, p.color) for p in slowest.players if p.won]
     losers = [
-        player_name_map(p.name) for p in slowest.players if not p.won and p.team > 0
+        resolve_player_name(p.name, p.color)
+        for p in slowest.players
+        if not p.won and p.team > 0
     ]
     return Statistic(
         stat_name="Slowest win",
@@ -488,7 +494,9 @@ def group_by_team(
     teams = TOURNAMENT_MAP[tournament_name].teams
     grouped: dict[tuple[str, ...], list[MatchInfo]] = defaultdict(list)
     for m in matches:
-        player_names = {player_name_map(p.name) for p in m.players if p.team > 0}
+        player_names = {
+            resolve_player_name(p.name, p.color) for p in m.players if p.team > 0
+        }
         for team in teams:
             if set(team).issubset(player_names):
                 grouped[team].append(m)

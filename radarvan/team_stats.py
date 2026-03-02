@@ -4,7 +4,7 @@ from collections import defaultdict
 from .api_types import MatchInfo, TeamRecord, TeamSizeGroup, TeamStatsResponse
 from . import replay_files
 from .general_stats import CPU_NAMES
-from .player_ids import player_name_map
+from .player_ids import resolve_player_name
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
                 continue
             if player.team <= 0:
                 continue
-            name = player_name_map(player.name)
+            name = resolve_player_name(player.name, player.color)
             teams[player.team].append((name, player.won))
 
         if not teams:

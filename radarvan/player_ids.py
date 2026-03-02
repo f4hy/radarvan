@@ -34,6 +34,7 @@ NAME_MAPPING = {
     "cd": "CoreDawg",
     "coredawg": "CoreDawg",
     "c": "CoreDawg",
+    "cb": "CoreDawg",
     "cd@wg": "CoreDawg",
     "cdawg": "CoreDawg",
     "cdog": "CoreDawg",
@@ -63,7 +64,12 @@ NAME_MAPPING = {
 PLAYER_NAMES = set(NAME_MAPPING.values())
 
 
-def player_name_map(name: str) -> str:
-    """Map all aliases"""
-
+def resolve_player_name(name: str, color: str = "") -> str:
+    """Resolve a player name from their in-game name and optional color."""
+    if name.lower() == "pc":
+        if color.lower() == "purple":
+            return "pcap"
+        if color.lower() == "pink" or color == "":
+            return "Pancake"
+        return "pcap"
     return NAME_MAPPING.get(name.lower(), name)

@@ -11,7 +11,7 @@ from .api_types import (
 )
 from . import replay_files
 from . import general_stats as general_stats_module
-from .player_ids import player_name_map
+from .player_ids import resolve_player_name
 import logging
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
                 continue
             if player.general == General.UNRECOGNIZED:
                 continue
-            name = player_name_map(player.name)
+            name = resolve_player_name(player.name, player.color)
             idx = 0 if player.won else 1
             player_wl[map_name][name][idx] += 1
             general_wl[map_name][player.general.value][idx] += 1

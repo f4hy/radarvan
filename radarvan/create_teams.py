@@ -17,7 +17,7 @@ def balance_teams(
     player_ratings = {r.name: r for r in ratings}
 
     model = get_model()
-    day_players = [player_ids.player_name_map(n) for n in player_list]
+    day_players = [player_ids.resolve_player_name(n) for n in player_list]
     team_win_pct = {}
     for team1 in combinations(day_players, team_size):
         if tuple(team1) in team_win_pct:
