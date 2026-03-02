@@ -13,6 +13,8 @@ from .player_ids import resolve_player_name
 
 logger = logging.getLogger(__name__)
 
+NEEDED_GAMES = 8
+
 
 def total_games(player_stat: PlayerStat) -> int:
     return sum(wl.wins + wl.losses for wl in player_stat.stats.values())
@@ -42,6 +44,8 @@ def get_player_stats(games: list[MatchInfo]) -> PlayerStats:
             else:
                 player_stats[name].stats[player.general].losses += 1
 
-    filtered = [stat for stat in player_stats.values() if total_games(stat) > 8]
+    filtered = [
+        stat for stat in player_stats.values() if total_games(stat) > NEEDED_GAMES
+    ]
 
     return PlayerStats(player_stats=sorted(filtered, key=total_games, reverse=True))

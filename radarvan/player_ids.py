@@ -34,6 +34,7 @@ NAME_MAPPING = {
     "cd": "CoreDawg",
     "coredawg": "CoreDawg",
     "c": "CoreDawg",
+    "cor": "CoreDawg",
     "cb": "CoreDawg",
     "cd@wg": "CoreDawg",
     "cdawg": "CoreDawg",
@@ -58,6 +59,9 @@ NAME_MAPPING = {
     "pcap": "pcap",
     "g.c": "pcap",
     "gc": "pcap",
+    "domi": "DoMiNaToR",
+    "-dominator-": "DoMiNaToR",
+    "dominator": "DoMiNaToR",
     # "[ooe]excal^": "[OoE]Excal^",
 }
 
