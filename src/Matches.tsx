@@ -72,7 +72,8 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     <Card
       sx={{
         backgroundColor: color,
-        width: { xs: "100%", sm: "50%" },
+        width: { xs: "100%", sm: "50%", md: "auto" },
+        flex: { md: 1 },
         minWidth: 0,
       }}
     >
@@ -246,7 +247,11 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
           </Typography>
         ) : null}
       </ListItem>
-      <Stack direction="row" justifyContent="flex-start" flexWrap="wrap">
+      <Stack
+        direction="row"
+        justifyContent="flex-start"
+        flexWrap={{ xs: "wrap", md: "nowrap" }}
+      >
         {Object.values(teams).map((team) => (
           <TeamCard
             key={team[0].team}
@@ -254,7 +259,9 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
             won={team[0].team === props.match.winningTeam}
           />
         ))}
-        <Map mapname={props.match.map} />
+        <Box sx={{ flexShrink: 0 }}>
+          <Map mapname={props.match.map} />
+        </Box>
       </Stack>
       <Stack direction="row">
         <Button variant="contained" onClick={() => setDetails(!details)}>
