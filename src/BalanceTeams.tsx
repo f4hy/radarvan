@@ -80,14 +80,14 @@ function ScoreBar(props: {
   const team2 = props.selectedPlayers.filter((p) => !team1.includes(p))
 
   return (
-    <Box sx={{ padding: 1 }}>
+    <Paper elevation={1} sx={{ padding: 1.5 }}>
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
           flexWrap: "wrap",
           gap: 0.5,
-          mb: 0.5,
+          mb: 1,
         }}
       >
         {team1.map((p) => (
@@ -115,8 +115,7 @@ function ScoreBar(props: {
           {`${Math.round(props.score)}% Balanced`}
         </Typography>
       </Box>
-      <Divider />
-    </Box>
+    </Paper>
   )
 }
 
@@ -155,10 +154,10 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const filtered = isDebug()
     ? entries
     : entries.filter(
-        ([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3,
+        ([, winRate], i) => (1.0 - Math.abs(winRate - 0.5) * 2 > 0.7),
       )
   return (
-    <Stack>
+    <Stack spacing={1} sx={{ mt: 1, p: 1.5, bgcolor: "grey.300", borderRadius: 1 }}>
       {loading && <LinearProgress />}
       {filtered.map(([team, winRate]) => (
         <ScoreBar
