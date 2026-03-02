@@ -19,6 +19,7 @@ import * as React from "react"
 import { PlayerEnum, PlayerEnumFromJSON } from "./api"
 import { Client } from "./Client"
 import { isDebug } from "./utils"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
 interface TeamWinRating {
   [key: string]: number
@@ -27,6 +28,7 @@ interface TeamWinRating {
 function getTeamWinRating(
   players: PlayerEnum[],
   callback: (m: TeamWinRating) => void,
+  onError = console.error,
 ) {
   if (players.length < 2) {
     callback({})
@@ -34,13 +36,14 @@ function getTeamWinRating(
   }
   Client.balanceTeamsApiBalanceTeamsGet({ players: players })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 function getTeamPartition(
   players: PlayerEnum[],
   teamSize: number,
   callback: (m: string[][]) => void,
+  onError = console.error,
 ) {
   if (
     players.length < 6 ||
@@ -55,7 +58,7 @@ function getTeamPartition(
     players: players,
   })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 const getScoreStyle = (score: number) => {
@@ -78,11 +81,21 @@ function ScoreBar(props: {
 
   return (
     <Box sx={{ padding: 1 }}>
-      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.5, mb: 0.5 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 0.5,
+          mb: 0.5,
+        }}
+      >
         {team1.map((p) => (
           <Chip key={p} label={p} color="primary" size="small" />
         ))}
-        <Typography variant="body2" sx={{ mx: 0.5 }}>vs</Typography>
+        <Typography variant="body2" sx={{ mx: 0.5 }}>
+          vs
+        </Typography>
         {team2.map((p) => (
           <Chip key={p} label={p} color="secondary" size="small" />
         ))}
@@ -94,7 +107,11 @@ function ScoreBar(props: {
           variant="determinate"
           value={props.score}
         />
-        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ whiteSpace: "nowrap" }}
+        >
           {`${Math.round(props.score)}% Balanced`}
         </Typography>
       </Box>
@@ -105,18 +122,23 @@ function ScoreBar(props: {
 function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const [teamRating, setTeamRating] = React.useState<TeamWinRating>({})
   const [loading, setLoading] = React.useState(false)
+  const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
     if (props.selectedPlayers.length >= 2) {
       setLoading(true)
-      getTeamWinRating(props.selectedPlayers, (data) => {
-        setTeamRating(data)
-        setLoading(false)
-      })
+      getTeamWinRating(
+        props.selectedPlayers,
+        (data) => {
+          setTeamRating(data)
+          setLoading(false)
+        },
+        showError,
+      )
     } else {
       setTeamRating({})
     }
-  }, [props.selectedPlayers])
+  }, [props.selectedPlayers, showError])
 
   if (props.selectedPlayers.length % 2 !== 0) {
     return (
@@ -131,7 +153,9 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const entries = Object.entries(teamRating)
   const filtered = isDebug()
     ? entries
-    : entries.filter(([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3)
+    : entries.filter(
+        ([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) > 0.75 || i < 3,
+      )
   return (
     <Stack>
       {loading && <LinearProgress />}
@@ -143,6 +167,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
           selectedPlayers={props.selectedPlayers}
         />
       ))}
+      {errorSnackbar}
     </Stack>
   )
 }
@@ -151,6 +176,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const [teamPartition, setTeamPartition] = React.useState<string[][]>([])
   const [teamSize, setTeamSize] = React.useState<number>(2)
   const [loading, setLoading] = React.useState(false)
+  const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
     const eligible =
@@ -159,14 +185,19 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       props.selectedPlayers.length % teamSize === 0
     if (eligible) {
       setLoading(true)
-      getTeamPartition(props.selectedPlayers, teamSize, (data) => {
-        setTeamPartition(data)
-        setLoading(false)
-      })
+      getTeamPartition(
+        props.selectedPlayers,
+        teamSize,
+        (data) => {
+          setTeamPartition(data)
+          setLoading(false)
+        },
+        showError,
+      )
     } else {
       setTeamPartition([])
     }
-  }, [props.selectedPlayers, teamSize])
+  }, [props.selectedPlayers, teamSize, showError])
 
   if (props.selectedPlayers.length % 2 !== 0) {
     return (
@@ -222,6 +253,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
           </Grid>
         ))}
       </Grid>
+      {errorSnackbar}
     </Stack>
   )
 }
@@ -261,7 +293,14 @@ export default function DisplayBalanceTeams() {
         be ranked
       </Typography>
       <FormGroup>
-        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", padding: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            padding: 1,
+          }}
+        >
           {players.map((option) => (
             <FormControlLabel
               key={option}

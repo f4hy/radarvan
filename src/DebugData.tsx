@@ -25,20 +25,26 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Tooltip from "@mui/material/Tooltip"
 import { IconButton } from "@mui/material"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
-function getGameData(matchId: number, callback: (m: GameRecord[]) => void) {
+function getGameData(
+  matchId: number,
+  callback: (m: GameRecord[]) => void,
+  onError = console.error,
+) {
   Client.listReplaysApiReplaysGet({ matchId: matchId })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 function getDebugData(
   matchId: number,
   callback: (m: { [key: string]: any }) => void,
+  onError = console.error,
 ) {
   Client.debugMatchApiDebugMatchMatchIdGet({ matchId: matchId })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 function reparse(matchId: number) {
@@ -260,6 +266,8 @@ export default function DisplayDebugData() {
     null,
   )
   const [matchId, setMatchId] = React.useState<string | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value
     // Replace any non-digit character globally with an empty string
@@ -272,12 +280,12 @@ export default function DisplayDebugData() {
     if (matchId !== null) {
       const num = Number(matchId)
       if (!isNaN(num)) {
-        getGameData(num, setDebugData)
-        getDebugData(num, setMatchDebugData)
+        getGameData(num, setDebugData, showError)
+        getDebugData(num, setMatchDebugData, showError)
         setJsonDownloadUrl(null)
         Client.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
           .then((result) => setJsonDownloadUrl(result["url"]))
-          .catch((e) => alert(e))
+          .catch(showError)
       }
     }
   }
@@ -328,6 +336,7 @@ export default function DisplayDebugData() {
           </Accordion>
         </Stack>
       ))}
+      {errorSnackbar}
     </Paper>
   )
 }

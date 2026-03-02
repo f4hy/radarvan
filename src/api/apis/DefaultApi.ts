@@ -19,6 +19,7 @@ import type {
   GameRecord,
   GeneralStats,
   HTTPValidationError,
+  MapStatsResponse,
   MatchDetails,
   MatchInfo,
   Matches,
@@ -42,6 +43,8 @@ import {
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    MapStatsResponseFromJSON,
+    MapStatsResponseToJSON,
     MatchDetailsFromJSON,
     MatchDetailsToJSON,
     MatchInfoFromJSON,
@@ -577,6 +580,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getGeneralsStatsApiGeneralstatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
         const response = await this.getGeneralsStatsApiGeneralstatsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get player and general win rates grouped by map.
+     * Get Map Stats
+     */
+    async getMapStatsApiMapStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapStatsResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/map_stats/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MapStatsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get player and general win rates grouped by map.
+     * Get Map Stats
+     */
+    async getMapStatsApiMapStatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapStatsResponse> {
+        const response = await this.getMapStatsApiMapStatsGetRaw(initOverrides);
         return await response.value();
     }
 

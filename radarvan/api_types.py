@@ -162,6 +162,32 @@ class TeamStats(BaseModel):
         populate_by_name = True
 
 
+class MapPlayerWL(BaseModel):
+    player: str
+    wins: int
+    losses: int
+
+
+class MapGeneralWL(BaseModel):
+    general: General
+    wins: int
+    losses: int
+
+
+class MapData(BaseModel):
+    map_name: str = Field(alias="mapName")
+    total_games: int = Field(alias="totalGames")
+    player_stats: list[MapPlayerWL] = Field(alias="playerStats")
+    general_stats: list[MapGeneralWL] = Field(alias="generalStats")
+
+    class Config:
+        populate_by_name = True
+
+
+class MapStatsResponse(BaseModel):
+    maps: list[MapData]
+
+
 class MapStat(BaseModel):
     map: str = ""
     team: Team = Team.NONE

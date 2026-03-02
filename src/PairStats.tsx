@@ -124,10 +124,18 @@ export default function DisplayPairstats() {
     <>
       <Box sx={{ flexGrow: 1, maxWidth: 1600 }}>
         {teams.map((team) => (
-          <PairBarChart key={team} pairdata={pairstats.factionPairs[team]} team={team} />
+          <PairBarChart
+            key={team}
+            pairdata={pairstats.factionPairs[team]}
+            team={team}
+          />
         ))}
         {teams.map((team) => (
-          <PairBarChart key={team} pairdata={pairstats.teamPairs[team]} team={team} />
+          <PairBarChart
+            key={team}
+            pairdata={pairstats.teamPairs[team]}
+            team={team}
+          />
         ))}
       </Box>
     </>

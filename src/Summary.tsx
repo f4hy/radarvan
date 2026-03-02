@@ -118,7 +118,11 @@ function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
       <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
       <Divider />
       {Object.entries(props.playerSummary.powersUsed).map(([name, count]) => {
-        return <Typography key={name}>{"Powers Used: " + name + " " + count}</Typography>
+        return (
+          <Typography key={name}>
+            {"Powers Used: " + name + " " + count}
+          </Typography>
+        )
       })}
     </Stack>
   )

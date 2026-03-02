@@ -36,28 +36,16 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
-function getDetails(id: number, callback: (m: MatchDetails) => void) {
+function getDetails(
+  id: number,
+  callback: (m: MatchDetails) => void,
+  onError = console.error,
+) {
   Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
     .then(callback)
-    .catch((e) => alert(e))
-}
-
-const empty: MatchDetails = {
-  matchId: 0,
-  costs: [],
-  apms: [],
-  upgradeEvents: {},
-  spent: {
-    buildings: [],
-    units: [],
-    upgrades: [],
-    total: [],
-  },
-  moneyValues: {},
-  moneyCollectedValues: {},
-  statsData: {},
-  playerSummary: [],
+    .catch(onError)
 }
 
 const shapes: (
@@ -521,15 +509,21 @@ type Displays =
   | "Detailed Graphs"
 
 export default function ShowMatchDetails(props: { id: number }) {
-  const [details, setDetails] = React.useState<MatchDetails>(empty)
+  const [details, setDetails] = React.useState<MatchDetails | null>(null)
   const [selectedDisplay, setSelectedDisplay] = React.useState<Displays | null>(
     null,
   )
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getDetails(props.id, setDetails)
-  }, [props.id])
-  if (details.matchId === 0) {
-    return <Loading />
+    getDetails(props.id, setDetails, showError)
+  }, [props.id, showError])
+  if (details === null) {
+    return (
+      <>
+        <Loading />
+        {errorSnackbar}
+      </>
+    )
   }
   const maxAtMinute =
     details.spent !== undefined
@@ -591,6 +585,7 @@ export default function ShowMatchDetails(props: { id: number }) {
       {selectedDisplay === "Detailed Graphs" && (
         <DetailedGraphs details={details} />
       )}
+      {errorSnackbar}
     </Paper>
   )
 }

@@ -36,29 +36,39 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { isDebug } from "./utils"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from "./Matches"
 
-function getTournamentResults(callback: (m: TournamentResult[]) => void) {
+function getTournamentResults(
+  callback: (m: TournamentResult[]) => void,
+  onError = console.error,
+) {
   Client.getTournamentResultsApiTournamentResultsGet()
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 function getTournamentReport(
   name: string,
   callback: (m: TournamentReport) => void,
+  onError = console.error,
 ) {
   Client.getTournamentReportApiTournamentReportTournamentNameGet({
     tournamentName: name,
   })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
-function getMatch(matchId: number, callback: (m: MatchInfo) => void) {
+
+function getMatch(
+  matchId: number,
+  callback: (m: MatchInfo) => void,
+  onError = console.error,
+) {
   Client.getMatchByIdApiMatchMatchIdGet({ matchId: matchId })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 const getWinRateStyle = (winRate: number) => {
@@ -135,18 +145,25 @@ function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
 
 function LoadAndShowMatch(props: { matchId: number }) {
   const [match, setMatch] = React.useState<MatchInfo | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getMatch(props.matchId, setMatch)
-  }, [props.matchId])
+    getMatch(props.matchId, setMatch, showError)
+  }, [props.matchId, showError])
   if (match === null || match.durationMinutes === undefined) {
     return (
       <>
         <Loading />
         <Typography>{JSON.stringify(match?.durationMinutes)}</Typography>
+        {errorSnackbar}
       </>
     )
   }
-  return <DisplayMatchInfo match={match} idx={props.matchId} />
+  return (
+    <>
+      <DisplayMatchInfo match={match} idx={props.matchId} />
+      {errorSnackbar}
+    </>
+  )
 }
 
 function DisplayMatchup(props: { matchup: MatchupResult }) {
@@ -325,7 +342,12 @@ function DisplayRecords(props: {
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" domain={[0, total]} />
-            <YAxis dataKey="team" type="category" width={isMobile ? 65 : 140} tick={{ fontSize: isMobile ? 10 : 14 }} />
+            <YAxis
+              dataKey="team"
+              type="category"
+              width={isMobile ? 65 : 140}
+              tick={{ fontSize: isMobile ? 10 : 14 }}
+            />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Bar
@@ -408,7 +430,10 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
                     textTransform: "none", // Prevent all-caps
                   }}
                 >
-                  <Typography style={{ fontWeight: "bold" }} variant={isMobile ? "caption" : "body1"}>
+                  <Typography
+                    style={{ fontWeight: "bold" }}
+                    variant={isMobile ? "caption" : "body1"}
+                  >
                     {teams.join(" vs ")} {record}
                   </Typography>
                 </ToggleButton>
@@ -428,19 +453,25 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
   const debug = isDebug()
   const show = props.result.complete === true || debug
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getTournamentReport(props.result.tournament.name, setTournamentStats)
-  }, [props.result.tournament.name])
+    getTournamentReport(
+      props.result.tournament.name,
+      setTournamentStats,
+      showError,
+    )
+  }, [props.result.tournament.name, showError])
 
   if (!show) {
     return (
       <Paper>
         <Typography>Tournament still in progress</Typography>
+        {errorSnackbar}
       </Paper>
     )
   }
   if (touramentStats == null) {
-    return <></>
+    return <>{errorSnackbar}</>
   }
   function matchButton(mId: number | null | undefined) {
     if (mId === null || mId === undefined) {
@@ -494,6 +525,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
         </Table>
       </TableContainer>
       <Divider />
+      {errorSnackbar}
     </Paper>
   )
 }
@@ -521,19 +553,25 @@ export default function DisplayTournamentResults() {
   const [touramentResults, setTournamentResults] = React.useState<
     TournamentResult[]
   >([])
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getTournamentResults(setTournamentResults)
-  }, [])
+    getTournamentResults(setTournamentResults, showError)
+  }, [showError])
   if (touramentResults.length === 0) {
-    return <Loading />
+    return (
+      <>
+        <Loading />
+        {errorSnackbar}
+      </>
+    )
   }
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Tournament Results!</Typography>
-      {/* <Button variant="contained" onClick={() => getGeneralStats(setGeneralStats)} >Get Matches</Button> */}
       {touramentResults.map((r) => (
         <DisplayTournamentResult key={r.tournament.name} result={r} />
       ))}
+      {errorSnackbar}
     </Paper>
   )
 }

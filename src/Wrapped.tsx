@@ -11,12 +11,17 @@ import * as React from "react"
 import { Wrapped } from "./proto/match"
 import { General } from "./proto/match"
 import Loading from "./Loading"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const players = ["Bill", "Brendan", "Jared", "Sean"]
 const maxPage = 4
 const clamp = (num: number) => Math.min(Math.max(num, 0), maxPage)
 
-function getWrapped(player: string, callback: (m: Wrapped) => void) {
+function getWrapped(
+  player: string,
+  callback: (m: Wrapped) => void,
+  onError = console.error,
+) {
   fetch("/api/wrapped/" + player).then((r) =>
     r
       .blob()
@@ -24,10 +29,9 @@ function getWrapped(player: string, callback: (m: Wrapped) => void) {
       .then((j) => {
         const a = new Uint8Array(j)
         const wrapped = Wrapped.decode(a)
-        console.log(JSON.stringify(wrapped))
         callback(wrapped)
       })
-      .catch((e) => alert(e)),
+      .catch(onError),
   )
 }
 
@@ -141,6 +145,7 @@ export default function WrappedYear() {
   const [progress, setProgress] = React.useState(0)
   const [page, setPage] = React.useState(0)
   const [wrappedData, setWrappedData] = React.useState<Wrapped | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -175,7 +180,7 @@ export default function WrappedYear() {
                 setPlayer(p)
                 setProgress(0)
                 setPage(0)
-                getWrapped(p, setWrappedData)
+                getWrapped(p, setWrappedData, showError)
               }}
             >
               {p}
@@ -230,6 +235,7 @@ export default function WrappedYear() {
           </Stack>
         </Stack>
       </Stack>
+      {errorSnackbar}
     </Paper>
   )
 }

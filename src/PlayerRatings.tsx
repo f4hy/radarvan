@@ -25,11 +25,13 @@ import {
 import { PlayerRatingData } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
-function getPlayerRatings(callback: (m: PlayerRatingData) => void) {
-  Client.getPlayerRatingsApiPlayerRatingsGet()
-    .then(callback)
-    .catch((e) => alert(e))
+function getPlayerRatings(
+  callback: (m: PlayerRatingData) => void,
+  onError = console.error,
+) {
+  Client.getPlayerRatingsApiPlayerRatingsGet().then(callback).catch(onError)
 }
 
 function formatLabel(val: any): string {
@@ -59,36 +61,48 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
   const allEntries = Object.entries(props.data.playerRatingOvertime ?? {})
-  const earliestYear = allEntries.length > 0
-    ? Math.min(...allEntries.flatMap(([, d]) => d.map((x) => new Date(x.atdate ?? 0).getFullYear())))
-    : 2022
+  const earliestYear =
+    allEntries.length > 0
+      ? Math.min(
+          ...allEntries.flatMap(([, d]) =>
+            d.map((x) => new Date(x.atdate ?? 0).getFullYear()),
+          ),
+        )
+      : 2022
   const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: currentYear - earliestYear + 1 }, (_, i) => earliestYear + i)
+  const years = Array.from(
+    { length: currentYear - earliestYear + 1 },
+    (_, i) => earliestYear + i,
+  )
 
   const startMs = new Date(`${startYear}-01-01`).getTime()
 
   const data = allEntries
     .map(([name, d]) => {
-      const sorted = [...d].sort((a, b) => new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime())
+      const sorted = [...d].sort(
+        (a, b) =>
+          new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime(),
+      )
       const finalMu = sorted[sorted.length - 1]?.mu ?? 0
       return [name, d, finalMu] as const
     })
     .sort((a, b) => b[2] - a[2])
 
-  if (data.length < 1) {
-    ;<Typography>{JSON.stringify(data)}</Typography>
-  }
   return (
     <Stack>
       <ToggleButtonGroup
         exclusive
         value={startYear}
-        onChange={(_, v) => { if (v !== null) setStartYear(v) }}
+        onChange={(_, v) => {
+          if (v !== null) setStartYear(v)
+        }}
         size="small"
         sx={{ mb: 1 }}
       >
         {years.map((y) => (
-          <ToggleButton key={y} value={y}>{y}</ToggleButton>
+          <ToggleButton key={y} value={y}>
+            {y}
+          </ToggleButton>
         ))}
       </ToggleButtonGroup>
       {data.map(([name, d]) => (
@@ -105,7 +119,12 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 }))
                 .filter((x) => x.atdate >= startMs)}
               layout="horizontal"
-              margin={{ top: 5, right: 5, left: isMobile ? 30 : 50, bottom: isMobile ? 35 : 5 }}
+              margin={{
+                top: 5,
+                right: 5,
+                left: isMobile ? 30 : 50,
+                bottom: isMobile ? 35 : 5,
+              }}
             >
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
               <Area
@@ -124,13 +143,17 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 height={isMobile ? 50 : 30}
               />
               <YAxis
-                label={isMobile ? undefined : {
-                  value: "skill",
-                  position: "insideLeft",
-                  fontSize: 14,
-                  offset: -10,
-                  angle: -90,
-                }}
+                label={
+                  isMobile
+                    ? undefined
+                    : {
+                        value: "skill",
+                        position: "insideLeft",
+                        fontSize: 14,
+                        offset: -10,
+                        angle: -90,
+                      }
+                }
                 domain={[0, 50]}
                 width={isMobile ? 30 : 50}
               />
@@ -152,9 +175,10 @@ export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
     emptyPlayerRatingData,
   )
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getPlayerRatings(setPlayerRatings)
-  }, [])
+    getPlayerRatings(setPlayerRatings, showError)
+  }, [showError])
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -171,7 +195,14 @@ export default function DisplayPlayerRatings() {
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
       <Typography variant="h4">Player Ratings (debug only)</Typography>
       <ResponsiveContainer width="100%" height={isMobile ? 300 : 500}>
-        <ScatterChart margin={{ top: 5, right: isMobile ? 30 : 10, left: leftMargin, bottom: isMobile ? 30 : 5 }}>
+        <ScatterChart
+          margin={{
+            top: 5,
+            right: isMobile ? 30 : 10,
+            left: leftMargin,
+            bottom: isMobile ? 30 : 5,
+          }}
+        >
           <Scatter name="skill" data={data} shape="triangle" fill="blue">
             <LabelList
               dataKey="ordinal"
@@ -197,13 +228,17 @@ export default function DisplayPlayerRatings() {
           </Scatter>
           <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
           <YAxis
-            label={isMobile ? undefined : {
-              value: "Estimated Skill",
-              position: "insideLeft",
-              fontSize: 16,
-              offset: -10,
-              angle: -90,
-            }}
+            label={
+              isMobile
+                ? undefined
+                : {
+                    value: "Estimated Skill",
+                    position: "insideLeft",
+                    fontSize: 16,
+                    offset: -10,
+                    angle: -90,
+                  }
+            }
             type="number"
             dataKey="mu"
             domain={[0, 50]}
@@ -227,19 +262,24 @@ export default function DisplayPlayerRatings() {
           <Bar dataKey="gameCount" fill="#42A5F5" />
           <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
           <YAxis
-            label={isMobile ? undefined : {
-              value: "# games",
-              position: "insideLeft",
-              fontSize: 16,
-              offset: -10,
-              angle: -90,
-            }}
+            label={
+              isMobile
+                ? undefined
+                : {
+                    value: "# games",
+                    position: "insideLeft",
+                    fontSize: 16,
+                    offset: -10,
+                    angle: -90,
+                  }
+            }
             width={leftMargin}
           />
           <Tooltip cursor={false} />
         </BarChart>
       </ResponsiveContainer>
       <RatingsOverTime data={playerRatings} />
+      {errorSnackbar}
     </Paper>
   )
 }

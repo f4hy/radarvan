@@ -31,17 +31,23 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { ActivityCalendar } from "react-activity-calendar"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
-function getDates(callback: (m: { [key: string]: number }) => void) {
-  Client.getDatesApiDatesGet()
-    .then(callback)
-    .catch((e) => alert(e))
+function getDates(
+  callback: (m: { [key: string]: number }) => void,
+  onError = console.error,
+) {
+  Client.getDatesApiDatesGet().then(callback).catch(onError)
 }
 
-function getMatches(date: Date, callback: (m: Matches) => void) {
+function getMatches(
+  date: Date,
+  callback: (m: Matches) => void,
+  onError = console.error,
+) {
   Client.getMatchesByDateApiMatchesByDateDateGet({ date: date })
     .then(callback)
-    .catch((e) => alert(e))
+    .catch(onError)
 }
 
 function playerNameStyle(player: Player) {
@@ -63,14 +69,18 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     color = "#D3D3D3"
   }
   return (
-    <Card sx={{ backgroundColor: color, width: { xs: "100%", sm: "50%" }, minWidth: 0 }}>
+    <Card
+      sx={{
+        backgroundColor: color,
+        width: { xs: "100%", sm: "50%" },
+        minWidth: 0,
+      }}
+    >
       <CardHeader title={title} avatar={icon} component="div" />
       {props.players.map((p) => (
         <CardContent key={p?.name + "-" + p.general} component="div">
           <Stack direction="row" divider={<Divider flexItem />} spacing={4}>
-            <DisplayGeneral
-              general={p!.general}
-            />{" "}
+            <DisplayGeneral general={p!.general} />{" "}
             <Typography
               variant="h5"
               color={p.color}
@@ -123,7 +133,9 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
         FFA · {date}
       </Typography>
       <Typography variant="caption" color="text.secondary">
-        Map: {match.map.split("/").slice(-1)} · {match.durationMinutes.toFixed(1)}min · v{match.gameVersion} · ID:{match.id}
+        Map: {match.map.split("/").slice(-1)} ·{" "}
+        {match.durationMinutes.toFixed(1)}min · v{match.gameVersion} · ID:
+        {match.id}
       </Typography>
     </Box>
   )
@@ -208,7 +220,9 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
         {props.match.composition?.category} · Winner: {winningTeam} · {date}
       </Typography>
       <Typography variant="caption" color="text.secondary">
-        Map: {props.match.map.split("/").slice(-1)} · {props.match.durationMinutes.toFixed(1)}min · v{props.match.gameVersion} · ID:{props.match.id}
+        Map: {props.match.map.split("/").slice(-1)} ·{" "}
+        {props.match.durationMinutes.toFixed(1)}min · v{props.match.gameVersion}{" "}
+        · ID:{props.match.id}
       </Typography>
     </Box>
   )
@@ -289,16 +303,17 @@ function DisplayMatchesForDate(props: {
 }) {
   const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0)
   const [matchList, setMatchList] = React.useState<Matches>(empty)
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
-      getMatches(props.date, setMatchList)
+      getMatches(props.date, setMatchList, showError)
     }
-  }, [expanded, matchList.matches.length, props.date])
+  }, [expanded, matchList.matches.length, props.date, showError])
 
   const handleChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       if (matchList.matches.length === 0) {
-        getMatches(props.date, setMatchList)
+        getMatches(props.date, setMatchList, showError)
       }
       setExpanded(isExpanded)
     }
@@ -308,51 +323,66 @@ function DisplayMatchesForDate(props: {
   const idx = props.idx
   const borderProps = props.selected ? { border: "3px solid green" } : {}
   return (
-    <Accordion
-      expanded={expanded === true}
-      onChange={handleChange(`${idx}`)}
-      sx={borderProps}
-    >
-      <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-        <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1, flexWrap: "wrap" }}>
-          <Typography fontWeight="bold">{date}</Typography>
-          <Typography color="text.secondary">
-            {props.count} {props.count === 1 ? "game" : "games"}
-          </Typography>
-          {matchList.matches.length > 0 && (
-            <>
-              {Object.entries(
-                _.groupBy(matchList.matches, (m) =>
-                  m.composition?.isFfa ? "FFA" : (m.composition?.category ?? "?"),
-                ),
-              ).map(([cat, ms]) => (
-                <Chip key={cat} label={`${ms.length}× ${cat}`} size="small" variant="outlined" />
-              ))}
-              <Typography variant="body2" color="text.secondary">
-                {_.uniq(
-                  matchList.matches.flatMap((m) =>
-                    m.players
-                      .filter((p) => p.team !== Team.NUMBER_MINUS_1)
-                      .map((p) => p.name),
+    <>
+      <Accordion
+        expanded={expanded === true}
+        onChange={handleChange(`${idx}`)}
+        sx={borderProps}
+      >
+        <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            sx={{ flexGrow: 1, flexWrap: "wrap" }}
+          >
+            <Typography fontWeight="bold">{date}</Typography>
+            <Typography color="text.secondary">
+              {props.count} {props.count === 1 ? "game" : "games"}
+            </Typography>
+            {matchList.matches.length > 0 && (
+              <>
+                {Object.entries(
+                  _.groupBy(matchList.matches, (m) =>
+                    m.composition?.isFfa
+                      ? "FFA"
+                      : (m.composition?.category ?? "?"),
                   ),
-                ).join(" · ")}
-              </Typography>
-            </>
-          )}
-        </Stack>
-      </AccordionSummary>
-      <AccordionDetails>
+                ).map(([cat, ms]) => (
+                  <Chip
+                    key={cat}
+                    label={`${ms.length}× ${cat}`}
+                    size="small"
+                    variant="outlined"
+                  />
+                ))}
+                <Typography variant="body2" color="text.secondary">
+                  {_.uniq(
+                    matchList.matches.flatMap((m) =>
+                      m.players
+                        .filter((p) => p.team !== Team.NUMBER_MINUS_1)
+                        .map((p) => p.name),
+                    ),
+                  ).join(" · ")}
+                </Typography>
+              </>
+            )}
+          </Stack>
+        </AccordionSummary>
         <AccordionDetails>
-          {matchList.matches.length === 0 ? (
-            <MatchRowLoading />
-          ) : (
-            matchList.matches.map((m, idx) => (
-              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
-            ))
-          )}
+          <AccordionDetails>
+            {matchList.matches.length === 0 ? (
+              <MatchRowLoading />
+            ) : (
+              matchList.matches.map((m, idx) => (
+                <DisplayMatchInfo match={m} key={m.id} idx={idx} />
+              ))
+            )}
+          </AccordionDetails>
         </AccordionDetails>
-      </AccordionDetails>
-    </Accordion>
+      </Accordion>
+      {errorSnackbar}
+    </>
   )
 }
 
@@ -400,10 +430,11 @@ export default function DisplayMatches() {
   const [dates, setDates] = React.useState<{ [key: string]: number }>({})
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null)
   const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getDates(setDates)
-  }, [])
-  if (dates.length === 0) {
+    getDates(setDates, showError)
+  }, [showError])
+  if (Object.keys(dates).length === 0) {
     return <MatchesLoading />
   }
   const dataByYear = groupByYear(dates)
@@ -485,6 +516,7 @@ export default function DisplayMatches() {
           />
         </div>
       ))}
+      {errorSnackbar}
     </Stack>
   )
 }

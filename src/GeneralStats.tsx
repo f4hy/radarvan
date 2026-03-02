@@ -23,36 +23,62 @@ import { toGeneralName } from "./general_utils"
 import { Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { winRate } from "./utils"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
-function getGeneralStats(callback: (m: GeneralStats) => void) {
-  Client.getGeneralsStatsApiGeneralstatsGet()
-    .then(callback)
-    .catch((e) => alert(e))
+function getGeneralStats(
+  callback: (m: GeneralStats) => void,
+  onError = console.error,
+) {
+  Client.getGeneralsStatsApiGeneralstatsGet().then(callback).catch(onError)
 }
 
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
-  const data = props.stats.generalStats
-    .map((x) => {
-      const wins = x?.total?.wins ?? 0
-      const losses = x?.total?.losses ?? 0
-      return { wins, losses, name: toGeneralName(x.general), rate: winRate(wins, losses) }
-    })
+  const data = props.stats.generalStats.map((x) => {
+    const wins = x?.total?.wins ?? 0
+    const losses = x?.total?.losses ?? 0
+    return {
+      wins,
+      losses,
+      name: toGeneralName(x.general),
+      rate: winRate(wins, losses),
+    }
+  })
 
   return (
     <ResponsiveContainer width="99%" height={isMobile ? 350 : 600}>
-      <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 10, left: 5, bottom: isMobile ? 80 : 60 }}>
+      <BarChart
+        data={data}
+        layout="horizontal"
+        margin={{ top: 20, right: 10, left: 5, bottom: isMobile ? 80 : 60 }}
+      >
         <CartesianGrid strokeDasharray="5 5" vertical={false} />
         <Bar dataKey="wins" fill="#42A5F5" name="Wins">
-          {!isMobile && <LabelList dataKey="wins" position="top" fontSize={11} />}
-          <LabelList dataKey="rate" position="insideTop" fontSize={isMobile ? 9 : 11} fill="white" formatter={(v: any) => `${(v * 100).toFixed(0)}%`} />
+          {!isMobile && (
+            <LabelList dataKey="wins" position="top" fontSize={11} />
+          )}
+          <LabelList
+            dataKey="rate"
+            position="insideTop"
+            fontSize={isMobile ? 9 : 11}
+            fill="white"
+            formatter={(v: any) => `${(v * 100).toFixed(0)}%`}
+          />
         </Bar>
         <Bar dataKey="losses" fill="#FF7043" name="Losses">
-          {!isMobile && <LabelList dataKey="losses" position="top" fontSize={11} />}
+          {!isMobile && (
+            <LabelList dataKey="losses" position="top" fontSize={11} />
+          )}
         </Bar>
-        <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: isMobile ? 9 : 12 }} />
+        <XAxis
+          dataKey="name"
+          angle={-35}
+          textAnchor="end"
+          interval={0}
+          tick={{ fontSize: isMobile ? 9 : 12 }}
+        />
         <YAxis tick={{ fontSize: isMobile ? 9 : 12 }} />
         <Tooltip cursor={false} />
       </BarChart>
@@ -88,9 +114,10 @@ const empty = { generalStats: [] }
 
 export default function DisplayGeneralStats() {
   const [generalStats, setGeneralStats] = React.useState<GeneralStats>(empty)
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getGeneralStats(setGeneralStats)
-  }, [])
+    getGeneralStats(setGeneralStats, showError)
+  }, [showError])
 
   const sorted = React.useMemo(
     () =>
@@ -111,7 +138,9 @@ export default function DisplayGeneralStats() {
       <Typography variant="h4">
         Stats computed only from 1v1 2v2 3v3 and 4v4 games
       </Typography>
-      <DisplayOverallGeneralStat stats={{ generalStats: generalStats.generalStats }} />
+      <DisplayOverallGeneralStat
+        stats={{ generalStats: generalStats.generalStats }}
+      />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Typography variant="h4">Ordered by winrate </Typography>
       <Grid container spacing={2}>
@@ -121,6 +150,7 @@ export default function DisplayGeneralStats() {
           </Grid>
         ))}
       </Grid>
+      {errorSnackbar}
     </Paper>
   )
 }

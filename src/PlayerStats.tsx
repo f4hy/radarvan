@@ -34,11 +34,13 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { isDebug, winRate } from "./utils"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
-function getPlayerStats(callback: (m: PlayerStats) => void) {
-  Client.getPlayerStatsApiPlayerstatsGet()
-    .then(callback)
-    .catch((e) => alert(e))
+function getPlayerStats(
+  callback: (m: PlayerStats) => void,
+  onError = console.error,
+) {
+  Client.getPlayerStatsApiPlayerstatsGet().then(callback).catch(onError)
 }
 
 function toGeneral(s: string | number): General {
@@ -101,7 +103,11 @@ function DisplayPlayerStat(props: {
           )}
           <List>
             {Object.entries(sorted).map(([general, winLoss]) => (
-              <PlayerListItem key={general} general={toGeneral(general)} winLoss={winLoss} />
+              <PlayerListItem
+                key={general}
+                general={toGeneral(general)}
+                winLoss={winLoss}
+              />
             ))}
           </List>
         </Grid>
@@ -133,7 +139,12 @@ const MIN_GAMES_FOR_BEST = 8
 const RANK_MEDALS = ["🥇", "🥈", "🥉"]
 
 function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
-  type BestEntry = { playerName: string; winRate: number; wins: number; losses: number }
+  type BestEntry = {
+    playerName: string
+    winRate: number
+    wins: number
+    losses: number
+  }
   const generalMap = new Map<number, BestEntry[]>()
 
   for (const stat of props.playerStats.playerStats) {
@@ -145,21 +156,37 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
       const total = wins + losses
       if (total < MIN_GAMES_FOR_BEST) continue
       const list = generalMap.get(generalNum) ?? []
-      list.push({ playerName: stat.playerName, winRate: winRate(wins, losses), wins, losses })
+      list.push({
+        playerName: stat.playerName,
+        winRate: winRate(wins, losses),
+        wins,
+        losses,
+      })
       generalMap.set(generalNum, list)
     }
   }
 
   const entries = Array.from(generalMap.entries())
     .sort((a, b) => a[0] - b[0])
-    .map(([generalNum, list]) => [generalNum, list.sort((a, b) => b.winRate - a.winRate).slice(0, 3)] as const)
+    .map(
+      ([generalNum, list]) =>
+        [
+          generalNum,
+          list.sort((a, b) => b.winRate - a.winRate).slice(0, 3),
+        ] as const,
+    )
 
   return (
     <Box sx={{ mb: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h5">Best Player Per General</Typography>
-        <Tooltip title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown`}>
-          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
+        <Tooltip
+          title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown`}
+        >
+          <InfoOutlinedIcon
+            fontSize="small"
+            sx={{ color: "text.secondary", cursor: "default" }}
+          />
         </Tooltip>
       </Stack>
       <Grid container spacing={1}>
@@ -167,18 +194,25 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
           const general = toGeneral(generalNum)
           return (
             <Grid key={generalNum} item>
-              <Paper sx={{ p: 1, textAlign: "center", minWidth: 110 }} variant="outlined">
+              <Paper
+                sx={{ p: 1, textAlign: "center", minWidth: 110 }}
+                variant="outlined"
+              >
                 <DisplayGeneral general={general} />
                 <Typography variant="caption" display="block">
                   {toGeneralName(general)}
                 </Typography>
                 {topPlayers.map((player, rank) => (
                   <Box key={player.playerName} sx={{ mt: 0.5 }}>
-                    <Typography variant="body2" fontWeight={rank === 0 ? "bold" : "normal"}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={rank === 0 ? "bold" : "normal"}
+                    >
                       {RANK_MEDALS[rank]} {player.playerName}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {(player.winRate * 100).toFixed(0)}% ({player.wins}W-{player.losses}L)
+                      {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
+                      {player.losses}L)
                     </Typography>
                   </Box>
                 ))}
@@ -227,21 +261,41 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
       const wr = winRate(wins, losses)
       const relativeDiff = wr - overallWinRate
       const list = generalMap.get(generalNum) ?? []
-      list.push({ playerName: stat.playerName, winRate: wr, overallWinRate, relativeDiff, wins, losses })
+      list.push({
+        playerName: stat.playerName,
+        winRate: wr,
+        overallWinRate,
+        relativeDiff,
+        wins,
+        losses,
+      })
       generalMap.set(generalNum, list)
     }
   }
 
   const entries = Array.from(generalMap.entries())
     .sort((a, b) => a[0] - b[0])
-    .map(([generalNum, list]) => [generalNum, list.sort((a, b) => b.relativeDiff - a.relativeDiff).slice(0, 3)] as const)
+    .map(
+      ([generalNum, list]) =>
+        [
+          generalNum,
+          list.sort((a, b) => b.relativeDiff - a.relativeDiff).slice(0, 3),
+        ] as const,
+    )
 
   return (
     <Box sx={{ mb: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-        <Typography variant="h5">Best Relative Performance Per General</Typography>
-        <Tooltip title={`Shows which player performs best on each general relative to their own overall win rate. Requires at least ${MIN_GAMES_FOR_BEST} games on that general.`}>
-          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
+        <Typography variant="h5">
+          Best Relative Performance Per General
+        </Typography>
+        <Tooltip
+          title={`Shows which player performs best on each general relative to their own overall win rate. Requires at least ${MIN_GAMES_FOR_BEST} games on that general.`}
+        >
+          <InfoOutlinedIcon
+            fontSize="small"
+            sx={{ color: "text.secondary", cursor: "default" }}
+          />
         </Tooltip>
       </Stack>
       <Grid container spacing={1}>
@@ -249,7 +303,10 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
           const general = toGeneral(generalNum)
           return (
             <Grid key={generalNum} item>
-              <Paper sx={{ p: 1, textAlign: "center", minWidth: 110 }} variant="outlined">
+              <Paper
+                sx={{ p: 1, textAlign: "center", minWidth: 110 }}
+                variant="outlined"
+              >
                 <DisplayGeneral general={general} />
                 <Typography variant="caption" display="block">
                   {toGeneralName(general)}
@@ -258,20 +315,31 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
                   const diffSign = player.relativeDiff >= 0 ? "+" : ""
                   return (
                     <Box key={player.playerName} sx={{ mt: 0.5 }}>
-                      <Tooltip title={`Overall win rate: ${(player.overallWinRate * 100).toFixed(0)}%`}>
-                        <Typography variant="body2" fontWeight={rank === 0 ? "bold" : "normal"}>
+                      <Tooltip
+                        title={`Overall win rate: ${(player.overallWinRate * 100).toFixed(0)}%`}
+                      >
+                        <Typography
+                          variant="body2"
+                          fontWeight={rank === 0 ? "bold" : "normal"}
+                        >
                           {RANK_MEDALS[rank]} {player.playerName}
                         </Typography>
                       </Tooltip>
                       <Typography variant="caption" color="text.secondary">
-                        {(player.winRate * 100).toFixed(0)}% ({player.wins}W-{player.losses}L)
+                        {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
+                        {player.losses}L)
                       </Typography>
                       <Typography
                         variant="caption"
                         display="block"
-                        color={player.relativeDiff >= 0 ? "success.main" : "error.main"}
+                        color={
+                          player.relativeDiff >= 0
+                            ? "success.main"
+                            : "error.main"
+                        }
                       >
-                        {diffSign}{(player.relativeDiff * 100).toFixed(0)}% vs their avg
+                        {diffSign}
+                        {(player.relativeDiff * 100).toFixed(0)}% vs their avg
                       </Typography>
                     </Box>
                   )
@@ -306,7 +374,10 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
       const losses = winLoss?.losses ?? 0
       const total = wins + losses
       if (total < MIN_GAMES_FOR_BEST) continue
-      qualifying.push({ general: toGeneral(generalNum), winRate: winRate(wins, losses) })
+      qualifying.push({
+        general: toGeneral(generalNum),
+        winRate: winRate(wins, losses),
+      })
     }
     if (qualifying.length < 2) continue
     const sorted = qualifying.sort((a, b) => b.winRate - a.winRate)
@@ -337,14 +408,26 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
   }) {
     return (
       <Paper variant="outlined" sx={{ p: 2, flex: 1, textAlign: "center" }}>
-        <Typography variant="subtitle2" color={props.accentColor} sx={{ mb: 0.5 }}>
+        <Typography
+          variant="subtitle2"
+          color={props.accentColor}
+          sx={{ mb: 0.5 }}
+        >
           {props.emoji} {props.label}
         </Typography>
         <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
           {props.player.playerName}
         </Typography>
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-          {props.player.spread * 100 < 1 ? "<1" : (props.player.spread * 100).toFixed(0)}% spread across {props.player.qualifyingCount} generals
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          display="block"
+          sx={{ mb: 1.5 }}
+        >
+          {props.player.spread * 100 < 1
+            ? "<1"
+            : (props.player.spread * 100).toFixed(0)}
+          % spread across {props.player.qualifyingCount} generals
         </Typography>
         <Stack direction="row" justifyContent="center" spacing={3}>
           <Stack alignItems="center" spacing={0.5}>
@@ -368,13 +451,28 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
     <Box sx={{ mb: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h5">General Consistency</Typography>
-        <Tooltip title={`Spread between a player's best and worst general win rate. Only generals with at least ${MIN_GAMES_FOR_BEST} games qualify. Players need at least 2 qualifying generals.`}>
-          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary", cursor: "default" }} />
+        <Tooltip
+          title={`Spread between a player's best and worst general win rate. Only generals with at least ${MIN_GAMES_FOR_BEST} games qualify. Players need at least 2 qualifying generals.`}
+        >
+          <InfoOutlinedIcon
+            fontSize="small"
+            sx={{ color: "text.secondary", cursor: "default" }}
+          />
         </Tooltip>
       </Stack>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-        <ConsistencyCard player={mostConsistent} label="Most Consistent" emoji="🎯" accentColor="success.main" />
-        <ConsistencyCard player={mostVariable} label="Most Variable" emoji="🎲" accentColor="error.main" />
+        <ConsistencyCard
+          player={mostConsistent}
+          label="Most Consistent"
+          emoji="🎯"
+          accentColor="success.main"
+        />
+        <ConsistencyCard
+          player={mostVariable}
+          label="Most Variable"
+          emoji="🎲"
+          accentColor="error.main"
+        />
       </Stack>
     </Box>
   )
@@ -385,9 +483,10 @@ const empty = { playerStats: [] }
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
   const debug = isDebug()
+  const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getPlayerStats(setPlayerStats)
-  }, [])
+    getPlayerStats(setPlayerStats, showError)
+  }, [showError])
   if (playerStats.playerStats.length === 0) {
     return <Loading />
   }
@@ -420,6 +519,7 @@ export default function DisplayPlayerStats() {
           <Divider />
         </React.Fragment>
       ))}
+      {errorSnackbar}
     </Paper>
   )
 }
