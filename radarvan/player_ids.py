@@ -52,7 +52,7 @@ NAME_MAPPING = {
     "scottagorn": "Gorn",
     "fer": "EnragedFerret",
     "ferret": "EnragedFerret",
-    "enragedferret": "enragedferret",
+    "enragedferret": "EnragedFerret",
     "cpu": "HardArmy",
     "pcaps": "pcap",
     "pcap": "pcap",
