@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, date
 from .notify import notify
 from .db import (
     Base,
+    ComputedStatistic,
     ReplayFile,
     ParsedReplayJson,
     Match,
@@ -23,7 +24,7 @@ from .db import (
 from .game_composition import GameComposition, compute_match_composition
 from .api_types import (
     TournamentReport as PydanticTournamentReport,
-    Statistic as PydanticTournamentStat,
+    Statistic as PydanticStatistic,
 )
 import logging
 from pydantic import BaseModel
@@ -581,6 +582,7 @@ class ReplayManager:
                 stat_name=pydantic_stat.stat_name,
                 player=pydantic_stat.player,
                 match_id=pydantic_stat.match_id,
+                date_computed=pydantic_stat.date_computed,
                 tournament_report=db_report,
             )
 
@@ -632,6 +634,48 @@ class ReplayManager:
             replay_files=replay_files,
         )
 
+    def clear_computed_stats(self) -> int:
+        """Delete all computed statistics. Returns the number of rows deleted."""
+        from sqlalchemy import delete as sa_delete
+
+        result = self.session.execute(sa_delete(ComputedStatistic))
+        if self.auto_commit:
+            self.session.commit()
+        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+
+    def save_computed_stats(self, stats: list[PydanticStatistic]) -> None:
+        """Persist a batch of computed statistics using each stat's date_computed."""
+        for stat in stats:
+            db_stat = ComputedStatistic(
+                stat_name=stat.stat_name,
+                player=stat.player,
+                match_id=stat.match_id,
+                date_computed=stat.date_computed,
+            )
+            if stat.value is not None:
+                if isinstance(stat.value, (int, float)):
+                    db_stat.value_float = float(stat.value)
+                else:
+                    db_stat.value_str = str(stat.value)
+            self.session.add(db_stat)
+        if self.auto_commit:
+            self.session.commit()
+
+    def get_computed_stats(self) -> list[PydanticStatistic]:
+        """Return all persisted computed statistics, ordered by id."""
+        stmt = select(ComputedStatistic).order_by(ComputedStatistic.id)
+        rows = list(self.session.scalars(stmt).all())
+        return [
+            PydanticStatistic(
+                stat_name=row.stat_name,
+                date_computed=row.date_computed,
+                value=row.value_float if row.value_float is not None else row.value_str,
+                player=row.player,
+                match_id=row.match_id,
+            )
+            for row in rows
+        ]
+
     def get_tournament_report_by_name(
         self, name: str
     ) -> PydanticTournamentReport | None:  # Returns Pydantic model
@@ -662,8 +706,9 @@ class ReplayManager:
                 else db_stat.value_str
             )
 
-            pydantic_stat = PydanticTournamentStat(
+            pydantic_stat = PydanticStatistic(
                 stat_name=db_stat.stat_name,
+                date_computed=db_stat.date_computed or date.today(),
                 value=value,
                 player=db_stat.player,
                 match_id=db_stat.match_id,

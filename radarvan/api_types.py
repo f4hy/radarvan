@@ -444,6 +444,7 @@ class TournamentResult(BaseModel):
 
 class Statistic(BaseModel, frozen=True):
     stat_name: str
+    date_computed: date
     value: float | str | None = None
     player: str | None = None
     match_id: int | None = None

@@ -538,10 +538,26 @@ def get_player_stats(
 def get_superlatives(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> superlatives.Superlatives:
-    """Get player stats."""
+    """Serve superlatives from the DB if available, otherwise compute on the fly."""
     games = competitive_matches(replay_manager)
-    logger.info("getting superlatives")
-    return superlatives.get_superlatives(list(games.values()))
+    saved_stats = replay_manager.get_computed_stats()
+    if saved_stats:
+        return superlatives.Superlatives(match_count=len(games), stats=saved_stats)
+    logger.info("no saved superlatives")
+    return superlatives.Superlatives(match_count=len(games), stats=[])
+
+
+@app.post("/api/superlatives/recompute")
+def recompute_superlatives(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> superlatives.Superlatives:
+    """Recompute superlatives, persist to DB, and return the result."""
+    games = competitive_matches(replay_manager)
+    result = superlatives.get_superlatives(list(games.values()))
+    replay_manager.clear_computed_stats()
+    replay_manager.save_computed_stats(result.stats)
+    logger.info(f"saved {len(result.stats)} computed statistics")
+    return result
 
 
 @app.get("/api/generalstats")

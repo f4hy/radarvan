@@ -209,11 +209,26 @@ class TournamentStat(Base):
     value_str: Mapped[str | None] = mapped_column(String)
     player: Mapped[str | None] = mapped_column(String)
     match_id: Mapped[int | None] = mapped_column()
+    date_computed: Mapped[date | None] = mapped_column()
 
     tournament_report_id: Mapped[int] = mapped_column(
         ForeignKey("tournament_reports.id")
     )
     tournament_report: Mapped[TournamentReport] = relationship(back_populates="stats")
+
+
+class ComputedStatistic(Base):
+    """A single statistic computed in bulk and persisted for fast serving."""
+
+    __tablename__ = "computed_statistics"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    stat_name: Mapped[str] = mapped_column(String)
+    value_float: Mapped[float | None] = mapped_column(Float)
+    value_str: Mapped[str | None] = mapped_column(String)
+    player: Mapped[str | None] = mapped_column(String)
+    match_id: Mapped[int | None] = mapped_column()
+    date_computed: Mapped[date] = mapped_column(index=True)
 
 
 class MatchCompostion(Base):
