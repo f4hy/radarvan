@@ -29,6 +29,10 @@ function getMapStats(
   Client.getMapStatsApiMapStatsGet().then(callback).catch(onError)
 }
 
+function mapId(mapName: string): string {
+  return `map-${mapName.replace(/[^a-zA-Z0-9]/g, "-")}`
+}
+
 const getRateColor = (rate: number): "success" | "warning" | "error" => {
   if (rate >= 0.55) return "success"
   if (rate >= 0.45) return "warning"
@@ -229,26 +233,34 @@ function computePlayerBestWorst(maps: MapData[]): Array<[string, BestWorst]> {
   return result
 }
 
-function MapBadge(props: { entry: MapEntry; variant: "best" | "worst" }) {
+function MapBadge(props: {
+  entry: MapEntry
+  variant: "best" | "worst"
+  onMapClick: (mapName: string) => void
+}) {
   const wr = winRate(props.entry.wins, props.entry.losses)
-  const mapName = props.entry.mapName.replace(/\.[^.]+$/, "")
+  const displayName = props.entry.mapName.replace(/\.[^.]+$/, "")
   const total = props.entry.wins + props.entry.losses
   return (
     <Tooltip
-      title={`${props.entry.wins}W–${props.entry.losses}L (${total} games)`}
+      title={`${props.entry.wins}W–${props.entry.losses}L (${total} games) — click to scroll`}
     >
       <Chip
         size="small"
         color={props.variant === "best" ? "success" : "error"}
         variant="outlined"
-        label={`${mapName} ${(wr * 100).toFixed(0)}%`}
-        sx={{ fontSize: "0.7rem" }}
+        label={`${displayName} ${(wr * 100).toFixed(0)}%`}
+        onClick={() => props.onMapClick(props.entry.mapName)}
+        sx={{ fontSize: "0.7rem", cursor: "pointer" }}
       />
     </Tooltip>
   )
 }
 
-function GeneralBestWorstSummary(props: { maps: MapData[] }) {
+function GeneralBestWorstSummary(props: {
+  maps: MapData[]
+  onMapClick: (mapName: string) => void
+}) {
   const rows = computeGeneralBestWorst(props.maps)
   if (rows.length === 0) return null
   return (
@@ -278,8 +290,16 @@ function GeneralBestWorstSummary(props: { maps: MapData[] }) {
               <DisplayGeneral general={general} />
               <Typography variant="body2">{toGeneralName(general)}</Typography>
             </Box>
-            <MapBadge entry={bw.best} variant="best" />
-            <MapBadge entry={bw.worst} variant="worst" />
+            <MapBadge
+              entry={bw.best}
+              variant="best"
+              onMapClick={props.onMapClick}
+            />
+            <MapBadge
+              entry={bw.worst}
+              variant="worst"
+              onMapClick={props.onMapClick}
+            />
           </Box>
         ))}
       </Stack>
@@ -287,7 +307,10 @@ function GeneralBestWorstSummary(props: { maps: MapData[] }) {
   )
 }
 
-function PlayerBestWorstSummary(props: { maps: MapData[] }) {
+function PlayerBestWorstSummary(props: {
+  maps: MapData[]
+  onMapClick: (mapName: string) => void
+}) {
   const rows = computePlayerBestWorst(props.maps)
   if (rows.length === 0) return null
   return (
@@ -309,8 +332,16 @@ function PlayerBestWorstSummary(props: { maps: MapData[] }) {
             <Typography variant="body2" sx={{ minWidth: 80 }}>
               {player}
             </Typography>
-            <MapBadge entry={bw.best} variant="best" />
-            <MapBadge entry={bw.worst} variant="worst" />
+            <MapBadge
+              entry={bw.best}
+              variant="best"
+              onMapClick={props.onMapClick}
+            />
+            <MapBadge
+              entry={bw.worst}
+              variant="worst"
+              onMapClick={props.onMapClick}
+            />
           </Box>
         ))}
       </Stack>
@@ -320,13 +351,21 @@ function PlayerBestWorstSummary(props: { maps: MapData[] }) {
 
 // --- Per-map accordion ---
 
-function MapCard(props: { map: MapData; defaultExpanded: boolean }) {
+function MapCard(props: {
+  map: MapData
+  expanded: boolean
+  onToggle: (expanded: boolean) => void
+}) {
   const { map } = props
   const debug = isDebug()
   const [tab, setTab] = React.useState<"players" | "generals">("generals")
 
   return (
-    <Accordion defaultExpanded={props.defaultExpanded}>
+    <Accordion
+      id={mapId(map.mapName)}
+      expanded={props.expanded}
+      onChange={(_, isExpanded) => props.onToggle(isExpanded)}
+    >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography fontWeight="bold">
@@ -360,11 +399,25 @@ function MapCard(props: { map: MapData; defaultExpanded: boolean }) {
 
 export default function DisplayMapStats() {
   const [mapStats, setMapStats] = React.useState<MapStatsResponse | null>(null)
+  const [expandedMaps, setExpandedMaps] = React.useState<Set<string>>(new Set())
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
     getMapStats(setMapStats, showError)
   }, [showError])
+
+  React.useEffect(() => {
+    if (mapStats) {
+      setExpandedMaps(new Set(mapStats.maps.slice(0, 3).map((m) => m.mapName)))
+    }
+  }, [mapStats])
+
+  const handleMapClick = React.useCallback((mapName: string) => {
+    setExpandedMaps((prev) => new Set([...prev, mapName]))
+    document
+      .getElementById(mapId(mapName))
+      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [])
 
   if (mapStats === null) {
     return (
@@ -388,12 +441,30 @@ export default function DisplayMapStats() {
         alignItems="flex-start"
         sx={{ mb: 2 }}
       >
-        <GeneralBestWorstSummary maps={mapStats.maps} />
-        <PlayerBestWorstSummary maps={mapStats.maps} />
+        <GeneralBestWorstSummary
+          maps={mapStats.maps}
+          onMapClick={handleMapClick}
+        />
+        <PlayerBestWorstSummary
+          maps={mapStats.maps}
+          onMapClick={handleMapClick}
+        />
       </Stack>
       <Divider sx={{ mb: 1 }} />
-      {mapStats.maps.map((m, i) => (
-        <MapCard key={m.mapName} map={m} defaultExpanded={i < 3} />
+      {mapStats.maps.map((m) => (
+        <MapCard
+          key={m.mapName}
+          map={m}
+          expanded={expandedMaps.has(m.mapName)}
+          onToggle={(isExpanded) =>
+            setExpandedMaps((prev) => {
+              const next = new Set(prev)
+              if (isExpanded) next.add(m.mapName)
+              else next.delete(m.mapName)
+              return next
+            })
+          }
+        />
       ))}
       {errorSnackbar}
     </Paper>
