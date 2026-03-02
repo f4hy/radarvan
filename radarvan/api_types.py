@@ -489,6 +489,11 @@ class ParsedReplayJsonSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PlayerGameCount(BaseModel):
+    name: str
+    count: int
+
+
 class PlayerRatings(BaseModel):
     name: str
     ordinal: float

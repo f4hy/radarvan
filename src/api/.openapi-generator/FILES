@@ -29,6 +29,7 @@ docs/ObjectSummary.md
 docs/ParsedReplayJsonSchema.md
 docs/Player.md
 docs/PlayerEnum.md
+docs/PlayerGameCount.md
 docs/PlayerListing.md
 docs/PlayerRateOverTime.md
 docs/PlayerRatingData.md
@@ -86,6 +87,7 @@ models/ObjectSummary.ts
 models/ParsedReplayJsonSchema.ts
 models/Player.ts
 models/PlayerEnum.ts
+models/PlayerGameCount.ts
 models/PlayerListing.ts
 models/PlayerRateOverTime.ts
 models/PlayerRatingData.ts

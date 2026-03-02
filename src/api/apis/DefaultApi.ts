@@ -24,6 +24,7 @@ import type {
   MatchInfo,
   Matches,
   PlayerEnum,
+  PlayerGameCount,
   PlayerRatingData,
   PlayerStats,
   ReplayFileSchema,
@@ -54,6 +55,8 @@ import {
     MatchesToJSON,
     PlayerEnumFromJSON,
     PlayerEnumToJSON,
+    PlayerGameCountFromJSON,
+    PlayerGameCountToJSON,
     PlayerRatingDataFromJSON,
     PlayerRatingDataToJSON,
     PlayerStatsFromJSON,
@@ -844,6 +847,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getOverridesApiOverridesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WinnerOverride>> {
         const response = await this.getOverridesApiOverridesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get all player names with their total game count, sorted by count descending.
+     * Get Player Game Counts
+     */
+    async getPlayerGameCountsApiPlayerGameCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerGameCount>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_game_counts/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerGameCountFromJSON));
+    }
+
+    /**
+     * Get all player names with their total game count, sorted by count descending.
+     * Get Player Game Counts
+     */
+    async getPlayerGameCountsApiPlayerGameCountsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerGameCount>> {
+        const response = await this.getPlayerGameCountsApiPlayerGameCountsGetRaw(initOverrides);
         return await response.value();
     }
 

@@ -18,7 +18,7 @@ import DisplayGeneral from "./Generals"
 import { MapData, MapStatsResponse } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
-import Map from "./Map"
+import GameMap from "./Map"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { isDebug, winRate } from "./utils"
 
@@ -144,6 +144,182 @@ function GeneralWinRates(props: { generals: MapData["generalStats"] }) {
   )
 }
 
+// --- Best/Worst summary ---
+
+const MIN_SUMMARY_GAMES = 3
+
+interface MapEntry {
+  mapName: string
+  wins: number
+  losses: number
+}
+
+interface BestWorst {
+  best: MapEntry
+  worst: MapEntry
+}
+
+function computeGeneralBestWorst(maps: MapData[]): Array<[number, BestWorst]> {
+  const acc = new Map<
+    number,
+    { best: MapEntry | null; worst: MapEntry | null }
+  >()
+  for (const map of maps) {
+    for (const g of map.generalStats) {
+      if (g.wins + g.losses < MIN_SUMMARY_GAMES) continue
+      const wr = winRate(g.wins, g.losses)
+      const entry: MapEntry = {
+        mapName: map.mapName,
+        wins: g.wins,
+        losses: g.losses,
+      }
+      const cur = acc.get(g.general) ?? { best: null, worst: null }
+      if (!cur.best || wr > winRate(cur.best.wins, cur.best.losses))
+        cur.best = entry
+      if (!cur.worst || wr < winRate(cur.worst.wins, cur.worst.losses))
+        cur.worst = entry
+      acc.set(g.general, cur)
+    }
+  }
+  const result: Array<[number, BestWorst]> = []
+  for (const [g, bw] of acc.entries()) {
+    if (bw.best && bw.worst && bw.best.mapName !== bw.worst.mapName) {
+      result.push([g, { best: bw.best, worst: bw.worst }])
+    }
+  }
+  result.sort(
+    ([, a], [, b]) =>
+      winRate(b.best.wins, b.best.losses) - winRate(a.best.wins, a.best.losses),
+  )
+  return result
+}
+
+function computePlayerBestWorst(maps: MapData[]): Array<[string, BestWorst]> {
+  const acc = new Map<
+    string,
+    { best: MapEntry | null; worst: MapEntry | null }
+  >()
+  for (const map of maps) {
+    for (const p of map.playerStats) {
+      if (p.wins + p.losses < MIN_SUMMARY_GAMES) continue
+      const wr = winRate(p.wins, p.losses)
+      const entry: MapEntry = {
+        mapName: map.mapName,
+        wins: p.wins,
+        losses: p.losses,
+      }
+      const cur = acc.get(p.player) ?? { best: null, worst: null }
+      if (!cur.best || wr > winRate(cur.best.wins, cur.best.losses))
+        cur.best = entry
+      if (!cur.worst || wr < winRate(cur.worst.wins, cur.worst.losses))
+        cur.worst = entry
+      acc.set(p.player, cur)
+    }
+  }
+  const result: Array<[string, BestWorst]> = []
+  for (const [p, bw] of acc.entries()) {
+    if (bw.best && bw.worst && bw.best.mapName !== bw.worst.mapName) {
+      result.push([p, { best: bw.best, worst: bw.worst }])
+    }
+  }
+  result.sort(
+    ([, a], [, b]) =>
+      winRate(b.best.wins, b.best.losses) - winRate(a.best.wins, a.best.losses),
+  )
+  return result
+}
+
+function MapBadge(props: { entry: MapEntry; variant: "best" | "worst" }) {
+  const wr = winRate(props.entry.wins, props.entry.losses)
+  const mapName = props.entry.mapName.replace(/\.[^.]+$/, "")
+  const total = props.entry.wins + props.entry.losses
+  return (
+    <Tooltip
+      title={`${props.entry.wins}W–${props.entry.losses}L (${total} games)`}
+    >
+      <Chip
+        size="small"
+        color={props.variant === "best" ? "success" : "error"}
+        variant="outlined"
+        label={`${mapName} ${(wr * 100).toFixed(0)}%`}
+        sx={{ fontSize: "0.7rem" }}
+      />
+    </Tooltip>
+  )
+}
+
+function GeneralBestWorstSummary(props: { maps: MapData[] }) {
+  const rows = computeGeneralBestWorst(props.maps)
+  if (rows.length === 0) return null
+  return (
+    <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
+      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+        General Best / Worst Maps
+      </Typography>
+      <Stack spacing={0.75}>
+        {rows.map(([general, bw]) => (
+          <Box
+            key={general}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexWrap: "wrap",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                minWidth: 130,
+              }}
+            >
+              <DisplayGeneral general={general} />
+              <Typography variant="body2">{toGeneralName(general)}</Typography>
+            </Box>
+            <MapBadge entry={bw.best} variant="best" />
+            <MapBadge entry={bw.worst} variant="worst" />
+          </Box>
+        ))}
+      </Stack>
+    </Paper>
+  )
+}
+
+function PlayerBestWorstSummary(props: { maps: MapData[] }) {
+  const rows = computePlayerBestWorst(props.maps)
+  if (rows.length === 0) return null
+  return (
+    <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
+      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+        Player Best / Worst Maps
+      </Typography>
+      <Stack spacing={0.75}>
+        {rows.map(([player, bw]) => (
+          <Box
+            key={player}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography variant="body2" sx={{ minWidth: 80 }}>
+              {player}
+            </Typography>
+            <MapBadge entry={bw.best} variant="best" />
+            <MapBadge entry={bw.worst} variant="worst" />
+          </Box>
+        ))}
+      </Stack>
+    </Paper>
+  )
+}
+
+// --- Per-map accordion ---
+
 function MapCard(props: { map: MapData; defaultExpanded: boolean }) {
   const { map } = props
   const debug = isDebug()
@@ -165,7 +341,7 @@ function MapCard(props: { map: MapData; defaultExpanded: boolean }) {
       </AccordionSummary>
       <AccordionDetails>
         <Stack direction="row" spacing={2} alignItems="flex-start">
-          <Map mapname={map.mapName} />
+          <GameMap mapname={map.mapName} />
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
               <Tab value="generals" label="Generals" />
@@ -206,6 +382,15 @@ export default function DisplayMapStats() {
         Win rates from competitive games. Players shown with ≥3 games on map.
         Maps sorted by total games played.
       </Typography>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={2}
+        alignItems="flex-start"
+        sx={{ mb: 2 }}
+      >
+        <GeneralBestWorstSummary maps={mapStats.maps} />
+        <PlayerBestWorstSummary maps={mapStats.maps} />
+      </Stack>
       <Divider sx={{ mb: 1 }} />
       {mapStats.maps.map((m, i) => (
         <MapCard key={m.mapName} map={m} defaultExpanded={i < 3} />

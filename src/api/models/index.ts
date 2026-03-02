@@ -28,6 +28,7 @@ export * from './ObjectSummary';
 export * from './ParsedReplayJsonSchema';
 export * from './Player';
 export * from './PlayerEnum';
+export * from './PlayerGameCount';
 export * from './PlayerListing';
 export * from './PlayerRateOverTime';
 export * from './PlayerRatingData';

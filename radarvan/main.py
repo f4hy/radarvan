@@ -32,6 +32,7 @@ from . import create_teams
 from radarvan.api_types import (
     MatchDetails,
     MapStatsResponse,
+    PlayerGameCount,
     TeamStatsResponse,
     ShortPlayerRating,
     Team,
@@ -748,6 +749,23 @@ def replays_without_playerstats(
             "version": row.version,
             "presigned_url": replay_files.presigned_url(row.s3_path),
         }
+
+
+@app.get("/api/player_game_counts/")
+def get_player_game_counts(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerGameCount]:
+    """Get all player names with their total game count, sorted by count descending."""
+    all_matches = sorted_deduped_matches(replay_manager)
+    counts: dict[str, int] = {}
+    for game in all_matches.values():
+        for player in game.players:
+            name = player_ids.resolve_player_name(player.name, player.color)
+            counts[name] = counts.get(name, 0) + 1
+    return [
+        PlayerGameCount(name=name, count=count)
+        for name, count in sorted(counts.items(), key=lambda x: x[1], reverse=True)
+    ]
 
 
 @app.get("/api/player_ratings/")
