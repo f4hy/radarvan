@@ -115,6 +115,7 @@ function ScoreBar(props: {
           {`${Math.round(props.score)}% Balanced`}
         </Typography>
       </Box>
+      <Divider />
     </Box>
   )
 }

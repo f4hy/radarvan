@@ -9,6 +9,7 @@ Name | Type
 `general` | [General](General.md)
 `wins` | number
 `losses` | number
+`winRateDelta` | number
 
 ## Example
 
@@ -20,6 +21,7 @@ const example = {
   "general": null,
   "wins": null,
   "losses": null,
+  "winRateDelta": null,
 } satisfies MapGeneralWL
 
 console.log(example)

@@ -45,6 +45,12 @@ export interface MapGeneralWL {
      * @memberof MapGeneralWL
      */
     losses: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MapGeneralWL
+     */
+    winRateDelta?: number;
 }
 
 
@@ -72,6 +78,7 @@ export function MapGeneralWLFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'general': GeneralFromJSON(json['general']),
         'wins': json['wins'],
         'losses': json['losses'],
+        'winRateDelta': json['winRateDelta'] == null ? undefined : json['winRateDelta'],
     };
 }
 
@@ -89,6 +96,7 @@ export function MapGeneralWLToJSONTyped(value?: MapGeneralWL | null, ignoreDiscr
         'general': GeneralToJSON(value['general']),
         'wins': value['wins'],
         'losses': value['losses'],
+        'winRateDelta': value['winRateDelta'],
     };
 }
 

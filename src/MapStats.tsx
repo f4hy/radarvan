@@ -1,3 +1,4 @@
+import Tooltip from "@mui/material/Tooltip"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -38,21 +39,46 @@ function WinRateRow(props: {
   label: React.ReactNode
   wins: number
   losses: number
+  delta?: number
 }) {
   const rate = winRate(props.wins, props.losses)
+  const { delta } = props
+  const deltaColor =
+    delta === undefined || Math.abs(delta) < 0.01
+      ? "text.secondary"
+      : delta > 0
+        ? "success.main"
+        : "error.main"
+  const deltaStr =
+    delta !== undefined && Math.abs(delta) >= 0.01
+      ? ` delta from generals ave ${delta > 0 ? "+" : ""}${(delta * 100).toFixed(0)}%`
+      : null
   return (
     <Box sx={{ mb: 1 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           {props.label}
         </Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          {(rate * 100).toFixed(0)}% &nbsp;({props.wins}W–{props.losses}L)
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            {(rate * 100).toFixed(0)}% ({props.wins}W–{props.losses}L)
+            {deltaStr && (
+              <Tooltip title="Win rate of this general on this map above that general's average win rate">
+                <Typography
+                  variant="caption"
+                  color={deltaColor}
+                  fontWeight="bold"
+                >
+                  {deltaStr}
+                </Typography>
+              </Tooltip>
+            )}
+          </Typography>
+        </Box>
       </Box>
       <LinearProgress
         variant="determinate"
@@ -111,6 +137,7 @@ function GeneralWinRates(props: { generals: MapData["generalStats"] }) {
           }
           wins={g.wins}
           losses={g.losses}
+          delta={g.winRateDelta}
         />
       ))}
     </Stack>

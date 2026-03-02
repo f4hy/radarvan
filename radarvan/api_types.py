@@ -172,6 +172,10 @@ class MapGeneralWL(BaseModel):
     general: General
     wins: int
     losses: int
+    win_rate_delta: float = Field(default=0.0, alias="winRateDelta")
+
+    class Config:
+        populate_by_name = True
 
 
 class MapData(BaseModel):

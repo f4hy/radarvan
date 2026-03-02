@@ -14,9 +14,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+CPU_NAMES = {"cpu", "hardarmy"}
+
+
 def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
     general_stats: dict[General, GeneralStat] = {}
-    cpu_names = {"cpu", "hardarmy"}
     for game in games:
         if game.incomplete or game.winning_team < 1:
             continue
@@ -34,7 +36,7 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
                 )
             if player.general == General.UNRECOGNIZED:
                 continue
-            if player.name.lower() in cpu_names:
+            if player.name.lower() in CPU_NAMES:
                 continue
             if player.won:
                 general_stats[player.general].total.wins += 1
