@@ -22,6 +22,7 @@ from . import matches
 from . import player_stats
 from . import general_stats
 from . import map_stats as map_stats_module
+from . import team_stats as team_stats_module
 from . import replay_files
 from . import schedule
 from . import tournament
@@ -31,6 +32,7 @@ from . import create_teams
 from radarvan.api_types import (
     MatchDetails,
     MapStatsResponse,
+    TeamStatsResponse,
     ShortPlayerRating,
     Team,
     Matches,
@@ -549,6 +551,15 @@ def get_generals_stats(
     games = competitive_matches(replay_manager)
     logger.info("getting generals stats")
     return general_stats.get_generals_stats(list(games.values()))
+
+
+@app.get("/api/team_stats/")
+def get_team_stats(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> TeamStatsResponse:
+    """Get win/loss records grouped by team composition, for teams with >5 games."""
+    games = competitive_matches(replay_manager)
+    return team_stats_module.get_team_stats(list(games.values()))
 
 
 @app.get("/api/map_stats/")

@@ -30,6 +30,7 @@ import type {
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
   Superlatives,
   Team,
+  TeamStatsResponse,
   TournamentReport,
   TournamentResult,
   WinnerOverride,
@@ -65,6 +66,8 @@ import {
     SuperlativesToJSON,
     TeamFromJSON,
     TeamToJSON,
+    TeamStatsResponseFromJSON,
+    TeamStatsResponseToJSON,
     TournamentReportFromJSON,
     TournamentReportToJSON,
     TournamentResultFromJSON,
@@ -1003,6 +1006,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<{ [key: string]: any; }>> {
         const response = await this.getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get win/loss records grouped by team composition, for teams with >5 games.
+     * Get Team Stats
+     */
+    async getTeamStatsApiTeamStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TeamStatsResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/team_stats/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TeamStatsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get win/loss records grouped by team composition, for teams with >5 games.
+     * Get Team Stats
+     */
+    async getTeamStatsApiTeamStatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TeamStatsResponse> {
+        const response = await this.getTeamStatsApiTeamStatsGetRaw(initOverrides);
         return await response.value();
     }
 

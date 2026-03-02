@@ -25,9 +25,11 @@ import DisplayPlayerStats from "./PlayerStats"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings from "./PlayerRatings"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
+import GroupsIcon from "@mui/icons-material/Groups"
 import MapIcon from "@mui/icons-material/Map"
 import DisplayTournamentResults from "./Tournaments"
 import DisplayMapStats from "./MapStats"
+import DisplayTeamStats from "./TeamStats"
 import { isDebug } from "./utils"
 const drawerWidth = 190
 
@@ -85,6 +87,13 @@ export default function Menu() {
           text="Map Stats"
           open={true}
           icon={<MapIcon />}
+          callback={setSelection}
+        />
+        <MenuItem
+          value="TeamStats"
+          text="Team Stats"
+          open={true}
+          icon={<GroupsIcon />}
           callback={setSelection}
         />
         {debug && (
@@ -192,6 +201,7 @@ type Selection =
   | "PlayerStats"
   | "DebugData"
   | "MapStats"
+  | "TeamStats"
   | "PairStats"
   | "Wrapped"
   | "Tournaments"
@@ -221,6 +231,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayBalanceTeams />
     case "MapStats":
       return <DisplayMapStats />
+    case "TeamStats":
+      return <DisplayTeamStats />
     case "PlayerRating":
       return <DisplayPlayerRatings />
     case "DebugData":

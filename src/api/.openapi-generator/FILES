@@ -45,6 +45,9 @@ docs/SpentOverTime.md
 docs/Statistic.md
 docs/Superlatives.md
 docs/Team.md
+docs/TeamRecord.md
+docs/TeamSizeGroup.md
+docs/TeamStatsResponse.md
 docs/Tournament.md
 docs/TournamentReport.md
 docs/TournamentResult.md
@@ -99,6 +102,9 @@ models/SpentOverTime.ts
 models/Statistic.ts
 models/Superlatives.ts
 models/Team.ts
+models/TeamRecord.ts
+models/TeamSizeGroup.ts
+models/TeamStatsResponse.ts
 models/Tournament.ts
 models/TournamentReport.ts
 models/TournamentResult.ts

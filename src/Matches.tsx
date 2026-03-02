@@ -127,7 +127,9 @@ function FfaPlayerCard(props: { player: Player }) {
 function FfaMatchDisplay(props: { match: MatchInfo }) {
   const { match } = props
   const [details, setDetails] = React.useState<boolean>(false)
-  const date = match.timestamp.toLocaleString()
+  const date = match.timestamp.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+  })
   const header = (
     <Box>
       <Typography variant="body2" fontWeight="bold">
@@ -213,7 +215,9 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     return <FfaMatchDisplay match={props.match} />
   }
 
-  const date = props.match.timestamp.toLocaleString()
+  const date = props.match.timestamp.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+  })
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
     <Box>

@@ -1,0 +1,70 @@
+"""Compute win/loss records grouped by team composition."""
+
+from collections import defaultdict
+from .api_types import MatchInfo, TeamRecord, TeamSizeGroup, TeamStatsResponse
+from . import replay_files
+from .general_stats import CPU_NAMES
+from .player_ids import player_name_map
+import logging
+
+logger = logging.getLogger(__name__)
+
+MIN_GAMES = 2
+
+
+def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
+    # wl[team_size][team_key] = [wins, losses]
+    wl: dict[int, dict[tuple[str, ...], list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+
+    for game in games:
+        if game.incomplete:
+            continue
+        if not replay_files.path_filter(game.filename):
+            continue
+        if game.winning_team < 1:
+            continue
+
+        # Group human players by team number
+        teams: dict[int, list[tuple[str, bool]]] = defaultdict(list)
+        for player in game.players:
+            if player.name.lower() in CPU_NAMES:
+                continue
+            if player.team <= 0:
+                continue
+            name = player_name_map(player.name)
+            teams[player.team].append((name, player.won))
+
+        if not teams:
+            continue
+
+        # Only count balanced games (all teams the same size)
+        sizes = [len(t) for t in teams.values()]
+        if len(set(sizes)) != 1:
+            continue
+        team_size = sizes[0]
+        if team_size < 2 or team_size > 4:
+            continue
+
+        for players_with_result in teams.values():
+            key = tuple(sorted(p for p, _ in players_with_result))
+            won = players_with_result[0][1]
+            wl[team_size][key][0 if won else 1] += 1
+
+    groups = []
+    for team_size in sorted(wl):
+        teams_for_size = [
+            TeamRecord(players=list(key), wins=v[0], losses=v[1])
+            for key, v in wl[team_size].items()
+            if v[0] + v[1] > MIN_GAMES
+        ]
+        if not teams_for_size:
+            continue
+        teams_for_size.sort(key=lambda t: t.wins + t.losses, reverse=True)
+        groups.append(TeamSizeGroup(size=team_size, teams=teams_for_size))
+
+    logger.info(
+        f"team stats: {sum(len(g.teams) for g in groups)} teams across {len(groups)} size groups"
+    )
+    return TeamStatsResponse(groups=groups)

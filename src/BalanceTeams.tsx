@@ -154,10 +154,13 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const filtered = isDebug()
     ? entries
     : entries.filter(
-        ([, winRate], i) => (1.0 - Math.abs(winRate - 0.5) * 2 > 0.7),
+        ([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) * 2 > 0.7,
       )
   return (
-    <Stack spacing={1} sx={{ mt: 1, p: 1.5, bgcolor: "grey.300", borderRadius: 1 }}>
+    <Stack
+      spacing={1}
+      sx={{ mt: 1, p: 1.5, bgcolor: "grey.300", borderRadius: 1 }}
+    >
       {loading && <LinearProgress />}
       {filtered.map(([team, winRate]) => (
         <ScoreBar

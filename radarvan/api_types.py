@@ -162,6 +162,24 @@ class TeamStats(BaseModel):
         populate_by_name = True
 
 
+class TeamRecord(BaseModel):
+    players: list[str]
+    wins: int
+    losses: int
+
+    class Config:
+        populate_by_name = True
+
+
+class TeamSizeGroup(BaseModel):
+    size: int
+    teams: list[TeamRecord]
+
+
+class TeamStatsResponse(BaseModel):
+    groups: list[TeamSizeGroup]
+
+
 class MapPlayerWL(BaseModel):
     player: str
     wins: int

@@ -27,6 +27,7 @@ All URIs are relative to *http://localhost*
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
 | [**getSuperlativesApiSuperlativesGet**](DefaultApi.md#getsuperlativesapisuperlativesget) | **GET** /api/superlatives | Get Superlatives |
 | [**getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet**](DefaultApi.md#getteamgameswithoutwinnerapiteamgameswithoutwinnerget) | **GET** /api/team_games_without_winner/ | Get Team Games Without Winner |
+| [**getTeamStatsApiTeamStatsGet**](DefaultApi.md#getteamstatsapiteamstatsget) | **GET** /api/team_stats/ | Get Team Stats |
 | [**getTournamentReportApiTournamentReportTournamentNameGet**](DefaultApi.md#gettournamentreportapitournamentreporttournamentnameget) | **GET** /api/tournament_report/{tournament_name} | Get Tournament Report |
 | [**getTournamentResultsApiTournamentResultsGet**](DefaultApi.md#gettournamentresultsapitournamentresultsget) | **GET** /api/tournament_results/ | Get Tournament Results |
 | [**listFilesApiFilesGet**](DefaultApi.md#listfilesapifilesget) | **GET** /api/files/ | List Files |
@@ -1496,6 +1497,65 @@ This endpoint does not need any parameter.
 ### Return type
 
 **Array<{ [key: string]: any; }>**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getTeamStatsApiTeamStatsGet
+
+> TeamStatsResponse getTeamStatsApiTeamStatsGet()
+
+Get Team Stats
+
+Get win/loss records grouped by team composition, for teams with &gt;5 games.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetTeamStatsApiTeamStatsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  try {
+    const data = await api.getTeamStatsApiTeamStatsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**TeamStatsResponse**](TeamStatsResponse.md)
 
 ### Authorization
 

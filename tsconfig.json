@@ -16,5 +16,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src", "../../../../tmp/!home!f4hy!mysource!radarvan!src!TeamStats.tsx~"]
 }
