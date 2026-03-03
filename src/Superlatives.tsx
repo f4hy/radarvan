@@ -27,6 +27,7 @@ const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
     label: "Combat & Activity",
     keywords: ["Units", "Buildings", "XP", "Upgrades"],
   },
+  { label: "Efficiency", keywords: ["to Win"] },
   { label: "Activity", keywords: ["Day"] },
 ]
 

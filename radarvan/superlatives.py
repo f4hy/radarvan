@@ -474,6 +474,66 @@ def get_activity_stats(
     return stats
 
 
+def get_efficiency_stats(
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Winning player records: fewest units, fewest buildings, least money spent."""
+    best_units: tuple[str, int, int] | None = None    # (player, count, match_id)
+    best_buildings: tuple[str, int, int] | None = None
+    best_money: tuple[str, int, int] | None = None
+
+    for d in details:
+        for ps in d.player_summary:
+            if not ps.Win:
+                continue
+            name = resolve_player_name(ps.Name, ps.Color)
+
+            units = sum(v.Count for v in ps.UnitsCreated.values())
+            if units > 0 and (best_units is None or units < best_units[1]):
+                best_units = (name, units, d.match_id)
+
+            buildings = sum(v.Count for v in ps.BuildingsBuilt.values())
+            if buildings > 0 and (best_buildings is None or buildings < best_buildings[1]):
+                best_buildings = (name, buildings, d.match_id)
+
+            if ps.MoneySpent > 0 and (best_money is None or ps.MoneySpent < best_money[1]):
+                best_money = (name, ps.MoneySpent, d.match_id)
+
+    stats: list[Statistic] = []
+    if best_units:
+        stats.append(
+            Statistic(
+                stat_name="Fewest Units to Win",
+                date_computed=computed_at,
+                value=best_units[1],
+                player=best_units[0],
+                match_id=best_units[2],
+            )
+        )
+    if best_buildings:
+        stats.append(
+            Statistic(
+                stat_name="Fewest Buildings to Win",
+                date_computed=computed_at,
+                value=best_buildings[1],
+                player=best_buildings[0],
+                match_id=best_buildings[2],
+            )
+        )
+    if best_money:
+        stats.append(
+            Statistic(
+                stat_name="Least Money to Win",
+                date_computed=computed_at,
+                value=_fmt_money(best_money[1]),
+                player=best_money[0],
+                match_id=best_money[2],
+            )
+        )
+    return stats
+
+
 def _total_money_spent(d: MatchDetails) -> int:
     """Total money spent across all players in a match."""
     money_values = d.money_values
@@ -548,6 +608,7 @@ def get_superlatives(
                 *_safe_compute(get_apm_stats, details, computed_at),
                 *_safe_compute(get_money_stats, details, computed_at),
                 *_safe_compute(get_activity_stats, details, computed_at),
+                *_safe_compute(get_efficiency_stats, details, computed_at),
             ]
             if details
             else []
