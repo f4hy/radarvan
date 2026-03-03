@@ -112,6 +112,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_recompute_lock = asyncio.Lock()
+
 origins = ["*"]
 
 app.add_middleware(
@@ -557,6 +559,16 @@ async def recompute_superlatives(
     ),
 ) -> superlatives.Superlatives:
     """Recompute superlatives, persist to DB, and return the result."""
+    if _recompute_lock.locked():
+        raise HTTPException(status_code=409, detail="Recompute already in progress")
+    async with _recompute_lock:
+        return await _do_recompute(replay_manager, limit)
+
+
+async def _do_recompute(
+    replay_manager: ReplayManager,
+    limit: int | None,
+) -> superlatives.Superlatives:
     games = competitive_matches(replay_manager)
     game_list = [
         g

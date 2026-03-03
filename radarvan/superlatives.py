@@ -18,9 +18,7 @@ class Superlatives(BaseModel):
     computed_at: date
 
 
-def get_game_count_stats(
-    games: list[MatchInfo], computed_at: date
-) -> list[Statistic]:
+def get_game_count_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:
     """Total game counts broken down by format."""
     stats = [
         Statistic(stat_name="Total Games", date_computed=computed_at, value=len(games))
@@ -97,9 +95,7 @@ def _resolve_attacker(
     return resolve_player_name(attacker)
 
 
-def get_win_streak_stats(
-    games: list[MatchInfo], computed_at: date
-) -> list[Statistic]:
+def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:
     """All-time longest win streak and current longest active streak."""
     sorted_games = sorted(
         (g for g in games if not g.incomplete), key=lambda g: g.timestamp
@@ -113,7 +109,11 @@ def get_win_streak_stats(
             name = resolve_player_name(player.name, player.color)
             if player.won:
                 prev = current.get(name)
-                current[name] = (1, game_date, game_date) if prev is None else (prev[0] + 1, prev[1], game_date)
+                current[name] = (
+                    (1, game_date, game_date)
+                    if prev is None
+                    else (prev[0] + 1, prev[1], game_date)
+                )
                 count, start, end = current[name]
                 if name not in best or count > best[name][0]:
                     best[name] = (count, start, end)
@@ -155,9 +155,7 @@ def get_map_duration_stats(
             map_durations.setdefault(g.map, []).append(g.duration_minutes)
     MIN_GAMES = 3
     eligible = {
-        m: sum(ds) / len(ds)
-        for m, ds in map_durations.items()
-        if len(ds) >= MIN_GAMES
+        m: sum(ds) / len(ds) for m, ds in map_durations.items() if len(ds) >= MIN_GAMES
     }
     if not eligible:
         return []
@@ -179,14 +177,12 @@ def get_map_duration_stats(
     ]
 
 
-def get_calendar_stats(
-    games: list[MatchInfo], computed_at: date
-) -> list[Statistic]:
+def get_calendar_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:
     """Busiest single day and longest break between sessions."""
     if not games:
         return []
     stats: list[Statistic] = []
-    date_counts: Counter = Counter(g.date for g in games)
+    date_counts: Counter[date] = Counter(g.date for g in games)
     busiest_date, busiest_count = date_counts.most_common(1)[0]
     stats.append(
         Statistic(
@@ -199,12 +195,11 @@ def get_calendar_stats(
 
 
 def get_first_blood_stats(
-    games: list[MatchInfo],
+    match_info_by_id: dict[int, MatchInfo],
     details: list[MatchDetails],
     computed_at: date,
 ) -> list[Statistic]:
     """Stats derived from first blood events across all matches."""
-    match_info_by_id = {g.id: g for g in games}
     bloods = [(d, d.first_blood) for d in details if d.first_blood is not None]
     if not bloods:
         return []
@@ -271,13 +266,16 @@ def get_first_blood_stats(
 
 
 def get_building_first_blood_stats(
-    games: list[MatchInfo],
+    match_info_by_id: dict[int, MatchInfo],
     details: list[MatchDetails],
     computed_at: date,
 ) -> list[Statistic]:
     """Fastest building kill and player with most building first bloods."""
-    match_info_by_id = {g.id: g for g in games}
-    bfbs = [(d, d.building_first_blood) for d in details if d.building_first_blood is not None]
+    bfbs = [
+        (d, d.building_first_blood)
+        for d in details
+        if d.building_first_blood is not None
+    ]
     if not bfbs:
         return []
     stats: list[Statistic] = []
@@ -474,12 +472,20 @@ def get_activity_stats(
     return stats
 
 
+def _min_candidate(
+    current: tuple[str, int, int] | None, value: int, name: str, match_id: int
+) -> tuple[str, int, int] | None:
+    if value > 0 and (current is None or value < current[1]):
+        return (name, value, match_id)
+    return current
+
+
 def get_efficiency_stats(
     details: list[MatchDetails],
     computed_at: date,
 ) -> list[Statistic]:
     """Winning player records: fewest units, fewest buildings, least money spent."""
-    best_units: tuple[str, int, int] | None = None    # (player, count, match_id)
+    best_units: tuple[str, int, int] | None = None  # (player, count, match_id)
     best_buildings: tuple[str, int, int] | None = None
     best_money: tuple[str, int, int] | None = None
 
@@ -488,17 +494,19 @@ def get_efficiency_stats(
             if not ps.Win:
                 continue
             name = resolve_player_name(ps.Name, ps.Color)
-
-            units = sum(v.Count for v in ps.UnitsCreated.values())
-            if units > 0 and (best_units is None or units < best_units[1]):
-                best_units = (name, units, d.match_id)
-
-            buildings = sum(v.Count for v in ps.BuildingsBuilt.values())
-            if buildings > 0 and (best_buildings is None or buildings < best_buildings[1]):
-                best_buildings = (name, buildings, d.match_id)
-
-            if ps.MoneySpent > 0 and (best_money is None or ps.MoneySpent < best_money[1]):
-                best_money = (name, ps.MoneySpent, d.match_id)
+            best_units = _min_candidate(
+                best_units,
+                sum(v.Count for v in ps.UnitsCreated.values()),
+                name,
+                d.match_id,
+            )
+            best_buildings = _min_candidate(
+                best_buildings,
+                sum(v.Count for v in ps.BuildingsBuilt.values()),
+                name,
+                d.match_id,
+            )
+            best_money = _min_candidate(best_money, ps.MoneySpent, name, d.match_id)
 
     stats: list[Statistic] = []
     if best_units:
@@ -595,6 +603,7 @@ def get_superlatives(
 ) -> Superlatives:
     computed_at = date.today()
 
+    match_info_by_id = {g.id: g for g in games}
     stats: list[Statistic] = [
         *_safe_compute(get_game_count_stats, games, computed_at),
         *_safe_compute(get_win_streak_stats, games, computed_at),
@@ -603,8 +612,15 @@ def get_superlatives(
         *_safe_compute(get_calendar_stats, games, computed_at),
         *(
             [
-                *_safe_compute(get_first_blood_stats, games, details, computed_at),
-                *_safe_compute(get_building_first_blood_stats, games, details, computed_at),
+                *_safe_compute(
+                    get_first_blood_stats, match_info_by_id, details, computed_at
+                ),
+                *_safe_compute(
+                    get_building_first_blood_stats,
+                    match_info_by_id,
+                    details,
+                    computed_at,
+                ),
                 *_safe_compute(get_apm_stats, details, computed_at),
                 *_safe_compute(get_money_stats, details, computed_at),
                 *_safe_compute(get_activity_stats, details, computed_at),
