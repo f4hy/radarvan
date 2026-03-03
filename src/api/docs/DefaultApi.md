@@ -312,7 +312,7 @@ No authorization required
 
 ## deleteOverrideApiOverrideMatchIdDelete
 
-> { [key: string]: string; } deleteOverrideApiOverrideMatchIdDelete(matchId)
+> { [key: string]: string | null; } deleteOverrideApiOverrideMatchIdDelete(matchId)
 
 Delete Override
 
@@ -357,7 +357,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: string; }**
+**{ [key: string]: string | null; }**
 
 ### Authorization
 
@@ -703,7 +703,7 @@ No authorization required
 
 ## getGeneralsStatsApiGeneralstatsGet
 
-> GeneralStats getGeneralsStatsApiGeneralstatsGet()
+> GeneralStats getGeneralsStatsApiGeneralstatsGet(gameFormat)
 
 Get Generals Stats
 
@@ -722,8 +722,13 @@ async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new DefaultApi();
 
+  const body = {
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetGeneralsStatsApiGeneralstatsGetRequest;
+
   try {
-    const data = await api.getGeneralsStatsApiGeneralstatsGet();
+    const data = await api.getGeneralsStatsApiGeneralstatsGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -736,7 +741,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -756,6 +764,7 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -957,7 +966,7 @@ No authorization required
 
 ## getMatchJsonUrlApiDebugJsonUrlMatchIdGet
 
-> { [key: string]: string; } getMatchJsonUrlApiDebugJsonUrlMatchIdGet(matchId)
+> { [key: string]: string | null; } getMatchJsonUrlApiDebugJsonUrlMatchIdGet(matchId)
 
 Get Match Json Url
 
@@ -1002,7 +1011,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: string; }**
+**{ [key: string]: string | null; }**
 
 ### Authorization
 
@@ -1279,7 +1288,7 @@ No authorization required
 
 ## getPlayerRatingsApiPlayerRatingsGet
 
-> PlayerRatingData getPlayerRatingsApiPlayerRatingsGet()
+> PlayerRatingData getPlayerRatingsApiPlayerRatingsGet(gameFormat)
 
 Get Player Ratings
 
@@ -1296,8 +1305,13 @@ async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new DefaultApi();
 
+  const body = {
+    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetPlayerRatingsApiPlayerRatingsGetRequest;
+
   try {
-    const data = await api.getPlayerRatingsApiPlayerRatingsGet();
+    const data = await api.getPlayerRatingsApiPlayerRatingsGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -1310,7 +1324,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -1330,13 +1347,14 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getPlayerStatsApiPlayerstatsGet
 
-> PlayerStats getPlayerStatsApiPlayerstatsGet()
+> PlayerStats getPlayerStatsApiPlayerstatsGet(gameFormat)
 
 Get Player Stats
 
@@ -1355,8 +1373,13 @@ async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new DefaultApi();
 
+  const body = {
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetPlayerStatsApiPlayerstatsGetRequest;
+
   try {
-    const data = await api.getPlayerStatsApiPlayerstatsGet();
+    const data = await api.getPlayerStatsApiPlayerstatsGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -1369,7 +1392,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -1389,13 +1415,14 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getReplayByUrlApiReplayGet
 
-> { [key: string]: string; } getReplayByUrlApiReplayGet(urlOfReplay)
+> { [key: string]: string | null; } getReplayByUrlApiReplayGet(urlOfReplay)
 
 Get Replay By Url
 
@@ -1438,7 +1465,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: string; }**
+**{ [key: string]: string | null; }**
 
 ### Authorization
 
@@ -2425,7 +2452,7 @@ No authorization required
 
 ## scrapeApiScrapeDaysPost
 
-> { [key: string]: string; } scrapeApiScrapeDaysPost(days)
+> { [key: string]: string | null; } scrapeApiScrapeDaysPost(days)
 
 Scrape
 
@@ -2468,7 +2495,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: string; }**
+**{ [key: string]: string | null; }**
 
 ### Authorization
 

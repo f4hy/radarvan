@@ -528,12 +528,16 @@ def get_match_details(
 
 @app.get("/api/playerstats")
 def get_player_stats(
+    game_format: str | None = Query(None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerStats:
     """Get player stats."""
     games = competitive_matches(replay_manager)
+    game_list = list(games.values())
+    if game_format is not None:
+        game_list = [g for g in game_list if g.composition is not None and g.composition.category == game_format]
     logger.info("getting player stats")
-    return player_stats.get_player_stats(list(games.values()))
+    return player_stats.get_player_stats(game_list)
 
 
 @app.get("/api/superlatives")
@@ -590,12 +594,16 @@ async def _do_recompute(
 
 @app.get("/api/generalstats")
 def get_generals_stats(
+    game_format: str | None = Query(None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> GeneralStats:
     """Get generals stats."""
     games = competitive_matches(replay_manager)
+    game_list = list(games.values())
+    if game_format is not None:
+        game_list = [g for g in game_list if g.composition is not None and g.composition.category == game_format]
     logger.info("getting generals stats")
-    return general_stats.get_generals_stats(list(games.values()))
+    return general_stats.get_generals_stats(game_list)
 
 
 @app.get("/api/team_stats/")
@@ -814,11 +822,15 @@ def get_player_game_counts(
 
 @app.get("/api/player_ratings/")
 def get_player_ratings(
+    game_format: str | None = Query(None, description="Filter by game format: 2v2, 3v3, 4v4"),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerRatingData:
     games = competitive_matches(replay_manager)
+    game_list = list(games.values())
+    if game_format is not None:
+        game_list = [g for g in game_list if g.composition is not None and g.composition.category == game_format]
 
-    ratings_and_counts = player_rating.compute_player_ratings(list(games.values()))
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts
 
     def convert(rating: player_rating.NamedRating) -> PlayerRatings:

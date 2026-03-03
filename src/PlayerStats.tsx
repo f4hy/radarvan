@@ -8,6 +8,8 @@ import ListItemAvatar from "@mui/material/ListItemAvatar"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
@@ -36,11 +38,16 @@ import { Client } from "./Client"
 import { isDebug, winRate } from "./utils"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
+const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
+type GameFormat = (typeof FORMAT_OPTIONS)[number]
+
 function getPlayerStats(
+  gameFormat: GameFormat,
   callback: (m: PlayerStats) => void,
   onError = console.error,
 ) {
-  Client.getPlayerStatsApiPlayerstatsGet().then(callback).catch(onError)
+  const params = gameFormat === "All" ? {} : { gameFormat }
+  Client.getPlayerStatsApiPlayerstatsGet(params).then(callback).catch(onError)
 }
 
 function toGeneral(s: string | number): General {
@@ -482,11 +489,13 @@ const empty = { playerStats: [] }
 
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
+  const [format, setFormat] = React.useState<GameFormat>("All")
   const debug = isDebug()
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getPlayerStats(setPlayerStats, showError)
-  }, [showError])
+    setPlayerStats(empty)
+    getPlayerStats(format, setPlayerStats, showError)
+  }, [format, showError])
   if (playerStats.playerStats.length === 0) {
     return <Loading />
   }
@@ -504,9 +513,21 @@ export default function DisplayPlayerStats() {
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
     <Paper>
-      <Typography variant="h4">
-        Stats computed only from 1v1 2v2 3v3 and 4v4 games
-      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+        <Typography variant="h6">Game Format:</Typography>
+        <ToggleButtonGroup
+          value={format}
+          exclusive
+          onChange={(_, v) => v && setFormat(v)}
+          size="small"
+        >
+          {FORMAT_OPTIONS.map((f) => (
+            <ToggleButton key={f} value={f}>
+              {f}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Stack>
       <BestPlayerPerGeneral playerStats={playerStats} />
       <Divider sx={{ mb: 2 }} />
       <BestRelativePlayerPerGeneral playerStats={playerStats} />

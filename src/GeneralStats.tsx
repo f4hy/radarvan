@@ -5,6 +5,8 @@ import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import * as React from "react"
 import {
   Bar,
@@ -25,11 +27,16 @@ import useMediaQuery from "@mui/material/useMediaQuery"
 import { winRate } from "./utils"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
+const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
+type GameFormat = (typeof FORMAT_OPTIONS)[number]
+
 function getGeneralStats(
+  gameFormat: GameFormat,
   callback: (m: GeneralStats) => void,
   onError = console.error,
 ) {
-  Client.getGeneralsStatsApiGeneralstatsGet().then(callback).catch(onError)
+  const params = gameFormat === "All" ? {} : { gameFormat }
+  Client.getGeneralsStatsApiGeneralstatsGet(params).then(callback).catch(onError)
 }
 
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
@@ -114,10 +121,12 @@ const empty = { generalStats: [] }
 
 export default function DisplayGeneralStats() {
   const [generalStats, setGeneralStats] = React.useState<GeneralStats>(empty)
+  const [format, setFormat] = React.useState<GameFormat>("All")
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getGeneralStats(setGeneralStats, showError)
-  }, [showError])
+    setGeneralStats(empty)
+    getGeneralStats(format, setGeneralStats, showError)
+  }, [format, showError])
 
   const sorted = React.useMemo(
     () =>
@@ -135,9 +144,21 @@ export default function DisplayGeneralStats() {
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-      <Typography variant="h4">
-        Stats computed only from 1v1 2v2 3v3 and 4v4 games
-      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6">Game Format:</Typography>
+        <ToggleButtonGroup
+          value={format}
+          exclusive
+          onChange={(_, v) => v && setFormat(v)}
+          size="small"
+        >
+          {FORMAT_OPTIONS.map((f) => (
+            <ToggleButton key={f} value={f}>
+              {f}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Stack>
       <DisplayOverallGeneralStat
         stats={{ generalStats: generalStats.generalStats }}
       />

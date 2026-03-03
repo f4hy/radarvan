@@ -27,11 +27,16 @@ import { Client } from "./Client"
 import Loading from "./Loading"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
+const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
+type GameFormat = (typeof FORMAT_OPTIONS)[number]
+
 function getPlayerRatings(
+  gameFormat: GameFormat,
   callback: (m: PlayerRatingData) => void,
   onError = console.error,
 ) {
-  Client.getPlayerRatingsApiPlayerRatingsGet().then(callback).catch(onError)
+  const params = gameFormat === "All" ? {} : { gameFormat }
+  Client.getPlayerRatingsApiPlayerRatingsGet(params).then(callback).catch(onError)
 }
 
 function formatLabel(val: any): string {
@@ -175,10 +180,12 @@ export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
     emptyPlayerRatingData,
   )
+  const [format, setFormat] = React.useState<GameFormat>("All")
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
-    getPlayerRatings(setPlayerRatings, showError)
-  }, [showError])
+    setPlayerRatings(emptyPlayerRatingData)
+    getPlayerRatings(format, setPlayerRatings, showError)
+  }, [format, showError])
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -193,6 +200,21 @@ export default function DisplayPlayerRatings() {
   const leftMargin = isMobile ? 30 : 50
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+        <Typography variant="h6">Game Format:</Typography>
+        <ToggleButtonGroup
+          value={format}
+          exclusive
+          onChange={(_, v) => v && setFormat(v)}
+          size="small"
+        >
+          {FORMAT_OPTIONS.map((f) => (
+            <ToggleButton key={f} value={f}>
+              {f}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Stack>
       <Typography variant="h4">Player Ratings (debug only)</Typography>
       <ResponsiveContainer width="100%" height={isMobile ? 300 : 500}>
         <ScatterChart

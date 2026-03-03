@@ -111,6 +111,10 @@ export interface GetFilesForMatchIdApiFilesForMatchGetRequest {
     matchId: number;
 }
 
+export interface GetGeneralsStatsApiGeneralstatsGetRequest {
+    gameFormat?: string | null;
+}
+
 export interface GetMatchByIdApiMatchMatchIdGetRequest {
     matchId: number;
 }
@@ -129,6 +133,14 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
 
 export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
+}
+
+export interface GetPlayerRatingsApiPlayerRatingsGetRequest {
+    gameFormat?: string | null;
+}
+
+export interface GetPlayerStatsApiPlayerstatsGetRequest {
+    gameFormat?: string | null;
 }
 
 export interface GetReplayByUrlApiReplayGetRequest {
@@ -349,7 +361,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete a winner override for a match.
      * Delete Override
      */
-    async deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -379,7 +391,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete a winner override for a match.
      * Delete Override
      */
-    async deleteOverrideApiOverrideMatchIdDelete(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+    async deleteOverrideApiOverrideMatchIdDelete(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -566,8 +578,12 @@ export class DefaultApi extends runtime.BaseAPI {
      * Get generals stats.
      * Get Generals Stats
      */
-    async getGeneralsStatsApiGeneralstatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralStats>> {
+    async getGeneralsStatsApiGeneralstatsGetRaw(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralStats>> {
         const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -588,8 +604,8 @@ export class DefaultApi extends runtime.BaseAPI {
      * Get generals stats.
      * Get Generals Stats
      */
-    async getGeneralsStatsApiGeneralstatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
-        const response = await this.getGeneralsStatsApiGeneralstatsGetRaw(initOverrides);
+    async getGeneralsStatsApiGeneralstatsGet(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
+        const response = await this.getGeneralsStatsApiGeneralstatsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -706,7 +722,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Return a presigned S3 URL for the parsed JSON of a match.
      * Get Match Json Url
      */
-    async getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -736,7 +752,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Return a presigned S3 URL for the parsed JSON of a match.
      * Get Match Json Url
      */
-    async getMatchJsonUrlApiDebugJsonUrlMatchIdGet(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+    async getMatchJsonUrlApiDebugJsonUrlMatchIdGet(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -888,8 +904,12 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Player Ratings
      */
-    async getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerRatingData>> {
+    async getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerRatingData>> {
         const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -909,8 +929,8 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Player Ratings
      */
-    async getPlayerRatingsApiPlayerRatingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerRatingData> {
-        const response = await this.getPlayerRatingsApiPlayerRatingsGetRaw(initOverrides);
+    async getPlayerRatingsApiPlayerRatingsGet(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerRatingData> {
+        const response = await this.getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -918,8 +938,12 @@ export class DefaultApi extends runtime.BaseAPI {
      * Get player stats.
      * Get Player Stats
      */
-    async getPlayerStatsApiPlayerstatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
+    async getPlayerStatsApiPlayerstatsGetRaw(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
         const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -940,15 +964,15 @@ export class DefaultApi extends runtime.BaseAPI {
      * Get player stats.
      * Get Player Stats
      */
-    async getPlayerStatsApiPlayerstatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
-        const response = await this.getPlayerStatsApiPlayerstatsGetRaw(initOverrides);
+    async getPlayerStatsApiPlayerstatsGet(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
+        const response = await this.getPlayerStatsApiPlayerstatsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Get Replay By Url
      */
-    async getReplayByUrlApiReplayGetRaw(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async getReplayByUrlApiReplayGetRaw(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
         if (requestParameters['urlOfReplay'] == null) {
             throw new runtime.RequiredError(
                 'urlOfReplay',
@@ -980,7 +1004,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Replay By Url
      */
-    async getReplayByUrlApiReplayGet(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+    async getReplayByUrlApiReplayGet(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.getReplayByUrlApiReplayGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -1516,7 +1540,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Scrape
      */
-    async scrapeApiScrapeDaysPostRaw(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async scrapeApiScrapeDaysPostRaw(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
         if (requestParameters['days'] == null) {
             throw new runtime.RequiredError(
                 'days',
@@ -1545,7 +1569,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Scrape
      */
-    async scrapeApiScrapeDaysPost(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+    async scrapeApiScrapeDaysPost(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.scrapeApiScrapeDaysPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
