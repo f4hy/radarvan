@@ -193,7 +193,7 @@ export default function DisplaySuperlatives() {
           Records
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Computed {data.computedAt.getDate()} from team matches
+          Computed {data.computedAt.toLocaleDateString()}. From 2v2, 3v3 and 4v4 team matches
         </Typography>
       </Box>
       <Divider sx={{ mb: 3 }} />
