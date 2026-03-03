@@ -16,6 +16,9 @@ import PersonIcon from "@mui/icons-material/Person"
 import SportsScoreIcon from "@mui/icons-material/SportsScore"
 
 const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
+  { label: "Overview", keywords: ["Games"] },
+  { label: "Streaks", keywords: ["Streak"] },
+  { label: "Maps", keywords: ["Map"] },
   { label: "Match Duration", keywords: ["Longest", "Shortest"] },
   { label: "First Blood", keywords: ["First Blood"] },
   { label: "APM", keywords: ["APM"] },
@@ -24,6 +27,7 @@ const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
     label: "Combat & Activity",
     keywords: ["Units", "Buildings", "XP", "Upgrades"],
   },
+  { label: "Activity", keywords: ["Day"] },
 ]
 
 function categorize(statName: string): string {

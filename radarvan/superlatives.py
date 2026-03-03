@@ -18,6 +18,31 @@ class Superlatives(BaseModel):
     computed_at: date
 
 
+def get_game_count_stats(
+    games: list[MatchInfo], computed_at: date
+) -> list[Statistic]:
+    """Total game counts broken down by format."""
+    stats = [
+        Statistic(stat_name="Total Games", date_computed=computed_at, value=len(games))
+    ]
+    for team_size in (2, 3, 4):
+        category = f"{team_size}v{team_size}"
+        count = sum(
+            1
+            for g in games
+            if g.composition is not None and g.composition.category == category
+        )
+        if count:
+            stats.append(
+                Statistic(
+                    stat_name=f"{category} Games",
+                    date_computed=computed_at,
+                    value=count,
+                )
+            )
+    return stats
+
+
 def _fmt_duration(minutes: float) -> str:
     total_seconds = int(minutes * 60)
     return f"{total_seconds // 60}m {total_seconds % 60:02d}s"
@@ -60,6 +85,119 @@ def get_match_duration_extremes(
     return stats
 
 
+def _resolve_attacker(
+    match_info_by_id: dict[int, MatchInfo], d: MatchDetails, attacker: str
+) -> str:
+    match_info = match_info_by_id.get(d.match_id)
+    if match_info is None:
+        return resolve_player_name(attacker)
+    for p in match_info.players:
+        if p.name == attacker:
+            return resolve_player_name(attacker, p.color)
+    return resolve_player_name(attacker)
+
+
+def get_win_streak_stats(
+    games: list[MatchInfo], computed_at: date
+) -> list[Statistic]:
+    """All-time longest win streak and current longest active streak."""
+    sorted_games = sorted(
+        (g for g in games if not g.incomplete), key=lambda g: g.timestamp
+    )
+    # (count, start_date, last_win_date)
+    current: dict[str, tuple[int, date, date]] = {}
+    best: dict[str, tuple[int, date, date]] = {}
+    for game in sorted_games:
+        game_date = game.date
+        for player in game.players:
+            name = resolve_player_name(player.name, player.color)
+            if player.won:
+                prev = current.get(name)
+                current[name] = (1, game_date, game_date) if prev is None else (prev[0] + 1, prev[1], game_date)
+                count, start, end = current[name]
+                if name not in best or count > best[name][0]:
+                    best[name] = (count, start, end)
+            else:
+                current.pop(name, None)
+    stats: list[Statistic] = []
+    if best:
+        top_player = max(best, key=lambda n: best[n][0])
+        count, start, end = best[top_player]
+        stats.append(
+            Statistic(
+                stat_name=f"Longest Win Streak ({start} to {end})",
+                date_computed=computed_at,
+                value=count,
+                player=top_player,
+            )
+        )
+    if current:
+        current_leader = max(current, key=lambda n: current[n][0])
+        count, start, end = current[current_leader]
+        stats.append(
+            Statistic(
+                stat_name=f"Longest Current Streak ({start} to {end})",
+                date_computed=computed_at,
+                value=count,
+                player=current_leader,
+            )
+        )
+    return stats
+
+
+def get_map_duration_stats(
+    games: list[MatchInfo], computed_at: date
+) -> list[Statistic]:
+    """Maps with the longest and shortest average game duration (min 3 complete games)."""
+    map_durations: dict[str, list[float]] = {}
+    for g in games:
+        if not g.incomplete:
+            map_durations.setdefault(g.map, []).append(g.duration_minutes)
+    MIN_GAMES = 3
+    eligible = {
+        m: sum(ds) / len(ds)
+        for m, ds in map_durations.items()
+        if len(ds) >= MIN_GAMES
+    }
+    if not eligible:
+        return []
+    longest_map = max(eligible, key=eligible.__getitem__)
+    shortest_map = min(eligible, key=eligible.__getitem__)
+    return [
+        Statistic(
+            stat_name="Longest Average Game Map",
+            date_computed=computed_at,
+            value=_fmt_duration(eligible[longest_map]),
+            player=longest_map.split("/")[-1],
+        ),
+        Statistic(
+            stat_name="Shortest Average Game Map",
+            date_computed=computed_at,
+            value=_fmt_duration(eligible[shortest_map]),
+            player=shortest_map.split("/")[-1],
+        ),
+    ]
+
+
+def get_calendar_stats(
+    games: list[MatchInfo], computed_at: date
+) -> list[Statistic]:
+    """Busiest single day and longest break between sessions."""
+    if not games:
+        return []
+    stats: list[Statistic] = []
+    date_counts: Counter = Counter(g.date for g in games)
+    busiest_date, busiest_count = date_counts.most_common(1)[0]
+    stats.append(
+        Statistic(
+            stat_name="Most Matches in a Day",
+            date_computed=computed_at,
+            value=f"{busiest_count} ({busiest_date})",
+        )
+    )
+    return stats
+
+
 def get_first_blood_stats(
     games: list[MatchInfo],
     details: list[MatchDetails],
@@ -73,15 +211,6 @@ def get_first_blood_stats(
 
     stats: list[Statistic] = []
 
-    def _resolve_attacker(d: MatchDetails, attacker: str) -> str:
-        match_info = match_info_by_id.get(d.match_id)
-        if match_info is None:
-            return resolve_player_name(attacker)
-        for p in match_info.players:
-            if p.name == attacker:
-                return resolve_player_name(attacker, p.color)
-        return resolve_player_name(attacker)
-
     fastest = min(bloods, key=lambda x: x[1].atMinute)
     latest = max(bloods, key=lambda x: x[1].atMinute)
     stats.append(
@@ -89,7 +218,7 @@ def get_first_blood_stats(
             stat_name="Fastest First Blood",
             date_computed=computed_at,
             value=_fmt_duration(fastest[1].atMinute),
-            player=_resolve_attacker(fastest[0], fastest[1].attacker),
+            player=_resolve_attacker(match_info_by_id, fastest[0], fastest[1].attacker),
             match_id=fastest[0].match_id,
         )
     )
@@ -98,13 +227,13 @@ def get_first_blood_stats(
             stat_name="Latest First Blood",
             date_computed=computed_at,
             value=_fmt_duration(latest[1].atMinute),
-            player=_resolve_attacker(latest[0], latest[1].attacker),
+            player=_resolve_attacker(match_info_by_id, latest[0], latest[1].attacker),
             match_id=latest[0].match_id,
         )
     )
 
     player_counts: Counter[str] = Counter(
-        _resolve_attacker(d, fb.attacker) for d, fb in bloods
+        _resolve_attacker(match_info_by_id, d, fb.attacker) for d, fb in bloods
     )
     top_player, top_count = player_counts.most_common(1)[0]
     stats.append(
@@ -123,7 +252,7 @@ def get_first_blood_stats(
             continue
         for p in match_info.players:
             if resolve_player_name(p.name, p.color) == _resolve_attacker(
-                d, fb.attacker
+                match_info_by_id, d, fb.attacker
             ):
                 general_counts[p.general.name] += 1
                 break
@@ -138,6 +267,42 @@ def get_first_blood_stats(
             )
         )
 
+    return stats
+
+
+def get_building_first_blood_stats(
+    games: list[MatchInfo],
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Fastest building kill and player with most building first bloods."""
+    match_info_by_id = {g.id: g for g in games}
+    bfbs = [(d, d.building_first_blood) for d in details if d.building_first_blood is not None]
+    if not bfbs:
+        return []
+    stats: list[Statistic] = []
+    fastest = min(bfbs, key=lambda x: x[1].atMinute)
+    stats.append(
+        Statistic(
+            stat_name="Fastest Building First Blood",
+            date_computed=computed_at,
+            value=_fmt_duration(fastest[1].atMinute),
+            player=_resolve_attacker(match_info_by_id, fastest[0], fastest[1].attacker),
+            match_id=fastest[0].match_id,
+        )
+    )
+    player_counts: Counter[str] = Counter(
+        _resolve_attacker(match_info_by_id, d, bfb.attacker) for d, bfb in bfbs
+    )
+    top_player, top_count = player_counts.most_common(1)[0]
+    stats.append(
+        Statistic(
+            stat_name="Most Building First Bloods",
+            date_computed=computed_at,
+            value=top_count,
+            player=top_player,
+        )
+    )
     return stats
 
 
@@ -371,10 +536,15 @@ def get_superlatives(
     computed_at = date.today()
 
     stats: list[Statistic] = [
+        *_safe_compute(get_game_count_stats, games, computed_at),
+        *_safe_compute(get_win_streak_stats, games, computed_at),
+        *_safe_compute(get_map_duration_stats, games, computed_at),
         *_safe_compute(get_match_duration_extremes, games, computed_at),
+        *_safe_compute(get_calendar_stats, games, computed_at),
         *(
             [
                 *_safe_compute(get_first_blood_stats, games, details, computed_at),
+                *_safe_compute(get_building_first_blood_stats, games, details, computed_at),
                 *_safe_compute(get_apm_stats, details, computed_at),
                 *_safe_compute(get_money_stats, details, computed_at),
                 *_safe_compute(get_activity_stats, details, computed_at),
