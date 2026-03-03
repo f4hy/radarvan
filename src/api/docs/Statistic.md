@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `statName` | string
+`dateComputed` | Date
 `value` | [Value](Value.md)
 `player` | string
 `matchId` | number
@@ -19,6 +20,7 @@ import type { Statistic } from ''
 // TODO: Update the object below with actual values
 const example = {
   "statName": null,
+  "dateComputed": null,
   "value": null,
   "player": null,
   "matchId": null,

@@ -149,6 +149,10 @@ export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     players?: Array<PlayerEnum>;
 }
 
+export interface RecomputeSuperlativesApiSuperlativesRecomputePostRequest {
+    limit?: number | null;
+}
+
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
     urlOfReplay: string;
 }
@@ -383,7 +387,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Incomplete
      */
-    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -408,7 +412,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Incomplete
      */
-    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.fixIncompleteApiFixIncompletePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -416,7 +420,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Unk Players
      */
-    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -441,7 +445,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Unk Players
      */
-    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -982,7 +986,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.
+     * Serve superlatives from the DB if available, otherwise compute on the fly.
      * Get Superlatives
      */
     async getSuperlativesApiSuperlativesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Superlatives>> {
@@ -1004,7 +1008,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.
+     * Serve superlatives from the DB if available, otherwise compute on the fly.
      * Get Superlatives
      */
     async getSuperlativesApiSuperlativesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Superlatives> {
@@ -1283,6 +1287,41 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Recompute superlatives, persist to DB, and return the result.
+     * Recompute Superlatives
+     */
+    async recomputeSuperlativesApiSuperlativesRecomputePostRaw(requestParameters: RecomputeSuperlativesApiSuperlativesRecomputePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Superlatives>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/superlatives/recompute`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SuperlativesFromJSON(jsonValue));
+    }
+
+    /**
+     * Recompute superlatives, persist to DB, and return the result.
+     * Recompute Superlatives
+     */
+    async recomputeSuperlativesApiSuperlativesRecomputePost(requestParameters: RecomputeSuperlativesApiSuperlativesRecomputePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Superlatives> {
+        const response = await this.recomputeSuperlativesApiSuperlativesRecomputePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Register and parse a new replay from a URL.
      * Register Replay Url
      */
@@ -1439,7 +1478,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
      * Reset Match
      */
-    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -1469,7 +1508,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
      * Reset Match
      */
-    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.resetMatchApiMatchMatchIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -1604,7 +1643,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Matches Missing Data
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -1629,7 +1668,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Matches Missing Data
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -1637,7 +1676,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Num Timestamps
      */
-    async updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -1662,7 +1701,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Num Timestamps
      */
-    async updateNumTimestampsApiUpdateNumTimestampsPost(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async updateNumTimestampsApiUpdateNumTimestampsPost(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters, initOverrides);
         return await response.value();
     }

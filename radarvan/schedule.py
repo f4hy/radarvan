@@ -1,9 +1,10 @@
-from .db_utils import ReplayManager
+from .db_utils import ReplayManager, DatabaseManager
 from .matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 from . import scrape_games
 from . import game_composition
+from . import match_details as match_details_module
 from . import superlatives as superlatives_module
 from . import matches as matches_module
 import logging
@@ -28,7 +29,9 @@ async def update_games(
         notify("DEBUG:" + msg)
 
 
-async def compute_and_save_superlatives(replay_manager: ReplayManager) -> None:
+async def compute_and_save_superlatives(
+    replay_manager: ReplayManager, db_manager: DatabaseManager
+) -> None:
     """Recompute all superlatives and persist them, replacing any previous results."""
     logger.info("Computing superlatives.")
     match_infos = matches_module.get_match_infos(replay_manager)
@@ -37,13 +40,20 @@ async def compute_and_save_superlatives(replay_manager: ReplayManager) -> None:
         for m in match_infos
         if m and game_composition.competitive_game_filter(comp=m.composition)
     ]
-    result = superlatives_module.get_superlatives(competitive)
+
+    details = await match_details_module.load_many_match_details(
+        [m.id for m in competitive], db_manager
+    )
+    logger.info(f"Loaded {len(details)} match details for superlatives.")
+    result = superlatives_module.get_superlatives(competitive, details)
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"Saved {len(result.stats)} computed statistics.")
 
 
-def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
+def get_scheduler(
+    replay_manager: ReplayManager, db_manager: DatabaseManager
+) -> AsyncIOScheduler:
     """Get the scheduler with the tasks on it."""
 
     scheduler = AsyncIOScheduler()
@@ -66,7 +76,7 @@ def get_scheduler(replay_manager: ReplayManager) -> AsyncIOScheduler:
         "cron",
         hour=4,
         minute=0,
-        args=[replay_manager],
+        args=[replay_manager, db_manager],
         id="compute_superlatives",
     )
     logger.info("Setup scheduler.")

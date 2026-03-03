@@ -1,5 +1,10 @@
 """Get match info from a replay."""
 
+from __future__ import annotations
+
+import asyncio
+from typing import TYPE_CHECKING
+
 from .api_types import (
     PlayerSummary as APIPlayerSummary,
 )
@@ -9,6 +14,9 @@ import logging
 from dataclasses import dataclass
 from pydantic import BaseModel
 from .utils import minutess_per_step
+
+if TYPE_CHECKING:
+    from .db_utils import ReplayManager, DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +275,49 @@ def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
         d["Color"] = color_map.get(s.Name, "black").lower().replace("color", "")
         player_summaries.append(APIPlayerSummary.model_validate(d))
     return player_summaries
+
+
+def load_match_details(
+    match_id: int, replay_manager: ReplayManager
+) -> MatchDetails | None:
+    """Load and parse match details for a single match_id. Returns None if not found."""
+    from . import replay_files
+
+    rep = replay_manager.get_replay_json_by_match_id(match_id)
+    if rep is None:
+        return None
+    replay = replay_files.parse_replay(rep.replay_file_url, replay_manager)
+    return match_details_from_replay(replay)
+
+
+def load_match_details_threadsafe(
+    match_id: int, db_manager: DatabaseManager
+) -> MatchDetails | None:
+    """Load match details with a fresh session — safe to call from any thread."""
+    from .db_utils import ReplayManager as _ReplayManager
+
+    try:
+        with db_manager.get_session() as session:
+            return load_match_details(match_id, _ReplayManager(session))
+    except Exception:
+        logger.exception(f"Failed to load match details for match_id={match_id}")
+        return None
+
+
+async def load_many_match_details(
+    match_ids: list[int], db_manager: DatabaseManager, max_concurrent: int = 20
+) -> list[MatchDetails]:
+    """Load match details for many matches in parallel with bounded concurrency."""
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def _bounded(match_id: int) -> MatchDetails | None:
+        async with semaphore:
+            return await asyncio.to_thread(
+                load_match_details_threadsafe, match_id, db_manager
+            )
+
+    results = await asyncio.gather(*[_bounded(mid) for mid in match_ids])
+    return [r for r in results if r is not None]
 
 
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:

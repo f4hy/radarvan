@@ -35,6 +35,7 @@ All URIs are relative to *http://localhost*
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
+| [**recomputeSuperlativesApiSuperlativesRecomputePost**](DefaultApi.md#recomputesuperlativesapisuperlativesrecomputepost) | **POST** /api/superlatives/recompute | Recompute Superlatives |
 | [**registerReplayUrlApiRegisterReplayUrlPost**](DefaultApi.md#registerreplayurlapiregisterreplayurlpost) | **POST** /api/register_replay_url | Register Replay Url |
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
@@ -379,7 +380,7 @@ No authorization required
 
 ## fixIncompleteApiFixIncompletePost
 
-> { [key: string]: number; } fixIncompleteApiFixIncompletePost(maxToUpdate)
+> { [key: string]: number | null; } fixIncompleteApiFixIncompletePost(maxToUpdate)
 
 Fix Incomplete
 
@@ -422,7 +423,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -445,7 +446,7 @@ No authorization required
 
 ## fixUnkPlayersApiFixUnkPlayerPost
 
-> { [key: string]: number; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
+> { [key: string]: number | null; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
 
 Fix Unk Players
 
@@ -488,7 +489,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -1464,7 +1465,7 @@ No authorization required
 
 Get Superlatives
 
-Get player stats.
+Serve superlatives from the DB if available, otherwise compute on the fly.
 
 ### Example
 
@@ -2016,6 +2017,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## recomputeSuperlativesApiSuperlativesRecomputePost
+
+> Superlatives recomputeSuperlativesApiSuperlativesRecomputePost(limit)
+
+Recompute Superlatives
+
+Recompute superlatives, persist to DB, and return the result.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { RecomputeSuperlativesApiSuperlativesRecomputePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number | Cap number of matches loaded (for testing) (optional)
+    limit: 56,
+  } satisfies RecomputeSuperlativesApiSuperlativesRecomputePostRequest;
+
+  try {
+    const data = await api.recomputeSuperlativesApiSuperlativesRecomputePost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **limit** | `number` | Cap number of matches loaded (for testing) | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**Superlatives**](Superlatives.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## registerReplayUrlApiRegisterReplayUrlPost
 
 > MatchInfo registerReplayUrlApiRegisterReplayUrlPost(urlOfReplay)
@@ -2288,7 +2357,7 @@ No authorization required
 
 ## resetMatchApiMatchMatchIdDelete
 
-> { [key: string]: number; } resetMatchApiMatchMatchIdDelete(matchId)
+> { [key: string]: number | null; } resetMatchApiMatchMatchIdDelete(matchId)
 
 Reset Match
 
@@ -2333,7 +2402,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -2559,7 +2628,7 @@ No authorization required
 
 ## updateMatchesMissingDataApiUpdateMatchesMissingDataPost
 
-> { [key: string]: number; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
+> { [key: string]: number | null; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
 
 Update Matches Missing Data
 
@@ -2602,7 +2671,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -2625,7 +2694,7 @@ No authorization required
 
 ## updateNumTimestampsApiUpdateNumTimestampsPost
 
-> { [key: string]: number; } updateNumTimestampsApiUpdateNumTimestampsPost(maxToUpdate)
+> { [key: string]: number | null; } updateNumTimestampsApiUpdateNumTimestampsPost(maxToUpdate)
 
 Update Num Timestamps
 
@@ -2668,7 +2737,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 

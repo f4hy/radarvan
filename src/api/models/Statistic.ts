@@ -35,6 +35,12 @@ export interface Statistic {
     statName: string;
     /**
      * 
+     * @type {Date}
+     * @memberof Statistic
+     */
+    dateComputed: Date;
+    /**
+     * 
      * @type {Value}
      * @memberof Statistic
      */
@@ -58,6 +64,7 @@ export interface Statistic {
  */
 export function instanceOfStatistic(value: object): value is Statistic {
     if (!('statName' in value) || value['statName'] === undefined) return false;
+    if (!('dateComputed' in value) || value['dateComputed'] === undefined) return false;
     return true;
 }
 
@@ -72,6 +79,7 @@ export function StatisticFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     return {
         
         'statName': json['stat_name'],
+        'dateComputed': (new Date(json['date_computed'])),
         'value': json['value'] == null ? undefined : ValueFromJSON(json['value']),
         'player': json['player'] == null ? undefined : json['player'],
         'matchId': json['match_id'] == null ? undefined : json['match_id'],
@@ -90,6 +98,7 @@ export function StatisticToJSONTyped(value?: Statistic | null, ignoreDiscriminat
     return {
         
         'stat_name': value['statName'],
+        'date_computed': value['dateComputed'].toISOString().substring(0,10),
         'value': ValueToJSON(value['value']),
         'player': value['player'],
         'match_id': value['matchId'],

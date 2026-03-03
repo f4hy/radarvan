@@ -30,6 +30,8 @@ import MapIcon from "@mui/icons-material/Map"
 import DisplayTournamentResults from "./Tournaments"
 import DisplayMapStats from "./MapStats"
 import DisplayTeamStats from "./TeamStats"
+import DisplaySuperlatives from "./Superlatives"
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import { isDebug } from "./utils"
 const drawerWidth = 190
 
@@ -94,6 +96,13 @@ export default function Menu() {
           text="Team Stats"
           open={true}
           icon={<GroupsIcon />}
+          callback={setSelection}
+        />
+        <MenuItem
+          value="Superlatives"
+          text="Records"
+          open={true}
+          icon={<WorkspacePremiumIcon />}
           callback={setSelection}
         />
         {debug && (
@@ -207,6 +216,7 @@ type Selection =
   | "Tournaments"
   | "BalanceTeams"
   | "PlayerRating"
+  | "Superlatives"
 
 interface MenuItemProps {
   open: boolean
@@ -233,6 +243,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayMapStats />
     case "TeamStats":
       return <DisplayTeamStats />
+    case "Superlatives":
+      return <DisplaySuperlatives />
     case "PlayerRating":
       return <DisplayPlayerRatings />
     case "DebugData":

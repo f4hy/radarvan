@@ -6,8 +6,8 @@
 
 Name | Type
 ------------ | -------------
-`matchCount` | number
 `stats` | [Array&lt;Statistic&gt;](Statistic.md)
+`computedAt` | Date
 
 ## Example
 
@@ -16,8 +16,8 @@ import type { Superlatives } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "matchCount": null,
   "stats": null,
+  "computedAt": null,
 } satisfies Superlatives
 
 console.log(example)

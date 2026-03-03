@@ -29,24 +29,24 @@ import {
 export interface Superlatives {
     /**
      * 
-     * @type {number}
-     * @memberof Superlatives
-     */
-    matchCount: number;
-    /**
-     * 
      * @type {Array<Statistic>}
      * @memberof Superlatives
      */
     stats: Array<Statistic>;
+    /**
+     * 
+     * @type {Date}
+     * @memberof Superlatives
+     */
+    computedAt: Date;
 }
 
 /**
  * Check if a given object implements the Superlatives interface.
  */
 export function instanceOfSuperlatives(value: object): value is Superlatives {
-    if (!('matchCount' in value) || value['matchCount'] === undefined) return false;
     if (!('stats' in value) || value['stats'] === undefined) return false;
+    if (!('computedAt' in value) || value['computedAt'] === undefined) return false;
     return true;
 }
 
@@ -60,8 +60,8 @@ export function SuperlativesFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
-        'matchCount': json['match_count'],
         'stats': ((json['stats'] as Array<any>).map(StatisticFromJSON)),
+        'computedAt': (new Date(json['computed_at'])),
     };
 }
 
@@ -76,8 +76,8 @@ export function SuperlativesToJSONTyped(value?: Superlatives | null, ignoreDiscr
 
     return {
         
-        'match_count': value['matchCount'],
         'stats': ((value['stats'] as Array<any>).map(StatisticToJSON)),
+        'computed_at': value['computedAt'].toISOString().substring(0,10),
     };
 }
 

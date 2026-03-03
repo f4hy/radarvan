@@ -1,63 +1,21 @@
+from collections import Counter
 from datetime import date
 from pydantic import BaseModel
 
 from .api_types import (
     MatchInfo,
-    General,
+    MatchDetails,
     Statistic,
-    WinLoss,
-    PlayerStat,
 )
+from .player_ids import resolve_player_name
 import logging
-from . import player_stats
 
 logger = logging.getLogger(__name__)
 
 
 class Superlatives(BaseModel):
-    match_count: int
     stats: list[Statistic]
-
-
-def get_player_highest_winrate(
-    games: list[MatchInfo], computed_at: date
-) -> list[Statistic]:
-    _player_stats = player_stats.get_player_stats(games).player_stats
-
-    def total_win_rate(win_losses: list[WinLoss]) -> float:
-        total_wins = sum(wl.wins for wl in win_losses)
-        total_games = sum(wl.wins + wl.losses for wl in win_losses)
-        return total_wins / total_games
-
-    player_winrates = {
-        s.player_name: total_win_rate(list(s.stats.values())) for s in _player_stats
-    }
-
-    stats: list[Statistic] = []
-
-    for general in General:
-        if general < 0:
-            continue
-
-        def win_rate(s: PlayerStat) -> float:
-            wl = s.stats[general]
-            if wl.losses == 0:
-                return 0.0
-            return (
-                (float(wl.wins) / (wl.wins + wl.losses))
-                - player_winrates[s.player_name]
-            ) * 100
-
-        highest_winrate = max(_player_stats, key=win_rate)
-        stats.append(
-            Statistic(
-                stat_name=f"highest win rate above player average {General(general).name}",
-                date_computed=computed_at,
-                value=f"+{win_rate(highest_winrate):.1f}%",
-                player=highest_winrate.player_name,
-            )
-        )
-    return stats
+    computed_at: date
 
 
 def _fmt_duration(minutes: float) -> str:
@@ -102,16 +60,331 @@ def get_match_duration_extremes(
     return stats
 
 
-def get_superlatives(games: list[MatchInfo]) -> Superlatives:
+def get_first_blood_stats(
+    games: list[MatchInfo],
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Stats derived from first blood events across all matches."""
+    match_info_by_id = {g.id: g for g in games}
+    bloods = [(d, d.first_blood) for d in details if d.first_blood is not None]
+    if not bloods:
+        return []
+
+    stats: list[Statistic] = []
+
+    def _resolve_attacker(d: MatchDetails, attacker: str) -> str:
+        match_info = match_info_by_id.get(d.match_id)
+        if match_info is None:
+            return resolve_player_name(attacker)
+        for p in match_info.players:
+            if p.name == attacker:
+                return resolve_player_name(attacker, p.color)
+        return resolve_player_name(attacker)
+
+    fastest = min(bloods, key=lambda x: x[1].atMinute)
+    latest = max(bloods, key=lambda x: x[1].atMinute)
+    stats.append(
+        Statistic(
+            stat_name="Fastest First Blood",
+            date_computed=computed_at,
+            value=_fmt_duration(fastest[1].atMinute),
+            player=_resolve_attacker(fastest[0], fastest[1].attacker),
+            match_id=fastest[0].match_id,
+        )
+    )
+    stats.append(
+        Statistic(
+            stat_name="Latest First Blood",
+            date_computed=computed_at,
+            value=_fmt_duration(latest[1].atMinute),
+            player=_resolve_attacker(latest[0], latest[1].attacker),
+            match_id=latest[0].match_id,
+        )
+    )
+
+    player_counts: Counter[str] = Counter(
+        _resolve_attacker(d, fb.attacker) for d, fb in bloods
+    )
+    top_player, top_count = player_counts.most_common(1)[0]
+    stats.append(
+        Statistic(
+            stat_name="Most First Bloods",
+            date_computed=computed_at,
+            value=top_count,
+            player=top_player,
+        )
+    )
+
+    general_counts: Counter[str] = Counter()
+    for d, fb in bloods:
+        match_info = match_info_by_id.get(d.match_id)
+        if match_info is None:
+            continue
+        for p in match_info.players:
+            if resolve_player_name(p.name, p.color) == _resolve_attacker(
+                d, fb.attacker
+            ):
+                general_counts[p.general.name] += 1
+                break
+    if general_counts:
+        top_general, gen_count = general_counts.most_common(1)[0]
+        stats.append(
+            Statistic(
+                stat_name="Most First Bloods by General",
+                date_computed=computed_at,
+                value=gen_count,
+                player=top_general,
+            )
+        )
+
+    return stats
+
+
+def _fmt_money(amount: int) -> str:
+    return f"${amount:,}"
+
+
+def get_apm_stats(
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Match with highest average APM and player with highest APM."""
+    if not details:
+        return []
+
+    stats: list[Statistic] = []
+
+    def _avg_apm(d: MatchDetails) -> float:
+        apms = [a.apm for a in d.apms if a.apm > 0 and a.minutes >= 1.0]
+        return sum(apms) / len(apms) if apms else 0.0
+
+    best_match, avg = max(((d, _avg_apm(d)) for d in details), key=lambda x: x[1])
+    if avg > 0:
+        stats.append(
+            Statistic(
+                stat_name="Highest Average APM Match",
+                date_computed=computed_at,
+                value=round(avg, 1),
+                match_id=best_match.match_id,
+            )
+        )
+
+    best: tuple[str, float, int] | None = None  # (player_name, apm, match_id)
+    # player -> (total_actions, total_minutes, game_count)
+    player_totals: dict[str, tuple[int, float, int]] = {}
+    for d in details:
+        color_map = {ps.Name: ps.Color for ps in d.player_summary}
+        for a in d.apms:
+            if a.minutes >= 3.0 and a.apm > 0:
+                resolved = resolve_player_name(
+                    a.player_name, color_map.get(a.player_name, "")
+                )
+                if best is None or a.apm > best[1]:
+                    best = (resolved, a.apm, d.match_id)
+                prev_actions, prev_minutes, prev_games = player_totals.get(
+                    resolved, (0, 0.0, 0)
+                )
+                player_totals[resolved] = (
+                    prev_actions + a.action_count,
+                    prev_minutes + a.minutes,
+                    prev_games + 1,
+                )
+    if best is not None:
+        stats.append(
+            Statistic(
+                stat_name="Highest APM",
+                date_computed=computed_at,
+                value=round(best[1], 1),
+                player=best[0],
+                match_id=best[2],
+            )
+        )
+
+    MIN_GAMES = 5
+    eligible = {
+        name: total_actions / total_minutes
+        for name, (total_actions, total_minutes, game_count) in player_totals.items()
+        if game_count >= MIN_GAMES and total_minutes > 0
+    }
+    if eligible:
+        top_name = max(eligible, key=eligible.__getitem__)
+        stats.append(
+            Statistic(
+                stat_name="Highest Average APM Overall",
+                date_computed=computed_at,
+                value=round(eligible[top_name], 1),
+                player=top_name,
+            )
+        )
+
+    return stats
+
+
+def _last_total(stats_data: dict[str, dict[float, dict[str, int]]], key: str) -> int:
+    """Sum the final (max-time) entry of a cumulative stats_data field across all players."""
+    data = stats_data.get(key, {})
+    if not data:
+        return 0
+    return sum(data[max(data)].values())
+
+
+def get_activity_stats(
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Most units killed, buildings destroyed, XP earned, and upgrades by one player."""
+    if not details:
+        return []
+
+    stats: list[Statistic] = []
+
+    # Most units killed total in a match
+    best_uk, uk_count = max(
+        ((d, _last_total(d.stats_data, "units_killed")) for d in details),
+        key=lambda x: x[1],
+    )
+    if uk_count > 0:
+        stats.append(
+            Statistic(
+                stat_name="Most Units Killed",
+                date_computed=computed_at,
+                value=uk_count,
+                match_id=best_uk.match_id,
+            )
+        )
+
+    # Most buildings destroyed total in a match
+    best_bk, bk_count = max(
+        ((d, _last_total(d.stats_data, "buildings_killed")) for d in details),
+        key=lambda x: x[1],
+    )
+    if bk_count > 0:
+        stats.append(
+            Statistic(
+                stat_name="Most Buildings Destroyed",
+                date_computed=computed_at,
+                value=bk_count,
+                match_id=best_bk.match_id,
+            )
+        )
+
+    # Most XP earned total in a match
+    best_xp, xp_total = max(
+        ((d, _last_total(d.stats_data, "xp")) for d in details),
+        key=lambda x: x[1],
+    )
+    if xp_total > 0:
+        stats.append(
+            Statistic(
+                stat_name="Most XP Earned",
+                date_computed=computed_at,
+                value=xp_total,
+                match_id=best_xp.match_id,
+            )
+        )
+
+    # Most upgrades purchased by a single player in any match
+    best_upg: tuple[str, int, int] | None = None  # (player_name, count, match_id)
+    for d in details:
+        color_map = {ps.Name: ps.Color for ps in d.player_summary}
+        for player_name, upgrades in d.upgrade_events.items():
+            count = len(upgrades.upgrades)
+            if best_upg is None or count > best_upg[1]:
+                resolved = resolve_player_name(
+                    player_name, color_map.get(player_name, "")
+                )
+                best_upg = (resolved, count, d.match_id)
+    if best_upg and best_upg[1] > 0:
+        stats.append(
+            Statistic(
+                stat_name="Most Upgrades in a Match",
+                date_computed=computed_at,
+                value=best_upg[1],
+                player=best_upg[0],
+                match_id=best_upg[2],
+            )
+        )
+
+    return stats
+
+
+def _total_money_spent(d: MatchDetails) -> int:
+    """Total money spent across all players in a match."""
+    money_values = d.money_values
+    money_earned = d.stats_data.get("money_earned", {})
+    if not money_values and not money_earned:
+        return 0
+    if money_values:
+        first_key, last_key = min(money_values), max(money_values)
+        start_balance = sum(money_values[first_key].values())
+        end_balance = sum(money_values[last_key].values())
+    else:
+        start_balance = end_balance = 0
+    earned = _last_total(d.stats_data, "money_earned")
+    return start_balance + earned - end_balance
+
+
+def get_money_stats(
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Match with most and least total money spent."""
+    if not details:
+        return []
+
+    valued = [(d, v) for d in details if (v := _total_money_spent(d)) > 0]
+    if not valued:
+        return []
+
+    most = max(valued, key=lambda x: x[1])
+    least = min(valued, key=lambda x: x[1])
+
+    return [
+        Statistic(
+            stat_name="Most Money Spent",
+            date_computed=computed_at,
+            value=_fmt_money(most[1]),
+            match_id=most[0].match_id,
+        ),
+        Statistic(
+            stat_name="Least Money Spent",
+            date_computed=computed_at,
+            value=_fmt_money(least[1]),
+            match_id=least[0].match_id,
+        ),
+    ]
+
+
+def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
+    try:
+        result: list[Statistic] = fn(*args)
+        return result
+    except Exception:
+        logger.exception(f"Error computing superlative stat group {fn.__name__}")
+        return []
+
+
+def get_superlatives(
+    games: list[MatchInfo], details: list[MatchDetails] | None = None
+) -> Superlatives:
     computed_at = date.today()
-    count = len(games)
 
     stats: list[Statistic] = [
-        *get_player_highest_winrate(games, computed_at),
-        *get_match_duration_extremes(games, computed_at),
+        *_safe_compute(get_match_duration_extremes, games, computed_at),
+        *(
+            [
+                *_safe_compute(get_first_blood_stats, games, details, computed_at),
+                *_safe_compute(get_apm_stats, details, computed_at),
+                *_safe_compute(get_money_stats, details, computed_at),
+                *_safe_compute(get_activity_stats, details, computed_at),
+            ]
+            if details
+            else []
+        ),
     ]
 
     return Superlatives(
-        match_count=count,
         stats=stats,
+        computed_at=computed_at,
     )

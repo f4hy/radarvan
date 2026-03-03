@@ -96,7 +96,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # logger.info("primed replays")
     with db_manager.SessionLocal() as session:
         replay_manager = get_replay_manager(session)
-        scheduler = schedule.get_scheduler(replay_manager)
+        scheduler = schedule.get_scheduler(replay_manager, db_manager)
         if os.getenv("DEV") is None:
             scheduler.start()
         yield
@@ -207,7 +207,7 @@ def list_replays(
 @app.get("/api/dates/")
 def get_dates(
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[date, int]:
+) -> dict[date, float]:
     replays = sorted_deduped_matches(replay_manager)
     dates = Counter(r.date for r in replays.values())
     return dict(sorted(dates.items(), reverse=True))
@@ -539,21 +539,37 @@ def get_superlatives(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> superlatives.Superlatives:
     """Serve superlatives from the DB if available, otherwise compute on the fly."""
-    games = competitive_matches(replay_manager)
     saved_stats = replay_manager.get_computed_stats()
     if saved_stats:
-        return superlatives.Superlatives(match_count=len(games), stats=saved_stats)
+        return superlatives.Superlatives(
+            stats=saved_stats,
+            computed_at=saved_stats[0].date_computed,
+        )
     logger.info("no saved superlatives")
-    return superlatives.Superlatives(match_count=len(games), stats=[])
+    return superlatives.Superlatives(stats=[], computed_at=date.today())
 
 
 @app.post("/api/superlatives/recompute")
-def recompute_superlatives(
+async def recompute_superlatives(
     replay_manager: ReplayManager = Depends(get_replay_manager),
+    limit: int | None = Query(
+        None, description="Cap number of matches loaded (for testing)"
+    ),
 ) -> superlatives.Superlatives:
     """Recompute superlatives, persist to DB, and return the result."""
     games = competitive_matches(replay_manager)
-    result = superlatives.get_superlatives(list(games.values()))
+    game_list = [
+        g
+        for g in games.values()
+        if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
+    ]
+    if limit is not None:
+        game_list = game_list[:limit]
+    details = await match_details.load_many_match_details(
+        [m.id for m in game_list], db_manager
+    )
+    logger.info(f"Loaded {len(details)} match details for superlatives recompute")
+    result = superlatives.get_superlatives(game_list, details)
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"saved {len(result.stats)} computed statistics")
