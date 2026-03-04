@@ -10,6 +10,7 @@ Name | Type
 `stats` | [{ [key: string]: WinLoss; }](WinLoss.md)
 `factionStats` | [Array&lt;PlayerStatFactionWL&gt;](PlayerStatFactionWL.md)
 `overTime` | [Array&lt;PlayerRateOverTime&gt;](PlayerRateOverTime.md)
+`gameCounts` | { [key: string]: number; }
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "stats": null,
   "factionStats": null,
   "overTime": null,
+  "gameCounts": null,
 } satisfies PlayerStat
 
 console.log(example)

@@ -116,6 +116,7 @@ class PlayerStat(BaseModel):
     stats: dict[General, WinLoss]
     faction_stats: list[PlayerStatFactionWL] = Field(alias="factionStats")
     over_time: list[PlayerRateOverTime] = Field(alias="overTime")
+    game_counts: dict[str, int] = Field(default_factory=dict, alias="gameCounts")
 
     class Config:
         populate_by_name = True

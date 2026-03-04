@@ -1,4 +1,7 @@
 import Box from "@mui/material/Box"
+import Chip from "@mui/material/Chip"
+import Collapse from "@mui/material/Collapse"
+import IconButton from "@mui/material/IconButton"
 import Loading from "./Loading"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
@@ -8,11 +11,19 @@ import ListItemAvatar from "@mui/material/ListItemAvatar"
 import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import ExpandLessIcon from "@mui/icons-material/ExpandLess"
 import * as React from "react"
 import {
   Bar,
@@ -62,9 +73,139 @@ function roundUpNearestN(num: number, N: number) {
   return Math.ceil(num / N) * N
 }
 
+const FORMAT_ORDER = ["total", "1v1", "2v2", "3v3", "4v4"]
+
+function GameCountsTable(props: { playerStats: PlayerStats }) {
+  const [open, setOpen] = React.useState(false)
+
+  const columns = FORMAT_ORDER.filter((fmt) =>
+    props.playerStats.playerStats.some((s) => s.gameCounts?.[fmt] != null),
+  )
+
+  const rows = [...props.playerStats.playerStats].sort(
+    (a, b) => (b.gameCounts?.["total"] ?? 0) - (a.gameCounts?.["total"] ?? 0),
+  )
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        onClick={() => setOpen((v) => !v)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 2,
+          py: 1,
+          cursor: "pointer",
+          userSelect: "none",
+          bgcolor: open ? "action.selected" : "action.hover",
+          "&:hover": { bgcolor: "action.selected" },
+          borderBottomLeftRadius: open ? 0 : undefined,
+          borderBottomRightRadius: open ? 0 : undefined,
+        }}
+      >
+        <Typography variant="h6">Game Counts</Typography>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Typography variant="caption" color="text.secondary">
+            {open ? "collapse" : "expand"}
+          </Typography>
+          <IconButton size="small" tabIndex={-1}>
+            {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Stack>
+      </Paper>
+      <Collapse in={open}>
+        <TableContainer
+          component={Paper}
+          variant="outlined"
+          sx={{ borderTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+        >
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <strong>Player</strong>
+                </TableCell>
+                {columns.map((fmt) => (
+                  <TableCell key={fmt} align="right">
+                    <strong>{fmt}</strong>
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((s) => (
+                <TableRow key={s.playerName} hover>
+                  <TableCell>{s.playerName}</TableCell>
+                  {columns.map((fmt) => (
+                    <TableCell key={fmt} align="right">
+                      {s.gameCounts?.[fmt] ?? 0}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Collapse>
+    </Box>
+  )
+}
+
+function PlayerBanner(props: {
+  name: string
+  counts: { [key: string]: number } | undefined
+  debug: boolean
+  totalWins: number
+  totalGames: number
+}) {
+  const entries = FORMAT_ORDER.filter(
+    (k) => props.counts != null && props.counts[k] != null,
+  ).map((k) => [k, props.counts![k]] as const)
+  const winRate = props.totalGames > 0
+    ? ((props.totalWins / props.totalGames) * 100).toFixed(1)
+    : "0"
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 2,
+        px: 2,
+        py: 1,
+        bgcolor: "action.hover",
+        borderRadius: 1,
+        mb: 1,
+      }}
+    >
+      <Typography variant="h4" sx={{ minWidth: 120 }}>
+        {props.name}
+      </Typography>
+      {props.debug && (
+        <Typography variant="body2" color="text.secondary">
+          {props.totalWins}/{props.totalGames} ({winRate}%)
+        </Typography>
+      )}
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        {entries.map(([format, count]) => (
+          <Chip
+            key={format}
+            label={`${format}: ${count}`}
+            size="small"
+            variant={format === "total" ? "filled" : "outlined"}
+          />
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
 function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
   return (
-    <ListItem>
+    <ListItem disableGutters dense>
       <ListItemAvatar>
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
@@ -76,6 +217,7 @@ function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
     </ListItem>
   )
 }
+
 function DisplayPlayerStat(props: {
   stat: PlayerStat
   max: number
@@ -97,18 +239,18 @@ function DisplayPlayerStat(props: {
       losses: losses,
     }
   })
-  const win_rate = (total_wins / total_games) * 100
   return (
     <Box sx={{ flexGrow: 1 }}>
+      <PlayerBanner
+        name={props.stat.playerName}
+        counts={props.stat.gameCounts}
+        debug={props.debug}
+        totalWins={total_wins}
+        totalGames={total_games}
+      />
       <Grid container spacing={3}>
         <Grid item xs={12} md={2}>
-          <Typography variant="h3">{props.stat.playerName}</Typography>
-          {props.debug && (
-            <Typography variant="h5">
-              {total_wins}/{total_games} {win_rate.toFixed(1)}%
-            </Typography>
-          )}
-          <List>
+          <List dense>
             {Object.entries(sorted).map(([general, winLoss]) => (
               <PlayerListItem
                 key={general}
@@ -528,6 +670,8 @@ export default function DisplayPlayerStats() {
           ))}
         </ToggleButtonGroup>
       </Stack>
+      <GameCountsTable playerStats={playerStats} />
+      <Divider sx={{ mb: 2 }} />
       <BestPlayerPerGeneral playerStats={playerStats} />
       <Divider sx={{ mb: 2 }} />
       <BestRelativePlayerPerGeneral playerStats={playerStats} />

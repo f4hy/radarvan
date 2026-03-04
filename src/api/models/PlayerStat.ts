@@ -65,6 +65,12 @@ export interface PlayerStat {
      * @memberof PlayerStat
      */
     overTime: Array<PlayerRateOverTime>;
+    /**
+     * 
+     * @type {{ [key: string]: number; }}
+     * @memberof PlayerStat
+     */
+    gameCounts?: { [key: string]: number; };
 }
 
 /**
@@ -92,6 +98,7 @@ export function PlayerStatFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'stats': (mapValues(json['stats'], WinLossFromJSON)),
         'factionStats': ((json['factionStats'] as Array<any>).map(PlayerStatFactionWLFromJSON)),
         'overTime': ((json['overTime'] as Array<any>).map(PlayerRateOverTimeFromJSON)),
+        'gameCounts': json['gameCounts'] == null ? undefined : json['gameCounts'],
     };
 }
 
@@ -110,6 +117,7 @@ export function PlayerStatToJSONTyped(value?: PlayerStat | null, ignoreDiscrimin
         'stats': (mapValues(value['stats'], WinLossToJSON)),
         'factionStats': ((value['factionStats'] as Array<any>).map(PlayerStatFactionWLToJSON)),
         'overTime': ((value['overTime'] as Array<any>).map(PlayerRateOverTimeToJSON)),
+        'gameCounts': value['gameCounts'],
     };
 }
 
