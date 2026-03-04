@@ -749,6 +749,38 @@ def update_matches_missing_data(
     return {"updated": updated_count}
 
 
+@app.post("/api/refresh_matches_from_json/")
+def refresh_matches_from_json(
+    max_to_update: int = 10,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Re-parse existing JSON files from S3 and update DB matches if they differ.
+
+    Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+    """
+    all_matches = replay_manager.list_matches(0.0)
+    updated_count = 0
+    checked_count = 0
+    for db_match in all_matches:
+        if updated_count >= max_to_update:
+            break
+        json_record = replay_manager.get_replay_json_by_match_id(db_match.match_id)
+        if json_record is None:
+            continue
+        try:
+            replay = replay_files.parse_json(json_record.json_s3_uri)
+            replay.Header.FileName = json_record.replay_file_url
+        except Exception:
+            logger.exception(f"Failed to load JSON for match {db_match.match_id}")
+            continue
+        new_match = matches.replay_to_db_match(replay, json_record.json_s3_uri)
+        checked_count += 1
+        if matches.matches_differ(db_match, new_match):
+            replay_manager.update_match(new_match)
+            updated_count += 1
+    return {"updated": updated_count, "checked": checked_count}
+
+
 @app.post("/api/fix_incomplete/")
 def fix_incomplete(
     max_to_update: int = 1,

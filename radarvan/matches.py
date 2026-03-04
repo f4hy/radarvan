@@ -30,7 +30,11 @@ def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAnd
             wining_team=Team.NONE,
         )
     player_map = {p.name: p for p in players}
-    winning_team = player_map[_winners[0].Name].team
+    winner_player = player_map.get(_winners[0].Name)
+    if winner_player is None:
+        logger.info(f"Winner name {_winners[0].Name!r} not in player list {list(player_map)}")
+        return WinnerAndNotes(wining_team=Team.NONE, notes="Winner not in player list")
+    winning_team = winner_player.team
     if winning_team == Team.NONE or winning_team == Team.OBSERVER:
         logger.info(f"No winner found in replay {replay.Summary=}")
         return WinnerAndNotes(wining_team=Team.NONE, notes="No team won?")
@@ -181,6 +185,29 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
     return match_from_replay(parsed_replay)
+
+
+def matches_differ(existing: db.Match, new: db.Match) -> bool:
+    """Return True if any key fields differ between existing and new match."""
+    if existing.map != new.map:
+        return True
+    if existing.winning_team_id != new.winning_team_id:
+        return True
+    if round(existing.duration_minutes, 2) != round(new.duration_minutes, 2):
+        return True
+    if existing.incomplete != new.incomplete:
+        return True
+    if existing.game_version != new.game_version:
+        return True
+    existing_players = sorted(
+        (p.player_name, p.general_id, p.team_id, p.color, p.is_winner)
+        for p in existing.players
+    )
+    new_players = sorted(
+        (p.player_name, p.general_id, p.team_id, p.color, p.is_winner)
+        for p in new.players
+    )
+    return existing_players != new_players
 
 
 def filter_match(db_match: db.Match) -> bool:

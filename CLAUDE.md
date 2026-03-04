@@ -44,19 +44,22 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **Main app**: `radarvan/main.py` - FastAPI application with CORS middleware and request timing
 - **Database**: SQLAlchemy ORM with PostgreSQL, managed via `db_utils.py` and `db.py`
 - **Key modules**:
-  - `matches.py` - Match listing and retrieval endpoints
-  - `match_details.py` - Detailed match statistics (costs, APM, upgrades, spending over time)
-  - `player_stats.py` - Player-specific win/loss stats by general and faction
+  - `matches.py` - Match listing, retrieval, conversion (`match_from_replay`, `replay_to_db_match`, `match_to_matchinfo`, `matches_differ`)
+  - `match_details.py` - Detailed match statistics (APM, upgrades, spending over time, first blood)
+  - `player_stats.py` - Player-specific win/loss stats by general; accepts `game_format` filter; counts all games per category
   - `general_stats.py` - General/faction-specific statistics
-  - `replay_files.py` - Replay file management and storage (appears to use cloud storage)
+  - `superlatives.py` - Top-N leaderboard stats (streaks, APM, kills, money, etc.)
+  - `game_composition.py` - `categorize_game_type`, `competitive_game_filter`, `filter_by_format`
+  - `replay_files.py` - Replay file management; `parse_json(s3_uri)` loads JSON→EnhancedReplay without re-running cncstats; `parse_replay` runs cncstats if JSON not cached
   - `scrape_games.py` - Web scraping to gather new game data
-  - `parse_replay.py` - Replay file parsing
-  - `schedule.py` - Scheduled tasks (likely for scraping)
-  - `db_utils.py` - Database session management and replay repository pattern
+  - `parse_replay.py` - Replay file parsing (runs cncstats binary)
+  - `schedule.py` - Scheduled tasks for scraping
+  - `db_utils.py` - Database session management and replay repository (`ReplayManager`)
 - **Data models**: Defined using Protocol Buffers in `proto/match.proto`, which defines:
   - Generals (USA, China, GLA factions and their variants)
   - Match information (players, teams, map, duration, winner)
   - Statistics (win/loss records, APM, costs, upgrades, spending over time)
+- **API types**: `radarvan/api_types.py` — Pydantic models for REST responses (`MatchInfo`, `PlayerStat`, `PlayerStats`, `MatchDetails`, etc.)
 
 ### Data Flow
 1. Game replays are collected (via scraping or manual upload)
@@ -65,6 +68,13 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 4. FastAPI serves statistics via REST endpoints
 5. React frontend fetches and displays data using auto-generated TypeScript client
 6. Protocol buffers ensure type consistency between frontend and backend data structures
+
+### Key Patterns
+- **Game format filtering**: `game_composition.filter_by_format(games, game_format)` filters by category string ("1v1", "2v2", etc.); `competitive_game_filter` requires balanced, non-comp-stomp, team games
+- **Player stats sources**: `sorted_deduped_matches` (all games, for counts) vs `competitive_matches` (filtered, for W/L) — `get_player_stats` receives all games and filters internally
+- **Replay JSON loading**: Use `replay_files.parse_json(json_s3_uri)` to load an existing JSON from S3 without re-running cncstats; always set `replay.Header.FileName = replay_file_url` after loading
+- **Match comparison**: `matches.matches_differ(existing, new)` compares map, winner, duration, incomplete, game_version, and players
+- **Backfill endpoints**: POST endpoints with `max_to_update: int` param that loop through matches and update incrementally; return `{"updated": N}`
 
 ### Environment Configuration
 - Frontend uses `package.json` proxy setting for local development (proxies to localhost:5000)
@@ -78,4 +88,6 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **Auto-generated code**: Files in `src/api/` are generated from OpenAPI spec - don't edit manually
 - **Protobuf usage**: Match data structures are defined in proto files and compiled to TypeScript
 - **Database migrations**: Managed with Alembic (config in `alembic.ini`)
-- **Cloud integration**: Replay files appear to be stored in cloud storage (not local filesystem)
+- **Cloud integration**: Replay files and parsed JSON are stored in S3 (`s3://generals-stats/radarvan/dev/`) via `fsspec`; local filesystem is not used for replays
+- **Player name resolution**: `resolve_player_name(name, color)` handles name aliases/overrides; used in player stats and superlatives
+- **Frontend format toggles**: `FORMAT_OPTIONS` arrays drive ToggleButtonGroup; selected format is passed as `gameFormat` query param; state is reset on format change
