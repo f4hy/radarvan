@@ -36,7 +36,9 @@ function getPlayerRatings(
   onError = console.error,
 ) {
   const params = gameFormat === "All" ? {} : { gameFormat }
-  Client.getPlayerRatingsApiPlayerRatingsGet(params).then(callback).catch(onError)
+  Client.getPlayerRatingsApiPlayerRatingsGet(params)
+    .then(callback)
+    .catch(onError)
 }
 
 function formatLabel(val: any): string {
@@ -200,7 +202,12 @@ export default function DisplayPlayerRatings() {
   const leftMargin = isMobile ? 30 : 50
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ mb: 2, p: 1 }}
+      >
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup
           value={format}

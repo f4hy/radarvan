@@ -66,7 +66,7 @@ def get_match_duration_extremes(
         shortest = min(eligible, key=lambda g: g.duration_minutes)
         stats.append(
             Statistic(
-                stat_name=f"Longest {category}",
+                stat_name=f"⏳ Longest {category}",
                 date_computed=computed_at,
                 value=_fmt_duration(longest.duration_minutes),
                 match_id=longest.id,
@@ -74,7 +74,7 @@ def get_match_duration_extremes(
         )
         stats.append(
             Statistic(
-                stat_name=f"Shortest {category}",
+                stat_name=f"⚡ Shortest {category}",
                 date_computed=computed_at,
                 value=_fmt_duration(shortest.duration_minutes),
                 match_id=shortest.id,
@@ -125,7 +125,7 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
         count, start, end = best[top_player]
         stats.append(
             Statistic(
-                stat_name=f"Longest Win Streak ({start} to {end})",
+                stat_name=f"🔥 Longest Win Streak ({start} to {end})",
                 date_computed=computed_at,
                 value=count,
                 player=top_player,
@@ -136,7 +136,7 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
         count, start, end = current[current_leader]
         stats.append(
             Statistic(
-                stat_name=f"Longest Current Streak ({start} to {end})",
+                stat_name=f"🔥 Longest Current Streak ({start} to {end})",
                 date_computed=computed_at,
                 value=count,
                 player=current_leader,
@@ -163,13 +163,13 @@ def get_map_duration_stats(
     shortest_map = min(eligible, key=eligible.__getitem__)
     return [
         Statistic(
-            stat_name="Longest Average Game Map",
+            stat_name="🗺️ Longest Average Game Map",
             date_computed=computed_at,
             value=_fmt_duration(eligible[longest_map]),
             player=longest_map.split("/")[-1],
         ),
         Statistic(
-            stat_name="Shortest Average Game Map",
+            stat_name="🗺️ Shortest Average Game Map",
             date_computed=computed_at,
             value=_fmt_duration(eligible[shortest_map]),
             player=shortest_map.split("/")[-1],
@@ -210,7 +210,7 @@ def get_first_blood_stats(
     latest = max(bloods, key=lambda x: x[1].atMinute)
     stats.append(
         Statistic(
-            stat_name="Fastest First Blood",
+            stat_name="🩸 Fastest First Blood",
             date_computed=computed_at,
             value=_fmt_duration(fastest[1].atMinute),
             player=_resolve_attacker(match_info_by_id, fastest[0], fastest[1].attacker),
@@ -233,7 +233,7 @@ def get_first_blood_stats(
     top_player, top_count = player_counts.most_common(1)[0]
     stats.append(
         Statistic(
-            stat_name="Most First Bloods",
+            stat_name="🩸 Most First Bloods",
             date_computed=computed_at,
             value=top_count,
             player=top_player,
@@ -282,7 +282,7 @@ def get_building_first_blood_stats(
     fastest = min(bfbs, key=lambda x: x[1].atMinute)
     stats.append(
         Statistic(
-            stat_name="Fastest Building First Blood",
+            stat_name="💥 Fastest Building First Blood",
             date_computed=computed_at,
             value=_fmt_duration(fastest[1].atMinute),
             player=_resolve_attacker(match_info_by_id, fastest[0], fastest[1].attacker),
@@ -356,7 +356,7 @@ def get_apm_stats(
     if best is not None:
         stats.append(
             Statistic(
-                stat_name="Highest APM",
+                stat_name="🚀 Highest APM",
                 date_computed=computed_at,
                 value=round(best[1], 1),
                 player=best[0],
@@ -374,7 +374,7 @@ def get_apm_stats(
         top_name = max(eligible, key=eligible.__getitem__)
         stats.append(
             Statistic(
-                stat_name="Highest Average APM Overall",
+                stat_name="🚀 Highest Average APM Overall",
                 date_computed=computed_at,
                 value=round(eligible[top_name], 1),
                 player=top_name,
@@ -410,7 +410,7 @@ def get_activity_stats(
     if uk_count > 0:
         stats.append(
             Statistic(
-                stat_name="Most Units Killed",
+                stat_name="💀 Most Units Killed",
                 date_computed=computed_at,
                 value=uk_count,
                 match_id=best_uk.match_id,
@@ -425,7 +425,7 @@ def get_activity_stats(
     if bk_count > 0:
         stats.append(
             Statistic(
-                stat_name="Most Buildings Destroyed",
+                stat_name="🏚️ Most Buildings Destroyed",
                 date_computed=computed_at,
                 value=bk_count,
                 match_id=best_bk.match_id,
@@ -440,7 +440,7 @@ def get_activity_stats(
     if xp_total > 0:
         stats.append(
             Statistic(
-                stat_name="Most XP Earned",
+                stat_name="⭐ Most XP Earned",
                 date_computed=computed_at,
                 value=xp_total,
                 match_id=best_xp.match_id,
@@ -461,7 +461,7 @@ def get_activity_stats(
     if best_upg and best_upg[1] > 0:
         stats.append(
             Statistic(
-                stat_name="Most Upgrades in a Match",
+                stat_name="🔬 Most Upgrades in a Match",
                 date_computed=computed_at,
                 value=best_upg[1],
                 player=best_upg[0],
@@ -575,7 +575,7 @@ def get_money_stats(
 
     return [
         Statistic(
-            stat_name="Most Money Spent",
+            stat_name="💰 Most Money Spent",
             date_computed=computed_at,
             value=_fmt_money(most[1]),
             match_id=most[0].match_id,
@@ -587,6 +587,58 @@ def get_money_stats(
             match_id=least[0].match_id,
         ),
     ]
+
+
+def get_player_money_stats(
+    details: list[MatchDetails],
+    computed_at: date,
+) -> list[Statistic]:
+    """Top 3 players by total money collected and total money spent across all games."""
+    player_collected: Counter[str] = Counter()
+    player_spent: Counter[str] = Counter()
+
+    for d in details:
+        color_map = {ps.Name: ps.Color for ps in d.player_summary}
+
+        if d.money_collected_values:
+            last_time = max(d.money_collected_values)
+            for player_name, amount in d.money_collected_values[last_time].items():
+                if amount <= 0:
+                    continue
+                resolved = resolve_player_name(
+                    player_name, color_map.get(player_name, "")
+                )
+                player_collected[resolved] += amount
+
+        for ps in d.player_summary:
+            if ps.MoneySpent <= 0:
+                continue
+            player_spent[resolve_player_name(ps.Name, ps.Color)] += ps.MoneySpent
+
+    MEDALS = ["🥇", "🥈", "🥉"]
+    stats: list[Statistic] = []
+
+    for i, (name, amount) in enumerate(player_collected.most_common(3)):
+        stats.append(
+            Statistic(
+                stat_name=f"💰 Most Money Collected {MEDALS[i]}",
+                date_computed=computed_at,
+                value=_fmt_money(amount),
+                player=name,
+            )
+        )
+
+    for i, (name, amount) in enumerate(player_spent.most_common(3)):
+        stats.append(
+            Statistic(
+                stat_name=f"💸 Most Money Spent Overall {MEDALS[i]}",
+                date_computed=computed_at,
+                value=_fmt_money(amount),
+                player=name,
+            )
+        )
+
+    return stats
 
 
 def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
@@ -623,6 +675,7 @@ def get_superlatives(
                 ),
                 *_safe_compute(get_apm_stats, details, computed_at),
                 *_safe_compute(get_money_stats, details, computed_at),
+                *_safe_compute(get_player_money_stats, details, computed_at),
                 *_safe_compute(get_activity_stats, details, computed_at),
                 *_safe_compute(get_efficiency_stats, details, computed_at),
             ]

@@ -23,7 +23,9 @@ def total_games(player_stat: PlayerStat) -> int:
     return sum(wl.wins + wl.losses for wl in player_stat.stats.values())
 
 
-def get_player_stats(games: list[MatchInfo], game_format: str | None = None) -> PlayerStats:
+def get_player_stats(
+    games: list[MatchInfo], game_format: str | None = None
+) -> PlayerStats:
     player_wl: dict[str, PlayerStat] = {}
     player_counts: dict[str, Counter[str]] = {}
 
@@ -68,8 +70,6 @@ def get_player_stats(games: list[MatchInfo], game_format: str | None = None) -> 
         counts = player_counts.get(name, Counter())
         stat.game_counts = {"total": sum(counts.values()), **counts}
 
-    filtered = [
-        stat for stat in player_wl.values() if total_games(stat) > NEEDED_GAMES
-    ]
+    filtered = [stat for stat in player_wl.values() if total_games(stat) > NEEDED_GAMES]
 
     return PlayerStats(player_stats=sorted(filtered, key=total_games, reverse=True))

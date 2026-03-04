@@ -36,7 +36,9 @@ function getGeneralStats(
   onError = console.error,
 ) {
   const params = gameFormat === "All" ? {} : { gameFormat }
-  Client.getGeneralsStatsApiGeneralstatsGet(params).then(callback).catch(onError)
+  Client.getGeneralsStatsApiGeneralstatsGet(params)
+    .then(callback)
+    .catch(onError)
 }
 
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {

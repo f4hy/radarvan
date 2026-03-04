@@ -351,7 +351,7 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
         ),
         money_values=money.player_monies,
         # money_collected_values=money.player_collected,
-        money_collected_values={},
+        money_collected_values=stats_data.stats_data.money_earned,
         stats_data=stats_data.stats_data.model_dump(),
         first_blood=first_blood,
         building_first_blood=building_first_blood,

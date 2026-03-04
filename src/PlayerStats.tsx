@@ -78,12 +78,20 @@ const FORMAT_ORDER = ["total", "1v1", "2v2", "3v3", "4v4"]
 function GameCountsTable(props: { playerStats: PlayerStats }) {
   const [open, setOpen] = React.useState(false)
 
-  const columns = FORMAT_ORDER.filter((fmt) =>
-    props.playerStats.playerStats.some((s) => s.gameCounts?.[fmt] != null),
+  const columns = React.useMemo(
+    () =>
+      FORMAT_ORDER.filter((fmt) =>
+        props.playerStats.playerStats.some((s) => s.gameCounts?.[fmt] != null),
+      ),
+    [props.playerStats.playerStats],
   )
 
-  const rows = [...props.playerStats.playerStats].sort(
-    (a, b) => (b.gameCounts?.["total"] ?? 0) - (a.gameCounts?.["total"] ?? 0),
+  const rows = React.useMemo(
+    () =>
+      [...props.playerStats.playerStats].sort(
+        (a, b) => (b.gameCounts?.["total"] ?? 0) - (a.gameCounts?.["total"] ?? 0),
+      ),
+    [props.playerStats.playerStats],
   )
 
   return (
@@ -163,9 +171,10 @@ function PlayerBanner(props: {
   const entries = FORMAT_ORDER.filter(
     (k) => props.counts != null && props.counts[k] != null,
   ).map((k) => [k, props.counts![k]] as const)
-  const winRate = props.totalGames > 0
-    ? ((props.totalWins / props.totalGames) * 100).toFixed(1)
-    : "0"
+  const winRate =
+    props.totalGames > 0
+      ? ((props.totalWins / props.totalGames) * 100).toFixed(1)
+      : "0"
 
   return (
     <Box
@@ -655,7 +664,12 @@ export default function DisplayPlayerStats() {
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
     <Paper>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ mb: 2, p: 1 }}
+      >
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup
           value={format}
