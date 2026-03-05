@@ -735,12 +735,8 @@ def update_matches_missing_data(
     updated_count = 0
     for missing in missing_game_version:
         replay = replay_files.parse_json(missing.json_s3_uri)
-        game_version = replay.Header.Version.lower().replace("version", "").strip()
-        existing = replay_manager.get_match(missing.match_id)
-        if existing is None:
-            continue
-        existing.game_version = game_version
-        result = replay_manager.update_match(existing)
+        missing.game_version = replay.Header.Version.lower().replace("version", "").strip()
+        result = replay_manager.update_match(missing)
         logger.info(f"Updated {missing.match_id} success={result}")
         if result:
             updated_count += 1
@@ -764,7 +760,8 @@ def refresh_matches_from_json(
     for db_match in all_matches:
         if updated_count >= max_to_update:
             break
-        json_record = replay_manager.get_replay_json_by_match_id(db_match.match_id)
+        # replay_json is already eager-loaded by list_matches — no extra DB query needed
+        json_record = db_match.replay_json
         if json_record is None:
             continue
         try:

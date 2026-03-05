@@ -145,7 +145,7 @@ export default function DisplayGeneralStats() {
   }
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup

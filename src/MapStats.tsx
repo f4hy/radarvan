@@ -429,7 +429,7 @@ export default function DisplayMapStats() {
   }
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
       <Typography variant="h4">Map Stats</Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         Win rates from competitive games. Players shown with ≥3 games on map.

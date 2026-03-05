@@ -144,7 +144,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
   )
   return (
     <Paper
-      sx={{ width: "99%", maxWidth: 1600, borderRadius: "20px" }}
+      sx={{ width: "99%", maxWidth: 1600, borderRadius: 3 }}
       variant="outlined"
     >
       <ListItem>
@@ -234,7 +234,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
 
   const teams = _.groupBy(props.match.players, "team")
 
-  const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: "20px" }
+  const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: 3 }
   const incomplete = (props.match.incomplete ?? "").length === 0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">

@@ -663,12 +663,12 @@ export default function DisplayPlayerStats() {
   )
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
-    <Paper>
+    <Paper sx={{ p: 2 }}>
       <Stack
         direction="row"
         spacing={1}
         alignItems="center"
-        sx={{ mb: 2, p: 1 }}
+        sx={{ mb: 2 }}
       >
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup

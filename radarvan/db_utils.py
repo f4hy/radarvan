@@ -436,11 +436,14 @@ class ReplayManager:
 
         self.session.flush()
 
-        for url in replay_file_urls:
-            rf = self.session.get(ReplayFile, url)
-            if rf:
-                rf.status = ProcessingStatus.PENDING
-                counts["replay_files_reset"] += 1
+        replay_files_to_reset = list(
+            self.session.scalars(
+                select(ReplayFile).where(ReplayFile.original_url.in_(replay_file_urls))
+            ).all()
+        )
+        for rf in replay_files_to_reset:
+            rf.status = ProcessingStatus.PENDING
+            counts["replay_files_reset"] += 1
 
         if self.auto_commit:
             self.session.commit()

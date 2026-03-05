@@ -63,7 +63,7 @@ function TeamSizeTab(props: { group: TeamSizeGroup }) {
     (a, b) => winRate(b.wins, b.losses) - winRate(a.wins, a.losses),
   )
   return (
-    <Stack spacing={1} sx={{ p: 1.5, bgcolor: "grey.300", borderRadius: 1 }}>
+    <Stack spacing={1} sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1 }}>
       {sorted.map((team) => (
         <TeamRow key={team.players.join(",")} team={team} />
       ))}
@@ -95,7 +95,7 @@ export default function DisplayTeamStats() {
   const activeGroup = groups.find((g) => g.size === tab) ?? groups[0]
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
       <Typography variant="h4">Team Stats</Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         Win rates for teams with more than 3 games together. Sorted by win rate.
