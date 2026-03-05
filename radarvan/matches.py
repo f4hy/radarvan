@@ -32,7 +32,9 @@ def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAnd
     player_map = {p.name: p for p in players}
     winner_player = player_map.get(_winners[0].Name)
     if winner_player is None:
-        logger.info(f"Winner name {_winners[0].Name!r} not in player list {list(player_map)}")
+        logger.info(
+            f"Winner name {_winners[0].Name!r} not in player list {list(player_map)}"
+        )
         return WinnerAndNotes(wining_team=Team.NONE, notes="Winner not in player list")
     winning_team = winner_player.team
     if winning_team == Team.NONE or winning_team == Team.OBSERVER:

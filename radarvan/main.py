@@ -735,7 +735,9 @@ def update_matches_missing_data(
     updated_count = 0
     for missing in missing_game_version:
         replay = replay_files.parse_json(missing.json_s3_uri)
-        missing.game_version = replay.Header.Version.lower().replace("version", "").strip()
+        missing.game_version = (
+            replay.Header.Version.lower().replace("version", "").strip()
+        )
         result = replay_manager.update_match(missing)
         logger.info(f"Updated {missing.match_id} success={result}")
         if result:
