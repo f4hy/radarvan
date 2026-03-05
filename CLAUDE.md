@@ -49,7 +49,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
   - `player_stats.py` - Player-specific win/loss stats by general; accepts `game_format` filter; counts all games per category
   - `general_stats.py` - General/faction-specific statistics
   - `superlatives.py` - Top-N leaderboard stats (streaks, APM, kills, money, etc.)
-  - `game_composition.py` - `categorize_game_type`, `competitive_game_filter`, `filter_by_format`
+  - `game_composition.py` - `categorize_game_type`, `competitive_game_filter`
   - `replay_files.py` - Replay file management; `parse_json(s3_uri)` loads JSON→EnhancedReplay without re-running cncstats; `parse_replay` runs cncstats if JSON not cached
   - `scrape_games.py` - Web scraping to gather new game data
   - `parse_replay.py` - Replay file parsing (runs cncstats binary)
@@ -70,7 +70,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 6. Protocol buffers ensure type consistency between frontend and backend data structures
 
 ### Key Patterns
-- **Game format filtering**: `game_composition.filter_by_format(games, game_format)` filters by category string ("1v1", "2v2", etc.); `competitive_game_filter` requires balanced, non-comp-stomp, team games
+- **Game format filtering**: `matches.filter_by_format(games, game_format)` filters by category string ("1v1", "2v2", etc.); `game_composition.competitive_game_filter` requires balanced, non-comp-stomp, team games
 - **Player stats sources**: `sorted_deduped_matches` (all games, for counts) vs `competitive_matches` (filtered, for W/L) — `get_player_stats` receives all games and filters internally
 - **Replay JSON loading**: Use `replay_files.parse_json(json_s3_uri)` to load an existing JSON from S3 without re-running cncstats; always set `replay.Header.FileName = replay_file_url` after loading
 - **Match comparison**: `matches.matches_differ(existing, new)` compares map, winner, duration, incomplete, game_version, and players
@@ -81,6 +81,11 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - Backend reads `DATABASE_URL` from environment variables
 - `DEV` environment variable controls whether scheduled tasks run
 - Production deployment is on Heroku (radarvan-5e9c302c60e6.herokuapp.com)
+
+## Python Conventions
+
+- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types
+- **`filter_by_format`** lives in `matches.py` (not `game_composition.py`) because it operates on `list[MatchInfo]`
 
 ## Key Technical Details
 

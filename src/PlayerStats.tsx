@@ -89,7 +89,8 @@ function GameCountsTable(props: { playerStats: PlayerStats }) {
   const rows = React.useMemo(
     () =>
       [...props.playerStats.playerStats].sort(
-        (a, b) => (b.gameCounts?.["total"] ?? 0) - (a.gameCounts?.["total"] ?? 0),
+        (a, b) =>
+          (b.gameCounts?.["total"] ?? 0) - (a.gameCounts?.["total"] ?? 0),
       ),
     [props.playerStats.playerStats],
   )
@@ -664,12 +665,7 @@ export default function DisplayPlayerStats() {
   const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
     <Paper sx={{ p: 2 }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ mb: 2 }}
-      >
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup
           value={format}

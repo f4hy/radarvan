@@ -272,3 +272,16 @@ if __name__ == "__main__":
         #     get_all_matches2(replay_manager)
         for j in jsons:
             reparse_replay(j.match_id, replay_manager)
+
+
+def filter_by_format(
+    games: list[MatchInfo], game_format: str | None
+) -> list[MatchInfo]:
+    """Filter a list of MatchInfo by composition category. Returns unchanged list if format is None."""
+    if game_format is None:
+        return games
+    return [
+        g
+        for g in games
+        if g.composition is not None and g.composition.category == game_format
+    ]

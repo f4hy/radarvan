@@ -602,7 +602,7 @@ def get_generals_stats(
 ) -> GeneralStats:
     """Get generals stats."""
     games = competitive_matches(replay_manager)
-    game_list = game_composition.filter_by_format(list(games.values()), game_format)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
     logger.info("getting generals stats")
     return general_stats.get_generals_stats(game_list)
 
@@ -860,7 +860,7 @@ def get_player_ratings(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerRatingData:
     games = competitive_matches(replay_manager)
-    game_list = game_composition.filter_by_format(list(games.values()), game_format)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
 
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts

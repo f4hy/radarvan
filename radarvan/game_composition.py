@@ -234,17 +234,6 @@ def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition
     return categorize_game_type(adapters)
 
 
-def filter_by_format(games: list, game_format: str | None) -> list:
-    """Filter a list of MatchInfo by composition category. Returns unchanged list if format is None."""
-    if game_format is None:
-        return games
-    return [
-        g
-        for g in games
-        if g.composition is not None and g.composition.category == game_format
-    ]
-
-
 def competitive_game_filter(comp: GameComposition | None) -> bool:
     if comp is None:
         return False

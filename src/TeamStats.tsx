@@ -63,7 +63,10 @@ function TeamSizeTab(props: { group: TeamSizeGroup }) {
     (a, b) => winRate(b.wins, b.losses) - winRate(a.wins, a.losses),
   )
   return (
-    <Stack spacing={1} sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1 }}>
+    <Stack
+      spacing={1}
+      sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1 }}
+    >
       {sorted.map((team) => (
         <TeamRow key={team.players.join(",")} team={team} />
       ))}
