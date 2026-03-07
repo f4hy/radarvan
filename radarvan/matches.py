@@ -167,7 +167,8 @@ def match_to_matchinfo(
 
 
 def register_matches(replay_manager: ReplayManager) -> None:
-    replay_jsons = replay_manager.list_jsons()
+    replay_jsons = replay_manager.list_jsons_without_match()
+    logger.info(f"replay_jsons without matches {len(replay_jsons)}")
     matches = {m.match_id: m for m in replay_manager.list_matches(0.0)}
     for j in replay_jsons:
         if matches.get(j.match_id) is None:

@@ -463,6 +463,13 @@ class ReplayManager:
         )
         yield from self.session.scalars(stmt).all()
 
+    def list_jsons_without_match(self) -> list[ParsedReplayJson]:
+        """Return ParsedReplayJson rows that have no corresponding Match row."""
+        stmt = select(ParsedReplayJson).where(
+            ParsedReplayJson.match_id.not_in(select(Match.match_id))
+        )
+        return list(self.session.scalars(stmt).all())
+
     def list_jsons_without_num_timestamps(self) -> Iterator[ParsedReplayJson]:
         stmt = (
             select(ParsedReplayJson)
