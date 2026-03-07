@@ -155,7 +155,7 @@ def match_to_matchinfo(
         timestamp=db_match.timestamp,
         date=db_match.replay_json.game_date,
         map=db_match.map,
-        winning_team=winner,
+        winning_team=winner or Team.NONE,
         players=players,
         duration_minutes=db_match.duration_minutes,
         filename=db_match.filename,
@@ -176,6 +176,7 @@ def register_matches(replay_manager: ReplayManager) -> None:
             try:
                 replay_manager.register_match(db_match)
                 matches[db_match.match_id] = db_match
+                replay_manager.compute_and_save_composition(db_match.match_id)
             except Exception as e:
                 logger.warning(f"Can not add match {e!r}")
                 continue

@@ -14,8 +14,9 @@ import {
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
-import { GameRecord } from "./api"
+import { GameRecord, MatchInfo } from "./api"
 import { Client } from "./Client"
+import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
 import Link from "@mui/material/Link"
 import TableBody from "@mui/material/TableBody"
@@ -266,6 +267,7 @@ export default function DisplayDebugData() {
     null,
   )
   const [matchId, setMatchId] = React.useState<string | null>(null)
+  const [matchInfo, setMatchInfo] = React.useState<MatchInfo | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -282,6 +284,10 @@ export default function DisplayDebugData() {
       if (!isNaN(num)) {
         getGameData(num, setDebugData, showError)
         getDebugData(num, setMatchDebugData, showError)
+        setMatchInfo(null)
+        Client.getMatchByIdApiMatchMatchIdGet({ matchId: num })
+          .then(setMatchInfo)
+          .catch(showError)
         setJsonDownloadUrl(null)
         Client.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
           .then((result) => setJsonDownloadUrl(result["url"]))
@@ -320,6 +326,7 @@ export default function DisplayDebugData() {
           />
         </Box>
       )}
+      {matchInfo && <DisplayMatchInfo match={matchInfo} idx={0} />}
       <DisplayDataTable data={debugData} />
       {Object.entries(matchDebugData).map(([name, data]) => (
         <Stack key={name}>
