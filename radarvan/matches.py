@@ -169,18 +169,19 @@ def match_to_matchinfo(
 def register_matches(replay_manager: ReplayManager) -> None:
     replay_jsons = replay_manager.list_jsons_without_match()
     logger.info(f"replay_jsons without matches {len(replay_jsons)}")
-    matches = {m.match_id: m for m in replay_manager.list_matches(0.0)}
+    seen: set[int] = set()
     for j in replay_jsons:
-        if matches.get(j.match_id) is None:
-            parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
-            db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
-            try:
-                replay_manager.register_match(db_match)
-                matches[db_match.match_id] = db_match
-                replay_manager.compute_and_save_composition(db_match.match_id)
-            except Exception as e:
-                logger.warning(f"Can not add match {e!r}")
-                continue
+        if j.match_id in seen:
+            continue
+        parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
+        db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
+        try:
+            replay_manager.register_match(db_match)
+            seen.add(db_match.match_id)
+            replay_manager.compute_and_save_composition(db_match.match_id)
+        except Exception as e:
+            logger.warning(f"Can not add match {e!r}")
+            continue
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
