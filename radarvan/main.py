@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 
 conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
-
+IS_DEV = os.getenv("DEV") is not None
 
 def get_db_session() -> Generator[Session]:
     """Dependency that provides a database session.
@@ -97,10 +97,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     with db_manager.SessionLocal() as session:
         replay_manager = get_replay_manager(session)
         scheduler = schedule.get_scheduler(replay_manager, db_manager)
-        if os.getenv("DEV") is None:
+        if not IS_DEV:
             scheduler.start()
         yield
-        if os.getenv("DEV") is None:
+        if not IS_DEV:
             scheduler.shutdown()
     logger.info("goodbye!")
 
@@ -699,7 +699,7 @@ def delete_override(
     return {"status": "deleted", "match_id": str(match_id)}
 
 
-@app.post("/api/update_num_timestamps/")
+@app.post("/api/update_num_timestamps/", include_in_schema=IS_DEV)
 def update_num_timestamps(
     max_to_update: int = 1000,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -723,7 +723,7 @@ def update_num_timestamps(
     return {"updated": updated}
 
 
-@app.post("/api/update_matches_missing_data/")
+@app.post("/api/update_matches_missing_data/", include_in_schema=IS_DEV)
 def update_matches_missing_data(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -747,7 +747,7 @@ def update_matches_missing_data(
     return {"updated": updated_count}
 
 
-@app.post("/api/refresh_matches_from_json/")
+@app.post("/api/refresh_matches_from_json/", include_in_schema=IS_DEV)
 def refresh_matches_from_json(
     max_to_update: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -780,7 +780,16 @@ def refresh_matches_from_json(
     return {"updated": updated_count, "checked": checked_count}
 
 
-@app.post("/api/fix_incomplete/")
+@app.post("/api/register_matches/", include_in_schema=IS_DEV)
+def register_matches(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Register Match rows for any ParsedReplayJson that has no corresponding Match."""
+    matches.register_matches(replay_manager)
+    return {"status": "ok"}
+
+
+@app.post("/api/fix_incomplete/", include_in_schema=IS_DEV)
 def fix_incomplete(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -801,7 +810,7 @@ def fix_incomplete(
     return {"updated": updated_count}
 
 
-@app.post("/api/fix_unk_player/")
+@app.post("/api/fix_unk_player/", include_in_schema=IS_DEV)
 def fix_unk_players(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
