@@ -129,8 +129,12 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
     )
 
 
-def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
-    """Convert."""
+def match_to_matchinfo(
+    db_match: db.Match, override: db.WinnerOverride | None = None
+) -> MatchInfo:
+    """Convert. If an override is set it takes full precedence: winner, player won-flags,
+    and incomplete/notes are all replaced regardless of what the replay headers say."""
+    winner = override.winning_team_id if override is not None else db_match.winning_team_id
     db_players = db_match.players
     players = [
         Player(
@@ -138,11 +142,10 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
             general=p.general_id,
             team=p.team_id,
             color=p.color,
-            won=p.is_winner,
+            won=p.team_id == winner if override is not None else p.is_winner,
         )
         for p in db_players
     ]
-    winner = db_match.winning_team_id
     c = db_match.composition
     comp = GameComposition.model_validate(c, from_attributes=True) if c else None
     if db_match.replay_json is None:
@@ -156,8 +159,8 @@ def match_to_matchinfo(db_match: db.Match) -> MatchInfo:
         players=players,
         duration_minutes=db_match.duration_minutes,
         filename=db_match.filename,
-        incomplete=db_match.incomplete or "",
-        notes=db_match.notes or "",
+        incomplete="" if override is not None else (db_match.incomplete or ""),
+        notes="" if override is not None else (db_match.notes or ""),
         game_version=db_match.game_version,
         composition=comp,
     )
@@ -242,10 +245,11 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):
         listing = replay_manager.list_matches(2.0)
+    overrides = replay_manager.get_overrides()
     filtered = [x for x in listing if filter_match(x)]
 
     with log_time("convert"):
-        converted = [match_to_matchinfo(m) for m in filtered]
+        converted = [match_to_matchinfo(m, overrides.get(m.match_id)) for m in filtered]
     return converted
 
 
