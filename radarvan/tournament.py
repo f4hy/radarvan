@@ -71,6 +71,8 @@ def overrides_for_tournament(tournament_id: str) -> list[MatchupResult]:
 def is_tournament_game(match_info: MatchInfo) -> str | None:
     if match_info.incomplete:
         return None
+    if match_info.composition and not match_info.composition.is_team_game:
+        return None
     gamedate = match_info.timestamp.date()
     team_map: defaultdict[Team, set[str]] = defaultdict(set)
     for p in match_info.players:
