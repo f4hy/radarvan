@@ -320,6 +320,29 @@ class FirstBlood(BaseModel):
     atMinute: float
 
 
+class SuperlativePlayerSummary(BaseModel):
+    name: str
+    color: str
+    won: bool
+    money_spent: int
+    units_created_count: int
+    buildings_built_count: int
+
+
+class SuperlativeData(BaseModel):
+    match_id: int
+    first_blood: FirstBlood | None = None
+    building_first_blood: FirstBlood | None = None
+    apms: list[APM]
+    player_summary: list[SuperlativePlayerSummary]
+    upgrade_counts: dict[str, int]
+    total_units_killed: int
+    total_buildings_killed: int
+    total_xp: int
+    match_money_spent: int
+    player_money_collected: dict[str, int]
+
+
 class MatchDetails(BaseModel):
     match_id: int = Field(alias="matchId")
     game_version: str | None = Field(None)

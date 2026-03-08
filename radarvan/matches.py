@@ -134,7 +134,9 @@ def match_to_matchinfo(
 ) -> MatchInfo:
     """Convert. If an override is set it takes full precedence: winner, player won-flags,
     and incomplete/notes are all replaced regardless of what the replay headers say."""
-    winner = override.winning_team_id if override is not None else db_match.winning_team_id
+    winner = (
+        override.winning_team_id if override is not None else db_match.winning_team_id
+    )
     db_players = db_match.players
     players = [
         Player(
@@ -219,29 +221,7 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
 
 
 def filter_match(db_match: db.Match) -> bool:
-    # remove comp stomps
     return True
-    # if db_match.composition.is_comp_stomp:
-    #     return False
-    # if not db_match.composition.is_balanced:
-    #     return False
-    # if db_match.composition.is_team_game:
-    #     return True
-    # return False
-    # teams: defaultdict[int, list[str]] = defaultdict(list)
-    # if len(db_match.players) == 2:
-    #     return True
-    # for p in db_match.players:
-    #     teams[p.team_id].append(p.player_name)
-    # for team in teams.values():
-    #     if set(team) == {"CPU"}:
-    #         # logger.info(f"Filtering compstom {teams}")
-    #         return False
-    # # remove ffa
-    # if len(set(teams.keys())) == 1:
-    #     # logger.info(f"Filtering ffa {teams}")
-    #     return False
-    # return True
 
 
 def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
@@ -271,12 +251,6 @@ if __name__ == "__main__":
         )
         with log_time("listing jsons"):
             jsons = replay_manager.list_jsons()
-        # print(json_count)
-        # with log_time("get all matches"):
-        #     for _ in get_all_matches(replay_manager):
-        #         pass
-        # with log_time("get all matches2"):
-        #     get_all_matches2(replay_manager)
         for j in jsons:
             reparse_replay(j.match_id, replay_manager)
 

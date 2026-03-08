@@ -64,6 +64,7 @@ conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
 IS_DEV = os.getenv("DEV") is not None
 
+
 def get_db_session() -> Generator[Session]:
     """Dependency that provides a database session.
 
@@ -92,8 +93,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logging.basicConfig(level=logging.INFO)
     replay_files.test_connection()
     logger.info("connection tested")
-    # sorted_deduped_matches()
-    # logger.info("primed replays")
     with db_manager.SessionLocal() as session:
         replay_manager = get_replay_manager(session)
         scheduler = schedule.get_scheduler(replay_manager, db_manager)
@@ -144,8 +143,6 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
 
 @cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
-    # replays = replay_files.get_all_replays(replay_manager)
-    # match_infos = (matches.match_from_replay(replay) for replay in replays)
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
     logger.info(f"Got {len(deduped)} parsed replays")
@@ -326,9 +323,7 @@ def get_tournament_results(
     """Get results for all tournaments."""
     replays = sorted_deduped_matches(replay_manager)
     tournament_games = tournament.tournament_games(list(replays.values()))
-    # logger.info(f"games {tournament_games}")
     results = tournament.create_tournament_results(tournament_games)
-    # logger.info(f"results {results}")
     return results
 
 
@@ -429,10 +424,6 @@ def get_team_games_without_winner(
             or "no team" in m.incomplete.lower()
         )
     ]
-    # if os.getenv("DEV"):
-    # for g in games_with_no_winner:
-    #     mid = g["match_id"]
-    #     _replay = matches.reparse_replay(mid, replay_manager)
     return games_with_no_winner
 
 
@@ -582,7 +573,7 @@ async def _do_recompute(
     ]
     if limit is not None:
         game_list = game_list[:limit]
-    details = await match_details.load_many_match_details(
+    details = await match_details.load_many_superlative_data(
         [m.id for m in game_list], db_manager
     )
     logger.info(f"Loaded {len(details)} match details for superlatives recompute")
@@ -908,13 +899,13 @@ PlayerEnum = Enum(  # type: ignore[misc]
 )
 
 
-class SelectedPLayers(BaseModel):
+class SelectedPlayers(BaseModel):
     players: list[PlayerEnum] = []
 
 
 @app.get("/api/balance_teams/")
 def balance_teams(
-    players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
+    players: SelectedPlayers = Query(default=SelectedPlayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, float]:
     if len(players.players) < 4:
@@ -932,7 +923,7 @@ def balance_teams(
 @app.get("/api/partition_teams/{team_size}")
 def partition_teams(
     team_size: int = 2,
-    players: SelectedPLayers = Query(default=SelectedPLayers(players=[])),
+    players: SelectedPlayers = Query(default=SelectedPlayers(players=[])),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[list[str]]:
     games = list(competitive_matches(replay_manager).values())

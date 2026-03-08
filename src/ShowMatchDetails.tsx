@@ -159,9 +159,7 @@ function EventChart(props: {
               data={props.upgrades[name].upgrades}
               shape={shapes[idx]}
               legendType={shapes[idx]}
-            >
-              {/* <LabelList dataKey="upgradeName" position="left" formatter={labelformater} offset={100} /> */}
-            </Scatter>
+            ></Scatter>
           ))}
           <XAxis
             type="number"

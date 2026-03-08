@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from .api_types import (
     MatchInfo,
-    MatchDetails,
+    SuperlativeData,
     Statistic,
 )
 from .player_ids import resolve_player_name
@@ -84,7 +84,7 @@ def get_match_duration_extremes(
 
 
 def _resolve_attacker(
-    match_info_by_id: dict[int, MatchInfo], d: MatchDetails, attacker: str
+    match_info_by_id: dict[int, MatchInfo], d: SuperlativeData, attacker: str
 ) -> str:
     match_info = match_info_by_id.get(d.match_id)
     if match_info is None:
@@ -196,7 +196,7 @@ def get_calendar_stats(games: list[MatchInfo], computed_at: date) -> list[Statis
 
 def get_first_blood_stats(
     match_info_by_id: dict[int, MatchInfo],
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Stats derived from first blood events across all matches."""
@@ -267,7 +267,7 @@ def get_first_blood_stats(
 
 def get_building_first_blood_stats(
     match_info_by_id: dict[int, MatchInfo],
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Fastest building kill and player with most building first bloods."""
@@ -309,7 +309,7 @@ def _fmt_money(amount: int) -> str:
 
 
 def get_apm_stats(
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Match with highest average APM and player with highest APM."""
@@ -318,7 +318,7 @@ def get_apm_stats(
 
     stats: list[Statistic] = []
 
-    def _avg_apm(d: MatchDetails) -> float:
+    def _avg_apm(d: SuperlativeData) -> float:
         apms = [a.apm for a in d.apms if a.apm > 0 and a.minutes >= 1.0]
         return sum(apms) / len(apms) if apms else 0.0
 
@@ -337,7 +337,7 @@ def get_apm_stats(
     # player -> (total_actions, total_minutes, game_count)
     player_totals: dict[str, tuple[int, float, int]] = {}
     for d in details:
-        color_map = {ps.Name: ps.Color for ps in d.player_summary}
+        color_map = {ps.name: ps.color for ps in d.player_summary}
         for a in d.apms:
             if a.minutes >= 3.0 and a.apm > 0:
                 resolved = resolve_player_name(
@@ -384,16 +384,8 @@ def get_apm_stats(
     return stats
 
 
-def _last_total(stats_data: dict[str, dict[float, dict[str, int]]], key: str) -> int:
-    """Sum the final (max-time) entry of a cumulative stats_data field across all players."""
-    data = stats_data.get(key, {})
-    if not data:
-        return 0
-    return sum(data[max(data)].values())
-
-
 def get_activity_stats(
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Most units killed, buildings destroyed, XP earned, and upgrades by one player."""
@@ -404,7 +396,7 @@ def get_activity_stats(
 
     # Most units killed total in a match
     best_uk, uk_count = max(
-        ((d, _last_total(d.stats_data, "units_killed")) for d in details),
+        ((d, d.total_units_killed) for d in details),
         key=lambda x: x[1],
     )
     if uk_count > 0:
@@ -419,7 +411,7 @@ def get_activity_stats(
 
     # Most buildings destroyed total in a match
     best_bk, bk_count = max(
-        ((d, _last_total(d.stats_data, "buildings_killed")) for d in details),
+        ((d, d.total_buildings_killed) for d in details),
         key=lambda x: x[1],
     )
     if bk_count > 0:
@@ -434,7 +426,7 @@ def get_activity_stats(
 
     # Most XP earned total in a match
     best_xp, xp_total = max(
-        ((d, _last_total(d.stats_data, "xp")) for d in details),
+        ((d, d.total_xp) for d in details),
         key=lambda x: x[1],
     )
     if xp_total > 0:
@@ -450,9 +442,8 @@ def get_activity_stats(
     # Most upgrades purchased by a single player in any match
     best_upg: tuple[str, int, int] | None = None  # (player_name, count, match_id)
     for d in details:
-        color_map = {ps.Name: ps.Color for ps in d.player_summary}
-        for player_name, upgrades in d.upgrade_events.items():
-            count = len(upgrades.upgrades)
+        color_map = {ps.name: ps.color for ps in d.player_summary}
+        for player_name, count in d.upgrade_counts.items():
             if best_upg is None or count > best_upg[1]:
                 resolved = resolve_player_name(
                     player_name, color_map.get(player_name, "")
@@ -481,7 +472,7 @@ def _min_candidate(
 
 
 def get_efficiency_stats(
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Winning player records: fewest units, fewest buildings, least money spent."""
@@ -491,22 +482,22 @@ def get_efficiency_stats(
 
     for d in details:
         for ps in d.player_summary:
-            if not ps.Win:
+            if not ps.won:
                 continue
-            name = resolve_player_name(ps.Name, ps.Color)
+            name = resolve_player_name(ps.name, ps.color)
             best_units = _min_candidate(
                 best_units,
-                sum(v.Count for v in ps.UnitsCreated.values()),
+                ps.units_created_count,
                 name,
                 d.match_id,
             )
             best_buildings = _min_candidate(
                 best_buildings,
-                sum(v.Count for v in ps.BuildingsBuilt.values()),
+                ps.buildings_built_count,
                 name,
                 d.match_id,
             )
-            best_money = _min_candidate(best_money, ps.MoneySpent, name, d.match_id)
+            best_money = _min_candidate(best_money, ps.money_spent, name, d.match_id)
 
     stats: list[Statistic] = []
     if best_units:
@@ -542,31 +533,15 @@ def get_efficiency_stats(
     return stats
 
 
-def _total_money_spent(d: MatchDetails) -> int:
-    """Total money spent across all players in a match."""
-    money_values = d.money_values
-    money_earned = d.stats_data.get("money_earned", {})
-    if not money_values and not money_earned:
-        return 0
-    if money_values:
-        first_key, last_key = min(money_values), max(money_values)
-        start_balance = sum(money_values[first_key].values())
-        end_balance = sum(money_values[last_key].values())
-    else:
-        start_balance = end_balance = 0
-    earned = _last_total(d.stats_data, "money_earned")
-    return start_balance + earned - end_balance
-
-
 def get_money_stats(
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Match with most and least total money spent."""
     if not details:
         return []
 
-    valued = [(d, v) for d in details if (v := _total_money_spent(d)) > 0]
+    valued = [(d, d.match_money_spent) for d in details if d.match_money_spent > 0]
     if not valued:
         return []
 
@@ -590,7 +565,7 @@ def get_money_stats(
 
 
 def get_player_money_stats(
-    details: list[MatchDetails],
+    details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
     """Top 3 players by total money collected and total money spent across all games."""
@@ -598,22 +573,16 @@ def get_player_money_stats(
     player_spent: Counter[str] = Counter()
 
     for d in details:
-        color_map = {ps.Name: ps.Color for ps in d.player_summary}
+        color_map = {ps.name: ps.color for ps in d.player_summary}
 
-        if d.money_collected_values:
-            last_time = max(d.money_collected_values)
-            for player_name, amount in d.money_collected_values[last_time].items():
-                if amount <= 0:
-                    continue
-                resolved = resolve_player_name(
-                    player_name, color_map.get(player_name, "")
-                )
-                player_collected[resolved] += amount
+        for player_name, amount in d.player_money_collected.items():
+            resolved = resolve_player_name(player_name, color_map.get(player_name, ""))
+            player_collected[resolved] += amount
 
         for ps in d.player_summary:
-            if ps.MoneySpent <= 0:
+            if ps.money_spent <= 0:
                 continue
-            player_spent[resolve_player_name(ps.Name, ps.Color)] += ps.MoneySpent
+            player_spent[resolve_player_name(ps.name, ps.color)] += ps.money_spent
 
     MEDALS = ["🥇", "🥈", "🥉"]
     stats: list[Statistic] = []
@@ -651,7 +620,7 @@ def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
 
 
 def get_superlatives(
-    games: list[MatchInfo], details: list[MatchDetails] | None = None
+    games: list[MatchInfo], details: list[SuperlativeData] | None = None
 ) -> Superlatives:
     computed_at = date.today()
 

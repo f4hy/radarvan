@@ -1,7 +1,6 @@
 """Manual paths for now."""
 
 import re
-from collections.abc import Iterator
 import logging
 import fsspec
 from .cncstats_types import EnhancedReplay
@@ -153,26 +152,3 @@ def path_filter(url: str) -> bool:
         return False
     types = {f"_{i}v{i}_" for i in range(5)}
     return any(t in url for t in types)
-
-
-def all_json_uris(replay_manager: ReplayManager) -> dict[str, str]:
-    uris = {
-        j.json_s3_uri: j.replay_file_url
-        for j in replay_manager.list_jsons()
-        if path_filter(j.replay_file_url)
-    }
-    return uris
-
-
-def get_all_replays(replay_manager: ReplayManager) -> Iterator[EnhancedReplay]:
-    uris = all_json_uris(replay_manager)
-    fs = get_fs()
-    chunk_size = 50
-    for i in range(0, len(uris), chunk_size):
-        data_chunk = fs.cat(list(uris.keys())[i : i + chunk_size])
-        for p, d in data_chunk.items():
-            parsed = EnhancedReplay.model_validate_json(d)
-            parsed.Header.FileName = uris[fs.unstrip_protocol(p)]
-            if utils.duration_minutes(parsed) > 2.0:
-                logger.info(f"Yielding {parsed.Header.FileName}")
-                yield parsed

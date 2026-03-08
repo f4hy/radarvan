@@ -3,20 +3,27 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 from .api_types import (
     PlayerSummary as APIPlayerSummary,
 )
 from .cncstats_types import EnhancedReplay
-from .api_types import MatchDetails, SpentOverTime, Team, UpgradeEvent, Upgrades, APM
+from .api_types import (
+    MatchDetails,
+    SpentOverTime,
+    Team,
+    UpgradeEvent,
+    Upgrades,
+    APM,
+    SuperlativeData,
+    SuperlativePlayerSummary,
+)
 import logging
 from dataclasses import dataclass
 from pydantic import BaseModel
 from .utils import minutess_per_step
 
-if TYPE_CHECKING:
-    from .db_utils import ReplayManager, DatabaseManager
+from .db_utils import ReplayManager, DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -315,6 +322,87 @@ async def load_many_match_details(
             return await asyncio.to_thread(
                 load_match_details_threadsafe, match_id, db_manager
             )
+
+    results = await asyncio.gather(*[_bounded(mid) for mid in match_ids])
+    return [r for r in results if r is not None]
+
+
+def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
+    """Convert a full MatchDetails into the smaller SuperlativeData used by superlatives."""
+
+    def _last_total(key: str) -> int:
+        data = d.stats_data.get(key, {})
+        if not data:
+            return 0
+        return sum(data[max(data)].values())
+
+    money_values = d.money_values
+    if money_values:
+        first_key, last_key = min(money_values), max(money_values)
+        start_balance = sum(money_values[first_key].values())
+        end_balance = sum(money_values[last_key].values())
+    else:
+        start_balance = end_balance = 0
+    match_money_spent = start_balance + _last_total("money_earned") - end_balance
+
+    player_money_collected: dict[str, int] = {}
+    if d.money_collected_values:
+        last_time = max(d.money_collected_values)
+        player_money_collected = {
+            name: amt
+            for name, amt in d.money_collected_values[last_time].items()
+            if amt > 0
+        }
+
+    player_summary = [
+        SuperlativePlayerSummary(
+            name=ps.Name,
+            color=ps.Color,
+            won=ps.Win,
+            money_spent=ps.MoneySpent,
+            units_created_count=sum(v.Count for v in ps.UnitsCreated.values()),
+            buildings_built_count=sum(v.Count for v in ps.BuildingsBuilt.values()),
+        )
+        for ps in d.player_summary
+    ]
+
+    return SuperlativeData(
+        match_id=d.match_id,
+        first_blood=d.first_blood,
+        building_first_blood=d.building_first_blood,
+        apms=d.apms,
+        player_summary=player_summary,
+        upgrade_counts={
+            player_name: len(upgrades.upgrades)
+            for player_name, upgrades in d.upgrade_events.items()
+            if upgrades.upgrades
+        },
+        total_units_killed=_last_total("units_killed"),
+        total_buildings_killed=_last_total("buildings_killed"),
+        total_xp=_last_total("xp"),
+        match_money_spent=match_money_spent,
+        player_money_collected=player_money_collected,
+    )
+
+
+async def load_many_superlative_data(
+    match_ids: list[int], db_manager: DatabaseManager, max_concurrent: int = 20
+) -> list[SuperlativeData]:
+    """Load reduced superlative data for many matches in parallel.
+
+    Each match is loaded as full MatchDetails, immediately converted to the smaller
+    SuperlativeData, and the full details discarded — keeping peak memory low.
+    """
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def _bounded(match_id: int) -> SuperlativeData | None:
+        async with semaphore:
+            details = await asyncio.to_thread(
+                load_match_details_threadsafe, match_id, db_manager
+            )
+        if details is None:
+            return None
+        return superlative_data_from_details(details)
 
     results = await asyncio.gather(*[_bounded(mid) for mid in match_ids])
     return [r for r in results if r is not None]

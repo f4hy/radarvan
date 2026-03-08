@@ -41,7 +41,7 @@ async def compute_and_save_superlatives(
         if m and game_composition.competitive_game_filter(comp=m.composition)
     ]
 
-    details = await match_details_module.load_many_match_details(
+    details = await match_details_module.load_many_superlative_data(
         [m.id for m in competitive], db_manager
     )
     logger.info(f"Loaded {len(details)} match details for superlatives.")
@@ -49,6 +49,7 @@ async def compute_and_save_superlatives(
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"Saved {len(result.stats)} computed statistics.")
+    notify(message=f"Saved {len(result.stats)} computed statistics for Records page.")
 
 
 def get_scheduler(
