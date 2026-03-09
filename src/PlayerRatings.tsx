@@ -2,7 +2,7 @@ import Stack from "@mui/material/Stack"
 import Paper from "@mui/material/Paper"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import { Typography, useTheme } from "@mui/material"
+import { Box, Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
 import * as React from "react"
@@ -112,9 +112,28 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
-      {data.map(([name, d]) => (
+      {data.map(([name, d]) => {
+        const sorted = [...d].sort(
+          (a, b) =>
+            new Date(a.atdate ?? 0).getTime() -
+            new Date(b.atdate ?? 0).getTime(),
+        )
+        const last5 = sorted.slice(-20)
+        return (
         <Stack key={name}>
           <Typography>{name}</Typography>
+          <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
+            {last5.map((entry, i) => (
+              <Box key={i} sx={{ textAlign: "center" }}>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {formatDate(new Date(entry.atdate ?? 0).getTime(), true)}
+                </Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
           <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
             <AreaChart
               data={d
@@ -172,7 +191,8 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
             </AreaChart>
           </ResponsiveContainer>
         </Stack>
-      ))}
+        )
+      })}
     </Stack>
   )
 }
