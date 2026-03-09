@@ -54,6 +54,15 @@ function playerNameStyle(player: Player) {
   return { WebkitTextStroke: `0.5px grey` }
 }
 
+function winRateColor(w: number, l: number): string {
+  const rate = w + l === 0 ? 0.5 : w / (w + l)
+  // interpolate between near-black #424242 (rate=0) and green #4caf50 (rate=1)
+  const r = Math.round(66 + 10 * rate)
+  const g = Math.round(66 + 109 * rate)
+  const b = Math.round(66 + 14 * rate)
+  return `rgb(${r},${g},${b})`
+}
+
 function TeamCard(props: { players: Player[]; won: boolean }) {
   let color = props.won ? "#c5e1a5" : "#e57373"
   const team = props.players[0]?.team
@@ -353,6 +362,7 @@ function DisplayMatchesForDate(props: {
             </Typography>
             {matchList.matches.length > 0 && (
               <>
+                <Divider orientation="vertical" />
                 {Object.entries(
                   _.groupBy(matchList.matches, (m) =>
                     m.composition?.isFfa
@@ -367,15 +377,28 @@ function DisplayMatchesForDate(props: {
                     variant="outlined"
                   />
                 ))}
-                <Typography variant="body2" color="text.secondary">
-                  {_.uniq(
-                    matchList.matches.flatMap((m) =>
-                      m.players
-                        .filter((p) => p.team !== Team.NUMBER_MINUS_1)
-                        .map((p) => p.name),
-                    ),
-                  ).join(" · ")}
-                </Typography>
+                <Divider orientation="vertical" />
+
+                {(() => {
+                  const wl: Record<string, { w: number; l: number }> = {}
+                  for (const m of matchList.matches) {
+                    for (const p of m.players) {
+                      if (p.team === Team.NUMBER_MINUS_1) continue
+                      if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
+                      if (p.won) wl[p.name].w++
+                      else wl[p.name].l++
+                    }
+                  }
+                  return Object.entries(wl).map(([name, { w, l }]) => (
+                    <Chip
+                      key={name}
+                      label={`${name}: ${w}-${l}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
+                    />
+                  ))
+                })()}
               </>
             )}
           </Stack>
