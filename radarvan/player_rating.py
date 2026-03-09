@@ -58,7 +58,7 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
 @cached(cache={})
 def get_model() -> PlackettLuce:
     # return PlackettLuce(beta=(25.0/3.0), tau=(25.0 / 200.0))
-    return PlackettLuce(beta=(25.0 / 3.0))
+    return PlackettLuce(beta=(25.0 / 4.0))
 
 
 @dataclass
@@ -92,7 +92,7 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             continue
         teams = defaultdict(list)
         actual_players = [p for p in game.players if p.team > 0]
-        logger.info(f"game: {game.id} players {game.players}")
+        logger.info(f"game: {game.id} players {[game.players]}")
         for player in actual_players:
             teams[player.team].append(
                 player_ids.resolve_player_name(player.name, player.color)
@@ -102,27 +102,36 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             continue
 
         scores = {t: 1 if game.winning_team == t else 0 for t in teams.keys()}
+        score_values = list(scores.values())
         pteams = [
             [players[p].to_rating(model) for p in team] for team in teams.values()
         ]
-        logger.info(f"Teams: {pteams} scores:{scores}")
-        new_ratings = model.rate(teams=pteams, scores=list(scores.values()))
+        prediction = model.predict_win(teams=pteams)
+        surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction))
+        surprize_uncertainty_add = (surprize-0.5)*0.1 if surprize > 0.85 else 0.0
+        logger.info(f"{teams}")
+        logger.info(
+            f"scores:{score_values} prediction={prediction} {surprize=} adding{surprize_uncertainty_add}"
+        )
+        new_ratings = model.rate(teams=pteams, scores=score_values)
+
         for t in new_ratings:
             for p in t:
                 if p.name is not None:
                     new_rate = NamedRating(
-                        name=p.name, mu=p.mu, sigma=p.sigma, at_date=game.date
+                        name=p.name,
+                        mu=p.mu,
+                        sigma=p.sigma + surprize_uncertainty_add,
+                        at_date=game.date,
                     )
                     players[p.name] = new_rate
                     rating_over_time[p.name].append(new_rate)
 
-    ratings = [r for r in players.values() if game_counts.get(r.name, 0) > 10]
+    ratings = [r for r in players.values() if game_counts.get(r.name, 0) > 20]
     sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
     # Display results
     for rating in sorted_ratings:
-        if game_counts.get(rating.name, 0) < 5:
-            continue
-        print(
+        logger.info(
             f"{rating.name}[games={game_counts.get(rating.name)}]: {rating.ordinal():.1f} (μ={rating.mu:.1f}, σ={rating.sigma:.1f})"
         )
 

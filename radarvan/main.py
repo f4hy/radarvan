@@ -887,7 +887,7 @@ def get_player_ratings(
         name: [convert_short(r) for r in ratings]
         for name, ratings in ratings_and_counts.over_time.items()
     }
-    logger.info(f"over time data {over_time}")
+    # logger.info(f"over time data {over_time}")
     return PlayerRatingData(
         player_rating=converted,
         player_rating_overtime=over_time,

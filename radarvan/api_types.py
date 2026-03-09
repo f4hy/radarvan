@@ -54,6 +54,9 @@ class Player(BaseModel):
     def Team(self) -> Team:
         return self.team
 
+    def __repr__(self) -> str:
+        return f"{self.name}[{self.general.name} {'W' if self.won else 'L'}]"
+
 
 class MatchInfo(BaseModel):
     model_config = ConfigDict(frozen=True, populate_by_name=True)
