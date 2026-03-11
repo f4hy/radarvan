@@ -83,7 +83,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
     save_replay_if_missing(path, replay_path, replay_manager)
 
     json_path = replay_path.replace(".rep", ".json")
-    logger.info(f"{json_path=} {replay_path=}")
+    logger.debug(f"{json_path=} {replay_path=}")
 
     fs = get_fs()
     existing = replay_manager.get_parsed_file(json_path)
@@ -103,7 +103,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
             json_s3_uri=json_path,
         )
 
-    logger.info(f"Finished parsing replay {path=}")
+    logger.debug(f"Finished parsing replay {path=}")
     parsed_replay.Header.FileName = path
     return parsed_replay
 

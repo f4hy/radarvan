@@ -421,10 +421,10 @@ def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
         else None
     )
     upgrades = events_from_replay(replay)
-    logger.info(f"Money {len(money.player_monies)}")
-    logger.info(f"First blood {first_blood}")
-    logger.info(f"Last Event{replay.Body[-3:]}")
-    logger.info(f"Headers {replay.Header}")
+    # logger.info(f"Money {len(money.player_monies)}")
+    # logger.info(f"First blood {first_blood}")
+    # logger.info(f"Last Event{replay.Body[-3:]}")
+    # logger.info(f"Headers {replay.Header}")
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
         game_version=replay.Header.Version,
