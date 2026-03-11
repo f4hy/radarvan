@@ -34,15 +34,18 @@ async def compute_and_save_superlatives(
 ) -> None:
     """Recompute all superlatives and persist them, replacing any previous results."""
     logger.info("Computing superlatives.")
-    match_infos = matches_module.get_match_infos(replay_manager)
-    competitive = [
+    notify(message="Computing records")
+    competitive = (
         m
-        for m in match_infos
-        if m and game_composition.competitive_game_filter(comp=m.composition)
-    ]
-
+        for m in matches_module.get_match_infos(replay_manager)
+        if m
+        and game_composition.competitive_game_filter(comp=m.composition)
+        and m.winning_team > 0
+        and "mismatch" not in m.incomplete.lower()
+    )
+    match_ids = [m.id for m in competitive]
     details = await match_details_module.load_many_superlative_data(
-        [m.id for m in competitive], db_manager
+        match_ids, db_manager
     )
     logger.info(f"Loaded {len(details)} match details for superlatives.")
     result = superlatives_module.get_superlatives(competitive, details)
