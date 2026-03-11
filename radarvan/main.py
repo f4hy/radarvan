@@ -571,12 +571,12 @@ async def _do_recompute(
 ) -> superlatives.Superlatives:
     games = competitive_matches(replay_manager)
     game_list = [
-        g.id
+        g
         for g in games.values()
         if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
     ]
     details = await match_details.load_many_superlative_data(
-        game_list, db_manager
+        [g.id for g in game_list], db_manager
     )
     logger.info(f"Loaded {len(details)} match details for superlatives recompute")
     result = superlatives.get_superlatives(game_list, details)

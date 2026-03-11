@@ -120,77 +120,81 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
         )
         const last5 = sorted.slice(-20)
         return (
-        <Stack key={name}>
-          <Typography>{name}</Typography>
-          <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-            {last5.map((entry, i) => (
-              <Box key={i} sx={{ textAlign: "center" }}>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {formatDate(new Date(entry.atdate ?? 0).getTime(), true)}
-                </Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
-                </Typography>
-              </Box>
-            ))}
+          <Stack key={name}>
+            <Typography>{name}</Typography>
+            <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
+              {last5.map((entry, i) => (
+                <Box key={i} sx={{ textAlign: "center" }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                  >
+                    {formatDate(new Date(entry.atdate ?? 0).getTime(), true)}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
+                  </Typography>
+                </Box>
+              ))}
+            </Stack>
+            <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
+              <AreaChart
+                data={d
+                  .map((x) => ({
+                    mu: x.mu,
+                    sigma: x.sigma,
+                    skill: [x.mu - x.sigma, x.mu + x.sigma],
+                    atdate: new Date(x.atdate ?? 0).getTime(),
+                  }))
+                  .filter((x) => x.atdate >= startMs)}
+                layout="horizontal"
+                margin={{
+                  top: 5,
+                  right: 5,
+                  left: isMobile ? 30 : 50,
+                  bottom: isMobile ? 35 : 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="5 5" vertical={false} />
+                <Area
+                  dataKey="skill"
+                  fill="#42A5F5"
+                  connectNulls
+                  type="linear"
+                ></Area>
+                <XAxis
+                  dataKey="atdate"
+                  type="number"
+                  domain={[startMs, Date.now()]}
+                  tickFormatter={(v) => formatDate(v, isMobile)}
+                  angle={isMobile ? -35 : 0}
+                  textAnchor={isMobile ? "end" : "middle"}
+                  height={isMobile ? 50 : 30}
+                />
+                <YAxis
+                  label={
+                    isMobile
+                      ? undefined
+                      : {
+                          value: "skill",
+                          position: "insideLeft",
+                          fontSize: 14,
+                          offset: -10,
+                          angle: -90,
+                        }
+                  }
+                  domain={[0, 50]}
+                  width={isMobile ? 30 : 50}
+                />
+                <Tooltip
+                  cursor={false}
+                  labelFormatter={(v) => formatDate(v)}
+                  formatter={(v) => (v !== null ? formatSkill(v) : "")}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </Stack>
-          <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
-            <AreaChart
-              data={d
-                .map((x) => ({
-                  mu: x.mu,
-                  sigma: x.sigma,
-                  skill: [x.mu - x.sigma, x.mu + x.sigma],
-                  atdate: new Date(x.atdate ?? 0).getTime(),
-                }))
-                .filter((x) => x.atdate >= startMs)}
-              layout="horizontal"
-              margin={{
-                top: 5,
-                right: 5,
-                left: isMobile ? 30 : 50,
-                bottom: isMobile ? 35 : 5,
-              }}
-            >
-              <CartesianGrid strokeDasharray="5 5" vertical={false} />
-              <Area
-                dataKey="skill"
-                fill="#42A5F5"
-                connectNulls
-                type="linear"
-              ></Area>
-              <XAxis
-                dataKey="atdate"
-                type="number"
-                domain={[startMs, Date.now()]}
-                tickFormatter={(v) => formatDate(v, isMobile)}
-                angle={isMobile ? -35 : 0}
-                textAnchor={isMobile ? "end" : "middle"}
-                height={isMobile ? 50 : 30}
-              />
-              <YAxis
-                label={
-                  isMobile
-                    ? undefined
-                    : {
-                        value: "skill",
-                        position: "insideLeft",
-                        fontSize: 14,
-                        offset: -10,
-                        angle: -90,
-                      }
-                }
-                domain={[0, 50]}
-                width={isMobile ? 30 : 50}
-              />
-              <Tooltip
-                cursor={false}
-                labelFormatter={(v) => formatDate(v)}
-                formatter={(v) => (v !== null ? formatSkill(v) : "")}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Stack>
         )
       })}
     </Stack>

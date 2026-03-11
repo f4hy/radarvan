@@ -101,14 +101,14 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
         if len(teams) != 2:
             continue
 
-        scores = {t: 1 if game.winning_team == t else 0 for t in teams.keys()}
+        scores = {t: 1.0 if game.winning_team == t else 0 for t in teams.keys()}
         score_values = list(scores.values())
         pteams = [
             [players[p].to_rating(model) for p in team] for team in teams.values()
         ]
         prediction = model.predict_win(teams=pteams)
         surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction))
-        surprize_uncertainty_add = (surprize-0.5)*0.1 if surprize > 0.85 else 0.0
+        surprize_uncertainty_add = (surprize - 0.5) * 0.1 if surprize > 0.85 else 0.0
         logger.info(f"{teams}")
         logger.info(
             f"scores:{score_values} prediction={prediction} {surprize=} adding{surprize_uncertainty_add}"
