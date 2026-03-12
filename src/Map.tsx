@@ -324,12 +324,12 @@ export default function Map(props: { mapname: string; mapPoints?: MapPoints }) {
             />
             {mapPoints &&
               (Object.keys(POINT_STYLES) as (keyof Omit<MapPoints, "extent">)[]).flatMap(
-                (category) => {
+                (category, i) => {
                   const points = mapPoints[category]
                   if (!points) return []
                   const { color, size, label, symbol } = POINT_STYLES[category]
                   return points.map((pt, i) => (
-                    <Tooltip key={`${category}-${i}`} title={`${label} (${pt.x}, ${pt.y})`}>
+                    <Tooltip key={`${category}-${i}`} title={`${label} ${i}`}>
                       <Box
                         sx={{
                           position: "absolute",
