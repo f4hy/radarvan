@@ -43,6 +43,7 @@ class Player(BaseModel):
     team: Team
     color: str
     won: bool = False
+    starting_position: int | None = None
 
     @property
     def Type(self) -> Literal["H", "C"]:

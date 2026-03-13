@@ -169,6 +169,7 @@ class MatchPlayer(Base):
     team_id: Mapped[int] = mapped_column(SmallInteger)
     color: Mapped[str] = mapped_column(String(20))
     is_winner: Mapped[bool] = mapped_column()
+    starting_position: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
 
     __table_args__ = (
         Index("idx_match_players_match", "match_id"),

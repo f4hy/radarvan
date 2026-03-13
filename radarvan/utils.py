@@ -137,6 +137,10 @@ def players_from_replay(replay: EnhancedReplay) -> list[Player]:
         summary = summaries.get(p.Name)
         team = determine_team(p, player_summary=summary)
         faction = determin_general(p, player_summary=summary)
+        try:
+            starting_position = int(p.StartingPosition)
+        except (ValueError, TypeError):
+            starting_position = None
         players.append(
             Player(
                 name=p.Name or "CPU",
@@ -144,6 +148,7 @@ def players_from_replay(replay: EnhancedReplay) -> list[Player]:
                 team=team,
                 color=color,
                 won=summary.Win if summary else False,
+                starting_position=starting_position,
             )
         )
     return players

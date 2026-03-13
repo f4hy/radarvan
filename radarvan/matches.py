@@ -110,6 +110,7 @@ def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
             team_id=p.team,
             color=p.color,
             is_winner=p.won,
+            starting_position=p.starting_position,
         )
         for p in players
     ]
@@ -145,6 +146,7 @@ def match_to_matchinfo(
             team=p.team_id,
             color=p.color,
             won=p.team_id == winner if override is not None else p.is_winner,
+            starting_position=p.starting_position,
         )
         for p in db_players
     ]
