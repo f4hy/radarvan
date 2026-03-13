@@ -261,6 +261,39 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   )
 }
 
+function PlayerSelector(props: {
+  players: PlayerEnum[]
+  selectedPlayers: PlayerEnum[]
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+}) {
+  return (
+    <FormGroup>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          padding: 1,
+        }}
+      >
+        {props.players.map((option) => (
+          <FormControlLabel
+            key={option}
+            control={
+              <Checkbox
+                checked={props.selectedPlayers.includes(option)}
+                onChange={props.onChange}
+                value={option}
+              />
+            }
+            label={option}
+          />
+        ))}
+      </Box>
+    </FormGroup>
+  )
+}
+
 export default function DisplayBalanceTeams() {
   const [selectedPlayers, setSelectedPlayers] = React.useState<PlayerEnum[]>([])
   const [selectedTab, setSelectedTab] = React.useState<string>("balanceTeams")
@@ -295,30 +328,11 @@ export default function DisplayBalanceTeams() {
         Select at least 4 players and the balance of each team combination will
         be ranked
       </Typography>
-      <FormGroup>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            padding: 1,
-          }}
-        >
-          {players.map((option) => (
-            <FormControlLabel
-              key={option}
-              control={
-                <Checkbox
-                  checked={selectedPlayers.includes(option)}
-                  onChange={handleChange}
-                  value={option}
-                />
-              }
-              label={option}
-            />
-          ))}
-        </Box>
-      </FormGroup>
+      <PlayerSelector
+        players={players}
+        selectedPlayers={selectedPlayers}
+        onChange={handleChange}
+      />
       <Tabs
         sx={{ width: "100%" }}
         value={selectedTab}

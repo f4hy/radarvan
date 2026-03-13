@@ -41,6 +41,61 @@ function getGeneralStats(
     .catch(onError)
 }
 
+type GeneralChartData = {
+  name: string
+  wins: number
+  losses: number
+  rate: number
+}
+
+function GeneralWinLossChart(props: {
+  data: GeneralChartData[]
+  isMobile: boolean
+}) {
+  return (
+    <ResponsiveContainer width="99%" height={props.isMobile ? 350 : 600}>
+      <BarChart
+        data={props.data}
+        layout="horizontal"
+        margin={{
+          top: 20,
+          right: 10,
+          left: 5,
+          bottom: props.isMobile ? 80 : 60,
+        }}
+      >
+        <CartesianGrid strokeDasharray="5 5" vertical={false} />
+        <Bar dataKey="wins" fill="#42A5F5" name="Wins">
+          {!props.isMobile && (
+            <LabelList dataKey="wins" position="top" fontSize={11} />
+          )}
+          <LabelList
+            dataKey="rate"
+            position="insideTop"
+            fontSize={props.isMobile ? 9 : 11}
+            fill="white"
+            formatter={(v: any) => `${(v * 100).toFixed(0)}%`}
+          />
+        </Bar>
+        <Bar dataKey="losses" fill="#FF7043" name="Losses">
+          {!props.isMobile && (
+            <LabelList dataKey="losses" position="top" fontSize={11} />
+          )}
+        </Bar>
+        <XAxis
+          dataKey="name"
+          angle={-35}
+          textAnchor="end"
+          interval={0}
+          tick={{ fontSize: props.isMobile ? 9 : 12 }}
+        />
+        <YAxis tick={{ fontSize: props.isMobile ? 9 : 12 }} />
+        <Tooltip cursor={false} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -56,43 +111,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
     }
   })
 
-  return (
-    <ResponsiveContainer width="99%" height={isMobile ? 350 : 600}>
-      <BarChart
-        data={data}
-        layout="horizontal"
-        margin={{ top: 20, right: 10, left: 5, bottom: isMobile ? 80 : 60 }}
-      >
-        <CartesianGrid strokeDasharray="5 5" vertical={false} />
-        <Bar dataKey="wins" fill="#42A5F5" name="Wins">
-          {!isMobile && (
-            <LabelList dataKey="wins" position="top" fontSize={11} />
-          )}
-          <LabelList
-            dataKey="rate"
-            position="insideTop"
-            fontSize={isMobile ? 9 : 11}
-            fill="white"
-            formatter={(v: any) => `${(v * 100).toFixed(0)}%`}
-          />
-        </Bar>
-        <Bar dataKey="losses" fill="#FF7043" name="Losses">
-          {!isMobile && (
-            <LabelList dataKey="losses" position="top" fontSize={11} />
-          )}
-        </Bar>
-        <XAxis
-          dataKey="name"
-          angle={-35}
-          textAnchor="end"
-          interval={0}
-          tick={{ fontSize: isMobile ? 9 : 12 }}
-        />
-        <YAxis tick={{ fontSize: isMobile ? 9 : 12 }} />
-        <Tooltip cursor={false} />
-      </BarChart>
-    </ResponsiveContainer>
-  )
+  return <GeneralWinLossChart data={data} isMobile={isMobile} />
 }
 
 function DisplayGeneralStat(props: { stat: GeneralStat }) {

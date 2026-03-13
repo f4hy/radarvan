@@ -295,6 +295,83 @@ function DisplayPlayerStat(props: {
 
 const MIN_GAMES_FOR_BEST = 8
 
+type PlayerConsistency = {
+  playerName: string
+  spread: number
+  bestWinRate: number
+  bestGeneral: General
+  worstWinRate: number
+  worstGeneral: General
+  qualifyingCount: number
+}
+
+function ConsistencyCard(props: {
+  player: PlayerConsistency
+  label: string
+  emoji: string
+  accentColor: string
+}) {
+  return (
+    <Paper variant="outlined" sx={{ p: 2, flex: 1, textAlign: "center" }}>
+      <Typography
+        variant="subtitle2"
+        color={props.accentColor}
+        sx={{ mb: 0.5 }}
+      >
+        {props.emoji} {props.label}
+      </Typography>
+      <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
+        {props.player.playerName}
+      </Typography>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        display="block"
+        sx={{ mb: 1.5 }}
+      >
+        {props.player.spread * 100 < 1
+          ? "<1"
+          : (props.player.spread * 100).toFixed(0)}
+        % spread across {props.player.qualifyingCount} generals
+      </Typography>
+      <Stack direction="row" justifyContent="center" spacing={3}>
+        <Stack alignItems="center" spacing={0.5}>
+          <DisplayGeneral general={props.player.bestGeneral} />
+          <Typography variant="caption" color="success.main">
+            ▲ {toGeneralName(props.player.bestGeneral)}
+          </Typography>
+        </Stack>
+        <Stack alignItems="center" spacing={0.5}>
+          <DisplayGeneral general={props.player.worstGeneral} />
+          <Typography variant="caption" color="error.main">
+            ▼ {toGeneralName(props.player.worstGeneral)}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Paper>
+  )
+}
+
+function RankedPlayerCard(props: {
+  general: General
+  children: React.ReactNode
+}) {
+  return (
+    <Grid item>
+      <Paper
+        sx={{ p: 1, textAlign: "center", minWidth: 110 }}
+        variant="outlined"
+      >
+        <DisplayGeneral general={props.general} />
+        <Typography variant="caption" display="block">
+          {toGeneralName(props.general)}
+        </Typography>
+        {props.children}
+      </Paper>
+    </Grid>
+  )
+}
+
 const RANK_MEDALS = ["🥇", "🥈", "🥉"]
 
 function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
@@ -352,31 +429,22 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
         {entries.map(([generalNum, topPlayers]) => {
           const general = toGeneral(generalNum)
           return (
-            <Grid key={generalNum} item>
-              <Paper
-                sx={{ p: 1, textAlign: "center", minWidth: 110 }}
-                variant="outlined"
-              >
-                <DisplayGeneral general={general} />
-                <Typography variant="caption" display="block">
-                  {toGeneralName(general)}
-                </Typography>
-                {topPlayers.map((player, rank) => (
-                  <Box key={player.playerName} sx={{ mt: 0.5 }}>
-                    <Typography
-                      variant="body2"
-                      fontWeight={rank === 0 ? "bold" : "normal"}
-                    >
-                      {RANK_MEDALS[rank]} {player.playerName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
-                      {player.losses}L)
-                    </Typography>
-                  </Box>
-                ))}
-              </Paper>
-            </Grid>
+            <RankedPlayerCard key={generalNum} general={general}>
+              {topPlayers.map((player, rank) => (
+                <Box key={player.playerName} sx={{ mt: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={rank === 0 ? "bold" : "normal"}
+                  >
+                    {RANK_MEDALS[rank]} {player.playerName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
+                    {player.losses}L)
+                  </Typography>
+                </Box>
+              ))}
+            </RankedPlayerCard>
           )
         })}
       </Grid>
@@ -461,50 +529,39 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
         {entries.map(([generalNum, topPlayers]) => {
           const general = toGeneral(generalNum)
           return (
-            <Grid key={generalNum} item>
-              <Paper
-                sx={{ p: 1, textAlign: "center", minWidth: 110 }}
-                variant="outlined"
-              >
-                <DisplayGeneral general={general} />
-                <Typography variant="caption" display="block">
-                  {toGeneralName(general)}
-                </Typography>
-                {topPlayers.map((player, rank) => {
-                  const diffSign = player.relativeDiff >= 0 ? "+" : ""
-                  return (
-                    <Box key={player.playerName} sx={{ mt: 0.5 }}>
-                      <Tooltip
-                        title={`Overall win rate: ${(player.overallWinRate * 100).toFixed(0)}%`}
-                      >
-                        <Typography
-                          variant="body2"
-                          fontWeight={rank === 0 ? "bold" : "normal"}
-                        >
-                          {RANK_MEDALS[rank]} {player.playerName}
-                        </Typography>
-                      </Tooltip>
-                      <Typography variant="caption" color="text.secondary">
-                        {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
-                        {player.losses}L)
-                      </Typography>
+            <RankedPlayerCard key={generalNum} general={general}>
+              {topPlayers.map((player, rank) => {
+                const diffSign = player.relativeDiff >= 0 ? "+" : ""
+                return (
+                  <Box key={player.playerName} sx={{ mt: 0.5 }}>
+                    <Tooltip
+                      title={`Overall win rate: ${(player.overallWinRate * 100).toFixed(0)}%`}
+                    >
                       <Typography
-                        variant="caption"
-                        display="block"
-                        color={
-                          player.relativeDiff >= 0
-                            ? "success.main"
-                            : "error.main"
-                        }
+                        variant="body2"
+                        fontWeight={rank === 0 ? "bold" : "normal"}
                       >
-                        {diffSign}
-                        {(player.relativeDiff * 100).toFixed(0)}% vs their avg
+                        {RANK_MEDALS[rank]} {player.playerName}
                       </Typography>
-                    </Box>
-                  )
-                })}
-              </Paper>
-            </Grid>
+                    </Tooltip>
+                    <Typography variant="caption" color="text.secondary">
+                      {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
+                      {player.losses}L)
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      color={
+                        player.relativeDiff >= 0 ? "success.main" : "error.main"
+                      }
+                    >
+                      {diffSign}
+                      {(player.relativeDiff * 100).toFixed(0)}% vs their avg
+                    </Typography>
+                  </Box>
+                )
+              })}
+            </RankedPlayerCard>
           )
         })}
       </Grid>
@@ -513,16 +570,6 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
 }
 
 function GeneralConsistency(props: { playerStats: PlayerStats }) {
-  type PlayerConsistency = {
-    playerName: string
-    spread: number
-    bestWinRate: number
-    bestGeneral: General
-    worstWinRate: number
-    worstGeneral: General
-    qualifyingCount: number
-  }
-
   const rows: PlayerConsistency[] = []
   for (const stat of props.playerStats.playerStats) {
     const qualifying: { general: General; winRate: number }[] = []
@@ -558,53 +605,6 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
 
   const mostConsistent = ranked[0]
   const mostVariable = ranked[ranked.length - 1]
-
-  function ConsistencyCard(props: {
-    player: PlayerConsistency
-    label: string
-    emoji: string
-    accentColor: string
-  }) {
-    return (
-      <Paper variant="outlined" sx={{ p: 2, flex: 1, textAlign: "center" }}>
-        <Typography
-          variant="subtitle2"
-          color={props.accentColor}
-          sx={{ mb: 0.5 }}
-        >
-          {props.emoji} {props.label}
-        </Typography>
-        <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
-          {props.player.playerName}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          display="block"
-          sx={{ mb: 1.5 }}
-        >
-          {props.player.spread * 100 < 1
-            ? "<1"
-            : (props.player.spread * 100).toFixed(0)}
-          % spread across {props.player.qualifyingCount} generals
-        </Typography>
-        <Stack direction="row" justifyContent="center" spacing={3}>
-          <Stack alignItems="center" spacing={0.5}>
-            <DisplayGeneral general={props.player.bestGeneral} />
-            <Typography variant="caption" color="success.main">
-              ▲ {toGeneralName(props.player.bestGeneral)}
-            </Typography>
-          </Stack>
-          <Stack alignItems="center" spacing={0.5}>
-            <DisplayGeneral general={props.player.worstGeneral} />
-            <Typography variant="caption" color="error.main">
-              ▼ {toGeneralName(props.player.worstGeneral)}
-            </Typography>
-          </Stack>
-        </Stack>
-      </Paper>
-    )
-  }
 
   return (
     <Box sx={{ mb: 2 }}>

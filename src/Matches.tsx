@@ -315,6 +315,64 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
 
 const empty = { matches: [] }
 
+function MatchDateSummary(props: {
+  date: string
+  count: number
+  matches: MatchInfo[]
+}) {
+  return (
+    <Stack
+      direction="row"
+      spacing={2}
+      alignItems="center"
+      sx={{ flexGrow: 1, flexWrap: "wrap" }}
+    >
+      <Typography fontWeight="bold">{props.date}</Typography>
+      <Typography color="text.secondary">
+        {props.count} {props.count === 1 ? "game" : "games"}
+      </Typography>
+      {props.matches.length > 0 && (
+        <>
+          <Divider orientation="vertical" />
+          {Object.entries(
+            _.groupBy(props.matches, (m) =>
+              m.composition?.isFfa ? "FFA" : (m.composition?.category ?? "?"),
+            ),
+          ).map(([cat, ms]) => (
+            <Chip
+              key={cat}
+              label={`${ms.length}× ${cat}`}
+              size="small"
+              variant="outlined"
+            />
+          ))}
+          <Divider orientation="vertical" />
+          {(() => {
+            const wl: Record<string, { w: number; l: number }> = {}
+            for (const m of props.matches) {
+              for (const p of m.players) {
+                if (p.team === Team.NUMBER_MINUS_1) continue
+                if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
+                if (p.won) wl[p.name].w++
+                else wl[p.name].l++
+              }
+            }
+            return Object.entries(wl).map(([name, { w, l }]) => (
+              <Chip
+                key={name}
+                label={`${name}: ${w}-${l}`}
+                size="small"
+                variant="outlined"
+                sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
+              />
+            ))
+          })()}
+        </>
+      )}
+    </Stack>
+  )
+}
+
 function DisplayMatchesForDate(props: {
   date: Date
   count: number
@@ -350,58 +408,11 @@ function DisplayMatchesForDate(props: {
         sx={borderProps}
       >
         <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ flexGrow: 1, flexWrap: "wrap" }}
-          >
-            <Typography fontWeight="bold">{date}</Typography>
-            <Typography color="text.secondary">
-              {props.count} {props.count === 1 ? "game" : "games"}
-            </Typography>
-            {matchList.matches.length > 0 && (
-              <>
-                <Divider orientation="vertical" />
-                {Object.entries(
-                  _.groupBy(matchList.matches, (m) =>
-                    m.composition?.isFfa
-                      ? "FFA"
-                      : (m.composition?.category ?? "?"),
-                  ),
-                ).map(([cat, ms]) => (
-                  <Chip
-                    key={cat}
-                    label={`${ms.length}× ${cat}`}
-                    size="small"
-                    variant="outlined"
-                  />
-                ))}
-                <Divider orientation="vertical" />
-
-                {(() => {
-                  const wl: Record<string, { w: number; l: number }> = {}
-                  for (const m of matchList.matches) {
-                    for (const p of m.players) {
-                      if (p.team === Team.NUMBER_MINUS_1) continue
-                      if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
-                      if (p.won) wl[p.name].w++
-                      else wl[p.name].l++
-                    }
-                  }
-                  return Object.entries(wl).map(([name, { w, l }]) => (
-                    <Chip
-                      key={name}
-                      label={`${name}: ${w}-${l}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
-                    />
-                  ))
-                })()}
-              </>
-            )}
-          </Stack>
+          <MatchDateSummary
+            date={date}
+            count={props.count}
+            matches={matchList.matches}
+          />
         </AccordionSummary>
         <AccordionDetails>
           <AccordionDetails>
@@ -460,6 +471,81 @@ function toActivityData(dateCounts: Record<string, number>) {
   return data
 }
 
+function MatchActivityCalendar(props: {
+  dataByYear: Record<string, Record<string, number>>
+  dates: Record<string, number>
+  itemRefs: React.MutableRefObject<(HTMLDivElement | null)[]>
+  onDateClick: (date: string) => void
+}) {
+  return (
+    <Grid container sx={{ width: "80%", margin: "0" }}>
+      {Object.entries(props.dataByYear).map(([year, yearData], idx) => (
+        <Grid key={year} xs={6}>
+          <Box sx={{ overflowX: "auto", p: 2 }}>
+            <Typography>{year}</Typography>
+            {Object.keys(yearData).length > 0 ? (
+              <ActivityCalendar
+                data={toActivityData(yearData)}
+                weekStart={1}
+                showWeekdayLabels={["wed", "sat"]}
+                blockSize={10}
+                blockMargin={4}
+                showColorLegend={idx === 0}
+                labels={{
+                  totalCount: "{{count}} team games in {{year}}",
+                }}
+                colorScheme="light"
+                theme={{
+                  light: [
+                    "#ebedf0",
+                    "#9be9a8",
+                    "#40c463",
+                    "#30a14e",
+                    "#216e39",
+                  ],
+                }}
+                tooltips={{
+                  activity: {
+                    text: (activity) =>
+                      `  ${activity.count} team games on ${activity.date}`,
+                    placement: "bottom",
+                    offset: 6,
+                    hoverRestMs: 10,
+                    transitionStyles: {
+                      duration: 50,
+                      common: { fontFamily: "monospace" },
+                    },
+                    withArrow: true,
+                  },
+                }}
+                renderBlock={(block, activity) => (
+                  <g
+                    onClick={() => {
+                      const i = Object.keys(props.dates).findIndex(
+                        (d) => d === activity.date,
+                      )
+                      props.itemRefs.current[i]?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      })
+                      props.onDateClick(activity.date)
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {block}
+                  </g>
+                )}
+              />
+            ) : (
+              <Loading />
+            )}
+          </Box>
+        </Grid>
+      ))}
+    </Grid>
+  )
+}
+
 export default function DisplayMatches() {
   const [dates, setDates] = React.useState<{ [key: string]: number }>({})
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null)
@@ -475,71 +561,12 @@ export default function DisplayMatches() {
 
   return (
     <Stack>
-      <Grid container sx={{ width: "80%", margin: "0" }}>
-        {Object.entries(dataByYear).map(([year, yearData], idx) => (
-          <Grid key={year} xs={6}>
-            <Box sx={{ overflowX: "auto", p: 2 }}>
-              <Typography>{year}</Typography>
-              {Object.keys(yearData).length > 0 ? (
-                <ActivityCalendar
-                  data={toActivityData(yearData)}
-                  weekStart={1}
-                  showWeekdayLabels={["wed", "sat"]}
-                  blockSize={10}
-                  blockMargin={4}
-                  showColorLegend={idx === 0}
-                  labels={{
-                    totalCount: "{{count}} team games in {{year}}",
-                  }}
-                  colorScheme="light"
-                  theme={{
-                    light: [
-                      "#ebedf0",
-                      "#9be9a8",
-                      "#40c463",
-                      "#30a14e",
-                      "#216e39",
-                    ],
-                  }}
-                  tooltips={{
-                    activity: {
-                      text: (activity) =>
-                        `  ${activity.count} team games on ${activity.date}`,
-                      placement: "bottom",
-                      offset: 6,
-                      hoverRestMs: 10,
-                      transitionStyles: {
-                        duration: 50,
-                        common: { fontFamily: "monospace" },
-                      },
-                      withArrow: true,
-                    },
-                  }}
-                  renderBlock={(block, activity) => (
-                    <g
-                      onClick={() => {
-                        const i = Object.keys(dates).findIndex(
-                          (d) => d === activity.date,
-                        )
-                        itemRefs.current[i]?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        })
-                        setSelectedDate(activity.date)
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {block}
-                    </g>
-                  )}
-                />
-              ) : (
-                <Loading />
-              )}
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
+      <MatchActivityCalendar
+        dataByYear={dataByYear}
+        dates={dates}
+        itemRefs={itemRefs}
+        onDateClick={setSelectedDate}
+      />
       {Object.entries(dates).map(([date, count], idx) => (
         <div key={idx} ref={(el) => (itemRefs.current[idx] = el)}>
           <DisplayMatchesForDate

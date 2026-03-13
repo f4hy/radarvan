@@ -201,6 +201,124 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
   )
 }
 
+type RatingEntry = { mu: number; sigma: number; variance: number; name: string; ordinal: number; gameCount: number }
+
+function FormatSelector(props: { format: GameFormat; onChange: (f: GameFormat) => void }) {
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+      <Typography variant="h6">Game Format:</Typography>
+      <ToggleButtonGroup
+        value={props.format}
+        exclusive
+        onChange={(_, v) => v && props.onChange(v)}
+        size="small"
+      >
+        {FORMAT_OPTIONS.map((f) => (
+          <ToggleButton key={f} value={f}>
+            {f}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </Stack>
+  )
+}
+
+function SkillScatterChart(props: { data: RatingEntry[]; isMobile: boolean }) {
+  const { data, isMobile } = props
+  const labelFontSize = isMobile ? 11 : 20
+  const leftMargin = isMobile ? 30 : 50
+  return (
+    <ResponsiveContainer width="100%" height={isMobile ? 300 : 500}>
+      <ScatterChart
+        margin={{
+          top: 5,
+          right: isMobile ? 30 : 10,
+          left: leftMargin,
+          bottom: isMobile ? 30 : 5,
+        }}
+      >
+        <Scatter name="skill" data={data} shape="triangle" fill="blue">
+          <LabelList
+            dataKey="ordinal"
+            position="bottom"
+            offset={isMobile ? 15 : 40}
+            formatter={(s) => Number(s).toFixed(1)}
+            fontSize={labelFontSize}
+          />
+          <LabelList
+            dataKey="mu"
+            position="right"
+            offset={1}
+            formatter={(s) => Number(s).toFixed(isMobile ? 1 : 2)}
+            fontSize={labelFontSize}
+          />
+          <ErrorBar
+            dataKey="sigma"
+            width={isMobile ? 4 : 10}
+            strokeWidth={isMobile ? 2 : 5}
+            stroke="skyblue"
+            direction="y"
+          />
+        </Scatter>
+        <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
+        <YAxis
+          label={
+            isMobile
+              ? undefined
+              : {
+                  value: "Estimated Skill",
+                  position: "insideLeft",
+                  fontSize: 16,
+                  offset: -10,
+                  angle: -90,
+                }
+          }
+          type="number"
+          dataKey="mu"
+          domain={[0, 50]}
+          width={leftMargin}
+        />
+        <ZAxis type="number" range={[100, 100]} />
+        <Tooltip cursor={{ strokeDasharray: "3 3" }} formatter={formatLabel} />
+        <CartesianGrid />
+      </ScatterChart>
+    </ResponsiveContainer>
+  )
+}
+
+function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
+  const { data, isMobile } = props
+  const leftMargin = isMobile ? 30 : 50
+  return (
+    <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
+      <BarChart
+        data={data}
+        layout="horizontal"
+        margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="5 5" vertical={false} />
+        <Bar dataKey="gameCount" fill="#42A5F5" />
+        <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
+        <YAxis
+          label={
+            isMobile
+              ? undefined
+              : {
+                  value: "# games",
+                  position: "insideLeft",
+                  fontSize: 16,
+                  offset: -10,
+                  angle: -90,
+                }
+          }
+          width={leftMargin}
+        />
+        <Tooltip cursor={false} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
 const emptyPlayerRatingData = { playerRating: [], playerRatingOverTime: {} }
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
@@ -222,115 +340,12 @@ export default function DisplayPlayerRatings() {
   const data = playerRatings.playerRating
     .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
     .sort((a, b) => b.mu - a.mu)
-  const labelFontSize = isMobile ? 11 : 20
-  const leftMargin = isMobile ? 30 : 50
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ mb: 2, p: 1 }}
-      >
-        <Typography variant="h6">Game Format:</Typography>
-        <ToggleButtonGroup
-          value={format}
-          exclusive
-          onChange={(_, v) => v && setFormat(v)}
-          size="small"
-        >
-          {FORMAT_OPTIONS.map((f) => (
-            <ToggleButton key={f} value={f}>
-              {f}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
+      <FormatSelector format={format} onChange={setFormat} />
       <Typography variant="h4">Player Ratings (debug only)</Typography>
-      <ResponsiveContainer width="100%" height={isMobile ? 300 : 500}>
-        <ScatterChart
-          margin={{
-            top: 5,
-            right: isMobile ? 30 : 10,
-            left: leftMargin,
-            bottom: isMobile ? 30 : 5,
-          }}
-        >
-          <Scatter name="skill" data={data} shape="triangle" fill="blue">
-            <LabelList
-              dataKey="ordinal"
-              position="bottom"
-              offset={isMobile ? 15 : 40}
-              formatter={(s) => Number(s).toFixed(1)}
-              fontSize={labelFontSize}
-            />
-            <LabelList
-              dataKey="mu"
-              position="right"
-              offset={1}
-              formatter={(s) => Number(s).toFixed(isMobile ? 1 : 2)}
-              fontSize={labelFontSize}
-            />
-            <ErrorBar
-              dataKey="sigma"
-              width={isMobile ? 4 : 10}
-              strokeWidth={isMobile ? 2 : 5}
-              stroke="skyblue"
-              direction="y"
-            />
-          </Scatter>
-          <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
-          <YAxis
-            label={
-              isMobile
-                ? undefined
-                : {
-                    value: "Estimated Skill",
-                    position: "insideLeft",
-                    fontSize: 16,
-                    offset: -10,
-                    angle: -90,
-                  }
-            }
-            type="number"
-            dataKey="mu"
-            domain={[0, 50]}
-            width={leftMargin}
-          />
-          <ZAxis type="number" range={[100, 100]} />
-          <Tooltip
-            cursor={{ strokeDasharray: "3 3" }}
-            formatter={formatLabel}
-          />
-          <CartesianGrid />
-        </ScatterChart>
-      </ResponsiveContainer>
-      <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
-        <BarChart
-          data={data}
-          layout="horizontal"
-          margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="5 5" vertical={false} />
-          <Bar dataKey="gameCount" fill="#42A5F5" />
-          <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
-          <YAxis
-            label={
-              isMobile
-                ? undefined
-                : {
-                    value: "# games",
-                    position: "insideLeft",
-                    fontSize: 16,
-                    offset: -10,
-                    angle: -90,
-                  }
-            }
-            width={leftMargin}
-          />
-          <Tooltip cursor={false} />
-        </BarChart>
-      </ResponsiveContainer>
+      <SkillScatterChart data={data} isMobile={isMobile} />
+      <GameCountBarChart data={data} isMobile={isMobile} />
       <RatingsOverTime data={playerRatings} />
       {errorSnackbar}
     </Paper>

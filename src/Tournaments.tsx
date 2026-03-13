@@ -209,14 +209,115 @@ function DisplayMatchup(props: { matchup: MatchupResult }) {
   )
 }
 
-function DisplayRecords(props: {
+function TeamRecordsTable(props: {
   records: { [key: string]: WinLoss }
-  totalGames: number
-  complete: boolean
+  total: number
 }) {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-  const total = props.totalGames
+  return (
+    <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
+      <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: "fixed" }}>
+        <TableHead>
+          <TableRow>
+            <TableCell style={{ width: "10%" }}>
+              <Typography>Team</Typography>
+            </TableCell>
+            <TableCell style={{ width: "5%" }}>
+              <Typography>W-L</Typography>
+            </TableCell>
+            <TableCell style={{ width: "5%" }}>
+              <Typography>Win %</Typography>
+            </TableCell>
+            <TableCell>
+              <Typography>Progress</Typography>
+            </TableCell>
+            <TableCell>
+              <Typography>Max possible wins</Typography>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Object.entries(props.records).map(([team, wl]) => {
+            const gamesPlayed = wl.wins + wl.losses
+            const maxPossibleWins = props.total - wl.losses
+            const winRate: number = gamesPlayed
+              ? (wl.wins / gamesPlayed) * 100
+              : 0
+            const teamMembers = (
+              <Typography> {team.split(",").join("+")} </Typography>
+            )
+            const teamName: string = teamAlias(team.split(",").join("+"))
+            return (
+              <TableRow key={team}>
+                <TableCell>
+                  <MuiTooltip title={teamMembers} arrow>
+                    <Chip label={teamName} color="primary" />
+                  </MuiTooltip>{" "}
+                </TableCell>
+                <TableCell>
+                  <Typography>
+                    {wl.wins} - {wl.losses}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography sx={getWinRateStyle(winRate)}>
+                    {" "}
+                    {winRate.toFixed(1)}%
+                  </Typography>{" "}
+                </TableCell>
+                <TableCell>
+                  <Stack>
+                    <LinearProgress
+                      color="info"
+                      sx={{ height: 25, borderRadius: 5 }}
+                      variant="determinate"
+                      value={(100 * (wl.wins + wl.losses)) / props.total}
+                      valueBuffer={
+                        (100 * (props.total - wl.losses)) / props.total
+                      }
+                    />
+                    <Typography>
+                      {wl.wins + wl.losses} / {props.total} games played
+                    </Typography>
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  {" "}
+                  <Stack>
+                    <LinearProgress
+                      color={"success"}
+                      sx={{ height: 25, borderRadius: 5 }}
+                      variant="buffer"
+                      value={(100 * wl.wins) / props.total}
+                      valueBuffer={
+                        (100 * (props.total - wl.losses)) / props.total
+                      }
+                    />
+                    <Typography>
+                      {wl.wins} wins with {maxPossibleWins} possible remaining
+                    </Typography>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+function TeamProgressChart(props: {
+  chartData: {
+    team: string
+    wins: number
+    losses: number
+    potentialWins: number
+    gamesOutstanding: number
+    maxPossibleWins: number
+  }[]
+  total: number
+  isMobile: boolean
+}) {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
@@ -226,7 +327,7 @@ function DisplayRecords(props: {
           <p className="text-sm">Current Wins: {data.wins}</p>
           <p className="text-sm">Losses: {data.losses}</p>
           <p className="text-sm">
-            Games Played: {data.wins + data.losses}/{total}
+            Games Played: {data.wins + data.losses}/{props.total}
           </p>
           <p className="text-sm">Outstanding: {data.gamesOutstanding}</p>
           <p className="text-sm text-blue-600">
@@ -237,6 +338,49 @@ function DisplayRecords(props: {
     }
     return null
   }
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart
+        data={props.chartData}
+        layout="vertical"
+        margin={{
+          top: 5,
+          right: 30,
+          left: props.isMobile ? 5 : 150,
+          bottom: 5,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis type="number" domain={[0, props.total]} />
+        <YAxis
+          dataKey="team"
+          type="category"
+          width={props.isMobile ? 65 : 140}
+          tick={{ fontSize: props.isMobile ? 10 : 14 }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend />
+        <Bar dataKey="wins" stackId="a" fill="#10b981" name="Current Wins" />
+        <Bar
+          dataKey="potentialWins"
+          stackId="a"
+          fill="#93c5fd"
+          name="Potential Additional Wins"
+        />
+        <Bar dataKey="losses" stackId="a" fill="#f87171" name="Losses" />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+function DisplayRecords(props: {
+  records: { [key: string]: WinLoss }
+  totalGames: number
+  complete: boolean
+}) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+  const total = props.totalGames
   const chartData = Object.entries(props.records).map(([team, wl]) => ({
     team: teamAlias(team.split(",").join("+")),
     wins: wl.wins,
@@ -248,134 +392,25 @@ function DisplayRecords(props: {
   return (
     <Stack>
       <Typography>Team Records</Typography>
-      <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-        <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: "fixed" }}>
-          <TableHead>
-            <TableRow>
-              <TableCell style={{ width: "10%" }}>
-                <Typography>Team</Typography>
-              </TableCell>
-              <TableCell style={{ width: "5%" }}>
-                <Typography>W-L</Typography>
-              </TableCell>
-              <TableCell style={{ width: "5%" }}>
-                <Typography>Win %</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography>Progress</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography>Max possible wins</Typography>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Object.entries(props.records).map(([team, wl]) => {
-              const gamesPlayed = wl.wins + wl.losses
-              const maxPossibleWins = total - wl.losses
-              const winRate: number = gamesPlayed
-                ? (wl.wins / gamesPlayed) * 100
-                : 0
-              const teamMembers = (
-                <Typography> {team.split(",").join("+")} </Typography>
-              )
-              const teamName: string = teamAlias(team.split(",").join("+"))
-              return (
-                <TableRow key={team}>
-                  <TableCell>
-                    <MuiTooltip title={teamMembers} arrow>
-                      <Chip label={teamName} color="primary" />
-                    </MuiTooltip>{" "}
-                  </TableCell>
-                  <TableCell>
-                    <Typography>
-                      {wl.wins} - {wl.losses}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography sx={getWinRateStyle(winRate)}>
-                      {" "}
-                      {winRate.toFixed(1)}%
-                    </Typography>{" "}
-                  </TableCell>
-                  <TableCell>
-                    <Stack>
-                      <LinearProgress
-                        color="info"
-                        sx={{ height: 25, borderRadius: 5 }}
-                        variant="determinate"
-                        value={(100 * (wl.wins + wl.losses)) / total}
-                        valueBuffer={(100 * (total - wl.losses)) / total}
-                      />
-                      <Typography>
-                        {wl.wins + wl.losses} / {total} games played
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    {" "}
-                    <Stack>
-                      <LinearProgress
-                        color={"success"}
-                        sx={{ height: 25, borderRadius: 5 }}
-                        variant="buffer"
-                        value={(100 * wl.wins) / total}
-                        valueBuffer={(100 * (total - wl.losses)) / total}
-                      />
-                      <Typography>
-                        {wl.wins} wins with {maxPossibleWins} possible remaining
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <TeamRecordsTable records={props.records} total={total} />
       {props.complete || (
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: isMobile ? 5 : 150, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" domain={[0, total]} />
-            <YAxis
-              dataKey="team"
-              type="category"
-              width={isMobile ? 65 : 140}
-              tick={{ fontSize: isMobile ? 10 : 14 }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            <Bar
-              dataKey="wins"
-              stackId="a"
-              fill="#10b981"
-              name="Current Wins"
-            />
-            <Bar
-              dataKey="potentialWins"
-              stackId="a"
-              fill="#93c5fd"
-              name="Potential Additional Wins"
-            />
-            <Bar dataKey="losses" stackId="a" fill="#f87171" name="Losses" />
-          </BarChart>
-        </ResponsiveContainer>
+        <TeamProgressChart
+          chartData={chartData}
+          total={total}
+          isMobile={isMobile}
+        />
       )}
     </Stack>
   )
 }
 
-function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
-  const [selected, setSelected] = React.useState<number>(0)
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-  const buttonsPerRow: number = isMobile ? 2 : 5
-
+function MatchupButtonGrid(props: {
+  matchups: MatchupResult[]
+  selected: number
+  onChange: (value: number) => void
+  isMobile: boolean
+}) {
+  const buttonsPerRow: number = props.isMobile ? 2 : 5
   const buttonNumbers: number[] = Array.from(
     { length: props.matchups.length },
     (_, i) => i,
@@ -384,64 +419,77 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
   for (let i = 0; i < props.matchups.length; i += buttonsPerRow) {
     rows.push(buttonNumbers.slice(i, i + buttonsPerRow))
   }
-
   const handleChange = (
     event: React.MouseEvent<HTMLElement>,
     newValue: number | null,
   ) => {
     if (newValue !== null) {
-      setSelected(newValue)
+      props.onChange(newValue)
     }
   }
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {rows.map((row, rowIndex) => (
+        <ToggleButtonGroup
+          color="primary"
+          key={rowIndex}
+          value={props.selected}
+          exclusive
+          onChange={handleChange}
+          size={props.isMobile ? "small" : "large"}
+          sx={{ width: "100%" }}
+        >
+          {row.map((buttonIndex) => {
+            const outcome = props.matchups[buttonIndex].outcome
+            const teams = Object.keys(outcome).map((tn) =>
+              teamAlias(tn.split(",").join("+")),
+            )
+            const first_record = Object.values(outcome)[0]
+            const record = `${first_record.wins} - ${first_record.losses}`
+            const disabled = Object.entries(outcome).find(
+              ([tb, wl]) => wl.wins + wl.losses > 0,
+            )
+              ? false
+              : true
+            return (
+              <ToggleButton
+                key={buttonIndex}
+                value={buttonIndex}
+                disabled={disabled}
+                sx={{
+                  flex: 1,
+                  textTransform: "none",
+                }}
+              >
+                <Typography
+                  style={{ fontWeight: "bold" }}
+                  variant={props.isMobile ? "caption" : "body1"}
+                >
+                  {teams.join(" vs ")} {record}
+                </Typography>
+              </ToggleButton>
+            )
+          })}
+        </ToggleButtonGroup>
+      ))}
+    </Box>
+  )
+}
+
+function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
+  const [selected, setSelected] = React.useState<number>(0)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
   return (
     <Stack>
       <Divider />
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        {rows.map((row, rowIndex) => (
-          <ToggleButtonGroup
-            color="primary"
-            key={rowIndex}
-            value={selected}
-            exclusive
-            onChange={handleChange}
-            size={isMobile ? "small" : "large"}
-            sx={{ width: "100%" }}
-          >
-            {row.map((buttonIndex) => {
-              const outcome = props.matchups[buttonIndex].outcome
-              const teams = Object.keys(outcome).map((tn) =>
-                teamAlias(tn.split(",").join("+")),
-              )
-              const first_record = Object.values(outcome)[0]
-              const record = `${first_record.wins} - ${first_record.losses}`
-              const disabled = Object.entries(outcome).find(
-                ([tb, wl]) => wl.wins + wl.losses > 0,
-              )
-                ? false
-                : true
-              return (
-                <ToggleButton
-                  key={buttonIndex}
-                  value={buttonIndex}
-                  disabled={disabled}
-                  sx={{
-                    flex: 1, // Make buttons fill available space
-                    textTransform: "none", // Prevent all-caps
-                  }}
-                >
-                  <Typography
-                    style={{ fontWeight: "bold" }}
-                    variant={isMobile ? "caption" : "body1"}
-                  >
-                    {teams.join(" vs ")} {record}
-                  </Typography>
-                </ToggleButton>
-              )
-            })}
-          </ToggleButtonGroup>
-        ))}
-      </Box>
+      <MatchupButtonGrid
+        matchups={props.matchups}
+        selected={selected}
+        onChange={setSelected}
+        isMobile={isMobile}
+      />
       <DisplayMatchup matchup={props.matchups[selected]} />
     </Stack>
   )

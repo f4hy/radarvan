@@ -257,6 +257,35 @@ function MapBadge(props: {
   )
 }
 
+function BestWorstBadgePair(props: {
+  label: React.ReactNode
+  bw: BestWorst
+  onMapClick: (mapName: string) => void
+}) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        flexWrap: "wrap",
+      }}
+    >
+      {props.label}
+      <MapBadge
+        entry={props.bw.best}
+        variant="best"
+        onMapClick={props.onMapClick}
+      />
+      <MapBadge
+        entry={props.bw.worst}
+        variant="worst"
+        onMapClick={props.onMapClick}
+      />
+    </Box>
+  )
+}
+
 function GeneralBestWorstSummary(props: {
   maps: MapData[]
   onMapClick: (mapName: string) => void
@@ -270,37 +299,26 @@ function GeneralBestWorstSummary(props: {
       </Typography>
       <Stack spacing={0.75}>
         {rows.map(([general, bw]) => (
-          <Box
+          <BestWorstBadgePair
             key={general}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              flexWrap: "wrap",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                minWidth: 130,
-              }}
-            >
-              <DisplayGeneral general={general} />
-              <Typography variant="body2">{toGeneralName(general)}</Typography>
-            </Box>
-            <MapBadge
-              entry={bw.best}
-              variant="best"
-              onMapClick={props.onMapClick}
-            />
-            <MapBadge
-              entry={bw.worst}
-              variant="worst"
-              onMapClick={props.onMapClick}
-            />
-          </Box>
+            bw={bw}
+            onMapClick={props.onMapClick}
+            label={
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  minWidth: 130,
+                }}
+              >
+                <DisplayGeneral general={general} />
+                <Typography variant="body2">
+                  {toGeneralName(general)}
+                </Typography>
+              </Box>
+            }
+          />
         ))}
       </Stack>
     </Paper>
@@ -320,29 +338,16 @@ function PlayerBestWorstSummary(props: {
       </Typography>
       <Stack spacing={0.75}>
         {rows.map(([player, bw]) => (
-          <Box
+          <BestWorstBadgePair
             key={player}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              flexWrap: "wrap",
-            }}
-          >
-            <Typography variant="body2" sx={{ minWidth: 80 }}>
-              {player}
-            </Typography>
-            <MapBadge
-              entry={bw.best}
-              variant="best"
-              onMapClick={props.onMapClick}
-            />
-            <MapBadge
-              entry={bw.worst}
-              variant="worst"
-              onMapClick={props.onMapClick}
-            />
-          </Box>
+            bw={bw}
+            onMapClick={props.onMapClick}
+            label={
+              <Typography variant="body2" sx={{ minWidth: 80 }}>
+                {player}
+              </Typography>
+            }
+          />
         ))}
       </Stack>
     </Paper>

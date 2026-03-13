@@ -21,6 +21,42 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
   return bc
 }
 
+function CostChart(props: {
+  data: any[]
+  names: string[]
+  label: string
+  colors: string[]
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        data={props.data}
+        layout="horizontal"
+        margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
+      >
+        {props.names.map((n, i) => (
+          <Bar
+            key={n}
+            dataKey={n}
+            fill={props.colors[i % props.colors.length]}
+            stackId="a"
+          />
+        ))}
+        <XAxis dataKey="name" />
+        <YAxis
+          label={{
+            value: props.label,
+            position: "insideLeft",
+            offset: -5,
+            angle: -90,
+          }}
+        />
+        <Tooltip cursor={false} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
 export default function CostBreakdown(props: { costs: Costs[] }) {
   if (props.costs.length === 0) {
     return <></>
@@ -72,94 +108,24 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
   ]
   return (
     <Container>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={building_data}
-          layout="horizontal"
-          margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
-        >
-          {building_names.map((n, i) => (
-            <Bar
-              key={n}
-              dataKey={n}
-              fill={colors[i % colors.length]}
-              stackId="a"
-            />
-          ))}
-          <XAxis dataKey="name" />
-          <YAxis
-            label={{
-              value: "Building Spending",
-              position: "insideLeft",
-              offset: -5,
-              angle: -90,
-            }}
-          />
-          <Tooltip cursor={false} />
-        </BarChart>
-      </ResponsiveContainer>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={unit_data}
-          layout="horizontal"
-          margin={{
-            top: 5,
-            right: 10,
-            left: 15,
-            bottom: 5,
-          }}
-        >
-          {unit_names.map((n, i) => (
-            <Bar
-              key={n}
-              dataKey={n}
-              fill={colors[i % colors.length]}
-              stackId="a"
-            />
-          ))}
-          <XAxis dataKey="name" />
-          <YAxis
-            label={{
-              value: "Unit Spending",
-              position: "insideLeft",
-              offset: -5,
-              angle: -90,
-            }}
-          />
-          <Tooltip cursor={false} />
-        </BarChart>
-      </ResponsiveContainer>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={upgrade_data}
-          layout="horizontal"
-          margin={{
-            top: 5,
-            right: 10,
-            left: 15,
-            bottom: 5,
-          }}
-        >
-          {upgrade_names.map((n, i) => (
-            <Bar
-              key={n}
-              dataKey={n}
-              fill={colors[i % colors.length]}
-              stackId="a"
-            />
-          ))}
-          <XAxis dataKey="name" />
-          <YAxis
-            label={{
-              value: "Upgrade Spending",
-              position: "insideLeft",
-              offset: -5,
-              angle: -90,
-            }}
-          />
-          <Tooltip cursor={false} />
-        </BarChart>
-      </ResponsiveContainer>
+      <CostChart
+        data={building_data}
+        names={building_names}
+        label="Building Spending"
+        colors={colors}
+      />
+      <CostChart
+        data={unit_data}
+        names={unit_names}
+        label="Unit Spending"
+        colors={colors}
+      />
+      <CostChart
+        data={upgrade_data}
+        names={upgrade_names}
+        label="Upgrade Spending"
+        colors={colors}
+      />
     </Container>
   )
 }

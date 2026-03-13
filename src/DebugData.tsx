@@ -172,53 +172,38 @@ function DisplayDataTable(props: { data: GameRecord[] }) {
   )
 }
 
-function JsonDisplay({ data }: { data: any }) {
-  if (data === null || data === undefined) {
+function JsonArray({ data }: { data: any[] }) {
+  if (data.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" component="span">
-        null
+        []
       </Typography>
     )
   }
-  if (typeof data !== "object") {
-    return (
-      <Typography variant="body2" component="span">
-        {String(data)}
-      </Typography>
-    )
-  }
-  if (Array.isArray(data)) {
-    if (data.length === 0) {
-      return (
-        <Typography variant="body2" color="text.secondary" component="span">
-          []
-        </Typography>
-      )
-    }
-    return (
-      <Box sx={{ pl: 1 }}>
-        {data.map((item, i) => (
-          <Box
-            key={i}
-            sx={{ display: "flex", gap: 1, alignItems: "flex-start", py: 0.25 }}
+  return (
+    <Box sx={{ pl: 1 }}>
+      {data.map((item, i) => (
+        <Box
+          key={i}
+          sx={{ display: "flex", gap: 1, alignItems: "flex-start", py: 0.25 }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ minWidth: 30, flexShrink: 0, pt: 0.3 }}
           >
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ minWidth: 30, flexShrink: 0, pt: 0.3 }}
-            >
-              [{i}]
-            </Typography>
-            <Box
-              sx={{ borderLeft: "2px solid", borderColor: "divider", pl: 1 }}
-            >
-              <JsonDisplay data={item} />
-            </Box>
+            [{i}]
+          </Typography>
+          <Box sx={{ borderLeft: "2px solid", borderColor: "divider", pl: 1 }}>
+            <JsonDisplay data={item} />
           </Box>
-        ))}
-      </Box>
-    )
-  }
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+function JsonObject({ data }: { data: Record<string, any> }) {
   const entries = Object.entries(data)
   if (entries.length === 0) {
     return (
@@ -255,6 +240,52 @@ function JsonDisplay({ data }: { data: any }) {
         </Box>
       ))}
     </Box>
+  )
+}
+
+function JsonDisplay({ data }: { data: any }) {
+  if (data === null || data === undefined) {
+    return (
+      <Typography variant="body2" color="text.secondary" component="span">
+        null
+      </Typography>
+    )
+  }
+  if (typeof data !== "object") {
+    return (
+      <Typography variant="body2" component="span">
+        {String(data)}
+      </Typography>
+    )
+  }
+  if (Array.isArray(data)) {
+    return <JsonArray data={data} />
+  }
+  return <JsonObject data={data} />
+}
+
+function MatchIdInput(props: {
+  value: string | null
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onSubmit: () => void
+}) {
+  return (
+    <FormGroup>
+      <TextField
+        label="matchId"
+        value={props.value}
+        onChange={props.onChange}
+        type="text"
+        inputProps={{
+          inputMode: "numeric",
+          pattern: "[0-9]*",
+          maxLength: 20,
+        }}
+      />
+      <Button onClick={props.onSubmit} variant="contained">
+        submit
+      </Button>
+    </FormGroup>
   )
 }
 
@@ -301,22 +332,7 @@ export default function DisplayDebugData() {
       <Typography variant="h4">
         Listing of all data toggle to show all replays not just 1 per matchid
       </Typography>
-      <FormGroup>
-        <TextField
-          label="matchId"
-          value={matchId}
-          onChange={handleChange}
-          type="text" // Use type="text" to enable maxLength and custom validation
-          inputProps={{
-            inputMode: "numeric", // Shows a numeric keyboard on mobile devices
-            pattern: "[0-9]*", // Provides a regex pattern hint to the browser
-            maxLength: 20, // Example: restricts to a max length of 10 digits
-          }}
-        />
-        <Button onClick={submit} variant="contained">
-          submit
-        </Button>
-      </FormGroup>
+      <MatchIdInput value={matchId} onChange={handleChange} onSubmit={submit} />
       {jsonDownloadUrl && (
         <Box sx={{ p: 1 }}>
           <DownloadButton

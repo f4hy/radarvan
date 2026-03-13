@@ -443,6 +443,71 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   )
 }
 
+function MoneyCharts(props: { details: MatchDetails }) {
+  return (
+    <>
+      <MoneyChart
+        title="Money"
+        money={props.details.moneyValues}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="$ Earned"
+        money={props.details.statsData["money_earned"]}
+        playerSummaries={props.details.playerSummary}
+      />
+    </>
+  )
+}
+
+function XpCharts(props: { details: MatchDetails }) {
+  return (
+    <MoneyChart
+      title="XP"
+      money={props.details.statsData["xp"]}
+      playerSummaries={props.details.playerSummary}
+      horizontalLines={[800, 1500, 2500, 5000]}
+    />
+  )
+}
+
+function UnitCharts(props: { details: MatchDetails }) {
+  return (
+    <>
+      <MoneyChart
+        title="Units Killed"
+        money={props.details.statsData["units_killed"]}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="Units Built"
+        money={props.details.statsData["units_built"]}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="Units Lost"
+        money={props.details.statsData["units_lost"]}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="Buildings Killed"
+        money={props.details.statsData["buildings_killed"]}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="Buildings Built"
+        money={props.details.statsData["buildings_built"]}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="Buildings Lost"
+        money={props.details.statsData["buildings_lost"]}
+        playerSummaries={props.details.playerSummary}
+      />
+    </>
+  )
+}
+
 function DetailedGraphs(props: { details: MatchDetails }) {
   const details = props.details
   return (
@@ -451,52 +516,9 @@ function DetailedGraphs(props: { details: MatchDetails }) {
       <Divider />
       <CostBreakdown costs={details.costs} />
       <Divider />
-      <MoneyChart
-        title="Money"
-        money={details.moneyValues}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="$ Earned"
-        money={details.statsData["money_earned"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="XP"
-        money={details.statsData["xp"]}
-        playerSummaries={details.playerSummary}
-        horizontalLines={[800, 1500, 2500, 5000]}
-      />
-      <MoneyChart
-        title="Units Killed"
-        money={details.statsData["units_killed"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="Units Built"
-        money={details.statsData["units_built"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="Units Lost"
-        money={details.statsData["units_lost"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="Buildings Killed"
-        money={details.statsData["buildings_killed"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="Buildings Built"
-        money={details.statsData["buildings_built"]}
-        playerSummaries={details.playerSummary}
-      />
-      <MoneyChart
-        title="Buildings Lost"
-        money={details.statsData["buildings_lost"]}
-        playerSummaries={details.playerSummary}
-      />
+      <MoneyCharts details={details} />
+      <XpCharts details={details} />
+      <UnitCharts details={details} />
     </Paper>
   )
 }
@@ -505,6 +527,47 @@ type Displays =
   | "Player Unit and spending breakdown"
   | "Event Chart"
   | "Detailed Graphs"
+
+function DetailViewSelector(props: {
+  selectedDisplay: Displays | null
+  choices: Displays[]
+  onChange: (display: Displays | null) => void
+  details: MatchDetails
+  maxMinute: number
+}) {
+  return (
+    <>
+      <Typography>Select which detailed charts to show</Typography>
+      <ToggleButtonGroup
+        exclusive
+        value={props.selectedDisplay}
+        onChange={(_, v) => props.onChange(v)}
+        color="primary"
+      >
+        {props.choices.map((v) => (
+          <ToggleButton key={v} size="large" value={v}>
+            {v}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+      <Divider />
+      <Typography>{props.selectedDisplay}</Typography>
+      {props.selectedDisplay === "Player Unit and spending breakdown" && (
+        <ShowPlayerSummaries playerSummaries={props.details.playerSummary} />
+      )}
+      {props.selectedDisplay === "Event Chart" && (
+        <EventChart
+          upgrades={props.details.upgradeEvents}
+          max={props.maxMinute}
+          playerSummaries={props.details.playerSummary}
+        />
+      )}
+      {props.selectedDisplay === "Detailed Graphs" && (
+        <DetailedGraphs details={props.details} />
+      )}
+    </>
+  )
+}
 
 export default function ShowMatchDetails(props: { id: number }) {
   const [details, setDetails] = React.useState<MatchDetails | null>(null)
@@ -533,31 +596,6 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Event Chart",
     "Detailed Graphs",
   ]
-  const handleClick = (
-    event: React.MouseEvent<HTMLElement>,
-    newSelection: Displays | null,
-  ) => {
-    setSelectedDisplay(newSelection ?? null)
-  }
-  const buttonGroup = (
-    <>
-      <Typography>Select which detailed charts to show</Typography>
-      <ToggleButtonGroup
-        exclusive
-        value={selectedDisplay}
-        onChange={handleClick}
-        color="primary"
-      >
-        {choices.map((v, i) => {
-          return (
-            <ToggleButton key={v} size="large" value={v}>
-              {v}
-            </ToggleButton>
-          )
-        })}
-      </ToggleButtonGroup>
-    </>
-  )
 
   return (
     <Paper>
@@ -567,22 +605,13 @@ export default function ShowMatchDetails(props: { id: number }) {
         building_first_blood={details.buildingFirstBlood ?? undefined}
       />
       <GameDetailsTable matchDetails={details} />
-      {buttonGroup}
-      <Divider />
-      <Typography>{selectedDisplay}</Typography>
-      {selectedDisplay === "Player Unit and spending breakdown" && (
-        <ShowPlayerSummaries playerSummaries={details.playerSummary} />
-      )}
-      {selectedDisplay === "Event Chart" && (
-        <EventChart
-          upgrades={details.upgradeEvents}
-          max={maxMinute}
-          playerSummaries={details.playerSummary}
-        />
-      )}
-      {selectedDisplay === "Detailed Graphs" && (
-        <DetailedGraphs details={details} />
-      )}
+      <DetailViewSelector
+        selectedDisplay={selectedDisplay}
+        choices={choices}
+        onChange={setSelectedDisplay}
+        details={details}
+        maxMinute={maxMinute}
+      />
       {errorSnackbar}
     </Paper>
   )
