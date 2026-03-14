@@ -25,32 +25,19 @@ class NamedRating:
     def ordinal(self) -> float:
         return self.mu - 3 * self.sigma
 
+    def with_min_sigma(self, min_sigma: float) -> "NamedRating":
+        return NamedRating(
+            name=self.name,
+            mu=self.mu,
+            sigma=max(self.sigma, min_sigma),
+            at_date=self.at_date,
+        )
+
     def to_rating(self, model: PlackettLuce) -> PlackettLuceRating:
         return model.rating(name=self.name, mu=self.mu, sigma=self.sigma)
 
 
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
-    """
-    experience_level: 'beginner', 'casual', 'average', 'experienced', 'expert'
-    """
-    compters = {"CPU", "HardArmy"}
-    beginners = {"EnragedFerret"}
-    # casual = {"Neo"}
-    casual: set[str] = set()
-    experienced: set[str] = {"WildCard", "Tytan", "Gorn"}
-    expert = {"[OoE]Excal^"}
-
-    if name in beginners:
-        return NamedRating(name=name, mu=5, sigma=12)
-    if name in compters:
-        return NamedRating(name=name, mu=10, sigma=6)
-    if name in casual:
-        return NamedRating(name=name, mu=15, sigma=6)
-    if name in experienced:
-        return NamedRating(name=name, mu=30, sigma=15)
-    if name in expert:
-        return NamedRating(name=name, mu=40, sigma=10)
-
     r = model.rating(name=name)
     return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
 
@@ -68,21 +55,76 @@ class RatingsAndCounts:
     over_time: dict[str, list[NamedRating]]
 
 
-def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
-    model = get_model()
-
-    all_players = {
+def _collect_all_players(games: list[MatchInfo]) -> set[str]:
+    return {
         player_ids.resolve_player_name(p.name, p.color)
         for game in games
         for p in game.players
     }
-    game_counts = dict.fromkeys(all_players, 0)
 
-    players = {name: initialize_player(name, model) for name in all_players}
-    logger.info(f"players: {players}")
-    rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in all_players}
 
-    # Process games
+def _build_teams(game: MatchInfo) -> tuple[dict[int, list[str]], dict[str, int]] | None:
+    """Return (teams, counts_increment) or None if game should be skipped."""
+    teams: dict[int, list[str]] = defaultdict(list)
+    counts: dict[str, int] = defaultdict(int)
+    actual_players = [p for p in game.players if p.team > 0]
+    logger.info(f"game: {game.id} players {[game.players]}")
+    for player in actual_players:
+        name = player_ids.resolve_player_name(player.name, player.color)
+        teams[player.team].append(name)
+        counts[name] += 1
+    if len(teams) != 2:
+        return None
+    return teams, counts
+
+
+def _compute_surprise_uncertainty(
+    score_values: list[float], prediction: list[float]
+) -> float:
+    surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction))
+    logger.info(f"scores:{score_values} prediction={prediction} {surprize=}")
+    return (surprize - 0.5) * 0.1 if surprize > 0.85 else 0.0
+
+
+def _update_ratings_for_game(
+    game: MatchInfo,
+    teams: dict[int, list[str]],
+    players: dict[str, NamedRating],
+    model: PlackettLuce,
+) -> tuple[dict[str, NamedRating], dict[str, NamedRating]]:
+    """Return (updated_player_ratings, new_history_entries)."""
+    scores = {t: 1.0 if game.winning_team == t else 0 for t in teams.keys()}
+    score_values = list(scores.values())
+    pteams = [[players[p].to_rating(model) for p in team] for team in teams.values()]
+    prediction = model.predict_win(teams=pteams)
+    surprize_uncertainty_add = _compute_surprise_uncertainty(score_values, prediction)
+    logger.info(f"{teams}")
+    logger.info(f"adding {surprize_uncertainty_add}")
+    new_ratings = model.rate(teams=pteams, scores=score_values)
+    updated: dict[str, NamedRating] = {}
+    history: dict[str, NamedRating] = {}
+    for t in new_ratings:
+        for p in t:
+            if p.name is not None:
+                new_rate = NamedRating(
+                    name=p.name,
+                    mu=p.mu,
+                    sigma=p.sigma + surprize_uncertainty_add,
+                    at_date=game.date,
+                )
+                updated[p.name] = new_rate
+                history[p.name] = new_rate
+    return updated, history
+
+
+def _process_games(
+    games: list[MatchInfo],
+    initial_players: dict[str, NamedRating],
+    model: PlackettLuce,
+) -> tuple[dict[str, NamedRating], dict[str, int], dict[str, list[NamedRating]]]:
+    players = dict(initial_players)
+    game_counts = dict.fromkeys(players, 0)
+    rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in players}
     for game in sorted(games, key=lambda x: x.timestamp):
         if not game.composition:
             continue
@@ -90,53 +132,52 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             continue
         if game.composition.is_1v1:
             continue
-        teams = defaultdict(list)
-        actual_players = [p for p in game.players if p.team > 0]
-        logger.info(f"game: {game.id} players {[game.players]}")
-        for player in actual_players:
-            teams[player.team].append(
-                player_ids.resolve_player_name(player.name, player.color)
-            )
-            game_counts[player_ids.resolve_player_name(player.name, player.color)] += 1
-        if len(teams) != 2:
+        result = _build_teams(game)
+        if result is None:
             continue
+        teams, counts = result
+        for name, count in counts.items():
+            game_counts[name] += count
+        updated, history = _update_ratings_for_game(game, teams, players, model)
+        players.update(updated)
+        for name, entry in history.items():
+            rating_over_time[name].append(entry)
+    return players, game_counts, rating_over_time
 
-        scores = {t: 1.0 if game.winning_team == t else 0 for t in teams.keys()}
-        score_values = list(scores.values())
-        pteams = [
-            [players[p].to_rating(model) for p in team] for team in teams.values()
-        ]
-        prediction = model.predict_win(teams=pteams)
-        surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction))
-        surprize_uncertainty_add = (surprize - 0.5) * 0.1 if surprize > 0.85 else 0.0
-        logger.info(f"{teams}")
-        logger.info(
-            f"scores:{score_values} prediction={prediction} {surprize=} adding{surprize_uncertainty_add}"
-        )
-        new_ratings = model.rate(teams=pteams, scores=score_values)
 
-        for t in new_ratings:
-            for p in t:
-                if p.name is not None:
-                    new_rate = NamedRating(
-                        name=p.name,
-                        mu=p.mu,
-                        sigma=p.sigma + surprize_uncertainty_add,
-                        at_date=game.date,
-                    )
-                    players[p.name] = new_rate
-                    rating_over_time[p.name].append(new_rate)
-
-    ratings = [r for r in players.values() if game_counts.get(r.name, 0) > 20]
-    sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
-    # Display results
+def _log_sorted_ratings(
+    sorted_ratings: list[NamedRating], game_counts: dict[str, int]
+) -> None:
     for rating in sorted_ratings:
         logger.info(
             f"{rating.name}[games={game_counts.get(rating.name)}]: {rating.ordinal():.1f} (μ={rating.mu:.1f}, σ={rating.sigma:.1f})"
         )
 
-    over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
 
+@cached(cache={}, key=lambda games: frozenset(g.id for g in games))
+def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
+    model = get_model()
+    all_players = _collect_all_players(games)
+    player_ratings = {name: initialize_player(name, model) for name in all_players}
+    logger.info(f"players: {player_ratings}")
+
+    for i in range(5):
+        min_sigmaed = {k: v.with_min_sigma(10.0) for k, v in player_ratings.items()}
+        player_ratings, game_counts, rating_over_time = _process_games(
+            games, min_sigmaed, model
+        )
+        logger.info(f"Pass {i}")
+        _log_sorted_ratings(
+            [r for r in player_ratings.values() if game_counts.get(r.name, 0) > 20],
+            game_counts,
+        )
+    logger.info("===")
+
+    ratings = [r for r in player_ratings.values() if game_counts.get(r.name, 0) > 20]
+    sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
+    _log_sorted_ratings(sorted_ratings, game_counts)
+
+    over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
     return RatingsAndCounts(
         ratings=sorted_ratings,
         game_counts=game_counts,
