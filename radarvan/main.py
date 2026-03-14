@@ -1,3 +1,4 @@
+from .notify import notify
 from collections import Counter
 from datetime import date
 from enum import Enum
@@ -583,6 +584,8 @@ async def _do_recompute(
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"saved {len(result.stats)} computed statistics")
+    notify("Recomputed superlatives")
+
     return result
 
 

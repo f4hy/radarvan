@@ -130,7 +130,10 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                     color="text.secondary"
                     display="block"
                   >
-                    {(new Date(entry.atdate ?? 0)).toLocaleDateString("en-US", {month: "short", day: "numeric"})}
+                    {new Date(entry.atdate ?? 0).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
                     {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
@@ -201,9 +204,19 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
   )
 }
 
-type RatingEntry = { mu: number; sigma: number; variance: number; name: string; ordinal: number; gameCount: number }
+type RatingEntry = {
+  mu: number
+  sigma: number
+  variance: number
+  name: string
+  ordinal: number
+  gameCount: number
+}
 
-function FormatSelector(props: { format: GameFormat; onChange: (f: GameFormat) => void }) {
+function FormatSelector(props: {
+  format: GameFormat
+  onChange: (f: GameFormat) => void
+}) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
       <Typography variant="h6">Game Format:</Typography>
