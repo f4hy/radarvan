@@ -151,12 +151,17 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
     return <Loading />
   }
   const entries = Object.entries(teamRating)
-  const threshold = Math.min(0.7, Math.max(...entries.map(([, winRate]) => (1.0 - Math.abs(winRate - 0.5) * 2))))
+  const threshold = Math.min(
+    0.7,
+    Math.max(
+      ...entries.map(([, winRate]) => 1.0 - Math.abs(winRate - 0.5) * 2),
+    ),
+  )
   const filtered = isDebug()
     ? entries
     : entries.filter(
-      ([, winRate], i) => (1.0 - Math.abs(winRate - 0.5) * 2) >= threshold,
-    )
+        ([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) * 2 >= threshold,
+      )
   return (
     <Stack
       spacing={1}
