@@ -579,7 +579,7 @@ async def _do_recompute(
     details = await match_details.load_many_superlative_data(
         [g.id for g in game_list], db_manager
     )
-    logger.info(f"Loaded {len(details)} match details for superlatives recompute")
+    notify(f"Loaded {len(details)} match details for superlatives recompute")
     result = superlatives.get_superlatives(game_list, details)
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)

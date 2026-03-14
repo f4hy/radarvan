@@ -388,8 +388,8 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
 async def load_many_superlative_data(
     match_ids: list[int],
     db_manager: DatabaseManager,
-    max_concurrent: int = 5,
-    chunk_size: int = 50,
+    max_concurrent: int = 2,
+    chunk_size: int = 10,
 ) -> list[SuperlativeData]:
     """Load reduced superlative data for many matches in parallel.
 
