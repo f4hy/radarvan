@@ -696,8 +696,9 @@ class ReplayManager:
             self.session.commit()
 
     def get_map_data(self, map_name: str) -> MapDataPayload | None:
-        """Return the map geometry payload for the given map name, or None."""
-        row = self.session.get(MapData, map_name)
+        """Return the map geometry payload for the given map name (case-insensitive), or None."""
+        stmt = select(MapData).where(MapData.map_name.ilike(map_name))
+        row = self.session.scalar(stmt)
         if row is None:
             return None
         return MapDataPayload.model_validate(row.data)
