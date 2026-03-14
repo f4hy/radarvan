@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     SmallInteger,
     String,
     Text,
@@ -251,3 +252,15 @@ class MatchCompostion(Base):
     is_team_game: Mapped[bool | None] = mapped_column()
 
     match: Mapped[Match] = relationship(back_populates="composition")
+
+
+class MapData(Base):
+    """Parsed map geometry data keyed by map name."""
+
+    __tablename__ = "map_data"
+
+    map_name: Mapped[str] = mapped_column(String, primary_key=True)
+    data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

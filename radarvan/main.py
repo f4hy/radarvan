@@ -50,6 +50,7 @@ from radarvan.api_types import (
     TournamentReport,
     PlayerRatings,
     PlayerRatingData,
+    MapDataPayload,
 )
 from cachetools import TTLCache, cached
 from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
@@ -939,6 +940,27 @@ def partition_teams(
     )
 
     return teams
+
+
+@app.post("/api/map_data/{map_name}")
+def save_map_data(
+    map_name: str,
+    payload: MapDataPayload,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> MapDataPayload:
+    replay_manager.save_map_data(map_name, payload)
+    return payload
+
+
+@app.get("/api/map_data/{map_name}")
+def get_map_data(
+    map_name: str,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> MapDataPayload:
+    result = replay_manager.get_map_data(map_name)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"No map data for '{map_name}'")
+    return result
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")

@@ -11,6 +11,7 @@ from .notify import notify
 from .db import (
     Base,
     ComputedStatistic,
+    MapData,
     ReplayFile,
     ParsedReplayJson,
     Match,
@@ -23,6 +24,7 @@ from .db import (
 )
 from .game_composition import GameComposition, compute_match_composition
 from .api_types import (
+    MapDataPayload,
     TournamentReport as PydanticTournamentReport,
     Statistic as PydanticStatistic,
 )
@@ -685,6 +687,20 @@ class ReplayManager:
             )
             for row in rows
         ]
+
+    def save_map_data(self, map_name: str, payload: MapDataPayload) -> None:
+        """Upsert map geometry data for the given map name."""
+        row = MapData(map_name=map_name, data=payload.model_dump())
+        self.session.merge(row)
+        if self.auto_commit:
+            self.session.commit()
+
+    def get_map_data(self, map_name: str) -> MapDataPayload | None:
+        """Return the map geometry payload for the given map name, or None."""
+        row = self.session.get(MapData, map_name)
+        if row is None:
+            return None
+        return MapDataPayload.model_validate(row.data)
 
     def get_tournament_report_by_name(
         self, name: str

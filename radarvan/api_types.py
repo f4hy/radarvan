@@ -606,3 +606,39 @@ class PlayerRatingData(BaseModel):
 
     player_rating: list[PlayerRatings]
     player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
+
+
+class MapExtent(BaseModel):
+    model_config = _SLOTS
+
+    width: float
+    height: float
+    grid_width: float
+    grid_height: float
+    border_size: float
+
+
+class MapPoint(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    x: float
+    y: float
+
+
+class MapPlayerStart(BaseModel):
+    model_config = _SLOTS
+
+    player_number: int
+    x: float
+    y: float
+
+
+class MapDataPayload(BaseModel):
+    model_config = _SLOTS
+
+    extent: MapExtent
+    player_starts: list[MapPlayerStart]
+    supply: list[MapPoint]
+    tech: list[MapPoint]
+    waypoints: list[MapPoint]
