@@ -386,12 +386,18 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
 
 
 async def load_many_superlative_data(
-    match_ids: list[int], db_manager: DatabaseManager, max_concurrent: int = 20
+    match_ids: list[int],
+    db_manager: DatabaseManager,
+    max_concurrent: int = 5,
+    chunk_size: int = 50,
 ) -> list[SuperlativeData]:
     """Load reduced superlative data for many matches in parallel.
 
     Each match is loaded as full MatchDetails, immediately converted to the smaller
     SuperlativeData, and the full details discarded — keeping peak memory low.
+
+    Processed in chunks of chunk_size to bound the number of coroutines scheduled at
+    once and give Python's GC a chance to release completed batches between chunks.
     """
     semaphore = asyncio.Semaphore(max_concurrent)
 
@@ -404,8 +410,12 @@ async def load_many_superlative_data(
             return None
         return superlative_data_from_details(details)
 
-    results = await asyncio.gather(*[_bounded(mid) for mid in match_ids])
-    return [r for r in results if r is not None]
+    all_results: list[SuperlativeData] = []
+    for i in range(0, len(match_ids), chunk_size):
+        chunk = match_ids[i : i + chunk_size]
+        chunk_results = await asyncio.gather(*[_bounded(mid) for mid in chunk])
+        all_results.extend(r for r in chunk_results if r is not None)
+    return all_results
 
 
 def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
