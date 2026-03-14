@@ -15,6 +15,7 @@ All URIs are relative to *http://localhost*
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
+| [**getMapDataApiMapDataMapNameGet**](DefaultApi.md#getmapdataapimapdatamapnameget) | **GET** /api/map_data/{map_name} | Get Map Data |
 | [**getMapStatsApiMapStatsGet**](DefaultApi.md#getmapstatsapimapstatsget) | **GET** /api/map_stats/ | Get Map Stats |
 | [**getMatchByIdApiMatchMatchIdGet**](DefaultApi.md#getmatchbyidapimatchmatchidget) | **GET** /api/match/{match_id} | Get Match By Id |
 | [**getMatchDetailsApiDetailsMatchIdGet**](DefaultApi.md#getmatchdetailsapidetailsmatchidget) | **GET** /api/details/{match_id} | Get Match Details |
@@ -36,11 +37,14 @@ All URIs are relative to *http://localhost*
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
 | [**recomputeSuperlativesApiSuperlativesRecomputePost**](DefaultApi.md#recomputesuperlativesapisuperlativesrecomputepost) | **POST** /api/superlatives/recompute | Recompute Superlatives |
+| [**refreshMatchesFromJsonApiRefreshMatchesFromJsonPost**](DefaultApi.md#refreshmatchesfromjsonapirefreshmatchesfromjsonpost) | **POST** /api/refresh_matches_from_json/ | Refresh Matches From Json |
+| [**registerMatchesApiRegisterMatchesPost**](DefaultApi.md#registermatchesapiregistermatchespost) | **POST** /api/register_matches/ | Register Matches |
 | [**registerReplayUrlApiRegisterReplayUrlPost**](DefaultApi.md#registerreplayurlapiregisterreplayurlpost) | **POST** /api/register_replay_url | Register Replay Url |
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
 | [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**resetMatchApiMatchMatchIdDelete**](DefaultApi.md#resetmatchapimatchmatchiddelete) | **DELETE** /api/match/{match_id} | Reset Match |
+| [**saveMapDataApiMapDataMapNamePost**](DefaultApi.md#savemapdataapimapdatamapnamepost) | **POST** /api/map_data/{map_name} | Save Map Data |
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
 | [**setOverrideApiSetOverridePost**](DefaultApi.md#setoverrideapisetoverridepost) | **POST** /api/set_override/ | Set Override |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
@@ -380,7 +384,7 @@ No authorization required
 
 ## fixIncompleteApiFixIncompletePost
 
-> { [key: string]: number | null; } fixIncompleteApiFixIncompletePost(maxToUpdate)
+> { [key: string]: number; } fixIncompleteApiFixIncompletePost(maxToUpdate)
 
 Fix Incomplete
 
@@ -423,7 +427,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number | null; }**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -446,7 +450,7 @@ No authorization required
 
 ## fixUnkPlayersApiFixUnkPlayerPost
 
-> { [key: string]: number | null; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
+> { [key: string]: number; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
 
 Fix Unk Players
 
@@ -489,7 +493,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number | null; }**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -749,6 +753,72 @@ example().catch(console.error);
 ### Return type
 
 [**GeneralStats**](GeneralStats.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getMapDataApiMapDataMapNameGet
+
+> MapDataPayload getMapDataApiMapDataMapNameGet(mapName)
+
+Get Map Data
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetMapDataApiMapDataMapNameGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string
+    mapName: mapName_example,
+  } satisfies GetMapDataApiMapDataMapNameGetRequest;
+
+  try {
+    const data = await api.getMapDataApiMapDataMapNameGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **mapName** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MapDataPayload**](MapDataPayload.md)
 
 ### Authorization
 
@@ -2046,11 +2116,11 @@ No authorization required
 
 ## recomputeSuperlativesApiSuperlativesRecomputePost
 
-> Superlatives recomputeSuperlativesApiSuperlativesRecomputePost(limit)
+> { [key: string]: string | null; } recomputeSuperlativesApiSuperlativesRecomputePost()
 
 Recompute Superlatives
 
-Recompute superlatives, persist to DB, and return the result.
+Trigger superlatives recompute in the background and return immediately.
 
 ### Example
 
@@ -2065,13 +2135,72 @@ async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new DefaultApi();
 
+  try {
+    const data = await api.recomputeSuperlativesApiSuperlativesRecomputePost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: string | null; }**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## refreshMatchesFromJsonApiRefreshMatchesFromJsonPost
+
+> { [key: string]: number; } refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(maxToUpdate)
+
+Refresh Matches From Json
+
+Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
   const body = {
-    // number | Cap number of matches loaded (for testing) (optional)
-    limit: 56,
-  } satisfies RecomputeSuperlativesApiSuperlativesRecomputePostRequest;
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest;
 
   try {
-    const data = await api.recomputeSuperlativesApiSuperlativesRecomputePost(body);
+    const data = await api.refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -2087,11 +2216,11 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **limit** | `number` | Cap number of matches loaded (for testing) | [Optional] [Defaults to `undefined`] |
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `10`] |
 
 ### Return type
 
-[**Superlatives**](Superlatives.md)
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -2108,6 +2237,65 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## registerMatchesApiRegisterMatchesPost
+
+> { [key: string]: string | null; } registerMatchesApiRegisterMatchesPost()
+
+Register Matches
+
+Register Match rows for any ParsedReplayJson that has no corresponding Match.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { RegisterMatchesApiRegisterMatchesPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  try {
+    const data = await api.registerMatchesApiRegisterMatchesPost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: string | null; }**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -2384,7 +2572,7 @@ No authorization required
 
 ## resetMatchApiMatchMatchIdDelete
 
-> { [key: string]: number | null; } resetMatchApiMatchMatchIdDelete(matchId)
+> { [key: string]: number; } resetMatchApiMatchMatchIdDelete(matchId)
 
 Reset Match
 
@@ -2429,7 +2617,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number | null; }**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -2438,6 +2626,75 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## saveMapDataApiMapDataMapNamePost
+
+> MapDataPayload saveMapDataApiMapDataMapNamePost(mapName, mapDataPayload)
+
+Save Map Data
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { SaveMapDataApiMapDataMapNamePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string
+    mapName: mapName_example,
+    // MapDataPayload
+    mapDataPayload: ...,
+  } satisfies SaveMapDataApiMapDataMapNamePostRequest;
+
+  try {
+    const data = await api.saveMapDataApiMapDataMapNamePost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **mapName** | `string` |  | [Defaults to `undefined`] |
+| **mapDataPayload** | [MapDataPayload](MapDataPayload.md) |  | |
+
+### Return type
+
+[**MapDataPayload**](MapDataPayload.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 
@@ -2655,7 +2912,7 @@ No authorization required
 
 ## updateMatchesMissingDataApiUpdateMatchesMissingDataPost
 
-> { [key: string]: number | null; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
+> { [key: string]: number; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
 
 Update Matches Missing Data
 
@@ -2698,7 +2955,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number | null; }**
+**{ [key: string]: number; }**
 
 ### Authorization
 
@@ -2721,7 +2978,7 @@ No authorization required
 
 ## updateNumTimestampsApiUpdateNumTimestampsPost
 
-> { [key: string]: number | null; } updateNumTimestampsApiUpdateNumTimestampsPost(maxToUpdate)
+> { [key: string]: number; } updateNumTimestampsApiUpdateNumTimestampsPost(maxToUpdate)
 
 Update Num Timestamps
 
@@ -2764,7 +3021,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number | null; }**
+**{ [key: string]: number; }**
 
 ### Authorization
 

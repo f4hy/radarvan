@@ -17,8 +17,12 @@ docs/GeneralWL.md
 docs/HTTPValidationError.md
 docs/LocationInner.md
 docs/MapData.md
+docs/MapDataPayload.md
+docs/MapExtent.md
 docs/MapGeneralWL.md
+docs/MapPlayerStart.md
 docs/MapPlayerWL.md
+docs/MapPoint.md
 docs/MapStatsResponse.md
 docs/MatchDetails.md
 docs/MatchInfo.md
@@ -75,8 +79,12 @@ models/GeneralWL.ts
 models/HTTPValidationError.ts
 models/LocationInner.ts
 models/MapData.ts
+models/MapDataPayload.ts
+models/MapExtent.ts
 models/MapGeneralWL.ts
+models/MapPlayerStart.ts
 models/MapPlayerWL.ts
+models/MapPoint.ts
 models/MapStatsResponse.ts
 models/MatchDetails.ts
 models/MatchInfo.ts

@@ -11,6 +11,7 @@ Name | Type
 `team` | [Team](Team.md)
 `color` | string
 `won` | boolean
+`startingPosition` | number
 
 ## Example
 
@@ -24,6 +25,7 @@ const example = {
   "team": null,
   "color": null,
   "won": null,
+  "startingPosition": null,
 } satisfies Player
 
 console.log(example)

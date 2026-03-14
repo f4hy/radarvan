@@ -19,6 +19,7 @@ import type {
   GameRecord,
   GeneralStats,
   HTTPValidationError,
+  MapDataPayload,
   MapStatsResponse,
   MatchDetails,
   MatchInfo,
@@ -45,6 +46,8 @@ import {
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    MapDataPayloadFromJSON,
+    MapDataPayloadToJSON,
     MapStatsResponseFromJSON,
     MapStatsResponseToJSON,
     MatchDetailsFromJSON,
@@ -115,6 +118,10 @@ export interface GetGeneralsStatsApiGeneralstatsGetRequest {
     gameFormat?: string | null;
 }
 
+export interface GetMapDataApiMapDataMapNameGetRequest {
+    mapName: string;
+}
+
 export interface GetMatchByIdApiMatchMatchIdGetRequest {
     matchId: number;
 }
@@ -161,8 +168,8 @@ export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     players?: Array<PlayerEnum>;
 }
 
-export interface RecomputeSuperlativesApiSuperlativesRecomputePostRequest {
-    limit?: number | null;
+export interface RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest {
+    maxToUpdate?: number;
 }
 
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
@@ -183,6 +190,11 @@ export interface RepraseApiRepraseMatchIdPostRequest {
 
 export interface ResetMatchApiMatchMatchIdDeleteRequest {
     matchId: number;
+}
+
+export interface SaveMapDataApiMapDataMapNamePostRequest {
+    mapName: string;
+    mapDataPayload: MapDataPayload;
 }
 
 export interface ScrapeApiScrapeDaysPostRequest {
@@ -399,7 +411,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Incomplete
      */
-    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -424,7 +436,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Incomplete
      */
-    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.fixIncompleteApiFixIncompletePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -432,7 +444,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Unk Players
      */
-    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -457,7 +469,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Unk Players
      */
-    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -606,6 +618,43 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getGeneralsStatsApiGeneralstatsGet(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
         const response = await this.getGeneralsStatsApiGeneralstatsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Map Data
+     */
+    async getMapDataApiMapDataMapNameGetRaw(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
+        if (requestParameters['mapName'] == null) {
+            throw new runtime.RequiredError(
+                'mapName',
+                'Required parameter "mapName" was null or undefined when calling getMapDataApiMapDataMapNameGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/map_data/{map_name}`;
+        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MapDataPayloadFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Map Data
+     */
+    async getMapDataApiMapDataMapNameGet(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDataPayload> {
+        const response = await this.getMapDataApiMapDataMapNameGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1311,15 +1360,11 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Recompute superlatives, persist to DB, and return the result.
+     * Trigger superlatives recompute in the background and return immediately.
      * Recompute Superlatives
      */
-    async recomputeSuperlativesApiSuperlativesRecomputePostRaw(requestParameters: RecomputeSuperlativesApiSuperlativesRecomputePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Superlatives>> {
+    async recomputeSuperlativesApiSuperlativesRecomputePostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
         const queryParameters: any = {};
-
-        if (requestParameters['limit'] != null) {
-            queryParameters['limit'] = requestParameters['limit'];
-        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -1333,15 +1378,81 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => SuperlativesFromJSON(jsonValue));
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
-     * Recompute superlatives, persist to DB, and return the result.
+     * Trigger superlatives recompute in the background and return immediately.
      * Recompute Superlatives
      */
-    async recomputeSuperlativesApiSuperlativesRecomputePost(requestParameters: RecomputeSuperlativesApiSuperlativesRecomputePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Superlatives> {
-        const response = await this.recomputeSuperlativesApiSuperlativesRecomputePostRaw(requestParameters, initOverrides);
+    async recomputeSuperlativesApiSuperlativesRecomputePost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.recomputeSuperlativesApiSuperlativesRecomputePostRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+     * Refresh Matches From Json
+     */
+    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/refresh_matches_from_json/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+     * Refresh Matches From Json
+     */
+    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+        const response = await this.refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Register Match rows for any ParsedReplayJson that has no corresponding Match.
+     * Register Matches
+     */
+    async registerMatchesApiRegisterMatchesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/register_matches/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Register Match rows for any ParsedReplayJson that has no corresponding Match.
+     * Register Matches
+     */
+    async registerMatchesApiRegisterMatchesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.registerMatchesApiRegisterMatchesPostRaw(initOverrides);
         return await response.value();
     }
 
@@ -1502,7 +1613,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
      * Reset Match
      */
-    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -1532,8 +1643,55 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
      * Reset Match
      */
-    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.resetMatchApiMatchMatchIdDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Save Map Data
+     */
+    async saveMapDataApiMapDataMapNamePostRaw(requestParameters: SaveMapDataApiMapDataMapNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
+        if (requestParameters['mapName'] == null) {
+            throw new runtime.RequiredError(
+                'mapName',
+                'Required parameter "mapName" was null or undefined when calling saveMapDataApiMapDataMapNamePost().'
+            );
+        }
+
+        if (requestParameters['mapDataPayload'] == null) {
+            throw new runtime.RequiredError(
+                'mapDataPayload',
+                'Required parameter "mapDataPayload" was null or undefined when calling saveMapDataApiMapDataMapNamePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/map_data/{map_name}`;
+        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: MapDataPayloadToJSON(requestParameters['mapDataPayload']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MapDataPayloadFromJSON(jsonValue));
+    }
+
+    /**
+     * Save Map Data
+     */
+    async saveMapDataApiMapDataMapNamePost(requestParameters: SaveMapDataApiMapDataMapNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDataPayload> {
+        const response = await this.saveMapDataApiMapDataMapNamePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1667,7 +1825,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Matches Missing Data
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -1692,7 +1850,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Matches Missing Data
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -1700,7 +1858,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Num Timestamps
      */
-    async updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+    async updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -1725,7 +1883,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Num Timestamps
      */
-    async updateNumTimestampsApiUpdateNumTimestampsPost(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+    async updateNumTimestampsApiUpdateNumTimestampsPost(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters, initOverrides);
         return await response.value();
     }

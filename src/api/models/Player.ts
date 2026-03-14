@@ -64,6 +64,12 @@ export interface Player {
      * @memberof Player
      */
     won?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof Player
+     */
+    startingPosition?: number | null;
 }
 
 
@@ -94,6 +100,7 @@ export function PlayerFromJSONTyped(json: any, ignoreDiscriminator: boolean): Pl
         'team': TeamFromJSON(json['team']),
         'color': json['color'],
         'won': json['won'] == null ? undefined : json['won'],
+        'startingPosition': json['starting_position'] == null ? undefined : json['starting_position'],
     };
 }
 
@@ -113,6 +120,7 @@ export function PlayerToJSONTyped(value?: Player | null, ignoreDiscriminator: bo
         'team': TeamToJSON(value['team']),
         'color': value['color'],
         'won': value['won'],
+        'starting_position': value['startingPosition'],
     };
 }
 
