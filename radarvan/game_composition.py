@@ -33,6 +33,7 @@ class GameComposition(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,  # Allow both snake_case and camelCase
+        slots=True,  # type: ignore[typeddict-unknown-key]
         json_schema_extra={
             "example": {
                 "category": "2v2",

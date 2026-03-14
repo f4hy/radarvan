@@ -4,6 +4,12 @@ from enum import IntEnum
 from typing import Literal
 from .game_composition import GameComposition
 
+_SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
+_SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
+# Classes with field aliases must use an inline ConfigDict so the pydantic mypy plugin
+# can statically resolve populate_by_name=True. _SLOTS and _SLOTS_FA are safe to share
+# because none of those classes have aliases.
+
 
 class General(IntEnum):
     USA = 0
@@ -38,6 +44,8 @@ class Team(IntEnum):
 
 
 class Player(BaseModel):
+    model_config = _SLOTS
+
     name: str
     general: General
     team: Team
@@ -60,7 +68,7 @@ class Player(BaseModel):
 
 
 class MatchInfo(BaseModel):
-    model_config = ConfigDict(frozen=True, populate_by_name=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
     id: int
     timestamp: datetime
@@ -77,182 +85,197 @@ class MatchInfo(BaseModel):
 
 
 class Matches(BaseModel):
+    model_config = _SLOTS
+
     matches: list[MatchInfo]
 
 
 class WinLoss(BaseModel):
+    model_config = _SLOTS
+
     wins: int
     losses: int
 
 
 class GeneralWL(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     general: General
     win_loss: WinLoss = Field(alias="winLoss")
 
-    class Config:
-        populate_by_name = True
-
 
 class DateMessage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     year: int = Field(alias="Year")
     month: int = Field(alias="Month")
     day: int = Field(alias="Day")
 
-    class Config:
-        populate_by_name = True
-
 
 class PlayerRateOverTime(BaseModel):
+    model_config = _SLOTS
+
     date: DateMessage
     wl: GeneralWL
 
 
 class PlayerStatFactionWL(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     faction: Faction = Faction.ANYUSA
     win_loss: WinLoss | None = Field(default=None, alias="winLoss")
 
-    class Config:
-        populate_by_name = True
-
 
 class PlayerStat(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     player_name: str = Field(alias="playerName")
     stats: dict[General, WinLoss]
     faction_stats: list[PlayerStatFactionWL] = Field(alias="factionStats")
     over_time: list[PlayerRateOverTime] = Field(alias="overTime")
     game_counts: dict[str, int] = Field(default_factory=dict, alias="gameCounts")
 
-    class Config:
-        populate_by_name = True
-
 
 class PlayerStats(BaseModel):
-    player_stats: list[PlayerStat] = Field(alias="playerStats")
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    class Config:
-        populate_by_name = True
+    player_stats: list[PlayerStat] = Field(alias="playerStats")
 
 
 class GeneralStatPlayerWL(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     player_name: str = Field(alias="playerName")
     win_loss: WinLoss | None = Field(default=None, alias="winLoss")
 
-    class Config:
-        populate_by_name = True
-
 
 class GeneralStat(BaseModel):
+    model_config = _SLOTS
+
     general: General
     stats: list[GeneralStatPlayerWL]
     total: WinLoss
 
 
 class GeneralStats(BaseModel):
-    general_stats: list[GeneralStat]
+    model_config = _SLOTS
 
-    class Config:
-        populate_by_name = True
+    general_stats: list[GeneralStat]
 
 
 class TeamStat(BaseModel):
+    model_config = _SLOTS
+
     date: DateMessage | None = None
     team: Team = Team.NONE
     wins: int = 0
 
 
 class TeamStats(BaseModel):
-    team_stats: list[TeamStat] = Field(alias="teamStats")
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    class Config:
-        populate_by_name = True
+    team_stats: list[TeamStat] = Field(alias="teamStats")
 
 
 class TeamRecord(BaseModel):
+    model_config = _SLOTS
+
     players: list[str]
     wins: int
     losses: int
 
-    class Config:
-        populate_by_name = True
-
 
 class TeamSizeGroup(BaseModel):
+    model_config = _SLOTS
+
     size: int
     teams: list[TeamRecord]
 
 
 class TeamStatsResponse(BaseModel):
+    model_config = _SLOTS
+
     groups: list[TeamSizeGroup]
 
 
 class MapPlayerWL(BaseModel):
+    model_config = _SLOTS
+
     player: str
     wins: int
     losses: int
 
 
 class MapGeneralWL(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     general: General
     wins: int
     losses: int
     win_rate_delta: float = Field(default=0.0, alias="winRateDelta")
 
-    class Config:
-        populate_by_name = True
-
 
 class MapData(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     map_name: str = Field(alias="mapName")
     total_games: int = Field(alias="totalGames")
     player_stats: list[MapPlayerWL] = Field(alias="playerStats")
     general_stats: list[MapGeneralWL] = Field(alias="generalStats")
 
-    class Config:
-        populate_by_name = True
-
 
 class MapStatsResponse(BaseModel):
+    model_config = _SLOTS
+
     maps: list[MapData]
 
 
 class MapStat(BaseModel):
+    model_config = _SLOTS
+
     map: str = ""
     team: Team = Team.NONE
     wins: int = 0
 
 
 class MapResult(BaseModel):
+    model_config = _SLOTS
+
     map: str = ""
     date: DateMessage | None = None
     winner: Team = Team.NONE
 
 
 class MapResults(BaseModel):
+    model_config = _SLOTS
+
     results: list[MapResult]
 
 
 class MapStats(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     map_stats: list[MapStat] = Field(alias="mapStats")
     over_time: dict[str, MapResults] = Field(alias="overTime")
 
-    class Config:
-        populate_by_name = True
-
 
 class SaveResponse(BaseModel):
+    model_config = _SLOTS
+
     success: bool = False
 
 
 class CostsBuiltObject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     name: str
     count: int
     total_spent: int = Field(alias="totalSpent")
 
-    class Config:
-        populate_by_name = True
-
 
 class Costs(BaseModel):
+    model_config = _SLOTS
+
     player: Player | None
     buildings: list[CostsBuiltObject]
     units: list[CostsBuiltObject]
@@ -260,40 +283,41 @@ class Costs(BaseModel):
 
 
 class APM(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     player_name: str = Field(alias="playerName")
     action_count: int = Field(alias="actionCount")
     minutes: float
     apm: float
 
-    class Config:
-        populate_by_name = True
-
 
 class UpgradeEvent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     player_name: str = Field(alias="playerName")
     timecode: int = 0
     upgrade_name: str = Field(alias="upgradeName")
     cost: int
     at_minute: float = Field(alias="atMinute")
 
-    class Config:
-        populate_by_name = True
-
 
 class Spent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     player_name: str = Field(alias="playerName")
     acc_cost: int = Field(alias="accCost")
     at_minute: float = Field(alias="atMinute")
 
-    class Config:
-        populate_by_name = True
-
 
 class Upgrades(BaseModel):
+    model_config = _SLOTS
+
     upgrades: list[UpgradeEvent]
 
 
 class SpentOverTime(BaseModel):
+    model_config = _SLOTS
+
     buildings: list[Spent]
     units: list[Spent]
     upgrades: list[Spent]
@@ -301,11 +325,15 @@ class SpentOverTime(BaseModel):
 
 
 class ObjectSummary(BaseModel):
+    model_config = _SLOTS
+
     Count: int
     TotalSpent: int
 
 
 class PlayerSummary(BaseModel):
+    model_config = _SLOTS
+
     Name: str
     Side: str
     Team: int
@@ -319,12 +347,16 @@ class PlayerSummary(BaseModel):
 
 
 class FirstBlood(BaseModel):
+    model_config = _SLOTS
+
     attacker: str
     victim: str
     atMinute: float
 
 
 class SuperlativePlayerSummary(BaseModel):
+    model_config = _SLOTS
+
     name: str
     color: str
     won: bool
@@ -334,6 +366,8 @@ class SuperlativePlayerSummary(BaseModel):
 
 
 class SuperlativeData(BaseModel):
+    model_config = _SLOTS
+
     match_id: int
     first_blood: FirstBlood | None = None
     building_first_blood: FirstBlood | None = None
@@ -348,6 +382,8 @@ class SuperlativeData(BaseModel):
 
 
 class MatchDetails(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     match_id: int = Field(alias="matchId")
     game_version: str | None = Field(None)
     costs: list[Costs]
@@ -367,43 +403,48 @@ class MatchDetails(BaseModel):
     building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
 
-    class Config:
-        populate_by_name = True
-
 
 class PairWinLoss(BaseModel):
+    model_config = _SLOTS
+
     general1: General
     general2: General
     winloss: WinLoss | None
 
 
 class PairFactionWinLoss(BaseModel):
+    model_config = _SLOTS
+
     faction1: Faction = Faction.ANYUSA
     faction2: Faction = Faction.ANYUSA
     winloss: WinLoss | None
 
 
 class PairsWinLosses(BaseModel):
+    model_config = _SLOTS
+
     pairwl: list[PairWinLoss]
 
 
 class PairFactionWinLosses(BaseModel):
+    model_config = _SLOTS
+
     pairwl: list[PairFactionWinLoss]
 
 
 class TeamPairs(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     team_pairs: dict[str, PairsWinLosses] = Field(alias="teamPairs")
     faction_pairs: dict[str, PairFactionWinLosses] = Field(alias="factionPairs")
-
-    class Config:
-        populate_by_name = True
 
 
 # listing
 
 
 class PlayerListing(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _SLOTS_FA
+
     id: int
     player_name: str
     team_id: int
@@ -414,7 +455,8 @@ class PlayerListing(BaseModel):
 
 
 class MatchListing(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _SLOTS_FA
+
     match_id: int
     map: str
     duration_minutes: float
@@ -429,7 +471,8 @@ class MatchListing(BaseModel):
 
 
 class GameRecord(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _SLOTS_FA
+
     json_s3_uri: str
     file_size_bytes: int | None = None
     game_timestamp: datetime
@@ -441,7 +484,9 @@ class GameRecord(BaseModel):
     match: MatchListing | None = None
 
 
-class Tournament(BaseModel, frozen=True):
+class Tournament(BaseModel):
+    model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     name: str
     start_date: date
     end_date: date
@@ -450,6 +495,8 @@ class Tournament(BaseModel, frozen=True):
 
 
 class MatchupResult(BaseModel):
+    model_config = _SLOTS
+
     tournament_name: str
     matches: list[MatchInfo]
     outcome: dict[tuple[str, ...], WinLoss]
@@ -457,12 +504,16 @@ class MatchupResult(BaseModel):
 
 
 class Matchup(BaseModel):
+    model_config = _SLOTS
+
     team1: tuple[str, ...]
     team2: tuple[str, ...]
     played: bool
 
 
 class TournamentResult(BaseModel):
+    model_config = _SLOTS
+
     tournament: Tournament
     matchups: list[MatchupResult]
 
@@ -470,7 +521,9 @@ class TournamentResult(BaseModel):
     complete: bool
 
 
-class Statistic(BaseModel, frozen=True):
+class Statistic(BaseModel):
+    model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     stat_name: str
     date_computed: date
     value: float | str | None = None
@@ -478,12 +531,16 @@ class Statistic(BaseModel, frozen=True):
     match_id: int | None = None
 
 
-class TournamentReport(BaseModel, frozen=True):
+class TournamentReport(BaseModel):
+    model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
     name: str
     stats: list[Statistic]
 
 
 class WinnerOverride(BaseModel):
+    model_config = _SLOTS
+
     match_id: int
     winning_team_id: Team
     incomplete: str | None = None
@@ -492,6 +549,8 @@ class WinnerOverride(BaseModel):
 class ReplayFileSchema(BaseModel):
     """Public API representation of ReplayFile"""
 
+    model_config = _SLOTS_FA
+
     original_url: str
     s3_uri: str
     status: str
@@ -499,11 +558,11 @@ class ReplayFileSchema(BaseModel):
     discovered_at: datetime
     source_date: date
 
-    model_config = ConfigDict(from_attributes=True)  # Allows ORM mode
-
 
 class ParsedReplayJsonSchema(BaseModel):
     """Public API representation of ParsedReplayJson"""
+
+    model_config = _SLOTS_FA
 
     json_s3_uri: str
     match_id: int
@@ -515,32 +574,35 @@ class ParsedReplayJsonSchema(BaseModel):
     updated_at: datetime | None = None
     has_enhanced_stats: bool | None = None
 
-    model_config = ConfigDict(from_attributes=True)
-
 
 class PlayerGameCount(BaseModel):
+    model_config = _SLOTS
+
     name: str
     count: int
 
 
 class PlayerRatings(BaseModel):
+    model_config = _SLOTS_FA
+
     name: str
     ordinal: float
     mu: float
     sigma: float
     game_count: int
     atdate: date | None = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ShortPlayerRating(BaseModel):
+    model_config = _SLOTS_FA
+
     mu: float
     sigma: float
     atdate: date | None = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class PlayerRatingData(BaseModel):
+    model_config = _SLOTS_FA
+
     player_rating: list[PlayerRatings]
     player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
-    model_config = ConfigDict(from_attributes=True)
