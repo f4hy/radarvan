@@ -65,6 +65,13 @@ def save_replay_if_missing(
     replay_manager.register_replay(replay_path, save_path)
 
 
+def with_filename(replay: EnhancedReplay, path: str) -> EnhancedReplay:
+    """Return a copy of replay with Header.FileName set to path."""
+    return replay.model_copy(
+        update={"Header": replay.Header.model_copy(update={"FileName": path})}
+    )
+
+
 def parse_json(json_path: str) -> EnhancedReplay:
     fs = get_fs()
     with log_time(f"reading {json_path}", logger):
@@ -104,8 +111,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
         )
 
     logger.debug(f"Finished parsing replay {path=}")
-    updated_header = parsed_replay.Header.model_copy(update={"FileName": path})
-    return parsed_replay.model_copy(update={"Header": updated_header})
+    return with_filename(parsed_replay, path)
 
 
 def reparse(
@@ -130,11 +136,9 @@ def reparse(
         return None
 
     raw_replay = fs.read_bytes(replay_path)
-    parsed_replay_raw = parse_replay_data(raw_replay, replay_manager)
-    updated_header = parsed_replay_raw.Header.model_copy(
-        update={"FileName": original_path}
+    parsed_replay = with_filename(
+        parse_replay_data(raw_replay, replay_manager), original_path
     )
-    parsed_replay = parsed_replay_raw.model_copy(update={"Header": updated_header})
 
     if existing_replay == parsed_replay and not force:
         logger.warning("No change in replay, not resaving")

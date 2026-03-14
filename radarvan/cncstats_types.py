@@ -105,7 +105,6 @@ class EnhancedBodyChunk(BaseModel):
     OrderName: str
     PlayerID: int
     PlayerName: str
-    NumberOfArguments: int
     Details: EventDetails | None = None
     PlayerMoney: Money | None = None
     PlayerStats: PlayerStatsData | None = None

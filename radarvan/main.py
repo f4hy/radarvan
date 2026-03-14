@@ -763,8 +763,10 @@ def refresh_matches_from_json(
         if json_record is None:
             continue
         try:
-            replay = replay_files.parse_json(json_record.json_s3_uri)
-            replay.Header.FileName = json_record.replay_file_url
+            replay = replay_files.with_filename(
+                replay_files.parse_json(json_record.json_s3_uri),
+                json_record.replay_file_url,
+            )
         except Exception:
             logger.exception(f"Failed to load JSON for match {db_match.match_id}")
             continue

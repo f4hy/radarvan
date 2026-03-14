@@ -633,19 +633,16 @@ def get_superlatives(
     ]
     if details:
         match_info_by_id = {g.id: g for g in games}
-        stats += [
-            *_safe_compute(
-                get_first_blood_stats, match_info_by_id, details, computed_at
-            ),
-            *_safe_compute(
-                get_building_first_blood_stats, match_info_by_id, details, computed_at
-            ),
-            *_safe_compute(get_apm_stats, details, computed_at),
-            *_safe_compute(get_money_stats, details, computed_at),
-            *_safe_compute(get_player_money_stats, details, computed_at),
-            *_safe_compute(get_activity_stats, details, computed_at),
-            *_safe_compute(get_efficiency_stats, details, computed_at),
-        ]
+        for fn, *args in [
+            (get_first_blood_stats, match_info_by_id, details, computed_at),
+            (get_building_first_blood_stats, match_info_by_id, details, computed_at),
+            (get_apm_stats, details, computed_at),
+            (get_money_stats, details, computed_at),
+            (get_player_money_stats, details, computed_at),
+            (get_activity_stats, details, computed_at),
+            (get_efficiency_stats, details, computed_at),
+        ]:
+            stats.extend(_safe_compute(fn, *args))
 
     return Superlatives(
         stats=stats,
