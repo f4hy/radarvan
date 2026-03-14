@@ -162,7 +162,7 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     logger.info(f"players: {player_ratings}")
 
     for i in range(5):
-        min_sigmaed = {k: v.with_min_sigma(10.0) for k, v in player_ratings.items()}
+        min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
         player_ratings, game_counts, rating_over_time = _process_games(
             games, min_sigmaed, model
         )
