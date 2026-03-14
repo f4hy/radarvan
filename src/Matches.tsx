@@ -99,8 +99,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
             >
               {p.name}
             </Typography>
-            <Typography
-            >
+            <Typography>
               {p.startingPosition ? `🗺️${p.startingPosition}` : ""}
             </Typography>
           </Stack>

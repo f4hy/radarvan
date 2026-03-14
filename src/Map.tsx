@@ -9,13 +9,23 @@ import type { MapDataPayload } from "./api"
 
 type PointCategory = "playerStarts" | "supply" | "tech"
 
-const POINT_STYLES: Record<
-  PointCategory,
-  { color: string; size: number; label: string; symbol?: string }
-> = {
-  playerStarts: { color: "#000000", size: 12, label: "Player start" },
-  supply: { color: "#32CD32", size: 14, label: "Supply", symbol: "$" },
-  tech: { color: "#ffdd00", size: 14, label: "Tech", symbol: "★" },
+type PointStyle = { color: string; size: number; symbol?: string }
+
+const BASE_STYLES: Record<PointCategory, PointStyle> = {
+  playerStarts: { color: "#000000", size: 12 },
+  supply: { color: "#32CD32", size: 14, symbol: "$" },
+  tech: { color: "#ffdd00", size: 14, symbol: "★" },
+}
+
+function pointStyle(category: PointCategory, name: string): PointStyle {
+  const base = BASE_STYLES[category]
+  if (category === "supply" && name.includes("Small")) {
+    return { ...base, color: "#1E90FF", size: 8 }
+  }
+  if (category === "tech" && name.includes("Derrick")) {
+    return { ...base, symbol: "⛽" }
+  }
+  return base
 }
 
 function getMapUrl(mapname: string) {
@@ -86,41 +96,57 @@ export default function Map(props: { mapname: string }) {
               style={{ width: "100%", height: "auto", display: "block" }}
             />
             {mapData &&
-              (Object.keys(POINT_STYLES) as PointCategory[]).flatMap(
+              (Object.keys(BASE_STYLES) as PointCategory[]).flatMap(
                 (category) => {
                   const points = mapData[category]
                   if (!points.length) return []
-                  const { color, size, label, symbol } = POINT_STYLES[category]
-                  return points.map((pt, i) => (
-                    <Tooltip key={`${category}-${i}`} title={`${label} ${i}`}>
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          left: `${(pt.x / mapData.extent.width) * 100}%`,
-                          top: `${(pt.y / mapData.extent.height) * 100}%`,
-                          transform: "translate(-50%, -50%)",
-                          cursor: "default",
-                          ...(symbol
-                            ? {
-                                color,
-                                fontSize: size,
-                                lineHeight: 1,
-                                textShadow: "0 0 3px #000",
-                              }
-                            : {
-                                width: size,
-                                height: size,
-                                borderRadius: "50%",
-                                bgcolor: color,
-                                border: "2px solid white",
-                                boxShadow: "0 0 4px rgba(0,0,0,0.6)",
-                              }),
-                        }}
+                  return points.map((pt, i) => {
+                    const name = "name" in pt ? pt.name : ""
+                    const { color, size, symbol } = pointStyle(category, name)
+                    return (
+                      <Tooltip
+                        key={`${category}-${i}`}
+                        title={
+                          "name" in pt ? pt.name : `Player ${pt.playerNumber}`
+                        }
                       >
-                        {symbol ?? ""}
-                      </Box>
-                    </Tooltip>
-                  ))
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            left: `${(pt.x / mapData.extent.width) * 100}%`,
+                            top: `${(pt.y / mapData.extent.height) * 100}%`,
+                            transform: "translate(-50%, -50%)",
+                            cursor: "default",
+                            ...(symbol
+                              ? {
+                                  color,
+                                  fontSize: size,
+                                  lineHeight: 1,
+                                  textShadow: "0 0 3px #000",
+                                }
+                              : {
+                                  width: size * 1.5,
+                                  height: size * 1.5,
+                                  borderRadius: "100%",
+                                  bgcolor: color,
+                                  border: "2px solid white",
+                                  boxShadow: "0 0 4px rgba(0,0,0,0.6)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "white",
+                                  fontSize: size * 1.4,
+                                  fontWeight: "bold",
+                                  lineHeight: 1,
+                                }),
+                          }}
+                        >
+                          {symbol ??
+                            ("playerNumber" in pt ? pt.playerNumber : "")}
+                        </Box>
+                      </Tooltip>
+                    )
+                  })
                 },
               )}
           </Box>
