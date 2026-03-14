@@ -59,9 +59,9 @@ NAME_MAPPING = {
     "pcap": "pcap",
     "g.c": "pcap",
     "gc": "pcap",
-    "domi": "DoMiNaToR",
-    "-dominator-": "DoMiNaToR",
-    "dominator": "DoMiNaToR",
+    # "domi": "DoMiNaToR",
+    # "-dominator-": "DoMiNaToR",
+    # "dominator": "DoMiNaToR",
     # "[ooe]excal^": "[OoE]Excal^",
 }
 
