@@ -5,6 +5,10 @@ docs/Costs.md
 docs/CostsBuiltObject.md
 docs/DateMessage.md
 docs/DefaultApi.md
+docs/DraftAssignment.md
+docs/DraftPlayerRequest.md
+docs/DraftRequest.md
+docs/DraftResult.md
 docs/Faction.md
 docs/FirstBlood.md
 docs/GameComposition.md
@@ -67,6 +71,10 @@ models/APM.ts
 models/Costs.ts
 models/CostsBuiltObject.ts
 models/DateMessage.ts
+models/DraftAssignment.ts
+models/DraftPlayerRequest.ts
+models/DraftRequest.ts
+models/DraftResult.ts
 models/Faction.ts
 models/FirstBlood.ts
 models/GameComposition.ts

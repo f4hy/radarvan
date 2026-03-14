@@ -30,6 +30,7 @@ from . import tournament
 from . import player_rating
 from . import superlatives
 from . import create_teams
+from . import draft as draft_module
 from radarvan.api_types import (
     MatchDetails,
     MapStatsResponse,
@@ -51,6 +52,9 @@ from radarvan.api_types import (
     PlayerRatings,
     PlayerRatingData,
     MapDataPayload,
+    DraftPlayerRequest,
+    DraftRequest,
+    DraftResult,
 )
 from cachetools import TTLCache, cached
 from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
@@ -960,6 +964,34 @@ def get_map_data(
     result = replay_manager.get_map_data(map_name)
     if result is None:
         raise HTTPException(status_code=404, detail=f"No map data for '{map_name}'")
+    return result
+
+
+_draft_cache: TTLCache[str, DraftResult] = TTLCache(maxsize=100, ttl=1800)
+
+
+def _draft_cache_key(map_name: str, players: list[DraftPlayerRequest]) -> str:
+    return f"{map_name}:{tuple(sorted((p.name, p.team) for p in players))}"
+
+
+@app.post("/api/draft/randomize")
+def randomize_draft(
+    request: DraftRequest,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> DraftResult:
+    key = _draft_cache_key(request.map_name, request.players)
+    if key in _draft_cache:
+        return _draft_cache[key]
+    map_data = replay_manager.get_map_data(request.map_name)
+    if map_data is None:
+        raise HTTPException(
+            status_code=404, detail=f"No map data for '{request.map_name}'"
+        )
+    assignments, randomized_at = draft_module.compute_draft(
+        request.players, map_data.player_starts
+    )
+    result = DraftResult(assignments=assignments, randomized_at=randomized_at)
+    _draft_cache[key] = result
     return result
 
 

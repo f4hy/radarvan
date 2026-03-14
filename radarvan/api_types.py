@@ -642,3 +642,33 @@ class MapDataPayload(BaseModel):
     supply: list[MapPoint]
     tech: list[MapPoint]
     waypoints: list[MapPoint]
+
+
+class DraftPlayerRequest(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    team: int  # 1-4
+
+
+class DraftRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    players: list[DraftPlayerRequest]
+
+
+class DraftAssignment(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_name: str = Field(alias="playerName")
+    team: int
+    position_number: int = Field(alias="positionNumber")
+    general: int
+
+
+class DraftResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    assignments: list[DraftAssignment]
+    randomized_at: datetime = Field(alias="randomizedAt")

@@ -20,25 +20,17 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd"
 import LinearProgress from "@mui/material/LinearProgress"
 import Stack from "@mui/material/Stack"
 import * as React from "react"
-import type { MapDataPayload, MapPlayerStart } from "./api"
+import type { DraftAssignment, MapDataPayload } from "./api"
 import { PlayerEnum } from "./api"
 import { Client } from "./Client"
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
 import Map from "./Map"
 import { MAPLIST } from "./maplist"
-import { General } from "./proto/match"
-
 interface DraftPlayer {
   id: number
   name: string
   team: 1 | 2 | 3 | 4
-}
-
-interface Assignment {
-  player: DraftPlayer
-  position: MapPlayerStart
-  general: General
 }
 
 const TEAM_COLORS: Record<1 | 2 | 3 | 4, string> = {
@@ -73,85 +65,14 @@ function mapApiName(filename: string): string {
   return mapDisplayName(filename)
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const out = [...arr]
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
-
-function centroid(positions: MapPlayerStart[]): { x: number; y: number } {
-  const x = positions.reduce((s, p) => s + p.x, 0) / positions.length
-  const y = positions.reduce((s, p) => s + p.y, 0) / positions.length
-  return { x, y }
-}
-
-function dist(
-  a: { x: number; y: number },
-  b: { x: number; y: number },
-): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
-}
-
-function assignPositions(
-  positions: MapPlayerStart[],
-  players: DraftPlayer[],
-): Assignment[] {
-  const shuffled = shuffle(positions)
-  const teams = [1, 2, 3, 4].filter((t) =>
-    players.some((p) => p.team === t),
-  ) as (1 | 2 | 3 | 4)[]
-  const teamPlayers: Record<number, DraftPlayer[]> = {}
-  for (const t of teams) {
-    teamPlayers[t] = players.filter((p) => p.team === t)
-  }
-
-  const remaining = [...shuffled]
-  const clusterMap: Record<number, MapPlayerStart[]> = {}
-
-  for (const t of teams) {
-    const size = teamPlayers[t].length
-    const cluster: MapPlayerStart[] = [remaining.shift()!]
-    while (cluster.length < size && remaining.length > 0) {
-      const c = centroid(cluster)
-      let bestIdx = 0
-      let bestDist = Infinity
-      for (let i = 0; i < remaining.length; i++) {
-        const d = dist(c, remaining[i])
-        if (d < bestDist) {
-          bestDist = d
-          bestIdx = i
-        }
-      }
-      cluster.push(remaining.splice(bestIdx, 1)[0])
-    }
-    clusterMap[t] = shuffle(cluster)
-  }
-
-  const assignments: Assignment[] = []
-  for (const t of teams) {
-    const tPlayers = teamPlayers[t]
-    const tPositions = clusterMap[t]
-    for (let i = 0; i < tPlayers.length; i++) {
-      assignments.push({
-        player: tPlayers[i],
-        position: tPositions[i],
-        general: Math.floor(Math.random() * 12) as General,
-      })
-    }
-  }
-  return assignments
-}
-
 let nextId = 1
 
 export default function DisplayDraft() {
   const [selectedMap, setSelectedMap] = React.useState<string | null>(null)
   const [players, setPlayers] = React.useState<DraftPlayer[]>([])
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
-  const [assignments, setAssignments] = React.useState<Assignment[]>([])
+  const [assignments, setAssignments] = React.useState<DraftAssignment[]>([])
+  const [randomizedAt, setRandomizedAt] = React.useState<string | null>(null)
   const [teamRating, setTeamRating] = React.useState<Record<
     string,
     number
@@ -162,6 +83,7 @@ export default function DisplayDraft() {
     setMapData(null)
     setPlayers([])
     setAssignments([])
+    setRandomizedAt(null)
     if (!selectedMap) return
     const apiName = mapApiName(selectedMap)
     Client.getMapDataApiMapDataMapNameGet({ mapName: apiName }).then(
@@ -217,6 +139,7 @@ export default function DisplayDraft() {
   function removePlayer(id: number) {
     setPlayers((prev) => prev.filter((p) => p.id !== id))
     setAssignments([])
+    setRandomizedAt(null)
   }
 
   function updatePlayerName(id: number, name: string) {
@@ -226,6 +149,7 @@ export default function DisplayDraft() {
   function updatePlayerTeam(id: number, team: 1 | 2 | 3 | 4) {
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, team } : p)))
     setAssignments([])
+    setRandomizedAt(null)
   }
 
   function applyMostBalanced() {
@@ -242,9 +166,16 @@ export default function DisplayDraft() {
     )
   }
 
-  function randomize() {
-    if (!mapData || players.length === 0) return
-    setAssignments(assignPositions(mapData.playerStarts, players))
+  async function randomize() {
+    if (!selectedMap || players.length === 0) return
+    const result = await Client.randomizeDraftApiDraftRandomizePost({
+      draftRequest: {
+        mapName: mapApiName(selectedMap),
+        players: players.map((p) => ({ name: p.name, team: p.team })),
+      },
+    })
+    setAssignments(result.assignments)
+    setRandomizedAt(new Date(result.randomizedAt).toLocaleTimeString())
   }
 
   const positionLimit = mapData ? mapData.playerStarts.length : 0
@@ -425,43 +356,54 @@ export default function DisplayDraft() {
       )}
 
       {assignments.length > 0 && (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Player</TableCell>
-              <TableCell>Team</TableCell>
-              <TableCell>General</TableCell>
-              <TableCell>Position</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {assignments.map((a) => (
-              <TableRow key={a.player.id}>
-                <TableCell>{a.player.name}</TableCell>
-                <TableCell>
-                  <Box
-                    sx={{
-                      display: "inline-block",
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: 1,
-                      bgcolor: TEAM_COLORS[a.player.team],
-                      color: "white",
-                      fontSize: 12,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Team {a.player.team}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <DisplayGeneral general={a.general} />
-                </TableCell>
-                <TableCell>#{a.position.playerNumber}</TableCell>
+        <>
+          {randomizedAt && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mb: 1, display: "block" }}
+            >
+              Randomized at {randomizedAt}
+            </Typography>
+          )}
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Player</TableCell>
+                <TableCell>Team</TableCell>
+                <TableCell>General</TableCell>
+                <TableCell>Position</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {assignments.map((a) => (
+                <TableRow key={a.playerName}>
+                  <TableCell>{a.playerName}</TableCell>
+                  <TableCell>
+                    <Box
+                      sx={{
+                        display: "inline-block",
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: TEAM_COLORS[a.team as 1 | 2 | 3 | 4],
+                        color: "white",
+                        fontSize: 12,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Team {a.team}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <DisplayGeneral general={a.general} />
+                  </TableCell>
+                  <TableCell>#{a.positionNumber}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </>
       )}
     </Box>
   )

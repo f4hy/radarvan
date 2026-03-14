@@ -15,6 +15,8 @@
 
 import * as runtime from '../runtime';
 import type {
+  DraftRequest,
+  DraftResult,
   GameComposition,
   GameRecord,
   GeneralStats,
@@ -38,6 +40,10 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
+    DraftRequestFromJSON,
+    DraftRequestToJSON,
+    DraftResultFromJSON,
+    DraftResultToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
     GameRecordFromJSON,
@@ -166,6 +172,10 @@ export interface ListReplaysApiReplaysGetRequest {
 export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     teamSize: number;
     players?: Array<PlayerEnum>;
+}
+
+export interface RandomizeDraftApiDraftRandomizePostRequest {
+    draftRequest: DraftRequest;
 }
 
 export interface RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest {
@@ -1356,6 +1366,45 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async partitionTeamsApiPartitionTeamsTeamSizeGet(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Array<string>>> {
         const response = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Randomize Draft
+     */
+    async randomizeDraftApiDraftRandomizePostRaw(requestParameters: RandomizeDraftApiDraftRandomizePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DraftResult>> {
+        if (requestParameters['draftRequest'] == null) {
+            throw new runtime.RequiredError(
+                'draftRequest',
+                'Required parameter "draftRequest" was null or undefined when calling randomizeDraftApiDraftRandomizePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/draft/randomize`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: DraftRequestToJSON(requestParameters['draftRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DraftResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Randomize Draft
+     */
+    async randomizeDraftApiDraftRandomizePost(requestParameters: RandomizeDraftApiDraftRandomizePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DraftResult> {
+        const response = await this.randomizeDraftApiDraftRandomizePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
