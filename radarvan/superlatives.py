@@ -624,34 +624,28 @@ def get_superlatives(
 ) -> Superlatives:
     computed_at = date.today()
 
-    match_info_by_id = {g.id: g for g in games}
     stats: list[Statistic] = [
         *_safe_compute(get_game_count_stats, games, computed_at),
         *_safe_compute(get_win_streak_stats, games, computed_at),
         *_safe_compute(get_map_duration_stats, games, computed_at),
         *_safe_compute(get_match_duration_extremes, games, computed_at),
         *_safe_compute(get_calendar_stats, games, computed_at),
-        *(
-            [
-                *_safe_compute(
-                    get_first_blood_stats, match_info_by_id, details, computed_at
-                ),
-                *_safe_compute(
-                    get_building_first_blood_stats,
-                    match_info_by_id,
-                    details,
-                    computed_at,
-                ),
-                *_safe_compute(get_apm_stats, details, computed_at),
-                *_safe_compute(get_money_stats, details, computed_at),
-                *_safe_compute(get_player_money_stats, details, computed_at),
-                *_safe_compute(get_activity_stats, details, computed_at),
-                *_safe_compute(get_efficiency_stats, details, computed_at),
-            ]
-            if details
-            else []
-        ),
     ]
+    if details:
+        match_info_by_id = {g.id: g for g in games}
+        stats += [
+            *_safe_compute(
+                get_first_blood_stats, match_info_by_id, details, computed_at
+            ),
+            *_safe_compute(
+                get_building_first_blood_stats, match_info_by_id, details, computed_at
+            ),
+            *_safe_compute(get_apm_stats, details, computed_at),
+            *_safe_compute(get_money_stats, details, computed_at),
+            *_safe_compute(get_player_money_stats, details, computed_at),
+            *_safe_compute(get_activity_stats, details, computed_at),
+            *_safe_compute(get_efficiency_stats, details, computed_at),
+        ]
 
     return Superlatives(
         stats=stats,

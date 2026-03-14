@@ -211,7 +211,7 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
 _CPU_NAMES = frozenset({"cpu", "hardai", "hardarmy", "mediai", "easyai"})
 
 
-@dataclass
+@dataclass(slots=True)
 class _MatchPlayerAdapter:
     """Adapts a DB MatchPlayer to satisfy the Player protocol."""
 

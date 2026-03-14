@@ -104,8 +104,8 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
         )
 
     logger.debug(f"Finished parsing replay {path=}")
-    parsed_replay.Header.FileName = path
-    return parsed_replay
+    updated_header = parsed_replay.Header.model_copy(update={"FileName": path})
+    return parsed_replay.model_copy(update={"Header": updated_header})
 
 
 def reparse(
@@ -130,8 +130,11 @@ def reparse(
         return None
 
     raw_replay = fs.read_bytes(replay_path)
-    parsed_replay = parse_replay_data(raw_replay, replay_manager)
-    parsed_replay.Header.FileName = original_path
+    parsed_replay_raw = parse_replay_data(raw_replay, replay_manager)
+    updated_header = parsed_replay_raw.Header.model_copy(
+        update={"FileName": original_path}
+    )
+    parsed_replay = parsed_replay_raw.model_copy(update={"Header": updated_header})
 
     if existing_replay == parsed_replay and not force:
         logger.warning("No change in replay, not resaving")

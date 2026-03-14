@@ -33,27 +33,6 @@ class ByteArray12(RootModel[list[int]]):
     root: Annotated[list[int], Field(min_length=12, max_length=12)]
 
 
-class Position3D(BaseModel):
-    model_config = _SLOTS
-
-    X: float
-    Y: float
-    Z: float
-
-
-class ScreenPosition(BaseModel):
-    model_config = _SLOTS
-
-    X: int
-    Y: int
-
-
-class ScreenRectangle(RootModel[list[ScreenPosition]]):
-    """Array of exactly 2 ScreenPosition objects"""
-
-    root: Annotated[list[ScreenPosition], Field(min_length=2, max_length=2)]
-
-
 class Unit(BaseModel):
     model_config = _SLOTS
 
@@ -88,13 +67,6 @@ class EventDetails(BaseModel):
     Cost: int | None = None
 
 
-class ArgMetadata(BaseModel):
-    model_config = _SLOTS
-
-    Type: int
-    Count: int
-
-
 class Money(BaseModel):
     model_config = _SLOTS
 
@@ -126,7 +98,7 @@ class PlayerStatsData(BaseModel):
 
 
 class EnhancedBodyChunk(BaseModel):
-    model_config = _SLOTS
+    model_config = ConfigDict(slots=True, extra="ignore")  # type: ignore[typeddict-unknown-key]
 
     TimeCode: int
     OrderCode: int
@@ -135,10 +107,6 @@ class EnhancedBodyChunk(BaseModel):
     PlayerName: str
     NumberOfArguments: int
     Details: EventDetails | None = None
-    ArgMetadata: list[ArgMetadata]
-    Arguments: list[
-        int | float | bool | str | Position3D | ScreenPosition | ScreenRectangle
-    ]
     PlayerMoney: Money | None = None
     PlayerStats: PlayerStatsData | None = None
 

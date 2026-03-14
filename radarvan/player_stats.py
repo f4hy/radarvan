@@ -1,6 +1,6 @@
 """Compute player stats."""
 
-from collections import Counter
+from collections import Counter, defaultdict
 
 from .api_types import (
     MatchInfo,
@@ -27,7 +27,7 @@ def get_player_stats(
     games: list[MatchInfo], game_format: str | None = None
 ) -> PlayerStats:
     player_wl: dict[str, PlayerStat] = {}
-    player_counts: dict[str, Counter[str]] = {}
+    player_counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
 
     for game in games:
         if game.incomplete:
@@ -40,10 +40,6 @@ def get_player_stats(
 
         for player in game.players:
             name = resolve_player_name(player.name, player.color)
-
-            # Count all valid games regardless of competitive status
-            if name not in player_counts:
-                player_counts[name] = Counter()
             player_counts[name][category] += 1
 
             # Win/loss stats only for competitive games matching the format filter
@@ -67,7 +63,7 @@ def get_player_stats(
                 player_wl[name].stats[player.general].losses += 1
 
     for name, stat in player_wl.items():
-        counts = player_counts.get(name, Counter())
+        counts = player_counts[name]
         stat.game_counts = {"total": sum(counts.values()), **counts}
 
     filtered = [stat for stat in player_wl.values() if total_games(stat) > NEEDED_GAMES]
