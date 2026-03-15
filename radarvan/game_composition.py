@@ -140,10 +140,6 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     if len(players) == 2:
         return create_composition("1v1", False, False, 2, [1, 1])
 
-    # Case 1: Mixed FFA and team players
-    if ffa_player_count > 0 and valid_teams:
-        return create_composition("FFA", False, True, num_teams, team_sizes)
-
     # Case 2: All players on Team 0
     if ffa_player_count == len(players):
         category = "1v1" if len(players) == 2 else "FFA"
