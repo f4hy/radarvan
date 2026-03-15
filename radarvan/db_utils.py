@@ -1,6 +1,7 @@
 from .cncstats_types import EnhancedReplay
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from collections import defaultdict
 from collections.abc import Generator, Iterator
 from sqlalchemy import create_engine, func, and_, update, or_
 from sqlalchemy import desc, nulls_last
@@ -47,6 +48,7 @@ class ReplayToProcess:
     url: str
     s3_path: str
     version: str | None
+    all_replay_urls: list[str]
 
 
 @dataclass(frozen=True)
@@ -529,12 +531,26 @@ class ReplayManager:
             .order_by(ranked_subq.c.created_at.desc())
             .limit(limit)
         )
-        for match_id, url, s3_path, game_version in self.session.execute(stmt):
+        rows = list(self.session.execute(stmt))
+
+        match_ids = [row.match_id for row in rows]
+        urls_by_match: defaultdict[int, list[str]] = defaultdict(list)
+        if match_ids:
+            url_rows = self.session.execute(
+                select(
+                    ParsedReplayJson.match_id, ParsedReplayJson.replay_file_url
+                ).where(ParsedReplayJson.match_id.in_(match_ids))
+            )
+            for mid, replay_url in url_rows:
+                urls_by_match[mid].append(replay_url)
+
+        for row in rows:
             yield ReplayToProcess(
-                match_id=match_id,
-                url=url,
-                s3_path=s3_path,
-                version=game_version,
+                match_id=row.match_id,
+                url=row.replay_file_url,
+                s3_path=row.s3_uri,
+                version=row.game_version,
+                all_replay_urls=urls_by_match[row.match_id],
             )
 
     def update_parsed_json(
@@ -702,6 +718,16 @@ class ReplayManager:
         if row is None:
             return None
         return MapDataPayload.model_validate(row.data)
+
+    def list_maps_by_player_count(self) -> dict[int, list[str]]:
+        """Return all known maps grouped by number of player starting positions."""
+        rows = self.session.scalars(select(MapData)).all()
+        result: dict[int, list[str]] = {}
+        for row in rows:
+            starts = row.data.get("player_starts")
+            count = len(starts) if isinstance(starts, list) else 0
+            result.setdefault(count, []).append(row.map_name)
+        return {k: sorted(v) for k, v in sorted(result.items())}
 
     def get_tournament_report_by_name(
         self, name: str

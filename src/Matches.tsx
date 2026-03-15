@@ -483,7 +483,7 @@ function MatchActivityCalendar(props: {
   return (
     <Grid container sx={{ width: "80%", margin: "0" }}>
       {Object.entries(props.dataByYear).map(([year, yearData], idx) => (
-        <Grid key={year} xs={6}>
+        <Grid key={year} item xs={6}>
           <Box sx={{ overflowX: "auto", p: 2 }}>
             <Typography>{year}</Typography>
             {Object.keys(yearData).length > 0 ? (

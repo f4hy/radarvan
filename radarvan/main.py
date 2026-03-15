@@ -55,6 +55,7 @@ from radarvan.api_types import (
     DraftPlayerRequest,
     DraftRequest,
     DraftResult,
+    MapsByPlayerCount,
 )
 from cachetools import TTLCache, cached
 from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
@@ -844,6 +845,7 @@ def replays_without_playerstats(
             "s3_path": row.s3_path,
             "version": row.version,
             "presigned_url": replay_files.presigned_url(row.s3_path),
+            "all_replay_urls": row.all_replay_urls,
         }
 
 
@@ -944,6 +946,15 @@ def partition_teams(
     )
 
     return teams
+
+
+@app.get("/api/maps_by_player_count")
+def get_maps_by_player_count(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[MapsByPlayerCount]:
+    """Return all maps grouped by number of player starting positions."""
+    grouped = replay_manager.list_maps_by_player_count()
+    return [MapsByPlayerCount(player_count=k, maps=v) for k, v in grouped.items()]
 
 
 @app.post("/api/map_data/{map_name}")

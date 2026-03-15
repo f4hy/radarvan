@@ -130,10 +130,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                     color="text.secondary"
                     display="block"
                   >
-                    {new Date(entry.atdate ?? 0).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {"" + entry.atdate}
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
                     {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}

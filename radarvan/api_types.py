@@ -644,6 +644,13 @@ class MapDataPayload(BaseModel):
     waypoints: list[MapPoint]
 
 
+class MapsByPlayerCount(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_count: int = Field(alias="playerCount")
+    maps: list[str]
+
+
 class DraftPlayerRequest(BaseModel):
     model_config = _SLOTS
 

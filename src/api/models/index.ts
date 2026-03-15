@@ -27,6 +27,7 @@ export * from './MapPlayerStart';
 export * from './MapPlayerWL';
 export * from './MapPoint';
 export * from './MapStatsResponse';
+export * from './MapsByPlayerCount';
 export * from './MatchDetails';
 export * from './MatchInfo';
 export * from './MatchListing';

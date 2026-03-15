@@ -3,11 +3,6 @@ import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
@@ -20,7 +15,8 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd"
 import LinearProgress from "@mui/material/LinearProgress"
 import Stack from "@mui/material/Stack"
 import * as React from "react"
-import type { DraftAssignment, MapDataPayload } from "./api"
+import type { DraftAssignment, MapDataPayload, MapsByPlayerCount } from "./api"
+import Chip from "@mui/material/Chip"
 import { PlayerEnum } from "./api"
 import { Client } from "./Client"
 import { ScoreBar } from "./BalanceTeams"
@@ -61,13 +57,13 @@ function mapDisplayName(filename: string): string {
   return stem
 }
 
-function mapApiName(filename: string): string {
-  return mapDisplayName(filename)
-}
-
 let nextId = 1
 
 export default function DisplayDraft() {
+  const [mapsByCount, setMapsByCount] = React.useState<MapsByPlayerCount[]>([])
+  const [selectedPlayerCount, setSelectedPlayerCount] = React.useState<
+    number | null
+  >(null)
   const [selectedMap, setSelectedMap] = React.useState<string | null>(null)
   const [players, setPlayers] = React.useState<DraftPlayer[]>([])
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
@@ -80,20 +76,25 @@ export default function DisplayDraft() {
   const [balanceLoading, setBalanceLoading] = React.useState(false)
 
   React.useEffect(() => {
+    Client.getMapsByPlayerCountApiMapsByPlayerCountGet().then(setMapsByCount, () => {})
+  }, [])
+
+  React.useEffect(() => {
     setMapData(null)
     setPlayers([])
     setAssignments([])
     setRandomizedAt(null)
     if (!selectedMap) return
-    const apiName = mapApiName(selectedMap)
+    const apiName = mapDisplayName(selectedMap)
     Client.getMapDataApiMapDataMapNameGet({ mapName: apiName }).then(
       (data) => {
         setMapData(data)
         const count = data.playerStarts.length
+        const enumNames = Object.values(PlayerEnum)
         setPlayers(
           Array.from({ length: count }, (_, i) => ({
             id: nextId++,
-            name: `Player ${i + 1}`,
+            name: enumNames[i] ?? `Player ${i + 1}`,
             team: (i < Math.ceil(count / 2) ? 1 : 2) as 1 | 2,
           })),
         )
@@ -136,10 +137,14 @@ export default function DisplayDraft() {
     ])
   }
 
-  function removePlayer(id: number) {
-    setPlayers((prev) => prev.filter((p) => p.id !== id))
+  function clearDraft() {
     setAssignments([])
     setRandomizedAt(null)
+  }
+
+  function removePlayer(id: number) {
+    setPlayers((prev) => prev.filter((p) => p.id !== id))
+    clearDraft()
   }
 
   function updatePlayerName(id: number, name: string) {
@@ -148,8 +153,7 @@ export default function DisplayDraft() {
 
   function updatePlayerTeam(id: number, team: 1 | 2 | 3 | 4) {
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, team } : p)))
-    setAssignments([])
-    setRandomizedAt(null)
+    clearDraft()
   }
 
   function applyMostBalanced() {
@@ -170,13 +174,38 @@ export default function DisplayDraft() {
     if (!selectedMap || players.length === 0) return
     const result = await Client.randomizeDraftApiDraftRandomizePost({
       draftRequest: {
-        mapName: mapApiName(selectedMap),
+        mapName: mapDisplayName(selectedMap),
         players: players.map((p) => ({ name: p.name, team: p.team })),
       },
     })
     setAssignments(result.assignments)
     setRandomizedAt(new Date(result.randomizedAt).toLocaleTimeString())
   }
+
+  const knownMaps = React.useMemo(() => {
+    if (!selectedPlayerCount) return null
+    return new Set(
+      mapsByCount.find((g) => g.playerCount === selectedPlayerCount)?.maps ??
+        [],
+    )
+  }, [mapsByCount, selectedPlayerCount])
+
+  const filteredMapList = knownMaps
+    ? MAPLIST.filter((f) => knownMaps.has(mapDisplayName(f)))
+    : MAPLIST
+
+  const assignmentByName = React.useMemo(
+    () => Object.fromEntries(assignments.map((a) => [a.playerName, a])),
+    [assignments],
+  )
+
+  const positionToPlayer = React.useMemo(
+    () =>
+      Object.fromEntries(
+        assignments.map((a) => [a.positionNumber, a.playerName]),
+      ),
+    [assignments],
+  )
 
   const positionLimit = mapData ? mapData.playerStarts.length : 0
   const canAddPlayer = mapData !== null && players.length < positionLimit
@@ -185,6 +214,14 @@ export default function DisplayDraft() {
   const validPlayerNames = new Set<string>(Object.values(PlayerEnum))
   const allNamesValid =
     players.length >= 2 && players.every((p) => validPlayerNames.has(p.name))
+
+  const teamCounts = players.reduce<Record<number, number>>((acc, p) => {
+    acc[p.team] = (acc[p.team] ?? 0) + 1
+    return acc
+  }, {})
+  const teamSizes = Object.values(teamCounts)
+  const teamsBalanced =
+    teamSizes.length >= 2 && teamSizes.every((n) => n === teamSizes[0])
 
   const team1Set = new Set(
     players.filter((p) => p.team === 1).map((p) => p.name),
@@ -212,8 +249,28 @@ export default function DisplayDraft() {
         Map Draft
       </Typography>
 
+      {mapsByCount.length > 0 && (
+        <Box sx={{ mb: 1 }}>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={selectedPlayerCount}
+            onChange={(_e, val) => {
+              setSelectedPlayerCount(val)
+              setSelectedMap(null)
+            }}
+          >
+            {mapsByCount.map(({ playerCount }) => (
+              <ToggleButton key={playerCount} value={playerCount}>
+                {playerCount}p
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+      )}
+
       <Autocomplete
-        options={MAPLIST}
+        options={filteredMapList}
         getOptionLabel={(f) => mapDisplayName(f)}
         value={selectedMap}
         onChange={(_e, val) => {
@@ -226,8 +283,11 @@ export default function DisplayDraft() {
       />
 
       {selectedMap && (
-        <Box sx={{ mb: 2 }}>
-          <Map mapname={mapDisplayName(selectedMap)} />
+        <Box sx={{ mb: 2, maxWidth: 600 }}>
+          <Map
+            mapname={mapDisplayName(selectedMap)}
+            playerPositions={positionToPlayer}
+          />
         </Box>
       )}
 
@@ -290,6 +350,16 @@ export default function DisplayDraft() {
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
+            {assignmentByName[p.name] && (
+              <>
+                <DisplayGeneral general={assignmentByName[p.name].general} />
+                <Chip
+                  label={`#${assignmentByName[p.name].positionNumber}`}
+                  size="small"
+                  variant="outlined"
+                />
+              </>
+            )}
             <IconButton size="small" onClick={() => removePlayer(p.id)}>
               <CloseIcon fontSize="small" />
             </IconButton>
@@ -297,27 +367,36 @@ export default function DisplayDraft() {
         ))}
       </Paper>
 
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
         <Button
           variant="contained"
           startIcon={<CasinoIcon />}
-          disabled={players.length === 0 || !mapData || !namesUnique}
+          disabled={
+            players.length === 0 || !mapData || !namesUnique || !teamsBalanced
+          }
           onClick={randomize}
         >
           Randomize
         </Button>
+        {randomizedAt && (
+          <Typography variant="caption" color="text.secondary">
+            Locked at {randomizedAt}
+          </Typography>
+        )}
         <Tooltip
           title={
-            !allNamesValid
-              ? "All players must be selected from the known players list"
-              : ""
+            !teamsBalanced
+              ? "Teams must have equal numbers of players"
+              : !allNamesValid
+                ? "All players must be selected from the known players list"
+                : ""
           }
         >
           <span>
             <Button
               variant="outlined"
               startIcon={<BalanceIcon />}
-              disabled={!allNamesValid}
+              disabled={!allNamesValid || !teamsBalanced}
               onClick={checkBalance}
             >
               Check Balance
@@ -326,18 +405,20 @@ export default function DisplayDraft() {
         </Tooltip>
         <Tooltip
           title={
-            !allNamesValid
-              ? "All players must be selected from the known players list"
-              : !teamRating
-                ? "Run Check Balance first"
-                : ""
+            !teamsBalanced
+              ? "Teams must have equal numbers of players"
+              : !allNamesValid
+                ? "All players must be selected from the known players list"
+                : !teamRating
+                  ? "Run Check Balance first"
+                  : ""
           }
         >
           <span>
             <Button
               variant="outlined"
               startIcon={<BalanceIcon />}
-              disabled={!teamRating}
+              disabled={!teamRating || !teamsBalanced}
               onClick={applyMostBalanced}
             >
               Auto Balance
@@ -353,57 +434,6 @@ export default function DisplayDraft() {
           score={matchedScore}
           selectedPlayers={allBalancePlayers}
         />
-      )}
-
-      {assignments.length > 0 && (
-        <>
-          {randomizedAt && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 1, display: "block" }}
-            >
-              Randomized at {randomizedAt}
-            </Typography>
-          )}
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Player</TableCell>
-                <TableCell>Team</TableCell>
-                <TableCell>General</TableCell>
-                <TableCell>Position</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {assignments.map((a) => (
-                <TableRow key={a.playerName}>
-                  <TableCell>{a.playerName}</TableCell>
-                  <TableCell>
-                    <Box
-                      sx={{
-                        display: "inline-block",
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: 1,
-                        bgcolor: TEAM_COLORS[a.team as 1 | 2 | 3 | 4],
-                        color: "white",
-                        fontSize: 12,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Team {a.team}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <DisplayGeneral general={a.general} />
-                  </TableCell>
-                  <TableCell>#{a.positionNumber}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </>
       )}
     </Box>
   )

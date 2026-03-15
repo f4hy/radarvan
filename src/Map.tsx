@@ -43,7 +43,10 @@ function resolveMap(mapname: string) {
   return underscored
 }
 
-export default function Map(props: { mapname: string }) {
+export default function Map(props: {
+  mapname: string
+  playerPositions?: Record<number, string>
+}) {
   const [imgError, setImgError] = React.useState(false)
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
 
@@ -103,6 +106,10 @@ export default function Map(props: { mapname: string }) {
                   return points.map((pt, i) => {
                     const name = "name" in pt ? pt.name : ""
                     const { color, size, symbol } = pointStyle(category, name)
+                    const playerName =
+                      !symbol && "playerNumber" in pt
+                        ? props.playerPositions?.[pt.playerNumber]
+                        : undefined
                     return (
                       <Tooltip
                         key={`${category}-${i}`}
@@ -117,6 +124,9 @@ export default function Map(props: { mapname: string }) {
                             top: `${(pt.y / mapData.extent.height) * 100}%`,
                             transform: "translate(-50%, -50%)",
                             cursor: "default",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
                             ...(symbol
                               ? {
                                   color,
@@ -124,25 +134,47 @@ export default function Map(props: { mapname: string }) {
                                   lineHeight: 1,
                                   textShadow: "0 0 3px #000",
                                 }
-                              : {
-                                  width: size * 1.5,
-                                  height: size * 1.5,
-                                  borderRadius: "100%",
-                                  bgcolor: color,
-                                  border: "2px solid white",
-                                  boxShadow: "0 0 4px rgba(0,0,0,0.6)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "white",
-                                  fontSize: size * 1.4,
-                                  fontWeight: "bold",
-                                  lineHeight: 1,
-                                }),
+                              : {}),
                           }}
                         >
-                          {symbol ??
-                            ("playerNumber" in pt ? pt.playerNumber : "")}
+                          {symbol ? (
+                            symbol
+                          ) : (
+                            <Box
+                              sx={{
+                                width: size * 1.5,
+                                height: size * 1.5,
+                                borderRadius: "100%",
+                                bgcolor: color,
+                                border: "2px solid white",
+                                boxShadow: "0 0 4px rgba(0,0,0,0.6)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                fontSize: size * 1.4,
+                                fontWeight: "bold",
+                                lineHeight: 1,
+                              }}
+                            >
+                              {"playerNumber" in pt ? pt.playerNumber : ""}
+                            </Box>
+                          )}
+                          {playerName && (
+                            <Typography
+                              sx={{
+                                fontSize: 9,
+                                lineHeight: 1.2,
+                                color: "white",
+                                textShadow: "0 0 3px #000",
+                                fontWeight: "bold",
+                                whiteSpace: "nowrap",
+                                mt: "1px",
+                              }}
+                            >
+                              {playerName}
+                            </Typography>
+                          )}
                         </Box>
                       </Tooltip>
                     )

@@ -23,6 +23,7 @@ import type {
   HTTPValidationError,
   MapDataPayload,
   MapStatsResponse,
+  MapsByPlayerCount,
   MatchDetails,
   MatchInfo,
   Matches,
@@ -56,6 +57,8 @@ import {
     MapDataPayloadToJSON,
     MapStatsResponseFromJSON,
     MapStatsResponseToJSON,
+    MapsByPlayerCountFromJSON,
+    MapsByPlayerCountToJSON,
     MatchDetailsFromJSON,
     MatchDetailsToJSON,
     MatchInfoFromJSON,
@@ -696,6 +699,37 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMapStatsApiMapStatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapStatsResponse> {
         const response = await this.getMapStatsApiMapStatsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Return all maps grouped by number of player starting positions.
+     * Get Maps By Player Count
+     */
+    async getMapsByPlayerCountApiMapsByPlayerCountGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapsByPlayerCount>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/maps_by_player_count`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MapsByPlayerCountFromJSON));
+    }
+
+    /**
+     * Return all maps grouped by number of player starting positions.
+     * Get Maps By Player Count
+     */
+    async getMapsByPlayerCountApiMapsByPlayerCountGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MapsByPlayerCount>> {
+        const response = await this.getMapsByPlayerCountApiMapsByPlayerCountGetRaw(initOverrides);
         return await response.value();
     }
 

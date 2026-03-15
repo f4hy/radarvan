@@ -157,14 +157,15 @@ def _log_sorted_ratings(
 @cached(cache={}, key=lambda games: frozenset(g.id for g in games))
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     model = get_model()
-    all_players = _collect_all_players(games)
+    filtered_games = [g for g in games if g.winning_team > 0]
+    all_players = _collect_all_players(filtered_games)
     player_ratings = {name: initialize_player(name, model) for name in all_players}
     logger.info(f"players: {player_ratings}")
 
     for i in range(5):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
         player_ratings, game_counts, rating_over_time = _process_games(
-            games, min_sigmaed, model
+            filtered_games, min_sigmaed, model
         )
         logger.info(f"Pass {i}")
         _log_sorted_ratings(

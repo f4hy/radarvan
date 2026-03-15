@@ -28,6 +28,7 @@ docs/MapPlayerStart.md
 docs/MapPlayerWL.md
 docs/MapPoint.md
 docs/MapStatsResponse.md
+docs/MapsByPlayerCount.md
 docs/MatchDetails.md
 docs/MatchInfo.md
 docs/MatchListing.md
@@ -94,6 +95,7 @@ models/MapPlayerStart.ts
 models/MapPlayerWL.ts
 models/MapPoint.ts
 models/MapStatsResponse.ts
+models/MapsByPlayerCount.ts
 models/MatchDetails.ts
 models/MatchInfo.ts
 models/MatchListing.ts

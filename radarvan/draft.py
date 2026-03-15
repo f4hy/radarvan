@@ -1,40 +1,61 @@
-import math
 import random
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from .api_types import DraftAssignment, DraftPlayerRequest, MapPlayerStart
+
+
+def _sq_dist(a: MapPlayerStart, b: MapPlayerStart) -> float:
+    return (a.x - b.x) ** 2 + (a.y - b.y) ** 2
 
 
 def compute_draft(
     players: list[DraftPlayerRequest],
     positions: list[MapPlayerStart],
 ) -> tuple[list[DraftAssignment], datetime]:
-    shuffled = list(positions)
-    random.shuffle(shuffled)
     teams = sorted({p.team for p in players})
     team_players = {t: [p for p in players if p.team == t] for t in teams}
+    for group in team_players.values():
+        random.shuffle(group)
 
-    remaining = list(shuffled)
-    cluster_map: dict[int, list[MapPlayerStart]] = {}
-    for t in teams:
-        size = len(team_players[t])
-        cluster = [remaining.pop(0)]
-        while len(cluster) < size and remaining:
-            cx = sum(p.x for p in cluster) / len(cluster)
-            cy = sum(p.y for p in cluster) / len(cluster)
-            best = min(
-                range(len(remaining)),
-                key=lambda i: math.sqrt(
-                    (remaining[i].x - cx) ** 2 + (remaining[i].y - cy) ** 2
-                ),
-            )
-            cluster.append(remaining.pop(best))
-        random.shuffle(cluster)
-        cluster_map[t] = cluster
+    remaining = list(positions)
+    random.shuffle(remaining)
+
+    team_assigned: dict[int, list[MapPlayerStart]] = {t: [] for t in teams}
+
+    max_size = max(len(v) for v in team_players.values())
+    for round_idx in range(max_size):
+        for team_idx, t in enumerate(teams):
+            if round_idx >= len(team_players[t]) or not remaining:
+                continue
+
+            if round_idx == 0 and team_idx == 0:
+                # First player of first team: random position
+                pos = remaining.pop(0)
+            elif round_idx == 0:
+                # First player of each subsequent team: farthest from all assigned so far
+                all_assigned = [p for plist in team_assigned.values() for p in plist]
+                best = max(
+                    range(len(remaining)),
+                    key=lambda i: min(_sq_dist(remaining[i], a) for a in all_assigned),
+                )
+                pos = remaining.pop(best)
+            else:
+                # Subsequent players: closest position to own team's centroid
+                assigned = team_assigned[t]
+                cx = sum(p.x for p in assigned) / len(assigned)
+                cy = sum(p.y for p in assigned) / len(assigned)
+
+                def _dist_to_centroid(i: int) -> float:
+                    return (remaining[i].x - cx) ** 2 + (remaining[i].y - cy) ** 2
+
+                best = min(range(len(remaining)), key=_dist_to_centroid)
+                pos = remaining.pop(best)
+
+            team_assigned[t].append(pos)
 
     assignments = []
     for t in teams:
-        for player, pos in zip(team_players[t], cluster_map[t]):
+        for player, pos in zip(team_players[t], team_assigned[t]):
             assignments.append(
                 DraftAssignment(
                     player_name=player.name,
