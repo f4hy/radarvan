@@ -138,7 +138,8 @@ def players_from_replay(replay: EnhancedReplay) -> list[Player]:
         team = determine_team(p, player_summary=summary)
         faction = determin_general(p, player_summary=summary)
         try:
-            starting_position = int(p.StartingPosition)
+            # indexed from 0 in the replay
+            starting_position = int(p.StartingPosition) + 1
         except (ValueError, TypeError):
             starting_position = None
         players.append(

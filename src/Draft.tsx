@@ -76,7 +76,10 @@ export default function DisplayDraft() {
   const [balanceLoading, setBalanceLoading] = React.useState(false)
 
   React.useEffect(() => {
-    Client.getMapsByPlayerCountApiMapsByPlayerCountGet().then(setMapsByCount, () => {})
+    Client.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
+      setMapsByCount,
+      () => {},
+    )
   }, [])
 
   React.useEffect(() => {

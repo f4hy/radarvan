@@ -62,5 +62,5 @@
     "ts-proto": "^2.7.7",
     "webpack-cli": "^6.0.1"
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:8000"
 }
