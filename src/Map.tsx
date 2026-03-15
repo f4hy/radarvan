@@ -121,7 +121,7 @@ export default function Map(props: {
                           sx={{
                             position: "absolute",
                             left: `${(pt.x / mapData.extent.width) * 100}%`,
-                            top: `${(pt.y / mapData.extent.height) * 100}%`,
+                            top: `${(1 - pt.y / mapData.extent.height) * 100}%`,
                             transform: "translate(-50%, -50%)",
                             cursor: "default",
                             display: "flex",
