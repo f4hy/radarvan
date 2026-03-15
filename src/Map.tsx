@@ -43,6 +43,28 @@ function resolveMap(mapname: string) {
   return underscored
 }
 
+const mapDataResolved: Record<string, MapDataPayload> = {}
+const mapDataInFlight: Record<string, Promise<MapDataPayload>> = {}
+
+function fetchMapData(mapname: string): Promise<MapDataPayload> {
+  const resolved = mapDataResolved[mapname]
+  if (resolved) return Promise.resolve(resolved)
+  if (!mapDataInFlight[mapname]) {
+    const promise = Client.getMapDataApiMapDataMapNameGet({ mapName: mapname })
+      .then((data) => {
+        mapDataResolved[mapname] = data
+        delete mapDataInFlight[mapname]
+        return data
+      })
+      .catch((err) => {
+        delete mapDataInFlight[mapname]
+        return Promise.reject(err)
+      })
+    mapDataInFlight[mapname] = promise
+  }
+  return mapDataInFlight[mapname]
+}
+
 export default function Map(props: {
   mapname: string
   playerPositions?: Record<number, string>
@@ -54,17 +76,29 @@ export default function Map(props: {
   const mapmatch = resolveMap(mapname)
   const mapUrl = mapmatch ? getMapUrl(mapmatch) : ""
 
-  console.log(
-    "Mapname:" + mapname + " mapmatch:" + mapmatch + " mapUrl" + mapUrl,
-  )
-
   React.useEffect(() => {
+    if (!mapname) {
+      setMapData(null)
+      return
+    }
+    const resolved = mapDataResolved[mapname]
+    if (resolved) {
+      setMapData(resolved)
+      return
+    }
     setMapData(null)
-    if (!mapname) return
-    Client.getMapDataApiMapDataMapNameGet({ mapName: mapname }).then(
-      (data) => setMapData(data),
-      () => setMapData(null),
+    let cancelled = false
+    fetchMapData(mapname).then(
+      (data) => {
+        if (!cancelled) setMapData(data)
+      },
+      () => {
+        if (!cancelled) setMapData(null)
+      },
     )
+    return () => {
+      cancelled = true
+    }
   }, [mapname])
 
   const showPlaceholder = !mapUrl || imgError

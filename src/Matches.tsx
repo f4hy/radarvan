@@ -54,6 +54,14 @@ function playerNameStyle(player: Player) {
   return { WebkitTextStroke: `0.5px grey` }
 }
 
+function buildPlayerPositions(players: Player[]): Record<number, string> {
+  return Object.fromEntries(
+    players
+      .filter((p) => p.startingPosition != null)
+      .map((p) => [p.startingPosition!, p.name]),
+  )
+}
+
 function winRateColor(w: number, l: number): string {
   const rate = w + l === 0 ? 0.5 : w / (w + l)
   // interpolate between near-black #424242 (rate=0) and green #4caf50 (rate=1)
@@ -139,6 +147,10 @@ function FfaPlayerCard(props: { player: Player }) {
 function FfaMatchDisplay(props: { match: MatchInfo }) {
   const { match } = props
   const [details, setDetails] = React.useState<boolean>(false)
+  const playerPositions = React.useMemo(
+    () => buildPlayerPositions(match.players),
+    [match.players],
+  )
   const date = match.timestamp.toLocaleString("en-US", {
     timeZone: "America/New_York",
   })
@@ -166,7 +178,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
         {match.players.map((p) => (
           <FfaPlayerCard key={p.name} player={p} />
         ))}
-        <Map mapname={match.map} />
+        <Map mapname={match.map} playerPositions={playerPositions} />
       </Stack>
       <Stack direction="row">
         <Button variant="contained" onClick={() => setDetails(!details)}>
@@ -222,6 +234,10 @@ function displayTeam(team: Team): string {
 
 export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
+  const playerPositions = React.useMemo(
+    () => buildPlayerPositions(props.match.players),
+    [props.match.players],
+  )
 
   if (props.match.composition?.isFfa && !props.match.incomplete) {
     return <FfaMatchDisplay match={props.match} />
@@ -276,7 +292,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
           />
         ))}
         <Box sx={{ flexShrink: 0 }}>
-          <Map mapname={props.match.map} />
+          <Map mapname={props.match.map} playerPositions={playerPositions} />
         </Box>
       </Stack>
       <Stack direction="row">
