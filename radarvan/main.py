@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import asyncio
 import traceback
 from fastapi import FastAPI, HTTPException, Request, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -63,7 +63,6 @@ from .game_composition import GameComposition
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import FileResponse
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -1011,7 +1010,7 @@ def randomize_draft(
 def serve_index() -> FileResponse:
     return FileResponse(
         "build/index.html",
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        headers={"Cache-Control": "no-cache"},
     )
 
 
