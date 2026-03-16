@@ -23,7 +23,7 @@ import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
-import Map from "./Map"
+import GameMap from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import { MatchInfo, Matches, Player, Team } from "./api"
@@ -178,7 +178,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
         {match.players.map((p) => (
           <FfaPlayerCard key={p.name} player={p} />
         ))}
-        <Map mapname={match.map} playerPositions={playerPositions} />
+        <GameMap mapname={match.map} playerPositions={playerPositions} />
       </Stack>
       <Stack direction="row">
         <Button variant="contained" onClick={() => setDetails(!details)}>
@@ -292,7 +292,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
           />
         ))}
         <Box sx={{ flexShrink: 0 }}>
-          <Map mapname={props.match.map} playerPositions={playerPositions} />
+          <GameMap mapname={props.match.map} playerPositions={playerPositions} />
         </Box>
       </Stack>
       <Stack direction="row">

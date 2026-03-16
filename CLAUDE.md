@@ -9,7 +9,7 @@ Radarvan is a statistics tracking application for Command & Conquer: Generals Ze
 ## Common Commands
 
 ### Frontend (React)
-- `npm start` - Start development server (proxies to localhost:5000)
+- `npm start` - Start development server (proxies `/api` to localhost:8000 via `src/setupProxy.js`)
 - `npm run build` - Build production bundle
 - `npm test` - Run tests
 - `prettier --write .` - Format code (configured to omit semicolons)
@@ -35,6 +35,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
   - Matches (match listings)
   - PlayerStats (individual player statistics)
   - GeneralStats (statistics by general/faction)
+  - Draft (`src/Draft.tsx`) — map/player draft with randomized position and general assignment
   - DebugData (debug view, only shown with `?debug=True` query param)
 - **API Client**: `src/Client.ts` configures the auto-generated API client, switching between localhost:8000 (dev) and production Heroku endpoint based on NODE_ENV
 - **Styling**: Uses Material-UI (@mui/material) with responsive theming
@@ -49,6 +50,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
   - `player_stats.py` - Player-specific win/loss stats by general; accepts `game_format` filter; counts all games per category
   - `general_stats.py` - General/faction-specific statistics
   - `superlatives.py` - Top-N leaderboard stats (streaks, APM, kills, money, etc.)
+  - `draft.py` - Spatial clustering assignment for draft randomization; called by `POST /api/draft/randomize` (results cached 30 min via `TTLCache`)
   - `game_composition.py` - `categorize_game_type`, `competitive_game_filter`
   - `replay_files.py` - Replay file management; `parse_json(s3_uri)` loads JSON→EnhancedReplay without re-running cncstats; `parse_replay` runs cncstats if JSON not cached
   - `scrape_games.py` - Web scraping to gather new game data
@@ -77,15 +79,25 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **Backfill endpoints**: POST endpoints with `max_to_update: int` param that loop through matches and update incrementally; return `{"updated": N}`
 
 ### Environment Configuration
-- Frontend uses `package.json` proxy setting for local development (proxies to localhost:5000)
+- Frontend dev proxy is configured in `src/setupProxy.js` (only `/api` routes proxied to `localhost:8000`; static assets served directly from `public/`)
 - Backend reads `DATABASE_URL` from environment variables
 - `DEV` environment variable controls whether scheduled tasks run
 - Production deployment is on Heroku (radarvan-5e9c302c60e6.herokuapp.com)
+- Static files served via explicit `serve_index()` route (returns `index.html` with `Cache-Control: no-cache`) followed by `StaticFiles` mount — ensures browser revalidates after deploys
 
 ## Python Conventions
 
 - **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types
 - **`filter_by_format`** lives in `matches.py` (not `game_composition.py`) because it operates on `list[MatchInfo]`
+
+## Gotchas
+
+- **Map coordinates**: CnC Generals uses bottom-left origin (y increases upward); CSS uses top-left origin. In `Map.tsx`, convert with `top = (1 - y / height) * 100%`.
+- **Starting position indexing**: Replay `StartingPosition` is 0-based; map data `player_number` is 1-based. The `+1` conversion is applied in `utils.players_from_replay()`.
+- **OpenAPI generator path conflicts**: The generator silently merges routes that share a path prefix with a parameterized sibling (e.g., `/api/map_data/by_player_count` conflicts with `/api/map_data/{map_name}`). Use a distinct top-level path instead.
+- **`GameMap` component**: The map display component is named `GameMap` (exported from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor.
+- **`game_composition.py` team 0**: Players on team 0 are observers or disconnected players, not FFA participants. `categorize_game_type` ignores them when determining game type.
+- **Draft cache key**: `_draft_cache` in `main.py` uses manual dict-style `TTLCache` (not `@cached` decorator) because `replay_manager` is a FastAPI `Depends` parameter that can't pass through the decorator.
 
 ## Key Technical Details
 

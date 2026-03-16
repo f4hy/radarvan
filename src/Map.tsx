@@ -65,7 +65,7 @@ function fetchMapData(mapname: string): Promise<MapDataPayload> {
   return mapDataInFlight[mapname]
 }
 
-export default function Map(props: {
+export default function GameMap(props: {
   mapname: string
   playerPositions?: Record<number, string>
 }) {

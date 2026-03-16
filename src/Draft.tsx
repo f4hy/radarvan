@@ -21,7 +21,7 @@ import { PlayerEnum } from "./api"
 import { Client } from "./Client"
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
-import Map from "./Map"
+import GameMap from "./Map"
 import { MAPLIST } from "./maplist"
 interface DraftPlayer {
   id: number
@@ -287,7 +287,7 @@ export default function DisplayDraft() {
 
       {selectedMap && (
         <Box sx={{ mb: 2, maxWidth: 600 }}>
-          <Map
+          <GameMap
             mapname={mapDisplayName(selectedMap)}
             playerPositions={positionToPlayer}
           />
