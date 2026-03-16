@@ -63,6 +63,7 @@ from .game_composition import GameComposition
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import FileResponse
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -1004,6 +1005,14 @@ def randomize_draft(
     result = DraftResult(assignments=assignments, randomized_at=randomized_at)
     _draft_cache[key] = result
     return result
+
+
+@app.get("/", include_in_schema=False)
+def serve_index() -> FileResponse:
+    return FileResponse(
+        "build/index.html",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
 
 
 app.mount("/", StaticFiles(directory="build", html=True), name="build")
