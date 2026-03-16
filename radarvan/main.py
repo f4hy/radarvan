@@ -1,5 +1,6 @@
 from .notify import notify
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from enum import Enum
 from pydantic import BaseModel
@@ -58,6 +59,7 @@ from radarvan.api_types import (
     MapsByPlayerCount,
 )
 from cachetools import TTLCache, cached
+from .db import Match, ParsedReplayJson
 from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
 from .game_composition import GameComposition
 from fastapi import Depends
@@ -749,6 +751,15 @@ def update_matches_missing_data(
     return {"updated": updated_count}
 
 
+def _fetch_and_parse(match_id: int, json_record: ParsedReplayJson) -> Match:
+    """Fetch JSON from S3 and convert to a Match — no DB access, safe to run in threads."""
+    replay = replay_files.with_filename(
+        replay_files.parse_json(json_record.json_s3_uri),
+        json_record.replay_file_url,
+    )
+    return matches.replay_to_db_match(replay, json_record.json_s3_uri)
+
+
 @app.post("/api/refresh_matches_from_json/", include_in_schema=IS_DEV)
 def refresh_matches_from_json(
     max_to_update: int = 10,
@@ -757,31 +768,44 @@ def refresh_matches_from_json(
     """Re-parse existing JSON files from S3 and update DB matches if they differ.
 
     Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+    Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially.
+    Fetches up to max_to_update * 4 candidates to account for non-differing matches.
     """
     all_matches = replay_manager.list_matches(0.0)
+    candidates = [
+        (db_match, db_match.replay_json)
+        for db_match in all_matches
+        if db_match.replay_json is not None
+    ][: max_to_update * 4]
+
+    # Phase 1: fetch and parse candidates from S3 in parallel
+    parsed: list[tuple[Match, Match]] = []
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        future_to_match = {
+            executor.submit(_fetch_and_parse, db_match.match_id, json_record): db_match
+            for db_match, json_record in candidates
+        }
+        for future in as_completed(future_to_match):
+            db_match = future_to_match[future]
+            try:
+                new_match = future.result()
+                parsed.append((db_match, new_match))
+            except Exception:
+                logger.exception(f"Failed to load JSON for match {db_match.match_id}")
+
+    # Phase 2: compare and write in a single transaction
     updated_count = 0
-    checked_count = 0
-    for db_match in all_matches:
+    replay_manager.auto_commit = False
+    for db_match, new_match in parsed:
         if updated_count >= max_to_update:
             break
-        # replay_json is already eager-loaded by list_matches — no extra DB query needed
-        json_record = db_match.replay_json
-        if json_record is None:
-            continue
-        try:
-            replay = replay_files.with_filename(
-                replay_files.parse_json(json_record.json_s3_uri),
-                json_record.replay_file_url,
-            )
-        except Exception:
-            logger.exception(f"Failed to load JSON for match {db_match.match_id}")
-            continue
-        new_match = matches.replay_to_db_match(replay, json_record.json_s3_uri)
-        checked_count += 1
         if matches.matches_differ(db_match, new_match):
             replay_manager.update_match(new_match)
             updated_count += 1
-    return {"updated": updated_count, "checked": checked_count}
+    if updated_count:
+        replay_manager.session.commit()
+    replay_manager.auto_commit = True
+    return {"updated": updated_count, "checked": len(parsed)}
 
 
 @app.post("/api/register_matches/", include_in_schema=IS_DEV)

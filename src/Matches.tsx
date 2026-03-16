@@ -292,7 +292,10 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
           />
         ))}
         <Box sx={{ flexShrink: 0 }}>
-          <GameMap mapname={props.match.map} playerPositions={playerPositions} />
+          <GameMap
+            mapname={props.match.map}
+            playerPositions={playerPositions}
+          />
         </Box>
       </Stack>
       <Stack direction="row">

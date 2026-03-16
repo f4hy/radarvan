@@ -212,11 +212,25 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
     if existing.game_version != new.game_version:
         return True
     existing_players = sorted(
-        (p.player_name, p.general_id, p.team_id, p.color, p.is_winner)
+        (
+            p.player_name,
+            p.general_id,
+            p.team_id,
+            p.color,
+            p.is_winner,
+            p.starting_position,
+        )
         for p in existing.players
     )
     new_players = sorted(
-        (p.player_name, p.general_id, p.team_id, p.color, p.is_winner)
+        (
+            p.player_name,
+            p.general_id,
+            p.team_id,
+            p.color,
+            p.is_winner,
+            p.starting_position,
+        )
         for p in new.players
     )
     return existing_players != new_players
