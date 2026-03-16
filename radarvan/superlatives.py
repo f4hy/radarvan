@@ -309,10 +309,11 @@ def _fmt_money(amount: int) -> str:
 
 
 def get_apm_stats(
+    match_info_by_id: dict[int, MatchInfo],
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Match with highest average APM and player with highest APM."""
+    """Match with highest average APM, player with highest APM, and APM by general."""
     if not details:
         return []
 
@@ -336,8 +337,19 @@ def get_apm_stats(
     best: tuple[str, float, int] | None = None  # (player_name, apm, match_id)
     # player -> (total_actions, total_minutes, game_count)
     player_totals: dict[str, tuple[int, float, int]] = {}
+    # general_name -> (total_actions, total_minutes, game_count)
+    general_totals: dict[str, tuple[int, float, int]] = {}
     for d in details:
         color_map = {ps.name: ps.color for ps in d.player_summary}
+        match_info = match_info_by_id.get(d.match_id)
+        general_map = (
+            {
+                resolve_player_name(p.name, p.color): p.general.name
+                for p in match_info.players
+            }
+            if match_info
+            else {}
+        )
         for a in d.apms:
             if a.minutes >= 3.0 and a.apm > 0:
                 resolved = resolve_player_name(
@@ -353,6 +365,14 @@ def get_apm_stats(
                     prev_minutes + a.minutes,
                     prev_games + 1,
                 )
+                general_name = general_map.get(resolved)
+                if general_name:
+                    ga, gm, gc = general_totals.get(general_name, (0, 0.0, 0))
+                    general_totals[general_name] = (
+                        ga + a.action_count,
+                        gm + a.minutes,
+                        gc + 1,
+                    )
     if best is not None:
         stats.append(
             Statistic(
@@ -378,6 +398,31 @@ def get_apm_stats(
                 date_computed=computed_at,
                 value=round(eligible[top_name], 1),
                 player=top_name,
+            )
+        )
+
+    eligible_generals = {
+        name: total_actions / total_minutes
+        for name, (total_actions, total_minutes, game_count) in general_totals.items()
+        if game_count >= MIN_GAMES and total_minutes > 0
+    }
+    if eligible_generals:
+        top_gen = max(eligible_generals, key=eligible_generals.__getitem__)
+        bot_gen = min(eligible_generals, key=eligible_generals.__getitem__)
+        stats.append(
+            Statistic(
+                stat_name="🚀 Highest APM General",
+                date_computed=computed_at,
+                value=round(eligible_generals[top_gen], 1),
+                player=top_gen,
+            )
+        )
+        stats.append(
+            Statistic(
+                stat_name="🐢 Lowest APM General",
+                date_computed=computed_at,
+                value=round(eligible_generals[bot_gen], 1),
+                player=bot_gen,
             )
         )
 
@@ -636,7 +681,7 @@ def get_superlatives(
         for fn, *args in [
             (get_first_blood_stats, match_info_by_id, details, computed_at),
             (get_building_first_blood_stats, match_info_by_id, details, computed_at),
-            (get_apm_stats, details, computed_at),
+            (get_apm_stats, match_info_by_id, details, computed_at),
             (get_money_stats, details, computed_at),
             (get_player_money_stats, details, computed_at),
             (get_activity_stats, details, computed_at),
