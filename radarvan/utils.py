@@ -4,7 +4,7 @@ import datetime
 from collections.abc import Callable
 from typing import Any, cast
 from .api_types import Player, General, Team
-from .cncstats_types import EnhancedReplay, PlayerSummary, Player as HeaderPlayer
+from .cncstats_types_v2 import EnhancedReplayV2, PlayerSummary, Player as HeaderPlayer
 import logging
 import time
 import functools
@@ -29,13 +29,13 @@ def log_duration[F: Callable[..., Any]](func: F) -> F:
     return cast(F, wrapper)
 
 
-def duration_minutes(replay: EnhancedReplay) -> float:
+def duration_minutes(replay: EnhancedReplayV2) -> float:
     start = datetime.datetime.fromtimestamp(replay.Header.TimeStampBegin)
     end = datetime.datetime.fromtimestamp(replay.Header.TimeStampEnd)
     return (end - start).total_seconds() / 60.0
 
 
-def minutess_per_step(replay: EnhancedReplay) -> float:
+def minutess_per_step(replay: EnhancedReplayV2) -> float:
     """Scale factor to convert a timecode to minutes."""
     minutes = duration_minutes(replay)
     stamps = replay.Header.NumTimeStamps
@@ -128,7 +128,7 @@ def determin_general(
     return faction
 
 
-def players_from_replay(replay: EnhancedReplay) -> list[Player]:
+def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
     players: list[Player] = []
     summaries = {s.Name: s for s in replay.Summary}
     for p in replay.Header.Metadata.Players:

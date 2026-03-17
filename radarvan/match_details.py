@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 
 from .api_types import (
     PlayerSummary as APIPlayerSummary,
 )
-from .cncstats_types import EnhancedReplay
+from .cncstats_types_v2 import EnhancedReplayV2
 from .api_types import (
     MatchDetails,
     SpentOverTime,
@@ -40,34 +41,32 @@ def collected_value(current_val: int, prev_val: int) -> int:
     return 0
 
 
-def player_money_from_replay(replay: EnhancedReplay) -> MoneyData:
+def player_money_from_replay(replay: EnhancedReplayV2) -> MoneyData:
     """Get player money from replay."""
 
+    if replay.Stats is None:
+        return MoneyData(player_monies={}, player_collected={})
+
     scale = minutess_per_step(replay)
-    players = replay.Header.Metadata.Players
-    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Team >= 0}
+    interval = replay.Stats.game.snapshotInterval
+    name_by_idx = {p.index: p.displayName for p in replay.Stats.players}
+    series_by_idx = {p.index: p for p in replay.Stats.timeSeries.players}
+    num_snapshots = max((len(s.money) for s in series_by_idx.values()), default=0)
 
     md = MoneyData(player_monies={}, player_collected={})
-
-    previous = {
-        player_index_to_name[i]: 1_000_000 for i, p in enumerate(players) if p.Team >= 0
-    }
-    sofar = {player_index_to_name[i]: 0 for i, p in enumerate(players) if p.Team >= 0}
-
-    for chunk in replay.Body:
-        if chunk.PlayerMoney is None:
-            continue
-        md.player_monies[chunk.TimeCode * scale] = {
-            name: chunk.PlayerMoney.PlayerMoney[i]
-            for i, name in player_index_to_name.items()
+    for snap_idx in range(num_snapshots):
+        frame = snap_idx * interval
+        time_key = frame * scale
+        md.player_monies[time_key] = {
+            name_by_idx[idx]: series.money[snap_idx]
+            for idx, series in series_by_idx.items()
+            if snap_idx < len(series.money) and idx in name_by_idx
         }
-        for i, name in player_index_to_name.items():
-            current = chunk.PlayerMoney.PlayerMoney[i]
-            collected = collected_value(current, previous[name])
-            sofar[name] += collected
-            previous[name] = current
-        md.player_collected[chunk.TimeCode * scale] = sofar.copy()
-
+        md.player_collected[time_key] = {
+            name_by_idx[idx]: series.moneyEarned[snap_idx]
+            for idx, series in series_by_idx.items()
+            if snap_idx < len(series.moneyEarned) and idx in name_by_idx
+        }
     return md
 
 
@@ -134,7 +133,7 @@ def is_active_action(order_name: str) -> bool:
     return order_name in ACTIVE_ACTIONS
 
 
-def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
+def apms_from_replay(replay: EnhancedReplayV2) -> list[APM]:
     players = replay.Header.Metadata.Players
     action_counts = {p.Name: 0 for p in players if p.Team >= 0 and p.Type != "C"}
     player_first_active = {p.Name: -1 for p in players if p.Team >= 0}
@@ -168,86 +167,144 @@ def apms_from_replay(replay: EnhancedReplay) -> list[APM]:
     ]
 
 
-def stats_data_from_replay(replay: EnhancedReplay) -> AllExtractedData:
-    """Get player money from replay."""
+_UNIT_TYPE_PREFIXES = (
+    "Tank_", "Nuke_", "Infantry_", "Demo_", "Toxin_", "Stealth_",
+    "Air_", "Laser_", "Super_", "Ranger_", "Pilot_", "Worker_",
+    "Rebel_", "Terrorist_", "Jarmen_", "Black_", "Paladin_",
+    "Crusader_", "Humvee_", "Colonel_", "Aurora_", "King_",
+)
+
+
+def _is_building(name: str) -> bool:
+    return not any(name.startswith(p) for p in _UNIT_TYPE_PREFIXES)
+
+
+def _event_counts_to_series(
+    deltas_by_frame: dict[int, dict[str, int]],
+    all_players: set[str],
+    scale: float,
+) -> dict[float, dict[str, int]]:
+    """Convert per-frame event count deltas into a cumulative time series."""
+    result: dict[float, dict[str, int]] = {}
+    cumulative: dict[str, int] = {name: 0 for name in all_players}
+    for frame in sorted(deltas_by_frame):
+        for name, delta in deltas_by_frame[frame].items():
+            cumulative[name] = cumulative.get(name, 0) + delta
+        result[frame * scale] = dict(cumulative)
+    return result
+
+
+def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData:
+    """Get stats data from replay."""
+
+    data_types = [
+        "xp", "units_built", "units_lost", "buildings_built", "buildings_lost",
+        "money_earned", "units_killed", "buildings_killed",
+        "tech_buildings_captured", "faction_buildings_captured",
+    ]
+
+    if replay.Stats is None:
+        sd = StatsData.model_validate({t: {} for t in data_types})
+        return AllExtractedData(stats_data=sd, first_blood=None, building_first_blood=None)
 
     scale = minutess_per_step(replay)
-    players = replay.Header.Metadata.Players
+    name_by_idx = {p.index: p.displayName for p in replay.Stats.players}
+    all_players = set(name_by_idx.values())
 
-    player_index_to_name = {i: p.Name for i, p in enumerate(players) if p.Faction >= -2}
+    # money_earned from time series snapshots
+    interval = replay.Stats.game.snapshotInterval
+    series_by_idx = {p.index: p for p in replay.Stats.timeSeries.players}
+    num_snapshots = max((len(s.moneyEarned) for s in series_by_idx.values()), default=0)
+    money_earned: dict[float, dict[str, int]] = {}
+    for snap_idx in range(num_snapshots):
+        frame = snap_idx * interval
+        money_earned[frame * scale] = {
+            name_by_idx[idx]: series.moneyEarned[snap_idx]
+            for idx, series in series_by_idx.items()
+            if snap_idx < len(series.moneyEarned) and idx in name_by_idx
+        }
 
-    data: dict[str, dict[float, dict[str, int]]]
-    prev_vals: dict[str, dict[str, int]]
-    data_types = [
-        "xp",
-        "units_built",
-        "units_lost",
-        "buildings_built",
-        "buildings_lost",
-        "money_earned",
-        "units_killed",
-        "buildings_killed",
-        "tech_buildings_captured",
-        "faction_buildings_captured",
-    ]
-    data = {t: {} for t in data_types}
-    prev_vals = {t: {} for t in data_types}
+    # xp from skillPointsEvents — each event records the player's current total
+    xp: dict[float, dict[str, int]] = {}
+    current_xp: dict[str, int] = {n: 0 for n in all_players}
+    xp_by_frame: dict[int, dict[str, int]] = defaultdict(dict)
+    for ev in replay.Stats.skillPointsEvents:
+        name = name_by_idx.get(ev.player, "unk")
+        if name != "unk":
+            xp_by_frame[ev.frame][name] = ev.skillPoints
+    for frame in sorted(xp_by_frame):
+        current_xp.update(xp_by_frame[frame])
+        xp[frame * scale] = dict(current_xp)
 
+    # units_built / buildings_built from buildEvents
+    ub_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    bb_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for bev in replay.Stats.buildEvents:
+        name = name_by_idx.get(bev.player, "unk")
+        if name == "unk":
+            continue
+        if _is_building(bev.object):
+            bb_deltas[bev.frame][name] += 1
+        else:
+            ub_deltas[bev.frame][name] += 1
+    units_built = _event_counts_to_series(ub_deltas, all_players, scale)
+    buildings_built = _event_counts_to_series(bb_deltas, all_players, scale)
+
+    # units_killed / buildings_killed (credit killer) and units_lost / buildings_lost (credit victim)
+    uk_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    bk_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    ul_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    bl_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     first_blood: FirstBlood | None = None
     building_first_blood: FirstBlood | None = None
+    for kev in replay.Stats.killEvents:
+        killer_name = name_by_idx.get(kev.killerPlayer, "unk")
+        victim_name = name_by_idx.get(kev.victimPlayer, "unk")
+        at_minute = kev.frame * scale
+        is_bldg = _is_building(kev.victim)
+        if killer_name != "unk":
+            (bk_deltas if is_bldg else uk_deltas)[kev.frame][killer_name] += 1
+        if victim_name != "unk":
+            (bl_deltas if is_bldg else ul_deltas)[kev.frame][victim_name] += 1
+        if first_blood is None:
+            first_blood = FirstBlood(attacker=killer_name, victim=victim_name, atMinute=at_minute)
+        if building_first_blood is None and is_bldg:
+            building_first_blood = FirstBlood(attacker=killer_name, victim=victim_name, atMinute=at_minute)
+    units_killed = _event_counts_to_series(uk_deltas, all_players, scale)
+    buildings_killed = _event_counts_to_series(bk_deltas, all_players, scale)
+    units_lost = _event_counts_to_series(ul_deltas, all_players, scale)
+    buildings_lost = _event_counts_to_series(bl_deltas, all_players, scale)
 
-    for chunk in replay.Body:
-        if chunk.PlayerStats is None:
+    # tech_buildings_captured / faction_buildings_captured from captureEvents
+    tc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    fc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for cev in replay.Stats.captureEvents:
+        name = name_by_idx.get(cev.newOwner, "unk")
+        if name == "unk":
             continue
-        for dt in data_types:
-            if (d := getattr(chunk.PlayerStats, dt)) is not None:
-                if dt in {"units_killed"} and first_blood is None:
-                    if sum(sum(v) for v in d) > 0:
-                        for victim_idx, vs in enumerate(d):
-                            for killer_idx, ks in enumerate(vs):
-                                if ks > 0:
-                                    first_blood = FirstBlood(
-                                        attacker=player_index_to_name[killer_idx],
-                                        victim=player_index_to_name.get(
-                                            victim_idx, "unk"
-                                        ),
-                                        atMinute=chunk.TimeCode * scale,
-                                    )
-                if dt in {"buildings_killed"} and building_first_blood is None:
-                    if sum(sum(v) for v in d) > 0:
-                        for victim_idx, vs in enumerate(d):
-                            for killer_idx, ks in enumerate(vs):
-                                if ks > 0:
-                                    building_first_blood = FirstBlood(
-                                        attacker=player_index_to_name[killer_idx],
-                                        victim=player_index_to_name.get(
-                                            victim_idx, "unk"
-                                        ),
-                                        atMinute=chunk.TimeCode * scale,
-                                    )
+        if cev.object.startswith("Tech"):
+            tc_deltas[cev.frame][name] += 1
+        else:
+            fc_deltas[cev.frame][name] += 1
+    tech_buildings_captured = _event_counts_to_series(tc_deltas, all_players, scale)
+    faction_buildings_captured = _event_counts_to_series(fc_deltas, all_players, scale)
 
-                if isinstance(d[0], list):
-                    new_values = {
-                        name: sum(v[i] for v in d)
-                        for i, name in player_index_to_name.items()
-                    }
-                else:
-                    new_values = {
-                        name: d[i] for i, name in player_index_to_name.items()
-                    }
-                if new_values != prev_vals[dt]:
-                    data[dt][chunk.TimeCode * scale] = new_values
-                    prev_vals[dt] = new_values
-
-    sd = StatsData.model_validate(data)
-    return AllExtractedData(
-        stats_data=sd,
-        first_blood=first_blood,
-        building_first_blood=building_first_blood,
+    sd = StatsData(
+        xp=xp,
+        units_built=units_built,
+        units_lost=units_lost,
+        buildings_built=buildings_built,
+        buildings_lost=buildings_lost,
+        money_earned=money_earned,
+        units_killed=units_killed,
+        buildings_killed=buildings_killed,
+        tech_buildings_captured=tech_buildings_captured,
+        faction_buildings_captured=faction_buildings_captured,
     )
+    return AllExtractedData(stats_data=sd, first_blood=first_blood, building_first_blood=building_first_blood)
 
 
-def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
+def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
     scale = minutess_per_step(replay)
     players = replay.Header.Metadata.Players
     player_index_to_name = {i: p.Name for i, p in enumerate(players)}
@@ -272,7 +329,7 @@ def events_from_replay(replay: EnhancedReplay) -> dict[str, Upgrades]:
     return {name: Upgrades(upgrades=values) for name, values in upgrades.items()}
 
 
-def api_player_summaries(replay: EnhancedReplay) -> list[APIPlayerSummary]:
+def api_player_summaries(replay: EnhancedReplayV2) -> list[APIPlayerSummary]:
     color_map = {p.Name: p.Color for p in replay.Header.Metadata.Players}
     player_summaries: list[APIPlayerSummary] = []
     for s in replay.Summary:
@@ -418,7 +475,7 @@ async def load_many_superlative_data(
     return all_results
 
 
-def match_details_from_replay(replay: EnhancedReplay) -> MatchDetails | None:
+def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     money = player_money_from_replay(replay)
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)

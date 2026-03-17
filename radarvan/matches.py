@@ -9,7 +9,7 @@ from . import db
 from . import replay_files
 from . import utils
 from .api_types import MatchInfo, Player, Team
-from .cncstats_types import EnhancedReplay
+from .cncstats_types_v2 import EnhancedReplayV2
 from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type
 from dataclasses import dataclass
@@ -23,7 +23,7 @@ class WinnerAndNotes:
     notes: str = ""
 
 
-def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAndNotes:
+def determine_winner(replay: EnhancedReplayV2, players: list[Player]) -> WinnerAndNotes:
     _winners = [p for p in replay.Summary if p.Win is True]
     if not _winners:
         return WinnerAndNotes(
@@ -45,7 +45,7 @@ def determine_winner(replay: EnhancedReplay, players: list[Player]) -> WinnerAnd
     )
 
 
-def is_incomplete(replay: EnhancedReplay) -> str | None:
+def is_incomplete(replay: EnhancedReplayV2) -> str | None:
     head = replay.Header
     if (
         sum(head.Desync or [])
@@ -71,7 +71,7 @@ def is_incomplete(replay: EnhancedReplay) -> str | None:
     return ""
 
 
-def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
+def match_from_replay(replay: EnhancedReplayV2) -> MatchInfo | None:
     duration_minutes = utils.duration_minutes(replay)
     if duration_minutes < 2:
         logger.info("under 2 minutes, not a real game")
@@ -95,7 +95,7 @@ def match_from_replay(replay: EnhancedReplay) -> MatchInfo | None:
 
 
 @utils.log_duration
-def replay_to_db_match(replay: EnhancedReplay, json_s3_uri: str) -> db.Match:
+def replay_to_db_match(replay: EnhancedReplayV2, json_s3_uri: str) -> db.Match:
     """replay to match."""
     match_id = replay.replay_id()
     players = utils.players_from_replay(replay)

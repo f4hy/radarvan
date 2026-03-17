@@ -42,9 +42,9 @@ class Player(BaseModel):
     Port: str
     FT: str
     Color: str
-    Faction: str
+    Faction: int
     StartingPosition: str
-    Team: str
+    Team: int
     Unknown: str
 
 
@@ -54,7 +54,7 @@ class Metadata(BaseModel):
     MapFile: str
     MapCRC: str
     MapSize: str
-    Seed: str
+    Seed: int
     C: str
     SR: str
     StartingCredits: str
@@ -345,4 +345,4 @@ class EnhancedReplayV2(BaseModel):
     Stats: GameStats | None = None
 
     def replay_id(self) -> int:
-        return int(self.Header.Metadata.Seed)
+        return self.Header.Metadata.Seed

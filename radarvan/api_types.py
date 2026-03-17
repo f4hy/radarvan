@@ -339,7 +339,7 @@ class PlayerSummary(BaseModel):
     Team: int
     Win: bool
     Color: str
-    MoneySpent: int
+    MoneySpent: int = 0
     UnitsCreated: dict[str, ObjectSummary]
     BuildingsBuilt: dict[str, ObjectSummary]
     UpgradesBuilt: dict[str, ObjectSummary]

@@ -3,7 +3,7 @@
 import re
 import logging
 import fsspec
-from .cncstats_types import EnhancedReplay
+from .cncstats_types_v2 import EnhancedReplayV2
 from functools import cache
 from .parse_replay import parse_replay_data
 from . import utils
@@ -65,25 +65,25 @@ def save_replay_if_missing(
     replay_manager.register_replay(replay_path, save_path)
 
 
-def with_filename(replay: EnhancedReplay, path: str) -> EnhancedReplay:
+def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
     """Return a copy of replay with Header.FileName set to path."""
     return replay.model_copy(
         update={"Header": replay.Header.model_copy(update={"FileName": path})}
     )
 
 
-def parse_json(json_path: str) -> EnhancedReplay:
+def parse_json(json_path: str) -> EnhancedReplayV2:
     fs = get_fs()
     with log_time(f"reading {json_path}", logger):
         json_data = fs.read_text(json_path)
     with log_time(f"Validing {json_path}", logger):
-        parsed_replay = EnhancedReplay.model_validate_json(json_data)
+        parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
     return parsed_replay
 
 
 # @cached(cache=LRUCache(maxsize=12))
 @utils.log_duration
-def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
+def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
     replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root).replace(
         "https://generals-public.s3.us-east-2.amazonaws.com/reps/", s3_root
     )
@@ -98,7 +98,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
         with log_time(f"reading {json_path}", logger):
             json_data = fs.read_text(json_path)
         with log_time(f"Validing {json_path}", logger):
-            parsed_replay = EnhancedReplay.model_validate_json(json_data)
+            parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
     else:
         logger.info(f"Does not exist {json_path=}")
         raw_replay = fs.read_bytes(replay_path)
@@ -116,7 +116,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplay:
 
 def reparse(
     match_id: int, replay_manager: ReplayManager, force: bool = False
-) -> tuple[EnhancedReplay, str] | None:
+) -> tuple[EnhancedReplayV2, str] | None:
     logger.info(f"Reparsing {match_id=}")
     existing = replay_manager.get_replay_json_by_match_id(match_id)
     logger.info(f"Existing {existing=}")
@@ -130,7 +130,7 @@ def reparse(
 
     fs = get_fs()
     existing_data = fs.read_text(json_path)
-    existing_replay = EnhancedReplay.model_validate_json(existing_data)
+    existing_replay = EnhancedReplayV2.model_validate_json(existing_data)
     if utils.duration_minutes(existing_replay) < 2.0:
         logger.warning("Too short, skipping")
         return None

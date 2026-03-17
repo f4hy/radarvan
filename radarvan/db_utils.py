@@ -1,4 +1,4 @@
-from .cncstats_types import EnhancedReplay
+from .cncstats_types_v2 import EnhancedReplayV2
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections import defaultdict
@@ -172,14 +172,12 @@ class ReplayManager:
         self,
         json_s3_uri: str,
         original_replay_file_url: str,
-        parsed_replay: EnhancedReplay,
+        parsed_replay: EnhancedReplayV2,
     ) -> ParsedReplayJson:
         """Save the result of parsing."""
         game_timestamp = datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin)
         replay_id = parsed_replay.replay_id()
-        has_enhanced_stats = any(
-            chunk.PlayerStats is not None for chunk in parsed_replay.Body
-        )
+        has_enhanced_stats = parsed_replay.Stats is not None
         logger.info(
             f"Saving parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
         )

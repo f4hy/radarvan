@@ -8,7 +8,7 @@ import sys
 import pathlib
 import json
 import httpx
-from .cncstats_types import EnhancedReplay, Player
+from .cncstats_types_v2 import EnhancedReplayV2, Player
 from .db_utils import ReplayManager
 import logging
 from .game_composition import categorize_game_type
@@ -16,7 +16,7 @@ from .game_composition import categorize_game_type
 logger = logging.getLogger(__name__)
 
 # PARSE_URL = "https://cncstats.herokuapp.com/replay"
-PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
+PARSE_URL = "http://cncstats.computersrfun.org:8080/replay?format=v2"
 
 
 def reassign_1v1_teams(players: list[Player]) -> list[Player]:
@@ -33,7 +33,7 @@ def reassign_1v1_teams(players: list[Player]) -> list[Player]:
 
 def parse_replay_data(
     data: bytes, replay_manager: ReplayManager, debug: bool = False
-) -> EnhancedReplay:
+) -> EnhancedReplayV2:
     logger.info("Calling cncstats to parse replay")
     response = httpx.post(PARSE_URL, files={"file": data}, timeout=30)
     if debug:
@@ -42,7 +42,7 @@ def parse_replay_data(
     logger.info(
         f"ccnstats responded with replay in {response.elapsed.total_seconds()}s "
     )
-    validated = EnhancedReplay.model_validate(response.json())
+    validated = EnhancedReplayV2.model_validate(response.json())
     players = [p for p in validated.Header.Metadata.Players if p.Faction > -2]
     composition = categorize_game_type(players)
     if composition.is_1v1:
