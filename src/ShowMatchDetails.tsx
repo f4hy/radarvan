@@ -26,7 +26,14 @@ import {
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import { KillEventOutput, MatchDetails, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
+import {
+  KillEventOutput,
+  MatchDetails,
+  Upgrades,
+  APM,
+  PlayerSummary,
+  FirstBlood,
+} from "./api"
 import GameMap from "./Map"
 import { Alert, Stack } from "@mui/material"
 import Loading from "./Loading"
@@ -39,6 +46,7 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+import { buildPlayerColorMap, getColorHex } from "./utils"
 
 function getDetails(
   id: number,
@@ -68,10 +76,7 @@ function MoneyChart(props: {
   const lines = props.horizontalLines ?? []
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
-    const colors = props.playerSummaries.reduce(
-      (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
-      {},
-    )
+    const colors = buildPlayerColorMap(props.playerSummaries)
     const data = Object.entries(props.money).map(([atMinute, values]) => ({
       ...values,
       atMinute: atMinute,
@@ -144,10 +149,7 @@ function EventChart(props: {
   const names = Object.keys(props.upgrades).sort((x1, x2) =>
     x1.localeCompare(x2),
   )
-  const colors = props.playerSummaries.reduce(
-    (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
-    {},
-  )
+  const colors = buildPlayerColorMap(props.playerSummaries)
 
   if (props.upgrades && names.length > 0) {
     return (
@@ -199,10 +201,7 @@ function ApmChart(props: { apms: APM[]; playerSummaries: PlayerSummary[] }) {
   if (props.apms.length === 0) {
     return <div>APM data not yet availible</div>
   }
-  const colors = props.playerSummaries.reduce(
-    (acc, cur) => ({ ...acc, [cur.name]: cur.color }),
-    {},
-  )
+  const colors = buildPlayerColorMap(props.playerSummaries)
   const data = _.sortBy(props.apms, (a) => -a.apm)
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -335,26 +334,6 @@ const columns: Array<{
     render: renderCash,
   },
 ]
-
-const getColorHex = (colorName: string): string => {
-  const colorMap: { [key: string]: string } = {
-    pink: "#FFC0CB",
-    red: "#FF0000",
-    blue: "#0000FF",
-    skyblue: "#87CEEB",
-    green: "#00FF00",
-    yellow: "#FFFF00",
-    purple: "#800080",
-    orange: "#FFA500",
-    gold: "#FFD700",
-    // add more as needed
-  }
-  if (colorName === "-1") {
-    return "#000000"
-  }
-
-  return colorMap[colorName.toLowerCase()] || colorName
-}
 
 function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   const [sortBy, setSortBy] = React.useState<null | keyof StyledTableRow>(
@@ -530,25 +509,34 @@ function KillMap(props: {
   playerSummaries: PlayerSummary[]
   mapName: string
 }) {
-  if (props.killEvents.length === 0) {
-    return <div>No kill event data for this replay</div>
-  }
-  const colors = props.playerSummaries.reduce(
-    (acc, cur) => ({ ...acc, [cur.name]: getColorHex(cur.color) }),
-    {} as Record<string, string>,
+  const colors = React.useMemo(
+    () => buildPlayerColorMap(props.playerSummaries, getColorHex),
+    [props.playerSummaries],
   )
-  const eventDots = props.killEvents.map((e) => ({
-    x: e.x,
-    y: e.y,
-    color: colors[e.killerPlayer] ?? "#888",
-    tooltip: `${e.killerPlayer} killed ${e.victimPlayer} (${e.killer} → ${e.victim}) @ ${e.atMinute.toFixed(2)}m`,
-  }))
+  const eventDots = React.useMemo(
+    () =>
+      props.killEvents.map((e) => ({
+        x: e.x,
+        y: e.y,
+        color: colors[e.killerPlayer] ?? "#888",
+        tooltip: `${e.killerPlayer} killed ${e.victimPlayer} (${e.killer} → ${e.victim}) @ ${e.atMinute.toFixed(2)}m`,
+      })),
+    [props.killEvents, colors],
+  )
+  if (props.killEvents.length === 0) {
+    return <Typography>No kill event data for this replay</Typography>
+  }
   return (
     <Box sx={{ maxWidth: "60%" }}>
       <GameMap mapname={props.mapName} eventDots={eventDots} />
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
         {props.playerSummaries.map((ps) => (
-          <Stack key={ps.name} direction="row" spacing={0.5} alignItems="center">
+          <Stack
+            key={ps.name}
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+          >
             <Box
               sx={{
                 width: 12,

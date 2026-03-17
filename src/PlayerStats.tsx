@@ -29,11 +29,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -52,6 +47,7 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { isDebug, winRate } from "./utils"
+import WinRateRadar from "./WinRateRadar"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
@@ -256,7 +252,7 @@ function DisplayPlayerStat(props: {
     losses,
   }))
   const radarData = entries.map(({ name, wr }) => ({
-    general: name,
+    name,
     winRate: Math.round(wr * 100),
   }))
   return (
@@ -299,29 +295,7 @@ function DisplayPlayerStat(props: {
           </ResponsiveContainer>
         </Grid>
         <Grid item xs={12} md={4}>
-          <ResponsiveContainer width="99%" aspect={1}>
-            <RadarChart data={radarData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="general" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis
-                domain={[0, 100]}
-                tick={false}
-                axisLine={false}
-              />
-              <Radar
-                dataKey="winRate"
-                fill="#42A5F5"
-                fillOpacity={0.4}
-                stroke="#42A5F5"
-              />
-              <RechartsTooltip
-                formatter={(value: number | undefined) => [
-                  `${value ?? 0}%`,
-                  "Win Rate",
-                ]}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+          <WinRateRadar data={radarData} />
         </Grid>
       </Grid>
     </Box>

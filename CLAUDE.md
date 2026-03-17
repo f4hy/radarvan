@@ -46,7 +46,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **Database**: SQLAlchemy ORM with PostgreSQL, managed via `db_utils.py` and `db.py`
 - **Key modules**:
   - `matches.py` - Match listing, retrieval, conversion (`match_from_replay`, `replay_to_db_match`, `match_to_matchinfo`, `matches_differ`)
-  - `match_details.py` - Detailed match statistics (APM, upgrades, spending over time, first blood)
+  - `match_details.py` - Detailed match statistics (APM, upgrades, spending over time, first blood, kill events with map coordinates)
   - `player_stats.py` - Player-specific win/loss stats by general; accepts `game_format` filter; counts all games per category
   - `general_stats.py` - General/faction-specific statistics
   - `superlatives.py` - Top-N leaderboard stats (streaks, APM, kills, money, etc.)
@@ -104,6 +104,10 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **`has_enhanced_stats` in DB**: Set via `replay.Stats is not None` (not by inspecting `BodyChunk.PlayerStats`, which no longer exists in v2).
 - **`_is_building()` in `match_details.py`**: Currently always returns `False` — a placeholder until cncstats adds object-type metadata to kill/build events. The building stat buckets (`buildings_built`, `buildings_killed`, etc.) are intentionally scaffolded but always empty for now.
 - **`MatchDetails.player_money_spent`**: Per-player end-of-game money spent (from `Stats.players[*].moneySpent`). Use this instead of `PlayerSummary.MoneySpent`, which is always 0 for v2 replays.
+- **`MatchDetails.kill_events`**: List of `KillEventOutput` — each has `x`, `y` (game coordinates), `killerPlayer`/`victimPlayer` (display names), `killer`/`victim` (unit names), `damageType`, `atMinute`. Populated from `Stats.killEvents` with player indices resolved to names.
+- **`MatchDetails.map_name`**: Map filename from `replay.Header.Metadata.MapFile`. Use this to display the `GameMap` component in match detail views.
+- **`GameMap` event overlay**: Pass `eventDots?: EventDot[]` (from `src/Map.tsx`) to overlay dots on the map image. Coordinates use the same game-space system as all other map points — `left = (x / extent.width) * 100%`, `top = (1 - y / extent.height) * 100%`.
+- **recharts Sankey `nodePadding`**: Applied uniformly to all columns — there is no per-column or per-node padding. The `node` and `link` props accept custom React elements that receive layout props (`x`, `y`, `width`, `height`, `payload`) injected by recharts. `payload.sourceLinks` is available to detect leaf nodes.
 
 ## Key Technical Details
 

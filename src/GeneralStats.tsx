@@ -13,16 +13,12 @@ import {
   BarChart,
   CartesianGrid,
   LabelList,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
+import WinRateRadar from "./WinRateRadar"
 import DisplayGeneral from "./Generals"
 import { GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
@@ -97,33 +93,6 @@ function GeneralWinLossChart(props: {
         <YAxis tick={{ fontSize: props.isMobile ? 9 : 12 }} />
         <Tooltip cursor={false} />
       </BarChart>
-    </ResponsiveContainer>
-  )
-}
-
-function GeneralWinRateRadar(props: {
-  data: { name: string; winRate: number }[]
-}) {
-  return (
-    <ResponsiveContainer width="99%" aspect={1.4}>
-      <RadarChart data={props.data}>
-        <PolarGrid />
-        <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
-        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-        <Radar
-          dataKey="winRate"
-          name="Win Rate"
-          fill="#42A5F5"
-          fillOpacity={0.4}
-          stroke="#42A5F5"
-        />
-        <Tooltip
-          formatter={(value: number | undefined) => [
-            `${value ?? 0}%`,
-            "Win Rate",
-          ]}
-        />
-      </RadarChart>
     </ResponsiveContainer>
   )
 }
@@ -235,7 +204,7 @@ export default function DisplayGeneralStats() {
           </Grid>
         </Grid>
         <Grid item xs={12} md={8}>
-          <GeneralWinRateRadar data={radarData} />
+          <WinRateRadar data={radarData} aspect={1.4} />
         </Grid>
       </Grid>
       {errorSnackbar}

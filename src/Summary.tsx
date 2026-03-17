@@ -96,7 +96,11 @@ function buildPlayerSankeyData(sum: PlayerSummary) {
     links.push({ source: playerIdx, target: catIdx, value: catTotal })
     for (const [name, obj] of Object.entries(items)) {
       if (obj.totalSpent <= 0) continue
-      links.push({ source: catIdx, target: addNode(name), value: obj.totalSpent })
+      links.push({
+        source: catIdx,
+        target: addNode(name),
+        value: obj.totalSpent,
+      })
     }
   }
 
@@ -121,9 +125,14 @@ type SankeyLinkProps = {
 }
 
 function SankeyLink({
-  sourceX = 0, sourceY = 0, targetX = 0, targetY = 0,
-  sourceControlX = 0, targetControlX = 0,
-  linkWidth = 0, payload,
+  sourceX = 0,
+  sourceY = 0,
+  targetX = 0,
+  targetY = 0,
+  sourceControlX = 0,
+  targetControlX = 0,
+  linkWidth = 0,
+  payload,
 }: SankeyLinkProps) {
   const color =
     CATEGORY_COLORS[payload?.target?.name ?? ""] ??
@@ -139,12 +148,28 @@ function SankeyLink({
     ` ${sourceControlX},${sourceY + linkWidth / 2}`,
     ` ${sourceX},${sourceY + linkWidth / 2}Z`,
   ].join(" ")
-  return <path d={d} fill={color} fillOpacity={0.3} stroke={color} strokeOpacity={0.5} />
+  return (
+    <path
+      d={d}
+      fill={color}
+      fillOpacity={0.3}
+      stroke={color}
+      strokeOpacity={0.5}
+    />
+  )
 }
 
 const NODE_COLORS = [
-  "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
-  "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac",
+  "#4e79a7",
+  "#f28e2b",
+  "#e15759",
+  "#76b7b2",
+  "#59a14f",
+  "#edc948",
+  "#b07aa1",
+  "#ff9da7",
+  "#9c755f",
+  "#bab0ac",
 ]
 
 type SankeyNodeProps = {
@@ -156,7 +181,14 @@ type SankeyNodeProps = {
   payload?: { name: string; value?: number; sourceLinks?: unknown[] }
 }
 
-function SankeyNode({ x = 0, y = 0, width = 0, height = 0, index = 0, payload }: SankeyNodeProps) {
+function SankeyNode({
+  x = 0,
+  y = 0,
+  width = 0,
+  height = 0,
+  index = 0,
+  payload,
+}: SankeyNodeProps) {
   if (!payload) return null
   const color = NODE_COLORS[index % NODE_COLORS.length]
   const isLeaf = (payload.sourceLinks?.length ?? 0) === 0
@@ -164,7 +196,16 @@ function SankeyNode({ x = 0, y = 0, width = 0, height = 0, index = 0, payload }:
   const anchor = isLeaf ? "end" : "start"
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} rx={4} ry={4} fill={color} fillOpacity={0.85} />
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        rx={4}
+        ry={4}
+        fill={color}
+        fillOpacity={0.85}
+      />
       <text
         x={textX}
         y={y + height / 2}
@@ -173,22 +214,27 @@ function SankeyNode({ x = 0, y = 0, width = 0, height = 0, index = 0, payload }:
         fontSize={11}
         fill="currentColor"
       >
-        ${(payload.value ?? 0).toLocaleString("en-US")} {payload.name.split("_").at(-1)}
+        ${(payload.value ?? 0).toLocaleString("en-US")}{" "}
+        {payload.name.split("_").at(-1)}
       </text>
     </g>
   )
 }
 
 function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
-  const { nodes, links } = buildPlayerSankeyData(props.playerSummary)
-  if (links.length === 0) return <div>Spending data unavailable for this replay</div>
+  const { nodes, links } = React.useMemo(
+    () => buildPlayerSankeyData(props.playerSummary),
+    [props.playerSummary],
+  )
+  if (links.length === 0)
+    return <div>Spending data unavailable for this replay</div>
   const height = Math.max(400, nodes.length * 18)
   return (
     <ResponsiveContainer width="100%" height={height}>
       <Sankey
         data={{ nodes, links }}
-					nodePadding={10}
-					margin={{left: 100, right: 200}}
+        nodePadding={10}
+        margin={{ left: 100, right: 200 }}
         nodeWidth={15}
         iterations={32}
         node={<SankeyNode />}
