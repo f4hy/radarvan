@@ -26,9 +26,11 @@ import {
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import { MatchDetails, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
+import { KillEventOutput, MatchDetails, Upgrades, APM, PlayerSummary, FirstBlood } from "./api"
+import GameMap from "./Map"
 import { Alert, Stack } from "@mui/material"
 import Loading from "./Loading"
+import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
@@ -523,10 +525,52 @@ function DetailedGraphs(props: { details: MatchDetails }) {
   )
 }
 
+function KillMap(props: {
+  killEvents: KillEventOutput[]
+  playerSummaries: PlayerSummary[]
+  mapName: string
+}) {
+  if (props.killEvents.length === 0) {
+    return <div>No kill event data for this replay</div>
+  }
+  const colors = props.playerSummaries.reduce(
+    (acc, cur) => ({ ...acc, [cur.name]: getColorHex(cur.color) }),
+    {} as Record<string, string>,
+  )
+  const eventDots = props.killEvents.map((e) => ({
+    x: e.x,
+    y: e.y,
+    color: colors[e.killerPlayer] ?? "#888",
+    tooltip: `${e.killerPlayer} killed ${e.victimPlayer} (${e.killer} → ${e.victim}) @ ${e.atMinute.toFixed(2)}m`,
+  }))
+  return (
+    <Box sx={{ maxWidth: "60%" }}>
+      <GameMap mapname={props.mapName} eventDots={eventDots} />
+      <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
+        {props.playerSummaries.map((ps) => (
+          <Stack key={ps.name} direction="row" spacing={0.5} alignItems="center">
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                bgcolor: getColorHex(ps.color),
+                flexShrink: 0,
+              }}
+            />
+            <Typography variant="caption">{ps.name}</Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
 type Displays =
   | "Player Unit and spending breakdown"
   | "Event Chart"
   | "Detailed Graphs"
+  | "Kill Map"
 
 function DetailViewSelector(props: {
   selectedDisplay: Displays | null
@@ -565,6 +609,13 @@ function DetailViewSelector(props: {
       {props.selectedDisplay === "Detailed Graphs" && (
         <DetailedGraphs details={props.details} />
       )}
+      {props.selectedDisplay === "Kill Map" && (
+        <KillMap
+          killEvents={props.details.killEvents ?? []}
+          playerSummaries={props.details.playerSummary}
+          mapName={props.details.mapName ?? ""}
+        />
+      )}
     </>
   )
 }
@@ -595,6 +646,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Player Unit and spending breakdown",
     "Event Chart",
     "Detailed Graphs",
+    "Kill Map",
   ]
 
   return (

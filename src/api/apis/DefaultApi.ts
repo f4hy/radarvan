@@ -193,6 +193,11 @@ export interface ReparseApiReparseMatchIdPostRequest {
     matchId: number;
 }
 
+export interface ReparseBeforeDateApiReparseBeforeDatePostRequest {
+    before: Date;
+    maxToUpdate?: number;
+}
+
 export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest {
     maxToReturn?: number;
 }
@@ -224,10 +229,6 @@ export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRe
 }
 
 export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest {
-    maxToUpdate?: number;
-}
-
-export interface UpdateNumTimestampsApiUpdateNumTimestampsPostRequest {
     maxToUpdate?: number;
 }
 
@@ -1621,6 +1622,52 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Reparse Before Date
+     */
+    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        if (requestParameters['before'] == null) {
+            throw new runtime.RequiredError(
+                'before',
+                'Required parameter "before" was null or undefined when calling reparseBeforeDateApiReparseBeforeDatePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['before'] != null) {
+            queryParameters['before'] = (requestParameters['before'] as any).toISOString().substring(0,10);
+        }
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/reparse_before_date/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Reparse Before Date
+     */
+    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+        const response = await this.reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Replays Without Playerstats
      */
     async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
@@ -1935,39 +1982,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Update Num Timestamps
-     */
-    async updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
-        const queryParameters: any = {};
-
-        if (requestParameters['maxToUpdate'] != null) {
-            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/api/update_num_timestamps/`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Update Num Timestamps
-     */
-    async updateNumTimestampsApiUpdateNumTimestampsPost(requestParameters: UpdateNumTimestampsApiUpdateNumTimestampsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
-        const response = await this.updateNumTimestampsApiUpdateNumTimestampsPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -65,9 +65,17 @@ function fetchMapData(mapname: string): Promise<MapDataPayload> {
   return mapDataInFlight[mapname]
 }
 
+export type EventDot = {
+  x: number
+  y: number
+  color: string
+  tooltip?: string
+}
+
 export default function GameMap(props: {
   mapname: string
   playerPositions?: Record<number, string>
+  eventDots?: EventDot[]
 }) {
   const [imgError, setImgError] = React.useState(false)
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
@@ -215,6 +223,26 @@ export default function GameMap(props: {
                   })
                 },
               )}
+            {mapData &&
+              props.eventDots?.map((dot, i) => (
+                <Box
+                  key={i}
+                  component="span"
+                  title={dot.tooltip}
+                  sx={{
+                    position: "absolute",
+                    left: `${(dot.x / mapData.extent.width) * 100}%`,
+                    top: `${(1 - dot.y / mapData.extent.height) * 100}%`,
+                    transform: "translate(-50%, -50%)",
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    bgcolor: dot.color,
+                    opacity: 0.75,
+                    pointerEvents: dot.tooltip ? "auto" : "none",
+                  }}
+                />
+              ))}
           </Box>
         )}
       </Card>

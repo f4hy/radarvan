@@ -265,6 +265,19 @@ class SaveResponse(BaseModel):
     success: bool = False
 
 
+class KillEventOutput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: float = Field(alias="atMinute")
+    killer_player: str = Field(alias="killerPlayer")
+    victim_player: str = Field(alias="victimPlayer")
+    x: float
+    y: float
+    killer: str
+    victim: str
+    damage_type: str = Field(alias="damageType")
+
+
 class CostsBuiltObject(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -404,9 +417,11 @@ class MatchDetails(BaseModel):
         alias="playerMoneySpent",
         description="end-of-game money spent per player name",
     )
+    map_name: str = Field(default="", alias="mapName")
     first_blood: FirstBlood | None = None
     building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
+    kill_events: list[KillEventOutput] = Field(default_factory=list, alias="killEvents")
 
 
 class PairWinLoss(BaseModel):

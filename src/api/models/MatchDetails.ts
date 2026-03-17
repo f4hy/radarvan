@@ -41,6 +41,13 @@ import {
     FirstBloodToJSON,
     FirstBloodToJSONTyped,
 } from './FirstBlood';
+import type { KillEventOutput } from './KillEventOutput';
+import {
+    KillEventOutputFromJSON,
+    KillEventOutputFromJSONTyped,
+    KillEventOutputToJSON,
+    KillEventOutputToJSONTyped,
+} from './KillEventOutput';
 import type { SpentOverTime } from './SpentOverTime';
 import {
     SpentOverTimeFromJSON,
@@ -124,6 +131,12 @@ export interface MatchDetails {
     playerMoneySpent?: { [key: string]: number; };
     /**
      * 
+     * @type {string}
+     * @memberof MatchDetails
+     */
+    mapName?: string;
+    /**
+     * 
      * @type {FirstBlood}
      * @memberof MatchDetails
      */
@@ -140,6 +153,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     playerSummary: Array<PlayerSummary>;
+    /**
+     * 
+     * @type {Array<KillEventOutput>}
+     * @memberof MatchDetails
+     */
+    killEvents?: Array<KillEventOutput>;
 }
 
 /**
@@ -178,9 +197,11 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'moneyCollectedValues': json['money_collected_values'],
         'statsData': json['stats_data'],
         'playerMoneySpent': json['playerMoneySpent'] == null ? undefined : json['playerMoneySpent'],
+        'mapName': json['mapName'] == null ? undefined : json['mapName'],
         'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
         'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
+        'killEvents': json['killEvents'] == null ? undefined : ((json['killEvents'] as Array<any>).map(KillEventOutputFromJSON)),
     };
 }
 
@@ -205,9 +226,11 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'money_collected_values': value['moneyCollectedValues'],
         'stats_data': value['statsData'],
         'playerMoneySpent': value['playerMoneySpent'],
+        'mapName': value['mapName'],
         'first_blood': FirstBloodToJSON(value['firstBlood']),
         'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
+        'killEvents': value['killEvents'] == null ? undefined : ((value['killEvents'] as Array<any>).map(KillEventOutputToJSON)),
     };
 }
 

@@ -10,6 +10,7 @@ from .api_types import (
 )
 from .cncstats_types_v2 import EnhancedReplayV2
 from .api_types import (
+    KillEventOutput,
     MatchDetails,
     SpentOverTime,
     Team,
@@ -509,14 +510,29 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         else None
     )
     upgrades = events_from_replay(replay)
-    player_money_spent = (
-        {p.displayName: p.moneySpent for p in replay.Stats.players}
-        if replay.Stats is not None
-        else {}
-    )
+    player_money_spent = {}
+    kill_events = []
+    if replay.Stats is not None:
+        name_by_idx = {p.index: p.displayName for p in replay.Stats.players}
+        player_money_spent = {p.displayName: p.moneySpent for p in replay.Stats.players}
+        scale = minutess_per_step(replay)
+        kill_events = [
+            KillEventOutput(
+                at_minute=ev.frame * scale,
+                killer_player=name_by_idx.get(ev.killerPlayer, "unk"),
+                victim_player=name_by_idx.get(ev.victimPlayer, "unk"),
+                x=ev.x,
+                y=ev.y,
+                killer=ev.killer,
+                victim=ev.victim,
+                damage_type=ev.damageType,
+            )
+            for ev in replay.Stats.killEvents
+        ]
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
         game_version=replay.Header.Version,
+        map_name=replay.Header.Metadata.MapFile,
         costs=[],
         apms=apms,
         upgrade_events=upgrades,
@@ -533,4 +549,5 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         first_blood=first_blood,
         building_first_blood=building_first_blood,
         player_summary=api_player_summaries(replay),
+        kill_events=kill_events,
     )

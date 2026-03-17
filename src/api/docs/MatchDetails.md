@@ -16,9 +16,11 @@ Name | Type
 `moneyCollectedValues` | { [key: string]: { [key: string]: number; }; }
 `statsData` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
 `playerMoneySpent` | { [key: string]: number; }
+`mapName` | string
 `firstBlood` | [FirstBlood](FirstBlood.md)
 `buildingFirstBlood` | [FirstBlood](FirstBlood.md)
 `playerSummary` | [Array&lt;PlayerSummary&gt;](PlayerSummary.md)
+`killEvents` | [Array&lt;KillEventOutput&gt;](KillEventOutput.md)
 
 ## Example
 
@@ -37,9 +39,11 @@ const example = {
   "moneyCollectedValues": null,
   "statsData": null,
   "playerMoneySpent": null,
+  "mapName": null,
   "firstBlood": null,
   "buildingFirstBlood": null,
   "playerSummary": null,
+  "killEvents": null,
 } satisfies MatchDetails
 
 console.log(example)
