@@ -13,6 +13,11 @@ import {
   BarChart,
   CartesianGrid,
   LabelList,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -96,6 +101,33 @@ function GeneralWinLossChart(props: {
   )
 }
 
+function GeneralWinRateRadar(props: {
+  data: { name: string; winRate: number }[]
+}) {
+  return (
+    <ResponsiveContainer width="99%" aspect={1.4}>
+      <RadarChart data={props.data}>
+        <PolarGrid />
+        <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+        <Radar
+          dataKey="winRate"
+          name="Win Rate"
+          fill="#42A5F5"
+          fillOpacity={0.4}
+          stroke="#42A5F5"
+        />
+        <Tooltip
+          formatter={(value: number | undefined) => [
+            `${value ?? 0}%`,
+            "Win Rate",
+          ]}
+        />
+      </RadarChart>
+    </ResponsiveContainer>
+  )
+}
+
 function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -163,6 +195,13 @@ export default function DisplayGeneralStats() {
     return <Loading />
   }
 
+  const radarData = generalStats.generalStats.map((x) => ({
+    name: toGeneralName(x.general),
+    winRate: Math.round(
+      winRate(x?.total?.wins ?? 0, x?.total?.losses ?? 0) * 100,
+    ),
+  }))
+
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
@@ -184,13 +223,20 @@ export default function DisplayGeneralStats() {
         stats={{ generalStats: generalStats.generalStats }}
       />
       <Divider sx={{ mt: 4, mb: 2 }} />
-      <Typography variant="h4">Ordered by winrate </Typography>
-      <Grid container spacing={2}>
-        {sorted.map((m) => (
-          <Grid key={m.general} item xs={12} sm={6} md={8}>
-            <DisplayGeneralStat stat={m} />
+      <Grid container spacing={2} alignItems="flex-start">
+        <Grid item xs={12} md={4}>
+          <Typography variant="h4">Ordered by winrate </Typography>
+          <Grid container spacing={2}>
+            {sorted.map((m) => (
+              <Grid key={m.general} item xs={12}>
+                <DisplayGeneralStat stat={m} />
+              </Grid>
+            ))}
           </Grid>
-        ))}
+        </Grid>
+        <Grid item xs={12} md={8}>
+          <GeneralWinRateRadar data={radarData} />
+        </Grid>
       </Grid>
       {errorSnackbar}
     </Paper>

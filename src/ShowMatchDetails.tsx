@@ -282,7 +282,7 @@ interface StyledTableRow {
   buildingsKilled: number | null
   tech_buildings_captured: number | null
   faction_buildings_captured: number | null
-  moneySpent: number
+  moneySpent: number | null
   moneyCollected: number | null
 }
 
@@ -381,7 +381,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
       color: s.color,
       won: s.win,
       general: s.side,
-      moneySpent: s.moneySpent,
+      moneySpent: props.matchDetails.playerMoneySpent?.[s.name] ?? null,
       moneyCollected: extractFromStatsData("money_earned", s.name),
       xp: extractFromStatsData("xp", s.name),
       unitsBuilt: extractFromStatsData("units_built", s.name),

@@ -472,6 +472,21 @@ class ReplayManager:
         )
         return list(self.session.scalars(stmt).all())
 
+    def list_jsons_parsed_before(
+        self, before: date, limit: int
+    ) -> list[ParsedReplayJson]:
+        """Return ParsedReplayJson records last parsed before `before`, oldest first."""
+        stmt = (
+            select(ParsedReplayJson)
+            .where(
+                func.coalesce(ParsedReplayJson.updated_at, ParsedReplayJson.created_at)
+                < before
+            )
+            .order_by(ParsedReplayJson.created_at.asc())
+            .limit(limit)
+        )
+        return list(self.session.scalars(stmt).all())
+
     def list_jsons_without_num_timestamps(self) -> Iterator[ParsedReplayJson]:
         stmt = (
             select(ParsedReplayJson)

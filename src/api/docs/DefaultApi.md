@@ -2306,7 +2306,7 @@ No authorization required
 
 Refresh Matches From Json
 
-Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
 
 ### Example
 

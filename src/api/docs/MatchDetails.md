@@ -15,6 +15,7 @@ Name | Type
 `moneyValues` | { [key: string]: { [key: string]: number; }; }
 `moneyCollectedValues` | { [key: string]: { [key: string]: number; }; }
 `statsData` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
+`playerMoneySpent` | { [key: string]: number; }
 `firstBlood` | [FirstBlood](FirstBlood.md)
 `buildingFirstBlood` | [FirstBlood](FirstBlood.md)
 `playerSummary` | [Array&lt;PlayerSummary&gt;](PlayerSummary.md)
@@ -35,6 +36,7 @@ const example = {
   "moneyValues": null,
   "moneyCollectedValues": null,
   "statsData": null,
+  "playerMoneySpent": null,
   "firstBlood": null,
   "buildingFirstBlood": null,
   "playerSummary": null,

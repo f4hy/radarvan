@@ -21,7 +21,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - Database connection string is read from `DATABASE_URL` environment variable
 
 ### Code Generation
-- `npm run openapi-ts` - Generate TypeScript API client from OpenAPI spec
+- `./gen_clinet.sh` - Regenerate TypeScript API client from the running FastAPI server's OpenAPI spec (note: typo in filename — "clinet" not "client"); FastAPI dev server must be running
 - Protocol buffers are used for data structures (see `proto/match.proto`)
 - TypeScript types are generated in `src/proto/match.ts` from the proto definitions
 - OpenAPI client code is auto-generated in `src/api/` (DO NOT manually edit files marked with auto-generation warnings)
@@ -52,7 +52,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
   - `superlatives.py` - Top-N leaderboard stats (streaks, APM, kills, money, etc.)
   - `draft.py` - Spatial clustering assignment for draft randomization; called by `POST /api/draft/randomize` (results cached 30 min via `TTLCache`)
   - `game_composition.py` - `categorize_game_type`, `competitive_game_filter`
-  - `replay_files.py` - Replay file management; `parse_json(s3_uri)` loads JSON→EnhancedReplay without re-running cncstats; `parse_replay` runs cncstats if JSON not cached
+  - `replay_files.py` - Replay file management; `parse_json(s3_uri)` loads JSON→EnhancedReplayV2 without re-running cncstats; `parse_replay` runs cncstats if JSON not cached
   - `scrape_games.py` - Web scraping to gather new game data
   - `parse_replay.py` - Replay file parsing (runs cncstats binary)
   - `schedule.py` - Scheduled tasks for scraping
@@ -75,6 +75,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **Game format filtering**: `matches.filter_by_format(games, game_format)` filters by category string ("1v1", "2v2", etc.); `game_composition.competitive_game_filter` requires balanced, non-comp-stomp, team games
 - **Player stats sources**: `sorted_deduped_matches` (all games, for counts) vs `competitive_matches` (filtered, for W/L) — `get_player_stats` receives all games and filters internally
 - **Replay JSON loading**: Use `replay_files.parse_json(json_s3_uri)` to load an existing JSON from S3 without re-running cncstats; always set `replay.Header.FileName = replay_file_url` after loading
+- **Canonical replay type**: All replay-handling code uses `EnhancedReplayV2` (from `cncstats_types_v2.py`), not `EnhancedReplay`. Do not import `EnhancedReplay` in new code.
 - **Match comparison**: `matches.matches_differ(existing, new)` compares map, winner, duration, incomplete, game_version, and players (name, general, team, color, is_winner, starting_position)
 - **Backfill endpoints**: POST endpoints with `max_to_update: int` param that loop through matches and update incrementally; return `{"updated": N}`
 
@@ -98,6 +99,11 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **`GameMap` component**: The map display component is named `GameMap` (exported from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor.
 - **`game_composition.py` team 0**: Players on team 0 are observers or disconnected players, not FFA participants. `categorize_game_type` ignores them when determining game type.
 - **Draft cache key**: `_draft_cache` in `main.py` uses manual dict-style `TTLCache` (not `@cached` decorator) because `replay_manager` is a FastAPI `Depends` parameter that can't pass through the decorator.
+- **`EnhancedReplayV2.Stats` is optional**: Old-format replays have `Stats=None`. Always guard with `if replay.Stats is None` before accessing `Stats.players`, `Stats.timeSeries`, etc. Return empty data structures in the `None` branch.
+- **v2 Stats player indices**: `Stats.players[*].index` and `Stats.timeSeries.players[*].index` are the same index space used in all event objects (`killEvents.killerPlayer`, `buildEvents.player`, etc.). Build `name_by_idx = {p.index: p.displayName for p in replay.Stats.players}` to resolve names.
+- **`has_enhanced_stats` in DB**: Set via `replay.Stats is not None` (not by inspecting `BodyChunk.PlayerStats`, which no longer exists in v2).
+- **`_is_building()` in `match_details.py`**: Currently always returns `False` — a placeholder until cncstats adds object-type metadata to kill/build events. The building stat buckets (`buildings_built`, `buildings_killed`, etc.) are intentionally scaffolded but always empty for now.
+- **`MatchDetails.player_money_spent`**: Per-player end-of-game money spent (from `Stats.players[*].moneySpent`). Use this instead of `PlayerSummary.MoneySpent`, which is always 0 for v2 replays.
 
 ## Key Technical Details
 

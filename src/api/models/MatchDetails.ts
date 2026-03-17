@@ -117,6 +117,12 @@ export interface MatchDetails {
      */
     statsData: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
     /**
+     * end-of-game money spent per player name
+     * @type {{ [key: string]: number; }}
+     * @memberof MatchDetails
+     */
+    playerMoneySpent?: { [key: string]: number; };
+    /**
      * 
      * @type {FirstBlood}
      * @memberof MatchDetails
@@ -171,6 +177,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'moneyValues': json['money_values'],
         'moneyCollectedValues': json['money_collected_values'],
         'statsData': json['stats_data'],
+        'playerMoneySpent': json['playerMoneySpent'] == null ? undefined : json['playerMoneySpent'],
         'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
         'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
@@ -197,6 +204,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'money_values': value['moneyValues'],
         'money_collected_values': value['moneyCollectedValues'],
         'stats_data': value['statsData'],
+        'playerMoneySpent': value['playerMoneySpent'],
         'first_blood': FirstBloodToJSON(value['firstBlood']),
         'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),

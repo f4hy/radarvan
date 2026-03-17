@@ -29,6 +29,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -236,19 +241,24 @@ function DisplayPlayerStat(props: {
   const sorted = props.stat.stats
   let total_wins = 0
   let total_games = 0
-  const data = Object.entries(sorted).map(([general, winLoss]) => {
+  const entries = Object.entries(sorted).map(([general, winLoss]) => {
     const wins = winLoss?.wins ?? 0
     total_wins += wins
     const losses = winLoss?.losses ?? 0
-    const tot = wins + losses
-    total_games += tot
-    const rate = (wins / (tot > 0 ? tot : 1)) * 100
-    return {
-      general: toGeneralName(toGeneral(general)) + ":" + rate.toFixed() + "%",
-      wins: wins,
-      losses: losses,
-    }
+    total_games += wins + losses
+    const wr = winRate(wins, losses)
+    const name = toGeneralName(toGeneral(general))
+    return { name, wins, losses, wr }
   })
+  const data = entries.map(({ name, wins, losses, wr }) => ({
+    general: `${name}:${(wr * 100).toFixed()}%`,
+    wins,
+    losses,
+  }))
+  const radarData = entries.map(({ name, wr }) => ({
+    general: name,
+    winRate: Math.round(wr * 100),
+  }))
   return (
     <Box sx={{ flexGrow: 1 }}>
       <PlayerBanner
@@ -270,7 +280,7 @@ function DisplayPlayerStat(props: {
             ))}
           </List>
         </Grid>
-        <Grid item xs={12} md={10}>
+        <Grid item xs={12} md={6}>
           <ResponsiveContainer width="99%">
             <BarChart data={data} layout="horizontal">
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
@@ -286,6 +296,31 @@ function DisplayPlayerStat(props: {
               <YAxis domain={[0, props.max]} />
               <RechartsTooltip cursor={false} />
             </BarChart>
+          </ResponsiveContainer>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <ResponsiveContainer width="99%" aspect={1}>
+            <RadarChart data={radarData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="general" tick={{ fontSize: 11 }} />
+              <PolarRadiusAxis
+                domain={[0, 100]}
+                tick={false}
+                axisLine={false}
+              />
+              <Radar
+                dataKey="winRate"
+                fill="#42A5F5"
+                fillOpacity={0.4}
+                stroke="#42A5F5"
+              />
+              <RechartsTooltip
+                formatter={(value: number | undefined) => [
+                  `${value ?? 0}%`,
+                  "Win Rate",
+                ]}
+              />
+            </RadarChart>
           </ResponsiveContainer>
         </Grid>
       </Grid>

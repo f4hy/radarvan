@@ -399,6 +399,11 @@ class MatchDetails(BaseModel):
     stats_data: dict[str, dict[float, dict[str, int]]] = Field(
         description="at a time map each player to xp"
     )
+    player_money_spent: dict[str, int] = Field(
+        default_factory=dict,
+        alias="playerMoneySpent",
+        description="end-of-game money spent per player name",
+    )
     first_blood: FirstBlood | None = None
     building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]

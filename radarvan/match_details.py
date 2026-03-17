@@ -50,22 +50,22 @@ def player_money_from_replay(replay: EnhancedReplayV2) -> MoneyData:
     scale = minutess_per_step(replay)
     interval = replay.Stats.game.snapshotInterval
     name_by_idx = {p.index: p.displayName for p in replay.Stats.players}
-    series_by_idx = {p.index: p for p in replay.Stats.timeSeries.players}
-    num_snapshots = max((len(s.money) for s in series_by_idx.values()), default=0)
+    ts_players = [p for p in replay.Stats.timeSeries.players if p.index in name_by_idx]
+    num_snapshots = max((len(p.money) for p in ts_players), default=0)
 
     md = MoneyData(player_monies={}, player_collected={})
     for snap_idx in range(num_snapshots):
         frame = snap_idx * interval
         time_key = frame * scale
         md.player_monies[time_key] = {
-            name_by_idx[idx]: series.money[snap_idx]
-            for idx, series in series_by_idx.items()
-            if snap_idx < len(series.money) and idx in name_by_idx
+            name_by_idx[p.index]: p.money[snap_idx]
+            for p in ts_players
+            if snap_idx < len(p.money)
         }
         md.player_collected[time_key] = {
-            name_by_idx[idx]: series.moneyEarned[snap_idx]
-            for idx, series in series_by_idx.items()
-            if snap_idx < len(series.moneyEarned) and idx in name_by_idx
+            name_by_idx[p.index]: p.moneyEarned[snap_idx]
+            for p in ts_players
+            if snap_idx < len(p.moneyEarned)
         }
     return md
 
@@ -167,16 +167,12 @@ def apms_from_replay(replay: EnhancedReplayV2) -> list[APM]:
     ]
 
 
-_UNIT_TYPE_PREFIXES = (
-    "Tank_", "Nuke_", "Infantry_", "Demo_", "Toxin_", "Stealth_",
-    "Air_", "Laser_", "Super_", "Ranger_", "Pilot_", "Worker_",
-    "Rebel_", "Terrorist_", "Jarmen_", "Black_", "Paladin_",
-    "Crusader_", "Humvee_", "Colonel_", "Aurora_", "King_",
-)
-
-
 def _is_building(name: str) -> bool:
-    return not any(name.startswith(p) for p in _UNIT_TYPE_PREFIXES)
+    """No way to know what is or is not a building right now
+
+    TODO fix once this is added to the stats data. Assume non building for now
+    """
+    return False
 
 
 def _event_counts_to_series(
@@ -186,7 +182,7 @@ def _event_counts_to_series(
 ) -> dict[float, dict[str, int]]:
     """Convert per-frame event count deltas into a cumulative time series."""
     result: dict[float, dict[str, int]] = {}
-    cumulative: dict[str, int] = {name: 0 for name in all_players}
+    cumulative: dict[str, int] = dict.fromkeys(all_players, 0)
     for frame in sorted(deltas_by_frame):
         for name, delta in deltas_by_frame[frame].items():
             cumulative[name] = cumulative.get(name, 0) + delta
@@ -198,35 +194,47 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData:
     """Get stats data from replay."""
 
     data_types = [
-        "xp", "units_built", "units_lost", "buildings_built", "buildings_lost",
-        "money_earned", "units_killed", "buildings_killed",
-        "tech_buildings_captured", "faction_buildings_captured",
+        "xp",
+        "units_built",
+        "units_lost",
+        "buildings_built",
+        "buildings_lost",
+        "money_earned",
+        "units_killed",
+        "buildings_killed",
+        "tech_buildings_captured",
+        "faction_buildings_captured",
     ]
 
     if replay.Stats is None:
         sd = StatsData.model_validate({t: {} for t in data_types})
-        return AllExtractedData(stats_data=sd, first_blood=None, building_first_blood=None)
+        return AllExtractedData(
+            stats_data=sd, first_blood=None, building_first_blood=None
+        )
 
     scale = minutess_per_step(replay)
     name_by_idx = {p.index: p.displayName for p in replay.Stats.players}
     all_players = set(name_by_idx.values())
-
+    header_team_by_name = {p.Name: p.Team for p in replay.Header.Metadata.Players}
+    team_by_idx = {
+        idx: header_team_by_name.get(name, -1) for idx, name in name_by_idx.items()
+    }
     # money_earned from time series snapshots
     interval = replay.Stats.game.snapshotInterval
-    series_by_idx = {p.index: p for p in replay.Stats.timeSeries.players}
-    num_snapshots = max((len(s.moneyEarned) for s in series_by_idx.values()), default=0)
+    ts_players = [p for p in replay.Stats.timeSeries.players if p.index in name_by_idx]
+    num_snapshots = max((len(p.moneyEarned) for p in ts_players), default=0)
     money_earned: dict[float, dict[str, int]] = {}
     for snap_idx in range(num_snapshots):
         frame = snap_idx * interval
         money_earned[frame * scale] = {
-            name_by_idx[idx]: series.moneyEarned[snap_idx]
-            for idx, series in series_by_idx.items()
-            if snap_idx < len(series.moneyEarned) and idx in name_by_idx
+            name_by_idx[p.index]: p.moneyEarned[snap_idx]
+            for p in ts_players
+            if snap_idx < len(p.moneyEarned)
         }
 
     # xp from skillPointsEvents — each event records the player's current total
     xp: dict[float, dict[str, int]] = {}
-    current_xp: dict[str, int] = {n: 0 for n in all_players}
+    current_xp: dict[str, int] = dict.fromkeys(all_players, 0)
     xp_by_frame: dict[int, dict[str, int]] = defaultdict(dict)
     for ev in replay.Stats.skillPointsEvents:
         name = name_by_idx.get(ev.player, "unk")
@@ -267,18 +275,27 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData:
         if victim_name != "unk":
             (bl_deltas if is_bldg else ul_deltas)[kev.frame][victim_name] += 1
         if first_blood is None:
-            first_blood = FirstBlood(attacker=killer_name, victim=victim_name, atMinute=at_minute)
+            first_blood = FirstBlood(
+                attacker=killer_name, victim=victim_name, atMinute=at_minute
+            )
         if building_first_blood is None and is_bldg:
-            building_first_blood = FirstBlood(attacker=killer_name, victim=victim_name, atMinute=at_minute)
+            building_first_blood = FirstBlood(
+                attacker=killer_name, victim=victim_name, atMinute=at_minute
+            )
     units_killed = _event_counts_to_series(uk_deltas, all_players, scale)
     buildings_killed = _event_counts_to_series(bk_deltas, all_players, scale)
     units_lost = _event_counts_to_series(ul_deltas, all_players, scale)
     buildings_lost = _event_counts_to_series(bl_deltas, all_players, scale)
 
     # tech_buildings_captured / faction_buildings_captured from captureEvents
+    # exclude captures where newOwner and oldOwner are on the same team (e.g. garrisoning)
     tc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     fc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for cev in replay.Stats.captureEvents:
+        new_team = team_by_idx.get(cev.newOwner, -1)
+        old_team = team_by_idx.get(cev.oldOwner, -1)
+        if new_team >= 0 and new_team == old_team:
+            continue
         name = name_by_idx.get(cev.newOwner, "unk")
         if name == "unk":
             continue
@@ -301,7 +318,11 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData:
         tech_buildings_captured=tech_buildings_captured,
         faction_buildings_captured=faction_buildings_captured,
     )
-    return AllExtractedData(stats_data=sd, first_blood=first_blood, building_first_blood=building_first_blood)
+    return AllExtractedData(
+        stats_data=sd,
+        first_blood=first_blood,
+        building_first_blood=building_first_blood,
+    )
 
 
 def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
@@ -416,7 +437,7 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
             name=ps.Name,
             color=ps.Color,
             won=ps.Win,
-            money_spent=ps.MoneySpent,
+            money_spent=d.player_money_spent.get(ps.Name, 0),
             units_created_count=sum(v.Count for v in ps.UnitsCreated.values()),
             buildings_built_count=sum(v.Count for v in ps.BuildingsBuilt.values()),
         )
@@ -488,10 +509,11 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         else None
     )
     upgrades = events_from_replay(replay)
-    # logger.info(f"Money {len(money.player_monies)}")
-    # logger.info(f"First blood {first_blood}")
-    # logger.info(f"Last Event{replay.Body[-3:]}")
-    # logger.info(f"Headers {replay.Header}")
+    player_money_spent = (
+        {p.displayName: p.moneySpent for p in replay.Stats.players}
+        if replay.Stats is not None
+        else {}
+    )
     return MatchDetails(
         match_id=replay.Header.Metadata.Seed,
         game_version=replay.Header.Version,
@@ -505,9 +527,9 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             total=[],
         ),
         money_values=money.player_monies,
-        # money_collected_values=money.player_collected,
         money_collected_values=stats_data.stats_data.money_earned,
         stats_data=stats_data.stats_data.model_dump(),
+        player_money_spent=player_money_spent,
         first_blood=first_blood,
         building_first_blood=building_first_blood,
         player_summary=api_player_summaries(replay),

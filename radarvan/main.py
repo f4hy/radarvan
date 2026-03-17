@@ -467,6 +467,28 @@ def reparse(
     return replay
 
 
+@app.post("/api/reparse_before_date/", include_in_schema=IS_DEV)
+def reparse_before_date(
+    before: date,
+    max_to_update: int = 10,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
+
+    Calls cncstats for each match — slower than refresh_matches_from_json but picks
+    up new fields added to the parser output.
+    """
+    candidates = replay_manager.list_jsons_parsed_before(before, limit=max_to_update)
+    logger.info(f"reparse_before_date: {len(candidates)} candidates before {before}")
+    updated_count = 0
+    for record in candidates:
+        updated = matches.reparse_replay(record.match_id, replay_manager)
+        if updated:
+            replay_manager.compute_and_save_composition(record.match_id)
+            updated_count += 1
+    return {"updated": updated_count, "checked": len(candidates)}
+
+
 @app.post("/api/register_replay_url")
 def register_replay_url(
     url_of_replay: str,
@@ -701,30 +723,6 @@ def delete_override(
             status_code=404, detail=f"No override found for match {match_id}"
         )
     return {"status": "deleted", "match_id": str(match_id)}
-
-
-@app.post("/api/update_num_timestamps/", include_in_schema=IS_DEV)
-def update_num_timestamps(
-    max_to_update: int = 1000,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, int]:
-    missing_timestamp_count = replay_manager.list_jsons_without_num_timestamps()
-    updated = 0
-    for missing in missing_timestamp_count:
-        replay = replay_files.parse_replay(missing.replay_file_url, replay_manager)
-        num_time_stamps = replay.Header.NumTimeStamps
-        has_enhanced_stats = any(chunk.PlayerStats is not None for chunk in replay.Body)
-        result = replay_manager.update_parsed_json(
-            missing.json_s3_uri,
-            num_time_stamps,
-            has_player_stats=has_enhanced_stats,
-        )
-        logger.info(f"Updated {missing.match_id} success={result}")
-        if result:
-            updated += 1
-        if updated >= max_to_update:
-            break
-    return {"updated": updated}
 
 
 @app.post("/api/update_matches_missing_data/", include_in_schema=IS_DEV)

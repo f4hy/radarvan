@@ -103,7 +103,6 @@ function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
       <Typography>
         {sum?.name} | {sum?.side} | Team={sum?.team} | Color={sum.color}
       </Typography>
-      <Typography>Money Spent: ${props.playerSummary.moneySpent}</Typography>
       <Divider />
       <BuiltChart
         title="Units Created"
