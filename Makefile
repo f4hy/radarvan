@@ -75,7 +75,7 @@ clean: ## Clean build artifacts and cache files
 
 test: ## Run tests
 	@echo "Add your test command (e.g., uv run pytest)"
-	# uv run pytest
+	uv run pytest
 
 ci: clean install all build ## Run full CI pipeline
 	@echo "✓ CI pipeline complete!"

@@ -141,6 +141,10 @@ section-order = [
 "fastapi" = ["fastapi", "pydantic", "sqlalchemy", "starlette"]
 
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [tool.mypy]
 python_version = "3.13"
 strict = true
