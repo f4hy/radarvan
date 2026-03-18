@@ -339,6 +339,8 @@ function MatchDateSummary(props: {
   count: number
   matches: MatchInfo[]
 }) {
+  const date = new Date(props.date)
+  date.setDate(date.getDate() + 2)
   return (
     <Stack
       direction="row"
@@ -346,7 +348,14 @@ function MatchDateSummary(props: {
       alignItems="center"
       sx={{ flexGrow: 1, flexWrap: "wrap" }}
     >
-      <Typography fontWeight="bold">{props.date}</Typography>
+      <Typography fontWeight="bold">
+        {date.toLocaleString("en-US", {
+          weekday: "short",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })}
+      </Typography>
       <Typography color="text.secondary">
         {props.count} {props.count === 1 ? "game" : "games"}
       </Typography>

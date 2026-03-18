@@ -191,6 +191,7 @@ class ReplayManager:
             game_version=parsed_replay.Header.Version.replace("Version ", ""),
             num_time_stamps=parsed_replay.Header.NumTimeStamps,
             has_enhanced_stats=has_enhanced_stats,
+            updated_at=datetime.utcnow(),
         )
         self.session.merge(parsed_json)
         replay_file = self.session.get(ReplayFile, original_replay_file_url)
@@ -475,14 +476,27 @@ class ReplayManager:
     def list_jsons_parsed_before(
         self, before: date, limit: int
     ) -> list[ParsedReplayJson]:
-        """Return ParsedReplayJson records last parsed before `before`, oldest first."""
+        """Return one ParsedReplayJson per match_id where no record for that match
+        has been updated at or after `before`, picking the most recently updated."""
+        recently_updated_match_ids = select(ParsedReplayJson.match_id).where(
+            func.coalesce(ParsedReplayJson.updated_at, ParsedReplayJson.created_at)
+            >= before
+        )
         stmt = (
             select(ParsedReplayJson)
             .where(
-                func.coalesce(ParsedReplayJson.updated_at, ParsedReplayJson.created_at)
-                < before
+                and_(
+                    ParsedReplayJson.match_id.not_in(recently_updated_match_ids),
+                    ParsedReplayJson.num_time_stamps > 5000,
+                )
             )
-            .order_by(ParsedReplayJson.created_at.asc())
+            .distinct(ParsedReplayJson.match_id)
+            .order_by(
+                ParsedReplayJson.match_id,
+                func.coalesce(
+                    ParsedReplayJson.updated_at, ParsedReplayJson.created_at
+                ).desc(),
+            )
             .limit(limit)
         )
         return list(self.session.scalars(stmt).all())
