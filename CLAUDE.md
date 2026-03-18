@@ -108,6 +108,10 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **`MatchDetails.map_name`**: Map filename from `replay.Header.Metadata.MapFile`. Use this to display the `GameMap` component in match detail views.
 - **`GameMap` event overlay**: Pass `eventDots?: EventDot[]` (from `src/Map.tsx`) to overlay dots on the map image. Coordinates use the same game-space system as all other map points — `left = (x / extent.width) * 100%`, `top = (1 - y / extent.height) * 100%`.
 - **recharts Sankey `nodePadding`**: Applied uniformly to all columns — there is no per-column or per-node padding. The `node` and `link` props accept custom React elements that receive layout props (`x`, `y`, `width`, `height`, `payload`) injected by recharts. `payload.sourceLinks` is available to detect leaf nodes.
+- **`session.merge()` and `onupdate`**: SQLAlchemy's `onupdate=func.now()` on a column only fires when SQLAlchemy emits an `UPDATE` for that column. `session.merge()` constructs a new Python object and merges by PK — if `updated_at` is not set on the object, merge overwrites the DB value with `NULL`. Always set `updated_at=datetime.utcnow()` explicitly on objects passed to `session.merge()` in `save_parsed_json`.
+- **`list_jsons_parsed_before`**: Uses `DISTINCT ON (match_id)` (PostgreSQL) to return one `ParsedReplayJson` per match. Excludes any `match_id` that has a record with `coalesce(updated_at, created_at) >= before` via a `NOT IN` subquery, so only match_ids where all records predate the cutoff are returned.
+- **Player color utilities**: `getColorHex(colorName)` and `buildPlayerColorMap(summaries, transform?)` are in `src/utils.ts`. Use these instead of inline `reduce` calls when mapping player names to colors. `buildPlayerColorMap` accepts an optional transform (e.g. `getColorHex`) for hex conversion.
+- **Shared `WinRateRadar` component**: `src/WinRateRadar.tsx` renders a recharts RadarChart of win rates. Expects `data: { name: string; winRate: number }[]` and optional `aspect` prop. Used by both `PlayerStats.tsx` and `GeneralStats.tsx`.
 
 ## Key Technical Details
 

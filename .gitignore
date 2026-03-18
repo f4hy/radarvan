@@ -50,3 +50,9 @@ yarn-error.log*
 /jsons/
 /replays/
 /reps/
+/parsed.json
+/replays_from_skip.txt
+/map_tgas/
+/map_images/
+/.eslintignore
+/.dmypy.json
