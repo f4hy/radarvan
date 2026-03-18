@@ -1035,12 +1035,12 @@ def randomize_draft(
 @app.get("/", include_in_schema=False)
 def serve_index() -> FileResponse:
     return FileResponse(
-        "build/index.html",
+        "dist/index.html",
         headers={"Cache-Control": "no-cache"},
     )
 
 
-app.mount("/", StaticFiles(directory="build", html=True), name="build")
+app.mount("/", StaticFiles(directory="dist", html=True), name="dist")
 
 
 exception_handling.setup_error_handling(app)

@@ -2,7 +2,7 @@ import { DefaultApi, Configuration } from "./api"
 
 function getConfig(): Configuration {
   // Using a framework-agnostic check for NODE_ENV
-  if (process.env.NODE_ENV === "development") {
+  if (import.meta.env.MODE === "development") {
     return new Configuration({
       basePath: "http://localhost:8000",
     })

@@ -29,7 +29,7 @@ function pointStyle(category: PointCategory, name: string): PointStyle {
 }
 
 function getMapUrl(mapname: string) {
-  return process.env.PUBLIC_URL + "/maps/" + mapname
+  return import.meta.env.BASE_URL + "maps/" + mapname
 }
 
 function resolveMap(mapname: string) {
