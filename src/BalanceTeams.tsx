@@ -160,7 +160,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const filtered = isDebug()
     ? entries
     : entries.filter(
-        ([, winRate], i) => 1.0 - Math.abs(winRate - 0.5) * 2 >= threshold,
+        ([, winRate], _i) => 1.0 - Math.abs(winRate - 0.5) * 2 >= threshold,
       )
   return (
     <Stack
@@ -252,7 +252,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </RadioGroup>
       <Grid container spacing={2}>
         {teamPartition.map((team, i) => (
-          <Grid key={i} item>
+          <Grid key={i}>
             <Paper sx={{ padding: 2, background: colors[i] }}>
               {team.map((t) => (
                 <Chip key={t} label={t} color="primary" sx={{ padding: 2 }} />

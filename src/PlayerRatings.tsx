@@ -41,7 +41,7 @@ function getPlayerRatings(
     .catch(onError)
 }
 
-function formatLabel(val: any): string {
+function formatLabel(val: unknown): string {
   if (typeof val == "number") {
     return `${Number(val).toFixed(1)}`
   }
@@ -55,7 +55,7 @@ const formatDate = (tickItem: number, short = false): string => {
   })
 }
 
-function formatSkill(v: any): string {
+function formatSkill(v: [number, number]): string {
   const ave = (v[0] + v[1]) / 2
   const val = ave.toFixed(1)
   const ebar = (ave - v[0]).toFixed(1)
@@ -190,7 +190,9 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 <Tooltip
                   cursor={false}
                   labelFormatter={(v) => formatDate(v)}
-                  formatter={(v) => (v !== null ? formatSkill(v) : "")}
+                  formatter={(v) =>
+                    v != null ? formatSkill(v as [number, number]) : ""
+                  }
                 />
               </AreaChart>
             </ResponsiveContainer>

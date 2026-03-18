@@ -14,7 +14,7 @@ import { Costs, CostsBuiltObject } from "./api"
 
 function formatCosts(data: CostsBuiltObject[], name: string) {
   const sorted = _.sortBy(data, (d) => -d.totalSpent)
-  function reducer(acc: any, d: CostsBuiltObject) {
+  function reducer(acc: Record<string, unknown>, d: CostsBuiltObject) {
     return { ...acc, [d.name]: d.totalSpent }
   }
   const bc = sorted.reduce(reducer, { name: name })
@@ -22,7 +22,7 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
 }
 
 function CostChart(props: {
-  data: any[]
+  data: object[]
   names: string[]
   label: string
   colors: string[]
@@ -66,7 +66,10 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
   )
   const building_names: string[] = _.without(
     _.uniq(
-      building_data.reduce((names, n) => [...names, ...Object.keys(n)], []),
+      building_data.reduce<string[]>(
+        (names, n) => [...names, ...Object.keys(n)],
+        [],
+      ),
     ),
     "name",
   )
@@ -74,7 +77,12 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
     formatCosts(x.units, x?.player?.name ?? "unk"),
   )
   const unit_names: string[] = _.without(
-    _.uniq(unit_data.reduce((names, n) => [...names, ...Object.keys(n)], [])),
+    _.uniq(
+      unit_data.reduce<string[]>(
+        (names, n) => [...names, ...Object.keys(n)],
+        [],
+      ),
+    ),
     "name",
   )
 
@@ -83,7 +91,10 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
   )
   const upgrade_names: string[] = _.without(
     _.uniq(
-      upgrade_data.reduce((names, n) => [...names, ...Object.keys(n)], []),
+      upgrade_data.reduce<string[]>(
+        (names, n) => [...names, ...Object.keys(n)],
+        [],
+      ),
     ),
     "name",
   )

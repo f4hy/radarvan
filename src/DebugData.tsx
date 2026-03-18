@@ -40,7 +40,7 @@ function getGameData(
 
 function getDebugData(
   matchId: number,
-  callback: (m: { [key: string]: any }) => void,
+  callback: (m: { [key: string]: unknown }) => void,
   onError = console.error,
 ) {
   Client.debugMatchApiDebugMatchMatchIdGet({ matchId: matchId })
@@ -172,7 +172,7 @@ function DisplayDataTable(props: { data: GameRecord[] }) {
   )
 }
 
-function JsonArray({ data }: { data: any[] }) {
+function JsonArray({ data }: { data: unknown[] }) {
   if (data.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" component="span">
@@ -203,7 +203,7 @@ function JsonArray({ data }: { data: any[] }) {
   )
 }
 
-function JsonObject({ data }: { data: Record<string, any> }) {
+function JsonObject({ data }: { data: Record<string, unknown> }) {
   const entries = Object.entries(data)
   if (entries.length === 0) {
     return (
@@ -243,7 +243,7 @@ function JsonObject({ data }: { data: Record<string, any> }) {
   )
 }
 
-function JsonDisplay({ data }: { data: any }) {
+function JsonDisplay({ data }: { data: unknown }) {
   if (data === null || data === undefined) {
     return (
       <Typography variant="body2" color="text.secondary" component="span">
@@ -261,7 +261,7 @@ function JsonDisplay({ data }: { data: any }) {
   if (Array.isArray(data)) {
     return <JsonArray data={data} />
   }
-  return <JsonObject data={data} />
+  return <JsonObject data={data as Record<string, unknown>} />
 }
 
 function MatchIdInput(props: {
@@ -292,7 +292,7 @@ function MatchIdInput(props: {
 export default function DisplayDebugData() {
   const [debugData, setDebugData] = React.useState<GameRecord[]>([])
   const [matchDebugData, setMatchDebugData] = React.useState<{
-    [key: string]: any
+    [key: string]: unknown
   }>({})
   const [jsonDownloadUrl, setJsonDownloadUrl] = React.useState<string | null>(
     null,

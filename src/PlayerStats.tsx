@@ -265,7 +265,7 @@ function DisplayPlayerStat(props: {
         totalGames={total_games}
       />
       <Grid container spacing={3}>
-        <Grid item xs={12} md={2}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <List dense>
             {Object.entries(sorted).map(([general, winLoss]) => (
               <PlayerListItem
@@ -276,7 +276,7 @@ function DisplayPlayerStat(props: {
             ))}
           </List>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <ResponsiveContainer width="99%">
             <BarChart data={data} layout="horizontal">
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
@@ -294,7 +294,7 @@ function DisplayPlayerStat(props: {
             </BarChart>
           </ResponsiveContainer>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <WinRateRadar data={radarData} />
         </Grid>
       </Grid>
@@ -366,7 +366,7 @@ function RankedPlayerCard(props: {
   children: React.ReactNode
 }) {
   return (
-    <Grid item>
+    <Grid>
       <Paper
         sx={{ p: 1, textAlign: "center", minWidth: 110 }}
         variant="outlined"

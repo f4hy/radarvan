@@ -132,7 +132,7 @@ function CategorySection({
       </Typography>
       <Grid container spacing={2}>
         {stats.map((stat) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={stat.statName}>
+          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={stat.statName}>
             <StatCard stat={stat} onMatchClick={onMatchClick} />
           </Grid>
         ))}

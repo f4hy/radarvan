@@ -318,7 +318,21 @@ function TeamProgressChart(props: {
   total: number
   isMobile: boolean
 }) {
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean
+    payload?: Array<{
+      payload: {
+        team: string
+        wins: number
+        losses: number
+        gamesOutstanding: number
+        maxPossibleWins: number
+      }
+    }>
+  }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
@@ -447,7 +461,7 @@ function MatchupButtonGrid(props: {
             const first_record = Object.values(outcome)[0]
             const record = `${first_record.wins} - ${first_record.losses}`
             const disabled = Object.entries(outcome).find(
-              ([tb, wl]) => wl.wins + wl.losses > 0,
+              ([_tb, wl]) => wl.wins + wl.losses > 0,
             )
               ? false
               : true

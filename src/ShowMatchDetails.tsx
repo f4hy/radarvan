@@ -114,7 +114,7 @@ function MoneyChart(props: {
             />
             <Tooltip labelFormatter={(t) => t.slice(0, 4) + "m"} />
             <Legend />
-            {players.map((n, i) => (
+            {players.map((n, _i) => (
               <Line
                 key={n}
                 dataKey={n}
@@ -298,7 +298,7 @@ const columns: Array<{
   key: keyof StyledTableRow
   label: string
   align?: "left" | "right" | "center"
-  render?: (value: any) => React.ReactNode
+  render?: (value: StyledTableRow[keyof StyledTableRow]) => React.ReactNode
 }> = [
   { key: "player", label: "Player" },
   { key: "team", label: "Team" },
@@ -310,7 +310,10 @@ const columns: Array<{
   {
     key: "general",
     label: "Side",
-    render: (v) => (v.split(" ").length > 1 ? v.split(" ")[1] : v),
+    render: (v) => {
+      const s = String(v ?? "")
+      return s.split(" ").length > 1 ? s.split(" ")[1] : s
+    },
   },
   { key: "xp", label: "XP" },
   { key: "unitsBuilt", label: "🛻 Built" },
@@ -325,13 +328,13 @@ const columns: Array<{
     key: "moneySpent",
     label: "$ Spent",
     align: "right",
-    render: renderCash,
+    render: (v) => renderCash(v as number | null),
   },
   {
     key: "moneyCollected",
     label: "$ Collected",
     align: "right",
-    render: renderCash,
+    render: (v) => renderCash(v as number | null),
   },
 ]
 

@@ -50,7 +50,7 @@ function getMatches(
     .catch(onError)
 }
 
-function playerNameStyle(player: Player) {
+function playerNameStyle(_player: Player) {
   return { WebkitTextStroke: `0.5px grey` }
 }
 
@@ -259,7 +259,11 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
 
   const teams = _.groupBy(props.match.players, "team")
 
-  const paperprops: any = { width: "99%", maxWidth: 1600, borderRadius: 3 }
+  const paperprops: Record<string, string | number> = {
+    width: "99%",
+    maxWidth: 1600,
+    borderRadius: 3,
+  }
   const incomplete = (props.match.incomplete ?? "").length === 0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
@@ -417,7 +421,7 @@ function DisplayMatchesForDate(props: {
   }, [expanded, matchList.matches.length, props.date, showError])
 
   const handleChange =
-    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    (_panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       if (matchList.matches.length === 0) {
         getMatches(props.date, setMatchList, showError)
       }
@@ -508,7 +512,7 @@ function MatchActivityCalendar(props: {
   return (
     <Grid container sx={{ width: "80%", margin: "0" }}>
       {Object.entries(props.dataByYear).map(([year, yearData], idx) => (
-        <Grid key={year} item xs={6}>
+        <Grid key={year} size={6}>
           <Box sx={{ overflowX: "auto", p: 2 }}>
             <Typography>{year}</Typography>
             {Object.keys(yearData).length > 0 ? (
@@ -596,7 +600,12 @@ export default function DisplayMatches() {
         onDateClick={setSelectedDate}
       />
       {Object.entries(dates).map(([date, count], idx) => (
-        <div key={idx} ref={(el) => (itemRefs.current[idx] = el)}>
+        <div
+          key={idx}
+          ref={(el) => {
+            itemRefs.current[idx] = el
+          }}
+        >
           <DisplayMatchesForDate
             date={new Date(date)}
             count={count}

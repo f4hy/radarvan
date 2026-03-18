@@ -75,7 +75,7 @@ function GeneralWinLossChart(props: {
             position="insideTop"
             fontSize={props.isMobile ? 9 : 11}
             fill="white"
-            formatter={(v: any) => `${(v * 100).toFixed(0)}%`}
+            formatter={(v) => `${(Number(v) * 100).toFixed(0)}%`}
           />
         </Bar>
         <Bar dataKey="losses" fill="#FF7043" name="Losses">
@@ -193,17 +193,17 @@ export default function DisplayGeneralStats() {
       />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Grid container spacing={2} alignItems="flex-start">
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Typography variant="h4">Ordered by winrate </Typography>
           <Grid container spacing={2}>
             {sorted.map((m) => (
-              <Grid key={m.general} item xs={12}>
+              <Grid key={m.general} size={12}>
                 <DisplayGeneralStat stat={m} />
               </Grid>
             ))}
           </Grid>
         </Grid>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <WinRateRadar data={radarData} aspect={1.4} />
         </Grid>
       </Grid>
