@@ -56,3 +56,4 @@ yarn-error.log*
 /map_images/
 /.eslintignore
 /.dmypy.json
+/cncstats_schema.json
