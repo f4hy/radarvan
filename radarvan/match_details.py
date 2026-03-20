@@ -154,8 +154,11 @@ def _event_counts_to_series(
     return result
 
 
-def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData:
+def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     """Get stats data from replay."""
+
+    if not replay.stats or not replay.game_info:
+        return None
 
     scale = minutess_per_step(replay)
     name_by_idx: dict[int, str] = {p.index: p.name for p in replay.summary}
@@ -469,14 +472,18 @@ async def load_many_superlative_data(
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
-    first_blood = (
-        stats_data.first_blood.model_dump() if stats_data.first_blood else None
-    )
-    building_first_blood = (
-        stats_data.building_first_blood.model_dump()
-        if stats_data.building_first_blood
-        else None
-    )
+    if stats_data:
+        first_blood = (
+            stats_data.first_blood.model_dump() if stats_data.first_blood else None
+        )
+        building_first_blood = (
+            stats_data.building_first_blood.model_dump()
+            if stats_data.building_first_blood
+            else None
+        )
+    else:
+        first_blood = None
+        building_first_blood = None
     upgrades = events_from_replay(replay)
     name_by_idx: dict[int, str] = {}
     player_money_spent: dict[str, int] = {}
@@ -495,7 +502,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             victim=ev.victim,
             damage_type=ev.damage_type,
         )
-        for ev in replay.stats.kill_events
+        for ev in (replay.stats.kill_events if replay.stats else [])
     ]
     hdr = replay.header
     return MatchDetails(
@@ -505,7 +512,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         costs=[],
         apms=apms,
         upgrade_events=upgrades,
-        stats_data=stats_data.stats_data.model_dump(),
+        stats_data=stats_data.stats_data.model_dump() if stats_data else {},
         player_money_spent=player_money_spent,
         first_blood=first_blood,
         building_first_blood=building_first_blood,

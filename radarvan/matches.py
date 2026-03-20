@@ -86,9 +86,11 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
     return ""
 
 
-def match_from_replay(replay: EnhancedReplayV2) -> MatchInfo | None:
+def match_from_replay(
+    replay: EnhancedReplayV2, filter_short: bool = True
+) -> MatchInfo | None:
     duration_minutes = utils.duration_minutes(replay)
-    if duration_minutes < 2:
+    if duration_minutes < 2 and filter_short:
         logger.info("under 2 minutes, not a real game")
         return None
     players = utils.players_from_replay(replay)
@@ -226,6 +228,25 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
     return match_from_replay(parsed_replay)
+
+
+def reparse_existing(
+    existing: db.ParsedReplayJson, replay_manager: ReplayManager
+) -> MatchInfo | None:
+    json_path = existing.json_s3_uri
+    original_path = existing.replay_file_url
+    replay_path = existing.replay_file.s3_uri
+
+    reparsed = replay_files.reparse_paths(
+        json_path, original_path, replay_path, replay_manager
+    )
+    if reparsed is None:
+        logger.info("No reparse needed")
+        return None
+    parsed_replay, json_s3 = reparsed
+    update_match = replay_to_db_match(parsed_replay, json_s3)
+    replay_manager.update_match(update_match)
+    return match_from_replay(parsed_replay, filter_short=False)
 
 
 def matches_differ(existing: db.Match, new: db.Match) -> bool:

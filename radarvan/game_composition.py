@@ -141,9 +141,14 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     if len(players) == 2:
         return create_composition("1v1", False, False, 2, [1, 1])
 
+    del team_counts[-1]  # remove unset
+    if team_counts:
+        largest_team_size = team_counts.most_common(1)[0][1]
+        if largest_team_size < 2:
+            return create_composition("FFA", False, True, 0, [])
     # Case 2: All players on Team 0
     if ffa_player_count == len(players):
-        category = "1v1" if len(players) == 2 else "FFA"
+        category = "FFA"
         return create_composition(category, False, category == "FFA", 0, [])
 
     # Case 3: No valid teams
@@ -152,7 +157,7 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
 
     # Case 4: Everyone on different teams
     if num_teams == len(players):
-        category = "1v1" if len(players) == 2 else "FFA"
+        category = "FFA"
         return create_composition(
             category, False, category == "FFA", num_teams, team_sizes
         )

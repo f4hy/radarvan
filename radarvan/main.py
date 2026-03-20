@@ -508,21 +508,27 @@ async def reparse_non_v2(
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def _reparse_one(match_id: int) -> int | None:
+    async def _reparse_one(parsed: ParsedReplayJson) -> int | None:
         async with semaphore:
 
             def _work() -> int | None:
                 with db_manager.SessionLocal() as session:
                     rm = ReplayManager(session)
-                    updated = matches.reparse_replay(match_id, rm)
+                    try:
+                        updated = matches.reparse_existing(parsed, rm)
+                    except Exception as e:
+                        logger.exception(f"Error reparseing match {parsed.match_id}")
+                        raise RuntimeError(
+                            f"Error reparseing match {parsed.match_id}"
+                        ) from e
                     if updated:
-                        rm.compute_and_save_composition(match_id)
+                        rm.compute_and_save_composition(updated.id)
                         return updated.id
                     return None
 
             return await asyncio.to_thread(_work)
 
-    results = await asyncio.gather(*[_reparse_one(r.match_id) for r in candidates])
+    results = await asyncio.gather(*[_reparse_one(r) for r in candidates])
     updated_ids = [r for r in results if r is not None]
     return {
         "updated": len(updated_ids),
@@ -1073,6 +1079,5 @@ def serve_index() -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory="dist", html=True), name="dist")
-
 
 exception_handling.setup_error_handling(app)

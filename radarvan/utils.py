@@ -137,7 +137,6 @@ def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
         else None
     ) or []
     for p in header_players:
-        logger.info(f"Player {p=}")
         color = (p.color or "").lower().replace("color", "")
         summary = summaries.get(p.name)
         team = determine_team(p, player_summary=summary)

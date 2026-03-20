@@ -146,6 +146,20 @@ def reparse(
         logger.warning("No change in replay, not resaving")
         return None
 
+    return reparse_paths(json_path, original_path, replay_path, replay_manager)
+
+
+def reparse_paths(
+    json_path: str, original_path: str, replay_path: str, replay_manager: ReplayManager
+) -> tuple[EnhancedReplayV2, str] | None:
+    logger.info(f"Reparsing {original_path} ")
+
+    fs = get_fs()
+    raw_replay = fs.read_bytes(replay_path)
+    parsed_replay = with_filename(
+        parse_replay_data(raw_replay, replay_manager), original_path
+    )
+
     replay_manager.save_parsed_json(
         json_s3_uri=json_path,
         original_replay_file_url=original_path,

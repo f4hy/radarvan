@@ -132,10 +132,10 @@ class EnrichedStats(BaseModel):
 
 class EnhancedReplayV2(BaseModel):
     body: list[body_1.BodyChunk]
-    game_info: Annotated[GameInfoV2, Field(alias="gameInfo")]
+    game_info: Annotated[GameInfoV2 | None, Field(alias="gameInfo")] = None
     header: header_1.GeneralsHeader
     offset: int
-    stats: EnrichedStats
+    stats: EnrichedStats | None
     summary: list[PlayerSummaryV2]
     version: int
     win_estimation: Annotated[WinEstimation | None, Field(alias="winEstimation")] = None
