@@ -9,7 +9,7 @@ from . import db
 from . import replay_files
 from . import utils
 from .api_types import MatchInfo, Player, Team
-from .cncstats_model.zhreplay import EnhancedReplayV2
+from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
 from dataclasses import dataclass
@@ -38,17 +38,26 @@ def determine_winner(replay: EnhancedReplayV2, players: list[Player]) -> WinnerA
         return WinnerAndNotes(wining_team=Team.NONE, notes="Winner not in player list")
     winning_team = winner_player.team
     if winning_team == Team.NONE or winning_team == Team.OBSERVER:
-        logger.info(f"No winner found in replay {replay.summary=}")
+        logger.info("No winner found in replay")
         return WinnerAndNotes(wining_team=Team.NONE, notes="No team won?")
     return WinnerAndNotes(
         wining_team=winning_team,
     )
 
 
+def win_estimation_str(win_estimation: WinEstimation) -> str:
+    team_scores = [
+        f"team{team} score={int(tf.score)}" for team, tf in win_estimation.teams.items()
+    ]
+    return "|".join(team_scores)
+
+
 def is_incomplete(replay: EnhancedReplayV2) -> str | None:
     head = replay.header
     if head is not None:
         if head.desync:
+            if we := replay.win_estimation:
+                return f"Replay header Mismatch Estimated win {win_estimation_str(we)}"
             return "Replay header Mismatch"
         if head.quit_early:
             return "Quit Early"

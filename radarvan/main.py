@@ -492,6 +492,31 @@ def reparse_before_date(
     }
 
 
+@app.post("/api/reparse_non_v2/", include_in_schema=IS_DEV)
+def reparse_non_v2(
+    max_to_update: int = 10,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int | list[int]]:
+    """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
+
+    Calls cncstats for each match — slower than refresh_matches_from_json but picks
+    up new fields added to the parser output.
+    """
+    candidates = replay_manager.list_jsons_non_v2(limit=max_to_update)
+    logger.info(f"reparse_before_date: {len(candidates)} candidates")
+    updated_ids: set[int] = set()
+    for record in candidates:
+        updated = matches.reparse_replay(record.match_id, replay_manager)
+        if updated:
+            replay_manager.compute_and_save_composition(record.match_id)
+            updated_ids.add(updated.id)
+    return {
+        "updated": len(updated_ids),
+        "checked": len(candidates),
+        "updated_ids": list(updated_ids),
+    }
+
+
 @app.post("/api/register_replay_url")
 def register_replay_url(
     url_of_replay: str,

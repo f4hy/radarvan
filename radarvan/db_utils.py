@@ -478,6 +478,16 @@ class ReplayManager:
         )
         return list(self.session.scalars(stmt).all())
 
+    def list_jsons_non_v2(self, limit: int) -> list[ParsedReplayJson]:
+        stmt = (
+            select(ParsedReplayJson)
+            .where(ParsedReplayJson.is_v2.is_not(True))
+            .order_by(ParsedReplayJson.created_at.desc())
+            .limit(limit)
+        )
+
+        return list(self.session.scalars(stmt).all())
+
     def list_jsons_parsed_before(
         self, before: date, limit: int
     ) -> list[ParsedReplayJson]:
