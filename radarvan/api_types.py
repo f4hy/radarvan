@@ -53,6 +53,10 @@ class Player(BaseModel):
     won: bool = False
     starting_position: int | None = None
 
+    def is_real(self) -> bool:
+        """Return True if this is a real (non-observer, recognized) player."""
+        return self.team != Team.OBSERVER and self.general != General.UNRECOGNIZED
+
     @property
     def Type(self) -> Literal["H", "C"]:
         if self.name.lower() in ["cpu", "hardai", "hardarmy", "mediai", "easyai"]:

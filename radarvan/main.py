@@ -12,7 +12,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator, Generator
-from typing import Any
+from typing import Any, NamedTuple
 from fastapi import BackgroundTasks
 from . import exception_handling
 
@@ -322,6 +322,18 @@ def get_matches_by_date(
     """Get all matches for a specific date."""
     replays = sorted_deduped_matches(replay_manager)
     return Matches(matches=[r for r in replays.values() if r.date == date])
+
+
+@app.get("/api/is_tournament_game/{match_id}")
+def is_tournament_game(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> str | None:
+    """test if a match is a tournament game."""
+    match_info = sorted_deduped_matches(replay_manager).get(match_id)
+    if match_info is None:
+        return None
+    return tournament.is_tournament_game(match_info)
 
 
 @app.get("/api/tournament_results/")
@@ -791,6 +803,11 @@ def update_matches_missing_data(
     return {"updated": updated_count}
 
 
+class MatchPair(NamedTuple):
+    db_match: Match
+    new_match: Match
+
+
 def _fetch_and_parse(match_id: int, json_record: ParsedReplayJson) -> Match:
     """Fetch JSON from S3 and convert to a Match — no DB access, safe to run in threads."""
     replay = replay_files.with_filename(
@@ -819,7 +836,7 @@ def refresh_matches_from_json(
     ][: max_to_update * 4]
 
     # Phase 1: fetch and parse candidates from S3 in parallel
-    parsed: list[tuple[Match, Match]] = []
+    parsed: list[MatchPair] = []
     with ThreadPoolExecutor(max_workers=20) as executor:
         future_to_match = {
             executor.submit(_fetch_and_parse, db_match.match_id, json_record): db_match
@@ -829,7 +846,7 @@ def refresh_matches_from_json(
             db_match = future_to_match[future]
             try:
                 new_match = future.result()
-                parsed.append((db_match, new_match))
+                parsed.append(MatchPair(db_match=db_match, new_match=new_match))
             except Exception:
                 logger.exception(f"Failed to load JSON for match {db_match.match_id}")
 

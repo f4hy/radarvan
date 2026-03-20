@@ -76,7 +76,7 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
     gamedate = match_info.timestamp.date()
     team_map: defaultdict[Team, set[str]] = defaultdict(set)
     for p in match_info.players:
-        if p.team == Team.OBSERVER:
+        if not p.is_real():
             continue
         team_map[p.team].add(resolve_player_name(p.name, p.color))
 
@@ -146,7 +146,7 @@ def create_tournament_results(
             # Group players by team
             teams_in_match: dict[Team, set[str]] = {}
             for player in match.players:
-                if player.team == Team.OBSERVER:
+                if not player.is_real():
                     continue
                 if player.team not in teams_in_match:
                     teams_in_match[player.team] = set()
@@ -180,7 +180,7 @@ def create_tournament_results(
                 teams_in_match = {}
                 player_won: dict[str, bool] = {}
                 for player in match.players:
-                    if player.team == Team.OBSERVER:
+                    if not player.is_real():
                         continue
                     if player.team not in teams_in_match:
                         teams_in_match[player.team] = set()
@@ -190,6 +190,9 @@ def create_tournament_results(
 
                 for team_enum, player_set in teams_in_match.items():
                     team_tuple = tuple(sorted(player_set))
+                    if team_tuple not in team_records:
+                        logger.warning(f"Skipping unrecognized team in match {match.id}: {team_tuple}")
+                        continue
                     if any(player_won.get(name, False) for name in player_set):
                         outcome[team_tuple].wins += 1
                         team_records[team_tuple].wins += 1

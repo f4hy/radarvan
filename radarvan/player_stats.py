@@ -55,7 +55,7 @@ def get_player_stats(
                     faction_stats=[],
                     over_time=[],
                 )
-            if player.general == General.UNRECOGNIZED:
+            if not player.is_real():
                 continue
             if player.won:
                 player_wl[name].stats[player.general].wins += 1

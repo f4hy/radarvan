@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import NamedTuple
 from cachetools import cached
 from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
@@ -55,6 +56,23 @@ class RatingsAndCounts:
     over_time: dict[str, list[NamedRating]]
 
 
+class TeamBuildResult(NamedTuple):
+    teams: dict[int, list[str]]
+    counts: dict[str, int]
+
+
+class RatingUpdateResult(NamedTuple):
+    updated: dict[str, NamedRating]
+    history: dict[str, NamedRating]
+
+
+@dataclass
+class ProcessGamesResult:
+    players: dict[str, NamedRating]
+    game_counts: dict[str, int]
+    rating_over_time: dict[str, list[NamedRating]]
+
+
 def _collect_all_players(games: list[MatchInfo]) -> set[str]:
     return {
         player_ids.resolve_player_name(p.name, p.color)
@@ -63,7 +81,7 @@ def _collect_all_players(games: list[MatchInfo]) -> set[str]:
     }
 
 
-def _build_teams(game: MatchInfo) -> tuple[dict[int, list[str]], dict[str, int]] | None:
+def _build_teams(game: MatchInfo) -> TeamBuildResult | None:
     """Return (teams, counts_increment) or None if game should be skipped."""
     teams: dict[int, list[str]] = defaultdict(list)
     counts: dict[str, int] = defaultdict(int)
@@ -75,7 +93,7 @@ def _build_teams(game: MatchInfo) -> tuple[dict[int, list[str]], dict[str, int]]
         counts[name] += 1
     if len(teams) != 2:
         return None
-    return teams, counts
+    return TeamBuildResult(teams=teams, counts=counts)
 
 
 def _compute_surprise_uncertainty(
@@ -91,7 +109,7 @@ def _update_ratings_for_game(
     teams: dict[int, list[str]],
     players: dict[str, NamedRating],
     model: PlackettLuce,
-) -> tuple[dict[str, NamedRating], dict[str, NamedRating]]:
+) -> RatingUpdateResult:
     """Return (updated_player_ratings, new_history_entries)."""
     scores = {t: 1.0 if game.winning_team == t else 0 for t in teams.keys()}
     score_values = list(scores.values())
@@ -114,14 +132,14 @@ def _update_ratings_for_game(
                 )
                 updated[p.name] = new_rate
                 history[p.name] = new_rate
-    return updated, history
+    return RatingUpdateResult(updated=updated, history=history)
 
 
 def _process_games(
     games: list[MatchInfo],
     initial_players: dict[str, NamedRating],
     model: PlackettLuce,
-) -> tuple[dict[str, NamedRating], dict[str, int], dict[str, list[NamedRating]]]:
+) -> ProcessGamesResult:
     players = dict(initial_players)
     game_counts = dict.fromkeys(players, 0)
     rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in players}
@@ -142,7 +160,9 @@ def _process_games(
         players.update(updated)
         for name, entry in history.items():
             rating_over_time[name].append(entry)
-    return players, game_counts, rating_over_time
+    return ProcessGamesResult(
+        players=players, game_counts=game_counts, rating_over_time=rating_over_time
+    )
 
 
 def _log_sorted_ratings(
@@ -164,9 +184,10 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     for i in range(5):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
-        player_ratings, game_counts, rating_over_time = _process_games(
-            filtered_games, min_sigmaed, model
-        )
+        process_result = _process_games(filtered_games, min_sigmaed, model)
+        player_ratings = process_result.players
+        game_counts = process_result.game_counts
+        rating_over_time = process_result.rating_over_time
         logger.info(f"Pass {i}")
         _log_sorted_ratings(
             [r for r in player_ratings.values() if game_counts.get(r.name, 0) > 20],

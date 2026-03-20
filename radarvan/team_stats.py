@@ -1,11 +1,18 @@
 """Compute win/loss records grouped by team composition."""
 
 from collections import defaultdict
+from typing import NamedTuple
 from .api_types import MatchInfo, TeamRecord, TeamSizeGroup, TeamStatsResponse
 from . import replay_files
 from .general_stats import CPU_NAMES
 from .player_ids import resolve_player_name
 import logging
+
+
+class PlayerResult(NamedTuple):
+    name: str
+    won: bool
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +34,14 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
             continue
 
         # Group human players by team number
-        teams: dict[int, list[tuple[str, bool]]] = defaultdict(list)
+        teams: dict[int, list[PlayerResult]] = defaultdict(list)
         for player in game.players:
             if player.name.lower() in CPU_NAMES:
                 continue
             if player.team <= 0:
                 continue
             name = resolve_player_name(player.name, player.color)
-            teams[player.team].append((name, player.won))
+            teams[player.team].append(PlayerResult(name=name, won=player.won))
 
         if not teams:
             continue
@@ -48,8 +55,8 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
             continue
 
         for players_with_result in teams.values():
-            key = tuple(sorted(p for p, _ in players_with_result))
-            won = players_with_result[0][1]
+            key = tuple(sorted(pr.name for pr in players_with_result))
+            won = players_with_result[0].won
             wl[team_size][key][0 if won else 1] += 1
 
     groups = []

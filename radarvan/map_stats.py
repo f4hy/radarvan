@@ -47,7 +47,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
         for player in game.players:
             if player.name.lower() in CPU_NAMES:
                 continue
-            if player.general == General.UNRECOGNIZED:
+            if not player.is_real():
                 continue
             name = resolve_player_name(player.name, player.color)
             idx = 0 if player.won else 1

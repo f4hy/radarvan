@@ -603,9 +603,10 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
         complete={props.result.complete}
       />
       <Divider sx={{ height: "100px" }} />
-      <DisplayTournamentStats result={props.result} />
       <Typography sx={{ bgcolor: "lightblue" }}>Matchups</Typography>
       <DisplayMatchupsPlayed matchups={props.result.matchups} />
+      <Divider />
+      <DisplayTournamentStats result={props.result} />
       <Divider />
     </Stack>
   )

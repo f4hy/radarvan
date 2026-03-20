@@ -34,7 +34,7 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
                     stats=[],
                     total=WinLoss(wins=0, losses=0),
                 )
-            if player.general == General.UNRECOGNIZED:
+            if not player.is_real():
                 continue
             if player.name.lower() in CPU_NAMES:
                 continue

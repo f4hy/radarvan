@@ -1,5 +1,6 @@
 from collections import Counter
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, timedelta
 from pydantic import BaseModel
 
 from .api_types import (
@@ -11,6 +12,34 @@ from .player_ids import resolve_player_name
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StreakRecord:
+    count: int
+    start: date
+    end: date
+
+
+@dataclass
+class PlayerMatchRecord:
+    player: str
+    value: int
+    match_id: int
+
+
+@dataclass
+class ApmRecord:
+    player: str
+    apm: float
+    match_id: int
+
+
+@dataclass
+class ApmTotals:
+    total_actions: int
+    total_minutes: float
+    game_count: int
 
 
 class Superlatives(BaseModel):
@@ -100,9 +129,8 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
     sorted_games = sorted(
         (g for g in games if not g.incomplete), key=lambda g: g.timestamp
     )
-    # (count, start_date, last_win_date)
-    current: dict[str, tuple[int, date, date]] = {}
-    best: dict[str, tuple[int, date, date]] = {}
+    current: dict[str, StreakRecord] = {}
+    best: dict[str, StreakRecord] = {}
     for game in sorted_games:
         game_date = game.date
         for player in game.players:
@@ -110,35 +138,39 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
             if player.won:
                 prev = current.get(name)
                 current[name] = (
-                    (1, game_date, game_date)
+                    StreakRecord(count=1, start=game_date, end=game_date)
                     if prev is None
-                    else (prev[0] + 1, prev[1], game_date)
+                    else StreakRecord(
+                        count=prev.count + 1, start=prev.start, end=game_date
+                    )
                 )
-                count, start, end = current[name]
-                if name not in best or count > best[name][0]:
-                    best[name] = (count, start, end)
+                streak = current[name]
+                if name not in best or streak.count > best[name].count:
+                    best[name] = streak
             else:
                 current.pop(name, None)
     stats: list[Statistic] = []
     if best:
-        top_player = max(best, key=lambda n: best[n][0])
-        count, start, end = best[top_player]
+        top_player = max(best, key=lambda n: best[n].count)
+        streak = best[top_player]
         stats.append(
             Statistic(
-                stat_name=f"🔥 Longest Win Streak ({start} to {end})",
+                stat_name=f"🔥 Longest Win Streak ({streak.start} to {streak.end})",
                 date_computed=computed_at,
-                value=count,
+                value=streak.count,
                 player=top_player,
             )
         )
-    if current:
-        current_leader = max(current, key=lambda n: current[n][0])
-        count, start, end = current[current_leader]
+    three_months_ago = date.today() - timedelta(days=90)
+    recent_current = {n: s for n, s in current.items() if s.end >= three_months_ago}
+    if recent_current:
+        current_leader = max(recent_current, key=lambda n: recent_current[n].count)
+        streak = recent_current[current_leader]
         stats.append(
             Statistic(
-                stat_name=f"🔥 Longest Current Streak ({start} to {end})",
+                stat_name=f"🔥 Longest Current Streak ({streak.start} to {streak.end})",
                 date_computed=computed_at,
-                value=count,
+                value=streak.count,
                 player=current_leader,
             )
         )
@@ -334,11 +366,9 @@ def get_apm_stats(
             )
         )
 
-    best: tuple[str, float, int] | None = None  # (player_name, apm, match_id)
-    # player -> (total_actions, total_minutes, game_count)
-    player_totals: dict[str, tuple[int, float, int]] = {}
-    # general_name -> (total_actions, total_minutes, game_count)
-    general_totals: dict[str, tuple[int, float, int]] = {}
+    best: ApmRecord | None = None
+    player_totals: dict[str, ApmTotals] = {}
+    general_totals: dict[str, ApmTotals] = {}
     for d in details:
         color_map = {ps.name: ps.color for ps in d.player_summary}
         match_info = match_info_by_id.get(d.match_id)
@@ -355,40 +385,38 @@ def get_apm_stats(
                 resolved = resolve_player_name(
                     a.player_name, color_map.get(a.player_name, "")
                 )
-                if best is None or a.apm > best[1]:
-                    best = (resolved, a.apm, d.match_id)
-                prev_actions, prev_minutes, prev_games = player_totals.get(
-                    resolved, (0, 0.0, 0)
-                )
-                player_totals[resolved] = (
-                    prev_actions + a.action_count,
-                    prev_minutes + a.minutes,
-                    prev_games + 1,
+                if best is None or a.apm > best.apm:
+                    best = ApmRecord(player=resolved, apm=a.apm, match_id=d.match_id)
+                prev = player_totals.get(resolved, ApmTotals(0, 0.0, 0))
+                player_totals[resolved] = ApmTotals(
+                    total_actions=prev.total_actions + a.action_count,
+                    total_minutes=prev.total_minutes + a.minutes,
+                    game_count=prev.game_count + 1,
                 )
                 general_name = general_map.get(resolved)
                 if general_name:
-                    ga, gm, gc = general_totals.get(general_name, (0, 0.0, 0))
-                    general_totals[general_name] = (
-                        ga + a.action_count,
-                        gm + a.minutes,
-                        gc + 1,
+                    prev_gen = general_totals.get(general_name, ApmTotals(0, 0.0, 0))
+                    general_totals[general_name] = ApmTotals(
+                        total_actions=prev_gen.total_actions + a.action_count,
+                        total_minutes=prev_gen.total_minutes + a.minutes,
+                        game_count=prev_gen.game_count + 1,
                     )
     if best is not None:
         stats.append(
             Statistic(
                 stat_name="🚀 Highest APM",
                 date_computed=computed_at,
-                value=round(best[1], 1),
-                player=best[0],
-                match_id=best[2],
+                value=round(best.apm, 1),
+                player=best.player,
+                match_id=best.match_id,
             )
         )
 
     MIN_GAMES = 5
     eligible = {
-        name: total_actions / total_minutes
-        for name, (total_actions, total_minutes, game_count) in player_totals.items()
-        if game_count >= MIN_GAMES and total_minutes > 0
+        name: t.total_actions / t.total_minutes
+        for name, t in player_totals.items()
+        if t.game_count >= MIN_GAMES and t.total_minutes > 0
     }
     if eligible:
         top_name = max(eligible, key=eligible.__getitem__)
@@ -402,9 +430,9 @@ def get_apm_stats(
         )
 
     eligible_generals = {
-        name: total_actions / total_minutes
-        for name, (total_actions, total_minutes, game_count) in general_totals.items()
-        if game_count >= MIN_GAMES and total_minutes > 0
+        name: t.total_actions / t.total_minutes
+        for name, t in general_totals.items()
+        if t.game_count >= MIN_GAMES and t.total_minutes > 0
     }
     if eligible_generals:
         top_gen = max(eligible_generals, key=eligible_generals.__getitem__)
@@ -485,23 +513,25 @@ def get_activity_stats(
         )
 
     # Most upgrades purchased by a single player in any match
-    best_upg: tuple[str, int, int] | None = None  # (player_name, count, match_id)
+    best_upg: PlayerMatchRecord | None = None
     for d in details:
         color_map = {ps.name: ps.color for ps in d.player_summary}
         for player_name, count in d.upgrade_counts.items():
-            if best_upg is None or count > best_upg[1]:
+            if best_upg is None or count > best_upg.value:
                 resolved = resolve_player_name(
                     player_name, color_map.get(player_name, "")
                 )
-                best_upg = (resolved, count, d.match_id)
-    if best_upg and best_upg[1] > 0:
+                best_upg = PlayerMatchRecord(
+                    player=resolved, value=count, match_id=d.match_id
+                )
+    if best_upg and best_upg.value > 0:
         stats.append(
             Statistic(
                 stat_name="🔬 Most Upgrades in a Match",
                 date_computed=computed_at,
-                value=best_upg[1],
-                player=best_upg[0],
-                match_id=best_upg[2],
+                value=best_upg.value,
+                player=best_upg.player,
+                match_id=best_upg.match_id,
             )
         )
 
@@ -509,10 +539,10 @@ def get_activity_stats(
 
 
 def _min_candidate(
-    current: tuple[str, int, int] | None, value: int, name: str, match_id: int
-) -> tuple[str, int, int] | None:
-    if value > 0 and (current is None or value < current[1]):
-        return (name, value, match_id)
+    current: PlayerMatchRecord | None, value: int, name: str, match_id: int
+) -> PlayerMatchRecord | None:
+    if value > 0 and (current is None or value < current.value):
+        return PlayerMatchRecord(player=name, value=value, match_id=match_id)
     return current
 
 
@@ -521,9 +551,9 @@ def get_efficiency_stats(
     computed_at: date,
 ) -> list[Statistic]:
     """Winning player records: fewest units, fewest buildings, least money spent."""
-    best_units: tuple[str, int, int] | None = None  # (player, count, match_id)
-    best_buildings: tuple[str, int, int] | None = None
-    best_money: tuple[str, int, int] | None = None
+    best_units: PlayerMatchRecord | None = None
+    best_buildings: PlayerMatchRecord | None = None
+    best_money: PlayerMatchRecord | None = None
 
     for d in details:
         for ps in d.player_summary:
@@ -550,9 +580,9 @@ def get_efficiency_stats(
             Statistic(
                 stat_name="Fewest Units to Win",
                 date_computed=computed_at,
-                value=best_units[1],
-                player=best_units[0],
-                match_id=best_units[2],
+                value=best_units.value,
+                player=best_units.player,
+                match_id=best_units.match_id,
             )
         )
     if best_buildings:
@@ -560,9 +590,9 @@ def get_efficiency_stats(
             Statistic(
                 stat_name="Fewest Buildings to Win",
                 date_computed=computed_at,
-                value=best_buildings[1],
-                player=best_buildings[0],
-                match_id=best_buildings[2],
+                value=best_buildings.value,
+                player=best_buildings.player,
+                match_id=best_buildings.match_id,
             )
         )
     if best_money:
@@ -570,9 +600,9 @@ def get_efficiency_stats(
             Statistic(
                 stat_name="Least Money to Win",
                 date_computed=computed_at,
-                value=_fmt_money(best_money[1]),
-                player=best_money[0],
-                match_id=best_money[2],
+                value=_fmt_money(best_money.value),
+                player=best_money.player,
+                match_id=best_money.match_id,
             )
         )
     return stats

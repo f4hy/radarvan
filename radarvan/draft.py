@@ -1,7 +1,13 @@
 import random
 from datetime import UTC, datetime
+from typing import NamedTuple
 
 from .api_types import DraftAssignment, DraftPlayerRequest, MapPlayerStart
+
+
+class ComputedDraft(NamedTuple):
+    assignments: list[DraftAssignment]
+    randomized_at: datetime
 
 
 def _sq_dist(a: MapPlayerStart, b: MapPlayerStart) -> float:
@@ -11,7 +17,7 @@ def _sq_dist(a: MapPlayerStart, b: MapPlayerStart) -> float:
 def compute_draft(
     players: list[DraftPlayerRequest],
     positions: list[MapPlayerStart],
-) -> tuple[list[DraftAssignment], datetime]:
+) -> ComputedDraft:
     teams = sorted({p.team for p in players})
     team_players = {t: [p for p in players if p.team == t] for t in teams}
     for group in team_players.values():
@@ -64,4 +70,4 @@ def compute_draft(
                     general=random.randint(0, 11),  # noqa: S311
                 )
             )
-    return assignments, datetime.now(UTC)
+    return ComputedDraft(assignments=assignments, randomized_at=datetime.now(UTC))

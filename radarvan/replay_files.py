@@ -3,6 +3,7 @@
 import re
 import logging
 import fsspec
+from typing import NamedTuple
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from functools import cache
 from .parse_replay import parse_replay_data
@@ -14,6 +15,13 @@ from urllib.parse import urlparse
 from botocore.config import Config
 
 logger = logging.getLogger(__name__)
+
+
+class ParsedReplayResult(NamedTuple):
+    replay: EnhancedReplayV2
+    json_path: str
+
+
 modus = "Modus_09BAC013F91C"
 bill = "131_5211058E5C33"
 
@@ -116,7 +124,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
 
 def reparse(
     match_id: int, replay_manager: ReplayManager, force: bool = False
-) -> tuple[EnhancedReplayV2, str] | None:
+) -> ParsedReplayResult | None:
     logger.info(f"Reparsing {match_id=}")
     existing = replay_manager.get_replay_json_by_match_id(match_id)
     logger.info(f"Existing {existing=}")
@@ -151,7 +159,7 @@ def reparse(
 
 def reparse_paths(
     json_path: str, original_path: str, replay_path: str, replay_manager: ReplayManager
-) -> tuple[EnhancedReplayV2, str] | None:
+) -> ParsedReplayResult | None:
     logger.info(f"Reparsing {original_path} ")
 
     fs = get_fs()
@@ -166,7 +174,7 @@ def reparse_paths(
         parsed_replay=parsed_replay,
     )
     fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
-    return parsed_replay, json_path
+    return ParsedReplayResult(replay=parsed_replay, json_path=json_path)
 
 
 def path_filter(url: str) -> bool:
