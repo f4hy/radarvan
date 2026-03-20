@@ -493,8 +493,9 @@ def reparse_before_date(
 
 
 @app.post("/api/reparse_non_v2/", include_in_schema=IS_DEV)
-def reparse_non_v2(
+async def reparse_non_v2(
     max_to_update: int = 10,
+    max_concurrent: int = 8,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
@@ -504,16 +505,29 @@ def reparse_non_v2(
     """
     candidates = replay_manager.list_jsons_non_v2(limit=max_to_update)
     logger.info(f"reparse_before_date: {len(candidates)} candidates")
-    updated_ids: set[int] = set()
-    for record in candidates:
-        updated = matches.reparse_replay(record.match_id, replay_manager)
-        if updated:
-            replay_manager.compute_and_save_composition(record.match_id)
-            updated_ids.add(updated.id)
+
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def _reparse_one(match_id: int) -> int | None:
+        async with semaphore:
+
+            def _work() -> int | None:
+                with db_manager.SessionLocal() as session:
+                    rm = ReplayManager(session)
+                    updated = matches.reparse_replay(match_id, rm)
+                    if updated:
+                        rm.compute_and_save_composition(match_id)
+                        return updated.id
+                    return None
+
+            return await asyncio.to_thread(_work)
+
+    results = await asyncio.gather(*[_reparse_one(r.match_id) for r in candidates])
+    updated_ids = [r for r in results if r is not None]
     return {
         "updated": len(updated_ids),
         "checked": len(candidates),
-        "updated_ids": list(updated_ids),
+        "updated_ids": updated_ids,
     }
 
 
