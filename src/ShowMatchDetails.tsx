@@ -143,14 +143,17 @@ function MoneyChart(props: {
 
 function EventChart(props: {
   upgrades: { [name: string]: Upgrades }
-  max: number
   playerSummaries: PlayerSummary[]
 }) {
   const names = Object.keys(props.upgrades).sort((x1, x2) =>
     x1.localeCompare(x2),
   )
   const colors = buildPlayerColorMap(props.playerSummaries)
-
+  const max = Math.max(
+    ...Object.values(props.upgrades).map((u) =>
+      Math.max(...u.upgrades.map((g) => g.atMinute)),
+    ),
+  )
   if (props.upgrades && names.length > 0) {
     return (
       <ResponsiveContainer width="100%" height={300}>
@@ -168,7 +171,7 @@ function EventChart(props: {
           <XAxis
             type="number"
             dataKey="atMinute"
-            domain={[0, props.max]}
+            domain={[0, max]}
             tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
           />
           <YAxis
@@ -287,8 +290,8 @@ interface StyledTableRow {
   moneyCollected: number | null
 }
 
-function renderCash(value: number | null): string {
-  if (value === null) {
+function renderCash(value: number | null | undefined): string {
+  if (value === null || value == undefined) {
     return "?"
   }
   return "$" + value.toLocaleString("en-US")
@@ -365,7 +368,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
       color: s.color,
       won: s.win,
       general: s.side,
-      moneySpent: props.matchDetails.playerMoneySpent?.[s.name] ?? null,
+      moneySpent: extractFromStatsData("money_spent", s.name),
       moneyCollected: extractFromStatsData("money_earned", s.name),
       xp: extractFromStatsData("xp", s.name),
       unitsBuilt: extractFromStatsData("units_built", s.name),
@@ -432,12 +435,17 @@ function MoneyCharts(props: { details: MatchDetails }) {
     <>
       <MoneyChart
         title="Money"
-        money={props.details.moneyValues}
+        money={props.details.statsData["money"]}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="$ Earned"
         money={props.details.statsData["money_earned"]}
+        playerSummaries={props.details.playerSummary}
+      />
+      <MoneyChart
+        title="$ spent"
+        money={props.details.statsData["money_spent"]}
         playerSummaries={props.details.playerSummary}
       />
     </>
@@ -568,7 +576,6 @@ function DetailViewSelector(props: {
   choices: Displays[]
   onChange: (display: Displays | null) => void
   details: MatchDetails
-  maxMinute: number
 }) {
   return (
     <>
@@ -593,7 +600,6 @@ function DetailViewSelector(props: {
       {props.selectedDisplay === "Event Chart" && (
         <EventChart
           upgrades={props.details.upgradeEvents}
-          max={props.maxMinute}
           playerSummaries={props.details.playerSummary}
         />
       )}
@@ -628,11 +634,6 @@ export default function ShowMatchDetails(props: { id: number }) {
       </>
     )
   }
-  const maxAtMinute =
-    details.spent !== undefined
-      ? _.max(details.spent.total.map((t) => t.atMinute))
-      : 1
-  const maxMinute = Math.ceil(maxAtMinute ?? 1)
   const choices: Displays[] = [
     "Player Unit and spending breakdown",
     "Event Chart",
@@ -653,7 +654,6 @@ export default function ShowMatchDetails(props: { id: number }) {
         choices={choices}
         onChange={setSelectedDisplay}
         details={details}
-        maxMinute={maxMinute}
       />
       {errorSnackbar}
     </Paper>

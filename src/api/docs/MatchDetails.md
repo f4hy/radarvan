@@ -11,11 +11,7 @@ Name | Type
 `costs` | [Array&lt;Costs&gt;](Costs.md)
 `apms` | [Array&lt;APM&gt;](APM.md)
 `upgradeEvents` | [{ [key: string]: Upgrades; }](Upgrades.md)
-`spent` | [SpentOverTime](SpentOverTime.md)
-`moneyValues` | { [key: string]: { [key: string]: number; }; }
-`moneyCollectedValues` | { [key: string]: { [key: string]: number; }; }
 `statsData` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
-`playerMoneySpent` | { [key: string]: number; }
 `mapName` | string
 `firstBlood` | [FirstBlood](FirstBlood.md)
 `buildingFirstBlood` | [FirstBlood](FirstBlood.md)
@@ -34,11 +30,7 @@ const example = {
   "costs": null,
   "apms": null,
   "upgradeEvents": null,
-  "spent": null,
-  "moneyValues": null,
-  "moneyCollectedValues": null,
   "statsData": null,
-  "playerMoneySpent": null,
   "mapName": null,
   "firstBlood": null,
   "buildingFirstBlood": null,

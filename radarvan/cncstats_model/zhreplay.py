@@ -14,147 +14,133 @@ from . import statsfile
 
 
 class EnrichedBuildEvent(BaseModel):
-    build_time: Annotated[int | None, Field(alias='buildTime')] = None
-    cost: int | None = None
-    frame: int | None = None
-    object: str | None = None
-    object_type: Annotated[str | None, Field(alias='objectType')] = None
-    player: int | None = None
-    producer: str | None = None
-    producer_type: Annotated[str | None, Field(alias='producerType')] = None
-    x: float | None = None
-    y: float | None = None
+    build_time: Annotated[int, Field(alias="buildTime")]
+    cost: int
+    frame: int
+    object: str
+    object_type: Annotated[str | None, Field(alias="objectType")] = None
+    player: int
+    producer: str
+    producer_type: Annotated[str | None, Field(alias="producerType")] = None
+    x: float
+    y: float
 
 
 class EnrichedCaptureEvent(BaseModel):
-    frame: int | None = None
-    new_owner: Annotated[int | None, Field(alias='newOwner')] = None
-    object: str | None = None
-    object_type: Annotated[str | None, Field(alias='objectType')] = None
-    old_owner: Annotated[int | None, Field(alias='oldOwner')] = None
-    x: float | None = None
-    y: float | None = None
+    frame: int
+    new_owner: Annotated[int, Field(alias="newOwner")]
+    object: str
+    object_type: Annotated[str | None, Field(alias="objectType")] = None
+    old_owner: Annotated[int, Field(alias="oldOwner")]
+    x: float
+    y: float
 
 
 class EnrichedKillEvent(BaseModel):
-    damage_type: Annotated[str | None, Field(alias='damageType')] = None
-    frame: int | None = None
-    killer: str | None = None
-    killer_player: Annotated[int | None, Field(alias='killerPlayer')] = None
-    killer_type: Annotated[str | None, Field(alias='killerType')] = None
-    victim: str | None = None
-    victim_player: Annotated[int | None, Field(alias='victimPlayer')] = None
-    victim_type: Annotated[str | None, Field(alias='victimType')] = None
-    x: float | None = None
-    y: float | None = None
+    damage_type: Annotated[str, Field(alias="damageType")]
+    frame: int
+    killer: str
+    killer_player: Annotated[int, Field(alias="killerPlayer")]
+    killer_type: Annotated[str | None, Field(alias="killerType")] = None
+    victim: str
+    victim_player: Annotated[int, Field(alias="victimPlayer")]
+    victim_type: Annotated[str | None, Field(alias="victimType")] = None
+    x: float
+    y: float
 
 
 class GameInfoV2(BaseModel):
-    frame_count: Annotated[int | None, Field(alias='frameCount')] = None
-    mode: str | None = None
-    player_count: Annotated[int | None, Field(alias='playerCount')] = None
-    snapshot_interval: Annotated[int | None, Field(alias='snapshotInterval')] = None
+    frame_count: Annotated[int, Field(alias="frameCount")]
+    mode: str
+    player_count: Annotated[int, Field(alias="playerCount")]
+    snapshot_interval: Annotated[int, Field(alias="snapshotInterval")]
 
 
 class PlayerSummaryV2(BaseModel):
     academy: statsfile.Academy | None = None
-    base_side: Annotated[str | None, Field(alias='baseSide')] = None
+    base_side: Annotated[str, Field(alias="baseSide")]
     buildings_built: Annotated[
-        dict[str, object_1.ObjectSummary] | None, Field(alias='buildingsBuilt')
-    ] = None
-    color: str | None = None
-    faction: str | None = None
-    index: int | None = None
-    money: int | None = None
-    money_earned: Annotated[int | None, Field(alias='moneyEarned')] = None
-    money_spent: Annotated[int | None, Field(alias='moneySpent')] = None
-    name: str | None = None
-    player_type: Annotated[str | None, Field(alias='playerType')] = None
-    powers_used: Annotated[dict[str, int] | None, Field(alias='powersUsed')] = None
-    score: int | None = None
-    side: str | None = None
-    team: int | None = None
+        dict[str, object_1.ObjectSummary], Field(alias="buildingsBuilt")
+    ]
+    color: str
+    faction: str
+    index: int
+    money: int
+    money_earned: Annotated[int, Field(alias="moneyEarned")]
+    money_spent: Annotated[int, Field(alias="moneySpent")]
+    name: str
+    player_type: Annotated[str, Field(alias="playerType")]
+    powers_used: Annotated[dict[str, int], Field(alias="powersUsed")]
+    score: int
+    side: str
+    team: int
     units_created: Annotated[
-        dict[str, object_1.ObjectSummary] | None, Field(alias='unitsCreated')
-    ] = None
+        dict[str, object_1.ObjectSummary], Field(alias="unitsCreated")
+    ]
     upgrades_built: Annotated[
-        dict[str, object_1.ObjectSummary] | None, Field(alias='upgradesBuilt')
-    ] = None
-    win: bool | None = None
+        dict[str, object_1.ObjectSummary], Field(alias="upgradesBuilt")
+    ]
+    win: bool
 
 
 class TeamFactors(BaseModel):
-    built_value: Annotated[int | None, Field(alias='builtValue')] = None
-    capture_gain: Annotated[int | None, Field(alias='captureGain')] = None
-    capture_loss: Annotated[int | None, Field(alias='captureLoss')] = None
-    destroyed_value: Annotated[int | None, Field(alias='destroyedValue')] = None
-    efficiency: float | None = None
-    lost_value: Annotated[int | None, Field(alias='lostValue')] = None
-    money_earned: Annotated[int | None, Field(alias='moneyEarned')] = None
-    net_assets: Annotated[int | None, Field(alias='netAssets')] = None
-    player_score: Annotated[int | None, Field(alias='playerScore')] = None
-    players_alive: Annotated[int | None, Field(alias='playersAlive')] = None
-    players_dead: Annotated[int | None, Field(alias='playersDead')] = None
-    recent_income: Annotated[int | None, Field(alias='recentIncome')] = None
-    score: float | None = None
+    built_value: Annotated[int, Field(alias="builtValue")]
+    capture_gain: Annotated[int, Field(alias="captureGain")]
+    capture_loss: Annotated[int, Field(alias="captureLoss")]
+    destroyed_value: Annotated[int, Field(alias="destroyedValue")]
+    efficiency: float
+    lost_value: Annotated[int, Field(alias="lostValue")]
+    money_earned: Annotated[int, Field(alias="moneyEarned")]
+    net_assets: Annotated[int, Field(alias="netAssets")]
+    player_score: Annotated[int, Field(alias="playerScore")]
+    players_alive: Annotated[int, Field(alias="playersAlive")]
+    players_dead: Annotated[int, Field(alias="playersDead")]
+    recent_income: Annotated[int, Field(alias="recentIncome")]
+    score: float
 
 
 class WinEstimation(BaseModel):
     agree_count: Annotated[
-        int | None,
-        Field(alias='agreeCount', description='how many factors pick the winner'),
-    ] = None
-    confidence: float | None = None
-    teams: dict[str, TeamFactors] | None = None
+        int, Field(alias="agreeCount", description="how many factors pick the winner")
+    ]
+    confidence: float
+    teams: dict[str, TeamFactors]
     total_factors: Annotated[
-        int | None,
-        Field(alias='totalFactors', description='total active factors (3 or 4)'),
-    ] = None
+        int, Field(alias="totalFactors", description="total active factors (3 or 4)")
+    ]
 
 
 class EnrichedStats(BaseModel):
     battle_plan_events: Annotated[
-        list[statsfile.BattlePlanEvent] | None, Field(alias='battlePlanEvents')
-    ] = None
-    build_events: Annotated[
-        list[EnrichedBuildEvent] | None, Field(alias='buildEvents')
-    ] = None
-    capture_events: Annotated[
-        list[EnrichedCaptureEvent] | None, Field(alias='captureEvents')
-    ] = None
-    death_events: Annotated[
-        list[statsfile.DeathEvent] | None, Field(alias='deathEvents')
-    ] = None
-    energy_events: Annotated[
-        list[statsfile.EnergyEvent] | None, Field(alias='energyEvents')
-    ] = None
-    kill_events: Annotated[
-        list[EnrichedKillEvent] | None, Field(alias='killEvents')
-    ] = None
-    radar_events: Annotated[
-        list[statsfile.RadarEvent] | None, Field(alias='radarEvents')
-    ] = None
-    rank_events: Annotated[
-        list[statsfile.RankEvent] | None, Field(alias='rankEvents')
-    ] = None
+        list[statsfile.BattlePlanEvent], Field(alias="battlePlanEvents")
+    ]
+    build_events: Annotated[list[EnrichedBuildEvent], Field(alias="buildEvents")]
+    capture_events: Annotated[list[EnrichedCaptureEvent], Field(alias="captureEvents")]
+    death_events: Annotated[list[statsfile.DeathEvent], Field(alias="deathEvents")]
+    energy_events: Annotated[list[statsfile.EnergyEvent], Field(alias="energyEvents")]
+    kill_events: Annotated[list[EnrichedKillEvent], Field(alias="killEvents")]
+    radar_events: Annotated[list[statsfile.RadarEvent], Field(alias="radarEvents")]
+    rank_events: Annotated[list[statsfile.RankEvent], Field(alias="rankEvents")]
     science_points_events: Annotated[
-        list[statsfile.SciencePointsEvent] | None, Field(alias='sciencePointsEvents')
-    ] = None
+        list[statsfile.SciencePointsEvent], Field(alias="sciencePointsEvents")
+    ]
     skill_points_events: Annotated[
-        list[statsfile.SkillPointsEvent] | None, Field(alias='skillPointsEvents')
-    ] = None
-    time_series: Annotated[statsfile.TimeSeries | None, Field(alias='timeSeries')] = (
-        None
-    )
+        list[statsfile.SkillPointsEvent], Field(alias="skillPointsEvents")
+    ]
+    time_series: Annotated[statsfile.TimeSeries, Field(alias="timeSeries")]
 
 
 class EnhancedReplayV2(BaseModel):
-    body: list[body_1.BodyChunk] | None = None
-    game_info: Annotated[GameInfoV2 | None, Field(alias='gameInfo')] = None
-    header: header_1.GeneralsHeader | None = None
-    offset: int | None = None
-    stats: EnrichedStats | None = None
-    summary: list[PlayerSummaryV2] | None = None
-    version: int | None = None
-    win_estimation: Annotated[WinEstimation | None, Field(alias='winEstimation')] = None
-    win_method: Annotated[str | None, Field(alias='winMethod')] = None
+    body: list[body_1.BodyChunk]
+    game_info: Annotated[GameInfoV2, Field(alias="gameInfo")]
+    header: header_1.GeneralsHeader
+    offset: int
+    stats: EnrichedStats
+    summary: list[PlayerSummaryV2]
+    version: int
+    win_estimation: Annotated[WinEstimation | None, Field(alias="winEstimation")] = None
+    win_method: Annotated[str, Field(alias="winMethod")]
+
+    @property
+    def replay_id(self) -> int:
+        return self.header.metadata.seed

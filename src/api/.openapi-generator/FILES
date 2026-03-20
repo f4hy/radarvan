@@ -50,9 +50,8 @@ docs/PlayerStats.md
 docs/PlayerSummary.md
 docs/ReplayFileSchema.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
+docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
 docs/ShortPlayerRating.md
-docs/Spent.md
-docs/SpentOverTime.md
 docs/Statistic.md
 docs/Superlatives.md
 docs/Team.md
@@ -118,9 +117,8 @@ models/PlayerStats.ts
 models/PlayerSummary.ts
 models/ReplayFileSchema.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
+models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
 models/ShortPlayerRating.ts
-models/Spent.ts
-models/SpentOverTime.ts
 models/Statistic.ts
 models/Superlatives.ts
 models/Team.ts

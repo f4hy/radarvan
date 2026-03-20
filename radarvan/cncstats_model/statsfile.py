@@ -10,91 +10,81 @@ from pydantic import BaseModel, Field
 
 class Academy(BaseModel):
     cleared_garrisoned_buildings: Annotated[
-        int | None, Field(alias='clearedGarrisonedBuildings')
-    ] = None
-    control_groups_used: Annotated[int | None, Field(alias='controlGroupsUsed')] = None
+        int, Field(alias="clearedGarrisonedBuildings")
+    ]
+    control_groups_used: Annotated[int, Field(alias="controlGroupsUsed")]
     double_click_attack_move_orders_given: Annotated[
-        int | None, Field(alias='doubleClickAttackMoveOrdersGiven')
-    ] = None
-    firestorms_created: Annotated[int | None, Field(alias='firestormsCreated')] = None
-    gatherers_built: Annotated[int | None, Field(alias='gatherersBuilt')] = None
-    generals_points_spent: Annotated[int | None, Field(alias='generalsPointsSpent')] = (
-        None
-    )
-    guard_ability_used_count: Annotated[
-        int | None, Field(alias='guardAbilityUsedCount')
-    ] = None
-    heroes_built: Annotated[int | None, Field(alias='heroesBuilt')] = None
-    mines_cleared: Annotated[int | None, Field(alias='minesCleared')] = None
-    peons_built: Annotated[int | None, Field(alias='peonsBuilt')] = None
-    salvage_collected: Annotated[int | None, Field(alias='salvageCollected')] = None
+        int, Field(alias="doubleClickAttackMoveOrdersGiven")
+    ]
+    firestorms_created: Annotated[int, Field(alias="firestormsCreated")]
+    gatherers_built: Annotated[int, Field(alias="gatherersBuilt")]
+    generals_points_spent: Annotated[int, Field(alias="generalsPointsSpent")]
+    guard_ability_used_count: Annotated[int, Field(alias="guardAbilityUsedCount")]
+    heroes_built: Annotated[int, Field(alias="heroesBuilt")]
+    mines_cleared: Annotated[int, Field(alias="minesCleared")]
+    peons_built: Annotated[int, Field(alias="peonsBuilt")]
+    salvage_collected: Annotated[int, Field(alias="salvageCollected")]
     secondary_income_units_built: Annotated[
-        int | None, Field(alias='secondaryIncomeUnitsBuilt')
-    ] = None
-    special_powers_used: Annotated[int | None, Field(alias='specialPowersUsed')] = None
-    structures_captured: Annotated[int | None, Field(alias='structuresCaptured')] = None
-    structures_garrisoned: Annotated[
-        int | None, Field(alias='structuresGarrisoned')
-    ] = None
-    supply_centers_built: Annotated[int | None, Field(alias='supplyCentersBuilt')] = (
-        None
-    )
-    upgrades_purchased: Annotated[int | None, Field(alias='upgradesPurchased')] = None
-    vehicles_disguised: Annotated[int | None, Field(alias='vehiclesDisguised')] = None
+        int, Field(alias="secondaryIncomeUnitsBuilt")
+    ]
+    special_powers_used: Annotated[int, Field(alias="specialPowersUsed")]
+    structures_captured: Annotated[int, Field(alias="structuresCaptured")]
+    structures_garrisoned: Annotated[int, Field(alias="structuresGarrisoned")]
+    supply_centers_built: Annotated[int, Field(alias="supplyCentersBuilt")]
+    upgrades_purchased: Annotated[int, Field(alias="upgradesPurchased")]
+    vehicles_disguised: Annotated[int, Field(alias="vehiclesDisguised")]
 
 
 class BattlePlanEvent(BaseModel):
-    bombardment: int | None = None
-    frame: int | None = None
-    hold_the_line: Annotated[int | None, Field(alias='holdTheLine')] = None
-    player: int | None = None
-    search_and_destroy: Annotated[int | None, Field(alias='searchAndDestroy')] = None
+    bombardment: int
+    frame: int
+    hold_the_line: Annotated[int, Field(alias="holdTheLine")]
+    player: int
+    search_and_destroy: Annotated[int, Field(alias="searchAndDestroy")]
 
 
 class DeathEvent(BaseModel):
-    frame: int | None = None
-    player: int | None = None
+    frame: int
+    player: int
 
 
 class EnergyEvent(BaseModel):
-    consumption: int | None = None
-    frame: int | None = None
-    player: int | None = None
-    production: int | None = None
+    consumption: int
+    frame: int
+    player: int
+    production: int
 
 
 class RadarEvent(BaseModel):
-    frame: int | None = None
-    has_radar: Annotated[bool | None, Field(alias='hasRadar')] = None
-    player: int | None = None
+    frame: int
+    has_radar: Annotated[bool, Field(alias="hasRadar")]
+    player: int
 
 
 class RankEvent(BaseModel):
-    frame: int | None = None
-    player: int | None = None
-    rank_level: Annotated[int | None, Field(alias='rankLevel')] = None
+    frame: int
+    player: int
+    rank_level: Annotated[int, Field(alias="rankLevel")]
 
 
 class SciencePointsEvent(BaseModel):
-    frame: int | None = None
-    player: int | None = None
-    science_purchase_points: Annotated[
-        int | None, Field(alias='sciencePurchasePoints')
-    ] = None
+    frame: int
+    player: int
+    science_purchase_points: Annotated[int, Field(alias="sciencePurchasePoints")]
 
 
 class SkillPointsEvent(BaseModel):
-    frame: int | None = None
-    player: int | None = None
-    skill_points: Annotated[int | None, Field(alias='skillPoints')] = None
+    frame: int
+    player: int
+    skill_points: Annotated[int, Field(alias="skillPoints")]
 
 
 class TimeSeriesPlayer(BaseModel):
-    index: int | None = None
-    money: list[int] | None = None
-    money_earned: Annotated[list[int] | None, Field(alias='moneyEarned')] = None
-    money_spent: Annotated[list[int] | None, Field(alias='moneySpent')] = None
+    index: int
+    money: list[int]
+    money_earned: Annotated[list[int], Field(alias="moneyEarned")]
+    money_spent: Annotated[list[int], Field(alias="moneySpent")]
 
 
 class TimeSeries(BaseModel):
-    players: list[TimeSeriesPlayer] | None = None
+    players: list[TimeSeriesPlayer]

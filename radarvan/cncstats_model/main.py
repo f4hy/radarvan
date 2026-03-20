@@ -9,11 +9,11 @@ from pydantic import BaseModel, Field
 
 
 class ErrorResponse(BaseModel):
-    details: Annotated[str | None, Field(examples=['underlying error message'])] = None
-    error: Annotated[str | None, Field(examples=['Something went wrong'])] = None
+    details: Annotated[str | None, Field(examples=["underlying error message"])] = None
+    error: Annotated[str | None, Field(examples=["Something went wrong"])] = None
 
 
 class StatsUploadResponse(BaseModel):
-    message: Annotated[str | None, Field(examples=['Stats stored successfully'])] = None
-    seed: Annotated[str | None, Field(examples=['12345'])] = None
+    message: Annotated[str | None, Field(examples=["Stats stored successfully"])] = None
+    seed: Annotated[str | None, Field(examples=["12345"])] = None
     size: Annotated[int | None, Field(examples=[8192])] = None

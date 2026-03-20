@@ -48,13 +48,6 @@ import {
     KillEventOutputToJSON,
     KillEventOutputToJSONTyped,
 } from './KillEventOutput';
-import type { SpentOverTime } from './SpentOverTime';
-import {
-    SpentOverTimeFromJSON,
-    SpentOverTimeFromJSONTyped,
-    SpentOverTimeToJSON,
-    SpentOverTimeToJSONTyped,
-} from './SpentOverTime';
 import type { APM } from './APM';
 import {
     APMFromJSON,
@@ -100,35 +93,11 @@ export interface MatchDetails {
      */
     upgradeEvents: { [key: string]: Upgrades; };
     /**
-     * 
-     * @type {SpentOverTime}
-     * @memberof MatchDetails
-     */
-    spent: SpentOverTime;
-    /**
-     * at a time value (int) map each player to the value
-     * @type {{ [key: string]: { [key: string]: number; }; }}
-     * @memberof MatchDetails
-     */
-    moneyValues: { [key: string]: { [key: string]: number; }; };
-    /**
-     * at a time value (int) map each player to the value
-     * @type {{ [key: string]: { [key: string]: number; }; }}
-     * @memberof MatchDetails
-     */
-    moneyCollectedValues: { [key: string]: { [key: string]: number; }; };
-    /**
      * at a time map each player to xp
      * @type {{ [key: string]: { [key: string]: { [key: string]: number; }; }; }}
      * @memberof MatchDetails
      */
     statsData: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
-    /**
-     * end-of-game money spent per player name
-     * @type {{ [key: string]: number; }}
-     * @memberof MatchDetails
-     */
-    playerMoneySpent?: { [key: string]: number; };
     /**
      * 
      * @type {string}
@@ -169,9 +138,6 @@ export function instanceOfMatchDetails(value: object): value is MatchDetails {
     if (!('costs' in value) || value['costs'] === undefined) return false;
     if (!('apms' in value) || value['apms'] === undefined) return false;
     if (!('upgradeEvents' in value) || value['upgradeEvents'] === undefined) return false;
-    if (!('spent' in value) || value['spent'] === undefined) return false;
-    if (!('moneyValues' in value) || value['moneyValues'] === undefined) return false;
-    if (!('moneyCollectedValues' in value) || value['moneyCollectedValues'] === undefined) return false;
     if (!('statsData' in value) || value['statsData'] === undefined) return false;
     if (!('playerSummary' in value) || value['playerSummary'] === undefined) return false;
     return true;
@@ -192,11 +158,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'costs': ((json['costs'] as Array<any>).map(CostsFromJSON)),
         'apms': ((json['apms'] as Array<any>).map(APMFromJSON)),
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
-        'spent': SpentOverTimeFromJSON(json['spent']),
-        'moneyValues': json['money_values'],
-        'moneyCollectedValues': json['money_collected_values'],
         'statsData': json['stats_data'],
-        'playerMoneySpent': json['playerMoneySpent'] == null ? undefined : json['playerMoneySpent'],
         'mapName': json['mapName'] == null ? undefined : json['mapName'],
         'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
         'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
@@ -221,11 +183,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'costs': ((value['costs'] as Array<any>).map(CostsToJSON)),
         'apms': ((value['apms'] as Array<any>).map(APMToJSON)),
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
-        'spent': SpentOverTimeToJSON(value['spent']),
-        'money_values': value['moneyValues'],
-        'money_collected_values': value['moneyCollectedValues'],
         'stats_data': value['statsData'],
-        'playerMoneySpent': value['playerMoneySpent'],
         'mapName': value['mapName'],
         'first_blood': FirstBloodToJSON(value['firstBlood']),
         'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),

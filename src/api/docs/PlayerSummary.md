@@ -11,7 +11,6 @@ Name | Type
 `team` | number
 `win` | boolean
 `color` | string
-`moneySpent` | number
 `unitsCreated` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `buildingsBuilt` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `upgradesBuilt` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
@@ -29,7 +28,6 @@ const example = {
   "team": null,
   "win": null,
   "color": null,
-  "moneySpent": null,
   "unitsCreated": null,
   "buildingsBuilt": null,
   "upgradesBuilt": null,

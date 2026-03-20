@@ -97,6 +97,7 @@ class ParsedReplayJson(Base):
     game_date: Mapped[date | None] = mapped_column(index=True)
     game_version: Mapped[str | None] = mapped_column(String(10))
     has_enhanced_stats: Mapped[bool | None] = mapped_column()
+    is_v2: Mapped[bool | None] = mapped_column()
 
     # Relationships
     replay_file: Mapped[ReplayFile] = relationship(back_populates="parsed_replay_json")

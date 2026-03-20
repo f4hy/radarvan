@@ -9,9 +9,9 @@ from . import db
 from . import replay_files
 from . import utils
 from .api_types import MatchInfo, Player, Team
-from .cncstats_types_v2 import EnhancedReplayV2
+from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db_utils import DatabaseManager, ReplayManager
-from .game_composition import GameComposition, categorize_game_type
+from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -24,21 +24,21 @@ class WinnerAndNotes:
 
 
 def determine_winner(replay: EnhancedReplayV2, players: list[Player]) -> WinnerAndNotes:
-    _winners = [p for p in replay.Summary if p.Win is True]
+    _winners = [p for p in (replay.summary or []) if p.win is True]
     if not _winners:
         return WinnerAndNotes(
             wining_team=Team.NONE,
         )
     player_map = {p.name: p for p in players}
-    winner_player = player_map.get(_winners[0].Name)
+    winner_player = player_map.get(_winners[0].name or "")
     if winner_player is None:
         logger.info(
-            f"Winner name {_winners[0].Name!r} not in player list {list(player_map)}"
+            f"Winner name {_winners[0].name!r} not in player list {list(player_map)}"
         )
         return WinnerAndNotes(wining_team=Team.NONE, notes="Winner not in player list")
     winning_team = winner_player.team
     if winning_team == Team.NONE or winning_team == Team.OBSERVER:
-        logger.info(f"No winner found in replay {replay.Summary=}")
+        logger.info(f"No winner found in replay {replay.summary=}")
         return WinnerAndNotes(wining_team=Team.NONE, notes="No team won?")
     return WinnerAndNotes(
         wining_team=winning_team,
@@ -46,24 +46,30 @@ def determine_winner(replay: EnhancedReplayV2, players: list[Player]) -> WinnerA
 
 
 def is_incomplete(replay: EnhancedReplayV2) -> str | None:
-    head = replay.Header
-    if (
-        sum(head.Desync or [])
-        + sum(head.UnusedDesync or [])
-        + sum(head.MoreUnusedDesync or [])
-    ) > 0:
-        return "Replay header Mismatch"
-    if (sum(head.QuitEarly or [])) > 0:
-        return "Quit Early"
-    if (sum(head.Disconnect or [])) > 0:
-        return "Disconnect"
+    head = replay.header
+    if head is not None:
+        if head.desync:
+            return "Replay header Mismatch"
+        if head.quit_early:
+            return "Quit Early"
+        if any(head.player_discons or []):
+            return "Disconnect"
 
     duration_minutes = utils.duration_minutes(replay)
     if duration_minutes < 2:
         return "Too Short"
-    _winners = [p for p in replay.Summary if p.Win is True]
+    _winners = [p for p in (replay.summary or []) if p.win is True]
     if not _winners:
-        real_players = [p for p in replay.Header.Metadata.Players if p.Faction > -2]
+        header_players = (
+            replay.header.metadata.players
+            if replay.header and replay.header.metadata
+            else None
+        ) or []
+        real_players = [
+            PlayerAdapter(team=int(p.team or "-1"), type=p.type)
+            for p in header_players
+            if p.type in ("H", "C")
+        ]
         composition = categorize_game_type(real_players)
         if composition.is_ffa:
             return None
@@ -80,15 +86,19 @@ def match_from_replay(replay: EnhancedReplayV2) -> MatchInfo | None:
     winner_data = determine_winner(replay, players)
     incomplete = is_incomplete(replay=replay)
 
+    header = replay.header
+    timestamp = (header.time_stamp_begin if header else None) or 0
+    map_path = (header.metadata.map_path if header and header.metadata else None) or ""
+    replay_name = (header.replay_name if header else None) or ""
     return MatchInfo(
-        id=replay.replay_id(),
-        timestamp=replay.Header.TimeStampBegin,
-        date=datetime.fromtimestamp(replay.Header.TimeStampBegin).date(),
-        map=replay.Header.Metadata.MapFile,
+        id=replay.replay_id,
+        timestamp=timestamp,
+        date=datetime.fromtimestamp(timestamp).date(),
+        map=map_path,
         winning_team=winner_data.wining_team,
         players=players,
         duration_minutes=duration_minutes,
-        filename=replay.Header.FileName,
+        filename=replay_name,
         incomplete=incomplete or "",
         notes=incomplete or "",
     )
@@ -97,7 +107,7 @@ def match_from_replay(replay: EnhancedReplayV2) -> MatchInfo | None:
 @utils.log_duration
 def replay_to_db_match(replay: EnhancedReplayV2, json_s3_uri: str) -> db.Match:
     """replay to match."""
-    match_id = replay.replay_id()
+    match_id = replay.replay_id
     players = utils.players_from_replay(replay)
     winner_data = determine_winner(replay, players)
     incomplete = is_incomplete(replay=replay)
@@ -115,18 +125,28 @@ def replay_to_db_match(replay: EnhancedReplayV2, json_s3_uri: str) -> db.Match:
         for p in players
     ]
 
+    header = replay.header
+    timestamp = (header.time_stamp_begin if header else None) or 0
+    map_path = (header.metadata.map_path if header and header.metadata else None) or ""
+    replay_name = (header.replay_name if header else None) or ""
+    game_version = (
+        ((header.version if header else None) or "")
+        .lower()
+        .replace("version", "")
+        .strip()
+    )
     return db.Match(
         match_id=match_id,
         json_s3_uri=json_s3_uri,
-        timestamp=datetime.fromtimestamp(replay.Header.TimeStampBegin),
-        map=replay.Header.Metadata.MapFile,
+        timestamp=datetime.fromtimestamp(timestamp),
+        map=map_path,
         winning_team_id=winner_data.wining_team,
         players=db_players,
         duration_minutes=utils.duration_minutes(replay),
-        filename=replay.Header.FileName,
+        filename=replay_name,
         incomplete=incomplete or None,
         notes=incomplete,
-        game_version=replay.Header.Version.lower().replace("version", "").strip(),
+        game_version=game_version,
     )
 
 

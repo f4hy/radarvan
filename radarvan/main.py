@@ -43,7 +43,6 @@ from radarvan.api_types import (
     MatchInfo,
     PlayerStats,
     GeneralStats,
-    SpentOverTime,
     WinnerOverride,
     GameRecord,
     TournamentResult,
@@ -273,7 +272,7 @@ def debug_match(
     rep = replay_manager.get_replay_json_by_match_id(match_id)
     if rep:
         par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
-        debug_data["header"] = par.Header.model_dump_json()
+        debug_data["header"] = par.header.model_dump_json()
     return debug_data
 
 
@@ -505,7 +504,7 @@ def register_replay_url(
             logger.info("Already parsed, skipping")
             return None
     replay = replay_files.parse_replay(url_of_replay, replay_manager)
-    return matches.reparse_replay(replay.replay_id(), replay_manager)
+    return matches.reparse_replay(replay.replay_id, replay_manager)
 
 
 @app.get("/api/replay")
@@ -525,12 +524,6 @@ def empty_match_details(match_id: int) -> MatchDetails:
         costs=[],
         apms=[],
         upgrade_events={},
-        spent=SpentOverTime(
-            buildings=[],
-            units=[],
-            upgrades=[],
-            total=[],
-        ),
         money_values={},
         money_collected_values={},
         stats_data={},
@@ -742,7 +735,7 @@ def update_matches_missing_data(
     for missing in missing_game_version:
         replay = replay_files.parse_json(missing.json_s3_uri)
         missing.game_version = (
-            replay.Header.Version.lower().replace("version", "").strip()
+            replay.header.version.lower().replace("version", "").strip()
         )
         result = replay_manager.update_match(missing)
         logger.info(f"Updated {missing.match_id} success={result}")

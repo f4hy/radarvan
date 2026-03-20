@@ -2565,7 +2565,7 @@ No authorization required
 
 ## reparseBeforeDateApiReparseBeforeDatePost
 
-> { [key: string]: number; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
+> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
 
 Reparse Before Date
 
@@ -2613,7 +2613,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
 
 ### Authorization
 

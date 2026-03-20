@@ -328,15 +328,6 @@ class Upgrades(BaseModel):
     upgrades: list[UpgradeEvent]
 
 
-class SpentOverTime(BaseModel):
-    model_config = _SLOTS
-
-    buildings: list[Spent]
-    units: list[Spent]
-    upgrades: list[Spent]
-    total: list[Spent]
-
-
 class ObjectSummary(BaseModel):
     model_config = _SLOTS
 
@@ -352,7 +343,6 @@ class PlayerSummary(BaseModel):
     Team: int
     Win: bool
     Color: str
-    MoneySpent: int = 0
     UnitsCreated: dict[str, ObjectSummary]
     BuildingsBuilt: dict[str, ObjectSummary]
     UpgradesBuilt: dict[str, ObjectSummary]
@@ -402,20 +392,8 @@ class MatchDetails(BaseModel):
     costs: list[Costs]
     apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
-    spent: SpentOverTime
-    money_values: dict[float, dict[str, int]] = Field(
-        description="at a time value (int) map each player to the value"
-    )
-    money_collected_values: dict[float, dict[str, int]] = Field(
-        description="at a time value (int) map each player to the value"
-    )
     stats_data: dict[str, dict[float, dict[str, int]]] = Field(
         description="at a time map each player to xp"
-    )
-    player_money_spent: dict[str, int] = Field(
-        default_factory=dict,
-        alias="playerMoneySpent",
-        description="end-of-game money spent per player name",
     )
     map_name: str = Field(default="", alias="mapName")
     first_blood: FirstBlood | None = None

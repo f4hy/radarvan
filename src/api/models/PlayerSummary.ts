@@ -59,12 +59,6 @@ export interface PlayerSummary {
     color: string;
     /**
      * 
-     * @type {number}
-     * @memberof PlayerSummary
-     */
-    moneySpent?: number;
-    /**
-     * 
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
@@ -120,7 +114,6 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'team': json['Team'],
         'win': json['Win'],
         'color': json['Color'],
-        'moneySpent': json['MoneySpent'] == null ? undefined : json['MoneySpent'],
         'unitsCreated': (mapValues(json['UnitsCreated'], ObjectSummaryFromJSON)),
         'buildingsBuilt': (mapValues(json['BuildingsBuilt'], ObjectSummaryFromJSON)),
         'upgradesBuilt': (mapValues(json['UpgradesBuilt'], ObjectSummaryFromJSON)),
@@ -144,7 +137,6 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
         'Team': value['team'],
         'Win': value['win'],
         'Color': value['color'],
-        'MoneySpent': value['moneySpent'],
         'UnitsCreated': (mapValues(value['unitsCreated'], ObjectSummaryToJSON)),
         'BuildingsBuilt': (mapValues(value['buildingsBuilt'], ObjectSummaryToJSON)),
         'UpgradesBuilt': (mapValues(value['upgradesBuilt'], ObjectSummaryToJSON)),

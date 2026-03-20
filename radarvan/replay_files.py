@@ -3,7 +3,7 @@
 import re
 import logging
 import fsspec
-from .cncstats_types_v2 import EnhancedReplayV2
+from .cncstats_model.zhreplay import EnhancedReplayV2
 from functools import cache
 from .parse_replay import parse_replay_data
 from . import utils
@@ -66,9 +66,9 @@ def save_replay_if_missing(
 
 
 def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
-    """Return a copy of replay with Header.FileName set to path."""
+    """Return a copy of replay with header.replay_name set to path."""
     return replay.model_copy(
-        update={"Header": replay.Header.model_copy(update={"FileName": path})}
+        update={"header": replay.header.model_copy(update={"replay_name": path})}
     )
 
 
@@ -94,7 +94,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
 
     fs = get_fs()
     existing = replay_manager.get_parsed_file(json_path)
-    if existing:
+    if existing and existing.is_v2 is True:
         with log_time(f"reading {json_path}", logger):
             json_data = fs.read_text(json_path)
         with log_time(f"Validing {json_path}", logger):
@@ -103,7 +103,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
         logger.info(f"Does not exist {json_path=}")
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay, replay_manager)
-        fs.write_text(json_path, parsed_replay.model_dump_json())
+        fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
         replay_manager.save_parsed_json(
             parsed_replay=parsed_replay,
             original_replay_file_url=path,
@@ -149,7 +149,7 @@ def reparse(
         original_replay_file_url=original_path,
         parsed_replay=parsed_replay,
     )
-    fs.write_text(json_path, parsed_replay.model_dump_json())
+    fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
     return parsed_replay, json_path
 
 

@@ -8,23 +8,25 @@ import sys
 import pathlib
 import json
 import httpx
-from .cncstats_types_v2 import EnhancedReplayV2, Player
+from .cncstats_model.zhreplay import EnhancedReplayV2
+from .cncstats_model.header import Player
 from .db_utils import ReplayManager
 import logging
-from .game_composition import categorize_game_type
+from .game_composition import categorize_game_type, PlayerAdapter
 
 logger = logging.getLogger(__name__)
 
+
 # PARSE_URL = "https://cncstats.herokuapp.com/replay"
-PARSE_URL = "http://cncstats.computersrfun.org:8080/replay?format=v2"
+PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
 
 
 def reassign_1v1_teams(players: list[Player]) -> list[Player]:
     """Reasign teams for 1v1s as players may be team less."""
     new_players: list[Player] = []
     for i, p in enumerate(players, 1):
-        if p.Faction > -2:
-            copy = p.model_copy(update={"Team": i}, deep=True)
+        if p.type in ("H", "C"):
+            copy = p.model_copy(update={"team": str(i)}, deep=True)
         else:
             copy = p.model_copy()
         new_players.append(copy)
@@ -43,23 +45,27 @@ def parse_replay_data(
         f"ccnstats responded with replay in {response.elapsed.total_seconds()}s "
     )
     validated = EnhancedReplayV2.model_validate(response.json())
-    players = [p for p in validated.Header.Metadata.Players if p.Faction > -2]
+    header_metadata = validated.header.metadata if validated.header else None
+    header_players_raw = (header_metadata.players if header_metadata else None) or []
+    players = [
+        PlayerAdapter(team=int(p.team or "-1"), type=p.type)
+        for p in header_players_raw
+        if p.type in ("H", "C")
+    ]
     composition = categorize_game_type(players)
-    if composition.is_1v1:
-        validated.Header.Metadata.Players = reassign_1v1_teams(
-            validated.Header.Metadata.Players
-        )
-        logger.info(f"Reassigned teams for 1v1 {validated.Header.Metadata.Players}")
+    if composition.is_1v1 and header_metadata is not None:
+        header_metadata.players = reassign_1v1_teams(header_metadata.players or [])
+        logger.info(f"Reassigned teams for 1v1 {header_metadata.players}")
 
     overrides = replay_manager.get_overrides()
-    override = overrides.get(validated.replay_id(), None)
+    override = overrides.get(validated.replay_id, None)
     if override is not None:
-        for ps in validated.Summary:
-            override_value = ps.Team == override.winning_team_id
+        for ps in validated.summary or []:
+            override_value = ps.team == override.winning_team_id
             logger.warning(
-                f"Overriding {validated.replay_id()} {ps.Team} to {override.winning_team_id} {override_value=}"
+                f"Overriding {validated.replay_id} {ps.team} to {override.winning_team_id} {override_value=}"
             )
-            ps.Win = override_value
+            ps.win = override_value
 
     return validated
 

@@ -10,123 +10,103 @@ from pydantic import BaseModel, Field
 
 class Player(BaseModel):
     color: Annotated[
-        str | None, Field(description='Color index (or name if ColorStore provided)')
-    ] = None
+        str, Field(description="Color index (or name if ColorStore provided)")
+    ]
     flags: Annotated[
-        str | None,
+        str,
         Field(
             description='Human: <accepted><hasMap> (e.g. "TT"); AI: difficulty (E/M/H)'
         ),
-    ] = None
-    ip: Annotated[str | None, Field(description='Human only (hex)')] = None
-    name: Annotated[str | None, Field(description='Human only')] = None
+    ]
+    ip: Annotated[str, Field(description="Human only (hex)")]
+    name: Annotated[str, Field(description="Human only")]
     nat_behavior: Annotated[
-        str | None,
-        Field(alias='natBehavior', description='Human only: firewall behavior type'),
-    ] = None
+        str,
+        Field(alias="natBehavior", description="Human only: firewall behavior type"),
+    ]
     player_template: Annotated[
-        str | None,
-        Field(alias='playerTemplate', description='Index into player template store'),
-    ] = None
-    port: Annotated[str | None, Field(description='Human only')] = None
+        str,
+        Field(alias="playerTemplate", description="Index into player template store"),
+    ]
+    port: Annotated[str, Field(description="Human only")]
     starting_position: Annotated[
-        str | None,
-        Field(alias='startingPosition', description='Start position (-1 = random)'),
-    ] = None
-    team: Annotated[str | None, Field(description='Team number (-1 = none)')] = None
-    type: Annotated[str | None, Field(description='H=human, C=computer')] = None
+        str, Field(alias="startingPosition", description="Start position (-1 = random)")
+    ]
+    team: Annotated[str, Field(description="Team number (-1 = none)")]
+    type: Annotated[str, Field(description="H=human, C=computer")]
 
 
 class Metadata(BaseModel):
-    crc_interval: Annotated[str | None, Field(alias='crcInterval', description='C')] = (
-        None
-    )
-    map_crc: Annotated[str | None, Field(alias='mapCRC', description='MC (hex)')] = None
+    crc_interval: Annotated[str, Field(alias="crcInterval", description="C")]
+    map_crc: Annotated[str, Field(alias="mapCRC", description="MC (hex)")]
     map_contents_mask: Annotated[
-        str | None,
-        Field(alias='mapContentsMask', description='M prefix (2 hex digits)'),
-    ] = None
+        str, Field(alias="mapContentsMask", description="M prefix (2 hex digits)")
+    ]
     map_path: Annotated[
-        str | None,
-        Field(alias='mapPath', description='M remainder (map directory path)'),
-    ] = None
-    map_size: Annotated[str | None, Field(alias='mapSize', description='MS')] = None
+        str, Field(alias="mapPath", description="M remainder (map directory path)")
+    ]
+    map_size: Annotated[str, Field(alias="mapSize", description="MS")]
     old_factions_only: Annotated[
-        str | None, Field(alias='oldFactionsOnly', description='O (ZH only: Y/N)')
-    ] = None
-    players: Annotated[list[Player] | None, Field(description='S')] = None
-    seed: Annotated[str | None, Field(description='SD')] = None
+        str, Field(alias="oldFactionsOnly", description="O (ZH only: Y/N)")
+    ]
+    players: Annotated[list[Player], Field(description="S")]
+    seed: Annotated[int, Field(description="SD")]
     starting_cash: Annotated[
-        str | None, Field(alias='startingCash', description='SC (ZH only)')
-    ] = None
+        str, Field(alias="startingCash", description="SC (ZH only)")
+    ]
     superweapon_restriction: Annotated[
-        str | None, Field(alias='superweaponRestriction', description='SR (ZH only)')
-    ] = None
+        str, Field(alias="superweaponRestriction", description="SR (ZH only)")
+    ]
     use_stats: Annotated[
-        str | None, Field(alias='useStats', description='US (ZH only: 1=yes, 0=no)')
-    ] = None
+        str, Field(alias="useStats", description="US (ZH only: 1=yes, 0=no)")
+    ]
 
 
 class GeneralsHeader(BaseModel):
     build_date: Annotated[
-        str | None,
+        str,
         Field(
-            alias='buildDate', description='UTF-16 null-terminated (versionTimeString)'
+            alias="buildDate", description="UTF-16 null-terminated (versionTimeString)"
         ),
-    ] = None
-    day: int | None = None
-    desync: Annotated[bool | None, Field(description='1 byte Bool')] = None
-    difficulty: Annotated[
-        int | None, Field(description='int32 (GameDifficulty enum)')
-    ] = None
-    dow: int | None = None
-    exe_crc: Annotated[int | None, Field(alias='exeCRC', description='uint32')] = None
-    frame_count: Annotated[
-        int | None, Field(alias='frameCount', description='uint32')
-    ] = None
-    game_type: Annotated[
-        str | None, Field(alias='gameType', description='6 bytes: "GENREP"')
-    ] = None
-    hour: int | None = None
-    ini_crc: Annotated[int | None, Field(alias='iniCRC', description='uint32')] = None
+    ]
+    day: int
+    desync: Annotated[bool, Field(description="1 byte Bool")]
+    difficulty: Annotated[int, Field(description="int32 (GameDifficulty enum)")]
+    dow: int
+    exe_crc: Annotated[int, Field(alias="exeCRC", description="uint32")]
+    frame_count: Annotated[int, Field(alias="frameCount", description="uint32")]
+    game_type: Annotated[str, Field(alias="gameType", description='6 bytes: "GENREP"')]
+    hour: int
+    ini_crc: Annotated[int, Field(alias="iniCRC", description="uint32")]
     local_player_index: Annotated[
-        int | None,
-        Field(alias='localPlayerIndex', description='ASCII null-terminated int'),
-    ] = None
-    max_fps: Annotated[int | None, Field(alias='maxFPS', description='int32')] = None
+        int, Field(alias="localPlayerIndex", description="ASCII null-terminated int")
+    ]
+    max_fps: Annotated[int, Field(alias="maxFPS", description="int32")]
     metadata: Annotated[
-        Metadata | None, Field(description='ASCII null-terminated (gameOptions)')
-    ] = None
-    millisecond: int | None = None
-    minute: int | None = None
-    month: int | None = None
+        Metadata, Field(description="ASCII null-terminated (gameOptions)")
+    ]
+    millisecond: int
+    minute: int
+    month: int
     original_game_mode: Annotated[
-        int | None, Field(alias='originalGameMode', description='int32')
-    ] = None
+        int, Field(alias="originalGameMode", description="int32")
+    ]
     player_discons: Annotated[
-        list[bool] | None,
-        Field(alias='playerDiscons', description='8 × 1 byte Bool (MAX_SLOTS)'),
-    ] = None
-    quit_early: Annotated[
-        bool | None, Field(alias='quitEarly', description='1 byte Bool')
-    ] = None
-    rank_points: Annotated[
-        int | None, Field(alias='rankPoints', description='int32')
-    ] = None
+        list[bool],
+        Field(alias="playerDiscons", description="8 × 1 byte Bool (MAX_SLOTS)"),
+    ]
+    quit_early: Annotated[bool, Field(alias="quitEarly", description="1 byte Bool")]
+    rank_points: Annotated[int, Field(alias="rankPoints", description="int32")]
     replay_name: Annotated[
-        str | None, Field(alias='replayName', description='UTF-16 null-terminated')
-    ] = None
-    second: int | None = None
+        str, Field(alias="replayName", description="UTF-16 null-terminated")
+    ]
+    second: int
     time_stamp_begin: Annotated[
-        int | None, Field(alias='timeStampBegin', description='int32 (replay_time_t)')
-    ] = None
+        int, Field(alias="timeStampBegin", description="int32 (replay_time_t)")
+    ]
     time_stamp_end: Annotated[
-        int | None, Field(alias='timeStampEnd', description='int32 (replay_time_t)')
-    ] = None
-    version: Annotated[str | None, Field(description='UTF-16 null-terminated')] = None
-    version_number: Annotated[
-        int | None, Field(alias='versionNumber', description='uint32')
-    ] = None
-    year: Annotated[int | None, Field(description='SYSTEMTIME fields (8 × uint16)')] = (
-        None
-    )
+        int, Field(alias="timeStampEnd", description="int32 (replay_time_t)")
+    ]
+    version: Annotated[str, Field(description="UTF-16 null-terminated")]
+    version_number: Annotated[int, Field(alias="versionNumber", description="uint32")]
+    year: Annotated[int, Field(description="SYSTEMTIME fields (8 × uint16)")]

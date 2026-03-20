@@ -1,4 +1,4 @@
-from .cncstats_types_v2 import EnhancedReplayV2
+from .cncstats_model.zhreplay import EnhancedReplayV2
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from collections import defaultdict
@@ -175,9 +175,11 @@ class ReplayManager:
         parsed_replay: EnhancedReplayV2,
     ) -> ParsedReplayJson:
         """Save the result of parsing."""
-        game_timestamp = datetime.fromtimestamp(parsed_replay.Header.TimeStampBegin)
-        replay_id = parsed_replay.replay_id()
-        has_enhanced_stats = parsed_replay.Stats is not None
+        hdr = parsed_replay.header
+        ts_begin = (hdr.time_stamp_begin if hdr else None) or 0
+        game_timestamp = datetime.fromtimestamp(ts_begin)
+        replay_id = parsed_replay.replay_id
+        has_enhanced_stats = parsed_replay.stats is not None
         logger.info(
             f"Saving parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
         )
@@ -188,9 +190,12 @@ class ReplayManager:
             replay_file_url=original_replay_file_url,
             game_timestamp=game_timestamp,
             game_date=game_date,
-            game_version=parsed_replay.Header.Version.replace("Version ", ""),
-            num_time_stamps=parsed_replay.Header.NumTimeStamps,
+            game_version=((hdr.version if hdr else None) or "").replace("Version ", "")[
+                :8
+            ],
+            num_time_stamps=(hdr.frame_count if hdr else None) or 0,
             has_enhanced_stats=has_enhanced_stats,
+            is_v2=(parsed_replay.version == 2),
             updated_at=datetime.utcnow(),
         )
         self.session.merge(parsed_json)

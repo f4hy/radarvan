@@ -9,19 +9,19 @@ from pydantic import BaseModel, Field
 
 
 class ArgMetadata(BaseModel):
-    count: int | None = None
-    type: int | None = None
+    count: int
+    type: int
 
 
 class BodyChunk(BaseModel):
-    arg_metadata: Annotated[list[ArgMetadata] | None, Field(alias='argMetadata')] = None
-    arguments: list[Any] | None = None
-    details: Any | None = None
-    number_of_arguments: Annotated[int | None, Field(alias='numberOfArguments')] = None
-    order_code: Annotated[int | None, Field(alias='orderCode')] = None
-    order_name: Annotated[str | None, Field(alias='orderName')] = None
+    arg_metadata: Annotated[list[ArgMetadata], Field(alias="argMetadata")]
+    arguments: list[Any]
+    details: Any
+    number_of_arguments: Annotated[int, Field(alias="numberOfArguments")]
+    order_code: Annotated[int, Field(alias="orderCode")]
+    order_name: Annotated[str, Field(alias="orderName")]
     player_id: Annotated[
-        int | None, Field(alias='playerID', description='Starts at 2 for humans')
-    ] = None
-    player_name: Annotated[str | None, Field(alias='playerName')] = None
-    time_code: Annotated[int | None, Field(alias='timeCode')] = None
+        int, Field(alias="playerID", description="Starts at 2 for humans")
+    ]
+    player_name: Annotated[str, Field(alias="playerName")]
+    time_code: Annotated[int, Field(alias="timeCode")]

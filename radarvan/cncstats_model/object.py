@@ -9,5 +9,5 @@ from pydantic import BaseModel, Field
 
 
 class ObjectSummary(BaseModel):
-    count: int | None = None
-    total_spent: Annotated[int | None, Field(alias='totalSpent')] = None
+    count: int
+    total_spent: Annotated[int, Field(alias="totalSpent")]

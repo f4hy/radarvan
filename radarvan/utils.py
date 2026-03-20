@@ -4,7 +4,8 @@ import datetime
 from collections.abc import Callable
 from typing import Any, cast
 from .api_types import Player, General, Team
-from .cncstats_types_v2 import EnhancedReplayV2, PlayerSummary, Player as HeaderPlayer
+from .cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
+from .cncstats_model.header import Player as HeaderPlayer
 import logging
 import time
 import functools
@@ -30,15 +31,16 @@ def log_duration[F: Callable[..., Any]](func: F) -> F:
 
 
 def duration_minutes(replay: EnhancedReplayV2) -> float:
-    start = datetime.datetime.fromtimestamp(replay.Header.TimeStampBegin)
-    end = datetime.datetime.fromtimestamp(replay.Header.TimeStampEnd)
+    header = replay.header
+    start = datetime.datetime.fromtimestamp(header.time_stamp_begin or 0)
+    end = datetime.datetime.fromtimestamp(header.time_stamp_end or 0)
     return (end - start).total_seconds() / 60.0
 
 
 def minutess_per_step(replay: EnhancedReplayV2) -> float:
     """Scale factor to convert a timecode to minutes."""
     minutes = duration_minutes(replay)
-    stamps = replay.Header.NumTimeStamps
+    stamps = (replay.header.frame_count if replay.header else None) or 1
     return minutes / stamps
 
 
@@ -108,47 +110,50 @@ def cncstats_faction_to_general(side: int) -> General:
 
 
 def determine_team(
-    player_header: HeaderPlayer, player_summary: PlayerSummary | None
+    player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> Team:
-    if player_header.Faction == -2:
+    if player_header.type not in ("H", "C"):
         return Team(Team.OBSERVER)
-    if player_header.Team < 0:
+    team_num = int(player_header.team or "-1")
+    if team_num < 0:
         return Team(Team.NONE)
-    return Team(player_header.Team + 1)
+    return Team(team_num + 1)
 
 
 def determin_general(
-    player_header: HeaderPlayer, player_summary: PlayerSummary | None
+    player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> General:
-    faction = cncstats_faction_to_general(player_header.Faction)
-    if faction == General.UNRECOGNIZED:
-        # try the summary
-        if player_summary:
-            faction = side_to_general(player_summary.Side)
-    return faction
+    if player_summary:
+        return side_to_general(player_summary.side or "")
+    return General.UNRECOGNIZED
 
 
 def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
     players: list[Player] = []
-    summaries = {s.Name: s for s in replay.Summary}
-    for p in replay.Header.Metadata.Players:
+    summaries = {s.name: s for s in (replay.summary or [])}
+    header_players = (
+        replay.header.metadata.players
+        if replay.header and replay.header.metadata
+        else None
+    ) or []
+    for p in header_players:
         logger.info(f"Player {p=}")
-        color = p.Color.lower().replace("color", "")
-        summary = summaries.get(p.Name)
+        color = (p.color or "").lower().replace("color", "")
+        summary = summaries.get(p.name)
         team = determine_team(p, player_summary=summary)
         faction = determin_general(p, player_summary=summary)
         try:
             # indexed from 0 in the replay
-            starting_position = int(p.StartingPosition) + 1
+            starting_position = int(p.starting_position or "") + 1
         except (ValueError, TypeError):
             starting_position = None
         players.append(
             Player(
-                name=p.Name or "CPU",
+                name=p.name or "CPU",
                 general=faction,
                 team=team,
                 color=color,
-                won=summary.Win if summary else False,
+                won=summary.win if summary else False,
                 starting_position=starting_position,
             )
         )

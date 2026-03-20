@@ -33,6 +33,7 @@ import type {
   PlayerStats,
   ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
+  ResponseReparseBeforeDateApiReparseBeforeDatePostValue,
   Superlatives,
   Team,
   TeamStatsResponse,
@@ -77,6 +78,8 @@ import {
     ReplayFileSchemaToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
+    ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON,
+    ResponseReparseBeforeDateApiReparseBeforeDatePostValueToJSON,
     SuperlativesFromJSON,
     SuperlativesToJSON,
     TeamFromJSON,
@@ -238,10 +241,9 @@ export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest 
 export class DefaultApi extends runtime.BaseAPI {
 
     /**
-     * Backfill and persist the composition for a match.
-     * Backfill Match Composition
+     * Creates request options for backfillMatchCompositionApiBackfillCompositionPost without sending the request
      */
-    async backfillMatchCompositionApiBackfillCompositionPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<number>> {
+    async backfillMatchCompositionApiBackfillCompositionPostRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -249,12 +251,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/backfill/composition`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Backfill and persist the composition for a match.
+     * Backfill Match Composition
+     */
+    async backfillMatchCompositionApiBackfillCompositionPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<number>> {
+        const requestOptions = await this.backfillMatchCompositionApiBackfillCompositionPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         if (this.isJsonMime(response.headers.get('content-type'))) {
             return new runtime.JSONApiResponse<number>(response);
@@ -273,9 +284,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Balance Teams
+     * Creates request options for balanceTeamsApiBalanceTeamsGet without sending the request
      */
-    async balanceTeamsApiBalanceTeamsGetRaw(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async balanceTeamsApiBalanceTeamsGetRequestOpts(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['players'] != null) {
@@ -287,12 +298,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/balance_teams/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Balance Teams
+     */
+    async balanceTeamsApiBalanceTeamsGetRaw(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.balanceTeamsApiBalanceTeamsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -306,10 +325,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Compute and persist the composition (teams, humans vs CPUs, category) for a match.
-     * Compute Match Composition
+     * Creates request options for computeMatchCompositionApiMatchesMatchIdCompositionPost without sending the request
      */
-    async computeMatchCompositionApiMatchesMatchIdCompositionPostRaw(requestParameters: ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameComposition>> {
+    async computeMatchCompositionApiMatchesMatchIdCompositionPostRequestOpts(requestParameters: ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -325,12 +343,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/matches/{match_id}/composition`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Compute and persist the composition (teams, humans vs CPUs, category) for a match.
+     * Compute Match Composition
+     */
+    async computeMatchCompositionApiMatchesMatchIdCompositionPostRaw(requestParameters: ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameComposition>> {
+        const requestOptions = await this.computeMatchCompositionApiMatchesMatchIdCompositionPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => GameCompositionFromJSON(jsonValue));
     }
@@ -345,10 +372,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return every row related to a match_id across all tables, keyed by table name.
-     * Debug Match
+     * Creates request options for debugMatchApiDebugMatchMatchIdGet without sending the request
      */
-    async debugMatchApiDebugMatchMatchIdGetRaw(requestParameters: DebugMatchApiDebugMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
+    async debugMatchApiDebugMatchMatchIdGetRequestOpts(requestParameters: DebugMatchApiDebugMatchMatchIdGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -364,12 +390,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/debug/match/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Return every row related to a match_id across all tables, keyed by table name.
+     * Debug Match
+     */
+    async debugMatchApiDebugMatchMatchIdGetRaw(requestParameters: DebugMatchApiDebugMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
+        const requestOptions = await this.debugMatchApiDebugMatchMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -384,10 +419,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete a winner override for a match.
-     * Delete Override
+     * Creates request options for deleteOverrideApiOverrideMatchIdDelete without sending the request
      */
-    async deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async deleteOverrideApiOverrideMatchIdDeleteRequestOpts(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -403,12 +437,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/override/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Delete a winner override for a match.
+     * Delete Override
+     */
+    async deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.deleteOverrideApiOverrideMatchIdDeleteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -423,9 +466,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Fix Incomplete
+     * Creates request options for fixIncompleteApiFixIncompletePost without sending the request
      */
-    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async fixIncompleteApiFixIncompletePostRequestOpts(requestParameters: FixIncompleteApiFixIncompletePostRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -437,12 +480,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/fix_incomplete/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Fix Incomplete
+     */
+    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.fixIncompleteApiFixIncompletePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -456,9 +507,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Fix Unk Players
+     * Creates request options for fixUnkPlayersApiFixUnkPlayerPost without sending the request
      */
-    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async fixUnkPlayersApiFixUnkPlayerPostRequestOpts(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -470,12 +521,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/fix_unk_player/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Fix Unk Players
+     */
+    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.fixUnkPlayersApiFixUnkPlayerPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -489,9 +548,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Generate Tournament Report
+     * Creates request options for generateTournamentReportApiGenerateTournamentReportTournamentNamePost without sending the request
      */
-    async generateTournamentReportApiGenerateTournamentReportTournamentNamePostRaw(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
+    async generateTournamentReportApiGenerateTournamentReportTournamentNamePostRequestOpts(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['tournamentName'] == null) {
             throw new runtime.RequiredError(
                 'tournamentName',
@@ -507,12 +566,20 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/generate_tournament_report/{tournament_name}`;
         urlPath = urlPath.replace(`{${"tournament_name"}}`, encodeURIComponent(String(requestParameters['tournamentName'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Generate Tournament Report
+     */
+    async generateTournamentReportApiGenerateTournamentReportTournamentNamePostRaw(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
+        const requestOptions = await this.generateTournamentReportApiGenerateTournamentReportTournamentNamePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         if (this.isJsonMime(response.headers.get('content-type'))) {
             return new runtime.JSONApiResponse<string>(response);
@@ -530,9 +597,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Dates
+     * Creates request options for getDatesApiDatesGet without sending the request
      */
-    async getDatesApiDatesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async getDatesApiDatesGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -540,12 +607,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/dates/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get Dates
+     */
+    async getDatesApiDatesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.getDatesApiDatesGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -559,10 +634,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all replay and parsed files for a match.
-     * Get Files For Match Id
+     * Creates request options for getFilesForMatchIdApiFilesForMatchGet without sending the request
      */
-    async getFilesForMatchIdApiFilesForMatchGetRaw(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseGetFilesForMatchIdApiFilesForMatchGetValue; }>> {
+    async getFilesForMatchIdApiFilesForMatchGetRequestOpts(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -581,12 +655,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/files_for_match`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get all replay and parsed files for a match.
+     * Get Files For Match Id
+     */
+    async getFilesForMatchIdApiFilesForMatchGetRaw(requestParameters: GetFilesForMatchIdApiFilesForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseGetFilesForMatchIdApiFilesForMatchGetValue; }>> {
+        const requestOptions = await this.getFilesForMatchIdApiFilesForMatchGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON));
     }
@@ -601,10 +684,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get generals stats.
-     * Get Generals Stats
+     * Creates request options for getGeneralsStatsApiGeneralstatsGet without sending the request
      */
-    async getGeneralsStatsApiGeneralstatsGetRaw(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralStats>> {
+    async getGeneralsStatsApiGeneralstatsGetRequestOpts(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['gameFormat'] != null) {
@@ -616,12 +698,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/generalstats`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get generals stats.
+     * Get Generals Stats
+     */
+    async getGeneralsStatsApiGeneralstatsGetRaw(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralStats>> {
+        const requestOptions = await this.getGeneralsStatsApiGeneralstatsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => GeneralStatsFromJSON(jsonValue));
     }
@@ -636,9 +727,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Map Data
+     * Creates request options for getMapDataApiMapDataMapNameGet without sending the request
      */
-    async getMapDataApiMapDataMapNameGetRaw(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
+    async getMapDataApiMapDataMapNameGetRequestOpts(requestParameters: GetMapDataApiMapDataMapNameGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['mapName'] == null) {
             throw new runtime.RequiredError(
                 'mapName',
@@ -654,12 +745,20 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/map_data/{map_name}`;
         urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get Map Data
+     */
+    async getMapDataApiMapDataMapNameGetRaw(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
+        const requestOptions = await this.getMapDataApiMapDataMapNameGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MapDataPayloadFromJSON(jsonValue));
     }
@@ -673,10 +772,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player and general win rates grouped by map.
-     * Get Map Stats
+     * Creates request options for getMapStatsApiMapStatsGet without sending the request
      */
-    async getMapStatsApiMapStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapStatsResponse>> {
+    async getMapStatsApiMapStatsGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -684,12 +782,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/map_stats/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get player and general win rates grouped by map.
+     * Get Map Stats
+     */
+    async getMapStatsApiMapStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapStatsResponse>> {
+        const requestOptions = await this.getMapStatsApiMapStatsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MapStatsResponseFromJSON(jsonValue));
     }
@@ -704,10 +811,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return all maps grouped by number of player starting positions.
-     * Get Maps By Player Count
+     * Creates request options for getMapsByPlayerCountApiMapsByPlayerCountGet without sending the request
      */
-    async getMapsByPlayerCountApiMapsByPlayerCountGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapsByPlayerCount>>> {
+    async getMapsByPlayerCountApiMapsByPlayerCountGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -715,12 +821,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/maps_by_player_count`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Return all maps grouped by number of player starting positions.
+     * Get Maps By Player Count
+     */
+    async getMapsByPlayerCountApiMapsByPlayerCountGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapsByPlayerCount>>> {
+        const requestOptions = await this.getMapsByPlayerCountApiMapsByPlayerCountGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MapsByPlayerCountFromJSON));
     }
@@ -735,10 +850,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get a single match by its ID.
-     * Get Match By Id
+     * Creates request options for getMatchByIdApiMatchMatchIdGet without sending the request
      */
-    async getMatchByIdApiMatchMatchIdGetRaw(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+    async getMatchByIdApiMatchMatchIdGetRequestOpts(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -754,12 +868,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/match/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get a single match by its ID.
+     * Get Match By Id
+     */
+    async getMatchByIdApiMatchMatchIdGetRaw(requestParameters: GetMatchByIdApiMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        const requestOptions = await this.getMatchByIdApiMatchMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
     }
@@ -774,10 +897,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get details about a particular match
-     * Get Match Details
+     * Creates request options for getMatchDetailsApiDetailsMatchIdGet without sending the request
      */
-    async getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
+    async getMatchDetailsApiDetailsMatchIdGetRequestOpts(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -793,12 +915,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/details/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get details about a particular match
+     * Get Match Details
+     */
+    async getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
+        const requestOptions = await this.getMatchDetailsApiDetailsMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchDetailsFromJSON(jsonValue));
     }
@@ -813,10 +944,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return a presigned S3 URL for the parsed JSON of a match.
-     * Get Match Json Url
+     * Creates request options for getMatchJsonUrlApiDebugJsonUrlMatchIdGet without sending the request
      */
-    async getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async getMatchJsonUrlApiDebugJsonUrlMatchIdGetRequestOpts(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -832,12 +962,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/debug/json_url/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Return a presigned S3 URL for the parsed JSON of a match.
+     * Get Match Json Url
+     */
+    async getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.getMatchJsonUrlApiDebugJsonUrlMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -852,10 +991,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
-     * Get Matches
+     * Creates request options for getMatchesApiMatchesMatchCountGet without sending the request
      */
-    async getMatchesApiMatchesMatchCountGetRaw(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+    async getMatchesApiMatchesMatchCountGetRequestOpts(requestParameters: GetMatchesApiMatchesMatchCountGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchCount'] == null) {
             throw new runtime.RequiredError(
                 'matchCount',
@@ -871,12 +1009,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/matches/{match_count}`;
         urlPath = urlPath.replace(`{${"match_count"}}`, encodeURIComponent(String(requestParameters['matchCount'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get listing of matches, up to a return count limit for paging.
+     * Get Matches
+     */
+    async getMatchesApiMatchesMatchCountGetRaw(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+        const requestOptions = await this.getMatchesApiMatchesMatchCountGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchesFromJSON(jsonValue));
     }
@@ -891,10 +1038,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all matches for a specific date.
-     * Get Matches By Date
+     * Creates request options for getMatchesByDateApiMatchesByDateDateGet without sending the request
      */
-    async getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+    async getMatchesByDateApiMatchesByDateDateGetRequestOpts(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['date'] == null) {
             throw new runtime.RequiredError(
                 'date',
@@ -914,12 +1060,21 @@ export class DefaultApi extends runtime.BaseAPI {
             urlPath = urlPath.replace(`{${"date"}}`, encodeURIComponent(String(requestParameters['date'])));
         }
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get all matches for a specific date.
+     * Get Matches By Date
+     */
+    async getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+        const requestOptions = await this.getMatchesByDateApiMatchesByDateDateGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchesFromJSON(jsonValue));
     }
@@ -934,10 +1089,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get winner overrides.
-     * Get Overrides
+     * Creates request options for getOverridesApiOverridesGet without sending the request
      */
-    async getOverridesApiOverridesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<WinnerOverride>>> {
+    async getOverridesApiOverridesGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -945,12 +1099,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/overrides`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get winner overrides.
+     * Get Overrides
+     */
+    async getOverridesApiOverridesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<WinnerOverride>>> {
+        const requestOptions = await this.getOverridesApiOverridesGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WinnerOverrideFromJSON));
     }
@@ -965,10 +1128,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all player names with their total game count, sorted by count descending.
-     * Get Player Game Counts
+     * Creates request options for getPlayerGameCountsApiPlayerGameCountsGet without sending the request
      */
-    async getPlayerGameCountsApiPlayerGameCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerGameCount>>> {
+    async getPlayerGameCountsApiPlayerGameCountsGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -976,12 +1138,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/player_game_counts/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get all player names with their total game count, sorted by count descending.
+     * Get Player Game Counts
+     */
+    async getPlayerGameCountsApiPlayerGameCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerGameCount>>> {
+        const requestOptions = await this.getPlayerGameCountsApiPlayerGameCountsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerGameCountFromJSON));
     }
@@ -996,9 +1167,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Player Ratings
+     * Creates request options for getPlayerRatingsApiPlayerRatingsGet without sending the request
      */
-    async getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerRatingData>> {
+    async getPlayerRatingsApiPlayerRatingsGetRequestOpts(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['gameFormat'] != null) {
@@ -1010,12 +1181,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/player_ratings/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get Player Ratings
+     */
+    async getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerRatingData>> {
+        const requestOptions = await this.getPlayerRatingsApiPlayerRatingsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => PlayerRatingDataFromJSON(jsonValue));
     }
@@ -1029,10 +1208,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.
-     * Get Player Stats
+     * Creates request options for getPlayerStatsApiPlayerstatsGet without sending the request
      */
-    async getPlayerStatsApiPlayerstatsGetRaw(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
+    async getPlayerStatsApiPlayerstatsGetRequestOpts(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['gameFormat'] != null) {
@@ -1044,12 +1222,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/playerstats`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get player stats.
+     * Get Player Stats
+     */
+    async getPlayerStatsApiPlayerstatsGetRaw(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
+        const requestOptions = await this.getPlayerStatsApiPlayerstatsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => PlayerStatsFromJSON(jsonValue));
     }
@@ -1064,9 +1251,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Replay By Url
+     * Creates request options for getReplayByUrlApiReplayGet without sending the request
      */
-    async getReplayByUrlApiReplayGetRaw(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async getReplayByUrlApiReplayGetRequestOpts(requestParameters: GetReplayByUrlApiReplayGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['urlOfReplay'] == null) {
             throw new runtime.RequiredError(
                 'urlOfReplay',
@@ -1085,12 +1272,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/replay`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get Replay By Url
+     */
+    async getReplayByUrlApiReplayGetRaw(requestParameters: GetReplayByUrlApiReplayGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.getReplayByUrlApiReplayGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1104,10 +1299,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Serve superlatives from the DB if available, otherwise compute on the fly.
-     * Get Superlatives
+     * Creates request options for getSuperlativesApiSuperlativesGet without sending the request
      */
-    async getSuperlativesApiSuperlativesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Superlatives>> {
+    async getSuperlativesApiSuperlativesGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1115,12 +1309,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/superlatives`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Serve superlatives from the DB if available, otherwise compute on the fly.
+     * Get Superlatives
+     */
+    async getSuperlativesApiSuperlativesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Superlatives>> {
+        const requestOptions = await this.getSuperlativesApiSuperlativesGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => SuperlativesFromJSON(jsonValue));
     }
@@ -1135,10 +1338,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return match IDs and dates for team games with no winner (winning_team=0).
-     * Get Team Games Without Winner
+     * Creates request options for getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet without sending the request
      */
-    async getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+    async getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1146,12 +1348,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/team_games_without_winner/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Return match IDs and dates for team games with no winner (winning_team=0).
+     * Get Team Games Without Winner
+     */
+    async getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+        const requestOptions = await this.getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1166,10 +1377,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get win/loss records grouped by team composition, for teams with >5 games.
-     * Get Team Stats
+     * Creates request options for getTeamStatsApiTeamStatsGet without sending the request
      */
-    async getTeamStatsApiTeamStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TeamStatsResponse>> {
+    async getTeamStatsApiTeamStatsGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1177,12 +1387,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/team_stats/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get win/loss records grouped by team composition, for teams with >5 games.
+     * Get Team Stats
+     */
+    async getTeamStatsApiTeamStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TeamStatsResponse>> {
+        const requestOptions = await this.getTeamStatsApiTeamStatsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => TeamStatsResponseFromJSON(jsonValue));
     }
@@ -1197,10 +1416,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get report for a specific tournament.
-     * Get Tournament Report
+     * Creates request options for getTournamentReportApiTournamentReportTournamentNameGet without sending the request
      */
-    async getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
+    async getTournamentReportApiTournamentReportTournamentNameGetRequestOpts(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['tournamentName'] == null) {
             throw new runtime.RequiredError(
                 'tournamentName',
@@ -1216,12 +1434,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/tournament_report/{tournament_name}`;
         urlPath = urlPath.replace(`{${"tournament_name"}}`, encodeURIComponent(String(requestParameters['tournamentName'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get report for a specific tournament.
+     * Get Tournament Report
+     */
+    async getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
+        const requestOptions = await this.getTournamentReportApiTournamentReportTournamentNameGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => TournamentReportFromJSON(jsonValue));
     }
@@ -1236,10 +1463,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get results for all tournaments.
-     * Get Tournament Results
+     * Creates request options for getTournamentResultsApiTournamentResultsGet without sending the request
      */
-    async getTournamentResultsApiTournamentResultsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentResult>>> {
+    async getTournamentResultsApiTournamentResultsGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1247,12 +1473,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/tournament_results/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Get results for all tournaments.
+     * Get Tournament Results
+     */
+    async getTournamentResultsApiTournamentResultsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentResult>>> {
+        const requestOptions = await this.getTournamentResultsApiTournamentResultsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(TournamentResultFromJSON));
     }
@@ -1267,9 +1502,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * List Files
+     * Creates request options for listFilesApiFilesGet without sending the request
      */
-    async listFilesApiFilesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayFileSchema>>> {
+    async listFilesApiFilesGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1277,12 +1512,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/files/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * List Files
+     */
+    async listFilesApiFilesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayFileSchema>>> {
+        const requestOptions = await this.listFilesApiFilesGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReplayFileSchemaFromJSON));
     }
@@ -1296,10 +1539,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return replay files that are pending but have no parsed JSON.
-     * List Pending Unprocessed
+     * Creates request options for listPendingUnprocessedApiFilesPendingUnprocessedGet without sending the request
      */
-    async listPendingUnprocessedApiFilesPendingUnprocessedGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayFileSchema>>> {
+    async listPendingUnprocessedApiFilesPendingUnprocessedGetRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1307,12 +1549,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/files/pending_unprocessed`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Return replay files that are pending but have no parsed JSON.
+     * List Pending Unprocessed
+     */
+    async listPendingUnprocessedApiFilesPendingUnprocessedGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayFileSchema>>> {
+        const requestOptions = await this.listPendingUnprocessedApiFilesPendingUnprocessedGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReplayFileSchemaFromJSON));
     }
@@ -1327,9 +1578,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * List Replays
+     * Creates request options for listReplaysApiReplaysGet without sending the request
      */
-    async listReplaysApiReplaysGetRaw(requestParameters: ListReplaysApiReplaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecord>>> {
+    async listReplaysApiReplaysGetRequestOpts(requestParameters: ListReplaysApiReplaysGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['matchId'] != null) {
@@ -1345,12 +1596,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/replays/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * List Replays
+     */
+    async listReplaysApiReplaysGetRaw(requestParameters: ListReplaysApiReplaysGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GameRecord>>> {
+        const requestOptions = await this.listReplaysApiReplaysGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GameRecordFromJSON));
     }
@@ -1364,9 +1623,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Partition Teams
+     * Creates request options for partitionTeamsApiPartitionTeamsTeamSizeGet without sending the request
      */
-    async partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Array<string>>>> {
+    async partitionTeamsApiPartitionTeamsTeamSizeGetRequestOpts(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['teamSize'] == null) {
             throw new runtime.RequiredError(
                 'teamSize',
@@ -1386,12 +1645,20 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/partition_teams/{team_size}`;
         urlPath = urlPath.replace(`{${"team_size"}}`, encodeURIComponent(String(requestParameters['teamSize'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Partition Teams
+     */
+    async partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Array<string>>>> {
+        const requestOptions = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1405,9 +1672,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Randomize Draft
+     * Creates request options for randomizeDraftApiDraftRandomizePost without sending the request
      */
-    async randomizeDraftApiDraftRandomizePostRaw(requestParameters: RandomizeDraftApiDraftRandomizePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DraftResult>> {
+    async randomizeDraftApiDraftRandomizePostRequestOpts(requestParameters: RandomizeDraftApiDraftRandomizePostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['draftRequest'] == null) {
             throw new runtime.RequiredError(
                 'draftRequest',
@@ -1424,13 +1691,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/draft/randomize`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
             body: DraftRequestToJSON(requestParameters['draftRequest']),
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Randomize Draft
+     */
+    async randomizeDraftApiDraftRandomizePostRaw(requestParameters: RandomizeDraftApiDraftRandomizePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DraftResult>> {
+        const requestOptions = await this.randomizeDraftApiDraftRandomizePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => DraftResultFromJSON(jsonValue));
     }
@@ -1444,10 +1719,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Trigger superlatives recompute in the background and return immediately.
-     * Recompute Superlatives
+     * Creates request options for recomputeSuperlativesApiSuperlativesRecomputePost without sending the request
      */
-    async recomputeSuperlativesApiSuperlativesRecomputePostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async recomputeSuperlativesApiSuperlativesRecomputePostRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1455,12 +1729,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/superlatives/recompute`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Trigger superlatives recompute in the background and return immediately.
+     * Recompute Superlatives
+     */
+    async recomputeSuperlativesApiSuperlativesRecomputePostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.recomputeSuperlativesApiSuperlativesRecomputePostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1475,10 +1758,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
-     * Refresh Matches From Json
+     * Creates request options for refreshMatchesFromJsonApiRefreshMatchesFromJsonPost without sending the request
      */
-    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequestOpts(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -1490,12 +1772,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/refresh_matches_from_json/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
+     * Refresh Matches From Json
+     */
+    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1510,10 +1801,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register Match rows for any ParsedReplayJson that has no corresponding Match.
-     * Register Matches
+     * Creates request options for registerMatchesApiRegisterMatchesPost without sending the request
      */
-    async registerMatchesApiRegisterMatchesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async registerMatchesApiRegisterMatchesPostRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -1521,12 +1811,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/register_matches/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Register Match rows for any ParsedReplayJson that has no corresponding Match.
+     * Register Matches
+     */
+    async registerMatchesApiRegisterMatchesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.registerMatchesApiRegisterMatchesPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1541,10 +1840,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register and parse a new replay from a URL.
-     * Register Replay Url
+     * Creates request options for registerReplayUrlApiRegisterReplayUrlPost without sending the request
      */
-    async registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+    async registerReplayUrlApiRegisterReplayUrlPostRequestOpts(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['urlOfReplay'] == null) {
             throw new runtime.RequiredError(
                 'urlOfReplay',
@@ -1563,12 +1861,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/register_replay_url`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Register and parse a new replay from a URL.
+     * Register Replay Url
+     */
+    async registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        const requestOptions = await this.registerReplayUrlApiRegisterReplayUrlPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
     }
@@ -1583,10 +1890,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rerun the replay parser on this match.
-     * Reparse
+     * Creates request options for reparseApiReparseMatchIdPost without sending the request
      */
-    async reparseApiReparseMatchIdPostRaw(requestParameters: ReparseApiReparseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+    async reparseApiReparseMatchIdPostRequestOpts(requestParameters: ReparseApiReparseMatchIdPostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -1602,12 +1908,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/reparse/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Reparse
+     */
+    async reparseApiReparseMatchIdPostRaw(requestParameters: ReparseApiReparseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        const requestOptions = await this.reparseApiReparseMatchIdPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
     }
@@ -1622,10 +1937,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
-     * Reparse Before Date
+     * Creates request options for reparseBeforeDateApiReparseBeforeDatePost without sending the request
      */
-    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async reparseBeforeDateApiReparseBeforeDatePostRequestOpts(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['before'] == null) {
             throw new runtime.RequiredError(
                 'before',
@@ -1648,29 +1962,38 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/reparse_before_date/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
+        };
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
+        const requestOptions = await this.reparseBeforeDateApiReparseBeforeDatePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
+    }
+
+    /**
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Reparse Before Date
+     */
+    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
         const response = await this.reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Replays Without Playerstats
+     * Creates request options for replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet without sending the request
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequestOpts(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToReturn'] != null) {
@@ -1682,12 +2005,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/replays_without_playerstats/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Replays Without Playerstats
+     */
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+        const requestOptions = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1701,10 +2032,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rerun the replay parser on this match.
-     * Reprase
+     * Creates request options for repraseApiRepraseMatchIdPost without sending the request
      */
-    async repraseApiRepraseMatchIdPostRaw(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+    async repraseApiRepraseMatchIdPostRequestOpts(requestParameters: RepraseApiRepraseMatchIdPostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -1720,12 +2050,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/reprase/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Rerun the replay parser on this match.
+     * Reprase
+     */
+    async repraseApiRepraseMatchIdPostRaw(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        const requestOptions = await this.repraseApiRepraseMatchIdPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
     }
@@ -1740,10 +2079,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
-     * Reset Match
+     * Creates request options for resetMatchApiMatchMatchIdDelete without sending the request
      */
-    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async resetMatchApiMatchMatchIdDeleteRequestOpts(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -1759,12 +2097,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/match/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
+     * Reset Match
+     */
+    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.resetMatchApiMatchMatchIdDeleteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1779,9 +2126,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save Map Data
+     * Creates request options for saveMapDataApiMapDataMapNamePost without sending the request
      */
-    async saveMapDataApiMapDataMapNamePostRaw(requestParameters: SaveMapDataApiMapDataMapNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
+    async saveMapDataApiMapDataMapNamePostRequestOpts(requestParameters: SaveMapDataApiMapDataMapNamePostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['mapName'] == null) {
             throw new runtime.RequiredError(
                 'mapName',
@@ -1806,13 +2153,21 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/map_data/{map_name}`;
         urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
             body: MapDataPayloadToJSON(requestParameters['mapDataPayload']),
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Save Map Data
+     */
+    async saveMapDataApiMapDataMapNamePostRaw(requestParameters: SaveMapDataApiMapDataMapNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
+        const requestOptions = await this.saveMapDataApiMapDataMapNamePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MapDataPayloadFromJSON(jsonValue));
     }
@@ -1826,9 +2181,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Scrape
+     * Creates request options for scrapeApiScrapeDaysPost without sending the request
      */
-    async scrapeApiScrapeDaysPostRaw(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async scrapeApiScrapeDaysPostRequestOpts(requestParameters: ScrapeApiScrapeDaysPostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['days'] == null) {
             throw new runtime.RequiredError(
                 'days',
@@ -1844,12 +2199,20 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/scrape/{days}`;
         urlPath = urlPath.replace(`{${"days"}}`, encodeURIComponent(String(requestParameters['days'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Scrape
+     */
+    async scrapeApiScrapeDaysPostRaw(requestParameters: ScrapeApiScrapeDaysPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.scrapeApiScrapeDaysPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
@@ -1863,10 +2226,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a winner override for a match.
-     * Set Override
+     * Creates request options for setOverrideApiSetOverridePost without sending the request
      */
-    async setOverrideApiSetOverridePostRaw(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
+    async setOverrideApiSetOverridePostRequestOpts(requestParameters: SetOverrideApiSetOverridePostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['matchId'] == null) {
             throw new runtime.RequiredError(
                 'matchId',
@@ -1896,12 +2258,21 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/set_override/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Set a winner override for a match.
+     * Set Override
+     */
+    async setOverrideApiSetOverridePostRaw(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
+        const requestOptions = await this.setOverrideApiSetOverridePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => WinnerOverrideFromJSON(jsonValue));
     }
@@ -1916,9 +2287,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Test Tournament Report
+     * Creates request options for testTournamentReportApiTestTournamentReportTournamentNamePost without sending the request
      */
-    async testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
+    async testTournamentReportApiTestTournamentReportTournamentNamePostRequestOpts(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['tournamentName'] == null) {
             throw new runtime.RequiredError(
                 'tournamentName',
@@ -1934,12 +2305,20 @@ export class DefaultApi extends runtime.BaseAPI {
         let urlPath = `/api/test_tournament_report/{tournament_name}`;
         urlPath = urlPath.replace(`{${"tournament_name"}}`, encodeURIComponent(String(requestParameters['tournamentName'])));
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Test Tournament Report
+     */
+    async testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
+        const requestOptions = await this.testTournamentReportApiTestTournamentReportTournamentNamePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => TournamentReportFromJSON(jsonValue));
     }
@@ -1953,9 +2332,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Update Matches Missing Data
+     * Creates request options for updateMatchesMissingDataApiUpdateMatchesMissingDataPost without sending the request
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRequestOpts(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['maxToUpdate'] != null) {
@@ -1967,12 +2346,20 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let urlPath = `/api/update_matches_missing_data/`;
 
-        const response = await this.request({
+        return {
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-        }, initOverrides);
+        };
+    }
+
+    /**
+     * Update Matches Missing Data
+     */
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
