@@ -110,7 +110,7 @@ export default function DisplayDraft() {
           Array.from({ length: count }, (_, i) => ({
             id: nextId++,
             name: topPlayersRef.current[i] ?? `Player ${i + 1}`,
-            team: (i < Math.ceil(count / 2) ? 1 : 2) as 1 | 2,
+            team: ((i % 2 === 0 ? 1 : 2)) as 1 | 2,
           })),
         )
       },
@@ -224,7 +224,7 @@ export default function DisplayDraft() {
       Object.fromEntries(
         assignments.map((a) => [
           a.positionNumber,
-          a.playerName + "-" + toGeneralName(a.general),
+          a.playerName + "[" + a.team + "]-" + toGeneralName(a.general),
         ]),
       ),
     [assignments],
@@ -249,6 +249,9 @@ export default function DisplayDraft() {
   const team1Set = new Set(
     players.filter((p) => p.team === 1).map((p) => p.name),
   )
+  const team2Set = new Set(
+    players.filter((p) => p.team === 2).map((p) => p.name),
+  )
   const allBalancePlayers = [
     ...players.filter((p) => p.team === 1).map((p) => p.name),
     ...players.filter((p) => p.team === 2).map((p) => p.name),
@@ -257,8 +260,10 @@ export default function DisplayDraft() {
     ? Object.entries(teamRating).find(([key]) => {
       const keySet = new Set(key.split(","))
       return (
-        keySet.size === team1Set.size &&
-        [...keySet].every((n) => team1Set.has(n))
+        (keySet.size === team1Set.size &&
+          [...keySet].every((n) => team1Set.has(n))) ||
+        (keySet.size === team2Set.size &&
+          [...keySet].every((n) => team2Set.has(n)))
       )
     })
     : null
@@ -310,6 +315,7 @@ export default function DisplayDraft() {
           <GameMap
             mapname={mapDisplayName(selectedMap)}
             playerPositions={positionToPlayer}
+            showDownload
           />
         </Box>
       )}

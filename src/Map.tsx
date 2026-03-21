@@ -1,7 +1,10 @@
 import Card from "@mui/material/Card"
 import Tooltip from "@mui/material/Tooltip"
 import Box from "@mui/material/Box"
+import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
+import DownloadIcon from "@mui/icons-material/Download"
+import html2canvas from "html2canvas"
 import * as React from "react"
 import { MAPLIST } from "./maplist"
 import { Client } from "./Client"
@@ -76,9 +79,20 @@ export default function GameMap(props: {
   mapname: string
   playerPositions?: Record<number, string>
   eventDots?: EventDot[]
+  showDownload?: boolean
 }) {
   const [imgError, setImgError] = React.useState(false)
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  async function downloadScreenshot() {
+    if (!containerRef.current) return
+    const canvas = await html2canvas(containerRef.current, { useCORS: true })
+    const link = document.createElement("a")
+    link.download = `${props.mapname}.png`
+    link.href = canvas.toDataURL("image/png")
+    link.click()
+  }
 
   const mapname = props.mapname.split("/").slice(-1).pop() ?? ""
   const mapmatch = resolveMap(mapname)
@@ -113,7 +127,7 @@ export default function GameMap(props: {
 
   return (
     <Tooltip title={"Map " + mapname}>
-      <Card sx={{ minHeight: 300, minWidth: 300 }}>
+      <Card sx={{ minHeight: 300, minWidth: 300, position: "relative" }}>
         {showPlaceholder ? (
           <Box
             sx={{
@@ -133,7 +147,7 @@ export default function GameMap(props: {
             </Typography>
           </Box>
         ) : (
-          <Box sx={{ position: "relative", lineHeight: 0 }}>
+          <Box ref={containerRef} sx={{ position: "relative", lineHeight: 0 }}>
             <img
               src={mapUrl}
               alt={"Map: " + mapname}
@@ -244,6 +258,24 @@ export default function GameMap(props: {
                 />
               ))}
           </Box>
+        )}
+        {props.showDownload && !showPlaceholder && (
+          <Tooltip title="Download map image">
+            <IconButton
+              size="small"
+              onClick={downloadScreenshot}
+              sx={{
+                position: "absolute",
+                top: 4,
+                right: 4,
+                bgcolor: "rgba(0,0,0,0.45)",
+                color: "white",
+                "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+              }}
+            >
+              <DownloadIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         )}
       </Card>
     </Tooltip>
