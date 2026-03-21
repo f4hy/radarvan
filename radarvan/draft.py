@@ -74,6 +74,8 @@ def compute_draft(
     skip = next((a for a in assignments if a.player_name == "Skip"), None)
     if skip is not None and skip.team != teams[0]:
         team_swap = {teams[0]: teams[1], teams[1]: teams[0]}
-        assignments = [a.model_copy(update={"team": team_swap[a.team]}) for a in assignments]
+        assignments = [
+            a.model_copy(update={"team": team_swap[a.team]}) for a in assignments
+        ]
 
     return ComputedDraft(assignments=assignments, randomized_at=datetime.now(UTC))

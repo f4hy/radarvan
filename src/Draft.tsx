@@ -110,7 +110,7 @@ export default function DisplayDraft() {
           Array.from({ length: count }, (_, i) => ({
             id: nextId++,
             name: topPlayersRef.current[i] ?? `Player ${i + 1}`,
-            team: ((i % 2 === 0 ? 1 : 2)) as 1 | 2,
+            team: (i % 2 === 0 ? 1 : 2) as 1 | 2,
           })),
         )
       },
@@ -140,8 +140,6 @@ export default function DisplayDraft() {
       },
       () => setBalanceLoading(false),
     )
-    // allNamesValid and teamsBalanced are derived from players
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players])
 
   function addPlayer() {
@@ -258,14 +256,14 @@ export default function DisplayDraft() {
   ]
   const matchedEntry = teamRating
     ? Object.entries(teamRating).find(([key]) => {
-      const keySet = new Set(key.split(","))
-      return (
-        (keySet.size === team1Set.size &&
-          [...keySet].every((n) => team1Set.has(n))) ||
-        (keySet.size === team2Set.size &&
-          [...keySet].every((n) => team2Set.has(n)))
-      )
-    })
+        const keySet = new Set(key.split(","))
+        return (
+          (keySet.size === team1Set.size &&
+            [...keySet].every((n) => team1Set.has(n))) ||
+          (keySet.size === team2Set.size &&
+            [...keySet].every((n) => team2Set.has(n)))
+        )
+      })
     : null
   const matchedScore = matchedEntry
     ? (1.0 - Math.abs(matchedEntry[1] - 0.5) * 2.0) * 100
