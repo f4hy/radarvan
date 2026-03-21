@@ -59,6 +59,12 @@ def compute_draft(
 
             team_assigned[t].append(pos)
 
+    # Each general appears twice in the pool; draw without replacement.
+    # This halves duplicate probability compared to pure random while
+    # still allowing up to 2 players to share any given general.
+    general_pool = list(range(12)) * 2
+    random.shuffle(general_pool)  # noqa: S311
+
     assignments = []
     for t in teams:
         for player, pos in zip(team_players[t], team_assigned[t]):
@@ -67,7 +73,7 @@ def compute_draft(
                     player_name=player.name,
                     team=player.team,
                     position_number=pos.player_number,
-                    general=random.randint(0, 11),  # noqa: S311
+                    general=general_pool.pop(),
                 )
             )
 
