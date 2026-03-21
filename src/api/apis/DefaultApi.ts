@@ -170,6 +170,10 @@ export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest 
     tournamentName: string;
 }
 
+export interface IsTournamentGameApiIsTournamentGameMatchIdGetRequest {
+    matchId: number;
+}
+
 export interface ListReplaysApiReplaysGetRequest {
     matchId?: number | null;
     gameDate?: Date | null;
@@ -199,6 +203,11 @@ export interface ReparseApiReparseMatchIdPostRequest {
 export interface ReparseBeforeDateApiReparseBeforeDatePostRequest {
     before: Date;
     maxToUpdate?: number;
+}
+
+export interface ReparseNonV2ApiReparseNonV2PostRequest {
+    maxToUpdate?: number;
+    maxConcurrent?: number;
 }
 
 export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest {
@@ -1251,6 +1260,45 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPlayerTeamGameCountsApiPlayerGameCountsTeamGet without sending the request
+     */
+    async getPlayerTeamGameCountsApiPlayerGameCountsTeamGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_game_counts/team/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get player names with their total team game count, sorted by count descending.
+     * Get Player Team Game Counts
+     */
+    async getPlayerTeamGameCountsApiPlayerGameCountsTeamGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerGameCount>>> {
+        const requestOptions = await this.getPlayerTeamGameCountsApiPlayerGameCountsTeamGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerGameCountFromJSON));
+    }
+
+    /**
+     * Get player names with their total team game count, sorted by count descending.
+     * Get Player Team Game Counts
+     */
+    async getPlayerTeamGameCountsApiPlayerGameCountsTeamGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerGameCount>> {
+        const response = await this.getPlayerTeamGameCountsApiPlayerGameCountsTeamGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getReplayByUrlApiReplayGet without sending the request
      */
     async getReplayByUrlApiReplayGetRequestOpts(requestParameters: GetReplayByUrlApiReplayGetRequest): Promise<runtime.RequestOpts> {
@@ -1498,6 +1546,57 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getTournamentResultsApiTournamentResultsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TournamentResult>> {
         const response = await this.getTournamentResultsApiTournamentResultsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for isTournamentGameApiIsTournamentGameMatchIdGet without sending the request
+     */
+    async isTournamentGameApiIsTournamentGameMatchIdGetRequestOpts(requestParameters: IsTournamentGameApiIsTournamentGameMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling isTournamentGameApiIsTournamentGameMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/is_tournament_game/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * test if a match is a tournament game.
+     * Is Tournament Game
+     */
+    async isTournamentGameApiIsTournamentGameMatchIdGetRaw(requestParameters: IsTournamentGameApiIsTournamentGameMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
+        const requestOptions = await this.isTournamentGameApiIsTournamentGameMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<string>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * test if a match is a tournament game.
+     * Is Tournament Game
+     */
+    async isTournamentGameApiIsTournamentGameMatchIdGet(requestParameters: IsTournamentGameApiIsTournamentGameMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
+        const response = await this.isTournamentGameApiIsTournamentGameMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1987,6 +2086,53 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
         const response = await this.reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for reparseNonV2ApiReparseNonV2Post without sending the request
+     */
+    async reparseNonV2ApiReparseNonV2PostRequestOpts(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        if (requestParameters['maxConcurrent'] != null) {
+            queryParameters['max_concurrent'] = requestParameters['maxConcurrent'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/reparse_non_v2/`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Reparse Non V2
+     */
+    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
+        const requestOptions = await this.reparseNonV2ApiReparseNonV2PostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
+    }
+
+    /**
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Reparse Non V2
+     */
+    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
+        const response = await this.reparseNonV2ApiReparseNonV2PostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

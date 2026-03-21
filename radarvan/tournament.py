@@ -191,7 +191,9 @@ def create_tournament_results(
                 for team_enum, player_set in teams_in_match.items():
                     team_tuple = tuple(sorted(player_set))
                     if team_tuple not in team_records:
-                        logger.warning(f"Skipping unrecognized team in match {match.id}: {team_tuple}")
+                        logger.warning(
+                            f"Skipping unrecognized team in match {match.id}: {team_tuple}"
+                        )
                         continue
                     if any(player_won.get(name, False) for name in player_set):
                         outcome[team_tuple].wins += 1

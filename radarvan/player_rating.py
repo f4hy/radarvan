@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True)
 class NamedRating:
     """Wrapper around PlackettLuceRating where name is guaranteed to be str."""
 
@@ -49,7 +49,7 @@ def get_model() -> PlackettLuce:
     return PlackettLuce(beta=(25.0 / 4.0))
 
 
-@dataclass
+@dataclass(slots=True)
 class RatingsAndCounts:
     ratings: list[NamedRating]
     game_counts: dict[str, int]
@@ -66,8 +66,7 @@ class RatingUpdateResult(NamedTuple):
     history: dict[str, NamedRating]
 
 
-@dataclass
-class ProcessGamesResult:
+class ProcessGamesResult(NamedTuple):
     players: dict[str, NamedRating]
     game_counts: dict[str, int]
     rating_over_time: dict[str, list[NamedRating]]
@@ -184,10 +183,9 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     for i in range(5):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
-        process_result = _process_games(filtered_games, min_sigmaed, model)
-        player_ratings = process_result.players
-        game_counts = process_result.game_counts
-        rating_over_time = process_result.rating_over_time
+        player_ratings, game_counts, rating_over_time = _process_games(
+            filtered_games, min_sigmaed, model
+        )
         logger.info(f"Pass {i}")
         _log_sorted_ratings(
             [r for r in player_ratings.values() if game_counts.get(r.name, 0) > 20],

@@ -1,4 +1,5 @@
 import Autocomplete from "@mui/material/Autocomplete"
+import { toGeneralName } from "./general_utils"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
@@ -15,7 +16,12 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd"
 import LinearProgress from "@mui/material/LinearProgress"
 import Stack from "@mui/material/Stack"
 import * as React from "react"
-import type { DraftAssignment, MapDataPayload, MapsByPlayerCount } from "./api"
+import type {
+  DraftAssignment,
+  MapDataPayload,
+  MapsByPlayerCount,
+  PlayerGameCount,
+} from "./api"
 import Chip from "@mui/material/Chip"
 import { PlayerEnum } from "./api"
 import { Client } from "./Client"
@@ -74,10 +80,17 @@ export default function DisplayDraft() {
     number
   > | null>(null)
   const [balanceLoading, setBalanceLoading] = React.useState(false)
+  const topPlayersRef = React.useRef<string[]>([])
 
   React.useEffect(() => {
     Client.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
       setMapsByCount,
+      () => {},
+    )
+    Client.getPlayerTeamGameCountsApiPlayerGameCountsTeamGet().then(
+      (data: PlayerGameCount[]) => {
+        topPlayersRef.current = data.map((p) => p.name)
+      },
       () => {},
     )
   }, [])
@@ -93,11 +106,10 @@ export default function DisplayDraft() {
       (data) => {
         setMapData(data)
         const count = data.playerStarts.length
-        const enumNames = Object.values(PlayerEnum)
         setPlayers(
           Array.from({ length: count }, (_, i) => ({
             id: nextId++,
-            name: enumNames[i] ?? `Player ${i + 1}`,
+            name: topPlayersRef.current[i] ?? `Player ${i + 1}`,
             team: (i < Math.ceil(count / 2) ? 1 : 2) as 1 | 2,
           })),
         )
@@ -111,9 +123,7 @@ export default function DisplayDraft() {
 
   React.useEffect(() => {
     setTeamRating(null)
-  }, [players])
-
-  function checkBalance() {
+    if (!allNamesValid || !teamsBalanced) return
     const team1 = players
       .filter((p) => p.team === 1)
       .map((p) => p.name as PlayerEnum)
@@ -121,7 +131,6 @@ export default function DisplayDraft() {
       .filter((p) => p.team === 2)
       .map((p) => p.name as PlayerEnum)
     setBalanceLoading(true)
-    setTeamRating(null)
     Client.balanceTeamsApiBalanceTeamsGet({
       players: [...team1, ...team2],
     }).then(
@@ -131,7 +140,9 @@ export default function DisplayDraft() {
       },
       () => setBalanceLoading(false),
     )
-  }
+    // allNamesValid and teamsBalanced are derived from players
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players])
 
   function addPlayer() {
     setPlayers((prev) => [
@@ -164,7 +175,14 @@ export default function DisplayDraft() {
     const best = Object.entries(teamRating).reduce((a, b) =>
       Math.abs(a[1] - 0.5) < Math.abs(b[1] - 0.5) ? a : b,
     )
-    const newTeam1 = new Set(best[0].split(","))
+    const team1Names = best[0].split(",")
+    const skipInPlayers = players.some((p) => p.name === "Skip")
+    const skipOnTeam1 = team1Names.includes("Skip")
+    const newTeam1 = new Set(
+      skipInPlayers && !skipOnTeam1
+        ? players.map((p) => p.name).filter((n) => !team1Names.includes(n))
+        : team1Names,
+    )
     setPlayers((prev) =>
       prev.map((p) => ({
         ...p,
@@ -188,14 +206,13 @@ export default function DisplayDraft() {
   const knownMaps = React.useMemo(() => {
     if (!selectedPlayerCount) return null
     return new Set(
-      mapsByCount.find((g) => g.playerCount === selectedPlayerCount)?.maps ??
-        [],
+      mapsByCount
+        .find((g) => g.playerCount === selectedPlayerCount)
+        ?.maps.map((x) => x.toLowerCase()) ?? [],
     )
   }, [mapsByCount, selectedPlayerCount])
 
-  const filteredMapList = knownMaps
-    ? MAPLIST.filter((f) => knownMaps.has(mapDisplayName(f)))
-    : MAPLIST
+  const filteredMapList = knownMaps ? Array.from(knownMaps).sort() : MAPLIST
 
   const assignmentByName = React.useMemo(
     () => Object.fromEntries(assignments.map((a) => [a.playerName, a])),
@@ -205,7 +222,10 @@ export default function DisplayDraft() {
   const positionToPlayer = React.useMemo(
     () =>
       Object.fromEntries(
-        assignments.map((a) => [a.positionNumber, a.playerName]),
+        assignments.map((a) => [
+          a.positionNumber,
+          a.playerName + "-" + toGeneralName(a.general),
+        ]),
       ),
     [assignments],
   )
@@ -235,12 +255,12 @@ export default function DisplayDraft() {
   ]
   const matchedEntry = teamRating
     ? Object.entries(teamRating).find(([key]) => {
-        const keySet = new Set(key.split(","))
-        return (
-          keySet.size === team1Set.size &&
-          [...keySet].every((n) => team1Set.has(n))
-        )
-      })
+      const keySet = new Set(key.split(","))
+      return (
+        keySet.size === team1Set.size &&
+        [...keySet].every((n) => team1Set.has(n))
+      )
+    })
     : null
   const matchedScore = matchedEntry
     ? (1.0 - Math.abs(matchedEntry[1] - 0.5) * 2.0) * 100
@@ -320,10 +340,16 @@ export default function DisplayDraft() {
             sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
           >
             <Autocomplete
-              freeSolo
-              options={Object.values(PlayerEnum)}
-              value={p.name}
-              onInputChange={(_e, val) => updatePlayerName(p.id, val)}
+              options={Object.values(PlayerEnum).filter(
+                (name) =>
+                  !players.some(
+                    (other) => other.id !== p.id && other.name === name,
+                  ),
+              )}
+              value={validPlayerNames.has(p.name) ? p.name : null}
+              onChange={(_e, val) => {
+                if (val !== null) updatePlayerName(p.id, val)
+              }}
               renderInput={(params) => (
                 <TextField {...params} size="small" label="Name" />
               )}
@@ -371,6 +397,26 @@ export default function DisplayDraft() {
       </Paper>
 
       <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
+        <Tooltip
+          title={
+            !teamsBalanced
+              ? "Teams must have equal numbers of players"
+              : !allNamesValid
+                ? "All players must be selected from the known players list"
+                : ""
+          }
+        >
+          <span>
+            <Button
+              variant="outlined"
+              startIcon={<BalanceIcon />}
+              disabled={!teamRating || !teamsBalanced}
+              onClick={applyMostBalanced}
+            >
+              Auto Balance
+            </Button>
+          </span>
+        </Tooltip>
         <Button
           variant="contained"
           startIcon={<CasinoIcon />}
@@ -386,48 +432,6 @@ export default function DisplayDraft() {
             Locked at {randomizedAt}
           </Typography>
         )}
-        <Tooltip
-          title={
-            !teamsBalanced
-              ? "Teams must have equal numbers of players"
-              : !allNamesValid
-                ? "All players must be selected from the known players list"
-                : ""
-          }
-        >
-          <span>
-            <Button
-              variant="outlined"
-              startIcon={<BalanceIcon />}
-              disabled={!allNamesValid || !teamsBalanced}
-              onClick={checkBalance}
-            >
-              Check Balance
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip
-          title={
-            !teamsBalanced
-              ? "Teams must have equal numbers of players"
-              : !allNamesValid
-                ? "All players must be selected from the known players list"
-                : !teamRating
-                  ? "Run Check Balance first"
-                  : ""
-          }
-        >
-          <span>
-            <Button
-              variant="outlined"
-              startIcon={<BalanceIcon />}
-              disabled={!teamRating || !teamsBalanced}
-              onClick={applyMostBalanced}
-            >
-              Auto Balance
-            </Button>
-          </span>
-        </Tooltip>
       </Stack>
 
       {balanceLoading && <LinearProgress sx={{ mb: 1 }} />}

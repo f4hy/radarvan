@@ -14,28 +14,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class StreakRecord:
     count: int
     start: date
     end: date
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class PlayerMatchRecord:
     player: str
     value: int
     match_id: int
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ApmRecord:
     player: str
     apm: float
     match_id: int
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ApmTotals:
     total_actions: int
     total_minutes: float

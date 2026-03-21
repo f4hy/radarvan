@@ -27,12 +27,14 @@ All URIs are relative to *http://localhost*
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
+| [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
 | [**getSuperlativesApiSuperlativesGet**](DefaultApi.md#getsuperlativesapisuperlativesget) | **GET** /api/superlatives | Get Superlatives |
 | [**getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet**](DefaultApi.md#getteamgameswithoutwinnerapiteamgameswithoutwinnerget) | **GET** /api/team_games_without_winner/ | Get Team Games Without Winner |
 | [**getTeamStatsApiTeamStatsGet**](DefaultApi.md#getteamstatsapiteamstatsget) | **GET** /api/team_stats/ | Get Team Stats |
 | [**getTournamentReportApiTournamentReportTournamentNameGet**](DefaultApi.md#gettournamentreportapitournamentreporttournamentnameget) | **GET** /api/tournament_report/{tournament_name} | Get Tournament Report |
 | [**getTournamentResultsApiTournamentResultsGet**](DefaultApi.md#gettournamentresultsapitournamentresultsget) | **GET** /api/tournament_results/ | Get Tournament Results |
+| [**isTournamentGameApiIsTournamentGameMatchIdGet**](DefaultApi.md#istournamentgameapiistournamentgamematchidget) | **GET** /api/is_tournament_game/{match_id} | Is Tournament Game |
 | [**listFilesApiFilesGet**](DefaultApi.md#listfilesapifilesget) | **GET** /api/files/ | List Files |
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
@@ -44,6 +46,7 @@ All URIs are relative to *http://localhost*
 | [**registerReplayUrlApiRegisterReplayUrlPost**](DefaultApi.md#registerreplayurlapiregisterreplayurlpost) | **POST** /api/register_replay_url | Register Replay Url |
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**reparseBeforeDateApiReparseBeforeDatePost**](DefaultApi.md#reparsebeforedateapireparsebeforedatepost) | **POST** /api/reparse_before_date/ | Reparse Before Date |
+| [**reparseNonV2ApiReparseNonV2Post**](DefaultApi.md#reparsenonv2apireparsenonv2post) | **POST** /api/reparse_non_v2/ | Reparse Non V2 |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
 | [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**resetMatchApiMatchMatchIdDelete**](DefaultApi.md#resetmatchapimatchmatchiddelete) | **DELETE** /api/match/{match_id} | Reset Match |
@@ -1551,6 +1554,65 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getPlayerTeamGameCountsApiPlayerGameCountsTeamGet
+
+> Array&lt;PlayerGameCount&gt; getPlayerTeamGameCountsApiPlayerGameCountsTeamGet()
+
+Get Player Team Game Counts
+
+Get player names with their total team game count, sorted by count descending.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerTeamGameCountsApiPlayerGameCountsTeamGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  try {
+    const data = await api.getPlayerTeamGameCountsApiPlayerGameCountsTeamGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;PlayerGameCount&gt;**](PlayerGameCount.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getReplayByUrlApiReplayGet
 
 > { [key: string]: string | null; } getReplayByUrlApiReplayGet(urlOfReplay)
@@ -1917,6 +1979,74 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## isTournamentGameApiIsTournamentGameMatchIdGet
+
+> string isTournamentGameApiIsTournamentGameMatchIdGet(matchId)
+
+Is Tournament Game
+
+test if a match is a tournament game.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { IsTournamentGameApiIsTournamentGameMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies IsTournamentGameApiIsTournamentGameMatchIdGetRequest;
+
+  try {
+    const data = await api.isTournamentGameApiIsTournamentGameMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**string**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -2610,6 +2740,77 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **before** | `Date` |  | [Defaults to `undefined`] |
 | **maxToUpdate** | `number` |  | [Optional] [Defaults to `10`] |
+
+### Return type
+
+[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## reparseNonV2ApiReparseNonV2Post
+
+> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
+
+Reparse Non V2
+
+Re-run cncstats on matches whose parsed JSON was last updated before &#x60;before&#x60;.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { ReparseNonV2ApiReparseNonV2PostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+    // number (optional)
+    maxConcurrent: 56,
+  } satisfies ReparseNonV2ApiReparseNonV2PostRequest;
+
+  try {
+    const data = await api.reparseNonV2ApiReparseNonV2Post(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `10`] |
+| **maxConcurrent** | `number` |  | [Optional] [Defaults to `8`] |
 
 ### Return type
 

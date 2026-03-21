@@ -930,6 +930,26 @@ def replays_without_playerstats(
         }
 
 
+_TEAM_FORMATS = {"2v2", "3v3", "4v4"}
+
+
+@app.get("/api/player_game_counts/team/")
+def get_player_team_game_counts(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerGameCount]:
+    """Get player names with their total team game count, sorted by count descending."""
+    all_games = sorted_deduped_matches(replay_manager)
+    stats = player_stats.get_player_stats(list(all_games.values()))
+    counts = [
+        PlayerGameCount(
+            name=stat.player_name,
+            count=sum(stat.game_counts.get(fmt, 0) for fmt in _TEAM_FORMATS),
+        )
+        for stat in stats.player_stats
+    ]
+    return sorted(counts, key=lambda x: x.count, reverse=True)
+
+
 @app.get("/api/player_game_counts/")
 def get_player_game_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),
