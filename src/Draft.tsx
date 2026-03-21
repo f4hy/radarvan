@@ -12,7 +12,6 @@ import Typography from "@mui/material/Typography"
 import BalanceIcon from "@mui/icons-material/Balance"
 import CasinoIcon from "@mui/icons-material/Casino"
 import CloseIcon from "@mui/icons-material/Close"
-import PersonAddIcon from "@mui/icons-material/PersonAdd"
 import LinearProgress from "@mui/material/LinearProgress"
 import Stack from "@mui/material/Stack"
 import * as React from "react"
@@ -67,9 +66,10 @@ let nextId = 1
 
 export default function DisplayDraft() {
   const [mapsByCount, setMapsByCount] = React.useState<MapsByPlayerCount[]>([])
+  const [topPlayers, setTopPlayers] = React.useState<string[]>([])
   const [selectedPlayerCount, setSelectedPlayerCount] = React.useState<
     number | null
-  >(null)
+  >(6)
   const [selectedMap, setSelectedMap] = React.useState<string | null>(null)
   const [players, setPlayers] = React.useState<DraftPlayer[]>([])
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
@@ -80,7 +80,6 @@ export default function DisplayDraft() {
     number
   > | null>(null)
   const [balanceLoading, setBalanceLoading] = React.useState(false)
-  const topPlayersRef = React.useRef<string[]>([])
 
   React.useEffect(() => {
     Client.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
@@ -88,36 +87,39 @@ export default function DisplayDraft() {
       () => {},
     )
     Client.getPlayerTeamGameCountsApiPlayerGameCountsTeamGet().then(
-      (data: PlayerGameCount[]) => {
-        topPlayersRef.current = data.map((p) => p.name)
-      },
+      (data: PlayerGameCount[]) => setTopPlayers(data.map((p) => p.name)),
       () => {},
     )
   }, [])
 
+  // Reinitialize players when player count or top-player list changes
+  React.useEffect(() => {
+    setAssignments([])
+    setRandomizedAt(null)
+    setSelectedMap(null)
+    if (!selectedPlayerCount) {
+      setPlayers([])
+      return
+    }
+    setPlayers(
+      Array.from({ length: selectedPlayerCount }, (_, i) => ({
+        id: nextId++,
+        name: topPlayers[i] ?? `Player ${i + 1}`,
+        team: (i % 2 === 0 ? 1 : 2) as 1 | 2,
+      })),
+    )
+  }, [selectedPlayerCount, topPlayers])
+
+  // Load map data when map selection changes
   React.useEffect(() => {
     setMapData(null)
-    setPlayers([])
     setAssignments([])
     setRandomizedAt(null)
     if (!selectedMap) return
     const apiName = mapDisplayName(selectedMap)
     Client.getMapDataApiMapDataMapNameGet({ mapName: apiName }).then(
-      (data) => {
-        setMapData(data)
-        const count = data.playerStarts.length
-        setPlayers(
-          Array.from({ length: count }, (_, i) => ({
-            id: nextId++,
-            name: topPlayersRef.current[i] ?? `Player ${i + 1}`,
-            team: (i % 2 === 0 ? 1 : 2) as 1 | 2,
-          })),
-        )
-      },
-      () => {
-        setMapData(null)
-        setPlayers([])
-      },
+      (data) => setMapData(data),
+      () => setMapData(null),
     )
   }, [selectedMap])
 
@@ -141,13 +143,6 @@ export default function DisplayDraft() {
       () => setBalanceLoading(false),
     )
   }, [players])
-
-  function addPlayer() {
-    setPlayers((prev) => [
-      ...prev,
-      { id: nextId++, name: `Player ${nextId - 1}`, team: 1 },
-    ])
-  }
 
   function clearDraft() {
     setAssignments([])
@@ -228,8 +223,6 @@ export default function DisplayDraft() {
     [assignments],
   )
 
-  const positionLimit = mapData ? mapData.playerStarts.length : 0
-  const canAddPlayer = mapData !== null && players.length < positionLimit
   const namesUnique =
     new Set(players.map((p) => p.name)).size === players.length
   const validPlayerNames = new Set<string>(Object.values(PlayerEnum))
@@ -276,14 +269,13 @@ export default function DisplayDraft() {
       </Typography>
 
       {mapsByCount.length > 0 && (
-        <Box sx={{ mb: 1 }}>
+        <Box sx={{ mb: 2 }}>
           <ToggleButtonGroup
             size="small"
             exclusive
             value={selectedPlayerCount}
             onChange={(_e, val) => {
-              setSelectedPlayerCount(val)
-              setSelectedMap(null)
+              if (val !== null) setSelectedPlayerCount(val)
             }}
           >
             {mapsByCount.map(({ playerCount }) => (
@@ -295,156 +287,143 @@ export default function DisplayDraft() {
         </Box>
       )}
 
-      <Autocomplete
-        options={filteredMapList}
-        getOptionLabel={(f) => mapDisplayName(f)}
-        value={selectedMap}
-        onChange={(_e, val) => {
-          setSelectedMap(val)
-        }}
-        renderInput={(params) => (
-          <TextField {...params} label="Select Map" size="small" />
-        )}
-        sx={{ mb: 2, maxWidth: 400 }}
-      />
-
-      {selectedMap && (
-        <Box sx={{ mb: 2, maxWidth: 600 }}>
-          <GameMap
-            mapname={mapDisplayName(selectedMap)}
-            playerPositions={positionToPlayer}
-            showDownload
-          />
-        </Box>
-      )}
-
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-          <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-            Players
-          </Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<PersonAddIcon />}
-            disabled={!canAddPlayer}
-            onClick={addPlayer}
-          >
-            Add Player
-          </Button>
-        </Box>
-        {!mapData && (
-          <Typography variant="body2" color="text.secondary">
-            Select a map to add players.
-          </Typography>
-        )}
-        {players.map((p) => (
-          <Box
-            key={p.id}
-            sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
-          >
-            <Autocomplete
-              options={Object.values(PlayerEnum).filter(
-                (name) =>
-                  !players.some(
-                    (other) => other.id !== p.id && other.name === name,
-                  ),
-              )}
-              value={validPlayerNames.has(p.name) ? p.name : null}
-              onChange={(_e, val) => {
-                if (val !== null) updatePlayerName(p.id, val)
-              }}
-              renderInput={(params) => (
-                <TextField {...params} size="small" label="Name" />
-              )}
-              sx={{ width: 200 }}
-            />
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={p.team}
-              onChange={(_e, val) => {
-                if (val !== null) updatePlayerTeam(p.id, val as 1 | 2 | 3 | 4)
-              }}
-            >
-              {([1, 2, 3, 4] as const).map((t) => (
-                <ToggleButton
-                  key={t}
-                  value={t}
-                  sx={{
-                    "&.Mui-selected": {
-                      bgcolor: TEAM_COLORS[t],
-                      color: "white",
-                      "&:hover": { bgcolor: TEAM_COLORS[t] },
-                    },
+      {selectedPlayerCount && (
+        <>
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Players
+            </Typography>
+            {players.map((p) => (
+              <Box
+                key={p.id}
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+              >
+                <Autocomplete
+                  options={Object.values(PlayerEnum).filter(
+                    (name) =>
+                      !players.some(
+                        (other) => other.id !== p.id && other.name === name,
+                      ),
+                  )}
+                  value={validPlayerNames.has(p.name) ? p.name : null}
+                  onChange={(_e, val) => {
+                    if (val !== null) updatePlayerName(p.id, val)
+                  }}
+                  renderInput={(params) => (
+                    <TextField {...params} size="small" label="Name" />
+                  )}
+                  sx={{ width: 200 }}
+                />
+                <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={p.team}
+                  onChange={(_e, val) => {
+                    if (val !== null)
+                      updatePlayerTeam(p.id, val as 1 | 2 | 3 | 4)
                   }}
                 >
-                  {t}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-            {assignmentByName[p.name] && (
-              <>
-                <DisplayGeneral general={assignmentByName[p.name].general} />
-                <Chip
-                  label={`#${assignmentByName[p.name].positionNumber}`}
-                  size="small"
-                  variant="outlined"
-                />
-              </>
+                  {([1, 2, 3, 4] as const).map((t) => (
+                    <ToggleButton
+                      key={t}
+                      value={t}
+                      sx={{
+                        "&.Mui-selected": {
+                          bgcolor: TEAM_COLORS[t],
+                          color: "white",
+                          "&:hover": { bgcolor: TEAM_COLORS[t] },
+                        },
+                      }}
+                    >
+                      {t}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+                {assignmentByName[p.name] && (
+                  <>
+                    <DisplayGeneral general={assignmentByName[p.name].general} />
+                    <Chip
+                      label={`#${assignmentByName[p.name].positionNumber}`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </>
+                )}
+                <IconButton size="small" onClick={() => removePlayer(p.id)}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+          </Paper>
+
+          <Autocomplete
+            options={filteredMapList}
+            getOptionLabel={(f) => mapDisplayName(f)}
+            value={selectedMap}
+            onChange={(_e, val) => {
+              setSelectedMap(val)
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="Select Map" size="small" />
             )}
-            <IconButton size="small" onClick={() => removePlayer(p.id)}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        ))}
-      </Paper>
+            sx={{ mb: 2, maxWidth: 400 }}
+          />
 
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
-        <Tooltip
-          title={
-            !teamsBalanced
-              ? "Teams must have equal numbers of players"
-              : !allNamesValid
-                ? "All players must be selected from the known players list"
-                : ""
-          }
-        >
-          <span>
-            <Button
-              variant="outlined"
-              startIcon={<BalanceIcon />}
-              disabled={!teamRating || !teamsBalanced}
-              onClick={applyMostBalanced}
+          {selectedMap && (
+            <Box sx={{ mb: 2, maxWidth: 600 }}>
+              <GameMap
+                mapname={mapDisplayName(selectedMap)}
+                playerPositions={positionToPlayer}
+                showDownload
+              />
+            </Box>
+          )}
+
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
+            <Tooltip
+              title={
+                !teamsBalanced
+                  ? "Teams must have equal numbers of players"
+                  : !allNamesValid
+                    ? "All players must be selected from the known players list"
+                    : ""
+              }
             >
-              Auto Balance
+              <span>
+                <Button
+                  variant="outlined"
+                  startIcon={<BalanceIcon />}
+                  disabled={!teamRating || !teamsBalanced}
+                  onClick={applyMostBalanced}
+                >
+                  Auto Balance
+                </Button>
+              </span>
+            </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<CasinoIcon />}
+              disabled={false}
+              onClick={randomize}
+            >
+              Randomize
             </Button>
-          </span>
-        </Tooltip>
-        <Button
-          variant="contained"
-          startIcon={<CasinoIcon />}
-          disabled={
-            players.length === 0 || !mapData || !namesUnique || !teamsBalanced
-          }
-          onClick={randomize}
-        >
-          Randomize
-        </Button>
-        {randomizedAt && (
-          <Typography variant="caption" color="text.secondary">
-            Locked at {randomizedAt}
-          </Typography>
-        )}
-      </Stack>
+            {randomizedAt && (
+              <Typography variant="caption" color="text.secondary">
+                Locked at {randomizedAt}
+              </Typography>
+            )}
+          </Stack>
 
-      {balanceLoading && <LinearProgress sx={{ mb: 1 }} />}
-      {matchedEntry && matchedScore !== null && (
-        <ScoreBar
-          team={matchedEntry[0]}
-          score={matchedScore}
-          selectedPlayers={allBalancePlayers}
-        />
+          {balanceLoading && <LinearProgress sx={{ mb: 1 }} />}
+          {matchedEntry && matchedScore !== null && (
+            <ScoreBar
+              team={matchedEntry[0]}
+              score={matchedScore}
+              selectedPlayers={allBalancePlayers}
+            />
+          )}
+        </>
       )}
     </Box>
   )
