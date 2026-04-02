@@ -6,8 +6,9 @@ from enum import Enum
 from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, Security
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import APIKeyHeader
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -72,6 +73,28 @@ conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
 IS_DEV = os.getenv("DEV") is not None
 
+API_KEY_READ = os.getenv("API_KEY_READ")
+API_KEY_WRITE = os.getenv("API_KEY_WRITE")
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(
+    request: Request,
+    key: str | None = Security(_api_key_header),
+) -> None:
+    # Auth is disabled when neither key is configured (local dev)
+    if API_KEY_READ is None and API_KEY_WRITE is None:
+        return
+    if key is None:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
+    if is_write_method:
+        if key != API_KEY_WRITE:
+            raise HTTPException(status_code=403, detail="Forbidden")
+    else:
+        if key not in (API_KEY_READ, API_KEY_WRITE):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
 
 def get_db_session() -> Generator[Session]:
     """Dependency that provides a database session.
@@ -117,6 +140,7 @@ app = FastAPI(
     description="Stats for generals",
     version="0.1.0",
     lifespan=lifespan,
+    dependencies=[Depends(verify_api_key)],
 )
 
 _recompute_lock = asyncio.Lock()
