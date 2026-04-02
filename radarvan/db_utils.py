@@ -746,6 +746,13 @@ class ReplayManager:
             for row in rows
         ]
 
+    def computed_stats_are_stale(self, days: int = 3) -> bool:
+        """Return True if no computed stats exist or the newest is older than `days` days."""
+        latest = self.session.scalar(select(func.max(ComputedStatistic.date_computed)))
+        if latest is None:
+            return True
+        return (date.today() - latest).days > days
+
     def save_map_data(self, map_name: str, payload: MapDataPayload) -> None:
         """Upsert map geometry data for the given map name."""
         row = MapData(map_name=map_name, data=payload.model_dump())

@@ -33,9 +33,11 @@ async def compute_and_save_superlatives(
     replay_manager: ReplayManager, db_manager: DatabaseManager
 ) -> None:
     """Recompute all superlatives and persist them, replacing any previous results."""
+    stale = replay_manager.computed_stats_are_stale(days=3)
     start = datetime.now()
     logger.info(f"Computing superlatives (started at {start:%Y-%m-%d %H:%M:%S}).")
-    notify(message=f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})")
+    if stale:
+        notify(message=f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})")
     competitive = [
         m
         for m in matches_module.get_match_infos(replay_manager)
@@ -55,7 +57,8 @@ async def compute_and_save_superlatives(
     duration = datetime.now() - start
     msg = f"Saved {len(result.stats)} computed statistics for Records page. Started at {start:%Y-%m-%d %H:%M:%S}, took {duration}."
     logger.info(msg)
-    notify(message=msg)
+    if stale:
+        notify(message=msg)
 
 
 def get_scheduler(

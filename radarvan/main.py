@@ -660,15 +660,18 @@ async def _do_recompute(
         for g in games.values()
         if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
     ]
+    stale = replay_manager.computed_stats_are_stale(days=3)
     details = await match_details.load_many_superlative_data(
         [g.id for g in game_list], db_manager
     )
-    notify(f"Loaded {len(details)} match details for superlatives recompute")
+    if stale:
+        notify(f"Loaded {len(details)} match details for superlatives recompute")
     result = superlatives.get_superlatives(game_list, details)
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"saved {len(result.stats)} computed statistics")
-    notify("Recomputed superlatives")
+    if stale:
+        notify("Recomputed superlatives")
 
     return result
 
