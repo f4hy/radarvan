@@ -25,6 +25,7 @@ All URIs are relative to *http://localhost*
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
+| [**getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet**](DefaultApi.md#getplayerratingdailychangesapiplayerratingsdailychangesget) | **GET** /api/player_ratings/daily_changes/ | Get Player Rating Daily Changes |
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
 | [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
@@ -47,6 +48,7 @@ All URIs are relative to *http://localhost*
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**reparseBeforeDateApiReparseBeforeDatePost**](DefaultApi.md#reparsebeforedateapireparsebeforedatepost) | **POST** /api/reparse_before_date/ | Reparse Before Date |
 | [**reparseNonV2ApiReparseNonV2Post**](DefaultApi.md#reparsenonv2apireparsenonv2post) | **POST** /api/reparse_non_v2/ | Reparse Non V2 |
+| [**reparseRecentApiReparseRecentPost**](DefaultApi.md#reparserecentapireparserecentpost) | **POST** /api/reparse_recent/ | Reparse Recent |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
 | [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**resetMatchApiMatchMatchIdDelete**](DefaultApi.md#resetmatchapimatchmatchiddelete) | **DELETE** /api/match/{match_id} | Reset Match |
@@ -1420,6 +1422,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet
+
+> Array&lt;PlayerRatingDailyChange&gt; getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet(forDate)
+
+Get Player Rating Daily Changes
+
+Return each player\&#39;s ordinal rating change for the given date.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // Date
+    forDate: 2013-10-20,
+  } satisfies GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest;
+
+  try {
+    const data = await api.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **forDate** | `Date` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;PlayerRatingDailyChange&gt;**](PlayerRatingDailyChange.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getPlayerRatingsApiPlayerRatingsGet
 
 > PlayerRatingData getPlayerRatingsApiPlayerRatingsGet(gameFormat)
@@ -2695,7 +2765,7 @@ No authorization required
 
 ## reparseBeforeDateApiReparseBeforeDatePost
 
-> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
+> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
 
 Reparse Before Date
 
@@ -2743,7 +2813,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
+[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
 
 ### Authorization
 
@@ -2766,7 +2836,7 @@ No authorization required
 
 ## reparseNonV2ApiReparseNonV2Post
 
-> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
+> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
 
 Reparse Non V2
 
@@ -2814,7 +2884,75 @@ example().catch(console.error);
 
 ### Return type
 
-[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
+[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## reparseRecentApiReparseRecentPost
+
+> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseRecentApiReparseRecentPost(days)
+
+Reparse Recent
+
+Re-run cncstats on all matches whose game_date is within the last &#x60;days&#x60; days.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { ReparseRecentApiReparseRecentPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    days: 56,
+  } satisfies ReparseRecentApiReparseRecentPostRequest;
+
+  try {
+    const data = await api.reparseRecentApiReparseRecentPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **days** | `number` |  | [Optional] [Defaults to `3`] |
+
+### Return type
+
+[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
 
 ### Authorization
 

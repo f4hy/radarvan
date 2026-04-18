@@ -610,6 +610,13 @@ class PlayerRatingData(BaseModel):
     player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
 
 
+class PlayerRatingDailyChange(BaseModel):
+    model_config = _SLOTS_FA
+
+    name: str
+    delta: float
+
+
 class MapExtent(BaseModel):
     model_config = _SLOTS
 

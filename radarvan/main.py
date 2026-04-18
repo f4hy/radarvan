@@ -51,6 +51,7 @@ from radarvan.api_types import (
     TournamentReport,
     PlayerRatings,
     PlayerRatingData,
+    PlayerRatingDailyChange,
     MapDataPayload,
     DraftPlayerRequest,
     DraftRequest,
@@ -1032,6 +1033,23 @@ def get_player_ratings(
         player_rating=converted,
         player_rating_overtime=over_time,
     )
+
+
+@app.get("/api/player_ratings/daily_changes/")
+def get_player_rating_daily_changes(
+    for_date: date,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerRatingDailyChange]:
+    """Return each player's ordinal rating change for the given date."""
+    game_list = list(competitive_matches(replay_manager).values())
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    result = []
+    for name, changes in ratings_and_counts.daily_changes.items():
+        for change in changes:
+            if change.date == for_date:
+                result.append(PlayerRatingDailyChange(name=name, delta=change.delta))
+                break
+    return result
 
 
 PlayerEnum = Enum(  # type: ignore[misc]

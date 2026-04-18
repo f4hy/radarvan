@@ -26,7 +26,7 @@ import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
-import { MatchInfo, Matches, Player, Team } from "./api"
+import { MatchInfo, Matches, Player, PlayerRatingDailyChange, Team } from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -342,6 +342,7 @@ function MatchDateSummary(props: {
   date: string
   count: number
   matches: MatchInfo[]
+  ratingChanges?: PlayerRatingDailyChange[]
 }) {
   const date = new Date(props.date)
   date.setDate(date.getDate() + 2)
@@ -399,6 +400,21 @@ function MatchDateSummary(props: {
               />
             ))
           })()}
+          {(props.ratingChanges ?? []).length > 0 && (
+            <>
+              <Divider orientation="vertical" />
+              {(props.ratingChanges ?? []).map((r) => {
+                const scaled = Math.round(r.delta * 10)
+                const color = scaled >= 0 ? "success.main" : "error.main"
+                const prefix = scaled >= 0 ? "+" : ""
+                return (
+                  <Typography key={r.name} variant="body2" color={color}>
+                    {r.name}: {prefix}{scaled}
+                  </Typography>
+                )
+              })}
+            </>
+          )}
         </>
       )}
     </Stack>
@@ -413,10 +429,18 @@ function DisplayMatchesForDate(props: {
 }) {
   const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0)
   const [matchList, setMatchList] = React.useState<Matches>(empty)
+  const [ratingChanges, setRatingChanges] = React.useState<
+    PlayerRatingDailyChange[]
+  >([])
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
       getMatches(props.date, setMatchList, showError)
+      Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
+        forDate: props.date,
+      })
+        .then(setRatingChanges)
+        .catch(showError)
     }
   }, [expanded, matchList.matches.length, props.date, showError])
 
@@ -424,6 +448,11 @@ function DisplayMatchesForDate(props: {
     (_panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       if (matchList.matches.length === 0) {
         getMatches(props.date, setMatchList, showError)
+        Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
+          forDate: props.date,
+        })
+          .then(setRatingChanges)
+          .catch(showError)
       }
       setExpanded(isExpanded)
     }
@@ -444,6 +473,7 @@ function DisplayMatchesForDate(props: {
             date={date}
             count={props.count}
             matches={matchList.matches}
+            ratingChanges={ratingChanges}
           />
         </AccordionSummary>
         <AccordionDetails>

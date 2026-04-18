@@ -29,11 +29,12 @@ import type {
   Matches,
   PlayerEnum,
   PlayerGameCount,
+  PlayerRatingDailyChange,
   PlayerRatingData,
   PlayerStats,
   ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
-  ResponseReparseBeforeDateApiReparseBeforeDatePostValue,
+  ResponseReparseRecentApiReparseRecentPostValue,
   Superlatives,
   Team,
   TeamStatsResponse,
@@ -70,6 +71,8 @@ import {
     PlayerEnumToJSON,
     PlayerGameCountFromJSON,
     PlayerGameCountToJSON,
+    PlayerRatingDailyChangeFromJSON,
+    PlayerRatingDailyChangeToJSON,
     PlayerRatingDataFromJSON,
     PlayerRatingDataToJSON,
     PlayerStatsFromJSON,
@@ -78,8 +81,8 @@ import {
     ReplayFileSchemaToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
-    ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON,
-    ResponseReparseBeforeDateApiReparseBeforeDatePostValueToJSON,
+    ResponseReparseRecentApiReparseRecentPostValueFromJSON,
+    ResponseReparseRecentApiReparseRecentPostValueToJSON,
     SuperlativesFromJSON,
     SuperlativesToJSON,
     TeamFromJSON,
@@ -154,6 +157,10 @@ export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
 }
 
+export interface GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest {
+    forDate: Date;
+}
+
 export interface GetPlayerRatingsApiPlayerRatingsGetRequest {
     gameFormat?: string | null;
 }
@@ -208,6 +215,10 @@ export interface ReparseBeforeDateApiReparseBeforeDatePostRequest {
 export interface ReparseNonV2ApiReparseNonV2PostRequest {
     maxToUpdate?: number;
     maxConcurrent?: number;
+}
+
+export interface ReparseRecentApiReparseRecentPostRequest {
+    days?: number;
 }
 
 export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest {
@@ -1176,6 +1187,56 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet without sending the request
+     */
+    async getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequestOpts(requestParameters: GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['forDate'] == null) {
+            throw new runtime.RequiredError(
+                'forDate',
+                'Required parameter "forDate" was null or undefined when calling getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['forDate'] != null) {
+            queryParameters['for_date'] = (requestParameters['forDate'] as any).toISOString().substring(0,10);
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_ratings/daily_changes/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return each player\'s ordinal rating change for the given date.
+     * Get Player Rating Daily Changes
+     */
+    async getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRaw(requestParameters: GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerRatingDailyChange>>> {
+        const requestOptions = await this.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerRatingDailyChangeFromJSON));
+    }
+
+    /**
+     * Return each player\'s ordinal rating change for the given date.
+     * Get Player Rating Daily Changes
+     */
+    async getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet(requestParameters: GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerRatingDailyChange>> {
+        const response = await this.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getPlayerRatingsApiPlayerRatingsGet without sending the request
      */
     async getPlayerRatingsApiPlayerRatingsGetRequestOpts(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest): Promise<runtime.RequestOpts> {
@@ -2073,18 +2134,18 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
+    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
         const requestOptions = await this.reparseBeforeDateApiReparseBeforeDatePostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
+    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
         const response = await this.reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -2120,19 +2181,62 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
-    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
+    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
         const requestOptions = await this.reparseNonV2ApiReparseNonV2PostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
-    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
+    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
         const response = await this.reparseNonV2ApiReparseNonV2PostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for reparseRecentApiReparseRecentPost without sending the request
+     */
+    async reparseRecentApiReparseRecentPostRequestOpts(requestParameters: ReparseRecentApiReparseRecentPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['days'] != null) {
+            queryParameters['days'] = requestParameters['days'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/reparse_recent/`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Re-run cncstats on all matches whose game_date is within the last `days` days.
+     * Reparse Recent
+     */
+    async reparseRecentApiReparseRecentPostRaw(requestParameters: ReparseRecentApiReparseRecentPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
+        const requestOptions = await this.reparseRecentApiReparseRecentPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
+    }
+
+    /**
+     * Re-run cncstats on all matches whose game_date is within the last `days` days.
+     * Reparse Recent
+     */
+    async reparseRecentApiReparseRecentPost(requestParameters: ReparseRecentApiReparseRecentPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
+        const response = await this.reparseRecentApiReparseRecentPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

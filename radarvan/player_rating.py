@@ -50,10 +50,25 @@ def get_model() -> PlackettLuce:
 
 
 @dataclass(slots=True)
+class RatingDailyChange:
+    date: date
+    delta: float
+
+
+@dataclass(slots=True)
+class RatingMatchChange:
+    match_id: int
+    delta: float
+    at_date: date
+
+
+@dataclass(slots=True)
 class RatingsAndCounts:
     ratings: list[NamedRating]
     game_counts: dict[str, int]
     over_time: dict[str, list[NamedRating]]
+    daily_changes: dict[str, list[RatingDailyChange]]
+    match_changes: dict[str, list[RatingMatchChange]]
 
 
 class TeamBuildResult(NamedTuple):
@@ -70,6 +85,7 @@ class ProcessGamesResult(NamedTuple):
     players: dict[str, NamedRating]
     game_counts: dict[str, int]
     rating_over_time: dict[str, list[NamedRating]]
+    match_changes: dict[str, list[RatingMatchChange]]
 
 
 def _collect_all_players(games: list[MatchInfo]) -> set[str]:
@@ -142,6 +158,7 @@ def _process_games(
     players = dict(initial_players)
     game_counts = dict.fromkeys(players, 0)
     rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in players}
+    match_changes: dict[str, list[RatingMatchChange]] = {name: [] for name in players}
     for game in sorted(games, key=lambda x: x.timestamp):
         if not game.composition:
             continue
@@ -155,12 +172,27 @@ def _process_games(
         teams, counts = result
         for name, count in counts.items():
             game_counts[name] += count
+        pre_ordinals = {
+            name: players[name].ordinal()
+            for team in teams.values()
+            for name in team
+        }
         updated, history = _update_ratings_for_game(game, teams, players, model)
         players.update(updated)
         for name, entry in history.items():
             rating_over_time[name].append(entry)
+            match_changes[name].append(
+                RatingMatchChange(
+                    match_id=game.id,
+                    delta=entry.ordinal() - pre_ordinals[name],
+                    at_date=game.date,
+                )
+            )
     return ProcessGamesResult(
-        players=players, game_counts=game_counts, rating_over_time=rating_over_time
+        players=players,
+        game_counts=game_counts,
+        rating_over_time=rating_over_time,
+        match_changes=match_changes,
     )
 
 
@@ -183,7 +215,7 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     for i in range(5):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
-        player_ratings, game_counts, rating_over_time = _process_games(
+        player_ratings, game_counts, rating_over_time, match_changes = _process_games(
             filtered_games, min_sigmaed, model
         )
         logger.info(f"Pass {i}")
@@ -198,8 +230,21 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     _log_sorted_ratings(sorted_ratings, game_counts)
 
     over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
+
+    daily_changes: dict[str, list[RatingDailyChange]] = {}
+    for name, changes in match_changes.items():
+        by_date: dict[date, float] = defaultdict(float)
+        for mc in changes:
+            by_date[mc.at_date] += mc.delta
+        daily_changes[name] = [
+            RatingDailyChange(date=d, delta=delta)
+            for d, delta in sorted(by_date.items())
+        ]
+
     return RatingsAndCounts(
         ratings=sorted_ratings,
         game_counts=game_counts,
         over_time=over_time_filtered,
+        daily_changes=daily_changes,
+        match_changes=match_changes,
     )

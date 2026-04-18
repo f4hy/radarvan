@@ -42,6 +42,7 @@ docs/PlayerEnum.md
 docs/PlayerGameCount.md
 docs/PlayerListing.md
 docs/PlayerRateOverTime.md
+docs/PlayerRatingDailyChange.md
 docs/PlayerRatingData.md
 docs/PlayerRatings.md
 docs/PlayerStat.md
@@ -50,7 +51,7 @@ docs/PlayerStats.md
 docs/PlayerSummary.md
 docs/ReplayFileSchema.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
-docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
+docs/ResponseReparseRecentApiReparseRecentPostValue.md
 docs/ShortPlayerRating.md
 docs/Statistic.md
 docs/Superlatives.md
@@ -109,6 +110,7 @@ models/PlayerEnum.ts
 models/PlayerGameCount.ts
 models/PlayerListing.ts
 models/PlayerRateOverTime.ts
+models/PlayerRatingDailyChange.ts
 models/PlayerRatingData.ts
 models/PlayerRatings.ts
 models/PlayerStat.ts
@@ -117,7 +119,7 @@ models/PlayerStats.ts
 models/PlayerSummary.ts
 models/ReplayFileSchema.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
-models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
+models/ResponseReparseRecentApiReparseRecentPostValue.ts
 models/ShortPlayerRating.ts
 models/Statistic.ts
 models/Superlatives.ts
