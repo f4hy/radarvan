@@ -488,6 +488,19 @@ class ReplayManager:
 
         return list(self.session.scalars(stmt).all())
 
+    def list_jsons_since_date(self, since: date) -> list[ParsedReplayJson]:
+        """Return one ParsedReplayJson per match_id where the game_date is on or after `since`."""
+        stmt = (
+            select(ParsedReplayJson)
+            .where(ParsedReplayJson.game_date >= since)
+            .distinct(ParsedReplayJson.match_id)
+            .order_by(
+                ParsedReplayJson.match_id,
+                ParsedReplayJson.num_time_stamps.desc(),
+            )
+        )
+        return list(self.session.scalars(stmt).all())
+
     def list_jsons_parsed_before(
         self, before: date, limit: int
     ) -> list[ParsedReplayJson]:

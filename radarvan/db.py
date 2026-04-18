@@ -123,7 +123,7 @@ class Match(Base):
     winning_team_id: Mapped[int | None] = mapped_column(SmallInteger)
     duration_minutes: Mapped[float] = mapped_column(Float)
     filename: Mapped[str] = mapped_column(String(255))
-    incomplete: Mapped[str | None] = mapped_column(String, default=False)
+    incomplete: Mapped[str | None] = mapped_column(String, default=None)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -189,7 +189,7 @@ class WinnerOverride(Base):
 
     match_id: Mapped[int] = mapped_column(primary_key=True)
     winning_team_id: Mapped[int | None] = mapped_column(SmallInteger)
-    incomplete: Mapped[str | None] = mapped_column(String, default=False)
+    incomplete: Mapped[str | None] = mapped_column(String, default=None)
 
 
 class TournamentReport(Base):

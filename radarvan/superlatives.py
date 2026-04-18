@@ -13,6 +13,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+EXCLUDED_PLAYERS: frozenset[str] = frozenset({"HardArmy"})
+
 
 @dataclass(frozen=True, slots=True)
 class StreakRecord:
@@ -135,6 +137,8 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
         game_date = game.date
         for player in game.players:
             name = resolve_player_name(player.name, player.color)
+            if name in EXCLUDED_PLAYERS:
+                continue
             if player.won:
                 prev = current.get(name)
                 current[name] = (
@@ -232,7 +236,13 @@ def get_first_blood_stats(
     computed_at: date,
 ) -> list[Statistic]:
     """Stats derived from first blood events across all matches."""
-    bloods = [(d, d.first_blood) for d in details if d.first_blood is not None]
+    bloods = [
+        (d, d.first_blood)
+        for d in details
+        if d.first_blood is not None
+        and _resolve_attacker(match_info_by_id, d, d.first_blood.attacker)
+        not in EXCLUDED_PLAYERS
+    ]
     if not bloods:
         return []
 
@@ -307,6 +317,8 @@ def get_building_first_blood_stats(
         (d, d.building_first_blood)
         for d in details
         if d.building_first_blood is not None
+        and _resolve_attacker(match_info_by_id, d, d.building_first_blood.attacker)
+        not in EXCLUDED_PLAYERS
     ]
     if not bfbs:
         return []
@@ -385,6 +397,8 @@ def get_apm_stats(
                 resolved = resolve_player_name(
                     a.player_name, color_map.get(a.player_name, "")
                 )
+                if resolved in EXCLUDED_PLAYERS:
+                    continue
                 if best is None or a.apm > best.apm:
                     best = ApmRecord(player=resolved, apm=a.apm, match_id=d.match_id)
                 prev = player_totals.get(resolved, ApmTotals(0, 0.0, 0))
@@ -560,6 +574,8 @@ def get_efficiency_stats(
             if not ps.won:
                 continue
             name = resolve_player_name(ps.name, ps.color)
+            if name in EXCLUDED_PLAYERS:
+                continue
             best_units = _min_candidate(
                 best_units,
                 ps.units_created_count,
@@ -652,12 +668,17 @@ def get_player_money_stats(
 
         for player_name, amount in d.player_money_collected.items():
             resolved = resolve_player_name(player_name, color_map.get(player_name, ""))
+            if resolved in EXCLUDED_PLAYERS:
+                continue
             player_collected[resolved] += amount
 
         for ps in d.player_summary:
             if ps.money_spent <= 0:
                 continue
-            player_spent[resolve_player_name(ps.name, ps.color)] += ps.money_spent
+            resolved = resolve_player_name(ps.name, ps.color)
+            if resolved in EXCLUDED_PLAYERS:
+                continue
+            player_spent[resolved] += ps.money_spent
 
     MEDALS = ["🥇", "🥈", "🥉"]
     stats: list[Statistic] = []

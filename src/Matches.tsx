@@ -264,7 +264,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     maxWidth: 1600,
     borderRadius: 3,
   }
-  const incomplete = (props.match.incomplete ?? "").length === 0
+  const incomplete = (props.match.incomplete ?? "").length !== 0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
       <ListItem key="match">

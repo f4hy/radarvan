@@ -1,7 +1,7 @@
 from .notify import notify
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date
+from datetime import date, timedelta
 from enum import Enum
 from pydantic import BaseModel
 import asyncio
@@ -476,6 +476,28 @@ def reparse(
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
     return replay
+
+
+@app.post("/api/reparse_recent/", include_in_schema=IS_DEV)
+def reparse_recent(
+    days: int = 3,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int | list[int]]:
+    """Re-run cncstats on all matches whose game_date is within the last `days` days."""
+    since = date.today() - timedelta(days=days)
+    candidates = replay_manager.list_jsons_since_date(since)
+    logger.info(f"reparse_recent: {len(candidates)} candidates since {since}")
+    updated_ids: set[int] = set()
+    for record in candidates:
+        updated = matches.reparse_replay(record.match_id, replay_manager)
+        if updated:
+            replay_manager.compute_and_save_composition(record.match_id)
+            updated_ids.add(updated.id)
+    return {
+        "updated": len(updated_ids),
+        "checked": len(candidates),
+        "updated_ids": list(updated_ids),
+    }
 
 
 @app.post("/api/reparse_before_date/", include_in_schema=IS_DEV)
