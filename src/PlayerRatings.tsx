@@ -21,6 +21,7 @@ import {
   ZAxis,
   AreaChart,
   Area,
+  Line,
 } from "recharts"
 import { PlayerRatingData } from "./api"
 import { Client } from "./Client"
@@ -86,12 +87,23 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
 
   const data = allEntries
     .map(([name, d]) => {
-      const sorted = [...d].sort(
+      // Keep only the last entry per date
+      const byDate = new Map<string, (typeof d)[0]>()
+      for (const entry of d) {
+        byDate.set(String(entry.atdate ?? ""), entry)
+      }
+      const deduped = Array.from(byDate.values())
+      const sorted = [...deduped].sort(
         (a, b) =>
           new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime(),
       )
+      // Compute delta (mu change from previous entry)
+      const withDelta = sorted.map((entry, i) => ({
+        ...entry,
+        delta: i > 0 ? (entry.mu ?? 0) - (sorted[i - 1].mu ?? 0) : null,
+      }))
       const finalMu = sorted[sorted.length - 1]?.mu ?? 0
-      return [name, d, finalMu] as const
+      return [name, withDelta, finalMu] as const
     })
     .sort((a, b) => b[2] - a[2])
 
@@ -113,44 +125,54 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
         ))}
       </ToggleButtonGroup>
       {data.map(([name, d]) => {
-        const sorted = [...d].sort(
-          (a, b) =>
-            new Date(a.atdate ?? 0).getTime() -
-            new Date(b.atdate ?? 0).getTime(),
-        )
-        const last5 = sorted.slice(-20)
+        const last5 = d.slice(-20)
+        const chartData = d
+          .map((x) => ({
+            mu: x.mu,
+            sigma: x.sigma,
+            delta: x.delta,
+            skill: [(x.mu ?? 0) - (x.sigma ?? 0), (x.mu ?? 0) + (x.sigma ?? 0)],
+            atdate: new Date(x.atdate ?? 0).getTime(),
+          }))
+          .filter((x) => x.atdate >= startMs)
         return (
           <Stack key={name}>
             <Typography>{name}</Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-              {last5.map((entry, i) => (
-                <Box key={i} sx={{ textAlign: "center" }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                  >
-                    {"" + entry.atdate}
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
-                  </Typography>
-                </Box>
-              ))}
+              {last5.map((entry, i) => {
+                const isPositive = (entry.delta ?? 0) >= 0
+                return (
+                  <Box key={i} sx={{ textAlign: "center" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                    >
+                      {"" + entry.atdate}
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
+                    </Typography>
+                    {entry.delta != null && (
+                      <Typography
+                        variant="caption"
+                        color={isPositive ? "success.main" : "error.main"}
+                        display="block"
+                      >
+                        {isPositive ? "+" : ""}
+                        {entry.delta.toFixed(1)}
+                      </Typography>
+                    )}
+                  </Box>
+                )
+              })}
             </Stack>
             <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
               <AreaChart
-                data={d
-                  .map((x) => ({
-                    mu: x.mu,
-                    sigma: x.sigma,
-                    skill: [x.mu - x.sigma, x.mu + x.sigma],
-                    atdate: new Date(x.atdate ?? 0).getTime(),
-                  }))
-                  .filter((x) => x.atdate >= startMs)}
+                data={chartData}
                 layout="horizontal"
                 margin={{
-                  top: 5,
+                  top: 20,
                   right: 5,
                   left: isMobile ? 30 : 50,
                   bottom: isMobile ? 35 : 5,
@@ -162,7 +184,37 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                   fill="#42A5F5"
                   connectNulls
                   type="linear"
-                ></Area>
+                />
+                <Line
+                  dataKey="mu"
+                  stroke="none"
+                  dot={(props: {
+                    cx?: number
+                    cy?: number
+                    payload?: { delta?: number | null }
+                  }) => {
+                    const { cx = 0, cy = 0, payload } = props
+                    const delta = payload?.delta
+                    if (delta == null || Math.abs(delta) < 0.05) {
+                      return <g key={`dot-${cx}-${cy}`} />
+                    }
+                    const pos = delta >= 0
+                    const color = pos ? "#4caf50" : "#f44336"
+                    const label = `${pos ? "+" : ""}${delta.toFixed(1)}`
+                    return (
+                      <text
+                        key={`delta-${cx}-${cy}`}
+                        x={cx}
+                        y={cy - 6}
+                        fill={color}
+                        fontSize={10}
+                        textAnchor="middle"
+                      >
+                        {label}
+                      </text>
+                    )
+                  }}
+                />
                 <XAxis
                   dataKey="atdate"
                   type="number"
@@ -190,9 +242,15 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 <Tooltip
                   cursor={false}
                   labelFormatter={(v) => formatDate(v)}
-                  formatter={(v) =>
-                    v != null ? formatSkill(v as [number, number]) : ""
-                  }
+                  formatter={(v, name) => {
+                    if (name === "skill")
+                      return v != null ? formatSkill(v as [number, number]) : ""
+                    if (name === "delta" && v != null) {
+                      const n = v as number
+                      return [`${n >= 0 ? "+" : ""}${n.toFixed(1)}`, "change"]
+                    }
+                    return ""
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
