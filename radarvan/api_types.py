@@ -593,6 +593,7 @@ class PlayerRatings(BaseModel):
     sigma: float
     game_count: int
     atdate: date | None = None
+    recent_delta: float | None = None
 
 
 class ShortPlayerRating(BaseModel):
@@ -608,6 +609,14 @@ class PlayerRatingData(BaseModel):
 
     player_rating: list[PlayerRatings]
     player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
+    player_form: dict[str, list[bool]] = {}
+
+
+class HeadToHead(BaseModel):
+    model_config = _SLOTS_FA
+
+    wins: int
+    losses: int
 
 
 class PlayerRatingDailyChange(BaseModel):

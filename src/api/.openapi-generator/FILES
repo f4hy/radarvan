@@ -19,6 +19,7 @@ docs/GeneralStatPlayerWL.md
 docs/GeneralStats.md
 docs/GeneralWL.md
 docs/HTTPValidationError.md
+docs/HeadToHead.md
 docs/KillEventOutput.md
 docs/LocationInner.md
 docs/MapData.md
@@ -87,6 +88,7 @@ models/GeneralStatPlayerWL.ts
 models/GeneralStats.ts
 models/GeneralWL.ts
 models/HTTPValidationError.ts
+models/HeadToHead.ts
 models/KillEventOutput.ts
 models/LocationInner.ts
 models/MapData.ts

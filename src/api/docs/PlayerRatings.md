@@ -12,6 +12,7 @@ Name | Type
 `sigma` | number
 `gameCount` | number
 `atdate` | Date
+`recentDelta` | number
 
 ## Example
 
@@ -26,6 +27,7 @@ const example = {
   "sigma": null,
   "gameCount": null,
   "atdate": null,
+  "recentDelta": null,
 } satisfies PlayerRatings
 
 console.log(example)

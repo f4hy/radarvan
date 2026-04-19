@@ -18,6 +18,7 @@ export * from './GeneralStatPlayerWL';
 export * from './GeneralStats';
 export * from './GeneralWL';
 export * from './HTTPValidationError';
+export * from './HeadToHead';
 export * from './KillEventOutput';
 export * from './LocationInner';
 export * from './MapData';

@@ -1,8 +1,14 @@
 import Stack from "@mui/material/Stack"
 import Paper from "@mui/material/Paper"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import { Box, Typography, useTheme } from "@mui/material"
+import { Box, Tooltip as MuiTooltip, Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
 import * as React from "react"
@@ -23,7 +29,7 @@ import {
   Area,
   Line,
 } from "recharts"
-import { PlayerRatingData } from "./api"
+import { HeadToHead, PlayerRatingData } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -268,6 +274,226 @@ type RatingEntry = {
   name: string
   ordinal: number
   gameCount: number
+  recentDelta?: number | null
+}
+
+function FormDots(props: { results: boolean[] }) {
+  return (
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      {props.results.map((won, i) => (
+        <Box
+          key={i}
+          sx={{
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            bgcolor: won ? "success.main" : "error.main",
+          }}
+        />
+      ))}
+    </Stack>
+  )
+}
+
+function PlayerLeaderboard(props: {
+  data: RatingEntry[]
+  form: Record<string, boolean[]>
+}) {
+  return (
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>#</TableCell>
+            <TableCell>Player</TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="ordinal × 10">
+                <span>Rating</span>
+              </MuiTooltip>
+            </TableCell>
+            <TableCell>Last 5</TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="Rating change over last 14 days (× 10)">
+                <span>14d trend</span>
+              </MuiTooltip>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {props.data.map((r, i) => {
+            const form = props.form[r.name] ?? []
+            const delta = r.recentDelta ?? 0
+            const scaled = Math.round(delta * 10)
+            const isHot = delta > 0
+            return (
+              <TableRow key={r.name} hover>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell>{r.name}</TableCell>
+                <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                  {Math.round(r.ordinal * 10)}
+                </TableCell>
+                <TableCell>
+                  <FormDots results={form} />
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    color: delta === 0 ? "text.secondary" : isHot ? "success.main" : "error.main",
+                    fontWeight: "bold",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {delta === 0 ? "—" : `${isHot ? "+" : ""}${scaled}`}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+function ConfidenceChart(props: { data: RatingEntry[]; isMobile: boolean }) {
+  const sorted = [...props.data].sort((a, b) => a.sigma - b.sigma)
+  const chartData = sorted.map((r) => ({ name: r.name, sigma: r.sigma }))
+  const leftMargin = props.isMobile ? 30 : 50
+  return (
+    <Stack>
+      <Typography variant="h6">
+        Rating Confidence — lower σ means more established skill
+      </Typography>
+      <ResponsiveContainer width="100%" height={props.isMobile ? 180 : 250}>
+        <BarChart
+          data={chartData}
+          layout="horizontal"
+          margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="5 5" vertical={false} />
+          <Bar dataKey="sigma" fill="#90CAF9" name="Uncertainty (σ)">
+            <LabelList
+              dataKey="sigma"
+              position="top"
+              formatter={(v) => Number(v).toFixed(1)}
+              fontSize={props.isMobile ? 9 : 11}
+            />
+          </Bar>
+          <XAxis dataKey="name" tick={{ fontSize: props.isMobile ? 10 : 13 }} />
+          <YAxis domain={[0, 15]} width={leftMargin} />
+          <Tooltip formatter={(v) => (v as number).toFixed(2)} />
+        </BarChart>
+      </ResponsiveContainer>
+    </Stack>
+  )
+}
+
+function HeadToHeadMatrix(props: { format: GameFormat }) {
+  const [h2h, setH2h] = React.useState<Record<
+    string,
+    Record<string, HeadToHead>
+  > | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    setH2h(null)
+    const params = props.format === "All" ? {} : { gameFormat: props.format }
+    Client.getHeadToHeadApiPlayerRatingsHeadToHeadGet(params)
+      .then(setH2h)
+      .catch(showError)
+  }, [props.format, showError])
+
+  if (!h2h) return <Loading />
+
+  const players = Object.keys(h2h).sort()
+
+  const cellColor = (wins: number, losses: number): string => {
+    const total = wins + losses
+    if (total === 0) return "transparent"
+    const rate = wins / total
+    if (rate > 0.5)
+      return `rgba(76,175,80,${((rate - 0.5) * 2 * 0.6 + 0.15).toFixed(2)})`
+    return `rgba(244,67,54,${((0.5 - rate) * 2 * 0.6 + 0.15).toFixed(2)})`
+  }
+
+  return (
+    <>
+      <Box sx={{ overflowX: "auto" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr>
+              <th style={{ padding: "4px 8px", textAlign: "left" }}>vs →</th>
+              {players.map((p) => (
+                <th
+                  key={p}
+                  style={{
+                    padding: "4px 8px",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {p}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((p1) => (
+              <tr key={p1}>
+                <td style={{ padding: "4px 8px", fontWeight: "bold", whiteSpace: "nowrap" }}>
+                  {p1}
+                </td>
+                {players.map((p2) => {
+                  if (p1 === p2)
+                    return (
+                      <td
+                        key={p2}
+                        style={{
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          background: "#e0e0e0",
+                        }}
+                      >
+                        —
+                      </td>
+                    )
+                  const rec = h2h[p1]?.[p2]
+                  if (!rec)
+                    return (
+                      <td
+                        key={p2}
+                        style={{ padding: "4px 8px", textAlign: "center", color: "#aaa" }}
+                      >
+                        -
+                      </td>
+                    )
+                  return (
+                    <MuiTooltip
+                      key={p2}
+                      title={`${p1} vs ${p2}: ${rec.wins}W-${rec.losses}L`}
+                    >
+                      <td
+                        style={{
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          background: cellColor(rec.wins, rec.losses),
+                          cursor: "default",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {rec.wins}-{rec.losses}
+                      </td>
+                    </MuiTooltip>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Box>
+      {errorSnackbar}
+    </>
+  )
 }
 
 function FormatSelector(props: {
@@ -411,11 +637,17 @@ export default function DisplayPlayerRatings() {
     .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
     .sort((a, b) => b.mu - a.mu)
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
       <FormatSelector format={format} onChange={setFormat} />
-      <Typography variant="h4">Player Ratings (debug only)</Typography>
+      <Typography variant="h4">Player Ratings</Typography>
+      <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />
       <SkillScatterChart data={data} isMobile={isMobile} />
       <GameCountBarChart data={data} isMobile={isMobile} />
+      <ConfidenceChart data={data} isMobile={isMobile} />
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Head-to-Head
+      </Typography>
+      <HeadToHeadMatrix format={format} />
       <RatingsOverTime data={playerRatings} />
       {errorSnackbar}
     </Paper>

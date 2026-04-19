@@ -21,6 +21,7 @@ import type {
   GameRecord,
   GeneralStats,
   HTTPValidationError,
+  HeadToHead,
   MapDataPayload,
   MapStatsResponse,
   MapsByPlayerCount,
@@ -55,6 +56,8 @@ import {
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    HeadToHeadFromJSON,
+    HeadToHeadToJSON,
     MapDataPayloadFromJSON,
     MapDataPayloadToJSON,
     MapStatsResponseFromJSON,
@@ -130,6 +133,10 @@ export interface GetFilesForMatchIdApiFilesForMatchGetRequest {
 }
 
 export interface GetGeneralsStatsApiGeneralstatsGetRequest {
+    gameFormat?: string | null;
+}
+
+export interface GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest {
     gameFormat?: string | null;
 }
 
@@ -743,6 +750,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getGeneralsStatsApiGeneralstatsGet(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
         const response = await this.getGeneralsStatsApiGeneralstatsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getHeadToHeadApiPlayerRatingsHeadToHeadGet without sending the request
+     */
+    async getHeadToHeadApiPlayerRatingsHeadToHeadGetRequestOpts(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_ratings/head_to_head/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Win/loss record for every rated player against every other rated player.
+     * Get Head To Head
+     */
+    async getHeadToHeadApiPlayerRatingsHeadToHeadGetRaw(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: { [key: string]: HeadToHead; }; }>> {
+        const requestOptions = await this.getHeadToHeadApiPlayerRatingsHeadToHeadGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Win/loss record for every rated player against every other rated player.
+     * Get Head To Head
+     */
+    async getHeadToHeadApiPlayerRatingsHeadToHeadGet(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: { [key: string]: HeadToHead; }; }> {
+        const response = await this.getHeadToHeadApiPlayerRatingsHeadToHeadGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -7,6 +7,7 @@ from . import game_composition
 from . import match_details as match_details_module
 from . import superlatives as superlatives_module
 from . import matches as matches_module
+from . import player_rating as player_rating_module
 import logging
 from .notify import notify
 
@@ -51,7 +52,10 @@ async def compute_and_save_superlatives(
         match_ids, db_manager
     )
     logger.info(f"Loaded {len(details)} match details for superlatives.")
-    result = superlatives_module.get_superlatives(competitive, details)
+    ratings_and_counts = player_rating_module.compute_player_ratings(competitive)
+    result = superlatives_module.get_superlatives(
+        competitive, details, ratings_and_counts.daily_changes
+    )
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     duration = datetime.now() - start

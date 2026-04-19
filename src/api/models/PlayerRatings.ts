@@ -55,6 +55,12 @@ export interface PlayerRatings {
      * @memberof PlayerRatings
      */
     atdate?: Date | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PlayerRatings
+     */
+    recentDelta?: number | null;
 }
 
 /**
@@ -85,6 +91,7 @@ export function PlayerRatingsFromJSONTyped(json: any, ignoreDiscriminator: boole
         'sigma': json['sigma'],
         'gameCount': json['game_count'],
         'atdate': json['atdate'] == null ? undefined : (new Date(json['atdate'])),
+        'recentDelta': json['recent_delta'] == null ? undefined : json['recent_delta'],
     };
 }
 
@@ -105,6 +112,7 @@ export function PlayerRatingsToJSONTyped(value?: PlayerRatings | null, ignoreDis
         'sigma': value['sigma'],
         'game_count': value['gameCount'],
         'atdate': value['atdate'] == null ? value['atdate'] : value['atdate'].toISOString().substring(0,10),
+        'recent_delta': value['recentDelta'],
     };
 }
 

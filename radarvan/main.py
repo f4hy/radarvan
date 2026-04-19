@@ -1,5 +1,5 @@
 from .notify import notify
-from collections import Counter
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from enum import Enum
@@ -52,6 +52,7 @@ from radarvan.api_types import (
     PlayerRatings,
     PlayerRatingData,
     PlayerRatingDailyChange,
+    HeadToHead,
     MapDataPayload,
     DraftPlayerRequest,
     DraftRequest,
@@ -689,7 +690,8 @@ async def _do_recompute(
     )
     if stale:
         notify(f"Loaded {len(details)} match details for superlatives recompute")
-    result = superlatives.get_superlatives(game_list, details)
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    result = superlatives.get_superlatives(game_list, details, ratings_and_counts.daily_changes)
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"saved {len(result.stats)} computed statistics")
@@ -1006,7 +1008,14 @@ def get_player_ratings(
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts
 
+    fourteen_days_ago = date.today() - timedelta(days=14)
+
     def convert(rating: player_rating.NamedRating) -> PlayerRatings:
+        recent_delta = sum(
+            c.delta
+            for c in ratings_and_counts.daily_changes.get(rating.name, [])
+            if c.date >= fourteen_days_ago
+        )
         return PlayerRatings(
             name=rating.name,
             ordinal=rating.ordinal(),
@@ -1014,6 +1023,7 @@ def get_player_ratings(
             sigma=rating.sigma,
             atdate=rating.at_date,
             game_count=counts.get(rating.name),
+            recent_delta=recent_delta if recent_delta != 0 else None,
         )
 
     def convert_short(rating: player_rating.NamedRating) -> ShortPlayerRating:
@@ -1023,15 +1033,29 @@ def get_player_ratings(
             atdate=rating.at_date,
         )
 
+    # Last 5 W/L results per player
+    player_results: dict[str, list[bool]] = defaultdict(list)
+    for game in sorted(game_list, key=lambda g: g.timestamp):
+        for p in game.players:
+            if p.team <= 0:
+                continue
+            player_results[player_ids.resolve_player_name(p.name, p.color)].append(p.won)
+    rated_names = {r.name for r in ratings_and_counts.ratings}
+    player_form = {
+        name: results[-5:]
+        for name, results in player_results.items()
+        if name in rated_names
+    }
+
     converted = [convert(r) for r in ratings_and_counts.ratings]
     over_time = {
         name: [convert_short(r) for r in ratings]
         for name, ratings in ratings_and_counts.over_time.items()
     }
-    # logger.info(f"over time data {over_time}")
     return PlayerRatingData(
         player_rating=converted,
         player_rating_overtime=over_time,
+        player_form=player_form,
     )
 
 
@@ -1050,6 +1074,50 @@ def get_player_rating_daily_changes(
                 result.append(PlayerRatingDailyChange(name=name, delta=change.delta))
                 break
     return result
+
+
+@app.get("/api/player_ratings/head_to_head/")
+def get_head_to_head(
+    game_format: str | None = Query(None),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, dict[str, HeadToHead]]:
+    """Win/loss record for every rated player against every other rated player."""
+    games = list(competitive_matches(replay_manager).values())
+    game_list = matches.filter_by_format(games, game_format)
+
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    rated_players = {r.name for r in ratings_and_counts.ratings}
+
+    h2h: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+
+    for game in game_list:
+        teams: dict[int, list[tuple[str, bool]]] = defaultdict(list)
+        for p in game.players:
+            if p.team <= 0:
+                continue
+            name = player_ids.resolve_player_name(p.name, p.color)
+            if name not in rated_players:
+                continue
+            teams[p.team].append((name, p.won))
+
+        team_list = list(teams.values())
+        if len(team_list) != 2:
+            continue
+
+        for name1, won1 in team_list[0]:
+            for name2, _ in team_list[1]:
+                if won1:
+                    h2h[name1][name2][0] += 1
+                    h2h[name2][name1][1] += 1
+                else:
+                    h2h[name1][name2][1] += 1
+                    h2h[name2][name1][0] += 1
+
+    return {
+        name: {opp: HeadToHead(wins=wl[0], losses=wl[1]) for opp, wl in opponents.items()}
+        for name, opponents in h2h.items()
+        if name in rated_players
+    }
 
 
 PlayerEnum = Enum(  # type: ignore[misc]
