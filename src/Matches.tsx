@@ -346,76 +346,86 @@ function MatchDateSummary(props: {
 }) {
   const date = new Date(props.date)
   date.setDate(date.getDate() + 2)
+  const categoryChips =
+    props.matches.length > 0
+      ? Object.entries(
+          _.groupBy(props.matches, (m) =>
+            m.composition?.isFfa ? "FFA" : (m.composition?.category ?? "?"),
+          ),
+        ).map(([cat, ms]) => (
+          <Chip
+            key={cat}
+            label={`${ms.length}× ${cat}`}
+            size="small"
+            variant="outlined"
+          />
+        ))
+      : []
+
+  const wlChips = (() => {
+    if (props.matches.length === 0) return []
+    const wl: Record<string, { w: number; l: number }> = {}
+    for (const m of props.matches) {
+      for (const p of m.players) {
+        if (p.team === Team.NUMBER_MINUS_1) continue
+        if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
+        if (p.won) wl[p.name].w++
+        else wl[p.name].l++
+      }
+    }
+    return Object.entries(wl).map(([name, { w, l }]) => (
+      <Chip
+        key={name}
+        label={`${name}: ${w}-${l}`}
+        size="small"
+        variant="outlined"
+        sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
+      />
+    ))
+  })()
+
+  const ratingItems = (props.ratingChanges ?? []).map((r) => {
+    const scaled = Math.round(r.delta * 10)
+    const color = scaled >= 0 ? "success.main" : "error.main"
+    const prefix = scaled >= 0 ? "+" : ""
+    return (
+      <Typography key={r.name} variant="body2" color={color}>
+        {r.name}: {prefix}
+        {scaled}
+      </Typography>
+    )
+  })
+
   return (
-    <Stack
-      direction="row"
-      spacing={2}
-      alignItems="center"
-      sx={{ flexGrow: 1, flexWrap: "wrap" }}
-    >
-      <Typography fontWeight="bold">
-        {date.toLocaleString("en-US", {
-          weekday: "short",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })}
-      </Typography>
-      <Typography color="text.secondary">
-        {props.count} {props.count === 1 ? "game" : "games"}
-      </Typography>
-      {props.matches.length > 0 && (
-        <>
-          <Divider orientation="vertical" />
-          {Object.entries(
-            _.groupBy(props.matches, (m) =>
-              m.composition?.isFfa ? "FFA" : (m.composition?.category ?? "?"),
-            ),
-          ).map(([cat, ms]) => (
-            <Chip
-              key={cat}
-              label={`${ms.length}× ${cat}`}
-              size="small"
-              variant="outlined"
-            />
-          ))}
-          <Divider orientation="vertical" />
-          {(() => {
-            const wl: Record<string, { w: number; l: number }> = {}
-            for (const m of props.matches) {
-              for (const p of m.players) {
-                if (p.team === Team.NUMBER_MINUS_1) continue
-                if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
-                if (p.won) wl[p.name].w++
-                else wl[p.name].l++
-              }
-            }
-            return Object.entries(wl).map(([name, { w, l }]) => (
-              <Chip
-                key={name}
-                label={`${name}: ${w}-${l}`}
-                size="small"
-                variant="outlined"
-                sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
-              />
-            ))
-          })()}
-          {(props.ratingChanges ?? []).length > 0 && (
-            <>
-              <Divider orientation="vertical" />
-              {(props.ratingChanges ?? []).map((r) => {
-                const scaled = Math.round(r.delta * 10)
-                const color = scaled >= 0 ? "success.main" : "error.main"
-                const prefix = scaled >= 0 ? "+" : ""
-                return (
-                  <Typography key={r.name} variant="body2" color={color}>
-                    {r.name}: {prefix}{scaled}
-                  </Typography>
-                )
-              })}
-            </>
-          )}
-        </>
+    <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
+      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+        <Typography fontWeight="bold">
+          {date.toLocaleString("en-US", {
+            weekday: "short",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })}
+        </Typography>
+        <Typography color="text.secondary">
+          {props.count} {props.count === 1 ? "game" : "games"}
+        </Typography>
+        {categoryChips.length > 0 && (
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            {categoryChips}
+          </Stack>
+        )}
+      </Stack>
+      {(wlChips.length > 0 || ratingItems.length > 0) && (
+        <Stack
+          direction="row"
+          spacing={1}
+          flexWrap="wrap"
+          sx={{ mt: 0.5, display: { xs: "none", sm: "flex" } }}
+        >
+          {wlChips}
+          {ratingItems}
+        </Stack>
       )}
     </Stack>
   )
