@@ -61,6 +61,18 @@ export interface PlayerRatings {
      * @memberof PlayerRatings
      */
     recentDelta?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PlayerRatings
+     */
+    highOrdinal?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PlayerRatings
+     */
+    lowOrdinal?: number | null;
 }
 
 /**
@@ -92,6 +104,8 @@ export function PlayerRatingsFromJSONTyped(json: any, ignoreDiscriminator: boole
         'gameCount': json['game_count'],
         'atdate': json['atdate'] == null ? undefined : (new Date(json['atdate'])),
         'recentDelta': json['recent_delta'] == null ? undefined : json['recent_delta'],
+        'highOrdinal': json['high_ordinal'] == null ? undefined : json['high_ordinal'],
+        'lowOrdinal': json['low_ordinal'] == null ? undefined : json['low_ordinal'],
     };
 }
 
@@ -113,6 +127,8 @@ export function PlayerRatingsToJSONTyped(value?: PlayerRatings | null, ignoreDis
         'game_count': value['gameCount'],
         'atdate': value['atdate'] == null ? value['atdate'] : value['atdate'].toISOString().substring(0,10),
         'recent_delta': value['recentDelta'],
+        'high_ordinal': value['highOrdinal'],
+        'low_ordinal': value['lowOrdinal'],
     };
 }
 

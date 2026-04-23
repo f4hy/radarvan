@@ -275,6 +275,8 @@ type RatingEntry = {
   ordinal: number
   gameCount: number
   recentDelta?: number | null
+  highOrdinal?: number | null
+  lowOrdinal?: number | null
 }
 
 function FormDots(props: { results: boolean[] }) {
@@ -311,7 +313,12 @@ function PlayerLeaderboard(props: {
                 <span>Rating</span>
               </MuiTooltip>
             </TableCell>
-            <TableCell>Last 5</TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="All-time high / low ordinal (× 10)">
+                <span>Range</span>
+              </MuiTooltip>
+            </TableCell>
+            <TableCell>Last 10</TableCell>
             <TableCell align="right">
               <MuiTooltip title="Rating change over last 14 days (× 10)">
                 <span>14d trend</span>
@@ -331,6 +338,14 @@ function PlayerLeaderboard(props: {
                 <TableCell>{r.name}</TableCell>
                 <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
                   {Math.round(r.ordinal * 10)}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontVariantNumeric: "tabular-nums", color: "text.secondary", fontSize: "0.8em" }}
+                >
+                  {r.highOrdinal != null && r.lowOrdinal != null
+                    ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
+                    : "—"}
                 </TableCell>
                 <TableCell>
                   <FormDots results={form} />

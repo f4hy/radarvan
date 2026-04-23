@@ -13,6 +13,8 @@ Name | Type
 `gameCount` | number
 `atdate` | Date
 `recentDelta` | number
+`highOrdinal` | number
+`lowOrdinal` | number
 
 ## Example
 
@@ -28,6 +30,8 @@ const example = {
   "gameCount": null,
   "atdate": null,
   "recentDelta": null,
+  "highOrdinal": null,
+  "lowOrdinal": null,
 } satisfies PlayerRatings
 
 console.log(example)

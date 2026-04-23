@@ -1024,6 +1024,8 @@ def get_player_ratings(
             atdate=rating.at_date,
             game_count=counts.get(rating.name),
             recent_delta=recent_delta if recent_delta != 0 else None,
+            high_ordinal=ratings_and_counts.ordinal_high.get(rating.name),
+            low_ordinal=ratings_and_counts.ordinal_low.get(rating.name),
         )
 
     def convert_short(rating: player_rating.NamedRating) -> ShortPlayerRating:
@@ -1042,7 +1044,7 @@ def get_player_ratings(
             player_results[player_ids.resolve_player_name(p.name, p.color)].append(p.won)
     rated_names = {r.name for r in ratings_and_counts.ratings}
     player_form = {
-        name: results[-5:]
+        name: results[-10:]
         for name, results in player_results.items()
         if name in rated_names
     }

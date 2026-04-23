@@ -1,3 +1,4 @@
+import statistics
 from dataclasses import dataclass
 from typing import NamedTuple
 from cachetools import cached
@@ -69,6 +70,8 @@ class RatingsAndCounts:
     over_time: dict[str, list[NamedRating]]
     daily_changes: dict[str, list[RatingDailyChange]]
     match_changes: dict[str, list[RatingMatchChange]]
+    ordinal_high: dict[str, float]
+    ordinal_low: dict[str, float]
 
 
 class TeamBuildResult(NamedTuple):
@@ -231,6 +234,17 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
 
+    ordinal_high = {
+        name: max(r.ordinal() for r in entries)
+        for name, entries in rating_over_time.items()
+        if entries
+    }
+    ordinal_low = {
+        name: min(r.ordinal() for r in entries)
+        for name, entries in rating_over_time.items()
+        if entries
+    }
+
     daily_changes: dict[str, list[RatingDailyChange]] = {}
     for name, changes in match_changes.items():
         by_date: dict[date, float] = defaultdict(float)
@@ -247,4 +261,6 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
         over_time=over_time_filtered,
         daily_changes=daily_changes,
         match_changes=match_changes,
+        ordinal_high=ordinal_high,
+        ordinal_low=ordinal_low,
     )

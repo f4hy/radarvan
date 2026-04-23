@@ -594,6 +594,8 @@ class PlayerRatings(BaseModel):
     game_count: int
     atdate: date | None = None
     recent_delta: float | None = None
+    high_ordinal: float | None = None
+    low_ordinal: float | None = None
 
 
 class ShortPlayerRating(BaseModel):
