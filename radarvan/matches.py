@@ -194,7 +194,7 @@ def match_to_matchinfo(
         players=players,
         duration_minutes=db_match.duration_minutes,
         filename=db_match.filename,
-        incomplete="" if override is not None else (db_match.incomplete or ""),
+        incomplete=(override.incomplete or "") if override is not None else (db_match.incomplete or ""),
         notes="" if override is not None else (db_match.notes or ""),
         game_version=db_match.game_version,
         composition=comp,

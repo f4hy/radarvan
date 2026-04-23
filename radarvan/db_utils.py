@@ -370,13 +370,15 @@ class ReplayManager:
         overrides = self.session.execute(stmt).scalars().all()
         return {o.match_id: o for o in overrides}
 
-    def set_override(self, match_id: int, winner: int | None) -> WinnerOverride:
-        """Get winner overrides."""
-        logger.info(f"Setting override {match_id} {winner}")
+    def set_override(self, match_id: int, winner: int | None, incomplete: str | None = None) -> WinnerOverride:
+        """Set winner and/or incomplete override for a match."""
+        logger.info(f"Setting override {match_id} {winner} incomplete={incomplete}")
 
+        existing = self.session.get(WinnerOverride, match_id)
         new_override = WinnerOverride(
             match_id=match_id,
-            winning_team_id=winner,
+            winning_team_id=winner if winner is not None else (existing.winning_team_id if existing else None),
+            incomplete=incomplete if incomplete is not None else (existing.incomplete if existing else None),
         )
 
         self.session.merge(new_override)

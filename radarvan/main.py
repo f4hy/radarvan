@@ -741,7 +741,9 @@ def get_overrides(
     overrides = replay_manager.get_overrides()
     return [
         WinnerOverride(
-            match_id=o.match_id, winning_team_id=o.winning_team_id or Team.NONE
+            match_id=o.match_id,
+            winning_team_id=o.winning_team_id or Team.NONE,
+            incomplete=o.incomplete,
         )
         for o in overrides.values()
     ]
@@ -767,15 +769,18 @@ def get_files_for_match_id(
 @app.post("/api/set_override/")
 def set_override(
     match_id: int,
-    winner: Team,
+    winner: Team | None = None,
+    incomplete: str | None = None,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> WinnerOverride:
-    """Set a winner override for a match."""
+    """Set a winner and/or incomplete override for a match. Persists through re-parses."""
     saved = replay_manager.set_override(
-        match_id, winner=winner.value if winner else None
+        match_id, winner=winner.value if winner else None, incomplete=incomplete
     )
     return WinnerOverride(
-        match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
+        match_id=saved.match_id,
+        winning_team_id=saved.winning_team_id or Team.NONE,
+        incomplete=saved.incomplete,
     )
 
 
