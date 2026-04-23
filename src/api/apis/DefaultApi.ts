@@ -251,7 +251,8 @@ export interface ScrapeApiScrapeDaysPostRequest {
 
 export interface SetOverrideApiSetOverridePostRequest {
     matchId: number;
-    winner: Team;
+    winner?: Team | null;
+    incomplete?: string | null;
 }
 
 export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRequest {
@@ -2536,13 +2537,6 @@ export class DefaultApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['winner'] == null) {
-            throw new runtime.RequiredError(
-                'winner',
-                'Required parameter "winner" was null or undefined when calling setOverrideApiSetOverridePost().'
-            );
-        }
-
         const queryParameters: any = {};
 
         if (requestParameters['matchId'] != null) {
@@ -2551,6 +2545,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         if (requestParameters['winner'] != null) {
             queryParameters['winner'] = requestParameters['winner'];
+        }
+
+        if (requestParameters['incomplete'] != null) {
+            queryParameters['incomplete'] = requestParameters['incomplete'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -2567,7 +2565,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a winner override for a match.
+     * Set a winner and/or incomplete override for a match. Persists through re-parses.
      * Set Override
      */
     async setOverrideApiSetOverridePostRaw(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
@@ -2578,7 +2576,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a winner override for a match.
+     * Set a winner and/or incomplete override for a match. Persists through re-parses.
      * Set Override
      */
     async setOverrideApiSetOverridePost(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {

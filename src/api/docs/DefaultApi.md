@@ -3381,11 +3381,11 @@ No authorization required
 
 ## setOverrideApiSetOverridePost
 
-> WinnerOverride setOverrideApiSetOverridePost(matchId, winner)
+> WinnerOverride setOverrideApiSetOverridePost(matchId, winner, incomplete)
 
 Set Override
 
-Set a winner override for a match.
+Set a winner and/or incomplete override for a match. Persists through re-parses.
 
 ### Example
 
@@ -3403,8 +3403,10 @@ async function example() {
   const body = {
     // number
     matchId: 56,
-    // Team
+    // Team (optional)
     winner: ...,
+    // string (optional)
+    incomplete: incomplete_example,
   } satisfies SetOverrideApiSetOverridePostRequest;
 
   try {
@@ -3425,7 +3427,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **matchId** | `number` |  | [Defaults to `undefined`] |
-| **winner** | `Team` |  | [Defaults to `undefined`] [Enum: 0, 1, 2, 3, 4, -1] |
+| **winner** | `Team` |  | [Optional] [Defaults to `undefined`] [Enum: 0, 1, 2, 3, 4, -1] |
+| **incomplete** | `string` |  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
