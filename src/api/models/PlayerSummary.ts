@@ -76,35 +76,35 @@ export interface PlayerSummary {
      */
     upgradesBuilt: { [key: string]: ObjectSummary; };
     /**
-     *
+     * 
      * @type {{ [key: string]: number; }}
      * @memberof PlayerSummary
      */
     powersUsed: { [key: string]: number; };
     /**
-     *
+     * 
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
-    unitsDestroyed: { [key: string]: ObjectSummary; };
+    unitsDestroyed?: { [key: string]: ObjectSummary; };
     /**
-     *
+     * 
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
-    buildingsDestroyed: { [key: string]: ObjectSummary; };
+    buildingsDestroyed?: { [key: string]: ObjectSummary; };
     /**
-     *
+     * 
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
-    unitsLost: { [key: string]: ObjectSummary; };
+    unitsLost?: { [key: string]: ObjectSummary; };
     /**
-     *
+     * 
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
-    buildingsLost: { [key: string]: ObjectSummary; };
+    buildingsLost?: { [key: string]: ObjectSummary; };
 }
 
 /**
@@ -132,7 +132,7 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         return json;
     }
     return {
-
+        
         'name': json['Name'],
         'side': json['Side'],
         'team': json['Team'],
@@ -142,10 +142,10 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'buildingsBuilt': (mapValues(json['BuildingsBuilt'], ObjectSummaryFromJSON)),
         'upgradesBuilt': (mapValues(json['UpgradesBuilt'], ObjectSummaryFromJSON)),
         'powersUsed': json['PowersUsed'],
-        'unitsDestroyed': json['UnitsDestroyed'] != null ? (mapValues(json['UnitsDestroyed'], ObjectSummaryFromJSON)) : {},
-        'buildingsDestroyed': json['BuildingsDestroyed'] != null ? (mapValues(json['BuildingsDestroyed'], ObjectSummaryFromJSON)) : {},
-        'unitsLost': json['UnitsLost'] != null ? (mapValues(json['UnitsLost'], ObjectSummaryFromJSON)) : {},
-        'buildingsLost': json['BuildingsLost'] != null ? (mapValues(json['BuildingsLost'], ObjectSummaryFromJSON)) : {},
+        'unitsDestroyed': json['UnitsDestroyed'] == null ? undefined : (mapValues(json['UnitsDestroyed'], ObjectSummaryFromJSON)),
+        'buildingsDestroyed': json['BuildingsDestroyed'] == null ? undefined : (mapValues(json['BuildingsDestroyed'], ObjectSummaryFromJSON)),
+        'unitsLost': json['UnitsLost'] == null ? undefined : (mapValues(json['UnitsLost'], ObjectSummaryFromJSON)),
+        'buildingsLost': json['BuildingsLost'] == null ? undefined : (mapValues(json['BuildingsLost'], ObjectSummaryFromJSON)),
     };
 }
 
@@ -159,7 +159,7 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
     }
 
     return {
-
+        
         'Name': value['name'],
         'Side': value['side'],
         'Team': value['team'],
@@ -169,10 +169,10 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
         'BuildingsBuilt': (mapValues(value['buildingsBuilt'], ObjectSummaryToJSON)),
         'UpgradesBuilt': (mapValues(value['upgradesBuilt'], ObjectSummaryToJSON)),
         'PowersUsed': value['powersUsed'],
-        'UnitsDestroyed': (mapValues(value['unitsDestroyed'], ObjectSummaryToJSON)),
-        'BuildingsDestroyed': (mapValues(value['buildingsDestroyed'], ObjectSummaryToJSON)),
-        'UnitsLost': (mapValues(value['unitsLost'], ObjectSummaryToJSON)),
-        'BuildingsLost': (mapValues(value['buildingsLost'], ObjectSummaryToJSON)),
+        'UnitsDestroyed': value['unitsDestroyed'] == null ? undefined : (mapValues(value['unitsDestroyed'], ObjectSummaryToJSON)),
+        'BuildingsDestroyed': value['buildingsDestroyed'] == null ? undefined : (mapValues(value['buildingsDestroyed'], ObjectSummaryToJSON)),
+        'UnitsLost': value['unitsLost'] == null ? undefined : (mapValues(value['unitsLost'], ObjectSummaryToJSON)),
+        'BuildingsLost': value['buildingsLost'] == null ? undefined : (mapValues(value['buildingsLost'], ObjectSummaryToJSON)),
     };
 }
 

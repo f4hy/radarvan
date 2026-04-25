@@ -29,7 +29,7 @@ import {
   Area,
   Line,
 } from "recharts"
-import { HeadToHead, PlayerRatingData } from "./api"
+import { HeadToHead, PlayerRatingData, PlayerSkill } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -630,6 +630,90 @@ function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
   )
 }
 
+const WHR_FORMATS = ["All", "2v2", "3v3", "4v4"] as const
+
+function WhrTable() {
+  const [data, setData] = React.useState<Record<
+    string,
+    Partial<Record<(typeof WHR_FORMATS)[number], number>>
+  > | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    Promise.all(
+      WHR_FORMATS.map((f) =>
+        Client.getPlayerSkillsApiPlayerSkillsGet(
+          f === "All" ? {} : { gameFormat: f },
+        ),
+      ),
+    )
+      .then((results) => {
+        const byPlayer: Record<
+          string,
+          Partial<Record<(typeof WHR_FORMATS)[number], number>>
+        > = {}
+        results.forEach((skills: PlayerSkill[], i) => {
+          const fmt = WHR_FORMATS[i]
+          for (const s of skills) {
+            if (!byPlayer[s.name]) byPlayer[s.name] = {}
+            byPlayer[s.name][fmt] = s.skill
+          }
+        })
+        setData(byPlayer)
+      })
+      .catch(showError)
+  }, [showError])
+
+  if (!data) return <Loading />
+
+  const sorted = Object.entries(data).sort(
+    (a, b) => (b[1].All ?? -Infinity) - (a[1].All ?? -Infinity),
+  )
+
+  return (
+    <Stack spacing={1} sx={{ mb: 2 }}>
+      <Typography variant="h5">Whole-History Rating</Typography>
+      <Typography variant="caption" color="text.secondary">
+        Skill in log-odds units (Coulom 2008). Higher = stronger; difference of
+        1.0 ≈ 73% win probability.
+      </Typography>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>#</TableCell>
+              <TableCell>Player</TableCell>
+              {WHR_FORMATS.map((f) => (
+                <TableCell key={f} align="right">
+                  {f}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sorted.map(([name, skills], i) => (
+              <TableRow key={name} hover>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell>{name}</TableCell>
+                {WHR_FORMATS.map((f) => (
+                  <TableCell
+                    key={f}
+                    align="right"
+                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {skills[f] != null ? skills[f]!.toFixed(2) : "—"}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {errorSnackbar}
+    </Stack>
+  )
+}
+
 const emptyPlayerRatingData = { playerRating: [], playerRatingOverTime: {} }
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
@@ -653,6 +737,7 @@ export default function DisplayPlayerRatings() {
     .sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
+      <WhrTable />
       <FormatSelector format={format} onChange={setFormat} />
       <Typography variant="h4">Player Ratings</Typography>
       <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />

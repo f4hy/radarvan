@@ -32,6 +32,7 @@ import type {
   PlayerGameCount,
   PlayerRatingDailyChange,
   PlayerRatingData,
+  PlayerSkill,
   PlayerStats,
   ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
@@ -78,6 +79,8 @@ import {
     PlayerRatingDailyChangeToJSON,
     PlayerRatingDataFromJSON,
     PlayerRatingDataToJSON,
+    PlayerSkillFromJSON,
+    PlayerSkillToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
     ReplayFileSchemaFromJSON,
@@ -172,6 +175,10 @@ export interface GetPlayerRatingsApiPlayerRatingsGetRequest {
     gameFormat?: string | null;
 }
 
+export interface GetPlayerSkillsApiPlayerSkillsGetRequest {
+    gameFormat?: string | null;
+}
+
 export interface GetPlayerStatsApiPlayerstatsGetRequest {
     gameFormat?: string | null;
 }
@@ -261,6 +268,10 @@ export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRe
 
 export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest {
     maxToUpdate?: number;
+}
+
+export interface UploadReplayApiUploadReplayPostRequest {
+    file: Blob;
 }
 
 /**
@@ -1325,6 +1336,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerRatingsApiPlayerRatingsGet(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerRatingData> {
         const response = await this.getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPlayerSkillsApiPlayerSkillsGet without sending the request
+     */
+    async getPlayerSkillsApiPlayerSkillsGetRequestOpts(requestParameters: GetPlayerSkillsApiPlayerSkillsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_skills/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Alternative skill estimate via Whole-History Rating (Coulom 2008).  Each player\'s skill is a function of time (one rating per date played) with a Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes. Returns each player\'s rating at their most recent game, mean-centered across players.
+     * Get Player Skills
+     */
+    async getPlayerSkillsApiPlayerSkillsGetRaw(requestParameters: GetPlayerSkillsApiPlayerSkillsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerSkill>>> {
+        const requestOptions = await this.getPlayerSkillsApiPlayerSkillsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerSkillFromJSON));
+    }
+
+    /**
+     * Alternative skill estimate via Whole-History Rating (Coulom 2008).  Each player\'s skill is a function of time (one rating per date played) with a Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes. Returns each player\'s rating at their most recent game, mean-centered across players.
+     * Get Player Skills
+     */
+    async getPlayerSkillsApiPlayerSkillsGet(requestParameters: GetPlayerSkillsApiPlayerSkillsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerSkill>> {
+        const response = await this.getPlayerSkillsApiPlayerSkillsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -2667,6 +2721,73 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for uploadReplayApiUploadReplayPost without sending the request
+     */
+    async uploadReplayApiUploadReplayPostRequestOpts(requestParameters: UploadReplayApiUploadReplayPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['file'] == null) {
+            throw new runtime.RequiredError(
+                'file',
+                'Required parameter "file" was null or undefined when calling uploadReplayApiUploadReplayPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const consumes: runtime.Consume[] = [
+            { contentType: 'multipart/form-data' },
+        ];
+        // @ts-ignore: canConsumeForm may be unused
+        const canConsumeForm = runtime.canConsumeForm(consumes);
+
+        let formParams: { append(param: string, value: any): any };
+        let useForm = false;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        useForm = canConsumeForm;
+        if (useForm) {
+            formParams = new FormData();
+        } else {
+            formParams = new URLSearchParams();
+        }
+
+        if (requestParameters['file'] != null) {
+            formParams.append('file', requestParameters['file'] as any);
+        }
+
+
+        let urlPath = `/api/upload_replay`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: formParams,
+        };
+    }
+
+    /**
+     * Upload a .rep file, save it to S3, parse it, and return the match info.
+     * Upload Replay
+     */
+    async uploadReplayApiUploadReplayPostRaw(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        const requestOptions = await this.uploadReplayApiUploadReplayPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
+    }
+
+    /**
+     * Upload a .rep file, save it to S3, parse it, and return the match info.
+     * Upload Replay
+     */
+    async uploadReplayApiUploadReplayPost(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
+        const response = await this.uploadReplayApiUploadReplayPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

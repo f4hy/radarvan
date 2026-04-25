@@ -28,6 +28,7 @@ All URIs are relative to *http://localhost*
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
 | [**getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet**](DefaultApi.md#getplayerratingdailychangesapiplayerratingsdailychangesget) | **GET** /api/player_ratings/daily_changes/ | Get Player Rating Daily Changes |
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
+| [**getPlayerSkillsApiPlayerSkillsGet**](DefaultApi.md#getplayerskillsapiplayerskillsget) | **GET** /api/player_skills/ | Get Player Skills |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
 | [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
@@ -58,6 +59,7 @@ All URIs are relative to *http://localhost*
 | [**setOverrideApiSetOverridePost**](DefaultApi.md#setoverrideapisetoverridepost) | **POST** /api/set_override/ | Set Override |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
 | [**updateMatchesMissingDataApiUpdateMatchesMissingDataPost**](DefaultApi.md#updatematchesmissingdataapiupdatematchesmissingdatapost) | **POST** /api/update_matches_missing_data/ | Update Matches Missing Data |
+| [**uploadReplayApiUploadReplayPost**](DefaultApi.md#uploadreplayapiuploadreplaypost) | **POST** /api/upload_replay | Upload Replay |
 
 
 
@@ -1605,6 +1607,74 @@ example().catch(console.error);
 ### Return type
 
 [**PlayerRatingData**](PlayerRatingData.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPlayerSkillsApiPlayerSkillsGet
+
+> Array&lt;PlayerSkill&gt; getPlayerSkillsApiPlayerSkillsGet(gameFormat)
+
+Get Player Skills
+
+Alternative skill estimate via Whole-History Rating (Coulom 2008).  Each player\&#39;s skill is a function of time (one rating per date played) with a Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes. Returns each player\&#39;s rating at their most recent game, mean-centered across players.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerSkillsApiPlayerSkillsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetPlayerSkillsApiPlayerSkillsGetRequest;
+
+  try {
+    const data = await api.getPlayerSkillsApiPlayerSkillsGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;PlayerSkill&gt;**](PlayerSkill.md)
 
 ### Authorization
 
@@ -3573,6 +3643,74 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## uploadReplayApiUploadReplayPost
+
+> MatchInfo uploadReplayApiUploadReplayPost(file)
+
+Upload Replay
+
+Upload a .rep file, save it to S3, parse it, and return the match info.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { UploadReplayApiUploadReplayPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // Blob
+    file: BINARY_DATA_HERE,
+  } satisfies UploadReplayApiUploadReplayPostRequest;
+
+  try {
+    const data = await api.uploadReplayApiUploadReplayPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **file** | `Blob` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MatchInfo**](MatchInfo.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `multipart/form-data`
 - **Accept**: `application/json`
 
 

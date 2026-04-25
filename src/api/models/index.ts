@@ -45,6 +45,7 @@ export * from './PlayerRateOverTime';
 export * from './PlayerRatingDailyChange';
 export * from './PlayerRatingData';
 export * from './PlayerRatings';
+export * from './PlayerSkill';
 export * from './PlayerStat';
 export * from './PlayerStatFactionWL';
 export * from './PlayerStats';
