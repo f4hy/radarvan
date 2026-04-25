@@ -13,24 +13,6 @@ print("!!", constring)
 db_manager = DatabaseManager(constring)
 
 
-def restore_replay_files() -> None:
-    replay_dump_path = Path("./file_dump.json")
-    if not replay_dump_path.exists():
-        return
-    parsed = json.loads(replay_dump_path.read_text())
-    print(f"loaded {len(parsed)} from {replay_dump_path}")
-    with db_manager.SessionLocal() as session:
-        replay_manager = ReplayManager(session, auto_commit=False, notify=False)
-        for r in tqdm(parsed):
-            from_url = r["original_url"]
-            s3_uri = r["s3_uri"]
-            replay_manager.register_replay(
-                from_url,
-                s3_uri,
-            )
-        session.flush()
-        session.commit()
-
 
 def restore_jsons() -> None:
     replay_dump_path = Path("./replay_json_dump.json")
@@ -63,7 +45,6 @@ def setup_database() -> None:
     db_manager.create_all_tables()
     print("created tables")
 
-    restore_replay_files()
     restore_jsons()
     print("Database setup complete!")
 

@@ -142,7 +142,13 @@ class ReplayManager:
         )
         return self.session.scalar(statement)
 
-    def register_replay(self, from_url: str, s3_uri: str) -> ReplayFile:
+    def get_replay_by_hash(self, file_hash: str) -> ReplayFile | None:
+        """Look up a replay file by its SHA-256 hash."""
+        return self.session.scalar(
+            select(ReplayFile).where(ReplayFile.file_hash == file_hash)
+        )
+
+    def register_replay(self, from_url: str, s3_uri: str, file_hash: str) -> ReplayFile:
         """Register a new replay."""
         logger.info(f"Registering {from_url=} {s3_uri=}")
         prefix2 = "https://generals-public.s3.us-east-2.amazonaws.com/reps/"
@@ -161,6 +167,29 @@ class ReplayManager:
             s3_uri=s3_uri,
             source_date=date,
             player_id=player_id,
+            file_hash=file_hash,
+        )
+        self.session.add(replay_file)
+        if self.auto_commit:
+            self.session.flush()
+            self.session.commit()
+        return replay_file
+
+    def register_uploaded_replay(
+        self,
+        original_url: str,
+        s3_uri: str,
+        file_hash: str,
+        source_date: date,
+    ) -> ReplayFile:
+        """Register a replay that was uploaded directly (not fetched from a URL)."""
+        logger.info(f"Registering uploaded replay {original_url=} {s3_uri=}")
+        replay_file = ReplayFile(
+            original_url=original_url,
+            s3_uri=s3_uri,
+            source_date=source_date,
+            player_id="upload",
+            file_hash=file_hash,
         )
         self.session.add(replay_file)
         if self.auto_commit:

@@ -61,6 +61,7 @@ class ReplayFile(Base):
         index=True,
     )
     player_id: Mapped[str] = mapped_column(String, index=True)
+    file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
 
     # Timestamps
     discovered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

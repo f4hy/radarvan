@@ -1,8 +1,10 @@
 """Manual paths for now."""
 
+import hashlib
 import re
 import logging
 import fsspec
+from datetime import date
 from typing import NamedTuple
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from functools import cache
@@ -70,7 +72,7 @@ def save_replay_if_missing(
     with log_time(f"Does not exist, saving {replay_path}", logger):
         raw_data = fsspec.filesystem("http").read_bytes(replay_path)
         fs.write_bytes(save_path, raw_data)
-    replay_manager.register_replay(replay_path, save_path)
+    replay_manager.register_replay(replay_path, save_path, compute_hash(raw_data))
 
 
 def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
@@ -92,10 +94,14 @@ def parse_json(json_path: str) -> EnhancedReplayV2:
 # @cached(cache=LRUCache(maxsize=12))
 @utils.log_duration
 def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
-    replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root).replace(
-        "https://generals-public.s3.us-east-2.amazonaws.com/reps/", s3_root
-    )
-    save_replay_if_missing(path, replay_path, replay_manager)
+    replay_file = replay_manager.get_replay_file(path)
+    if replay_file is not None:
+        replay_path = replay_file.s3_uri
+    else:
+        replay_path = path.replace("https://www.gentool.net/data/zh/", s3_root).replace(
+            "https://generals-public.s3.us-east-2.amazonaws.com/reps/", s3_root
+        )
+        save_replay_if_missing(path, replay_path, replay_manager)
 
     json_path = replay_path.replace(".rep", ".json")
     logger.debug(f"{json_path=} {replay_path=}")
@@ -174,6 +180,41 @@ def reparse_paths(
         parsed_replay=parsed_replay,
     )
     fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
+    return ParsedReplayResult(replay=parsed_replay, json_path=json_path)
+
+
+def compute_hash(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def upload_and_parse(
+    data: bytes, file_hash: str, replay_manager: ReplayManager
+) -> ParsedReplayResult:
+    """Parse raw replay bytes, then persist .rep + .json to S3 and register in DB.
+
+    Parses before any persistence so a parser failure leaves no orphan rows or S3 objects.
+    """
+    original_url = f"upload:{file_hash}"
+    parsed_replay = with_filename(parse_replay_data(data, replay_manager), original_url)
+
+    s3_uri = f"{s3_root}uploads/{file_hash}.rep"
+    json_path = f"{s3_root}uploads/{file_hash}.json"
+    fs = get_fs()
+    fs.write_bytes(s3_uri, data)
+    fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
+
+    replay_manager.register_uploaded_replay(
+        original_url=original_url,
+        s3_uri=s3_uri,
+        file_hash=file_hash,
+        source_date=date.today(),
+    )
+    replay_manager.save_parsed_json(
+        json_s3_uri=json_path,
+        original_replay_file_url=original_url,
+        parsed_replay=parsed_replay,
+    )
+
     return ParsedReplayResult(replay=parsed_replay, json_path=json_path)
 
 

@@ -6,7 +6,7 @@ from enum import Enum
 from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, File, HTTPException, Request, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 import logging
 import os
@@ -571,6 +571,30 @@ async def reparse_non_v2(
         "checked": len(candidates),
         "updated_ids": updated_ids,
     }
+
+
+@app.post("/api/upload_replay")
+def upload_replay(
+    file: UploadFile = File(...),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> MatchInfo:
+    """Upload a .rep file, save it to S3, parse it, and return the match info."""
+    data = file.file.read()
+    file_hash = replay_files.compute_hash(data)
+
+    if replay_manager.get_replay_by_hash(file_hash) is not None:
+        raise HTTPException(status_code=409, detail=f"Replay already uploaded (hash={file_hash})")
+
+    result = replay_files.upload_and_parse(data, file_hash, replay_manager)
+    db_match = matches.replay_to_db_match(result.replay, result.json_path)
+    replay_manager.register_match(db_match)
+    replay_manager.compute_and_save_composition(db_match.match_id)
+    sorted_deduped_matches.cache_clear()
+
+    match_info = matches.match_from_replay(result.replay)
+    if match_info is None:
+        raise HTTPException(status_code=422, detail="Replay is too short or invalid")
+    return match_info
 
 
 @app.post("/api/register_replay_url")

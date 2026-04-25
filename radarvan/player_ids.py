@@ -59,6 +59,8 @@ NAME_MAPPING = {
     "pcap": "pcap",
     "g.c": "pcap",
     "gc": "pcap",
+    "shift": "Shifty",
+    "shifty": "Shifty",
     # "domi": "DoMiNaToR",
     # "-dominator-": "DoMiNaToR",
     # "dominator": "DoMiNaToR",
