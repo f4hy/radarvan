@@ -29,6 +29,7 @@ from . import replay_files
 from . import schedule
 from . import tournament
 from . import player_rating
+from . import player_skill
 from . import superlatives
 from . import create_teams
 from . import draft as draft_module
@@ -52,6 +53,7 @@ from radarvan.api_types import (
     PlayerRatings,
     PlayerRatingData,
     PlayerRatingDailyChange,
+    PlayerSkill,
     HeadToHead,
     MapDataPayload,
     DraftPlayerRequest,
@@ -1088,6 +1090,27 @@ def get_player_ratings(
         player_rating_overtime=over_time,
         player_form=player_form,
     )
+
+
+@app.get("/api/player_skills/")
+def get_player_skills(
+    game_format: str | None = Query(
+        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerSkill]:
+    """Alternative skill estimate via Whole-History Rating (Coulom 2008).
+
+    Each player's skill is a function of time (one rating per date played) with a
+    Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes.
+    Returns each player's rating at their most recent game, mean-centered across players.
+    """
+    games = competitive_matches(replay_manager)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
+    skills = player_skill.compute_player_skills(game_list)
+    return [
+        PlayerSkill(name=s.name, skill=s.skill, game_count=s.game_count) for s in skills
+    ]
 
 
 @app.get("/api/player_ratings/daily_changes/")

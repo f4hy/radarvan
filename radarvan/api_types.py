@@ -618,6 +618,14 @@ class PlayerRatingData(BaseModel):
     player_form: dict[str, list[bool]] = {}
 
 
+class PlayerSkill(BaseModel):
+    model_config = _SLOTS_FA
+
+    name: str
+    skill: float
+    game_count: int
+
+
 class HeadToHead(BaseModel):
     model_config = _SLOTS_FA
 
