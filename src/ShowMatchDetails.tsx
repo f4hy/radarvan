@@ -374,14 +374,14 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
     }
     return last[name]
   }
+  const sumValue = (d: Record<string, { totalSpent: number }>) =>
+    Object.values(d).reduce((acc, o) => acc + o.totalSpent, 0)
   const data: StyledTableRow[] = []
   for (let s of summaries) {
     const valueDestroyed =
-      Object.values(s.unitsDestroyed ?? {}).reduce((acc, o) => acc + o.totalSpent, 0) +
-      Object.values(s.buildingsDestroyed ?? {}).reduce((acc, o) => acc + o.totalSpent, 0)
+      sumValue(s.unitsDestroyed ?? {}) + sumValue(s.buildingsDestroyed ?? {})
     const valueLost =
-      Object.values(s.unitsLostByType ?? {}).reduce((acc, o) => acc + o.totalSpent, 0) +
-      Object.values(s.buildingsLostByType ?? {}).reduce((acc, o) => acc + o.totalSpent, 0)
+      sumValue(s.unitsLost ?? {}) + sumValue(s.buildingsLost ?? {})
     const row = {
       player: s.name,
       team: s.team,

@@ -98,13 +98,13 @@ export interface PlayerSummary {
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
-    unitsLostByType: { [key: string]: ObjectSummary; };
+    unitsLost: { [key: string]: ObjectSummary; };
     /**
      *
      * @type {{ [key: string]: ObjectSummary; }}
      * @memberof PlayerSummary
      */
-    buildingsLostByType: { [key: string]: ObjectSummary; };
+    buildingsLost: { [key: string]: ObjectSummary; };
 }
 
 /**
@@ -144,8 +144,8 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'powersUsed': json['PowersUsed'],
         'unitsDestroyed': json['UnitsDestroyed'] != null ? (mapValues(json['UnitsDestroyed'], ObjectSummaryFromJSON)) : {},
         'buildingsDestroyed': json['BuildingsDestroyed'] != null ? (mapValues(json['BuildingsDestroyed'], ObjectSummaryFromJSON)) : {},
-        'unitsLostByType': json['UnitsLostByType'] != null ? (mapValues(json['UnitsLostByType'], ObjectSummaryFromJSON)) : {},
-        'buildingsLostByType': json['BuildingsLostByType'] != null ? (mapValues(json['BuildingsLostByType'], ObjectSummaryFromJSON)) : {},
+        'unitsLost': json['UnitsLost'] != null ? (mapValues(json['UnitsLost'], ObjectSummaryFromJSON)) : {},
+        'buildingsLost': json['BuildingsLost'] != null ? (mapValues(json['BuildingsLost'], ObjectSummaryFromJSON)) : {},
     };
 }
 
@@ -171,8 +171,8 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
         'PowersUsed': value['powersUsed'],
         'UnitsDestroyed': (mapValues(value['unitsDestroyed'], ObjectSummaryToJSON)),
         'BuildingsDestroyed': (mapValues(value['buildingsDestroyed'], ObjectSummaryToJSON)),
-        'UnitsLostByType': (mapValues(value['unitsLostByType'], ObjectSummaryToJSON)),
-        'BuildingsLostByType': (mapValues(value['buildingsLostByType'], ObjectSummaryToJSON)),
+        'UnitsLost': (mapValues(value['unitsLost'], ObjectSummaryToJSON)),
+        'BuildingsLost': (mapValues(value['buildingsLost'], ObjectSummaryToJSON)),
     };
 }
 
