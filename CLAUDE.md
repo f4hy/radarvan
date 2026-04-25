@@ -21,7 +21,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - Database connection string is read from `DATABASE_URL` environment variable
 
 ### Code Generation
-- `./gen_clinet.sh` - Regenerate TypeScript API client from the running FastAPI server's OpenAPI spec (note: typo in filename — "clinet" not "client"); FastAPI dev server must be running
+- `./gen_client.sh` - Regenerate TypeScript API client from the running FastAPI server's OpenAPI spec; FastAPI dev server must be running
 - Protocol buffers are used for data structures (see `proto/match.proto`)
 - TypeScript types are generated in `src/proto/match.ts` from the proto definitions
 - OpenAPI client code is auto-generated in `src/api/` (DO NOT manually edit files marked with auto-generation warnings)

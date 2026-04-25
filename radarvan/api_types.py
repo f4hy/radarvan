@@ -351,6 +351,10 @@ class PlayerSummary(BaseModel):
     BuildingsBuilt: dict[str, ObjectSummary]
     UpgradesBuilt: dict[str, ObjectSummary]
     PowersUsed: dict[str, int]
+    UnitsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
+    BuildingsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
+    UnitsLostByType: dict[str, ObjectSummary] = Field(default_factory=dict)
+    BuildingsLostByType: dict[str, ObjectSummary] = Field(default_factory=dict)
 
 
 class FirstBlood(BaseModel):

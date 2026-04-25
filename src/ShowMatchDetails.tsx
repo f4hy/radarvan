@@ -288,6 +288,8 @@ interface StyledTableRow {
   faction_buildings_captured: number | null
   moneySpent: number | null
   moneyCollected: number | null
+  valueDestroyed: number
+  valueLost: number
 }
 
 function renderCash(value: number | null | undefined): string {
@@ -325,8 +327,8 @@ const columns: Array<{
   { key: "buildingsLost", label: "🏢 Lost" },
   { key: "unitsKilled", label: "🛻 Killed" },
   { key: "buildingsKilled", label: "🏢 Killed" },
-  { key: "tech_buildings_captured", label: "Tech Buildings Captured" },
-  { key: "faction_buildings_captured", label: "Faction Buildings Captured" },
+  { key: "tech_buildings_captured", label: "⭐ 🚩" },
+  { key: "faction_buildings_captured", label: "🏢 🚩" },
   {
     key: "moneySpent",
     label: "$ Spent",
@@ -338,6 +340,18 @@ const columns: Array<{
     label: "$ Collected",
     align: "right",
     render: (v) => renderCash(v as number | null),
+  },
+  {
+    key: "valueDestroyed",
+    label: "$ Destroyed",
+    align: "right",
+    render: (v) => renderCash(v as number),
+  },
+  {
+    key: "valueLost",
+    label: "$ Lost",
+    align: "right",
+    render: (v) => renderCash(v as number),
   },
 ]
 
@@ -362,6 +376,12 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   }
   const data: StyledTableRow[] = []
   for (let s of summaries) {
+    const valueDestroyed =
+      Object.values(s.unitsDestroyed ?? {}).reduce((acc, o) => acc + o.totalSpent, 0) +
+      Object.values(s.buildingsDestroyed ?? {}).reduce((acc, o) => acc + o.totalSpent, 0)
+    const valueLost =
+      Object.values(s.unitsLostByType ?? {}).reduce((acc, o) => acc + o.totalSpent, 0) +
+      Object.values(s.buildingsLostByType ?? {}).reduce((acc, o) => acc + o.totalSpent, 0)
     const row = {
       player: s.name,
       team: s.team,
@@ -385,6 +405,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
         "faction_buildings_captured",
         s.name,
       ),
+      valueDestroyed,
+      valueLost,
     }
     data.push(row)
   }
@@ -393,7 +415,17 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
 
   return (
     <TableContainer component={Paper}>
-      <Table stickyHeader>
+      <Table
+        stickyHeader
+        size="small"
+        sx={{
+          "& .MuiTableCell-root": {
+            px: 1,
+            whiteSpace: "nowrap",
+            fontSize: "0.75rem",
+          },
+        }}
+      >
         <TableHead>
           <TableRow>
             {columns.map((column) => (
@@ -595,7 +627,10 @@ function DetailViewSelector(props: {
       <Divider />
       <Typography>{props.selectedDisplay}</Typography>
       {props.selectedDisplay === "Player Unit and spending breakdown" && (
-        <ShowPlayerSummaries playerSummaries={props.details.playerSummary} />
+        <ShowPlayerSummaries
+          playerSummaries={props.details.playerSummary}
+          killEvents={props.details.killEvents ?? []}
+        />
       )}
       {props.selectedDisplay === "Event Chart" && (
         <EventChart

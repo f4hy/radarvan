@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Stack from "@mui/material/Stack"
 import ToggleButton from "@mui/material/ToggleButton"
@@ -13,7 +14,7 @@ import {
   YAxis,
   Sankey,
 } from "recharts"
-import { ObjectSummary, PlayerSummary } from "./api"
+import { KillEventOutput, ObjectSummary, PlayerSummary } from "./api"
 
 function removeUnitPrefix(s: string): string {
   return s
@@ -111,6 +112,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   Units: "#4e79a7",
   Buildings: "#e15759",
   Upgrades: "#f28e2b",
+  "Units Destroyed": "#9467bd",
+  "Buildings Destroyed": "#bcbd22",
+  "Units Lost": "#d62728",
+  "Buildings Lost": "#8c564b",
 }
 
 type SankeyLinkProps = {
@@ -221,6 +226,42 @@ function SankeyNode({
   )
 }
 
+function buildPlayerDestroyedSankeyData(sum: PlayerSummary) {
+  const nodeNames: string[] = []
+  const nodeIdx = new Map<string, number>()
+  const links: { source: number; target: number; value: number }[] = []
+
+  function addNode(name: string): number {
+    if (!nodeIdx.has(name)) {
+      nodeIdx.set(name, nodeNames.length)
+      nodeNames.push(name)
+    }
+    return nodeIdx.get(name)!
+  }
+
+  const playerIdx = addNode(sum.name)
+  const categories = [
+    { label: "Units Destroyed", items: sum.unitsDestroyed ?? {} },
+    { label: "Buildings Destroyed", items: sum.buildingsDestroyed ?? {} },
+  ]
+  for (const { label, items } of categories) {
+    const catTotal = Object.values(items).reduce((s, x) => s + x.totalSpent, 0)
+    if (catTotal === 0) continue
+    const catIdx = addNode(label)
+    links.push({ source: playerIdx, target: catIdx, value: catTotal })
+    for (const [name, obj] of Object.entries(items)) {
+      if (obj.totalSpent <= 0) continue
+      links.push({
+        source: catIdx,
+        target: addNode(name),
+        value: obj.totalSpent,
+      })
+    }
+  }
+
+  return { nodes: nodeNames.map((name) => ({ name })), links }
+}
+
 function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
   const { nodes, links } = React.useMemo(
     () => buildPlayerSankeyData(props.playerSummary),
@@ -251,14 +292,245 @@ function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
   )
 }
 
-function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
+function PlayerDestroyedSankey(props: { playerSummary: PlayerSummary }) {
+  const { nodes, links } = React.useMemo(
+    () => buildPlayerDestroyedSankeyData(props.playerSummary),
+    [props.playerSummary],
+  )
+  if (links.length === 0)
+    return <div>Value destroyed data unavailable for this replay</div>
+  const height = Math.max(400, nodes.length * 18)
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <Sankey
+        data={{ nodes, links }}
+        nodePadding={10}
+        margin={{ left: 100, right: 200 }}
+        nodeWidth={15}
+        iterations={32}
+        node={<SankeyNode />}
+        link={<SankeyLink />}
+        linkCurvature={0.7}
+      >
+        <Tooltip
+          formatter={(value: number | undefined) =>
+            `$${(value ?? 0).toLocaleString("en-US")}`
+          }
+        />
+      </Sankey>
+    </ResponsiveContainer>
+  )
+}
+
+function buildPlayerLossesSankeyData(sum: PlayerSummary) {
+  const nodeNames: string[] = []
+  const nodeIdx = new Map<string, number>()
+  const links: { source: number; target: number; value: number }[] = []
+
+  function addNode(name: string): number {
+    if (!nodeIdx.has(name)) {
+      nodeIdx.set(name, nodeNames.length)
+      nodeNames.push(name)
+    }
+    return nodeIdx.get(name)!
+  }
+
+  const playerIdx = addNode(sum.name)
+  const categories = [
+    { label: "Units Lost", items: sum.unitsLostByType ?? {} },
+    { label: "Buildings Lost", items: sum.buildingsLostByType ?? {} },
+  ]
+  for (const { label, items } of categories) {
+    const catTotal = Object.values(items).reduce((s, x) => s + x.totalSpent, 0)
+    if (catTotal === 0) continue
+    const catIdx = addNode(label)
+    links.push({ source: playerIdx, target: catIdx, value: catTotal })
+    for (const [name, obj] of Object.entries(items)) {
+      if (obj.totalSpent <= 0) continue
+      links.push({ source: catIdx, target: addNode(name), value: obj.totalSpent })
+    }
+  }
+
+  return { nodes: nodeNames.map((name) => ({ name })), links }
+}
+
+function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
+  const { nodes, links } = React.useMemo(
+    () => buildPlayerLossesSankeyData(props.playerSummary),
+    [props.playerSummary],
+  )
+  if (links.length === 0)
+    return <div>Losses data unavailable for this replay</div>
+  const height = Math.max(400, nodes.length * 18)
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <Sankey
+        data={{ nodes, links }}
+        nodePadding={10}
+        margin={{ left: 100, right: 200 }}
+        nodeWidth={15}
+        iterations={32}
+        node={<SankeyNode />}
+        link={<SankeyLink />}
+        linkCurvature={0.7}
+      >
+        <Tooltip
+          formatter={(value: number | undefined) =>
+            `$${(value ?? 0).toLocaleString("en-US")}`
+          }
+        />
+      </Sankey>
+    </ResponsiveContainer>
+  )
+}
+
+function buildPlayerKillSourceSankeyData(
+  playerName: string,
+  killEvents: KillEventOutput[],
+) {
+  // Player → DamageType → VictimUnit (count-based)
+  const byDamageType: Record<string, Record<string, number>> = {}
+  for (const ev of killEvents) {
+    if (ev.killerPlayer !== playerName) continue
+    if (!byDamageType[ev.damageType]) byDamageType[ev.damageType] = {}
+    byDamageType[ev.damageType][ev.victim] =
+      (byDamageType[ev.damageType][ev.victim] ?? 0) + 1
+  }
+
+  const nodeNames: string[] = []
+  const nodeIdx = new Map<string, number>()
+  const links: { source: number; target: number; value: number }[] = []
+
+  function addNode(name: string): number {
+    if (!nodeIdx.has(name)) {
+      nodeIdx.set(name, nodeNames.length)
+      nodeNames.push(name)
+    }
+    return nodeIdx.get(name)!
+  }
+
+  const playerIdx = addNode(playerName)
+  for (const [damageType, victims] of Object.entries(byDamageType)) {
+    const total = Object.values(victims).reduce((s, n) => s + n, 0)
+    if (total === 0) continue
+    const dtIdx = addNode(damageType)
+    links.push({ source: playerIdx, target: dtIdx, value: total })
+    for (const [victim, count] of Object.entries(victims)) {
+      links.push({ source: dtIdx, target: addNode(victim), value: count })
+    }
+  }
+
+  return { nodes: nodeNames.map((name) => ({ name })), links }
+}
+
+function PlayerKillSourceSankey(props: {
+  playerSummary: PlayerSummary
+  killEvents: KillEventOutput[]
+}) {
+  const { nodes, links } = React.useMemo(
+    () =>
+      buildPlayerKillSourceSankeyData(
+        props.playerSummary.name,
+        props.killEvents,
+      ),
+    [props.playerSummary.name, props.killEvents],
+  )
+  if (links.length === 0)
+    return <div>Kill source data unavailable for this replay</div>
+  const height = Math.max(400, nodes.length * 18)
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <Sankey
+        data={{ nodes, links }}
+        nodePadding={10}
+        margin={{ left: 100, right: 200 }}
+        nodeWidth={15}
+        iterations={32}
+        node={<SankeyNode />}
+        link={<SankeyLink />}
+        linkCurvature={0.7}
+      >
+        <Tooltip />
+      </Sankey>
+    </ResponsiveContainer>
+  )
+}
+
+function buildPlayerPowersSankeyData(sum: PlayerSummary) {
+  const nodeNames: string[] = []
+  const nodeIdx = new Map<string, number>()
+  const links: { source: number; target: number; value: number }[] = []
+
+  function addNode(name: string): number {
+    if (!nodeIdx.has(name)) {
+      nodeIdx.set(name, nodeNames.length)
+      nodeNames.push(name)
+    }
+    return nodeIdx.get(name)!
+  }
+
+  const playerIdx = addNode(sum.name)
+  for (const [power, count] of Object.entries(sum.powersUsed)) {
+    if (count <= 0) continue
+    links.push({ source: playerIdx, target: addNode(power), value: count })
+  }
+
+  return { nodes: nodeNames.map((name) => ({ name })), links }
+}
+
+function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
+  const { nodes, links } = React.useMemo(
+    () => buildPlayerPowersSankeyData(props.playerSummary),
+    [props.playerSummary],
+  )
+  if (links.length === 0) return <div>No powers used data</div>
+  const height = Math.max(300, nodes.length * 18)
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <Sankey
+        data={{ nodes, links }}
+        nodePadding={10}
+        margin={{ left: 100, right: 200 }}
+        nodeWidth={15}
+        iterations={32}
+        node={<SankeyNode />}
+        link={<SankeyLink />}
+        linkCurvature={0.7}
+      >
+        <Tooltip />
+      </Sankey>
+    </ResponsiveContainer>
+  )
+}
+
+function ShowPlayerSummary(props: {
+  playerSummary: PlayerSummary
+  killEvents: KillEventOutput[]
+}) {
   const sum = props.playerSummary
   if (sum?.name === undefined) {
     return <Typography>No player summaries</Typography>
   }
   return (
     <Stack>
-      <PlayerSpendingSankey playerSummary={sum} />
+      <Stack spacing={2}>
+        <Box>
+          <Typography variant="h6">Spending Breakdown</Typography>
+          <PlayerSpendingSankey playerSummary={sum} />
+        </Box>
+        <Box>
+          <Typography variant="h6">Value Destroyed</Typography>
+          <PlayerDestroyedSankey playerSummary={sum} />
+        </Box>
+        <Box>
+          <Typography variant="h6">Losses</Typography>
+          <PlayerLossesSankey playerSummary={sum} />
+        </Box>
+        <Box>
+          <Typography variant="h6">Powers Used</Typography>
+          <PlayerPowersSankey playerSummary={sum} />
+        </Box>
+      </Stack>
       <Typography>
         {sum?.name} | {sum?.side} | Team={sum?.team} | Color={sum.color}
       </Typography>
@@ -274,20 +546,13 @@ function ShowPlayerSummary(props: { playerSummary: PlayerSummary }) {
       />
       <Divider />
       <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
-      <Divider />
-      {Object.entries(props.playerSummary.powersUsed).map(([name, count]) => {
-        return (
-          <Typography key={name}>
-            {"Powers Used: " + name + " " + count}
-          </Typography>
-        )
-      })}
     </Stack>
   )
 }
 
 export default function ShowPlayerSummaries(props: {
   playerSummaries: PlayerSummary[]
+  killEvents: KillEventOutput[]
 }) {
   const [selectedPlayer, setSelectedPlayer] = React.useState<number>(0)
   const handleClick = (
@@ -316,6 +581,7 @@ export default function ShowPlayerSummaries(props: {
     selectedPlayer !== undefined ? (
       <ShowPlayerSummary
         playerSummary={props.playerSummaries[selectedPlayer]}
+        killEvents={props.killEvents}
       />
     ) : (
       <></>

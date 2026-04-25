@@ -76,11 +76,35 @@ export interface PlayerSummary {
      */
     upgradesBuilt: { [key: string]: ObjectSummary; };
     /**
-     * 
+     *
      * @type {{ [key: string]: number; }}
      * @memberof PlayerSummary
      */
     powersUsed: { [key: string]: number; };
+    /**
+     *
+     * @type {{ [key: string]: ObjectSummary; }}
+     * @memberof PlayerSummary
+     */
+    unitsDestroyed: { [key: string]: ObjectSummary; };
+    /**
+     *
+     * @type {{ [key: string]: ObjectSummary; }}
+     * @memberof PlayerSummary
+     */
+    buildingsDestroyed: { [key: string]: ObjectSummary; };
+    /**
+     *
+     * @type {{ [key: string]: ObjectSummary; }}
+     * @memberof PlayerSummary
+     */
+    unitsLostByType: { [key: string]: ObjectSummary; };
+    /**
+     *
+     * @type {{ [key: string]: ObjectSummary; }}
+     * @memberof PlayerSummary
+     */
+    buildingsLostByType: { [key: string]: ObjectSummary; };
 }
 
 /**
@@ -108,7 +132,7 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         return json;
     }
     return {
-        
+
         'name': json['Name'],
         'side': json['Side'],
         'team': json['Team'],
@@ -118,6 +142,10 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'buildingsBuilt': (mapValues(json['BuildingsBuilt'], ObjectSummaryFromJSON)),
         'upgradesBuilt': (mapValues(json['UpgradesBuilt'], ObjectSummaryFromJSON)),
         'powersUsed': json['PowersUsed'],
+        'unitsDestroyed': json['UnitsDestroyed'] != null ? (mapValues(json['UnitsDestroyed'], ObjectSummaryFromJSON)) : {},
+        'buildingsDestroyed': json['BuildingsDestroyed'] != null ? (mapValues(json['BuildingsDestroyed'], ObjectSummaryFromJSON)) : {},
+        'unitsLostByType': json['UnitsLostByType'] != null ? (mapValues(json['UnitsLostByType'], ObjectSummaryFromJSON)) : {},
+        'buildingsLostByType': json['BuildingsLostByType'] != null ? (mapValues(json['BuildingsLostByType'], ObjectSummaryFromJSON)) : {},
     };
 }
 
@@ -131,7 +159,7 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
     }
 
     return {
-        
+
         'Name': value['name'],
         'Side': value['side'],
         'Team': value['team'],
@@ -141,6 +169,10 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
         'BuildingsBuilt': (mapValues(value['buildingsBuilt'], ObjectSummaryToJSON)),
         'UpgradesBuilt': (mapValues(value['upgradesBuilt'], ObjectSummaryToJSON)),
         'PowersUsed': value['powersUsed'],
+        'UnitsDestroyed': (mapValues(value['unitsDestroyed'], ObjectSummaryToJSON)),
+        'BuildingsDestroyed': (mapValues(value['buildingsDestroyed'], ObjectSummaryToJSON)),
+        'UnitsLostByType': (mapValues(value['unitsLostByType'], ObjectSummaryToJSON)),
+        'BuildingsLostByType': (mapValues(value['buildingsLostByType'], ObjectSummaryToJSON)),
     };
 }
 
