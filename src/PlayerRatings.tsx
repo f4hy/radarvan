@@ -274,13 +274,31 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
 type RatingEntry = {
   mu: number
   sigma: number
-  variance: number
   name: string
   ordinal: number
   gameCount: number
-  recentDelta?: number | null
+  recentDeltas?: { [key: string]: number }
   highOrdinal?: number | null
   lowOrdinal?: number | null
+}
+
+
+function DeltaCell(props: { delta: number | null | undefined }) {
+  const delta = props.delta ?? 0
+  const scaled = Math.round(delta * 10)
+  const isHot = delta > 0
+  return (
+    <TableCell
+      align="right"
+      sx={{
+        color: delta === 0 ? "text.secondary" : isHot ? "success.main" : "error.main",
+        fontWeight: "bold",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {delta === 0 ? "—" : `${isHot ? "+" : ""}${scaled}`}
+    </TableCell>
+  )
 }
 
 function FormDots(props: { results: boolean[] }) {
@@ -332,45 +350,30 @@ function PlayerLeaderboard(props: {
           </TableRow>
         </TableHead>
         <TableBody>
-          {props.data.map((r, i) => {
-            const form = props.form[r.name] ?? []
-            const delta = r.recentDelta ?? 0
-            const scaled = Math.round(delta * 10)
-            const isHot = delta > 0
-            return (
-              <TableRow key={r.name} hover>
-                <TableCell>{i + 1}</TableCell>
-                <TableCell>{r.name}</TableCell>
-                <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {Math.round(r.ordinal * 10)}
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ fontVariantNumeric: "tabular-nums", color: "text.secondary", fontSize: "0.8em" }}
-                >
-                  {r.highOrdinal != null && r.lowOrdinal != null
-                    ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
-                    : "—"}
-                </TableCell>
-                <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {r.gameCount}
-                </TableCell>
-                <TableCell>
-                  <FormDots results={form} />
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    color: delta === 0 ? "text.secondary" : isHot ? "success.main" : "error.main",
-                    fontWeight: "bold",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {delta === 0 ? "—" : `${isHot ? "+" : ""}${scaled}`}
-                </TableCell>
-              </TableRow>
-            )
-          })}
+          {props.data.map((r, i) => (
+            <TableRow key={r.name} hover>
+              <TableCell>{i + 1}</TableCell>
+              <TableCell>{r.name}</TableCell>
+              <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                {Math.round(r.ordinal * 10)}
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums", color: "text.secondary", fontSize: "0.8em" }}
+              >
+                {r.highOrdinal != null && r.lowOrdinal != null
+                  ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
+                  : "—"}
+              </TableCell>
+              <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                {r.gameCount}
+              </TableCell>
+              <TableCell>
+                <FormDots results={props.form[r.name] ?? []} />
+              </TableCell>
+              <DeltaCell delta={r.recentDeltas?.[14]} />
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </TableContainer>
@@ -701,10 +704,13 @@ export function DisplayPlayerRatingTrend() {
 
   if (!playerRatings) return <Loading />
 
-  const data = [...playerRatings.playerRating]
-    .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
-    .sort((a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0))
+  const data = [...playerRatings.playerRating].sort(
+    (a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0),
+  )
   const form = playerRatings.playerForm ?? {}
+  const trendDays = Array.from(
+    new Set(data.flatMap((r) => Object.keys(r.recentDeltas ?? {}).map(Number))),
+  ).sort((a, b) => a - b)
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 800, p: 1 }}>
@@ -717,60 +723,31 @@ export function DisplayPlayerRatingTrend() {
               <TableCell>Player</TableCell>
               <TableCell align="right">Games</TableCell>
               <TableCell>Last 10 team game results</TableCell>
-              <TableCell align="right">
-                <MuiTooltip title="Rating change over last 7 days (× 10)">
-                  <span>7d</span>
-                </MuiTooltip>
-              </TableCell>
-              <TableCell align="right">
-                <MuiTooltip title="Rating change over last 14 days (× 10)">
-                  <span>14d</span>
-                </MuiTooltip>
-              </TableCell>
-              <TableCell align="right">
-                <MuiTooltip title="Rating change over last 30 days (× 10)">
-                  <span>30d</span>
-                </MuiTooltip>
-              </TableCell>
+              {trendDays.map((d) => (
+                <TableCell key={d} align="right">
+                  <MuiTooltip title={`Rating change over last ${d} days (× 10)`}>
+                    <span>{d}d</span>
+                  </MuiTooltip>
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.map((r, i) => {
-              const deltas: [number, string][] = [
-                [r.delta7d ?? 0, "7d"],
-                [r.recentDelta ?? 0, "14d"],
-                [r.delta30d ?? 0, "30d"],
-              ]
-              return (
-                <TableRow key={r.name} hover>
-                  <TableCell>{i + 1}</TableCell>
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                    {r.gameCount}
-                  </TableCell>
-                  <TableCell>
-                    <FormDots results={form[r.name] ?? []} />
-                  </TableCell>
-                  {deltas.map(([delta, label]) => {
-                    const scaled = Math.round(delta * 10)
-                    const isHot = delta > 0
-                    return (
-                      <TableCell
-                        key={label}
-                        align="right"
-                        sx={{
-                          color: delta === 0 ? "text.secondary" : isHot ? "success.main" : "error.main",
-                          fontWeight: "bold",
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        {delta === 0 ? "—" : `${isHot ? "+" : ""}${scaled}`}
-                      </TableCell>
-                    )
-                  })}
-                </TableRow>
-              )
-            })}
+            {data.map((r, i) => (
+              <TableRow key={r.name} hover>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell>{r.name}</TableCell>
+                <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                  {r.gameCount}
+                </TableCell>
+                <TableCell>
+                  <FormDots results={form[r.name] ?? []} />
+                </TableCell>
+                {trendDays.map((d) => (
+                  <DeltaCell key={d} delta={r.recentDeltas?.[d]} />
+                ))}
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
@@ -797,9 +774,7 @@ export default function DisplayPlayerRatings() {
   if (playerRatings.playerRating.length === 0) {
     return <Loading />
   }
-  const data = playerRatings.playerRating
-    .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
-    .sort((a, b) => b.mu - a.mu)
+  const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
       <Accordion disableGutters defaultExpanded={false} TransitionProps={{ unmountOnExit: true }}>

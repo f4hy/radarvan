@@ -1045,10 +1045,14 @@ def get_player_ratings(
     thirty_days_ago = today - timedelta(days=30)
 
     def convert(rating: player_rating.NamedRating) -> PlayerRatings:
-        changes = ratings_and_counts.daily_changes.get(rating.name, [])
-        delta_7d = sum(c.delta for c in changes if c.date >= seven_days_ago)
-        delta_14d = sum(c.delta for c in changes if c.date >= fourteen_days_ago)
-        delta_30d = sum(c.delta for c in changes if c.date >= thirty_days_ago)
+        deltas: dict[int, float] = {7: 0.0, 14: 0.0, 30: 0.0}
+        for c in ratings_and_counts.daily_changes.get(rating.name, []):
+            if c.date >= thirty_days_ago:
+                deltas[30] += c.delta
+                if c.date >= fourteen_days_ago:
+                    deltas[14] += c.delta
+                    if c.date >= seven_days_ago:
+                        deltas[7] += c.delta
         return PlayerRatings(
             name=rating.name,
             ordinal=rating.ordinal(),
@@ -1056,9 +1060,7 @@ def get_player_ratings(
             sigma=rating.sigma,
             atdate=rating.at_date,
             game_count=counts.get(rating.name),
-            recent_delta=delta_14d if delta_14d != 0 else None,
-            delta_7d=delta_7d if delta_7d != 0 else None,
-            delta_30d=delta_30d if delta_30d != 0 else None,
+            recent_deltas={k: v for k, v in deltas.items() if v != 0},
             high_ordinal=ratings_and_counts.ordinal_high.get(rating.name),
             low_ordinal=ratings_and_counts.ordinal_low.get(rating.name),
         )
