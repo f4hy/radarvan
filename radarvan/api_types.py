@@ -598,6 +598,8 @@ class PlayerRatings(BaseModel):
     game_count: int
     atdate: date | None = None
     recent_delta: float | None = None
+    delta_7d: float | None = None
+    delta_30d: float | None = None
     high_ordinal: float | None = None
     low_ordinal: float | None = None
 

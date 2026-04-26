@@ -66,6 +66,18 @@ export interface PlayerRatings {
      * @type {number}
      * @memberof PlayerRatings
      */
+    delta7d?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PlayerRatings
+     */
+    delta30d?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PlayerRatings
+     */
     highOrdinal?: number | null;
     /**
      * 
@@ -104,6 +116,8 @@ export function PlayerRatingsFromJSONTyped(json: any, ignoreDiscriminator: boole
         'gameCount': json['game_count'],
         'atdate': json['atdate'] == null ? undefined : (new Date(json['atdate'])),
         'recentDelta': json['recent_delta'] == null ? undefined : json['recent_delta'],
+        'delta7d': json['delta_7d'] == null ? undefined : json['delta_7d'],
+        'delta30d': json['delta_30d'] == null ? undefined : json['delta_30d'],
         'highOrdinal': json['high_ordinal'] == null ? undefined : json['high_ordinal'],
         'lowOrdinal': json['low_ordinal'] == null ? undefined : json['low_ordinal'],
     };
@@ -127,6 +141,8 @@ export function PlayerRatingsToJSONTyped(value?: PlayerRatings | null, ignoreDis
         'game_count': value['gameCount'],
         'atdate': value['atdate'] == null ? value['atdate'] : value['atdate'].toISOString().substring(0,10),
         'recent_delta': value['recentDelta'],
+        'delta_7d': value['delta7d'],
+        'delta_30d': value['delta30d'],
         'high_ordinal': value['highOrdinal'],
         'low_ordinal': value['lowOrdinal'],
     };

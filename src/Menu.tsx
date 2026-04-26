@@ -23,7 +23,7 @@ import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
 import DisplayDebugData from "./DebugData"
-import DisplayPlayerRatings from "./PlayerRatings"
+import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import GroupsIcon from "@mui/icons-material/Groups"
 import MapIcon from "@mui/icons-material/Map"
@@ -112,6 +112,13 @@ export default function Menu() {
           text="Skip In and Out"
           open={true}
           icon={<CasinoIcon />}
+          callback={setSelection}
+        />
+        <MenuItem
+          value="PlayerRatingTrend"
+          text="Rating Trend"
+          open={true}
+          icon={<LeaderboardIcon />}
           callback={setSelection}
         />
         {debug && (
@@ -225,6 +232,7 @@ type Selection =
   | "Tournaments"
   | "BalanceTeams"
   | "PlayerRating"
+  | "PlayerRatingTrend"
   | "Superlatives"
   | "Draft"
 
@@ -257,6 +265,8 @@ function Main(props: { selection: Selection }) {
       return <DisplaySuperlatives />
     case "PlayerRating":
       return <DisplayPlayerRatings />
+    case "PlayerRatingTrend":
+      return <DisplayPlayerRatingTrend />
     case "Draft":
       return <DisplayDraft />
     case "DebugData":

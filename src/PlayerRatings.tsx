@@ -8,6 +8,10 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import Accordion from "@mui/material/Accordion"
+import AccordionSummary from "@mui/material/AccordionSummary"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { Box, Tooltip as MuiTooltip, Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
@@ -318,6 +322,7 @@ function PlayerLeaderboard(props: {
                 <span>Range</span>
               </MuiTooltip>
             </TableCell>
+            <TableCell align="right">Games</TableCell>
             <TableCell>Last 10</TableCell>
             <TableCell align="right">
               <MuiTooltip title="Rating change over last 14 days (× 10)">
@@ -347,6 +352,9 @@ function PlayerLeaderboard(props: {
                     ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
                     : "—"}
                 </TableCell>
+                <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                  {r.gameCount}
+                </TableCell>
                 <TableCell>
                   <FormDots results={form} />
                 </TableCell>
@@ -366,39 +374,6 @@ function PlayerLeaderboard(props: {
         </TableBody>
       </Table>
     </TableContainer>
-  )
-}
-
-function ConfidenceChart(props: { data: RatingEntry[]; isMobile: boolean }) {
-  const sorted = [...props.data].sort((a, b) => a.sigma - b.sigma)
-  const chartData = sorted.map((r) => ({ name: r.name, sigma: r.sigma }))
-  const leftMargin = props.isMobile ? 30 : 50
-  return (
-    <Stack>
-      <Typography variant="h6">
-        Rating Confidence — lower σ means more established skill
-      </Typography>
-      <ResponsiveContainer width="100%" height={props.isMobile ? 180 : 250}>
-        <BarChart
-          data={chartData}
-          layout="horizontal"
-          margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="5 5" vertical={false} />
-          <Bar dataKey="sigma" fill="#90CAF9" name="Uncertainty (σ)">
-            <LabelList
-              dataKey="sigma"
-              position="top"
-              formatter={(v) => Number(v).toFixed(1)}
-              fontSize={props.isMobile ? 9 : 11}
-            />
-          </Bar>
-          <XAxis dataKey="name" tick={{ fontSize: props.isMobile ? 10 : 13 }} />
-          <YAxis domain={[0, 15]} width={leftMargin} />
-          <Tooltip formatter={(v) => (v as number).toFixed(2)} />
-        </BarChart>
-      </ResponsiveContainer>
-    </Stack>
   )
 }
 
@@ -714,6 +689,96 @@ function WhrTable() {
   )
 }
 
+export function DisplayPlayerRatingTrend() {
+  const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData | null>(null)
+  const [format, setFormat] = React.useState<GameFormat>("All")
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    setPlayerRatings(null)
+    getPlayerRatings(format, setPlayerRatings, showError)
+  }, [format, showError])
+
+  if (!playerRatings) return <Loading />
+
+  const data = [...playerRatings.playerRating]
+    .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
+    .sort((a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0))
+  const form = playerRatings.playerForm ?? {}
+
+  return (
+    <Paper sx={{ flexGrow: 1, maxWidth: 800, p: 1 }}>
+      <FormatSelector format={format} onChange={setFormat} />
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>#</TableCell>
+              <TableCell>Player</TableCell>
+              <TableCell align="right">Games</TableCell>
+              <TableCell>Last 10 team game results</TableCell>
+              <TableCell align="right">
+                <MuiTooltip title="Rating change over last 7 days (× 10)">
+                  <span>7d</span>
+                </MuiTooltip>
+              </TableCell>
+              <TableCell align="right">
+                <MuiTooltip title="Rating change over last 14 days (× 10)">
+                  <span>14d</span>
+                </MuiTooltip>
+              </TableCell>
+              <TableCell align="right">
+                <MuiTooltip title="Rating change over last 30 days (× 10)">
+                  <span>30d</span>
+                </MuiTooltip>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map((r, i) => {
+              const deltas: [number, string][] = [
+                [r.delta7d ?? 0, "7d"],
+                [r.recentDelta ?? 0, "14d"],
+                [r.delta30d ?? 0, "30d"],
+              ]
+              return (
+                <TableRow key={r.name} hover>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {r.gameCount}
+                  </TableCell>
+                  <TableCell>
+                    <FormDots results={form[r.name] ?? []} />
+                  </TableCell>
+                  {deltas.map(([delta, label]) => {
+                    const scaled = Math.round(delta * 10)
+                    const isHot = delta > 0
+                    return (
+                      <TableCell
+                        key={label}
+                        align="right"
+                        sx={{
+                          color: delta === 0 ? "text.secondary" : isHot ? "success.main" : "error.main",
+                          fontWeight: "bold",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {delta === 0 ? "—" : `${isHot ? "+" : ""}${scaled}`}
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {errorSnackbar}
+    </Paper>
+  )
+}
+
 const emptyPlayerRatingData = { playerRating: [], playerRatingOverTime: {} }
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
@@ -737,18 +802,31 @@ export default function DisplayPlayerRatings() {
     .sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
-      <WhrTable />
+      <Accordion disableGutters defaultExpanded={false} TransitionProps={{ unmountOnExit: true }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Whole-History Rating</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <WhrTable />
+        </AccordionDetails>
+      </Accordion>
       <FormatSelector format={format} onChange={setFormat} />
       <Typography variant="h4">Player Ratings</Typography>
       <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />
       <SkillScatterChart data={data} isMobile={isMobile} />
       <GameCountBarChart data={data} isMobile={isMobile} />
-      <ConfidenceChart data={data} isMobile={isMobile} />
       <Typography variant="h6" sx={{ mt: 2 }}>
         Head-to-Head
       </Typography>
       <HeadToHeadMatrix format={format} />
-      <RatingsOverTime data={playerRatings} />
+      <Accordion disableGutters sx={{ mt: 2 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Ratings Over Time</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <RatingsOverTime data={playerRatings} />
+        </AccordionDetails>
+      </Accordion>
       {errorSnackbar}
     </Paper>
   )
