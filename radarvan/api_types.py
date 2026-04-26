@@ -597,7 +597,7 @@ class PlayerRatings(BaseModel):
     sigma: float
     game_count: int
     atdate: date | None = None
-    recent_deltas: dict[int, float] = {}
+    recent_deltas: dict[int, float] = Field(default_factory=dict)
     high_ordinal: float | None = None
     low_ordinal: float | None = None
 
