@@ -11,12 +11,6 @@ import secrets
 READ_KEY = secrets.token_urlsafe(32)
 WRITE_KEY = secrets.token_urlsafe(32)
 
-print("Generated API keys:")
-print(f"  API_KEY_READ  = {READ_KEY}")
-print(f"  API_KEY_WRITE = {WRITE_KEY}")
-print()
-print("Set on Heroku:")
-print(f"  heroku config:set API_KEY_READ={READ_KEY} API_KEY_WRITE={WRITE_KEY} -a radarvan-5e9c302c60e6")
-print()
-print("Set for local frontend (.env.local):")
-print(f"  VITE_API_KEY={WRITE_KEY}")
+for keyname in ["FRONTEND_KEY", "ZULUCLIENT_KEY", "BILLS_KEY", "CNCSTATS_KEY"]:
+    with open(keyname, 'w') as f:
+        f.write(f"RADARVAN_API_KEY={secrets.token_urlsafe(32)}")

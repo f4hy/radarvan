@@ -27,10 +27,7 @@ export default function WinRateRadar(props: {
           stroke="#42A5F5"
         />
         <Tooltip
-          formatter={(value: number | undefined) => [
-            `${value ?? 0}%`,
-            "Win Rate",
-          ]}
+          formatter={(value) => [`${(value as number) ?? 0}%`, "Win Rate"]}
         />
       </RadarChart>
     </ResponsiveContainer>

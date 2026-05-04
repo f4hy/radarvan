@@ -230,13 +230,13 @@ function SankeyNode({
   )
 }
 
-const cashFormatter = (value: number | undefined) =>
-  `$${(value ?? 0).toLocaleString("en-US")}`
+const cashFormatter = (value: unknown) =>
+  `$${((value as number) ?? 0).toLocaleString("en-US")}`
 
 function PlayerSankeyChart(props: {
   data: SankeyData
   emptyMessage: string
-  formatter?: (value: number | undefined) => string
+  formatter?: (value: unknown) => string
   minHeight?: number
 }) {
   const { nodes, links } = props.data
