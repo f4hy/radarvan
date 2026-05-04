@@ -1,8 +1,18 @@
 import Stack from "@mui/material/Stack"
 import Paper from "@mui/material/Paper"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import { Box, Typography, useTheme } from "@mui/material"
+import Accordion from "@mui/material/Accordion"
+import AccordionSummary from "@mui/material/AccordionSummary"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import { Box, Tooltip as MuiTooltip, Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
 import * as React from "react"
@@ -21,8 +31,9 @@ import {
   ZAxis,
   AreaChart,
   Area,
+  Line,
 } from "recharts"
-import { PlayerRatingData } from "./api"
+import { HeadToHead, PlayerRatingData, PlayerSkill } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -86,12 +97,23 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
 
   const data = allEntries
     .map(([name, d]) => {
-      const sorted = [...d].sort(
+      // Keep only the last entry per date
+      const byDate = new Map<string, (typeof d)[0]>()
+      for (const entry of d) {
+        byDate.set(String(entry.atdate ?? ""), entry)
+      }
+      const deduped = Array.from(byDate.values())
+      const sorted = [...deduped].sort(
         (a, b) =>
           new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime(),
       )
+      // Compute delta (mu change from previous entry)
+      const withDelta = sorted.map((entry, i) => ({
+        ...entry,
+        delta: i > 0 ? (entry.mu ?? 0) - (sorted[i - 1].mu ?? 0) : null,
+      }))
       const finalMu = sorted[sorted.length - 1]?.mu ?? 0
-      return [name, d, finalMu] as const
+      return [name, withDelta, finalMu] as const
     })
     .sort((a, b) => b[2] - a[2])
 
@@ -113,44 +135,54 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
         ))}
       </ToggleButtonGroup>
       {data.map(([name, d]) => {
-        const sorted = [...d].sort(
-          (a, b) =>
-            new Date(a.atdate ?? 0).getTime() -
-            new Date(b.atdate ?? 0).getTime(),
-        )
-        const last5 = sorted.slice(-20)
+        const last5 = d.slice(-20)
+        const chartData = d
+          .map((x) => ({
+            mu: x.mu,
+            sigma: x.sigma,
+            delta: x.delta,
+            skill: [(x.mu ?? 0) - (x.sigma ?? 0), (x.mu ?? 0) + (x.sigma ?? 0)],
+            atdate: new Date(x.atdate ?? 0).getTime(),
+          }))
+          .filter((x) => x.atdate >= startMs)
         return (
           <Stack key={name}>
             <Typography>{name}</Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-              {last5.map((entry, i) => (
-                <Box key={i} sx={{ textAlign: "center" }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                  >
-                    {"" + entry.atdate}
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
-                  </Typography>
-                </Box>
-              ))}
+              {last5.map((entry, i) => {
+                const isPositive = (entry.delta ?? 0) >= 0
+                return (
+                  <Box key={i} sx={{ textAlign: "center" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                    >
+                      {"" + entry.atdate}
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
+                    </Typography>
+                    {entry.delta != null && (
+                      <Typography
+                        variant="caption"
+                        color={isPositive ? "success.main" : "error.main"}
+                        display="block"
+                      >
+                        {isPositive ? "+" : ""}
+                        {entry.delta.toFixed(1)}
+                      </Typography>
+                    )}
+                  </Box>
+                )
+              })}
             </Stack>
             <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
               <AreaChart
-                data={d
-                  .map((x) => ({
-                    mu: x.mu,
-                    sigma: x.sigma,
-                    skill: [x.mu - x.sigma, x.mu + x.sigma],
-                    atdate: new Date(x.atdate ?? 0).getTime(),
-                  }))
-                  .filter((x) => x.atdate >= startMs)}
+                data={chartData}
                 layout="horizontal"
                 margin={{
-                  top: 5,
+                  top: 20,
                   right: 5,
                   left: isMobile ? 30 : 50,
                   bottom: isMobile ? 35 : 5,
@@ -162,7 +194,37 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                   fill="#42A5F5"
                   connectNulls
                   type="linear"
-                ></Area>
+                />
+                <Line
+                  dataKey="mu"
+                  stroke="none"
+                  dot={(props: {
+                    cx?: number
+                    cy?: number
+                    payload?: { delta?: number | null }
+                  }) => {
+                    const { cx = 0, cy = 0, payload } = props
+                    const delta = payload?.delta
+                    if (delta == null || Math.abs(delta) < 0.05) {
+                      return <g key={`dot-${cx}-${cy}`} />
+                    }
+                    const pos = delta >= 0
+                    const color = pos ? "#4caf50" : "#f44336"
+                    const label = `${pos ? "+" : ""}${delta.toFixed(1)}`
+                    return (
+                      <text
+                        key={`delta-${cx}-${cy}`}
+                        x={cx}
+                        y={cy - 6}
+                        fill={color}
+                        fontSize={10}
+                        textAnchor="middle"
+                      >
+                        {label}
+                      </text>
+                    )
+                  }}
+                />
                 <XAxis
                   dataKey="atdate"
                   type="number"
@@ -190,9 +252,15 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 <Tooltip
                   cursor={false}
                   labelFormatter={(v) => formatDate(v)}
-                  formatter={(v) =>
-                    v != null ? formatSkill(v as [number, number]) : ""
-                  }
+                  formatter={(v, name) => {
+                    if (name === "skill")
+                      return v != null ? formatSkill(v as [number, number]) : ""
+                    if (name === "delta" && v != null) {
+                      const n = v as number
+                      return [`${n >= 0 ? "+" : ""}${n.toFixed(1)}`, "change"]
+                    }
+                    return ""
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -206,10 +274,243 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
 type RatingEntry = {
   mu: number
   sigma: number
-  variance: number
   name: string
   ordinal: number
   gameCount: number
+  recentDeltas?: { [key: string]: number }
+  highOrdinal?: number | null
+  lowOrdinal?: number | null
+}
+
+function DeltaCell(props: { delta: number | null | undefined }) {
+  const delta = props.delta ?? 0
+  const scaled = Math.round(delta * 10)
+  const isHot = delta > 0
+  return (
+    <TableCell
+      align="right"
+      sx={{
+        color:
+          delta === 0
+            ? "text.secondary"
+            : isHot
+              ? "success.main"
+              : "error.main",
+        fontWeight: "bold",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {delta === 0 ? "—" : `${isHot ? "+" : ""}${scaled}`}
+    </TableCell>
+  )
+}
+
+function FormDots(props: { results: boolean[] }) {
+  return (
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      {props.results.map((won, i) => (
+        <Box
+          key={i}
+          sx={{
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            bgcolor: won ? "success.main" : "error.main",
+          }}
+        />
+      ))}
+    </Stack>
+  )
+}
+
+function PlayerLeaderboard(props: {
+  data: RatingEntry[]
+  form: Record<string, boolean[]>
+}) {
+  return (
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>#</TableCell>
+            <TableCell>Player</TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="ordinal × 10">
+                <span>Rating</span>
+              </MuiTooltip>
+            </TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="All-time high / low ordinal (× 10)">
+                <span>Range</span>
+              </MuiTooltip>
+            </TableCell>
+            <TableCell align="right">Games</TableCell>
+            <TableCell>Last 10</TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="Rating change over last 14 days (× 10)">
+                <span>14d trend</span>
+              </MuiTooltip>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {props.data.map((r, i) => (
+            <TableRow key={r.name} hover>
+              <TableCell>{i + 1}</TableCell>
+              <TableCell>{r.name}</TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {Math.round(r.ordinal * 10)}
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontVariantNumeric: "tabular-nums",
+                  color: "text.secondary",
+                  fontSize: "0.8em",
+                }}
+              >
+                {r.highOrdinal != null && r.lowOrdinal != null
+                  ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
+                  : "—"}
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {r.gameCount}
+              </TableCell>
+              <TableCell>
+                <FormDots results={props.form[r.name] ?? []} />
+              </TableCell>
+              <DeltaCell delta={r.recentDeltas?.[14]} />
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+function HeadToHeadMatrix(props: { format: GameFormat }) {
+  const [h2h, setH2h] = React.useState<Record<
+    string,
+    Record<string, HeadToHead>
+  > | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    setH2h(null)
+    const params = props.format === "All" ? {} : { gameFormat: props.format }
+    Client.getHeadToHeadApiPlayerRatingsHeadToHeadGet(params)
+      .then(setH2h)
+      .catch(showError)
+  }, [props.format, showError])
+
+  if (!h2h) return <Loading />
+
+  const players = Object.keys(h2h).sort()
+
+  const cellColor = (wins: number, losses: number): string => {
+    const total = wins + losses
+    if (total === 0) return "transparent"
+    const rate = wins / total
+    if (rate > 0.5)
+      return `rgba(76,175,80,${((rate - 0.5) * 2 * 0.6 + 0.15).toFixed(2)})`
+    return `rgba(244,67,54,${((0.5 - rate) * 2 * 0.6 + 0.15).toFixed(2)})`
+  }
+
+  return (
+    <>
+      <Box sx={{ overflowX: "auto" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr>
+              <th style={{ padding: "4px 8px", textAlign: "left" }}>vs →</th>
+              {players.map((p) => (
+                <th
+                  key={p}
+                  style={{
+                    padding: "4px 8px",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {p}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((p1) => (
+              <tr key={p1}>
+                <td
+                  style={{
+                    padding: "4px 8px",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {p1}
+                </td>
+                {players.map((p2) => {
+                  if (p1 === p2)
+                    return (
+                      <td
+                        key={p2}
+                        style={{
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          background: "#e0e0e0",
+                        }}
+                      >
+                        —
+                      </td>
+                    )
+                  const rec = h2h[p1]?.[p2]
+                  if (!rec)
+                    return (
+                      <td
+                        key={p2}
+                        style={{
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          color: "#aaa",
+                        }}
+                      >
+                        -
+                      </td>
+                    )
+                  return (
+                    <MuiTooltip
+                      key={p2}
+                      title={`${p1} vs ${p2}: ${rec.wins}W-${rec.losses}L`}
+                    >
+                      <td
+                        style={{
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          background: cellColor(rec.wins, rec.losses),
+                          cursor: "default",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {rec.wins}-{rec.losses}
+                      </td>
+                    </MuiTooltip>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Box>
+      {errorSnackbar}
+    </>
+  )
 }
 
 function FormatSelector(props: {
@@ -331,6 +632,160 @@ function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
   )
 }
 
+const WHR_FORMATS = ["All", "2v2", "3v3", "4v4"] as const
+
+function WhrTable() {
+  const [data, setData] = React.useState<Record<
+    string,
+    Partial<Record<(typeof WHR_FORMATS)[number], number>>
+  > | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    Promise.all(
+      WHR_FORMATS.map((f) =>
+        Client.getPlayerSkillsApiPlayerSkillsGet(
+          f === "All" ? {} : { gameFormat: f },
+        ),
+      ),
+    )
+      .then((results) => {
+        const byPlayer: Record<
+          string,
+          Partial<Record<(typeof WHR_FORMATS)[number], number>>
+        > = {}
+        results.forEach((skills: PlayerSkill[], i) => {
+          const fmt = WHR_FORMATS[i]
+          for (const s of skills) {
+            if (!byPlayer[s.name]) byPlayer[s.name] = {}
+            byPlayer[s.name][fmt] = s.skill
+          }
+        })
+        setData(byPlayer)
+      })
+      .catch(showError)
+  }, [showError])
+
+  if (!data) return <Loading />
+
+  const sorted = Object.entries(data).sort(
+    (a, b) => (b[1].All ?? -Infinity) - (a[1].All ?? -Infinity),
+  )
+
+  return (
+    <Stack spacing={1} sx={{ mb: 2 }}>
+      <Typography variant="h5">Whole-History Rating</Typography>
+      <Typography variant="caption" color="text.secondary">
+        Skill in log-odds units (Coulom 2008). Higher = stronger; difference of
+        1.0 ≈ 73% win probability.
+      </Typography>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>#</TableCell>
+              <TableCell>Player</TableCell>
+              {WHR_FORMATS.map((f) => (
+                <TableCell key={f} align="right">
+                  {f}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sorted.map(([name, skills], i) => (
+              <TableRow key={name} hover>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell>{name}</TableCell>
+                {WHR_FORMATS.map((f) => (
+                  <TableCell
+                    key={f}
+                    align="right"
+                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {skills[f] != null ? skills[f]!.toFixed(2) : "—"}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {errorSnackbar}
+    </Stack>
+  )
+}
+
+export function DisplayPlayerRatingTrend() {
+  const [playerRatings, setPlayerRatings] =
+    React.useState<PlayerRatingData | null>(null)
+  const [format, setFormat] = React.useState<GameFormat>("All")
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    setPlayerRatings(null)
+    getPlayerRatings(format, setPlayerRatings, showError)
+  }, [format, showError])
+
+  if (!playerRatings) return <Loading />
+
+  const data = [...playerRatings.playerRating].sort(
+    (a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0),
+  )
+  const form = playerRatings.playerForm ?? {}
+  const trendDays = Array.from(
+    new Set(data.flatMap((r) => Object.keys(r.recentDeltas ?? {}).map(Number))),
+  ).sort((a, b) => a - b)
+
+  return (
+    <Paper sx={{ flexGrow: 1, maxWidth: 800, p: 1 }}>
+      <FormatSelector format={format} onChange={setFormat} />
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>#</TableCell>
+              <TableCell>Player</TableCell>
+              <TableCell align="right">Games</TableCell>
+              <TableCell>Last 10 team game results</TableCell>
+              {trendDays.map((d) => (
+                <TableCell key={d} align="right">
+                  <MuiTooltip
+                    title={`Rating change over last ${d} days (× 10)`}
+                  >
+                    <span>{d}d</span>
+                  </MuiTooltip>
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map((r, i) => (
+              <TableRow key={r.name} hover>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell>{r.name}</TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {r.gameCount}
+                </TableCell>
+                <TableCell>
+                  <FormDots results={form[r.name] ?? []} />
+                </TableCell>
+                {trendDays.map((d) => (
+                  <DeltaCell key={d} delta={r.recentDeltas?.[d]} />
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {errorSnackbar}
+    </Paper>
+  )
+}
+
 const emptyPlayerRatingData = { playerRating: [], playerRatingOverTime: {} }
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
@@ -349,16 +804,38 @@ export default function DisplayPlayerRatings() {
   if (playerRatings.playerRating.length === 0) {
     return <Loading />
   }
-  const data = playerRatings.playerRating
-    .map((r) => ({ ...r, variance: r.sigma * r.sigma }))
-    .sort((a, b) => b.mu - a.mu)
+  const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
+    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
+      <Accordion
+        disableGutters
+        defaultExpanded={false}
+        TransitionProps={{ unmountOnExit: true }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Whole-History Rating</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <WhrTable />
+        </AccordionDetails>
+      </Accordion>
       <FormatSelector format={format} onChange={setFormat} />
-      <Typography variant="h4">Player Ratings (debug only)</Typography>
+      <Typography variant="h4">Player Ratings</Typography>
+      <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />
       <SkillScatterChart data={data} isMobile={isMobile} />
       <GameCountBarChart data={data} isMobile={isMobile} />
-      <RatingsOverTime data={playerRatings} />
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Head-to-Head
+      </Typography>
+      <HeadToHeadMatrix format={format} />
+      <Accordion disableGutters sx={{ mt: 2 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Ratings Over Time</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <RatingsOverTime data={playerRatings} />
+        </AccordionDetails>
+      </Accordion>
       {errorSnackbar}
     </Paper>
   )

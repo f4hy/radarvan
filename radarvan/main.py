@@ -1,12 +1,12 @@
 from .notify import notify
-from collections import Counter
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date
+from datetime import date, timedelta
 from enum import Enum
 from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, HTTPException, Request, Query, Security
+from fastapi import FastAPI, File, HTTPException, Request, Query, Security, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import APIKeyHeader
 import logging
@@ -30,6 +30,7 @@ from . import replay_files
 from . import schedule
 from . import tournament
 from . import player_rating
+from . import player_skill
 from . import superlatives
 from . import create_teams
 from . import draft as draft_module
@@ -52,6 +53,9 @@ from radarvan.api_types import (
     TournamentReport,
     PlayerRatings,
     PlayerRatingData,
+    PlayerRatingDailyChange,
+    PlayerSkill,
+    HeadToHead,
     MapDataPayload,
     DraftPlayerRequest,
     DraftRequest,
@@ -502,6 +506,28 @@ def reparse(
     return replay
 
 
+@app.post("/api/reparse_recent/", include_in_schema=IS_DEV)
+def reparse_recent(
+    days: int = 3,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int | list[int]]:
+    """Re-run cncstats on all matches whose game_date is within the last `days` days."""
+    since = date.today() - timedelta(days=days)
+    candidates = replay_manager.list_jsons_since_date(since)
+    logger.info(f"reparse_recent: {len(candidates)} candidates since {since}")
+    updated_ids: set[int] = set()
+    for record in candidates:
+        updated = matches.reparse_replay(record.match_id, replay_manager)
+        if updated:
+            replay_manager.compute_and_save_composition(record.match_id)
+            updated_ids.add(updated.id)
+    return {
+        "updated": len(updated_ids),
+        "checked": len(candidates),
+        "updated_ids": list(updated_ids),
+    }
+
+
 @app.post("/api/reparse_before_date/", include_in_schema=IS_DEV)
 def reparse_before_date(
     before: date,
@@ -571,6 +597,32 @@ async def reparse_non_v2(
         "checked": len(candidates),
         "updated_ids": updated_ids,
     }
+
+
+@app.post("/api/upload_replay")
+def upload_replay(
+    file: UploadFile = File(...),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> MatchInfo:
+    """Upload a .rep file, save it to S3, parse it, and return the match info."""
+    data = file.file.read()
+    file_hash = replay_files.compute_hash(data)
+
+    if replay_manager.get_replay_by_hash(file_hash) is not None:
+        raise HTTPException(
+            status_code=409, detail=f"Replay already uploaded (hash={file_hash})"
+        )
+
+    result = replay_files.upload_and_parse(data, file_hash, replay_manager)
+    db_match = matches.replay_to_db_match(result.replay, result.json_path)
+    replay_manager.register_match(db_match)
+    replay_manager.compute_and_save_composition(db_match.match_id)
+    sorted_deduped_matches.cache_clear()
+
+    match_info = matches.match_from_replay(result.replay)
+    if match_info is None:
+        raise HTTPException(status_code=422, detail="Replay is too short or invalid")
+    return match_info
 
 
 @app.post("/api/register_replay_url")
@@ -684,15 +736,21 @@ async def _do_recompute(
         for g in games.values()
         if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
     ]
+    stale = replay_manager.computed_stats_are_stale(days=3)
     details = await match_details.load_many_superlative_data(
         [g.id for g in game_list], db_manager
     )
-    notify(f"Loaded {len(details)} match details for superlatives recompute")
-    result = superlatives.get_superlatives(game_list, details)
+    if stale:
+        notify(f"Loaded {len(details)} match details for superlatives recompute")
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    result = superlatives.get_superlatives(
+        game_list, details, ratings_and_counts.daily_changes
+    )
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"saved {len(result.stats)} computed statistics")
-    notify("Recomputed superlatives")
+    if stale:
+        notify("Recomputed superlatives")
 
     return result
 
@@ -737,7 +795,9 @@ def get_overrides(
     overrides = replay_manager.get_overrides()
     return [
         WinnerOverride(
-            match_id=o.match_id, winning_team_id=o.winning_team_id or Team.NONE
+            match_id=o.match_id,
+            winning_team_id=o.winning_team_id or Team.NONE,
+            incomplete=o.incomplete,
         )
         for o in overrides.values()
     ]
@@ -763,15 +823,18 @@ def get_files_for_match_id(
 @app.post("/api/set_override/")
 def set_override(
     match_id: int,
-    winner: Team,
+    winner: Team | None = None,
+    incomplete: str | None = None,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> WinnerOverride:
-    """Set a winner override for a match."""
+    """Set a winner and/or incomplete override for a match. Persists through re-parses."""
     saved = replay_manager.set_override(
-        match_id, winner=winner.value if winner else None
+        match_id, winner=winner.value if winner else None, incomplete=incomplete
     )
     return WinnerOverride(
-        match_id=saved.match_id, winning_team_id=saved.winning_team_id or Team.NONE
+        match_id=saved.match_id,
+        winning_team_id=saved.winning_team_id or Team.NONE,
+        incomplete=saved.incomplete,
     )
 
 
@@ -1004,7 +1067,19 @@ def get_player_ratings(
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts
 
+    today = date.today()
+    seven_days_ago = today - timedelta(days=7)
+    fourteen_days_ago = today - timedelta(days=14)
+    thirty_days_ago = today - timedelta(days=30)
+
+    cutoffs = [(7, seven_days_ago), (14, fourteen_days_ago), (30, thirty_days_ago)]
+
     def convert(rating: player_rating.NamedRating) -> PlayerRatings:
+        deltas: dict[int, float] = {7: 0.0, 14: 0.0, 30: 0.0}
+        for c in ratings_and_counts.daily_changes.get(rating.name, []):
+            for days, cutoff in cutoffs:
+                if c.date >= cutoff:
+                    deltas[days] += c.delta
         return PlayerRatings(
             name=rating.name,
             ordinal=rating.ordinal(),
@@ -1012,6 +1087,9 @@ def get_player_ratings(
             sigma=rating.sigma,
             atdate=rating.at_date,
             game_count=counts.get(rating.name),
+            recent_deltas={k: v for k, v in deltas.items() if v != 0},
+            high_ordinal=ratings_and_counts.ordinal_high.get(rating.name),
+            low_ordinal=ratings_and_counts.ordinal_low.get(rating.name),
         )
 
     def convert_short(rating: player_rating.NamedRating) -> ShortPlayerRating:
@@ -1021,16 +1099,119 @@ def get_player_ratings(
             atdate=rating.at_date,
         )
 
+    player_results: dict[str, list[bool]] = defaultdict(list)
+    for game in sorted(game_list, key=lambda g: g.timestamp):
+        for p in game.players:
+            if p.team <= 0:
+                continue
+            player_results[player_ids.resolve_player_name(p.name, p.color)].append(
+                p.won
+            )
+    rated_names = {r.name for r in ratings_and_counts.ratings}
+    player_form = {
+        name: results[-10:]
+        for name, results in player_results.items()
+        if name in rated_names
+    }
+
     converted = [convert(r) for r in ratings_and_counts.ratings]
     over_time = {
         name: [convert_short(r) for r in ratings]
         for name, ratings in ratings_and_counts.over_time.items()
     }
-    # logger.info(f"over time data {over_time}")
     return PlayerRatingData(
         player_rating=converted,
         player_rating_overtime=over_time,
+        player_form=player_form,
     )
+
+
+@app.get("/api/player_skills/")
+def get_player_skills(
+    game_format: str | None = Query(
+        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerSkill]:
+    """Alternative skill estimate via Whole-History Rating (Coulom 2008).
+
+    Each player's skill is a function of time (one rating per date played) with a
+    Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes.
+    Returns each player's rating at their most recent game, mean-centered across players.
+    """
+    games = competitive_matches(replay_manager)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
+    skills = player_skill.compute_player_skills(game_list)
+    return [
+        PlayerSkill(name=s.name, skill=s.skill, game_count=s.game_count) for s in skills
+    ]
+
+
+@app.get("/api/player_ratings/daily_changes/")
+def get_player_rating_daily_changes(
+    for_date: date,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerRatingDailyChange]:
+    """Return each player's ordinal rating change for the given date."""
+    game_list = list(competitive_matches(replay_manager).values())
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    result = []
+    for name, changes in ratings_and_counts.daily_changes.items():
+        for change in changes:
+            if change.date == for_date:
+                result.append(PlayerRatingDailyChange(name=name, delta=change.delta))
+                break
+    return result
+
+
+@app.get("/api/player_ratings/head_to_head/")
+def get_head_to_head(
+    game_format: str | None = Query(None),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, dict[str, HeadToHead]]:
+    """Win/loss record for every rated player against every other rated player."""
+    all_games = list(competitive_matches(replay_manager).values())
+    game_list = matches.filter_by_format(all_games, game_format)
+
+    # Use unfiltered games for rated_players so the cache key matches other endpoints.
+    rated_players = {
+        r.name for r in player_rating.compute_player_ratings(all_games).ratings
+    }
+
+    h2h: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+
+    for game in game_list:
+        teams: dict[int, list[tuple[str, bool]]] = defaultdict(list)
+        for p in game.players:
+            if p.team <= 0:
+                continue
+            name = player_ids.resolve_player_name(p.name, p.color)
+            if name not in rated_players:
+                continue
+            teams[p.team].append((name, p.won))
+
+        team_list = list(teams.values())
+        if len(team_list) != 2:
+            continue
+
+        for name1, won1 in team_list[0]:
+            for name2, _ in team_list[1]:
+                if won1:
+                    h2h[name1][name2][0] += 1
+                    h2h[name2][name1][1] += 1
+                else:
+                    h2h[name1][name2][1] += 1
+                    h2h[name2][name1][0] += 1
+
+    return {
+        name: {
+            opp: HeadToHead(wins=wl[0], losses=wl[1]) for opp, wl in opponents.items()
+        }
+        for name, opponents in h2h.items()
+        if name in rated_players
+    }
 
 
 PlayerEnum = Enum(  # type: ignore[misc]

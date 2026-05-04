@@ -1,26 +1,26 @@
 
-# PlayerRatingData
+# PlayerSkill
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`playerRating` | [Array&lt;PlayerRatings&gt;](PlayerRatings.md)
-`playerRatingOvertime` | { [key: string]: Array&lt;ShortPlayerRating&gt;; }
-`playerForm` | { [key: string]: Array&lt;boolean&gt;; }
+`name` | string
+`skill` | number
+`gameCount` | number
 
 ## Example
 
 ```typescript
-import type { PlayerRatingData } from ''
+import type { PlayerSkill } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "playerRating": null,
-  "playerRatingOvertime": null,
-  "playerForm": null,
-} satisfies PlayerRatingData
+  "name": null,
+  "skill": null,
+  "gameCount": null,
+} satisfies PlayerSkill
 
 console.log(example)
 
@@ -29,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PlayerRatingData
+const exampleParsed = JSON.parse(exampleJSON) as PlayerSkill
 console.log(exampleParsed)
 ```
 

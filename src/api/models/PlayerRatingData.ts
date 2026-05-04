@@ -46,6 +46,12 @@ export interface PlayerRatingData {
      * @memberof PlayerRatingData
      */
     playerRatingOvertime?: { [key: string]: Array<ShortPlayerRating>; };
+    /**
+     * 
+     * @type {{ [key: string]: Array<boolean>; }}
+     * @memberof PlayerRatingData
+     */
+    playerForm?: { [key: string]: Array<boolean>; };
 }
 
 /**
@@ -68,6 +74,7 @@ export function PlayerRatingDataFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'playerRating': ((json['player_rating'] as Array<any>).map(PlayerRatingsFromJSON)),
         'playerRatingOvertime': json['player_rating_overtime'] == null ? undefined : json['player_rating_overtime'],
+        'playerForm': json['player_form'] == null ? undefined : json['player_form'],
     };
 }
 
@@ -84,6 +91,7 @@ export function PlayerRatingDataToJSONTyped(value?: PlayerRatingData | null, ign
         
         'player_rating': ((value['playerRating'] as Array<any>).map(PlayerRatingsToJSON)),
         'player_rating_overtime': value['playerRatingOvertime'],
+        'player_form': value['playerForm'],
     };
 }
 

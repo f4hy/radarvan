@@ -142,7 +142,13 @@ class ReplayManager:
         )
         return self.session.scalar(statement)
 
-    def register_replay(self, from_url: str, s3_uri: str) -> ReplayFile:
+    def get_replay_by_hash(self, file_hash: str) -> ReplayFile | None:
+        """Look up a replay file by its SHA-256 hash."""
+        return self.session.scalar(
+            select(ReplayFile).where(ReplayFile.file_hash == file_hash)
+        )
+
+    def register_replay(self, from_url: str, s3_uri: str, file_hash: str) -> ReplayFile:
         """Register a new replay."""
         logger.info(f"Registering {from_url=} {s3_uri=}")
         prefix2 = "https://generals-public.s3.us-east-2.amazonaws.com/reps/"
@@ -161,6 +167,29 @@ class ReplayManager:
             s3_uri=s3_uri,
             source_date=date,
             player_id=player_id,
+            file_hash=file_hash,
+        )
+        self.session.add(replay_file)
+        if self.auto_commit:
+            self.session.flush()
+            self.session.commit()
+        return replay_file
+
+    def register_uploaded_replay(
+        self,
+        original_url: str,
+        s3_uri: str,
+        file_hash: str,
+        source_date: date,
+    ) -> ReplayFile:
+        """Register a replay that was uploaded directly (not fetched from a URL)."""
+        logger.info(f"Registering uploaded replay {original_url=} {s3_uri=}")
+        replay_file = ReplayFile(
+            original_url=original_url,
+            s3_uri=s3_uri,
+            source_date=source_date,
+            player_id="upload",
+            file_hash=file_hash,
         )
         self.session.add(replay_file)
         if self.auto_commit:
@@ -370,13 +399,21 @@ class ReplayManager:
         overrides = self.session.execute(stmt).scalars().all()
         return {o.match_id: o for o in overrides}
 
-    def set_override(self, match_id: int, winner: int | None) -> WinnerOverride:
-        """Get winner overrides."""
-        logger.info(f"Setting override {match_id} {winner}")
+    def set_override(
+        self, match_id: int, winner: int | None, incomplete: str | None = None
+    ) -> WinnerOverride:
+        """Set winner and/or incomplete override for a match."""
+        logger.info(f"Setting override {match_id} {winner} incomplete={incomplete}")
 
+        existing = self.session.get(WinnerOverride, match_id)
         new_override = WinnerOverride(
             match_id=match_id,
-            winning_team_id=winner,
+            winning_team_id=winner
+            if winner is not None
+            else (existing.winning_team_id if existing else None),
+            incomplete=incomplete
+            if incomplete is not None
+            else (existing.incomplete if existing else None),
         )
 
         self.session.merge(new_override)
@@ -486,6 +523,19 @@ class ReplayManager:
             .limit(limit)
         )
 
+        return list(self.session.scalars(stmt).all())
+
+    def list_jsons_since_date(self, since: date) -> list[ParsedReplayJson]:
+        """Return one ParsedReplayJson per match_id where the game_date is on or after `since`."""
+        stmt = (
+            select(ParsedReplayJson)
+            .where(ParsedReplayJson.game_date >= since)
+            .distinct(ParsedReplayJson.match_id)
+            .order_by(
+                ParsedReplayJson.match_id,
+                ParsedReplayJson.num_time_stamps.desc(),
+            )
+        )
         return list(self.session.scalars(stmt).all())
 
     def list_jsons_parsed_before(
@@ -745,6 +795,13 @@ class ReplayManager:
             )
             for row in rows
         ]
+
+    def computed_stats_are_stale(self, days: int = 3) -> bool:
+        """Return True if no computed stats exist or the newest is older than `days` days."""
+        latest = self.session.scalar(select(func.max(ComputedStatistic.date_computed)))
+        if latest is None:
+            return True
+        return (date.today() - latest).days > days
 
     def save_map_data(self, map_name: str, payload: MapDataPayload) -> None:
         """Upsert map geometry data for the given map name."""

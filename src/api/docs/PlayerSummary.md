@@ -15,6 +15,10 @@ Name | Type
 `buildingsBuilt` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `upgradesBuilt` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `powersUsed` | { [key: string]: number; }
+`unitsDestroyed` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
+`buildingsDestroyed` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
+`unitsLost` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
+`buildingsLost` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 
 ## Example
 
@@ -32,6 +36,10 @@ const example = {
   "buildingsBuilt": null,
   "upgradesBuilt": null,
   "powersUsed": null,
+  "unitsDestroyed": null,
+  "buildingsDestroyed": null,
+  "unitsLost": null,
+  "buildingsLost": null,
 } satisfies PlayerSummary
 
 console.log(example)

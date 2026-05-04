@@ -1,26 +1,20 @@
 
-# PlayerRatingData
+# ResponseReparseRecentApiReparseRecentPostValue
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`playerRating` | [Array&lt;PlayerRatings&gt;](PlayerRatings.md)
-`playerRatingOvertime` | { [key: string]: Array&lt;ShortPlayerRating&gt;; }
-`playerForm` | { [key: string]: Array&lt;boolean&gt;; }
 
 ## Example
 
 ```typescript
-import type { PlayerRatingData } from ''
+import type { ResponseReparseRecentApiReparseRecentPostValue } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "playerRating": null,
-  "playerRatingOvertime": null,
-  "playerForm": null,
-} satisfies PlayerRatingData
+} satisfies ResponseReparseRecentApiReparseRecentPostValue
 
 console.log(example)
 
@@ -29,7 +23,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PlayerRatingData
+const exampleParsed = JSON.parse(exampleJSON) as ResponseReparseRecentApiReparseRecentPostValue
 console.log(exampleParsed)
 ```
 

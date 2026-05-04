@@ -341,7 +341,9 @@ export default function DisplayDraft() {
                 </ToggleButtonGroup>
                 {assignmentByName[p.name] && (
                   <>
-                    <DisplayGeneral general={assignmentByName[p.name].general} />
+                    <DisplayGeneral
+                      general={assignmentByName[p.name].general}
+                    />
                     <Chip
                       label={`#${assignmentByName[p.name].positionNumber}`}
                       size="small"

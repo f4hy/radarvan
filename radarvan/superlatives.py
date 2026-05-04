@@ -9,9 +9,12 @@ from .api_types import (
     Statistic,
 )
 from .player_ids import resolve_player_name
+from .player_rating import RatingDailyChange
 import logging
 
 logger = logging.getLogger(__name__)
+
+EXCLUDED_PLAYERS: frozenset[str] = frozenset({"HardArmy"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +138,8 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
         game_date = game.date
         for player in game.players:
             name = resolve_player_name(player.name, player.color)
+            if name in EXCLUDED_PLAYERS:
+                continue
             if player.won:
                 prev = current.get(name)
                 current[name] = (
@@ -232,7 +237,13 @@ def get_first_blood_stats(
     computed_at: date,
 ) -> list[Statistic]:
     """Stats derived from first blood events across all matches."""
-    bloods = [(d, d.first_blood) for d in details if d.first_blood is not None]
+    bloods = [
+        (d, d.first_blood)
+        for d in details
+        if d.first_blood is not None
+        and _resolve_attacker(match_info_by_id, d, d.first_blood.attacker)
+        not in EXCLUDED_PLAYERS
+    ]
     if not bloods:
         return []
 
@@ -307,6 +318,8 @@ def get_building_first_blood_stats(
         (d, d.building_first_blood)
         for d in details
         if d.building_first_blood is not None
+        and _resolve_attacker(match_info_by_id, d, d.building_first_blood.attacker)
+        not in EXCLUDED_PLAYERS
     ]
     if not bfbs:
         return []
@@ -385,6 +398,8 @@ def get_apm_stats(
                 resolved = resolve_player_name(
                     a.player_name, color_map.get(a.player_name, "")
                 )
+                if resolved in EXCLUDED_PLAYERS:
+                    continue
                 if best is None or a.apm > best.apm:
                     best = ApmRecord(player=resolved, apm=a.apm, match_id=d.match_id)
                 prev = player_totals.get(resolved, ApmTotals(0, 0.0, 0))
@@ -560,6 +575,8 @@ def get_efficiency_stats(
             if not ps.won:
                 continue
             name = resolve_player_name(ps.name, ps.color)
+            if name in EXCLUDED_PLAYERS:
+                continue
             best_units = _min_candidate(
                 best_units,
                 ps.units_created_count,
@@ -652,12 +669,17 @@ def get_player_money_stats(
 
         for player_name, amount in d.player_money_collected.items():
             resolved = resolve_player_name(player_name, color_map.get(player_name, ""))
+            if resolved in EXCLUDED_PLAYERS:
+                continue
             player_collected[resolved] += amount
 
         for ps in d.player_summary:
             if ps.money_spent <= 0:
                 continue
-            player_spent[resolve_player_name(ps.name, ps.color)] += ps.money_spent
+            resolved = resolve_player_name(ps.name, ps.color)
+            if resolved in EXCLUDED_PLAYERS:
+                continue
+            player_spent[resolved] += ps.money_spent
 
     MEDALS = ["🥇", "🥈", "🥉"]
     stats: list[Statistic] = []
@@ -685,6 +707,81 @@ def get_player_money_stats(
     return stats
 
 
+def get_monthly_stats(
+    games: list[MatchInfo],
+    daily_changes: dict[str, list[RatingDailyChange]],
+    computed_at: date,
+) -> list[Statistic]:
+    """Best/worst W-L record and biggest rating swing over the last 30 days."""
+    thirty_days_ago = computed_at - timedelta(days=30)
+    recent_games = [g for g in games if g.date >= thirty_days_ago]
+
+    wl: dict[str, tuple[int, int]] = {}
+    for g in recent_games:
+        for p in g.players:
+            name = resolve_player_name(p.name, p.color)
+            if name in EXCLUDED_PLAYERS:
+                continue
+            w, l = wl.get(name, (0, 0))
+            wl[name] = (w + 1, l) if p.won else (w, l + 1)
+
+    MIN_GAMES = 5
+    eligible_wl = {n: (w, l) for n, (w, l) in wl.items() if w + l >= MIN_GAMES}
+
+    stats: list[Statistic] = []
+
+    if eligible_wl:
+        best = max(eligible_wl, key=lambda n: eligible_wl[n][0] / sum(eligible_wl[n]))
+        worst = min(eligible_wl, key=lambda n: eligible_wl[n][0] / sum(eligible_wl[n]))
+        bw, bl = eligible_wl[best]
+        ww, worst_losses = eligible_wl[worst]
+        stats.append(
+            Statistic(
+                stat_name="🔥 Best Record (30d)",
+                date_computed=computed_at,
+                value=f"{bw}-{bl}",
+                player=best,
+            )
+        )
+        stats.append(
+            Statistic(
+                stat_name="❄️ Worst Record (30d)",
+                date_computed=computed_at,
+                value=f"{ww}-{worst_losses}",
+                player=worst,
+            )
+        )
+
+    monthly_deltas: dict[str, float] = {
+        name: sum(c.delta for c in changes if c.date >= thirty_days_ago)
+        for name, changes in daily_changes.items()
+        if name not in EXCLUDED_PLAYERS
+    }
+    monthly_deltas = {n: d for n, d in monthly_deltas.items() if d != 0.0}
+
+    if monthly_deltas:
+        biggest_gain = max(monthly_deltas, key=monthly_deltas.__getitem__)
+        biggest_drop = min(monthly_deltas, key=monthly_deltas.__getitem__)
+        stats.append(
+            Statistic(
+                stat_name="📈 Biggest Rating Gain (30d)",
+                date_computed=computed_at,
+                value=round(monthly_deltas[biggest_gain] * 10),
+                player=biggest_gain,
+            )
+        )
+        stats.append(
+            Statistic(
+                stat_name="📉 Biggest Rating Drop (30d)",
+                date_computed=computed_at,
+                value=round(monthly_deltas[biggest_drop] * 10),
+                player=biggest_drop,
+            )
+        )
+
+    return stats
+
+
 def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
     try:
         result: list[Statistic] = fn(*args)
@@ -695,7 +792,9 @@ def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
 
 
 def get_superlatives(
-    games: list[MatchInfo], details: list[SuperlativeData] | None = None
+    games: list[MatchInfo],
+    details: list[SuperlativeData] | None = None,
+    daily_changes: dict[str, list[RatingDailyChange]] | None = None,
 ) -> Superlatives:
     computed_at = date.today()
 
@@ -706,6 +805,10 @@ def get_superlatives(
         *_safe_compute(get_match_duration_extremes, games, computed_at),
         *_safe_compute(get_calendar_stats, games, computed_at),
     ]
+    if daily_changes is not None:
+        stats.extend(
+            _safe_compute(get_monthly_stats, games, daily_changes, computed_at)
+        )
     if details:
         match_info_by_id = {g.id: g for g in games}
         for fn, *args in [

@@ -351,6 +351,10 @@ class PlayerSummary(BaseModel):
     BuildingsBuilt: dict[str, ObjectSummary]
     UpgradesBuilt: dict[str, ObjectSummary]
     PowersUsed: dict[str, int]
+    UnitsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
+    BuildingsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
+    UnitsLost: dict[str, ObjectSummary] = Field(default_factory=dict)
+    BuildingsLost: dict[str, ObjectSummary] = Field(default_factory=dict)
 
 
 class FirstBlood(BaseModel):
@@ -593,6 +597,9 @@ class PlayerRatings(BaseModel):
     sigma: float
     game_count: int
     atdate: date | None = None
+    recent_deltas: dict[int, float] = Field(default_factory=dict)
+    high_ordinal: float | None = None
+    low_ordinal: float | None = None
 
 
 class ShortPlayerRating(BaseModel):
@@ -608,6 +615,29 @@ class PlayerRatingData(BaseModel):
 
     player_rating: list[PlayerRatings]
     player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
+    player_form: dict[str, list[bool]] = {}
+
+
+class PlayerSkill(BaseModel):
+    model_config = _SLOTS_FA
+
+    name: str
+    skill: float
+    game_count: int
+
+
+class HeadToHead(BaseModel):
+    model_config = _SLOTS_FA
+
+    wins: int
+    losses: int
+
+
+class PlayerRatingDailyChange(BaseModel):
+    model_config = _SLOTS_FA
+
+    name: str
+    delta: float
 
 
 class MapExtent(BaseModel):

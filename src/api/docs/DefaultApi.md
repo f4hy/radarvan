@@ -15,6 +15,7 @@ All URIs are relative to *http://localhost*
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
+| [**getHeadToHeadApiPlayerRatingsHeadToHeadGet**](DefaultApi.md#getheadtoheadapiplayerratingsheadtoheadget) | **GET** /api/player_ratings/head_to_head/ | Get Head To Head |
 | [**getMapDataApiMapDataMapNameGet**](DefaultApi.md#getmapdataapimapdatamapnameget) | **GET** /api/map_data/{map_name} | Get Map Data |
 | [**getMapStatsApiMapStatsGet**](DefaultApi.md#getmapstatsapimapstatsget) | **GET** /api/map_stats/ | Get Map Stats |
 | [**getMapsByPlayerCountApiMapsByPlayerCountGet**](DefaultApi.md#getmapsbyplayercountapimapsbyplayercountget) | **GET** /api/maps_by_player_count | Get Maps By Player Count |
@@ -25,7 +26,9 @@ All URIs are relative to *http://localhost*
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
+| [**getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet**](DefaultApi.md#getplayerratingdailychangesapiplayerratingsdailychangesget) | **GET** /api/player_ratings/daily_changes/ | Get Player Rating Daily Changes |
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
+| [**getPlayerSkillsApiPlayerSkillsGet**](DefaultApi.md#getplayerskillsapiplayerskillsget) | **GET** /api/player_skills/ | Get Player Skills |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
 | [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
@@ -47,6 +50,7 @@ All URIs are relative to *http://localhost*
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**reparseBeforeDateApiReparseBeforeDatePost**](DefaultApi.md#reparsebeforedateapireparsebeforedatepost) | **POST** /api/reparse_before_date/ | Reparse Before Date |
 | [**reparseNonV2ApiReparseNonV2Post**](DefaultApi.md#reparsenonv2apireparsenonv2post) | **POST** /api/reparse_non_v2/ | Reparse Non V2 |
+| [**reparseRecentApiReparseRecentPost**](DefaultApi.md#reparserecentapireparserecentpost) | **POST** /api/reparse_recent/ | Reparse Recent |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
 | [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**resetMatchApiMatchMatchIdDelete**](DefaultApi.md#resetmatchapimatchmatchiddelete) | **DELETE** /api/match/{match_id} | Reset Match |
@@ -55,6 +59,7 @@ All URIs are relative to *http://localhost*
 | [**setOverrideApiSetOverridePost**](DefaultApi.md#setoverrideapisetoverridepost) | **POST** /api/set_override/ | Set Override |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
 | [**updateMatchesMissingDataApiUpdateMatchesMissingDataPost**](DefaultApi.md#updatematchesmissingdataapiupdatematchesmissingdatapost) | **POST** /api/update_matches_missing_data/ | Update Matches Missing Data |
+| [**uploadReplayApiUploadReplayPost**](DefaultApi.md#uploadreplayapiuploadreplaypost) | **POST** /api/upload_replay | Upload Replay |
 
 
 
@@ -778,6 +783,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getHeadToHeadApiPlayerRatingsHeadToHeadGet
+
+> { [key: string]: { [key: string]: HeadToHead; }; } getHeadToHeadApiPlayerRatingsHeadToHeadGet(gameFormat)
+
+Get Head To Head
+
+Win/loss record for every rated player against every other rated player.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest;
+
+  try {
+    const data = await api.getHeadToHeadApiPlayerRatingsHeadToHeadGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` |  | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+**{ [key: string]: { [key: string]: HeadToHead; }; }**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getMapDataApiMapDataMapNameGet
 
 > MapDataPayload getMapDataApiMapDataMapNameGet(mapName)
@@ -1420,6 +1493,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet
+
+> Array&lt;PlayerRatingDailyChange&gt; getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet(forDate)
+
+Get Player Rating Daily Changes
+
+Return each player\&#39;s ordinal rating change for the given date.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // Date
+    forDate: 2013-10-20,
+  } satisfies GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest;
+
+  try {
+    const data = await api.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **forDate** | `Date` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;PlayerRatingDailyChange&gt;**](PlayerRatingDailyChange.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getPlayerRatingsApiPlayerRatingsGet
 
 > PlayerRatingData getPlayerRatingsApiPlayerRatingsGet(gameFormat)
@@ -1466,6 +1607,74 @@ example().catch(console.error);
 ### Return type
 
 [**PlayerRatingData**](PlayerRatingData.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPlayerSkillsApiPlayerSkillsGet
+
+> Array&lt;PlayerSkill&gt; getPlayerSkillsApiPlayerSkillsGet(gameFormat)
+
+Get Player Skills
+
+Alternative skill estimate via Whole-History Rating (Coulom 2008).  Each player\&#39;s skill is a function of time (one rating per date played) with a Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes. Returns each player\&#39;s rating at their most recent game, mean-centered across players.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerSkillsApiPlayerSkillsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetPlayerSkillsApiPlayerSkillsGetRequest;
+
+  try {
+    const data = await api.getPlayerSkillsApiPlayerSkillsGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;PlayerSkill&gt;**](PlayerSkill.md)
 
 ### Authorization
 
@@ -2695,7 +2904,7 @@ No authorization required
 
 ## reparseBeforeDateApiReparseBeforeDatePost
 
-> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
+> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
 
 Reparse Before Date
 
@@ -2743,7 +2952,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
+[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
 
 ### Authorization
 
@@ -2766,7 +2975,7 @@ No authorization required
 
 ## reparseNonV2ApiReparseNonV2Post
 
-> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
+> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
 
 Reparse Non V2
 
@@ -2814,7 +3023,75 @@ example().catch(console.error);
 
 ### Return type
 
-[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
+[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## reparseRecentApiReparseRecentPost
+
+> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseRecentApiReparseRecentPost(days)
+
+Reparse Recent
+
+Re-run cncstats on all matches whose game_date is within the last &#x60;days&#x60; days.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { ReparseRecentApiReparseRecentPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    days: 56,
+  } satisfies ReparseRecentApiReparseRecentPostRequest;
+
+  try {
+    const data = await api.reparseRecentApiReparseRecentPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **days** | `number` |  | [Optional] [Defaults to `3`] |
+
+### Return type
+
+[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
 
 ### Authorization
 
@@ -3174,11 +3451,11 @@ No authorization required
 
 ## setOverrideApiSetOverridePost
 
-> WinnerOverride setOverrideApiSetOverridePost(matchId, winner)
+> WinnerOverride setOverrideApiSetOverridePost(matchId, winner, incomplete)
 
 Set Override
 
-Set a winner override for a match.
+Set a winner and/or incomplete override for a match. Persists through re-parses.
 
 ### Example
 
@@ -3196,8 +3473,10 @@ async function example() {
   const body = {
     // number
     matchId: 56,
-    // Team
+    // Team (optional)
     winner: ...,
+    // string (optional)
+    incomplete: incomplete_example,
   } satisfies SetOverrideApiSetOverridePostRequest;
 
   try {
@@ -3218,7 +3497,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **matchId** | `number` |  | [Defaults to `undefined`] |
-| **winner** | `Team` |  | [Defaults to `undefined`] [Enum: 0, 1, 2, 3, 4, -1] |
+| **winner** | `Team` |  | [Optional] [Defaults to `undefined`] [Enum: 0, 1, 2, 3, 4, -1] |
+| **incomplete** | `string` |  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -3363,6 +3643,74 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## uploadReplayApiUploadReplayPost
+
+> MatchInfo uploadReplayApiUploadReplayPost(file)
+
+Upload Replay
+
+Upload a .rep file, save it to S3, parse it, and return the match info.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { UploadReplayApiUploadReplayPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // Blob
+    file: BINARY_DATA_HERE,
+  } satisfies UploadReplayApiUploadReplayPostRequest;
+
+  try {
+    const data = await api.uploadReplayApiUploadReplayPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **file** | `Blob` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MatchInfo**](MatchInfo.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `multipart/form-data`
 - **Accept**: `application/json`
 
 

@@ -12,6 +12,9 @@ Name | Type
 `sigma` | number
 `gameCount` | number
 `atdate` | Date
+`recentDeltas` | { [key: string]: number; }
+`highOrdinal` | number
+`lowOrdinal` | number
 
 ## Example
 
@@ -26,6 +29,9 @@ const example = {
   "sigma": null,
   "gameCount": null,
   "atdate": null,
+  "recentDeltas": null,
+  "highOrdinal": null,
+  "lowOrdinal": null,
 } satisfies PlayerRatings
 
 console.log(example)

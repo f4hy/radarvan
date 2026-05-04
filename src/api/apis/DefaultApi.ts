@@ -21,6 +21,7 @@ import type {
   GameRecord,
   GeneralStats,
   HTTPValidationError,
+  HeadToHead,
   MapDataPayload,
   MapStatsResponse,
   MapsByPlayerCount,
@@ -29,11 +30,13 @@ import type {
   Matches,
   PlayerEnum,
   PlayerGameCount,
+  PlayerRatingDailyChange,
   PlayerRatingData,
+  PlayerSkill,
   PlayerStats,
   ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
-  ResponseReparseBeforeDateApiReparseBeforeDatePostValue,
+  ResponseReparseRecentApiReparseRecentPostValue,
   Superlatives,
   Team,
   TeamStatsResponse,
@@ -54,6 +57,8 @@ import {
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    HeadToHeadFromJSON,
+    HeadToHeadToJSON,
     MapDataPayloadFromJSON,
     MapDataPayloadToJSON,
     MapStatsResponseFromJSON,
@@ -70,16 +75,20 @@ import {
     PlayerEnumToJSON,
     PlayerGameCountFromJSON,
     PlayerGameCountToJSON,
+    PlayerRatingDailyChangeFromJSON,
+    PlayerRatingDailyChangeToJSON,
     PlayerRatingDataFromJSON,
     PlayerRatingDataToJSON,
+    PlayerSkillFromJSON,
+    PlayerSkillToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
     ReplayFileSchemaFromJSON,
     ReplayFileSchemaToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
-    ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON,
-    ResponseReparseBeforeDateApiReparseBeforeDatePostValueToJSON,
+    ResponseReparseRecentApiReparseRecentPostValueFromJSON,
+    ResponseReparseRecentApiReparseRecentPostValueToJSON,
     SuperlativesFromJSON,
     SuperlativesToJSON,
     TeamFromJSON,
@@ -130,6 +139,10 @@ export interface GetGeneralsStatsApiGeneralstatsGetRequest {
     gameFormat?: string | null;
 }
 
+export interface GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest {
+    gameFormat?: string | null;
+}
+
 export interface GetMapDataApiMapDataMapNameGetRequest {
     mapName: string;
 }
@@ -154,7 +167,15 @@ export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
 }
 
+export interface GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest {
+    forDate: Date;
+}
+
 export interface GetPlayerRatingsApiPlayerRatingsGetRequest {
+    gameFormat?: string | null;
+}
+
+export interface GetPlayerSkillsApiPlayerSkillsGetRequest {
     gameFormat?: string | null;
 }
 
@@ -210,6 +231,10 @@ export interface ReparseNonV2ApiReparseNonV2PostRequest {
     maxConcurrent?: number;
 }
 
+export interface ReparseRecentApiReparseRecentPostRequest {
+    days?: number;
+}
+
 export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest {
     maxToReturn?: number;
 }
@@ -233,7 +258,8 @@ export interface ScrapeApiScrapeDaysPostRequest {
 
 export interface SetOverrideApiSetOverridePostRequest {
     matchId: number;
-    winner: Team;
+    winner?: Team | null;
+    incomplete?: string | null;
 }
 
 export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRequest {
@@ -242,6 +268,10 @@ export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRe
 
 export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest {
     maxToUpdate?: number;
+}
+
+export interface UploadReplayApiUploadReplayPostRequest {
+    file: Blob;
 }
 
 /**
@@ -736,6 +766,49 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getHeadToHeadApiPlayerRatingsHeadToHeadGet without sending the request
+     */
+    async getHeadToHeadApiPlayerRatingsHeadToHeadGetRequestOpts(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_ratings/head_to_head/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Win/loss record for every rated player against every other rated player.
+     * Get Head To Head
+     */
+    async getHeadToHeadApiPlayerRatingsHeadToHeadGetRaw(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: { [key: string]: HeadToHead; }; }>> {
+        const requestOptions = await this.getHeadToHeadApiPlayerRatingsHeadToHeadGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Win/loss record for every rated player against every other rated player.
+     * Get Head To Head
+     */
+    async getHeadToHeadApiPlayerRatingsHeadToHeadGet(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: { [key: string]: HeadToHead; }; }> {
+        const response = await this.getHeadToHeadApiPlayerRatingsHeadToHeadGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getMapDataApiMapDataMapNameGet without sending the request
      */
     async getMapDataApiMapDataMapNameGetRequestOpts(requestParameters: GetMapDataApiMapDataMapNameGetRequest): Promise<runtime.RequestOpts> {
@@ -1176,6 +1249,56 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet without sending the request
+     */
+    async getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequestOpts(requestParameters: GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['forDate'] == null) {
+            throw new runtime.RequiredError(
+                'forDate',
+                'Required parameter "forDate" was null or undefined when calling getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['forDate'] != null) {
+            queryParameters['for_date'] = (requestParameters['forDate'] as any).toISOString().substring(0,10);
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_ratings/daily_changes/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return each player\'s ordinal rating change for the given date.
+     * Get Player Rating Daily Changes
+     */
+    async getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRaw(requestParameters: GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerRatingDailyChange>>> {
+        const requestOptions = await this.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerRatingDailyChangeFromJSON));
+    }
+
+    /**
+     * Return each player\'s ordinal rating change for the given date.
+     * Get Player Rating Daily Changes
+     */
+    async getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet(requestParameters: GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerRatingDailyChange>> {
+        const response = await this.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getPlayerRatingsApiPlayerRatingsGet without sending the request
      */
     async getPlayerRatingsApiPlayerRatingsGetRequestOpts(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest): Promise<runtime.RequestOpts> {
@@ -1213,6 +1336,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerRatingsApiPlayerRatingsGet(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerRatingData> {
         const response = await this.getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPlayerSkillsApiPlayerSkillsGet without sending the request
+     */
+    async getPlayerSkillsApiPlayerSkillsGetRequestOpts(requestParameters: GetPlayerSkillsApiPlayerSkillsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/player_skills/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Alternative skill estimate via Whole-History Rating (Coulom 2008).  Each player\'s skill is a function of time (one rating per date played) with a Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes. Returns each player\'s rating at their most recent game, mean-centered across players.
+     * Get Player Skills
+     */
+    async getPlayerSkillsApiPlayerSkillsGetRaw(requestParameters: GetPlayerSkillsApiPlayerSkillsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerSkill>>> {
+        const requestOptions = await this.getPlayerSkillsApiPlayerSkillsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerSkillFromJSON));
+    }
+
+    /**
+     * Alternative skill estimate via Whole-History Rating (Coulom 2008).  Each player\'s skill is a function of time (one rating per date played) with a Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes. Returns each player\'s rating at their most recent game, mean-centered across players.
+     * Get Player Skills
+     */
+    async getPlayerSkillsApiPlayerSkillsGet(requestParameters: GetPlayerSkillsApiPlayerSkillsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerSkill>> {
+        const response = await this.getPlayerSkillsApiPlayerSkillsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -2073,18 +2239,18 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
+    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
         const requestOptions = await this.reparseBeforeDateApiReparseBeforeDatePostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
+    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
         const response = await this.reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -2120,19 +2286,62 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
-    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
+    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
         const requestOptions = await this.reparseNonV2ApiReparseNonV2PostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
-    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
+    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
         const response = await this.reparseNonV2ApiReparseNonV2PostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for reparseRecentApiReparseRecentPost without sending the request
+     */
+    async reparseRecentApiReparseRecentPostRequestOpts(requestParameters: ReparseRecentApiReparseRecentPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['days'] != null) {
+            queryParameters['days'] = requestParameters['days'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/reparse_recent/`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Re-run cncstats on all matches whose game_date is within the last `days` days.
+     * Reparse Recent
+     */
+    async reparseRecentApiReparseRecentPostRaw(requestParameters: ReparseRecentApiReparseRecentPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
+        const requestOptions = await this.reparseRecentApiReparseRecentPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
+    }
+
+    /**
+     * Re-run cncstats on all matches whose game_date is within the last `days` days.
+     * Reparse Recent
+     */
+    async reparseRecentApiReparseRecentPost(requestParameters: ReparseRecentApiReparseRecentPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
+        const response = await this.reparseRecentApiReparseRecentPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -2382,13 +2591,6 @@ export class DefaultApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['winner'] == null) {
-            throw new runtime.RequiredError(
-                'winner',
-                'Required parameter "winner" was null or undefined when calling setOverrideApiSetOverridePost().'
-            );
-        }
-
         const queryParameters: any = {};
 
         if (requestParameters['matchId'] != null) {
@@ -2397,6 +2599,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         if (requestParameters['winner'] != null) {
             queryParameters['winner'] = requestParameters['winner'];
+        }
+
+        if (requestParameters['incomplete'] != null) {
+            queryParameters['incomplete'] = requestParameters['incomplete'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -2413,7 +2619,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a winner override for a match.
+     * Set a winner and/or incomplete override for a match. Persists through re-parses.
      * Set Override
      */
     async setOverrideApiSetOverridePostRaw(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinnerOverride>> {
@@ -2424,7 +2630,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a winner override for a match.
+     * Set a winner and/or incomplete override for a match. Persists through re-parses.
      * Set Override
      */
     async setOverrideApiSetOverridePost(requestParameters: SetOverrideApiSetOverridePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinnerOverride> {
@@ -2515,6 +2721,73 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for uploadReplayApiUploadReplayPost without sending the request
+     */
+    async uploadReplayApiUploadReplayPostRequestOpts(requestParameters: UploadReplayApiUploadReplayPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['file'] == null) {
+            throw new runtime.RequiredError(
+                'file',
+                'Required parameter "file" was null or undefined when calling uploadReplayApiUploadReplayPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const consumes: runtime.Consume[] = [
+            { contentType: 'multipart/form-data' },
+        ];
+        // @ts-ignore: canConsumeForm may be unused
+        const canConsumeForm = runtime.canConsumeForm(consumes);
+
+        let formParams: { append(param: string, value: any): any };
+        let useForm = false;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        useForm = canConsumeForm;
+        if (useForm) {
+            formParams = new FormData();
+        } else {
+            formParams = new URLSearchParams();
+        }
+
+        if (requestParameters['file'] != null) {
+            formParams.append('file', requestParameters['file'] as any);
+        }
+
+
+        let urlPath = `/api/upload_replay`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: formParams,
+        };
+    }
+
+    /**
+     * Upload a .rep file, save it to S3, parse it, and return the match info.
+     * Upload Replay
+     */
+    async uploadReplayApiUploadReplayPostRaw(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
+        const requestOptions = await this.uploadReplayApiUploadReplayPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
+    }
+
+    /**
+     * Upload a .rep file, save it to S3, parse it, and return the match info.
+     * Upload Replay
+     */
+    async uploadReplayApiUploadReplayPost(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
+        const response = await this.uploadReplayApiUploadReplayPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

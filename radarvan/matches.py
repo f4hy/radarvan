@@ -155,7 +155,7 @@ def replay_to_db_match(replay: EnhancedReplayV2, json_s3_uri: str) -> db.Match:
         players=db_players,
         duration_minutes=utils.duration_minutes(replay),
         filename=replay_name,
-        incomplete=incomplete or None,
+        incomplete=incomplete or "",
         notes=incomplete,
         game_version=game_version,
     )
@@ -194,7 +194,9 @@ def match_to_matchinfo(
         players=players,
         duration_minutes=db_match.duration_minutes,
         filename=db_match.filename,
-        incomplete="" if override is not None else (db_match.incomplete or ""),
+        incomplete=(override.incomplete or "")
+        if override is not None
+        else (db_match.incomplete or ""),
         notes="" if override is not None else (db_match.notes or ""),
         game_version=db_match.game_version,
         composition=comp,
