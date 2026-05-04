@@ -1,4 +1,3 @@
-import statistics
 from dataclasses import dataclass
 from typing import NamedTuple
 from cachetools import cached
@@ -176,9 +175,7 @@ def _process_games(
         for name, count in counts.items():
             game_counts[name] += count
         pre_ordinals = {
-            name: players[name].ordinal()
-            for team in teams.values()
-            for name in team
+            name: players[name].ordinal() for team in teams.values() for name in team
         }
         updated, history = _update_ratings_for_game(game, teams, players, model)
         players.update(updated)

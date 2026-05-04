@@ -6,8 +6,9 @@ from enum import Enum
 from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, File, HTTPException, Request, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, Query, Response, Security, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import APIKeyHeader
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -76,6 +77,43 @@ conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
 IS_DEV = os.getenv("DEV") is not None
 
+API_KEYS_READ = set(filter(None, os.getenv("API_KEY_READ", "").split(",")))
+API_KEYS_WRITE = set(filter(None, os.getenv("API_KEY_WRITE", "").split(",")))
+ENFORCE_AUTH = os.getenv("ENFORCE_AUTH") is not None
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(
+    request: Request,
+    response: Response,
+    key: str | None = Security(_api_key_header),
+) -> None:
+    # Auth is disabled when neither key is configured (local dev)
+    if not API_KEYS_READ and not API_KEYS_WRITE:
+        return
+    if key in API_KEYS_WRITE:
+        access = "write"
+    elif key in API_KEYS_READ:
+        access = "read"
+    else:
+        access = "none"
+    response.headers["X-Auth-Valid"] = "true" if access != "none" else "false"
+    response.headers["X-Auth-Access"] = access
+    is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
+    if not ENFORCE_AUTH:
+        logger.info(
+            "Auth not enforced: key=%s access=%s method=%s path=%s",
+            key,
+            access,
+            request.method,
+            request.url.path,
+        )
+        return
+    if access == "none":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if is_write_method and access != "write":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
 
 def get_db_session() -> Generator[Session]:
     """Dependency that provides a database session.
@@ -121,6 +159,7 @@ app = FastAPI(
     description="Stats for generals",
     version="0.1.0",
     lifespan=lifespan,
+    dependencies=[Depends(verify_api_key)],
 )
 
 _recompute_lock = asyncio.Lock()
@@ -585,7 +624,9 @@ def upload_replay(
     file_hash = replay_files.compute_hash(data)
 
     if replay_manager.get_replay_by_hash(file_hash) is not None:
-        raise HTTPException(status_code=409, detail=f"Replay already uploaded (hash={file_hash})")
+        raise HTTPException(
+            status_code=409, detail=f"Replay already uploaded (hash={file_hash})"
+        )
 
     result = replay_files.upload_and_parse(data, file_hash, replay_manager)
     db_match = matches.replay_to_db_match(result.replay, result.json_path)
@@ -717,7 +758,9 @@ async def _do_recompute(
     if stale:
         notify(f"Loaded {len(details)} match details for superlatives recompute")
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
-    result = superlatives.get_superlatives(game_list, details, ratings_and_counts.daily_changes)
+    result = superlatives.get_superlatives(
+        game_list, details, ratings_and_counts.daily_changes
+    )
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(f"saved {len(result.stats)} computed statistics")
@@ -1044,15 +1087,14 @@ def get_player_ratings(
     fourteen_days_ago = today - timedelta(days=14)
     thirty_days_ago = today - timedelta(days=30)
 
+    cutoffs = [(7, seven_days_ago), (14, fourteen_days_ago), (30, thirty_days_ago)]
+
     def convert(rating: player_rating.NamedRating) -> PlayerRatings:
         deltas: dict[int, float] = {7: 0.0, 14: 0.0, 30: 0.0}
         for c in ratings_and_counts.daily_changes.get(rating.name, []):
-            if c.date >= thirty_days_ago:
-                deltas[30] += c.delta
-                if c.date >= fourteen_days_ago:
-                    deltas[14] += c.delta
-                    if c.date >= seven_days_ago:
-                        deltas[7] += c.delta
+            for days, cutoff in cutoffs:
+                if c.date >= cutoff:
+                    deltas[days] += c.delta
         return PlayerRatings(
             name=rating.name,
             ordinal=rating.ordinal(),
@@ -1072,13 +1114,14 @@ def get_player_ratings(
             atdate=rating.at_date,
         )
 
-    # Last 5 W/L results per player
     player_results: dict[str, list[bool]] = defaultdict(list)
     for game in sorted(game_list, key=lambda g: g.timestamp):
         for p in game.players:
             if p.team <= 0:
                 continue
-            player_results[player_ids.resolve_player_name(p.name, p.color)].append(p.won)
+            player_results[player_ids.resolve_player_name(p.name, p.color)].append(
+                p.won
+            )
     rated_names = {r.name for r in ratings_and_counts.ratings}
     player_form = {
         name: results[-10:]
@@ -1142,13 +1185,17 @@ def get_head_to_head(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, dict[str, HeadToHead]]:
     """Win/loss record for every rated player against every other rated player."""
-    games = list(competitive_matches(replay_manager).values())
-    game_list = matches.filter_by_format(games, game_format)
+    all_games = list(competitive_matches(replay_manager).values())
+    game_list = matches.filter_by_format(all_games, game_format)
 
-    ratings_and_counts = player_rating.compute_player_ratings(game_list)
-    rated_players = {r.name for r in ratings_and_counts.ratings}
+    # Use unfiltered games for rated_players so the cache key matches other endpoints.
+    rated_players = {
+        r.name for r in player_rating.compute_player_ratings(all_games).ratings
+    }
 
-    h2h: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+    h2h: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
 
     for game in game_list:
         teams: dict[int, list[tuple[str, bool]]] = defaultdict(list)
@@ -1174,7 +1221,9 @@ def get_head_to_head(
                     h2h[name2][name1][0] += 1
 
     return {
-        name: {opp: HeadToHead(wins=wl[0], losses=wl[1]) for opp, wl in opponents.items()}
+        name: {
+            opp: HeadToHead(wins=wl[0], losses=wl[1]) for opp, wl in opponents.items()
+        }
         for name, opponents in h2h.items()
         if name in rated_players
     }

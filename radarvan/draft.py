@@ -63,7 +63,7 @@ def compute_draft(
     # This halves duplicate probability compared to pure random while
     # still allowing up to 2 players to share any given general.
     general_pool = list(range(12)) * 2
-    random.shuffle(general_pool)  # noqa: S311
+    random.shuffle(general_pool)
 
     assignments = []
     for t in teams:

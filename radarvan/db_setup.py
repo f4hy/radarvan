@@ -13,7 +13,6 @@ print("!!", constring)
 db_manager = DatabaseManager(constring)
 
 
-
 def restore_jsons() -> None:
     replay_dump_path = Path("./replay_json_dump.json")
     if not replay_dump_path.exists():

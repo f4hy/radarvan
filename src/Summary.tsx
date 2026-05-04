@@ -101,7 +101,11 @@ function buildCategorySankeyData(
     links.push({ source: playerIdx, target: catIdx, value: catTotal })
     for (const [name, obj] of Object.entries(items)) {
       if (obj.totalSpent <= 0) continue
-      links.push({ source: catIdx, target: addNode(name), value: obj.totalSpent })
+      links.push({
+        source: catIdx,
+        target: addNode(name),
+        value: obj.totalSpent,
+      })
     }
   }
 
@@ -226,13 +230,13 @@ function SankeyNode({
   )
 }
 
-const cashFormatter = (value: number | undefined) =>
-  `$${(value ?? 0).toLocaleString("en-US")}`
+const cashFormatter = (value: unknown) =>
+  `$${((value as number) ?? 0).toLocaleString("en-US")}`
 
 function PlayerSankeyChart(props: {
   data: SankeyData
   emptyMessage: string
-  formatter?: (value: number | undefined) => string
+  formatter?: (value: unknown) => string
   minHeight?: number
 }) {
   const { nodes, links } = props.data
@@ -279,8 +283,14 @@ function PlayerDestroyedSankey(props: { playerSummary: PlayerSummary }) {
   const data = React.useMemo(
     () =>
       buildCategorySankeyData(props.playerSummary.name, [
-        { label: "Units Destroyed", items: props.playerSummary.unitsDestroyed ?? {} },
-        { label: "Buildings Destroyed", items: props.playerSummary.buildingsDestroyed ?? {} },
+        {
+          label: "Units Destroyed",
+          items: props.playerSummary.unitsDestroyed ?? {},
+        },
+        {
+          label: "Buildings Destroyed",
+          items: props.playerSummary.buildingsDestroyed ?? {},
+        },
       ]),
     [props.playerSummary],
   )
@@ -298,7 +308,10 @@ function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
     () =>
       buildCategorySankeyData(props.playerSummary.name, [
         { label: "Units Lost", items: props.playerSummary.unitsLost ?? {} },
-        { label: "Buildings Lost", items: props.playerSummary.buildingsLost ?? {} },
+        {
+          label: "Buildings Lost",
+          items: props.playerSummary.buildingsLost ?? {},
+        },
       ]),
     [props.playerSummary],
   )
@@ -362,14 +375,20 @@ function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
       return nodeIdx.get(name)!
     }
     const playerIdx = addNode(props.playerSummary.name)
-    for (const [power, count] of Object.entries(props.playerSummary.powersUsed)) {
+    for (const [power, count] of Object.entries(
+      props.playerSummary.powersUsed,
+    )) {
       if (count <= 0) continue
       links.push({ source: playerIdx, target: addNode(power), value: count })
     }
     return { nodes: nodeNames.map((name) => ({ name })), links }
   }, [props.playerSummary])
   return (
-    <PlayerSankeyChart data={data} emptyMessage="No powers used data" minHeight={300} />
+    <PlayerSankeyChart
+      data={data}
+      emptyMessage="No powers used data"
+      minHeight={300}
+    />
   )
 }
 

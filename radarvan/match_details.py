@@ -321,6 +321,17 @@ def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
     return {name: Upgrades(upgrades=values) for name, values in upgrades.items()}
 
 
+def _to_obj_map(
+    by_player: dict[str, dict[str, list[int]]],
+) -> dict[str, dict[str, APIObjectSummary]]:
+    return {
+        name: {
+            u: APIObjectSummary(Count=d[0], TotalSpent=d[1]) for u, d in units.items()
+        }
+        for name, units in by_player.items()
+    }
+
+
 def api_player_summaries(
     replay: EnhancedReplayV2,
     units_destroyed: dict[str, dict[str, APIObjectSummary]] | None = None,
@@ -502,28 +513,38 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         player_money_spent[p.name] = p.money_spent
     scale = minutess_per_step(replay)
     unit_cost: dict[str, int] = {}
-    for bev in (replay.stats.build_events if replay.stats else []):
+    for bev in replay.stats.build_events if replay.stats else []:
         if bev.object not in unit_cost and bev.cost > 0:
             unit_cost[bev.object] = bev.cost
 
     kill_events: list[KillEventOutput] = []
-    ud_by_player: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
-    bd_by_player: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
-    ul_by_player: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
-    bl_by_player: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
-    for kev in (replay.stats.kill_events if replay.stats else []):
+    ud_by_player: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    bd_by_player: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    ul_by_player: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    bl_by_player: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    for kev in replay.stats.kill_events if replay.stats else []:
         killer_name = name_by_idx.get(kev.killer_player, "unk")
         victim_name = name_by_idx.get(kev.victim_player, "unk")
-        kill_events.append(KillEventOutput(
-            at_minute=kev.frame * scale,
-            killer_player=killer_name,
-            victim_player=victim_name,
-            x=kev.x,
-            y=kev.y,
-            killer=kev.killer,
-            victim=kev.victim,
-            damage_type=kev.damage_type,
-        ))
+        kill_events.append(
+            KillEventOutput(
+                at_minute=kev.frame * scale,
+                killer_player=killer_name,
+                victim_player=victim_name,
+                x=kev.x,
+                y=kev.y,
+                killer=kev.killer,
+                victim=kev.victim,
+                damage_type=kev.damage_type,
+            )
+        )
         cost = unit_cost.get(kev.victim, 0)
         is_bldg = _is_building(kev.victim_type)
         if killer_name != "unk":
@@ -534,14 +555,6 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             lost = bl_by_player if is_bldg else ul_by_player
             lost[victim_name][kev.victim][0] += 1
             lost[victim_name][kev.victim][1] += cost
-
-    def _to_obj_map(
-        by_player: dict[str, dict[str, list[int]]],
-    ) -> dict[str, dict[str, APIObjectSummary]]:
-        return {
-            name: {u: APIObjectSummary(Count=d[0], TotalSpent=d[1]) for u, d in units.items()}
-            for name, units in by_player.items()
-        }
 
     hdr = replay.header
     return MatchDetails(

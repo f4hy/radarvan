@@ -26,7 +26,13 @@ import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
-import { MatchInfo, Matches, Player, PlayerRatingDailyChange, Team } from "./api"
+import {
+  MatchInfo,
+  Matches,
+  Player,
+  PlayerRatingDailyChange,
+  Team,
+} from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -455,15 +461,7 @@ function DisplayMatchesForDate(props: {
   }, [expanded, matchList.matches.length, props.date, showError])
 
   const handleChange =
-    (_panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-      if (matchList.matches.length === 0) {
-        getMatches(props.date, setMatchList, showError)
-        Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
-          forDate: props.date,
-        })
-          .then(setRatingChanges)
-          .catch(showError)
-      }
+    (_panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpanded(isExpanded)
     }
   const fmt = (d: Date) =>
@@ -487,15 +485,13 @@ function DisplayMatchesForDate(props: {
           />
         </AccordionSummary>
         <AccordionDetails>
-          <AccordionDetails>
-            {matchList.matches.length === 0 ? (
-              <MatchRowLoading />
-            ) : (
-              matchList.matches.map((m, idx) => (
-                <DisplayMatchInfo match={m} key={m.id} idx={idx} />
-              ))
-            )}
-          </AccordionDetails>
+          {matchList.matches.length === 0 ? (
+            <MatchRowLoading />
+          ) : (
+            matchList.matches.map((m, idx) => (
+              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
+            ))
+          )}
         </AccordionDetails>
       </Accordion>
       {errorSnackbar}

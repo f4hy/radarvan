@@ -2,10 +2,10 @@
 
 Each player's skill is modeled as a step function of time — one rating per date the
 player participated in a game — with a Gaussian random-walk prior on changes:
-    r_p(t_{k+1}) − r_p(t_k) ~ N(0, w² · (t_{k+1} − t_k))
+    r_p(t_{k+1}) - r_p(t_k) ~ N(0, w² · (t_{k+1} - t_k))
 
 Game outcomes follow the team Bradley-Terry likelihood:
-    P(team A wins) = sigmoid(Σ_{i∈A} r_i(t_g) − Σ_{i∈B} r_i(t_g))
+    P(team A wins) = sigmoid(Σ_{i∈A} r_i(t_g) - Σ_{i∈B} r_i(t_g))
 
 Fit by alternating per-player Newton updates: with all other players' trajectories
 held fixed, each player's full trajectory is solved jointly via a tridiagonal Newton
@@ -222,9 +222,7 @@ def compute_player_skills(games: list[MatchInfo]) -> list[NamedSkill]:
         return []
     _fit(prep)
 
-    finals = np.asarray(
-        [s[-1] for s in prep.skills if s.size > 0], dtype=np.float64
-    )
+    finals = np.asarray([s[-1] for s in prep.skills if s.size > 0], dtype=np.float64)
     mean = float(finals.mean())
 
     results = [
@@ -234,8 +232,7 @@ def compute_player_skills(games: list[MatchInfo]) -> list[NamedSkill]:
             game_count=prep.game_counts[prep.idx_to_name[idx]],
         )
         for idx in range(len(prep.skills))
-        if prep.skills[idx].size > 0
-        and prep.game_counts[prep.idx_to_name[idx]] > 20
+        if prep.skills[idx].size > 0 and prep.game_counts[prep.idx_to_name[idx]] > 20
     ]
     results.sort(key=lambda r: r.skill, reverse=True)
     return results

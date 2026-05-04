@@ -282,7 +282,6 @@ type RatingEntry = {
   lowOrdinal?: number | null
 }
 
-
 function DeltaCell(props: { delta: number | null | undefined }) {
   const delta = props.delta ?? 0
   const scaled = Math.round(delta * 10)
@@ -291,7 +290,12 @@ function DeltaCell(props: { delta: number | null | undefined }) {
     <TableCell
       align="right"
       sx={{
-        color: delta === 0 ? "text.secondary" : isHot ? "success.main" : "error.main",
+        color:
+          delta === 0
+            ? "text.secondary"
+            : isHot
+              ? "success.main"
+              : "error.main",
         fontWeight: "bold",
         fontVariantNumeric: "tabular-nums",
       }}
@@ -354,18 +358,28 @@ function PlayerLeaderboard(props: {
             <TableRow key={r.name} hover>
               <TableCell>{i + 1}</TableCell>
               <TableCell>{r.name}</TableCell>
-              <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {Math.round(r.ordinal * 10)}
               </TableCell>
               <TableCell
                 align="right"
-                sx={{ fontVariantNumeric: "tabular-nums", color: "text.secondary", fontSize: "0.8em" }}
+                sx={{
+                  fontVariantNumeric: "tabular-nums",
+                  color: "text.secondary",
+                  fontSize: "0.8em",
+                }}
               >
                 {r.highOrdinal != null && r.lowOrdinal != null
                   ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
                   : "—"}
               </TableCell>
-              <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {r.gameCount}
               </TableCell>
               <TableCell>
@@ -433,7 +447,13 @@ function HeadToHeadMatrix(props: { format: GameFormat }) {
           <tbody>
             {players.map((p1) => (
               <tr key={p1}>
-                <td style={{ padding: "4px 8px", fontWeight: "bold", whiteSpace: "nowrap" }}>
+                <td
+                  style={{
+                    padding: "4px 8px",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {p1}
                 </td>
                 {players.map((p2) => {
@@ -455,7 +475,11 @@ function HeadToHeadMatrix(props: { format: GameFormat }) {
                     return (
                       <td
                         key={p2}
-                        style={{ padding: "4px 8px", textAlign: "center", color: "#aaa" }}
+                        style={{
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          color: "#aaa",
+                        }}
                       >
                         -
                       </td>
@@ -693,7 +717,8 @@ function WhrTable() {
 }
 
 export function DisplayPlayerRatingTrend() {
-  const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData | null>(null)
+  const [playerRatings, setPlayerRatings] =
+    React.useState<PlayerRatingData | null>(null)
   const [format, setFormat] = React.useState<GameFormat>("All")
   const { showError, errorSnackbar } = useErrorSnackbar()
 
@@ -725,7 +750,9 @@ export function DisplayPlayerRatingTrend() {
               <TableCell>Last 10 team game results</TableCell>
               {trendDays.map((d) => (
                 <TableCell key={d} align="right">
-                  <MuiTooltip title={`Rating change over last ${d} days (× 10)`}>
+                  <MuiTooltip
+                    title={`Rating change over last ${d} days (× 10)`}
+                  >
                     <span>{d}d</span>
                   </MuiTooltip>
                 </TableCell>
@@ -737,7 +764,10 @@ export function DisplayPlayerRatingTrend() {
               <TableRow key={r.name} hover>
                 <TableCell>{i + 1}</TableCell>
                 <TableCell>{r.name}</TableCell>
-                <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                <TableCell
+                  align="right"
+                  sx={{ fontVariantNumeric: "tabular-nums" }}
+                >
                   {r.gameCount}
                 </TableCell>
                 <TableCell>
@@ -777,7 +807,11 @@ export default function DisplayPlayerRatings() {
   const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
-      <Accordion disableGutters defaultExpanded={false} TransitionProps={{ unmountOnExit: true }}>
+      <Accordion
+        disableGutters
+        defaultExpanded={false}
+        TransitionProps={{ unmountOnExit: true }}
+      >
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="h6">Whole-History Rating</Typography>
         </AccordionSummary>

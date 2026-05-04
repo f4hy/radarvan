@@ -734,7 +734,7 @@ def get_monthly_stats(
         best = max(eligible_wl, key=lambda n: eligible_wl[n][0] / sum(eligible_wl[n]))
         worst = min(eligible_wl, key=lambda n: eligible_wl[n][0] / sum(eligible_wl[n]))
         bw, bl = eligible_wl[best]
-        ww, wl_l = eligible_wl[worst]
+        ww, worst_losses = eligible_wl[worst]
         stats.append(
             Statistic(
                 stat_name="🔥 Best Record (30d)",
@@ -747,7 +747,7 @@ def get_monthly_stats(
             Statistic(
                 stat_name="❄️ Worst Record (30d)",
                 date_computed=computed_at,
-                value=f"{ww}-{wl_l}",
+                value=f"{ww}-{worst_losses}",
                 player=worst,
             )
         )
@@ -806,7 +806,9 @@ def get_superlatives(
         *_safe_compute(get_calendar_stats, games, computed_at),
     ]
     if daily_changes is not None:
-        stats.extend(_safe_compute(get_monthly_stats, games, daily_changes, computed_at))
+        stats.extend(
+            _safe_compute(get_monthly_stats, games, daily_changes, computed_at)
+        )
     if details:
         match_info_by_id = {g.id: g for g in games}
         for fn, *args in [
