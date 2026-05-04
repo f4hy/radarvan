@@ -58,3 +58,4 @@ yarn-error.log*
 /.dmypy.json
 /cncstats_schema.json
 /openapitools.json
+/keys/
