@@ -6,7 +6,7 @@ from enum import Enum
 from pydantic import BaseModel
 import asyncio
 import traceback
-from fastapi import FastAPI, File, HTTPException, Request, Query, Security, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, Query, Response, Security, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import APIKeyHeader
 import logging
@@ -77,27 +77,42 @@ conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
 IS_DEV = os.getenv("DEV") is not None
 
-API_KEY_READ = os.getenv("API_KEY_READ")
-API_KEY_WRITE = os.getenv("API_KEY_WRITE")
+API_KEYS_READ = set(filter(None, os.getenv("API_KEY_READ", "").split(",")))
+API_KEYS_WRITE = set(filter(None, os.getenv("API_KEY_WRITE", "").split(",")))
+ENFORCE_AUTH = os.getenv("ENFORCE_AUTH") is not None
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 async def verify_api_key(
     request: Request,
+    response: Response,
     key: str | None = Security(_api_key_header),
 ) -> None:
     # Auth is disabled when neither key is configured (local dev)
-    if API_KEY_READ is None and API_KEY_WRITE is None:
+    if not API_KEYS_READ and not API_KEYS_WRITE:
         return
-    if key is None:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
-    if is_write_method:
-        if key != API_KEY_WRITE:
-            raise HTTPException(status_code=403, detail="Forbidden")
+    if key in API_KEYS_WRITE:
+        access = "write"
+    elif key in API_KEYS_READ:
+        access = "read"
     else:
-        if key not in (API_KEY_READ, API_KEY_WRITE):
-            raise HTTPException(status_code=403, detail="Forbidden")
+        access = "none"
+    response.headers["X-Auth-Valid"] = "true" if access != "none" else "false"
+    response.headers["X-Auth-Access"] = access
+    is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
+    if not ENFORCE_AUTH:
+        logger.info(
+            "Auth not enforced: key=%s access=%s method=%s path=%s",
+            key,
+            access,
+            request.method,
+            request.url.path,
+        )
+        return
+    if access == "none":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if is_write_method and access != "write":
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 def get_db_session() -> Generator[Session]:
