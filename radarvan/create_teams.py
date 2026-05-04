@@ -91,7 +91,8 @@ def create_balanced_teams(
 
     player_ratings = {r.name: r for r in ratings}
 
-    team_configs = dict(enumerate(partition_into_teams(list(player_list), team_size)))
+    resolved_players = [player_ids.resolve_player_name(n) for n in player_list]
+    team_configs = dict(enumerate(partition_into_teams(resolved_players, team_size)))
 
     config_rating = {
         id: rate_team_partition(team_config, player_ratings)
