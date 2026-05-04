@@ -102,8 +102,8 @@ async def verify_api_key(
     is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
     if not ENFORCE_AUTH:
         logger.info(
-            "Auth not enforced: key=%s access=%s method=%s path=%s",
-            key,
+            "Auth not enforced: key_present=%s access=%s method=%s path=%s",
+            key is not None,
             access,
             request.method,
             request.url.path,
