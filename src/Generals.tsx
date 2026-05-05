@@ -3,7 +3,7 @@ import Badge from "@mui/material/Badge"
 import china from "./img/Gen_China_Logo.webp"
 import usa from "./img/Gen_USA_Logo.webp"
 import gla from "./img/Gla.webp"
-import { General } from "./proto/match"
+import { General } from "./General"
 
 type Side = "GLA" | "CHINA" | "USA"
 

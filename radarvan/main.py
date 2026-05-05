@@ -88,7 +88,6 @@ async def verify_api_key(
     response: Response,
     key: str | None = Security(_api_key_header),
 ) -> None:
-    # Auth is disabled when neither key is configured (local dev)
     if not API_KEYS_READ and not API_KEYS_WRITE:
         return
     if key in API_KEYS_WRITE:
@@ -1240,16 +1239,16 @@ class SelectedPlayers(BaseModel):
 
 @app.get("/api/balance_teams/")
 def balance_teams(
-    players: SelectedPlayers = Query(default=SelectedPlayers(players=[])),
+    players: list[str] = Query(default=[]),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, float]:
-    if len(players.players) < 4:
+    if len(players) < 4:
         return {}
 
     games = competitive_matches(replay_manager)
 
     team_scores = create_teams.balance_teams(
-        list(games.values()), player_list={str(p.value) for p in players.players}
+        list(games.values()), player_list=set(players)
     )
     logger.info(f"Team Scores {team_scores}")
     return {",".join(i): v for i, v in team_scores.items()}

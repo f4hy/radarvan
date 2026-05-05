@@ -227,8 +227,6 @@ type Selection =
   | "DebugData"
   | "MapStats"
   | "TeamStats"
-  | "PairStats"
-  | "Wrapped"
   | "Tournaments"
   | "BalanceTeams"
   | "PlayerRating"

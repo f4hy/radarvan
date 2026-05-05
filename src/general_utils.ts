@@ -1,5 +1,5 @@
-import { General } from "./proto/match"
+import { General } from "./General"
 
 export function toGeneralName(n: number): string {
-  return General[n]
+  return General[n] ?? "UNKNOWN"
 }
