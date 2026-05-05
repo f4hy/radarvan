@@ -1,0 +1,15 @@
+export enum General {
+  USA = 0,
+  AIR = 1,
+  LASER = 2,
+  SUPER = 3,
+  CHINA = 4,
+  NUKE = 5,
+  TANK = 6,
+  INFANTRY = 7,
+  GLA = 8,
+  TOXIN = 9,
+  STEALTH = 10,
+  DEMO = 11,
+  UNRECOGNIZED = -1,
+}
