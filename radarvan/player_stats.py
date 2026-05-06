@@ -7,6 +7,7 @@ from .api_types import (
     General,
     PlayerStats,
     PlayerStat,
+    Team,
     WinLoss,
 )
 from . import replay_files
@@ -51,11 +52,11 @@ def get_player_stats(
             if name not in player_wl:
                 player_wl[name] = PlayerStat(
                     player_name=name,
-                    stats={General(i): WinLoss(wins=0, losses=0) for i in range(12)},
+                    stats={g: WinLoss(wins=0, losses=0) for g in General},
                     faction_stats=[],
                     over_time=[],
                 )
-            if not player.is_real():
+            if player.team == Team.OBSERVER:
                 continue
             if player.won:
                 player_wl[name].stats[player.general].wins += 1

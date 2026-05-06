@@ -8,6 +8,7 @@ from .api_types import (
     MapPlayerWL,
     MapStatsResponse,
     MatchInfo,
+    Team,
 )
 from . import replay_files
 from . import general_stats as general_stats_module
@@ -17,7 +18,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 MIN_GAMES = 5
-CPU_NAMES = general_stats_module.CPU_NAMES
 
 
 def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
@@ -45,9 +45,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
         map_games[map_name] += 1
 
         for player in game.players:
-            if player.name.lower() in CPU_NAMES:
-                continue
-            if not player.is_real():
+            if player.team == Team.OBSERVER:
                 continue
             name = resolve_player_name(player.name, player.color)
             idx = 0 if player.won else 1

@@ -14,7 +14,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-CPU_NAMES = {"cpu", "hardarmy"}
+CPU_NAMES = {
+    "cpu",
+    "hardarmy",
+    "tacticalai",
+}
 
 
 def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
