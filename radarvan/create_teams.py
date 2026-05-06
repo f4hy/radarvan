@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from itertools import combinations
 from . import player_ids
 from radarvan.api_types import MatchInfo
@@ -6,6 +6,21 @@ import logging
 from .player_rating import get_model, compute_player_ratings, NamedRating
 
 logger = logging.getLogger(__name__)
+
+# Pairs that, when on the same team, are treated as slightly more balanced.
+# Value is a scale factor applied to the advantage (distance from 0.5).
+# 0.9 = reduce the predicted advantage by 10%.
+SAME_TEAM_FUDGE: dict[frozenset[str], float] = {
+    frozenset({"Modus", "OneThree111"}): 0.85,
+}
+
+
+def _apply_fudge(win_pct: float, team1: Iterable[str], team2: Iterable[str]) -> float:
+    s1, s2 = frozenset(team1), frozenset(team2)
+    for pair, scale in SAME_TEAM_FUDGE.items():
+        if pair <= s1 or pair <= s2:
+            win_pct = 0.5 + (win_pct - 0.5) * scale
+    return win_pct
 
 
 def balance_teams(
@@ -32,6 +47,8 @@ def balance_teams(
         if not team1_ratings or not team2_ratings:
             continue
         win1_prop, win2_prop = model.predict_win([team1_ratings, team2_ratings])
+        win1_prop = _apply_fudge(win1_prop, team1, team2)
+        win2_prop = _apply_fudge(win2_prop, team2, team1)
         logger.info(f"Team1 {team1} team2{team2} {win1_prop} {win2_prop}")
         if win1_prop >= 0.5:
             team_win_pct[tuple(team1)] = win1_prop
@@ -116,5 +133,6 @@ def rate_team_partition(
         if not ratings1 or not ratings2:
             continue
         win1_prob, _win2_prob = model.predict_win([ratings1, ratings2])
+        win1_prob = _apply_fudge(win1_prob, team1, team2)
         loss += (0.5 - win1_prob) ** 2
     return loss
