@@ -84,3 +84,17 @@ def resolve_player_name(name: str, color: str = "") -> str:
             return "Pancake"
         return "pcap"
     return NAME_MAPPING.get(name.lower(), name)
+
+
+def all_teams_have_group_player(players) -> bool:
+    """Return True if every team (team > 0) has at least one player from PLAYER_NAMES."""
+    teams: dict[int, bool] = {}
+    for p in players:
+        if p.team <= 0:
+            continue
+        name = resolve_player_name(p.name, getattr(p, "color", ""))
+        if p.team not in teams:
+            teams[p.team] = False
+        if name in PLAYER_NAMES:
+            teams[p.team] = True
+    return bool(teams) and all(teams.values())

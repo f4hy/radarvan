@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from enum import Enum
 from pydantic import BaseModel
 import asyncio
+import threading
 import traceback
 from fastapi import FastAPI, File, HTTPException, Request, Query, Response, Security, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -62,7 +63,7 @@ from radarvan.api_types import (
     DraftResult,
     MapsByPlayerCount,
 )
-from cachetools import TTLCache, cached
+from cachetools import TTLCache, LRUCache, cached
 from .db import Match, ParsedReplayJson
 from .db_utils import DatabaseManager, MatchDebugData, ReplayManager
 from .game_composition import GameComposition
@@ -147,6 +148,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         scheduler = schedule.get_scheduler(replay_manager, db_manager)
         if not IS_DEV:
             scheduler.start()
+        _warm_caches()
         yield
         if not IS_DEV:
             scheduler.shutdown()
@@ -187,11 +189,39 @@ async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse
     )
 
 
-def dont_cache_manager(replay_manager: ReplayManager) -> str:
-    return "single_key"
+_latest_ts_cache: TTLCache[str, str] = TTLCache(maxsize=1, ttl=60)
 
 
-@cached(cache=TTLCache(5, ttl=300), key=dont_cache_manager)
+def _latest_match_ts(replay_manager: ReplayManager) -> str:
+    if "v" not in _latest_ts_cache:
+        ts = replay_manager.latest_match_created_at()
+        _latest_ts_cache["v"] = ts.isoformat() if ts else ""
+    return _latest_ts_cache["v"]
+
+
+def _matches_key(replay_manager: ReplayManager) -> str:
+    return _latest_match_ts(replay_manager)
+
+
+def _details_key(match_id: int, replay_manager: ReplayManager) -> str:
+    ts = replay_manager.parsed_replay_updated_at(match_id)
+    return f"{match_id}:{ts.isoformat() if ts else 'none'}"
+
+
+def _warm_caches() -> None:
+    with db_manager.get_replay_manager() as rm:
+        sorted_deduped_matches(rm)
+        competitive_matches(rm)
+
+
+def _invalidate_match_caches() -> None:
+    _latest_ts_cache.clear()
+    sorted_deduped_matches.cache_clear()
+    competitive_matches.cache_clear()
+    threading.Thread(target=_warm_caches, daemon=True).start()
+
+
+@cached(cache=LRUCache(maxsize=2), key=_matches_key)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
@@ -202,13 +232,14 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
-@cached(cache=TTLCache(5, ttl=300), key=dont_cache_manager)
+@cached(cache=LRUCache(maxsize=2), key=_matches_key)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
     filtered = {
         m.id: m
         for m in all_matches.values()
         if game_composition.competitive_game_filter(comp=m.composition)
+        and player_ids.all_teams_have_group_player(m.players)
     }
     return filtered
 
@@ -268,7 +299,7 @@ def scrape(
     days: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, str]:
-    sorted_deduped_matches.cache_clear()
+    _invalidate_match_caches()
     details_from_id.cache_clear()
     background_tasks.add_task(schedule.update_games, replay_manager, days=days)
     return {"scheduled": "ok"}
@@ -389,11 +420,7 @@ def get_tournament_results(
     return results
 
 
-def dont_cache_manager2(match_id: int, replay_manager: ReplayManager) -> str:
-    return str(match_id)
-
-
-@cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager2)
+@cached(cache=LRUCache(maxsize=100), key=_details_key)
 def details_from_id(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
@@ -631,7 +658,7 @@ def upload_replay(
     db_match = matches.replay_to_db_match(result.replay, result.json_path)
     replay_manager.register_match(db_match)
     replay_manager.compute_and_save_composition(db_match.match_id)
-    sorted_deduped_matches.cache_clear()
+    _invalidate_match_caches()
 
     match_info = matches.match_from_replay(result.replay)
     if match_info is None:

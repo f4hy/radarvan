@@ -97,6 +97,11 @@ class DatabaseManager:
         finally:
             session.close()
 
+    @contextmanager
+    def get_replay_manager(self, notify: bool = False) -> Generator["ReplayManager"]:
+        with self.get_session() as session:
+            yield ReplayManager(session, notify=notify)
+
 
 class ReplayManager:
     """Repository for match-related operations."""
@@ -110,6 +115,16 @@ class ReplayManager:
         self.session = session
         self.notify = notify
         self.auto_commit = auto_commit
+
+    def latest_match_created_at(self) -> datetime | None:
+        return self.session.scalar(select(func.max(Match.created_at)))
+
+    def parsed_replay_updated_at(self, match_id: int) -> datetime | None:
+        return self.session.scalar(
+            select(ParsedReplayJson.updated_at)
+            .where(ParsedReplayJson.match_id == match_id)
+            .limit(1)
+        )
 
     def get_match(self, match_id: int) -> Match | None:
         return self.session.get(Match, match_id)
