@@ -40,6 +40,8 @@ class NamedRating:
 
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     r = model.rating(name=name)
+    if name == "TacticalAI":
+        return NamedRating(name=name, mu=8.25, sigma=r.sigma)
     return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
 
 
@@ -205,11 +207,18 @@ def _log_sorted_ratings(
         )
 
 
+def include_rating(game_counts: dict[str, int], name: str, min_game_count: int):
+    if name == "TacticalAI":
+        return True
+    return game_counts.get(name, 0) > min_game_count
+
+
 @cached(cache={}, key=lambda games: frozenset(g.id for g in games))
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     model = get_model()
     filtered_games = [g for g in games if g.winning_team > 0]
     all_players = _collect_all_players(filtered_games)
+    all_players.add("TacticalAI")
     player_ratings = {name: initialize_player(name, model) for name in all_players}
     logger.info(f"players: {player_ratings}")
 
@@ -220,12 +229,20 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
         )
         logger.info(f"Pass {i}")
         _log_sorted_ratings(
-            [r for r in player_ratings.values() if game_counts.get(r.name, 0) > 20],
+            [
+                r
+                for r in player_ratings.values()
+                if include_rating(game_counts, r.name, min_game_count=20)
+            ],
             game_counts,
         )
     logger.info("===")
 
-    ratings = [r for r in player_ratings.values() if game_counts.get(r.name, 0) > 20]
+    ratings = [
+        r
+        for r in player_ratings.values()
+        if include_rating(game_counts, r.name, min_game_count=20)
+    ]
     sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
     _log_sorted_ratings(sorted_ratings, game_counts)
 

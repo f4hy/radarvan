@@ -59,7 +59,7 @@ NAME_MAPPING = {
     "enragedferret": "EnragedFerret",
     "cpu": "HardArmy",
     "hardarmy": "HardArmy",
-    "TacticalAI": "TacticalAI",
+    "tacticalai": "TacticalAI",
     "pcaps": "pcap",
     "pcap": "pcap",
     "g.c": "pcap",
