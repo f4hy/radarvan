@@ -287,10 +287,10 @@ function BestWorstBadgePair(props: {
 }
 
 function GeneralBestWorstSummary(props: {
-  maps: MapData[]
+  rows: Array<[number, BestWorst]>
   onMapClick: (mapName: string) => void
 }) {
-  const rows = computeGeneralBestWorst(props.maps)
+  const { rows } = props
   if (rows.length === 0) return null
   return (
     <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
@@ -326,10 +326,10 @@ function GeneralBestWorstSummary(props: {
 }
 
 function PlayerBestWorstSummary(props: {
-  maps: MapData[]
+  rows: Array<[string, BestWorst]>
   onMapClick: (mapName: string) => void
 }) {
-  const rows = computePlayerBestWorst(props.maps)
+  const { rows } = props
   if (rows.length === 0) return null
   return (
     <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
@@ -356,20 +356,26 @@ function PlayerBestWorstSummary(props: {
 
 // --- Per-map accordion ---
 
-function MapCard(props: {
+const MapCard = React.memo(function MapCard(props: {
   map: MapData
   expanded: boolean
-  onToggle: (expanded: boolean) => void
+  onToggle: (mapName: string, expanded: boolean) => void
 }) {
   const { map } = props
   const debug = isDebug()
   const [tab, setTab] = React.useState<"players" | "generals">("generals")
+  const [everExpanded, setEverExpanded] = React.useState(props.expanded)
 
   return (
     <Accordion
       id={mapId(map.mapName)}
       expanded={props.expanded}
-      onChange={(_, isExpanded) => props.onToggle(isExpanded)}
+      onChange={(_, isExpanded) => props.onToggle(map.mapName, isExpanded)}
+      TransitionProps={{
+        unmountOnExit: false,
+        onEnter: () => React.startTransition(() => setEverExpanded(true)),
+        onExit: () => setTab("generals"),
+      }}
     >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -385,7 +391,7 @@ function MapCard(props: {
       </AccordionSummary>
       <AccordionDetails>
         <Stack direction="row" spacing={2} alignItems="flex-start">
-          <GameMap mapname={map.mapName} />
+          {everExpanded && <GameMap mapname={map.mapName} />}
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
               <Tab value="generals" label="Generals" />
@@ -400,7 +406,7 @@ function MapCard(props: {
       </AccordionDetails>
     </Accordion>
   )
-}
+})
 
 export default function DisplayMapStats() {
   const [mapStats, setMapStats] = React.useState<MapStatsResponse | null>(null)
@@ -417,12 +423,30 @@ export default function DisplayMapStats() {
     }
   }, [mapStats])
 
+  const handleToggle = React.useCallback((mapName: string, isExpanded: boolean) => {
+    setExpandedMaps((prev) => {
+      const next = new Set(prev)
+      if (isExpanded) next.add(mapName)
+      else next.delete(mapName)
+      return next
+    })
+  }, [])
+
   const handleMapClick = React.useCallback((mapName: string) => {
     setExpandedMaps((prev) => new Set([...prev, mapName]))
     document
       .getElementById(mapId(mapName))
       ?.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [])
+
+  const generalBestWorst = React.useMemo(
+    () => (mapStats ? computeGeneralBestWorst(mapStats.maps) : []),
+    [mapStats],
+  )
+  const playerBestWorst = React.useMemo(
+    () => (mapStats ? computePlayerBestWorst(mapStats.maps) : []),
+    [mapStats],
+  )
 
   if (mapStats === null) {
     return (
@@ -447,11 +471,11 @@ export default function DisplayMapStats() {
         sx={{ mb: 2 }}
       >
         <GeneralBestWorstSummary
-          maps={mapStats.maps}
+          rows={generalBestWorst}
           onMapClick={handleMapClick}
         />
         <PlayerBestWorstSummary
-          maps={mapStats.maps}
+          rows={playerBestWorst}
           onMapClick={handleMapClick}
         />
       </Stack>
@@ -461,14 +485,7 @@ export default function DisplayMapStats() {
           key={m.mapName}
           map={m}
           expanded={expandedMaps.has(m.mapName)}
-          onToggle={(isExpanded) =>
-            setExpandedMaps((prev) => {
-              const next = new Set(prev)
-              if (isExpanded) next.add(m.mapName)
-              else next.delete(m.mapName)
-              return next
-            })
-          }
+          onToggle={handleToggle}
         />
       ))}
       {errorSnackbar}
