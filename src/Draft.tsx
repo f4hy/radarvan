@@ -268,7 +268,8 @@ export default function DisplayDraft() {
     () =>
       players.map((p) =>
         Object.values(PlayerEnum).filter(
-          (name) => !players.some((other) => other.id !== p.id && other.name === name),
+          (name) =>
+            !players.some((other) => other.id !== p.id && other.name === name),
         ),
       ),
     [players],

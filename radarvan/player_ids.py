@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+from typing import Protocol
+
 PLAYERS = {
     "wild": "A1AF434A9790",
     "modus": "09BAC013F91C",
@@ -86,7 +89,14 @@ def resolve_player_name(name: str, color: str = "") -> str:
     return NAME_MAPPING.get(name.lower(), name)
 
 
-def all_teams_have_group_player(players) -> bool:
+class _Player(Protocol):
+    @property
+    def team(self) -> int: ...
+    @property
+    def name(self) -> str: ...
+
+
+def all_teams_have_group_player(players: Iterable[_Player]) -> bool:
     """Return True if every team (team > 0) has at least one player from PLAYER_NAMES."""
     teams: dict[int, bool] = {}
     for p in players:

@@ -423,14 +423,17 @@ export default function DisplayMapStats() {
     }
   }, [mapStats])
 
-  const handleToggle = React.useCallback((mapName: string, isExpanded: boolean) => {
-    setExpandedMaps((prev) => {
-      const next = new Set(prev)
-      if (isExpanded) next.add(mapName)
-      else next.delete(mapName)
-      return next
-    })
-  }, [])
+  const handleToggle = React.useCallback(
+    (mapName: string, isExpanded: boolean) => {
+      setExpandedMaps((prev) => {
+        const next = new Set(prev)
+        if (isExpanded) next.add(mapName)
+        else next.delete(mapName)
+        return next
+      })
+    },
+    [],
+  )
 
   const handleMapClick = React.useCallback((mapName: string) => {
     setExpandedMaps((prev) => new Set([...prev, mapName]))

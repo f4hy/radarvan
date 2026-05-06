@@ -207,7 +207,7 @@ def _log_sorted_ratings(
         )
 
 
-def include_rating(game_counts: dict[str, int], name: str, min_game_count: int):
+def include_rating(game_counts: dict[str, int], name: str, min_game_count: int) -> bool:
     if name == "TacticalAI":
         return True
     return game_counts.get(name, 0) > min_game_count

@@ -146,8 +146,7 @@ function EventChart(props: {
   playerSummaries: PlayerSummary[]
 }) {
   const names = React.useMemo(
-    () =>
-      Object.keys(props.upgrades).sort((x1, x2) => x1.localeCompare(x2)),
+    () => Object.keys(props.upgrades).sort((x1, x2) => x1.localeCompare(x2)),
     [props.upgrades],
   )
   const colors = buildPlayerColorMap(props.playerSummaries)

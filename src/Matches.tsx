@@ -235,7 +235,10 @@ function displayTeam(team: Team): string {
   }
 }
 
-export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
+export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
+  match: MatchInfo
+  idx: number
+}) {
   const [details, setDetails] = React.useState<boolean>(false)
   const playerPositions = React.useMemo(
     () => buildPlayerPositions(props.match.players),

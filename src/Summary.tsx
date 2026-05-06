@@ -445,7 +445,10 @@ export default function ShowPlayerSummaries(props: {
 }) {
   const [selectedPlayer, setSelectedPlayer] = React.useState<number>(0)
   const handleClick = React.useCallback(
-    (_event: React.MouseEvent<HTMLElement>, newSelection: number | undefined) => {
+    (
+      _event: React.MouseEvent<HTMLElement>,
+      newSelection: number | undefined,
+    ) => {
       setSelectedPlayer((prev) => newSelection ?? prev)
     },
     [],

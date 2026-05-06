@@ -237,15 +237,17 @@ function DisplayPlayerStat(props: {
   const { data, radarData, total_wins, total_games } = React.useMemo(() => {
     let total_wins = 0
     let total_games = 0
-    const entries = Object.entries(props.stat.stats).map(([general, winLoss]) => {
-      const wins = winLoss?.wins ?? 0
-      total_wins += wins
-      const losses = winLoss?.losses ?? 0
-      total_games += wins + losses
-      const wr = winRate(wins, losses)
-      const name = toGeneralName(toGeneral(general))
-      return { name, wins, losses, wr }
-    })
+    const entries = Object.entries(props.stat.stats).map(
+      ([general, winLoss]) => {
+        const wins = winLoss?.wins ?? 0
+        total_wins += wins
+        const losses = winLoss?.losses ?? 0
+        total_games += wins + losses
+        const wr = winRate(wins, losses)
+        const name = toGeneralName(toGeneral(general))
+        return { name, wins, losses, wr }
+      },
+    )
     const data = entries.map(({ name, wins, losses, wr }) => ({
       general: `${name}:${(wr * 100).toFixed()}%`,
       wins,

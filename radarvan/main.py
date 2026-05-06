@@ -7,7 +7,16 @@ from pydantic import BaseModel
 import asyncio
 import threading
 import traceback
-from fastapi import FastAPI, File, HTTPException, Request, Query, Response, Security, UploadFile
+from fastapi import (
+    FastAPI,
+    File,
+    HTTPException,
+    Request,
+    Query,
+    Response,
+    Security,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import APIKeyHeader
 import logging

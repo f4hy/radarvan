@@ -103,16 +103,11 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
       props.costs.map((x) => formatCosts(x.units, x?.player?.name ?? "unk")),
     [props.costs],
   )
-  const unit_names = React.useMemo(
-    () => extractNames(unit_data),
-    [unit_data],
-  )
+  const unit_names = React.useMemo(() => extractNames(unit_data), [unit_data])
 
   const upgrade_data = React.useMemo(
     () =>
-      props.costs.map((x) =>
-        formatCosts(x.upgrades, x?.player?.name ?? "unk"),
-      ),
+      props.costs.map((x) => formatCosts(x.upgrades, x?.player?.name ?? "unk")),
     [props.costs],
   )
   const upgrade_names = React.useMemo(
