@@ -191,7 +191,7 @@ def dont_cache_manager(replay_manager: ReplayManager) -> str:
     return "single_key"
 
 
-@cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager)
+@cached(cache=TTLCache(5, ttl=300), key=dont_cache_manager)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
@@ -202,7 +202,7 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
-@cached(cache=TTLCache(5, ttl=30), key=dont_cache_manager)
+@cached(cache=TTLCache(5, ttl=300), key=dont_cache_manager)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
     filtered = {
