@@ -444,12 +444,12 @@ export default function ShowPlayerSummaries(props: {
   killEvents: KillEventOutput[]
 }) {
   const [selectedPlayer, setSelectedPlayer] = React.useState<number>(0)
-  const handleClick = (
-    event: React.MouseEvent<HTMLElement>,
-    newSelection: number | undefined,
-  ) => {
-    setSelectedPlayer(newSelection ?? selectedPlayer)
-  }
+  const handleClick = React.useCallback(
+    (_event: React.MouseEvent<HTMLElement>, newSelection: number | undefined) => {
+      setSelectedPlayer((prev) => newSelection ?? prev)
+    },
+    [],
+  )
   const buttonGroup = (
     <ToggleButtonGroup
       exclusive

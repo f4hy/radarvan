@@ -64,7 +64,7 @@ function LoadAndShowMatch({ matchId }: { matchId: number }) {
   )
 }
 
-function StatCard({
+const StatCard = React.memo(function StatCard({
   stat,
   onMatchClick,
 }: {
@@ -114,7 +114,7 @@ function StatCard({
       </CardContent>
     </Card>
   )
-}
+})
 
 function CategorySection({
   label,
@@ -150,6 +150,31 @@ export default function DisplaySuperlatives() {
     Client.getSuperlativesApiSuperlativesGet().then(setData).catch(showError)
   }, [showError])
 
+  const grouped = React.useMemo(() => {
+    if (data === null) return new Map<string, Statistic[]>()
+    const map = new Map<string, Statistic[]>()
+    for (const stat of data.stats) {
+      const cat = categorize(stat.statName)
+      const bucket = map.get(cat)
+      if (bucket) {
+        bucket.push(stat)
+      } else {
+        map.set(cat, [stat])
+      }
+    }
+    return map
+  }, [data])
+
+  const orderedGroups = React.useMemo(() => {
+    const groups: [string, Statistic[]][] = CATEGORY_ORDER.map(
+      ({ label }): [string, Statistic[]] => [label, grouped.get(label) ?? []],
+    ).filter(([, stats]) => stats.length > 0)
+    if (grouped.has("Other")) {
+      groups.push(["Other", grouped.get("Other")!])
+    }
+    return groups
+  }, [grouped])
+
   if (data === null) {
     return <Loading />
   }
@@ -166,25 +191,6 @@ export default function DisplaySuperlatives() {
         </Typography>
       </Paper>
     )
-  }
-
-  const grouped = new Map<string, Statistic[]>()
-  for (const stat of data.stats) {
-    const cat = categorize(stat.statName)
-    const bucket = grouped.get(cat)
-    if (bucket) {
-      bucket.push(stat)
-    } else {
-      grouped.set(cat, [stat])
-    }
-  }
-
-  const orderedGroups: [string, Statistic[]][] = CATEGORY_ORDER.map(
-    ({ label }): [string, Statistic[]] => [label, grouped.get(label) ?? []],
-  ).filter(([, stats]) => stats.length > 0)
-
-  if (grouped.has("Other")) {
-    orderedGroups.push(["Other", grouped.get("Other")!])
   }
 
   return (

@@ -101,16 +101,20 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
-  const data = props.stats.generalStats.map((x) => {
-    const wins = x?.total?.wins ?? 0
-    const losses = x?.total?.losses ?? 0
-    return {
-      wins,
-      losses,
-      name: toGeneralName(x.general),
-      rate: winRate(wins, losses),
-    }
-  })
+  const data = React.useMemo(
+    () =>
+      props.stats.generalStats.map((x) => {
+        const wins = x?.total?.wins ?? 0
+        const losses = x?.total?.losses ?? 0
+        return {
+          wins,
+          losses,
+          name: toGeneralName(x.general),
+          rate: winRate(wins, losses),
+        }
+      }),
+    [props.stats.generalStats],
+  )
 
   return <GeneralWinLossChart data={data} isMobile={isMobile} />
 }
@@ -160,16 +164,20 @@ export default function DisplayGeneralStats() {
     [generalStats.generalStats],
   )
 
+  const radarData = React.useMemo(
+    () =>
+      generalStats.generalStats.map((x) => ({
+        name: toGeneralName(x.general),
+        winRate: Math.round(
+          winRate(x?.total?.wins ?? 0, x?.total?.losses ?? 0) * 100,
+        ),
+      })),
+    [generalStats.generalStats],
+  )
+
   if (generalStats.generalStats.length === 0) {
     return <Loading />
   }
-
-  const radarData = generalStats.generalStats.map((x) => ({
-    name: toGeneralName(x.general),
-    winRate: Math.round(
-      winRate(x?.total?.wins ?? 0, x?.total?.losses ?? 0) * 100,
-    ),
-  }))
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
@@ -188,9 +196,7 @@ export default function DisplayGeneralStats() {
           ))}
         </ToggleButtonGroup>
       </Stack>
-      <DisplayOverallGeneralStat
-        stats={{ generalStats: generalStats.generalStats }}
-      />
+      <DisplayOverallGeneralStat stats={generalStats} />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Grid container spacing={2} alignItems="flex-start">
         <Grid size={{ xs: 12, md: 4 }}>

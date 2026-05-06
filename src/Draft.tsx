@@ -28,6 +28,9 @@ import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
 import { MAPLIST } from "./maplist"
+
+const VALID_PLAYER_NAMES = new Set<string>(Object.values(PlayerEnum))
+
 interface DraftPlayer {
   id: number
   name: string
@@ -42,7 +45,6 @@ const TEAM_COLORS: Record<1 | 2 | 3 | 4, string> = {
 }
 
 function mapDisplayName(filename: string): string {
-  // Strip userdata_maps_ or maps_ prefix, then remove doubled suffix
   let stem = filename.replace(/\.webp$/, "")
   if (stem.startsWith("userdata_maps_")) {
     stem = stem.slice("userdata_maps_".length)
@@ -92,7 +94,6 @@ export default function DisplayDraft() {
     )
   }, [])
 
-  // Reinitialize players when player count or top-player list changes
   React.useEffect(() => {
     setAssignments([])
     setRandomizedAt(null)
@@ -110,7 +111,6 @@ export default function DisplayDraft() {
     )
   }, [selectedPlayerCount, topPlayers])
 
-  // Load map data when map selection changes
   React.useEffect(() => {
     setMapData(null)
     setAssignments([])
@@ -225,9 +225,8 @@ export default function DisplayDraft() {
 
   const namesUnique =
     new Set(players.map((p) => p.name)).size === players.length
-  const validPlayerNames = new Set<string>(Object.values(PlayerEnum))
   const allNamesValid =
-    players.length >= 2 && players.every((p) => validPlayerNames.has(p.name))
+    players.length >= 2 && players.every((p) => VALID_PLAYER_NAMES.has(p.name))
 
   const teamCounts = players.reduce<Record<number, number>>((acc, p) => {
     acc[p.team] = (acc[p.team] ?? 0) + 1
@@ -237,18 +236,17 @@ export default function DisplayDraft() {
   const teamsBalanced =
     teamSizes.length >= 2 && teamSizes.every((n) => n === teamSizes[0])
 
-  const team1Set = new Set(
-    players.filter((p) => p.team === 1).map((p) => p.name),
-  )
-  const team2Set = new Set(
-    players.filter((p) => p.team === 2).map((p) => p.name),
-  )
-  const allBalancePlayers = [
-    ...players.filter((p) => p.team === 1).map((p) => p.name),
-    ...players.filter((p) => p.team === 2).map((p) => p.name),
-  ]
-  const matchedEntry = teamRating
-    ? Object.entries(teamRating).find(([key]) => {
+  const { team1Set, team2Set, allBalancePlayers } = React.useMemo(() => {
+    const t1 = new Set(players.filter((p) => p.team === 1).map((p) => p.name))
+    const t2 = new Set(players.filter((p) => p.team === 2).map((p) => p.name))
+    const all = [...t1, ...t2]
+    return { team1Set: t1, team2Set: t2, allBalancePlayers: all }
+  }, [players])
+
+  const matchedEntry = React.useMemo(() => {
+    if (!teamRating) return null
+    return (
+      Object.entries(teamRating).find(([key]) => {
         const keySet = new Set(key.split(","))
         return (
           (keySet.size === team1Set.size &&
@@ -256,11 +254,25 @@ export default function DisplayDraft() {
           (keySet.size === team2Set.size &&
             [...keySet].every((n) => team2Set.has(n)))
         )
-      })
-    : null
-  const matchedScore = matchedEntry
-    ? (1.0 - Math.abs(matchedEntry[1] - 0.5) * 2.0) * 100
-    : null
+      }) ?? null
+    )
+  }, [teamRating, team1Set, team2Set])
+
+  const matchedScore = React.useMemo(
+    () =>
+      matchedEntry ? (1.0 - Math.abs(matchedEntry[1] - 0.5) * 2.0) * 100 : null,
+    [matchedEntry],
+  )
+
+  const availablePlayersBySlot = React.useMemo(
+    () =>
+      players.map((p) =>
+        Object.values(PlayerEnum).filter(
+          (name) => !players.some((other) => other.id !== p.id && other.name === name),
+        ),
+      ),
+    [players],
+  )
 
   return (
     <Box sx={{ maxWidth: 900, mx: "auto" }}>
@@ -293,19 +305,14 @@ export default function DisplayDraft() {
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
               Players
             </Typography>
-            {players.map((p) => (
+            {players.map((p, idx) => (
               <Box
                 key={p.id}
                 sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
               >
                 <Autocomplete
-                  options={Object.values(PlayerEnum).filter(
-                    (name) =>
-                      !players.some(
-                        (other) => other.id !== p.id && other.name === name,
-                      ),
-                  )}
-                  value={validPlayerNames.has(p.name) ? p.name : null}
+                  options={availablePlayersBySlot[idx]}
+                  value={VALID_PLAYER_NAMES.has(p.name) ? p.name : null}
                   onChange={(_e, val) => {
                     if (val !== null) updatePlayerName(p.id, val)
                   }}

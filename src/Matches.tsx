@@ -235,7 +235,7 @@ function displayTeam(team: Team): string {
   }
 }
 
-export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
+export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
   const [details, setDetails] = React.useState<boolean>(false)
   const playerPositions = React.useMemo(
     () => buildPlayerPositions(props.match.players),
@@ -340,7 +340,7 @@ export function DisplayMatchInfo(props: { match: MatchInfo; idx: number }) {
     )
   }
   return matchDisplay
-}
+})
 
 const empty = { matches: [] }
 
@@ -460,10 +460,12 @@ function DisplayMatchesForDate(props: {
     }
   }, [expanded, matchList.matches.length, props.date, showError])
 
-  const handleChange =
-    (_panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
+  const handleChange = React.useCallback(
+    (_event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpanded(isExpanded)
-    }
+    },
+    [],
+  )
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
   const date = fmt(props.date)
@@ -473,7 +475,7 @@ function DisplayMatchesForDate(props: {
     <>
       <Accordion
         expanded={expanded === true}
-        onChange={handleChange(`${idx}`)}
+        onChange={handleChange}
         sx={borderProps}
       >
         <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
@@ -488,8 +490,8 @@ function DisplayMatchesForDate(props: {
           {matchList.matches.length === 0 ? (
             <MatchRowLoading />
           ) : (
-            matchList.matches.map((m, idx) => (
-              <DisplayMatchInfo match={m} key={m.id} idx={idx} />
+            matchList.matches.map((m, matchIdx) => (
+              <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
             ))
           )}
         </AccordionDetails>
@@ -545,6 +547,36 @@ function MatchActivityCalendar(props: {
   itemRefs: React.MutableRefObject<(HTMLDivElement | null)[]>
   onDateClick: (date: string) => void
 }) {
+  const activityDataByYear = React.useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(props.dataByYear).map(([year, yearData]) => [
+          year,
+          toActivityData(yearData),
+        ]),
+      ),
+    [props.dataByYear],
+  )
+
+  const renderBlock = React.useCallback(
+    (block: React.ReactElement, activity: { date: string }) => (
+      <g
+        onClick={() => {
+          const i = Object.keys(props.dates).indexOf(activity.date)
+          props.itemRefs.current[i]?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          })
+          props.onDateClick(activity.date)
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        {block}
+      </g>
+    ),
+    [props.dates, props.itemRefs, props.onDateClick],
+  )
+
   return (
     <Grid container sx={{ width: "80%", margin: "0" }}>
       {Object.entries(props.dataByYear).map(([year, yearData], idx) => (
@@ -553,7 +585,7 @@ function MatchActivityCalendar(props: {
             <Typography>{year}</Typography>
             {Object.keys(yearData).length > 0 ? (
               <ActivityCalendar
-                data={toActivityData(yearData)}
+                data={activityDataByYear[year]}
                 weekStart={1}
                 showWeekdayLabels={["wed", "sat"]}
                 blockSize={10}
@@ -586,23 +618,7 @@ function MatchActivityCalendar(props: {
                     withArrow: true,
                   },
                 }}
-                renderBlock={(block, activity) => (
-                  <g
-                    onClick={() => {
-                      const i = Object.keys(props.dates).findIndex(
-                        (d) => d === activity.date,
-                      )
-                      props.itemRefs.current[i]?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                      })
-                      props.onDateClick(activity.date)
-                    }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {block}
-                  </g>
-                )}
+                renderBlock={renderBlock}
               />
             ) : (
               <Loading />

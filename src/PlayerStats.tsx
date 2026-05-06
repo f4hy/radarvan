@@ -234,27 +234,29 @@ function DisplayPlayerStat(props: {
   max: number
   debug: boolean
 }) {
-  const sorted = props.stat.stats
-  let total_wins = 0
-  let total_games = 0
-  const entries = Object.entries(sorted).map(([general, winLoss]) => {
-    const wins = winLoss?.wins ?? 0
-    total_wins += wins
-    const losses = winLoss?.losses ?? 0
-    total_games += wins + losses
-    const wr = winRate(wins, losses)
-    const name = toGeneralName(toGeneral(general))
-    return { name, wins, losses, wr }
-  })
-  const data = entries.map(({ name, wins, losses, wr }) => ({
-    general: `${name}:${(wr * 100).toFixed()}%`,
-    wins,
-    losses,
-  }))
-  const radarData = entries.map(({ name, wr }) => ({
-    name,
-    winRate: Math.round(wr * 100),
-  }))
+  const { data, radarData, total_wins, total_games } = React.useMemo(() => {
+    let total_wins = 0
+    let total_games = 0
+    const entries = Object.entries(props.stat.stats).map(([general, winLoss]) => {
+      const wins = winLoss?.wins ?? 0
+      total_wins += wins
+      const losses = winLoss?.losses ?? 0
+      total_games += wins + losses
+      const wr = winRate(wins, losses)
+      const name = toGeneralName(toGeneral(general))
+      return { name, wins, losses, wr }
+    })
+    const data = entries.map(({ name, wins, losses, wr }) => ({
+      general: `${name}:${(wr * 100).toFixed()}%`,
+      wins,
+      losses,
+    }))
+    const radarData = entries.map(({ name, wr }) => ({
+      name,
+      winRate: Math.round(wr * 100),
+    }))
+    return { data, radarData, total_wins, total_games }
+  }, [props.stat])
   return (
     <Box sx={{ flexGrow: 1 }}>
       <PlayerBanner
@@ -267,7 +269,7 @@ function DisplayPlayerStat(props: {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 2 }}>
           <List dense>
-            {Object.entries(sorted).map(([general, winLoss]) => (
+            {Object.entries(props.stat.stats).map(([general, winLoss]) => (
               <PlayerListItem
                 key={general}
                 general={toGeneral(general)}
@@ -390,36 +392,37 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
     wins: number
     losses: number
   }
-  const generalMap = new Map<number, BestEntry[]>()
 
-  for (const stat of props.playerStats.playerStats) {
-    for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
-      const generalNum = parseInt(generalStr)
-      if (generalNum < 0) continue
-      const wins = winLoss?.wins ?? 0
-      const losses = winLoss?.losses ?? 0
-      const total = wins + losses
-      if (total < MIN_GAMES_FOR_BEST) continue
-      const list = generalMap.get(generalNum) ?? []
-      list.push({
-        playerName: stat.playerName,
-        winRate: winRate(wins, losses),
-        wins,
-        losses,
-      })
-      generalMap.set(generalNum, list)
+  const entries = React.useMemo(() => {
+    const generalMap = new Map<number, BestEntry[]>()
+    for (const stat of props.playerStats.playerStats) {
+      for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
+        const generalNum = parseInt(generalStr)
+        if (generalNum < 0) continue
+        const wins = winLoss?.wins ?? 0
+        const losses = winLoss?.losses ?? 0
+        const total = wins + losses
+        if (total < MIN_GAMES_FOR_BEST) continue
+        const list = generalMap.get(generalNum) ?? []
+        list.push({
+          playerName: stat.playerName,
+          winRate: winRate(wins, losses),
+          wins,
+          losses,
+        })
+        generalMap.set(generalNum, list)
+      }
     }
-  }
-
-  const entries = Array.from(generalMap.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(
-      ([generalNum, list]) =>
-        [
-          generalNum,
-          list.sort((a, b) => b.winRate - a.winRate).slice(0, 3),
-        ] as const,
-    )
+    return Array.from(generalMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(
+        ([generalNum, list]) =>
+          [
+            generalNum,
+            list.sort((a, b) => b.winRate - a.winRate).slice(0, 3),
+          ] as const,
+      )
+  }, [props.playerStats])
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -471,53 +474,55 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
     losses: number
   }
 
-  const playerOverallRate = new Map<string, number>()
-  for (const stat of props.playerStats.playerStats) {
-    let totalWins = 0
-    let totalGames = 0
-    for (const winLoss of Object.values(stat.stats)) {
-      totalWins += winLoss?.wins ?? 0
-      totalGames += (winLoss?.wins ?? 0) + (winLoss?.losses ?? 0)
+  const entries = React.useMemo(() => {
+    const playerOverallRate = new Map<string, number>()
+    for (const stat of props.playerStats.playerStats) {
+      let totalWins = 0
+      let totalGames = 0
+      for (const winLoss of Object.values(stat.stats)) {
+        totalWins += winLoss?.wins ?? 0
+        totalGames += (winLoss?.wins ?? 0) + (winLoss?.losses ?? 0)
+      }
+      if (totalGames > 0) {
+        playerOverallRate.set(stat.playerName, totalWins / totalGames)
+      }
     }
-    if (totalGames > 0) {
-      playerOverallRate.set(stat.playerName, totalWins / totalGames)
-    }
-  }
 
-  const generalMap = new Map<number, RelativeEntry[]>()
-  for (const stat of props.playerStats.playerStats) {
-    const overallWinRate = playerOverallRate.get(stat.playerName) ?? 0
-    for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
-      const generalNum = parseInt(generalStr)
-      if (generalNum < 0) continue
-      const wins = winLoss?.wins ?? 0
-      const losses = winLoss?.losses ?? 0
-      const total = wins + losses
-      if (total < MIN_GAMES_FOR_BEST) continue
-      const wr = winRate(wins, losses)
-      const relativeDiff = wr - overallWinRate
-      const list = generalMap.get(generalNum) ?? []
-      list.push({
-        playerName: stat.playerName,
-        winRate: wr,
-        overallWinRate,
-        relativeDiff,
-        wins,
-        losses,
-      })
-      generalMap.set(generalNum, list)
+    const generalMap = new Map<number, RelativeEntry[]>()
+    for (const stat of props.playerStats.playerStats) {
+      const overallWinRate = playerOverallRate.get(stat.playerName) ?? 0
+      for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
+        const generalNum = parseInt(generalStr)
+        if (generalNum < 0) continue
+        const wins = winLoss?.wins ?? 0
+        const losses = winLoss?.losses ?? 0
+        const total = wins + losses
+        if (total < MIN_GAMES_FOR_BEST) continue
+        const wr = winRate(wins, losses)
+        const relativeDiff = wr - overallWinRate
+        const list = generalMap.get(generalNum) ?? []
+        list.push({
+          playerName: stat.playerName,
+          winRate: wr,
+          overallWinRate,
+          relativeDiff,
+          wins,
+          losses,
+        })
+        generalMap.set(generalNum, list)
+      }
     }
-  }
 
-  const entries = Array.from(generalMap.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(
-      ([generalNum, list]) =>
-        [
-          generalNum,
-          list.sort((a, b) => b.relativeDiff - a.relativeDiff).slice(0, 3),
-        ] as const,
-    )
+    return Array.from(generalMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(
+        ([generalNum, list]) =>
+          [
+            generalNum,
+            list.sort((a, b) => b.relativeDiff - a.relativeDiff).slice(0, 3),
+          ] as const,
+      )
+  }, [props.playerStats])
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -579,37 +584,39 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
 }
 
 function GeneralConsistency(props: { playerStats: PlayerStats }) {
-  const rows: PlayerConsistency[] = []
-  for (const stat of props.playerStats.playerStats) {
-    const qualifying: { general: General; winRate: number }[] = []
-    for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
-      const generalNum = parseInt(generalStr)
-      if (generalNum < 0) continue
-      const wins = winLoss?.wins ?? 0
-      const losses = winLoss?.losses ?? 0
-      const total = wins + losses
-      if (total < MIN_GAMES_FOR_BEST) continue
-      qualifying.push({
-        general: toGeneral(generalNum),
-        winRate: winRate(wins, losses),
+  const ranked = React.useMemo(() => {
+    const rows: PlayerConsistency[] = []
+    for (const stat of props.playerStats.playerStats) {
+      const qualifying: { general: General; winRate: number }[] = []
+      for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
+        const generalNum = parseInt(generalStr)
+        if (generalNum < 0) continue
+        const wins = winLoss?.wins ?? 0
+        const losses = winLoss?.losses ?? 0
+        const total = wins + losses
+        if (total < MIN_GAMES_FOR_BEST) continue
+        qualifying.push({
+          general: toGeneral(generalNum),
+          winRate: winRate(wins, losses),
+        })
+      }
+      if (qualifying.length < 2) continue
+      const sorted = qualifying.sort((a, b) => b.winRate - a.winRate)
+      const best = sorted[0]
+      const worst = sorted[sorted.length - 1]
+      rows.push({
+        playerName: stat.playerName,
+        spread: best.winRate - worst.winRate,
+        bestWinRate: best.winRate,
+        bestGeneral: best.general,
+        worstWinRate: worst.winRate,
+        worstGeneral: worst.general,
+        qualifyingCount: qualifying.length,
       })
     }
-    if (qualifying.length < 2) continue
-    const sorted = qualifying.sort((a, b) => b.winRate - a.winRate)
-    const best = sorted[0]
-    const worst = sorted[sorted.length - 1]
-    rows.push({
-      playerName: stat.playerName,
-      spread: best.winRate - worst.winRate,
-      bestWinRate: best.winRate,
-      bestGeneral: best.general,
-      worstWinRate: worst.winRate,
-      worstGeneral: worst.general,
-      qualifyingCount: qualifying.length,
-    })
-  }
+    return rows.sort((a, b) => a.spread - b.spread)
+  }, [props.playerStats])
 
-  const ranked = rows.sort((a, b) => a.spread - b.spread)
   if (ranked.length < 2) return null
 
   const mostConsistent = ranked[0]
@@ -657,21 +664,25 @@ export default function DisplayPlayerStats() {
     setPlayerStats(empty)
     getPlayerStats(format, setPlayerStats, showError)
   }, [format, showError])
+  const maxWinLoss = React.useMemo(() => {
+    const maxwl = playerStats.playerStats.reduce(
+      (acc, s) =>
+        Math.max(
+          acc,
+          s.factionStats.reduce(
+            (ac, x) =>
+              Math.max(ac, x.winLoss?.wins ?? 0, x.winLoss?.losses ?? 0),
+            0,
+          ),
+        ),
+      0,
+    )
+    return roundUpNearestN(maxwl + 1, 2)
+  }, [playerStats.playerStats])
+
   if (playerStats.playerStats.length === 0) {
     return <Loading />
   }
-  const maxwl = playerStats.playerStats.reduce(
-    (acc, s) =>
-      Math.max(
-        acc,
-        s.factionStats.reduce(
-          (ac, x) => Math.max(ac, x.winLoss?.wins ?? 0, x.winLoss?.losses ?? 0),
-          0,
-        ),
-      ),
-    0,
-  )
-  const maxWinLoss = roundUpNearestN(maxwl + 1, 2)
   return (
     <Paper sx={{ p: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>

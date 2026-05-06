@@ -140,6 +140,21 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
     }
   }, [props.selectedPlayers, showError])
 
+  const filtered = React.useMemo(() => {
+    const entries = Object.entries(teamRating)
+    const threshold = Math.min(
+      0.7,
+      Math.max(
+        ...entries.map(([, winRate]) => 1.0 - Math.abs(winRate - 0.5) * 2),
+      ),
+    )
+    return isDebug()
+      ? entries
+      : entries.filter(
+          ([, winRate]) => 1.0 - Math.abs(winRate - 0.5) * 2 >= threshold,
+        )
+  }, [teamRating])
+
   if (props.selectedPlayers.length % 2 !== 0) {
     return (
       <Alert severity="warning">
@@ -150,18 +165,6 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   if (loading && Object.keys(teamRating).length === 0) {
     return <Loading />
   }
-  const entries = Object.entries(teamRating)
-  const threshold = Math.min(
-    0.7,
-    Math.max(
-      ...entries.map(([, winRate]) => 1.0 - Math.abs(winRate - 0.5) * 2),
-    ),
-  )
-  const filtered = isDebug()
-    ? entries
-    : entries.filter(
-        ([, winRate], _i) => 1.0 - Math.abs(winRate - 0.5) * 2 >= threshold,
-      )
   return (
     <Stack
       spacing={1}
@@ -309,10 +312,8 @@ export default function DisplayBalanceTeams() {
     const player = PlayerEnumFromJSON(value)
     setSelectedPlayers((prevSelected) => {
       if (checked) {
-        // Add the value if it is checked
         return [...prevSelected, player]
       } else {
-        // Remove the value if it is unchecked
         return prevSelected.filter((item) => item !== value)
       }
     })

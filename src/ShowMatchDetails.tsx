@@ -145,14 +145,20 @@ function EventChart(props: {
   upgrades: { [name: string]: Upgrades }
   playerSummaries: PlayerSummary[]
 }) {
-  const names = Object.keys(props.upgrades).sort((x1, x2) =>
-    x1.localeCompare(x2),
+  const names = React.useMemo(
+    () =>
+      Object.keys(props.upgrades).sort((x1, x2) => x1.localeCompare(x2)),
+    [props.upgrades],
   )
   const colors = buildPlayerColorMap(props.playerSummaries)
-  const max = Math.max(
-    ...Object.values(props.upgrades).map((u) =>
-      Math.max(...u.upgrades.map((g) => g.atMinute)),
-    ),
+  const max = React.useMemo(
+    () =>
+      Math.max(
+        ...Object.values(props.upgrades).map((u) =>
+          Math.max(...u.upgrades.map((g) => g.atMinute)),
+        ),
+      ),
+    [props.upgrades],
   )
   if (props.upgrades && names.length > 0) {
     return (
@@ -360,58 +366,60 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
     "moneyCollected",
   )
 
-  const summaries = props.matchDetails.playerSummary
-  const statsData = props.matchDetails.statsData
-  function extractFromStatsData(key: string, name: string) {
-    const d = statsData[key]
-    if (d === undefined) {
-      return null
+  const data: StyledTableRow[] = React.useMemo(() => {
+    const { playerSummary: summaries, statsData } = props.matchDetails
+    function extractFromStatsData(key: string, name: string) {
+      const d = statsData[key]
+      if (d === undefined) {
+        return null
+      }
+      const vals = Object.values(d)
+      const last = vals[vals.length - 1]
+      if (last === undefined) {
+        return null
+      }
+      return last[name]
     }
-    const vals = Object.values(d)
-    const last = vals[vals.length - 1]
-    if (last === undefined) {
-      return null
-    }
-    return last[name]
-  }
-  const sumValue = (d: Record<string, { totalSpent: number }>) =>
-    Object.values(d).reduce((acc, o) => acc + o.totalSpent, 0)
-  const data: StyledTableRow[] = []
-  for (let s of summaries) {
-    const valueDestroyed =
-      sumValue(s.unitsDestroyed ?? {}) + sumValue(s.buildingsDestroyed ?? {})
-    const valueLost =
-      sumValue(s.unitsLost ?? {}) + sumValue(s.buildingsLost ?? {})
-    const row = {
-      player: s.name,
-      team: s.team,
-      color: s.color,
-      won: s.win,
-      general: s.side,
-      moneySpent: extractFromStatsData("money_spent", s.name),
-      moneyCollected: extractFromStatsData("money_earned", s.name),
-      xp: extractFromStatsData("xp", s.name),
-      unitsBuilt: extractFromStatsData("units_built", s.name),
-      buildingsBuilt: extractFromStatsData("buildings_built", s.name),
-      unitsLost: extractFromStatsData("units_lost", s.name),
-      buildingsLost: extractFromStatsData("buildings_lost", s.name),
-      unitsKilled: extractFromStatsData("units_killed", s.name),
-      buildingsKilled: extractFromStatsData("buildings_killed", s.name),
-      tech_buildings_captured: extractFromStatsData(
-        "tech_buildings_captured",
-        s.name,
-      ),
-      faction_buildings_captured: extractFromStatsData(
-        "faction_buildings_captured",
-        s.name,
-      ),
-      valueDestroyed,
-      valueLost,
-    }
-    data.push(row)
-  }
+    const sumValue = (d: Record<string, { totalSpent: number }>) =>
+      Object.values(d).reduce((acc, o) => acc + o.totalSpent, 0)
+    return summaries.map((s) => {
+      const valueDestroyed =
+        sumValue(s.unitsDestroyed ?? {}) + sumValue(s.buildingsDestroyed ?? {})
+      const valueLost =
+        sumValue(s.unitsLost ?? {}) + sumValue(s.buildingsLost ?? {})
+      return {
+        player: s.name,
+        team: s.team,
+        color: s.color,
+        won: s.win,
+        general: s.side,
+        moneySpent: extractFromStatsData("money_spent", s.name),
+        moneyCollected: extractFromStatsData("money_earned", s.name),
+        xp: extractFromStatsData("xp", s.name),
+        unitsBuilt: extractFromStatsData("units_built", s.name),
+        buildingsBuilt: extractFromStatsData("buildings_built", s.name),
+        unitsLost: extractFromStatsData("units_lost", s.name),
+        buildingsLost: extractFromStatsData("buildings_lost", s.name),
+        unitsKilled: extractFromStatsData("units_killed", s.name),
+        buildingsKilled: extractFromStatsData("buildings_killed", s.name),
+        tech_buildings_captured: extractFromStatsData(
+          "tech_buildings_captured",
+          s.name,
+        ),
+        faction_buildings_captured: extractFromStatsData(
+          "faction_buildings_captured",
+          s.name,
+        ),
+        valueDestroyed,
+        valueLost,
+      }
+    })
+  }, [props.matchDetails])
 
-  const sortedData = sortBy ? _.sortBy(data, sortBy) : data
+  const sortedData = React.useMemo(
+    () => (sortBy ? _.sortBy(data, sortBy) : data),
+    [data, sortBy],
+  )
 
   return (
     <TableContainer component={Paper}>
@@ -609,13 +617,17 @@ function DetailViewSelector(props: {
   onChange: (display: Displays | null) => void
   details: MatchDetails
 }) {
+  const handleChange = React.useCallback(
+    (_: React.MouseEvent<HTMLElement>, v: Displays | null) => props.onChange(v),
+    [props.onChange],
+  )
   return (
     <>
       <Typography>Select which detailed charts to show</Typography>
       <ToggleButtonGroup
         exclusive
         value={props.selectedDisplay}
-        onChange={(_, v) => props.onChange(v)}
+        onChange={handleChange}
         color="primary"
       >
         {props.choices.map((v) => (

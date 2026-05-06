@@ -40,7 +40,7 @@ const drawerWidth = 190
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [selection, setSelection] = React.useState<Selection>("Matches")
-  const debug = isDebug()
+  const debug = React.useMemo(() => isDebug(), [])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)

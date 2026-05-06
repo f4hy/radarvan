@@ -395,14 +395,18 @@ function DisplayRecords(props: {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const total = props.totalGames
-  const chartData = Object.entries(props.records).map(([team, wl]) => ({
-    team: teamAlias(team.split(",").join("+")),
-    wins: wl.wins,
-    losses: wl.losses,
-    potentialWins: total - wl.losses - wl.wins,
-    gamesOutstanding: total - (wl.wins + wl.losses),
-    maxPossibleWins: total - wl.losses,
-  }))
+  const chartData = React.useMemo(
+    () =>
+      Object.entries(props.records).map(([team, wl]) => ({
+        team: teamAlias(team.split(",").join("+")),
+        wins: wl.wins,
+        losses: wl.losses,
+        potentialWins: total - wl.losses - wl.wins,
+        gamesOutstanding: total - (wl.wins + wl.losses),
+        maxPossibleWins: total - wl.losses,
+      })),
+    [props.records, total],
+  )
   return (
     <Stack>
       <Typography>Team Records</Typography>
@@ -425,22 +429,25 @@ function MatchupButtonGrid(props: {
   isMobile: boolean
 }) {
   const buttonsPerRow: number = props.isMobile ? 2 : 5
-  const buttonNumbers: number[] = Array.from(
-    { length: props.matchups.length },
-    (_, i) => i,
-  )
-  const rows: number[][] = []
-  for (let i = 0; i < props.matchups.length; i += buttonsPerRow) {
-    rows.push(buttonNumbers.slice(i, i + buttonsPerRow))
-  }
-  const handleChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newValue: number | null,
-  ) => {
-    if (newValue !== null) {
-      props.onChange(newValue)
+  const rows = React.useMemo(() => {
+    const buttonNumbers = Array.from(
+      { length: props.matchups.length },
+      (_, i) => i,
+    )
+    const result: number[][] = []
+    for (let i = 0; i < props.matchups.length; i += buttonsPerRow) {
+      result.push(buttonNumbers.slice(i, i + buttonsPerRow))
     }
-  }
+    return result
+  }, [props.matchups.length, buttonsPerRow])
+  const handleChange = React.useCallback(
+    (_event: React.MouseEvent<HTMLElement>, newValue: number | null) => {
+      if (newValue !== null) {
+        props.onChange(newValue)
+      }
+    },
+    [props.onChange],
+  )
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {rows.map((row, rowIndex) => (
@@ -460,11 +467,9 @@ function MatchupButtonGrid(props: {
             )
             const first_record = Object.values(outcome)[0]
             const record = `${first_record.wins} - ${first_record.losses}`
-            const disabled = Object.entries(outcome).find(
+            const disabled = !Object.entries(outcome).some(
               ([_tb, wl]) => wl.wins + wl.losses > 0,
             )
-              ? false
-              : true
             return (
               <ToggleButton
                 key={buttonIndex}
