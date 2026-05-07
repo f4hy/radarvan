@@ -94,6 +94,8 @@ class _Player(Protocol):
     def team(self) -> int: ...
     @property
     def name(self) -> str: ...
+    @property
+    def color(self) -> str: ...
 
 
 def all_teams_have_group_player(players: Iterable[_Player]) -> bool:
@@ -102,7 +104,7 @@ def all_teams_have_group_player(players: Iterable[_Player]) -> bool:
     for p in players:
         if p.team <= 0:
             continue
-        name = resolve_player_name(p.name, getattr(p, "color", ""))
+        name = resolve_player_name(p.name, p.color)
         if p.team not in teams:
             teams[p.team] = False
         if name in PLAYER_NAMES:

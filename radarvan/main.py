@@ -152,8 +152,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logging.basicConfig(level=logging.INFO)
     replay_files.test_connection()
     logger.info("connection tested")
-    with db_manager.SessionLocal() as session:
-        replay_manager = get_replay_manager(session)
+    with db_manager.get_replay_manager() as replay_manager:
         scheduler = schedule.get_scheduler(replay_manager, db_manager)
         if not IS_DEV:
             scheduler.start()
@@ -208,13 +207,8 @@ def _latest_match_ts(replay_manager: ReplayManager) -> str:
     return _latest_ts_cache["v"]
 
 
-def _matches_key(replay_manager: ReplayManager) -> str:
-    return _latest_match_ts(replay_manager)
-
-
 def _details_key(match_id: int, replay_manager: ReplayManager) -> str:
-    ts = replay_manager.parsed_replay_updated_at(match_id)
-    return f"{match_id}:{ts.isoformat() if ts else 'none'}"
+    return str(match_id)
 
 
 def _warm_caches() -> None:
@@ -227,10 +221,11 @@ def _invalidate_match_caches() -> None:
     _latest_ts_cache.clear()
     sorted_deduped_matches.cache_clear()
     competitive_matches.cache_clear()
+    details_from_id.cache_clear()
     threading.Thread(target=_warm_caches, daemon=True).start()
 
 
-@cached(cache=LRUCache(maxsize=2), key=_matches_key)
+@cached(cache=LRUCache(maxsize=2), key=_latest_match_ts)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
@@ -241,7 +236,7 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
-@cached(cache=LRUCache(maxsize=2), key=_matches_key)
+@cached(cache=LRUCache(maxsize=2), key=_latest_match_ts)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
     filtered = {
@@ -309,7 +304,6 @@ def scrape(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, str]:
     _invalidate_match_caches()
-    details_from_id.cache_clear()
     background_tasks.add_task(schedule.update_games, replay_manager, days=days)
     return {"scheduled": "ok"}
 
@@ -542,6 +536,7 @@ def reprase(
     """Rerun the replay parser on this match."""
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
+    details_from_id.cache_clear()
     return replay
 
 
@@ -553,6 +548,7 @@ def reparse(
     """Rerun the replay parser on this match."""
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
+    details_from_id.cache_clear()
     return replay
 
 
@@ -624,8 +620,7 @@ async def reparse_non_v2(
         async with semaphore:
 
             def _work() -> int | None:
-                with db_manager.SessionLocal() as session:
-                    rm = ReplayManager(session)
+                with db_manager.get_replay_manager() as rm:
                     try:
                         updated = matches.reparse_existing(parsed, rm)
                     except Exception as e:
