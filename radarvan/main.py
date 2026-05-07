@@ -1287,14 +1287,18 @@ def balance_teams(
 ) -> dict[str, float]:
     if len(players) < 4:
         return {}
-
+    player_map = {n: player_ids.resolve_player_name(n) for n in players}
+    inv_map = {v:k for k,v in player_map.items()}
+    logger.info(f"Inv Map {inv_map}")
     games = competitive_matches(replay_manager)
 
     team_scores = create_teams.balance_teams(
-        list(games.values()), player_list=set(players)
+        list(games.values()), player_list=set(player_map.values())
     )
     logger.info(f"Team Scores {team_scores}")
-    return {",".join(i): v for i, v in team_scores.items()}
+    re_mapped = {tuple([inv_map.get(p) for p in k]): v for k,v in team_scores.items()}
+    logger.info(f"remapped Team Scores {re_mapped}")
+    return {",".join(i): v for i, v in re_mapped.items()}
 
 
 @app.get("/api/partition_teams/{team_size}")
