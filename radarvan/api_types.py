@@ -697,6 +697,20 @@ class DraftRequest(BaseModel):
     players: list[DraftPlayerRequest]
 
 
+class MapSummaryPlayer(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    general: General
+
+
+class MapSummaryRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    players: list[MapSummaryPlayer]
+
+
 class DraftAssignment(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 

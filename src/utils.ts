@@ -19,6 +19,10 @@ export function getColorHex(colorName: string): string {
     purple: "#800080",
     orange: "#FFA500",
     gold: "#FFD700",
+    black: "#212121",
+    lime: "#BFFF00",
+    silver: "#C0C0C0",
+    maroon: "#800000",
   }
   if (colorName === "-1") return "#000000"
   return colorMap[colorName.toLowerCase()] || colorName

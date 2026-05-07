@@ -70,6 +70,7 @@ from radarvan.api_types import (
     DraftPlayerRequest,
     DraftRequest,
     DraftResult,
+    MapSummaryRequest,
     MapsByPlayerCount,
 )
 from cachetools import TTLCache, LRUCache, cached
@@ -831,6 +832,16 @@ def get_map_stats(
     """Get player and general win rates grouped by map."""
     games = competitive_matches(replay_manager)
     return map_stats_module.get_map_stats(list(games.values()))
+
+
+@app.post("/api/map_summary/")
+def get_map_summary(
+    request: MapSummaryRequest,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> str:
+    """Return a human-readable summary of map stats for the given players and generals."""
+    games = competitive_matches(replay_manager)
+    return map_stats_module.map_summary(list(games.values()), request.map_name, request.players)
 
 
 @app.get("/api/overrides")
