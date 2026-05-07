@@ -214,7 +214,8 @@ def _details_key(match_id: int, replay_manager: ReplayManager) -> str:
 def _warm_caches() -> None:
     with db_manager.get_replay_manager() as rm:
         sorted_deduped_matches(rm)
-        competitive_matches(rm)
+        comp = competitive_matches(rm)
+        player_rating.compute_player_ratings(list(comp.values()))
 
 
 def _invalidate_match_caches() -> None:

@@ -648,12 +648,19 @@ export default function DisplayMatches() {
 
   return (
     <Stack>
-      <MatchActivityCalendar
-        dataByYear={dataByYear}
-        dates={dates}
-        itemRefs={itemRefs}
-        onDateClick={setSelectedDate}
-      />
+      <Accordion>
+        <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{ bgcolor: "primary.light" }}>
+          <Typography>Activity Calendar (click to expand)</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <MatchActivityCalendar
+            dataByYear={dataByYear}
+            dates={dates}
+            itemRefs={itemRefs}
+            onDateClick={setSelectedDate}
+          />
+        </AccordionDetails>
+      </Accordion>
       {Object.entries(dates).map(([date, count], idx) => (
         <div
           key={idx}
