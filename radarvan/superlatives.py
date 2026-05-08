@@ -10,6 +10,7 @@ from .api_types import (
 )
 from .player_ids import resolve_player_name
 from .player_rating import RatingDailyChange
+from .replay_files import map_basename
 import logging
 
 logger = logging.getLogger(__name__)
@@ -203,13 +204,13 @@ def get_map_duration_stats(
             stat_name="🗺️ Longest Average Game Map",
             date_computed=computed_at,
             value=_fmt_duration(eligible[longest_map]),
-            player=longest_map.split("/")[-1],
+            player=map_basename(longest_map),
         ),
         Statistic(
             stat_name="🗺️ Shortest Average Game Map",
             date_computed=computed_at,
             value=_fmt_duration(eligible[shortest_map]),
-            player=shortest_map.split("/")[-1],
+            player=map_basename(shortest_map),
         ),
     ]
 

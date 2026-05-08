@@ -224,3 +224,7 @@ def path_filter(url: str) -> bool:
         return False
     types = {f"_{i}v{i}_" for i in range(5)}
     return any(t in url for t in types)
+
+
+def map_basename(map_path: str) -> str:
+    return map_path.split("/")[-1] if map_path else "Unknown"

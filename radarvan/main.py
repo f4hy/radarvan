@@ -71,6 +71,7 @@ from radarvan.api_types import (
     DraftRequest,
     DraftResult,
     MapSummaryRequest,
+    MapSummaryResponse,
     MapsByPlayerCount,
 )
 from cachetools import TTLCache, LRUCache, cached
@@ -839,9 +840,17 @@ def get_map_summary(
     request: MapSummaryRequest,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> str:
-    """Return a human-readable summary of map stats for the given players and generals."""
+    """Return a structured summary of map stats for the given players and generals."""
     games = competitive_matches(replay_manager)
-    return map_stats_module.map_summary(list(games.values()), request.map_name, request.players)
+    summary = map_stats_module.map_summary(
+        list(games.values()), request.map_name, request.players
+    )
+    return (
+        f"{summary.map_name}: total games={summary.total_games}\n "
+        f"last win {summary.last_win}\n"
+        f"best general on {summary.map_name}: {summary.best_general}\n"
+        f"best player on {summary.map_name}: {summary.best_player}\n"
+    )
 
 
 @app.get("/api/overrides")
@@ -1287,18 +1296,16 @@ def balance_teams(
 ) -> dict[str, float]:
     if len(players) < 4:
         return {}
-    player_map = {n: player_ids.resolve_player_name(n) for n in players}
-    inv_map = {v:k for k,v in player_map.items()}
-    logger.info(f"Inv Map {inv_map}")
+    resolved_to_raw = {player_ids.resolve_player_name(n): n for n in players}
     games = competitive_matches(replay_manager)
 
     team_scores = create_teams.balance_teams(
-        list(games.values()), player_list=set(player_map.values())
+        list(games.values()), player_list=set(players)
     )
-    logger.info(f"Team Scores {team_scores}")
-    re_mapped = {tuple([inv_map.get(p) for p in k]): v for k,v in team_scores.items()}
-    logger.info(f"remapped Team Scores {re_mapped}")
-    return {",".join(i): v for i, v in re_mapped.items()}
+    return {
+        ",".join(resolved_to_raw.get(p, p) for p in team): score
+        for team, score in team_scores.items()
+    }
 
 
 @app.get("/api/partition_teams/{team_size}")

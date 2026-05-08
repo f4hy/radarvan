@@ -711,6 +711,37 @@ class MapSummaryRequest(BaseModel):
     players: list[MapSummaryPlayer]
 
 
+class MapSummaryLastWin(BaseModel):
+    model_config = _SLOTS
+
+    winners: list[str]
+    losers: list[str]
+    date: date
+
+    def __str__(self) -> str:
+        winner_str = ",".join(self.winners)
+        losers_str = ",".join(self.losers)
+        return f"{self.date.strftime('%Y-%m-%d')} winners:{winner_str} losers:{losers_str}"
+
+
+class MapSummaryRanking(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    wins: int
+    losses: int
+
+
+class MapSummaryResponse(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    total_games: int
+    last_win: MapSummaryLastWin | None = None
+    best_general: MapSummaryRanking | None = None
+    best_player: MapSummaryRanking | None = None
+
+
 class DraftAssignment(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 

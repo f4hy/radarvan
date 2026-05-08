@@ -648,7 +648,7 @@ export default function DisplayMatches() {
 
   return (
     <Stack>
-      <Accordion>
+      <Accordion slotProps={{ transition: { unmountOnExit: true } }}>
         <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{ bgcolor: "primary.light" }}>
           <Typography>Activity Calendar (click to expand)</Typography>
         </AccordionSummary>
