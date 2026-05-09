@@ -594,10 +594,13 @@ def reparse_before_date(
     logger.info(f"reparse_before_date: {len(candidates)} candidates before {before}")
     updated_ids: set[int] = set()
     for record in candidates:
-        updated = matches.reparse_replay(record.match_id, replay_manager)
-        if updated:
-            replay_manager.compute_and_save_composition(record.match_id)
-            updated_ids.add(updated.id)
+        try:
+            updated = matches.reparse_replay(record.match_id, replay_manager)
+            if updated:
+                replay_manager.compute_and_save_composition(record.match_id)
+                updated_ids.add(updated.id)
+        except ValueError:
+            logger.info(f"Unable to reparse {record.match_id}")
     return {
         "updated": len(updated_ids),
         "checked": len(candidates),
