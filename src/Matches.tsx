@@ -60,11 +60,18 @@ function playerNameStyle(_player: Player) {
   return { WebkitTextStroke: `0.5px grey` }
 }
 
+function normalizePlayerName(name: string): string {
+  if (name === "TacticalAI" || name === "Tactical AI") return "T AI"
+  const armyMatch = name.match(/^(.+?)\s?Army$/)
+  if (armyMatch) return `${armyMatch[1]}A`
+  return name
+}
+
 function buildPlayerPositions(players: Player[]): Record<number, string> {
   return Object.fromEntries(
     players
       .filter((p) => p.startingPosition != null)
-      .map((p) => [p.startingPosition!, p.name]),
+      .map((p) => [p.startingPosition!, normalizePlayerName(p.name)]),
   )
 }
 
@@ -111,7 +118,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
               fontWeight="fontWeightBold"
               sx={playerNameStyle(p)}
             >
-              {p.name}
+              {normalizePlayerName(p.name)}
             </Typography>
           </Stack>
         </CardContent>
@@ -139,7 +146,7 @@ function FfaPlayerCard(props: { player: Player }) {
             fontWeight="fontWeightBold"
             sx={playerNameStyle(player)}
           >
-            {player.name}
+            {normalizePlayerName(player.name)}
           </Typography>
         </Stack>
       </CardContent>
@@ -389,7 +396,7 @@ function MatchDateSummary(props: {
     return Object.entries(wl).map(([name, { w, l }]) => (
       <Chip
         key={name}
-        label={`${name}: ${w}-${l}`}
+        label={`${normalizePlayerName(name)}: ${w}-${l}`}
         size="small"
         variant="outlined"
         sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
@@ -403,7 +410,7 @@ function MatchDateSummary(props: {
     const prefix = scaled >= 0 ? "+" : ""
     return (
       <Typography key={r.name} variant="body2" color={color}>
-        {r.name}: {prefix}
+        {normalizePlayerName(r.name)}: {prefix}
         {scaled}
       </Typography>
     )
