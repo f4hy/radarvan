@@ -71,7 +71,6 @@ from radarvan.api_types import (
     DraftRequest,
     DraftResult,
     MapSummaryRequest,
-    MapSummaryResponse,
     MapsByPlayerCount,
 )
 from cachetools import TTLCache, LRUCache, cached
@@ -845,17 +844,12 @@ def get_map_summary(
     request: MapSummaryRequest,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> str:
-    """Return a structured summary of map stats for the given players and generals."""
+    """Return a formatted summary of map stats for the given players and generals."""
     games = competitive_matches(replay_manager)
     summary = map_stats_module.map_summary(
         list(games.values()), request.map_name, request.players
     )
-    return (
-        f"{summary.map_name}: total games={summary.total_games}\n "
-        f"last win {summary.last_win}\n"
-        f"best general on {summary.map_name}: {summary.best_general}\n"
-        f"best player on {summary.map_name}: {summary.best_player}\n"
-    )
+    return map_stats_module.format_map_summary(summary)
 
 
 @app.get("/api/overrides")

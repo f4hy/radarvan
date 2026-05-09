@@ -702,6 +702,7 @@ class MapSummaryPlayer(BaseModel):
 
     name: str
     general: General
+    team: int = 0
 
 
 class MapSummaryRequest(BaseModel):
@@ -732,6 +733,48 @@ class MapSummaryRanking(BaseModel):
     losses: int
 
 
+class MapSummaryTeamH2H(BaseModel):
+    model_config = _SLOTS
+
+    team1: list[str]
+    team2: list[str]
+    team1_wins: int
+    team2_wins: int
+
+
+class MapSummaryPlayerGeneralRecord(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    general: General
+    wins: int
+    losses: int
+
+
+class MapSummaryDuration(BaseModel):
+    model_config = _SLOTS
+
+    avg_minutes: float
+    shortest_minutes: float
+    longest_minutes: float
+
+
+class MapSummaryRecentResult(BaseModel):
+    model_config = _SLOTS
+
+    date: date
+    winners: list[str]
+    losers: list[str]
+    duration_minutes: float
+
+
+class MapSummaryStreak(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    streak: int
+
+
 class MapSummaryResponse(BaseModel):
     model_config = _SLOTS
 
@@ -740,6 +783,13 @@ class MapSummaryResponse(BaseModel):
     last_win: MapSummaryLastWin | None = None
     best_general: MapSummaryRanking | None = None
     best_player: MapSummaryRanking | None = None
+    team_h2h: MapSummaryTeamH2H | None = None
+    player_general_records: list[MapSummaryPlayerGeneralRecord] = Field(
+        default_factory=list
+    )
+    duration: MapSummaryDuration | None = None
+    recent_results: list[MapSummaryRecentResult] = Field(default_factory=list)
+    streaks: list[MapSummaryStreak] = Field(default_factory=list)
 
 
 class DraftAssignment(BaseModel):
