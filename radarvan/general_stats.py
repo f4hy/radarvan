@@ -1,6 +1,5 @@
 """Compute generals stats."""
 
-from collections import Counter
 from .api_types import (
     MatchInfo,
     General,
@@ -9,16 +8,13 @@ from .api_types import (
     WinLoss,
 )
 from . import replay_files
+from . import player_ids
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-CPU_NAMES = {
-    "cpu",
-    "hardarmy",
-    "tacticalai",
-}
+CPU_NAMES = set(player_ids.CPU_NAME_MAPPING.values())
 
 
 def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
@@ -28,10 +24,12 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
             continue
         if not replay_files.path_filter(game.filename):
             continue
-        cpu_count = Counter(p.name.lower() for p in game.players)["hardarmy"]
-        if cpu_count > 1:
+        resolved = [
+            player_ids.resolve_player_name(p.name, p.color) for p in game.players
+        ]
+        if sum(1 for n in resolved if n in CPU_NAMES) > 1:
             continue
-        for player in game.players:
+        for player, name in zip(game.players, resolved):
             if player.general not in general_stats:
                 general_stats[player.general] = GeneralStat(
                     general=player.general,
@@ -40,7 +38,7 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
                 )
             if not player.is_real():
                 continue
-            if player.name.lower() in CPU_NAMES:
+            if name in CPU_NAMES:
                 continue
             if player.won:
                 general_stats[player.general].total.wins += 1
