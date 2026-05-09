@@ -136,13 +136,20 @@ def _streak_from_results(results_desc: list[bool]) -> int:
     return streak
 
 
+def _normalize_map_name(name: str) -> str:
+    return "".join(name.split()).lower()
+
+
 def map_summary(
     games: list[MatchInfo], map_name: str, players: list[MapSummaryPlayer]
 ) -> MapSummaryResponse:
+    normalized = _normalize_map_name(map_name)
     on_map = [
         g
         for g in games
-        if map_basename(g.map) == map_name and not g.incomplete and g.winning_team >= 1
+        if _normalize_map_name(map_basename(g.map)) == normalized
+        and not g.incomplete
+        and g.winning_team >= 1
     ]
     if not on_map:
         return MapSummaryResponse(map_name=map_name, total_games=0)
