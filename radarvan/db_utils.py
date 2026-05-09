@@ -152,7 +152,10 @@ class ReplayManager:
         statement = (
             select(ParsedReplayJson)
             .where(ParsedReplayJson.match_id == match_id)
-            .order_by(nulls_last(desc(ParsedReplayJson.num_time_stamps)))
+            .order_by(
+                desc(ParsedReplayJson.json_s3_uri.like("%upload%")),
+                nulls_last(desc(ParsedReplayJson.num_time_stamps)),
+            )
             .limit(1)
         )
         return self.session.scalar(statement)

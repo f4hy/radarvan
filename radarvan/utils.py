@@ -130,15 +130,16 @@ def determin_general(
 
 def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
     players: list[Player] = []
-    summaries = {s.name: s for s in (replay.summary or [])}
+    summaries_by_name = {s.name: s for s in (replay.summary or []) if s.name}
+    summaries_by_index = {i: s for i, s in enumerate(replay.summary or [])}
     header_players = (
         replay.header.metadata.players
         if replay.header and replay.header.metadata
         else None
     ) or []
-    for p in header_players:
+    for i, p in enumerate(header_players):
         color = (p.color or "").lower().replace("color", "")
-        summary = summaries.get(p.name)
+        summary = summaries_by_name.get(p.name) or summaries_by_index.get(i)
         team = determine_team(p, player_summary=summary)
         faction = determin_general(p, player_summary=summary)
         try:
@@ -148,7 +149,7 @@ def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
             starting_position = None
         players.append(
             Player(
-                name=p.name or "CPU",
+                name=p.name or (summary.name if summary else "") or "CPU",
                 general=faction,
                 team=team,
                 color=color,

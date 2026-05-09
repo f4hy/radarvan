@@ -539,6 +539,7 @@ def reprase(
     """Rerun the replay parser on this match."""
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
+    _invalidate_match_caches()
     details_from_id.cache_clear()
     return replay
 
@@ -551,6 +552,7 @@ def reparse(
     """Rerun the replay parser on this match."""
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
+    _invalidate_match_caches()
     details_from_id.cache_clear()
     return replay
 
@@ -884,6 +886,26 @@ def get_files_for_match_id(
             ParsedReplayJsonSchema.model_validate(p) for p in files.parsed_files
         ],
     }
+
+
+@app.get("/api/presigned_urls_for_match", response_model_exclude_none=True)
+def get_presigned_for_match_id(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Get presigned urls for all files for a match id."""
+    files = replay_manager.all_files_for_id(match_id)
+    replay_urls = [
+        ReplayFileSchema.model_validate(r).s3_uri for r in files.replay_files
+    ]
+    json_urls = [
+        ParsedReplayJsonSchema.model_validate(p).json_s3_uri for p in files.parsed_files
+    ]
+    presigned = {d: replay_files.presigned_url(d) for d in replay_urls} | {
+        d: replay_files.presigned_url(d) for d in json_urls
+    }
+    logger.info(f"file_data {presigned=}")
+    return presigned
 
 
 @app.post("/api/set_override/")
