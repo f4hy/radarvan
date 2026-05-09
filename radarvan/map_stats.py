@@ -109,6 +109,33 @@ def _win_rate(wins: int, losses: int) -> float:
     return wins / total if total > 0 else 0.0
 
 
+def _fmt_player(p: Player) -> str:
+    return f"{resolve_player_name(p.name, p.color)}[{p.general.name}]"
+
+
+def _winners_losers(g: MatchInfo) -> tuple[list[str], list[str]]:
+    winners: list[str] = []
+    losers: list[str] = []
+    for p in g.players:
+        if p.team == Team.OBSERVER:
+            continue
+        (winners if p.team == g.winning_team else losers).append(_fmt_player(p))
+    return winners, losers
+
+
+def _streak_from_results(results_desc: list[bool]) -> int:
+    streak = 0
+    direction = 0
+    for won in results_desc:
+        cur = 1 if won else -1
+        if direction == 0:
+            direction = cur
+        elif cur != direction:
+            break
+        streak += cur
+    return streak
+
+
 def map_summary(
     games: list[MatchInfo], map_name: str, players: list[MapSummaryPlayer]
 ) -> MapSummaryResponse:
@@ -121,11 +148,18 @@ def map_summary(
         return MapSummaryResponse(map_name=map_name, total_games=0)
 
     request_generals = {p.general for p in players}
-    request_names = {resolve_player_name(p.name) for p in players}
+    request_resolved = [resolve_player_name(p.name) for p in players]
+    request_names = set(request_resolved)
+
     pg_wl: dict[tuple[str, General], list[int]] = defaultdict(lambda: [0, 0])
     gen_wl: dict[General, list[int]] = defaultdict(lambda: [0, 0])
     player_wl: dict[str, list[int]] = defaultdict(lambda: [0, 0])
-    for g in on_map:
+    on_map_sorted = sorted(on_map, key=lambda g: g.timestamp, reverse=True)
+    player_results_desc: dict[str, list[bool]] = defaultdict(list)
+    total_min = 0.0
+    min_min = on_map_sorted[0].duration_minutes
+    max_min = min_min
+    for g in on_map_sorted:
         for p in g.players:
             if p.team == Team.OBSERVER:
                 continue
@@ -136,74 +170,65 @@ def map_summary(
             if name in request_names:
                 player_wl[name][idx] += 1
                 pg_wl[(name, p.general)][idx] += 1
+                player_results_desc[name].append(p.won)
+        d = g.duration_minutes
+        total_min += d
+        if d < min_min:
+            min_min = d
+        if d > max_min:
+            max_min = d
 
-    on_map_sorted = sorted(on_map, key=lambda g: g.timestamp, reverse=True)
     last = on_map_sorted[0]
-
-    def fmt_player(p: Player) -> str:
-        return f"{resolve_player_name(p.name, p.color)}[{p.general.name}]"
-
+    last_winners, last_losers = _winners_losers(last)
     last_win = MapSummaryLastWin(
-        winners=[fmt_player(p) for p in last.players if p.team == last.winning_team],
-        losers=[
-            fmt_player(p)
-            for p in last.players
-            if p.team != last.winning_team and p.team != Team.OBSERVER
-        ],
-        date=last.date,
+        winners=last_winners, losers=last_losers, date=last.date
     )
 
     best_general = None
     if gen_wl:
         top_gen = max(gen_wl, key=lambda x: _win_rate(*gen_wl[x]))
-        w, l = gen_wl[top_gen]
-        best_general = MapSummaryRanking(name=top_gen.name, wins=w, losses=l)
+        wins, losses = gen_wl[top_gen]
+        best_general = MapSummaryRanking(name=top_gen.name, wins=wins, losses=losses)
 
     best_player = None
     if player_wl:
         top_player = max(player_wl, key=lambda x: _win_rate(*player_wl[x]))
-        w, l = player_wl[top_player]
-        best_player = MapSummaryRanking(name=top_player, wins=w, losses=l)
+        wins, losses = player_wl[top_player]
+        best_player = MapSummaryRanking(name=top_player, wins=wins, losses=losses)
 
     player_general_records = [
         MapSummaryPlayerGeneralRecord(
-            name=resolve_player_name(p.name),
+            name=resolved,
             general=p.general,
-            wins=pg_wl[(resolve_player_name(p.name), p.general)][0],
-            losses=pg_wl[(resolve_player_name(p.name), p.general)][1],
+            wins=pg_wl[(resolved, p.general)][0],
+            losses=pg_wl[(resolved, p.general)][1],
         )
-        for p in players
+        for p, resolved in zip(players, request_resolved)
     ]
 
-    durations = [g.duration_minutes for g in on_map]
     duration = MapSummaryDuration(
-        avg_minutes=sum(durations) / len(durations),
-        shortest_minutes=min(durations),
-        longest_minutes=max(durations),
+        avg_minutes=total_min / len(on_map_sorted),
+        shortest_minutes=min_min,
+        longest_minutes=max_min,
     )
 
-    recent_results = [
-        MapSummaryRecentResult(
-            date=g.date,
-            winners=[fmt_player(p) for p in g.players if p.team == g.winning_team],
-            losers=[
-                fmt_player(p)
-                for p in g.players
-                if p.team != g.winning_team and p.team != Team.OBSERVER
-            ],
-            duration_minutes=g.duration_minutes,
+    recent_results = []
+    for g in on_map_sorted[:RECENT_RESULTS_LIMIT]:
+        winners, losers = _winners_losers(g)
+        recent_results.append(
+            MapSummaryRecentResult(
+                date=g.date,
+                winners=winners,
+                losers=losers,
+                duration_minutes=g.duration_minutes,
+            )
         )
-        for g in on_map_sorted[:RECENT_RESULTS_LIMIT]
-    ]
 
     streaks = [
         MapSummaryStreak(name=name, streak=streak)
         for name, streak in (
-            (
-                resolve_player_name(p.name),
-                _current_streak(on_map_sorted, resolve_player_name(p.name)),
-            )
-            for p in players
+            (resolved, _streak_from_results(player_results_desc[resolved]))
+            for resolved in request_resolved
         )
         if streak != 0
     ]
@@ -224,71 +249,36 @@ def map_summary(
     )
 
 
-def _current_streak(games_desc: list[MatchInfo], resolved_name: str) -> int:
-    """Wins (positive) or losses (negative) in a row for resolved_name on the map.
-
-    Iterates over games_desc (sorted newest-first). Stops on first game the player
-    isn't in or the streak direction flips.
-    """
-    streak = 0
-    direction = 0
-    for g in games_desc:
-        result = next(
-            (
-                p.won
-                for p in g.players
-                if p.team != Team.OBSERVER
-                and resolve_player_name(p.name, p.color) == resolved_name
-            ),
-            None,
-        )
-        if result is None:
-            continue
-        cur = 1 if result else -1
-        if direction == 0:
-            direction = cur
-        elif cur != direction:
-            break
-        streak += cur
-    return streak
-
-
 def _team_h2h(
     on_map: list[MatchInfo], players: list[MapSummaryPlayer]
 ) -> MapSummaryTeamH2H | None:
     teams: dict[int, list[str]] = defaultdict(list)
     for p in players:
-        if p.team >= 1:
+        if p.team >= Team.ONE:
             teams[p.team].append(resolve_player_name(p.name))
     if len(teams) != 2:
         return None
-    (t1_id, t1_names), (t2_id, t2_names) = sorted(teams.items())
-    t1_set = set(t1_names)
-    t2_set = set(t2_names)
+    (_, t1_names), (_, t2_names) = sorted(teams.items())
+    t1_set = frozenset(t1_names)
+    t2_set = frozenset(t2_names)
 
     t1_wins = 0
     t2_wins = 0
     for g in on_map:
-        match_teams: dict[int, set[str]] = defaultdict(set)
+        match_teams: dict[Team, set[str]] = defaultdict(set)
         for mp in g.players:
             if mp.team == Team.OBSERVER:
                 continue
-            match_teams[int(mp.team)].add(resolve_player_name(mp.name, mp.color))
-        items = list(match_teams.items())
-        if len(items) != 2:
+            match_teams[mp.team].add(resolve_player_name(mp.name, mp.color))
+        by_set = {frozenset(s): tid for tid, s in match_teams.items()}
+        a_id = by_set.get(t1_set)
+        b_id = by_set.get(t2_set)
+        if a_id is None or b_id is None:
             continue
-        (a_id, a_set), (b_id, b_set) = items
-        winner_id = int(g.winning_team)
-        if a_set == t1_set and b_set == t2_set:
-            if winner_id == a_id:
-                t1_wins += 1
-            elif winner_id == b_id:
-                t2_wins += 1
-        elif a_set == t2_set and b_set == t1_set:
-            if winner_id == a_id:
-                t2_wins += 1
-            elif winner_id == b_id:
-                t1_wins += 1
+        if g.winning_team == a_id:
+            t1_wins += 1
+        elif g.winning_team == b_id:
+            t2_wins += 1
 
     if t1_wins == 0 and t2_wins == 0:
         return None
