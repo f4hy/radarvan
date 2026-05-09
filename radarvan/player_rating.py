@@ -14,6 +14,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+NON_COMPETITIVE: set[str] = set(["EasyArmy", "MediumArmy"])
+
+MIN_GAMES = 1
+ITERATIONS = 5
+
+
 @dataclass(slots=True)
 class NamedRating:
     """Wrapper around PlackettLuceRating where name is guaranteed to be str."""
@@ -40,9 +46,16 @@ class NamedRating:
 
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     r = model.rating(name=name)
-    if name == "TacticalAI":
-        return NamedRating(name=name, mu=8.25, sigma=r.sigma)
-    return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
+    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
+    known_players = {player_ids.PLAYER_NAME_MAPPING.values()}
+    if name in NON_COMPETITIVE:
+        return NamedRating(name=name, mu=1.0, sigma=r.sigma / 2.0)
+    if name in known_computers:
+        return NamedRating(name=name, mu=r.mu / 2.0, sigma=r.sigma / 2.0)
+
+    if name in known_players:
+        return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
+    return NamedRating(name=name, mu=r.mu, sigma=r.sigma * 8)
 
 
 @cached(cache={})
@@ -208,21 +221,33 @@ def _log_sorted_ratings(
 
 
 def include_rating(game_counts: dict[str, int], name: str, min_game_count: int) -> bool:
-    if name == "TacticalAI":
+    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
+    if name in known_computers:
         return True
     return game_counts.get(name, 0) > min_game_count
+
+
+def filter_for_rating(game: MatchInfo) -> bool:
+    if game.winning_team < 1:
+        return False
+    for p in game.players:
+        resolved = player_ids.resolve_player_name(p.name)
+        if resolved in NON_COMPETITIVE:
+            return False
+        if resolved not in player_ids.PLAYER_NAMES:
+            return False
+    return True
 
 
 @cached(cache={}, key=lambda games: frozenset(g.id for g in games))
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     model = get_model()
-    filtered_games = [g for g in games if g.winning_team > 0]
+    filtered_games = [g for g in games if filter_for_rating(g)]
     all_players = _collect_all_players(filtered_games)
-    all_players.add("TacticalAI")
     player_ratings = {name: initialize_player(name, model) for name in all_players}
     logger.info(f"players: {player_ratings}")
 
-    for i in range(5):
+    for i in range(ITERATIONS):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
         player_ratings, game_counts, rating_over_time, match_changes = _process_games(
             filtered_games, min_sigmaed, model
@@ -232,7 +257,7 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             [
                 r
                 for r in player_ratings.values()
-                if include_rating(game_counts, r.name, min_game_count=20)
+                if include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
             ],
             game_counts,
         )
@@ -241,7 +266,7 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     ratings = [
         r
         for r in player_ratings.values()
-        if include_rating(game_counts, r.name, min_game_count=20)
+        if include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
     ]
     sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
     _log_sorted_ratings(sorted_ratings, game_counts)

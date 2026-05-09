@@ -16,7 +16,8 @@ PLAYERS = {
     "Fer": "C6D491FD7F19",
 }
 
-NAME_MAPPING = {
+
+PLAYER_NAME_MAPPING = {
     "skip": "Skip",
     "skp": "Skip",
     "sk": "Skip",
@@ -60,20 +61,29 @@ NAME_MAPPING = {
     "fer": "EnragedFerret",
     "ferret": "EnragedFerret",
     "enragedferret": "EnragedFerret",
-    "cpu": "HardArmy",
-    "hardarmy": "HardArmy",
-    "tacticalai": "TacticalAI",
     "pcaps": "pcap",
     "pcap": "pcap",
     "g.c": "pcap",
     "gc": "pcap",
+    "shft": "Shifty",
     "shift": "Shifty",
     "shifty": "Shifty",
-    # "domi": "DoMiNaToR",
-    # "-dominator-": "DoMiNaToR",
-    # "dominator": "DoMiNaToR",
-    # "[ooe]excal^": "[OoE]Excal^",
+    "wilywolf": "WilyWolf",
 }
+
+CPU_NAME_MAPPING = {
+    "cpu": "HardArmy",
+    "hardarmy": "HardArmy",
+    "hard army": "HardArmy",
+    "mediumarmy": "MediumArmy",
+    "medium army": "MediumArmy",
+    "easyarmy": "EasyArmy",
+    "easy army": "EasyArmy",
+    "tacticalai": "TacticalAI",
+    "tactical ai": "TacticalAI",
+}
+
+NAME_MAPPING = PLAYER_NAME_MAPPING | CPU_NAME_MAPPING
 
 PLAYER_NAMES = set(NAME_MAPPING.values())
 
