@@ -190,7 +190,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
         <Tooltip title={match.filename}>
           <Button
             variant="contained"
-            onClick={() => downloadReplay(match.filename)}
+            onClick={() => downloadReplay(match.id, match.filename)}
             endIcon={<DownloadIcon />}
           >
             Download Replay
@@ -211,11 +211,15 @@ function downloadURI(uri: string, name: string) {
   document.body.removeChild(link)
 }
 
-function downloadReplay(url: string) {
-  const filename = url.split("/").pop()
-  if (filename) {
-    downloadURI(url, filename)
-  }
+function downloadReplay(matchId: number, fallbackUrl: string) {
+  Client.getMatchReplayUrlApiReplayUrlMatchIdGet({ matchId })
+    .then((result) => {
+      const presigned = result["url"]
+      if (!presigned) return
+      const filename = fallbackUrl.split("/").pop() || `${matchId}.rep`
+      downloadURI(presigned, filename)
+    })
+    .catch(console.error)
 }
 
 function displayTeam(team: Team): string {
@@ -315,7 +319,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
         <Tooltip title={props.match.filename}>
           <Button
             variant="contained"
-            onClick={() => downloadReplay(props.match.filename)}
+            onClick={() => downloadReplay(props.match.id, props.match.filename)}
             endIcon={<DownloadIcon />}
           >
             Download Replay

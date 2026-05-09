@@ -366,6 +366,23 @@ def get_match_json_url(
     return {"url": replay_files.presigned_url(match.json_s3_uri)}
 
 
+@app.get("/api/replay_url/{match_id}")
+def get_match_replay_url(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Return a presigned S3 URL for the .rep file of a match."""
+    match = replay_manager.get_match(match_id)
+    if match is None:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+    parsed = match.replay_json
+    if parsed is None or parsed.replay_file is None:
+        raise HTTPException(
+            status_code=404, detail=f"Replay file for {match_id} not found"
+        )
+    return {"url": replay_files.presigned_url(parsed.replay_file.s3_uri)}
+
+
 @app.post("/api/matches/{match_id}/composition")
 def compute_match_composition(
     match_id: int,
