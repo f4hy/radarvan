@@ -861,7 +861,7 @@ def get_map_summary(
     request: MapSummaryRequest,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> str:
-    """Return a formatted summary of map stats for the given players and generals."""
+    """Return a pre-game summary: map history, team h2h, and per-player records."""
     games = competitive_matches(replay_manager)
     summary = map_stats_module.map_summary(
         list(games.values()), request.map_name, request.players

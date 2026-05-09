@@ -8,7 +8,6 @@ from .api_types import (
     MapPlayerWL,
     MapStatsResponse,
     MapSummaryDuration,
-    MapSummaryLastWin,
     MapSummaryPlayer,
     MapSummaryPlayerGeneralRecord,
     MapSummaryRanking,
@@ -185,12 +184,6 @@ def map_summary(
         if d > max_min:
             max_min = d
 
-    last = on_map_sorted[0]
-    last_winners, last_losers = _winners_losers(last)
-    last_win = MapSummaryLastWin(
-        winners=last_winners, losers=last_losers, date=last.date
-    )
-
     best_general = None
     if gen_wl:
         top_gen = max(gen_wl, key=lambda x: _win_rate(*gen_wl[x]))
@@ -240,43 +233,91 @@ def map_summary(
         if streak != 0
     ]
 
-    team_h2h = _team_h2h(on_map, players)
+    has_two_teams = len({p.team for p in players if p.team >= Team.ONE}) == 2
+    team_h2h = team_general_h2h = team_h2h_overall = team_general_h2h_overall = None
+    if has_two_teams:
+        team_h2h = _team_h2h(on_map, players, with_general=False)
+        team_general_h2h = _team_h2h(on_map, players, with_general=True)
+        team_h2h_overall = _team_h2h(games, players, with_general=False)
+        team_general_h2h_overall = _team_h2h(games, players, with_general=True)
+
+    player_general_overall = _player_general_records(games, players, request_resolved)
 
     return MapSummaryResponse(
         map_name=map_name,
         total_games=len(on_map),
-        last_win=last_win,
         best_general=best_general,
         best_player=best_player,
         team_h2h=team_h2h,
+        team_general_h2h=team_general_h2h,
+        team_h2h_overall=team_h2h_overall,
+        team_general_h2h_overall=team_general_h2h_overall,
         player_general_records=player_general_records,
+        player_general_overall=player_general_overall,
         duration=duration,
         recent_results=recent_results,
         streaks=streaks,
     )
 
 
+def _player_general_records(
+    games: list[MatchInfo],
+    players: list[MapSummaryPlayer],
+    request_resolved: list[str],
+) -> list[MapSummaryPlayerGeneralRecord]:
+    wanted = {(name, p.general) for p, name in zip(players, request_resolved)}
+    wl: dict[tuple[str, General], list[int]] = defaultdict(lambda: [0, 0])
+    for g in games:
+        if g.incomplete or g.winning_team < 1:
+            continue
+        for mp in g.players:
+            if mp.team == Team.OBSERVER:
+                continue
+            key = (resolve_player_name(mp.name, mp.color), mp.general)
+            if key in wanted:
+                wl[key][0 if mp.won else 1] += 1
+    return [
+        MapSummaryPlayerGeneralRecord(
+            name=name,
+            general=p.general,
+            wins=wl[(name, p.general)][0],
+            losses=wl[(name, p.general)][1],
+        )
+        for p, name in zip(players, request_resolved)
+    ]
+
+
+def _player_key(name: str, general: General, with_general: bool) -> tuple[str, ...]:
+    return (name, general.name) if with_general else (name,)
+
+
 def _team_h2h(
-    on_map: list[MatchInfo], players: list[MapSummaryPlayer]
+    on_map: list[MatchInfo], players: list[MapSummaryPlayer], with_general: bool
 ) -> MapSummaryTeamH2H | None:
-    teams: dict[int, list[str]] = defaultdict(list)
+    teams: dict[int, list[tuple[str, ...]]] = defaultdict(list)
+    display: dict[int, list[str]] = defaultdict(list)
     for p in players:
         if p.team >= Team.ONE:
-            teams[p.team].append(resolve_player_name(p.name))
+            resolved = resolve_player_name(p.name)
+            teams[p.team].append(_player_key(resolved, p.general, with_general))
+            display[p.team].append(
+                f"{resolved}[{p.general.name}]" if with_general else resolved
+            )
     if len(teams) != 2:
         return None
-    (_, t1_names), (_, t2_names) = sorted(teams.items())
-    t1_set = frozenset(t1_names)
-    t2_set = frozenset(t2_names)
+    (t1_id, t1_keys), (t2_id, t2_keys) = sorted(teams.items())
+    t1_set = frozenset(t1_keys)
+    t2_set = frozenset(t2_keys)
 
     t1_wins = 0
     t2_wins = 0
     for g in on_map:
-        match_teams: dict[Team, set[str]] = defaultdict(set)
+        match_teams: dict[Team, set[tuple[str, ...]]] = defaultdict(set)
         for mp in g.players:
             if mp.team == Team.OBSERVER:
                 continue
-            match_teams[mp.team].add(resolve_player_name(mp.name, mp.color))
+            resolved = resolve_player_name(mp.name, mp.color)
+            match_teams[mp.team].add(_player_key(resolved, mp.general, with_general))
         by_set = {frozenset(s): tid for tid, s in match_teams.items()}
         a_id = by_set.get(t1_set)
         b_id = by_set.get(t2_set)
@@ -290,8 +331,8 @@ def _team_h2h(
     if t1_wins == 0 and t2_wins == 0:
         return None
     return MapSummaryTeamH2H(
-        team1=t1_names,
-        team2=t2_names,
+        team1=display[t1_id],
+        team2=display[t2_id],
         team1_wins=t1_wins,
         team2_wins=t2_wins,
     )
@@ -301,8 +342,17 @@ def format_map_summary(s: MapSummaryResponse) -> str:
     lines = [f"{s.map_name}: total games={s.total_games}"]
     if s.total_games == 0:
         return "\n".join(lines)
-    if s.last_win:
-        lines.append(f"last win: {s.last_win}")
+    for label, h2h in (
+        ("team h2h on this map", s.team_h2h),
+        ("team h2h on this map (with generals)", s.team_general_h2h),
+        ("team h2h overall (any map)", s.team_h2h_overall),
+        ("team h2h overall (any map, with generals)", s.team_general_h2h_overall),
+    ):
+        if h2h:
+            lines.append(
+                f"{label}: [{','.join(h2h.team1)}] {h2h.team1_wins}"
+                f" - {h2h.team2_wins} [{','.join(h2h.team2)}]"
+            )
     if s.best_general:
         lines.append(
             f"best general: {s.best_general.name} "
@@ -313,17 +363,15 @@ def format_map_summary(s: MapSummaryResponse) -> str:
             f"best record: {s.best_player.name} "
             f"({s.best_player.wins}-{s.best_player.losses})"
         )
-    if s.team_h2h:
-        lines.append(
-            f"team h2h: [{','.join(s.team_h2h.team1)}] {s.team_h2h.team1_wins}"
-            f" - {s.team_h2h.team2_wins} [{','.join(s.team_h2h.team2)}]"
-        )
-    if s.player_general_records:
-        recs = ", ".join(
-            f"{r.name}[{r.general.name}] {r.wins}-{r.losses}"
-            for r in s.player_general_records
-        )
-        lines.append(f"player+general on map: {recs}")
+    for label, records in (
+        ("overall", s.player_general_overall),
+        ("on this map", s.player_general_records),
+    ):
+        if records:
+            recs = ", ".join(
+                f"{r.name}[{r.general.name}] {r.wins}-{r.losses}" for r in records
+            )
+            lines.append(f"player+general {label}: {recs}")
     if s.duration:
         lines.append(
             f"duration (min): avg {s.duration.avg_minutes:.1f}, "

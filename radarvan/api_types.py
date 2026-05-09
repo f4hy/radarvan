@@ -712,19 +712,6 @@ class MapSummaryRequest(BaseModel):
     players: list[MapSummaryPlayer]
 
 
-class MapSummaryLastWin(BaseModel):
-    model_config = _SLOTS
-
-    winners: list[str]
-    losers: list[str]
-    date: date
-
-    def __str__(self) -> str:
-        winner_str = ",".join(self.winners)
-        losers_str = ",".join(self.losers)
-        return f"{self.date.strftime('%Y-%m-%d')} winners:{winner_str} losers:{losers_str}"
-
-
 class MapSummaryRanking(BaseModel):
     model_config = _SLOTS
 
@@ -780,11 +767,16 @@ class MapSummaryResponse(BaseModel):
 
     map_name: str
     total_games: int
-    last_win: MapSummaryLastWin | None = None
     best_general: MapSummaryRanking | None = None
     best_player: MapSummaryRanking | None = None
     team_h2h: MapSummaryTeamH2H | None = None
+    team_general_h2h: MapSummaryTeamH2H | None = None
+    team_h2h_overall: MapSummaryTeamH2H | None = None
+    team_general_h2h_overall: MapSummaryTeamH2H | None = None
     player_general_records: list[MapSummaryPlayerGeneralRecord] = Field(
+        default_factory=list
+    )
+    player_general_overall: list[MapSummaryPlayerGeneralRecord] = Field(
         default_factory=list
     )
     duration: MapSummaryDuration | None = None
