@@ -408,6 +408,8 @@ class MatchDetails(BaseModel):
     building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
     kill_events: list[KillEventOutput] = Field(default_factory=list, alias="killEvents")
+    player_money_spent: dict[str, int] = Field(default_factory=dict)
+    player_money_collected: dict[str, int] = Field(default_factory=dict)
 
 
 class PairWinLoss(BaseModel):

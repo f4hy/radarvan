@@ -431,7 +431,7 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
             name=ps.Name,
             color=ps.Color,
             won=ps.Win,
-            money_spent=0,  # TODO fix
+            money_spent=d.player_money_spent.get(ps.Name, 0),
             units_created_count=sum(v.Count for v in ps.UnitsCreated.values()),
             buildings_built_count=sum(v.Count for v in ps.BuildingsBuilt.values()),
         )
@@ -452,8 +452,8 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
         total_units_killed=_last_total("units_killed"),
         total_buildings_killed=_last_total("buildings_killed"),
         total_xp=_last_total("xp"),
-        match_money_spent=0,  # TODO fix
-        player_money_collected={},  # TODO fix
+        match_money_spent=sum(d.player_money_spent.values()),
+        player_money_collected=d.player_money_collected,
     )
 
 
@@ -508,9 +508,11 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     upgrades = events_from_replay(replay)
     name_by_idx: dict[int, str] = {}
     player_money_spent: dict[str, int] = {}
+    player_money_collected: dict[str, int] = {}
     for p in replay.summary:
         name_by_idx[p.index] = p.name
         player_money_spent[p.name] = p.money_spent
+        player_money_collected[p.name] = p.money_earned
     scale = minutess_per_step(replay)
     unit_cost: dict[str, int] = {}
     for bev in replay.stats.build_events if replay.stats else []:
@@ -566,6 +568,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         upgrade_events=upgrades,
         stats_data=stats_data.stats_data.model_dump() if stats_data else {},
         player_money_spent=player_money_spent,
+        player_money_collected=player_money_collected,
         first_blood=first_blood,
         building_first_blood=building_first_blood,
         player_summary=api_player_summaries(
