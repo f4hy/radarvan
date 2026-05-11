@@ -15,6 +15,7 @@ dependencies = [
     "httpx>=0.28.1",
     "numpy>=2.0.0",
     "openskill>=6.2.0",
+    "pillow>=11.0.0",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.0",
     "s3fs>=2025.9.0",

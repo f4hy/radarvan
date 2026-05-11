@@ -128,6 +128,18 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     killEvents?: Array<KillEventOutput>;
+    /**
+     * 
+     * @type {{ [key: string]: number; }}
+     * @memberof MatchDetails
+     */
+    playerMoneySpent?: { [key: string]: number; };
+    /**
+     * 
+     * @type {{ [key: string]: number; }}
+     * @memberof MatchDetails
+     */
+    playerMoneyCollected?: { [key: string]: number; };
 }
 
 /**
@@ -164,6 +176,8 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
         'killEvents': json['killEvents'] == null ? undefined : ((json['killEvents'] as Array<any>).map(KillEventOutputFromJSON)),
+        'playerMoneySpent': json['player_money_spent'] == null ? undefined : json['player_money_spent'],
+        'playerMoneyCollected': json['player_money_collected'] == null ? undefined : json['player_money_collected'],
     };
 }
 
@@ -189,6 +203,8 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
         'killEvents': value['killEvents'] == null ? undefined : ((value['killEvents'] as Array<any>).map(KillEventOutputToJSON)),
+        'player_money_spent': value['playerMoneySpent'],
+        'player_money_collected': value['playerMoneyCollected'],
     };
 }
 

@@ -35,6 +35,10 @@ function getMapUrl(mapname: string) {
   return import.meta.env.BASE_URL + "maps/" + mapname
 }
 
+function getMapImageApiUrl(mapname: string) {
+  return import.meta.env.BASE_URL + "api/map_image/" + encodeURIComponent(mapname)
+}
+
 function resolveMap(mapname: string) {
   const direct = MAPLIST.find((m) => m.includes(mapname))
   if (direct) {
@@ -82,6 +86,7 @@ export default function GameMap(props: {
   showDownload?: boolean
 }) {
   const [imgError, setImgError] = React.useState(false)
+  const [triedFallback, setTriedFallback] = React.useState(false)
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
@@ -96,7 +101,16 @@ export default function GameMap(props: {
 
   const mapname = props.mapname.split("/").slice(-1).pop() ?? ""
   const mapmatch = resolveMap(mapname)
-  const mapUrl = mapmatch ? getMapUrl(mapmatch) : ""
+  // Legacy maps live in dist/maps; new ones come back from the API endpoint
+  // (S3-backed). If the legacy file 404s, retry once via the API endpoint.
+  const legacyUrl = mapmatch ? getMapUrl(mapmatch) : ""
+  const apiUrl = mapname ? getMapImageApiUrl(mapname) : ""
+  const mapUrl = triedFallback ? apiUrl : legacyUrl || apiUrl
+
+  React.useEffect(() => {
+    setImgError(false)
+    setTriedFallback(false)
+  }, [mapname])
 
   React.useEffect(() => {
     if (!mapname) {
@@ -151,7 +165,13 @@ export default function GameMap(props: {
             <img
               src={mapUrl}
               alt={"Map: " + mapname}
-              onError={() => setImgError(true)}
+              onError={() => {
+                if (!triedFallback && apiUrl && mapUrl !== apiUrl) {
+                  setTriedFallback(true)
+                } else {
+                  setImgError(true)
+                }
+              }}
               style={{ width: "100%", height: "auto", display: "block" }}
             />
             {mapData &&

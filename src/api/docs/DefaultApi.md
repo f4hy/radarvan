@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost*
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
 | [**debugMatchApiDebugMatchMatchIdGet**](DefaultApi.md#debugmatchapidebugmatchmatchidget) | **GET** /api/debug/match/{match_id} | Debug Match |
 | [**deleteOverrideApiOverrideMatchIdDelete**](DefaultApi.md#deleteoverrideapioverridematchiddelete) | **DELETE** /api/override/{match_id} | Delete Override |
+| [**fetchMissingMapsApiFetchMissingMapsPost**](DefaultApi.md#fetchmissingmapsapifetchmissingmapspost) | **POST** /api/fetch_missing_maps | Fetch Missing Maps |
 | [**fixIncompleteApiFixIncompletePost**](DefaultApi.md#fixincompleteapifixincompletepost) | **POST** /api/fix_incomplete/ | Fix Incomplete |
 | [**fixUnkPlayersApiFixUnkPlayerPost**](DefaultApi.md#fixunkplayersapifixunkplayerpost) | **POST** /api/fix_unk_player/ | Fix Unk Players |
 | [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
@@ -17,6 +18,7 @@ All URIs are relative to *http://localhost*
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
 | [**getHeadToHeadApiPlayerRatingsHeadToHeadGet**](DefaultApi.md#getheadtoheadapiplayerratingsheadtoheadget) | **GET** /api/player_ratings/head_to_head/ | Get Head To Head |
 | [**getMapDataApiMapDataMapNameGet**](DefaultApi.md#getmapdataapimapdatamapnameget) | **GET** /api/map_data/{map_name} | Get Map Data |
+| [**getMapImageApiMapImageMapNameGet**](DefaultApi.md#getmapimageapimapimagemapnameget) | **GET** /api/map_image/{map_name} | Get Map Image |
 | [**getMapStatsApiMapStatsGet**](DefaultApi.md#getmapstatsapimapstatsget) | **GET** /api/map_stats/ | Get Map Stats |
 | [**getMapSummaryApiMapSummaryPost**](DefaultApi.md#getmapsummaryapimapsummarypost) | **POST** /api/map_summary/ | Get Map Summary |
 | [**getMapsByPlayerCountApiMapsByPlayerCountGet**](DefaultApi.md#getmapsbyplayercountapimapsbyplayercountget) | **GET** /api/maps_by_player_count | Get Maps By Player Count |
@@ -42,6 +44,7 @@ All URIs are relative to *http://localhost*
 | [**getTournamentResultsApiTournamentResultsGet**](DefaultApi.md#gettournamentresultsapitournamentresultsget) | **GET** /api/tournament_results/ | Get Tournament Results |
 | [**isTournamentGameApiIsTournamentGameMatchIdGet**](DefaultApi.md#istournamentgameapiistournamentgamematchidget) | **GET** /api/is_tournament_game/{match_id} | Is Tournament Game |
 | [**listFilesApiFilesGet**](DefaultApi.md#listfilesapifilesget) | **GET** /api/files/ | List Files |
+| [**listMissingMapsEndpointApiMissingMapsGet**](DefaultApi.md#listmissingmapsendpointapimissingmapsget) | **GET** /api/missing_maps | List Missing Maps Endpoint |
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
@@ -415,9 +418,81 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## fetchMissingMapsApiFetchMissingMapsPost
+
+> FetchMissingMapsResponse fetchMissingMapsApiFetchMissingMapsPost(maxToUpdate)
+
+Fetch Missing Maps
+
+Pull up to &#x60;max_to_update&#x60; missing maps from cncstats and upload to S3.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { FetchMissingMapsApiFetchMissingMapsPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies FetchMissingMapsApiFetchMissingMapsPostRequest;
+
+  try {
+    const data = await api.fetchMissingMapsApiFetchMissingMapsPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `10`] |
+
+### Return type
+
+[**FetchMissingMapsResponse**](FetchMissingMapsResponse.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## fixIncompleteApiFixIncompletePost
 
-> { [key: string]: number; } fixIncompleteApiFixIncompletePost(maxToUpdate)
+> { [key: string]: number | null; } fixIncompleteApiFixIncompletePost(maxToUpdate)
 
 Fix Incomplete
 
@@ -464,7 +539,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -487,7 +562,7 @@ example().catch(console.error);
 
 ## fixUnkPlayersApiFixUnkPlayerPost
 
-> { [key: string]: number; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
+> { [key: string]: number | null; } fixUnkPlayersApiFixUnkPlayerPost(maxToUpdate)
 
 Fix Unk Players
 
@@ -534,7 +609,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -972,6 +1047,78 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getMapImageApiMapImageMapNameGet
+
+> any getMapImageApiMapImageMapNameGet(mapName)
+
+Get Map Image
+
+Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).  Strips a trailing &#x60;.map&#x60; extension and tries case-insensitive variants in S3. Falls back to the bundled &#x60;dist/maps/&lt;name&gt;.webp&#x60; for legacy maps that haven\&#39;t been migrated yet.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetMapImageApiMapImageMapNameGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string
+    mapName: mapName_example,
+  } satisfies GetMapImageApiMapImageMapNameGetRequest;
+
+  try {
+    const data = await api.getMapImageApiMapImageMapNameGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **mapName** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**any**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getMapStatsApiMapStatsGet
 
 > MapStatsResponse getMapStatsApiMapStatsGet()
@@ -1041,7 +1188,7 @@ This endpoint does not need any parameter.
 
 Get Map Summary
 
-Return a formatted summary of map stats for the given players and generals.
+Return a pre-game summary: map history, team h2h, and per-player records.
 
 ### Example
 
@@ -2676,6 +2823,78 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## listMissingMapsEndpointApiMissingMapsGet
+
+> Array&lt;MissingMapInfo&gt; listMissingMapsEndpointApiMissingMapsGet(limit)
+
+List Missing Maps Endpoint
+
+Maps referenced by matches that have no MapData row, with their CRC.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { ListMissingMapsEndpointApiMissingMapsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number (optional)
+    limit: 56,
+  } satisfies ListMissingMapsEndpointApiMissingMapsGetRequest;
+
+  try {
+    const data = await api.listMissingMapsEndpointApiMissingMapsGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **limit** | `number` |  | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;MissingMapInfo&gt;**](MissingMapInfo.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## listPendingUnprocessedApiFilesPendingUnprocessedGet
 
 > Array&lt;ReplayFileSchema&gt; listPendingUnprocessedApiFilesPendingUnprocessedGet()
@@ -3020,7 +3239,7 @@ This endpoint does not need any parameter.
 
 ## refreshMatchesFromJsonApiRefreshMatchesFromJsonPost
 
-> { [key: string]: number; } refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(maxToUpdate)
+> { [key: string]: number | null; } refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(maxToUpdate)
 
 Refresh Matches From Json
 
@@ -3069,7 +3288,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -3299,7 +3518,7 @@ example().catch(console.error);
 
 ## reparseBeforeDateApiReparseBeforeDatePost
 
-> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
+> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseBeforeDateApiReparseBeforeDatePost(before, maxToUpdate)
 
 Reparse Before Date
 
@@ -3351,7 +3570,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
+[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
 
 ### Authorization
 
@@ -3374,7 +3593,7 @@ example().catch(console.error);
 
 ## reparseNonV2ApiReparseNonV2Post
 
-> { [key: string]: ResponseReparseRecentApiReparseRecentPostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
+> { [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; } reparseNonV2ApiReparseNonV2Post(maxToUpdate, maxConcurrent)
 
 Reparse Non V2
 
@@ -3426,7 +3645,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }**](ResponseReparseRecentApiReparseRecentPostValue.md)
+[**{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }**](ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md)
 
 ### Authorization
 
@@ -3663,7 +3882,7 @@ example().catch(console.error);
 
 ## resetMatchApiMatchMatchIdDelete
 
-> { [key: string]: number; } resetMatchApiMatchMatchIdDelete(matchId)
+> { [key: string]: number | null; } resetMatchApiMatchMatchIdDelete(matchId)
 
 Reset Match
 
@@ -3712,7 +3931,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -4026,7 +4245,7 @@ example().catch(console.error);
 
 ## updateMatchesMissingDataApiUpdateMatchesMissingDataPost
 
-> { [key: string]: number; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
+> { [key: string]: number | null; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
 
 Update Matches Missing Data
 
@@ -4073,7 +4292,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: number; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 

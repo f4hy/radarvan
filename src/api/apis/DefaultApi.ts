@@ -17,6 +17,7 @@ import * as runtime from '../runtime';
 import type {
   DraftRequest,
   DraftResult,
+  FetchMissingMapsResponse,
   GameComposition,
   GameRecord,
   GeneralStats,
@@ -29,6 +30,7 @@ import type {
   MatchDetails,
   MatchInfo,
   Matches,
+  MissingMapInfo,
   PlayerEnum,
   PlayerGameCount,
   PlayerRatingDailyChange,
@@ -37,6 +39,7 @@ import type {
   PlayerStats,
   ReplayFileSchema,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
+  ResponseReparseBeforeDateApiReparseBeforeDatePostValue,
   ResponseReparseRecentApiReparseRecentPostValue,
   Superlatives,
   Team,
@@ -50,6 +53,8 @@ import {
     DraftRequestToJSON,
     DraftResultFromJSON,
     DraftResultToJSON,
+    FetchMissingMapsResponseFromJSON,
+    FetchMissingMapsResponseToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
     GameRecordFromJSON,
@@ -74,6 +79,8 @@ import {
     MatchInfoToJSON,
     MatchesFromJSON,
     MatchesToJSON,
+    MissingMapInfoFromJSON,
+    MissingMapInfoToJSON,
     PlayerEnumFromJSON,
     PlayerEnumToJSON,
     PlayerGameCountFromJSON,
@@ -90,6 +97,8 @@ import {
     ReplayFileSchemaToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
+    ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON,
+    ResponseReparseBeforeDateApiReparseBeforeDatePostValueToJSON,
     ResponseReparseRecentApiReparseRecentPostValueFromJSON,
     ResponseReparseRecentApiReparseRecentPostValueToJSON,
     SuperlativesFromJSON,
@@ -122,6 +131,10 @@ export interface DeleteOverrideApiOverrideMatchIdDeleteRequest {
     matchId: number;
 }
 
+export interface FetchMissingMapsApiFetchMissingMapsPostRequest {
+    maxToUpdate?: number;
+}
+
 export interface FixIncompleteApiFixIncompletePostRequest {
     maxToUpdate?: number;
 }
@@ -147,6 +160,10 @@ export interface GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest {
 }
 
 export interface GetMapDataApiMapDataMapNameGetRequest {
+    mapName: string;
+}
+
+export interface GetMapImageApiMapImageMapNameGetRequest {
     mapName: string;
 }
 
@@ -208,6 +225,10 @@ export interface GetTournamentReportApiTournamentReportTournamentNameGetRequest 
 
 export interface IsTournamentGameApiIsTournamentGameMatchIdGetRequest {
     matchId: number;
+}
+
+export interface ListMissingMapsEndpointApiMissingMapsGetRequest {
+    limit?: number | null;
 }
 
 export interface ListReplaysApiReplaysGetRequest {
@@ -540,6 +561,53 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for fetchMissingMapsApiFetchMissingMapsPost without sending the request
+     */
+    async fetchMissingMapsApiFetchMissingMapsPostRequestOpts(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/fetch_missing_maps`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.
+     * Fetch Missing Maps
+     */
+    async fetchMissingMapsApiFetchMissingMapsPostRaw(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMissingMapsResponse>> {
+        const requestOptions = await this.fetchMissingMapsApiFetchMissingMapsPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FetchMissingMapsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.
+     * Fetch Missing Maps
+     */
+    async fetchMissingMapsApiFetchMissingMapsPost(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMissingMapsResponse> {
+        const response = await this.fetchMissingMapsApiFetchMissingMapsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for fixIncompleteApiFixIncompletePost without sending the request
      */
     async fixIncompleteApiFixIncompletePostRequestOpts(requestParameters: FixIncompleteApiFixIncompletePostRequest): Promise<runtime.RequestOpts> {
@@ -569,7 +637,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Incomplete
      */
-    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async fixIncompleteApiFixIncompletePostRaw(requestParameters: FixIncompleteApiFixIncompletePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const requestOptions = await this.fixIncompleteApiFixIncompletePostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
@@ -579,7 +647,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Incomplete
      */
-    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async fixIncompleteApiFixIncompletePost(requestParameters: FixIncompleteApiFixIncompletePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.fixIncompleteApiFixIncompletePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -614,7 +682,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Unk Players
      */
-    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const requestOptions = await this.fixUnkPlayersApiFixUnkPlayerPostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
@@ -624,7 +692,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Fix Unk Players
      */
-    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async fixUnkPlayersApiFixUnkPlayerPost(requestParameters: FixUnkPlayersApiFixUnkPlayerPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.fixUnkPlayersApiFixUnkPlayerPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -921,6 +989,61 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getMapImageApiMapImageMapNameGet without sending the request
+     */
+    async getMapImageApiMapImageMapNameGetRequestOpts(requestParameters: GetMapImageApiMapImageMapNameGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['mapName'] == null) {
+            throw new runtime.RequiredError(
+                'mapName',
+                'Required parameter "mapName" was null or undefined when calling getMapImageApiMapImageMapNameGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/map_image/{map_name}`;
+        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).  Strips a trailing `.map` extension and tries case-insensitive variants in S3. Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that haven\'t been migrated yet.
+     * Get Map Image
+     */
+    async getMapImageApiMapImageMapNameGetRaw(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const requestOptions = await this.getMapImageApiMapImageMapNameGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).  Strips a trailing `.map` extension and tries case-insensitive variants in S3. Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that haven\'t been migrated yet.
+     * Get Map Image
+     */
+    async getMapImageApiMapImageMapNameGet(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getMapImageApiMapImageMapNameGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getMapStatsApiMapStatsGet without sending the request
      */
     async getMapStatsApiMapStatsGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -997,7 +1120,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return a formatted summary of map stats for the given players and generals.
+     * Return a pre-game summary: map history, team h2h, and per-player records.
      * Get Map Summary
      */
     async getMapSummaryApiMapSummaryPostRaw(requestParameters: GetMapSummaryApiMapSummaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
@@ -1012,7 +1135,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return a formatted summary of map stats for the given players and generals.
+     * Return a pre-game summary: map history, team h2h, and per-player records.
      * Get Map Summary
      */
     async getMapSummaryApiMapSummaryPost(requestParameters: GetMapSummaryApiMapSummaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
@@ -2121,6 +2244,53 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for listMissingMapsEndpointApiMissingMapsGet without sending the request
+     */
+    async listMissingMapsEndpointApiMissingMapsGetRequestOpts(requestParameters: ListMissingMapsEndpointApiMissingMapsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/missing_maps`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Maps referenced by matches that have no MapData row, with their CRC.
+     * List Missing Maps Endpoint
+     */
+    async listMissingMapsEndpointApiMissingMapsGetRaw(requestParameters: ListMissingMapsEndpointApiMissingMapsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MissingMapInfo>>> {
+        const requestOptions = await this.listMissingMapsEndpointApiMissingMapsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MissingMapInfoFromJSON));
+    }
+
+    /**
+     * Maps referenced by matches that have no MapData row, with their CRC.
+     * List Missing Maps Endpoint
+     */
+    async listMissingMapsEndpointApiMissingMapsGet(requestParameters: ListMissingMapsEndpointApiMissingMapsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MissingMapInfo>> {
+        const response = await this.listMissingMapsEndpointApiMissingMapsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for listPendingUnprocessedApiFilesPendingUnprocessedGet without sending the request
      */
     async listPendingUnprocessedApiFilesPendingUnprocessedGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -2390,7 +2560,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
      * Refresh Matches From Json
      */
-    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const requestOptions = await this.refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
@@ -2401,7 +2571,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
      * Refresh Matches From Json
      */
-    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -2596,18 +2766,18 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
+    async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
         const requestOptions = await this.reparseBeforeDateApiReparseBeforeDatePostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
-    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
+    async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
         const response = await this.reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -2647,18 +2817,18 @@ export class DefaultApi extends runtime.BaseAPI {
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
-    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }>> {
+    async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
         const requestOptions = await this.reparseNonV2ApiReparseNonV2PostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseRecentApiReparseRecentPostValueFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON));
     }
 
     /**
      * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
-    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseRecentApiReparseRecentPostValue; }> {
+    async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
         const response = await this.reparseNonV2ApiReparseNonV2PostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -2841,7 +3011,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
      * Reset Match
      */
-    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async resetMatchApiMatchMatchIdDeleteRaw(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const requestOptions = await this.resetMatchApiMatchMatchIdDeleteRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
@@ -2852,7 +3022,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Delete all parsed data for a match and reset its ReplayFile(s) to pending.
      * Reset Match
      */
-    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.resetMatchApiMatchMatchIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -3106,7 +3276,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Matches Missing Data
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
         const requestOptions = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
@@ -3116,7 +3286,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Update Matches Missing Data
      */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
         return await response.value();
     }

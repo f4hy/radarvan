@@ -685,6 +685,34 @@ class MapsByPlayerCount(BaseModel):
     maps: list[str]
 
 
+class MissingMapInfo(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    sample_match_id: int
+    map_crc_hex: str | None = None
+
+
+class FetchMissingMapResult(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    base_name: str | None = None
+    tga_s3_uri: str | None = None
+    webp_s3_uri: str | None = None
+    map_s3_uri: str | None = None
+    map_data_saved: bool = False
+    error: str | None = None
+
+
+class FetchMissingMapsResponse(BaseModel):
+    model_config = _SLOTS
+
+    requested: int
+    fetched: int
+    results: list[FetchMissingMapResult]
+
+
 class DraftPlayerRequest(BaseModel):
     model_config = _SLOTS
 

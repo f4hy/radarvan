@@ -17,6 +17,8 @@ Name | Type
 `buildingFirstBlood` | [FirstBlood](FirstBlood.md)
 `playerSummary` | [Array&lt;PlayerSummary&gt;](PlayerSummary.md)
 `killEvents` | [Array&lt;KillEventOutput&gt;](KillEventOutput.md)
+`playerMoneySpent` | { [key: string]: number; }
+`playerMoneyCollected` | { [key: string]: number; }
 
 ## Example
 
@@ -36,6 +38,8 @@ const example = {
   "buildingFirstBlood": null,
   "playerSummary": null,
   "killEvents": null,
+  "playerMoneySpent": null,
+  "playerMoneyCollected": null,
 } satisfies MatchDetails
 
 console.log(example)

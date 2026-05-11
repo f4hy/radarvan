@@ -10,6 +10,8 @@ docs/DraftPlayerRequest.md
 docs/DraftRequest.md
 docs/DraftResult.md
 docs/Faction.md
+docs/FetchMissingMapResult.md
+docs/FetchMissingMapsResponse.md
 docs/FirstBlood.md
 docs/GameComposition.md
 docs/GameRecord.md
@@ -38,6 +40,7 @@ docs/MatchInfo.md
 docs/MatchListing.md
 docs/Matches.md
 docs/MatchupResult.md
+docs/MissingMapInfo.md
 docs/ObjectSummary.md
 docs/ParsedReplayJsonSchema.md
 docs/Player.md
@@ -55,6 +58,7 @@ docs/PlayerStats.md
 docs/PlayerSummary.md
 docs/ReplayFileSchema.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
+docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
 docs/ResponseReparseRecentApiReparseRecentPostValue.md
 docs/ShortPlayerRating.md
 docs/Statistic.md
@@ -82,6 +86,8 @@ models/DraftPlayerRequest.ts
 models/DraftRequest.ts
 models/DraftResult.ts
 models/Faction.ts
+models/FetchMissingMapResult.ts
+models/FetchMissingMapsResponse.ts
 models/FirstBlood.ts
 models/GameComposition.ts
 models/GameRecord.ts
@@ -110,6 +116,7 @@ models/MatchInfo.ts
 models/MatchListing.ts
 models/Matches.ts
 models/MatchupResult.ts
+models/MissingMapInfo.ts
 models/ObjectSummary.ts
 models/ParsedReplayJsonSchema.ts
 models/Player.ts
@@ -127,6 +134,7 @@ models/PlayerStats.ts
 models/PlayerSummary.ts
 models/ReplayFileSchema.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
+models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
 models/ResponseReparseRecentApiReparseRecentPostValue.ts
 models/ShortPlayerRating.ts
 models/Statistic.ts

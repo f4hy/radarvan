@@ -17,7 +17,7 @@ from fastapi import (
     Security,
     UploadFile,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.security import APIKeyHeader
 import logging
 import os
@@ -44,6 +44,7 @@ from . import player_skill
 from . import superlatives
 from . import create_teams
 from . import draft as draft_module
+from . import missing_maps as missing_maps_module
 from radarvan.api_types import (
     MatchDetails,
     MapStatsResponse,
@@ -72,6 +73,9 @@ from radarvan.api_types import (
     DraftResult,
     MapSummaryRequest,
     MapsByPlayerCount,
+    MissingMapInfo,
+    FetchMissingMapResult,
+    FetchMissingMapsResponse,
 )
 from cachetools import TTLCache, LRUCache, cached
 from .db import Match, ParsedReplayJson
@@ -1414,6 +1418,113 @@ def randomize_draft(
     result = DraftResult(assignments=assignments, randomized_at=randomized_at)
     _draft_cache[key] = result
     return result
+
+
+@app.get("/api/missing_maps")
+def list_missing_maps_endpoint(
+    limit: int | None = None,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[MissingMapInfo]:
+    """Maps referenced by matches that have no MapData row, with their CRC."""
+    missing = missing_maps_module.list_missing_maps_with_crc(replay_manager, limit=limit)
+    return [
+        MissingMapInfo(
+            map_name=m.map_name,
+            sample_match_id=m.sample_match_id,
+            map_crc_hex=m.map_crc_hex,
+        )
+        for m in missing
+    ]
+
+
+@app.post("/api/fetch_map_for_match/{match_id}")
+def fetch_map_for_match(
+    match_id: int,
+    parse_map: bool = True,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> FetchMissingMapResult:
+    """Fetch the cncstats map for a single match's MapCRC and upload to S3.
+
+    When `parse_map` is true and the local mapparse binary is available, also
+    parse the .map and store the geometry payload in `MapData`.
+    """
+    try:
+        fetched, payload = missing_maps_module.fetch_and_upload_for_match(
+            match_id, replay_manager, parse_and_save=parse_map
+        )
+    except Exception as e:
+        return FetchMissingMapResult(map_name=str(match_id), error=str(e))
+    return FetchMissingMapResult(
+        map_name=fetched.base_name,
+        base_name=fetched.base_name,
+        tga_s3_uri=fetched.tga_s3_uri,
+        webp_s3_uri=fetched.webp_s3_uri,
+        map_s3_uri=fetched.map_s3_uri,
+        map_data_saved=payload is not None,
+    )
+
+
+@app.post("/api/fetch_missing_maps")
+def fetch_missing_maps(
+    max_to_update: int = 10,
+    parse_map: bool = True,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> FetchMissingMapsResponse:
+    """Pull up to `max_to_update` missing maps from cncstats and upload to S3.
+
+    When `parse_map` is true and the local mapparse binary is available, the
+    .map file is also parsed and saved to MapData.
+    """
+    missing = missing_maps_module.list_missing_maps_with_crc(
+        replay_manager, limit=max_to_update
+    )
+    results: list[FetchMissingMapResult] = []
+    fetched = 0
+    for m in missing:
+        try:
+            result = missing_maps_module.fetch_and_upload(
+                m, replay_manager=replay_manager, parse_and_save=parse_map
+            )
+        except Exception as e:
+            results.append(FetchMissingMapResult(map_name=m.map_name, error=str(e)))
+            continue
+        if result is None:
+            results.append(
+                FetchMissingMapResult(map_name=m.map_name, error="fetch failed")
+            )
+            continue
+        fetched += 1
+        results.append(
+            FetchMissingMapResult(
+                map_name=m.map_name,
+                base_name=result.base_name,
+                tga_s3_uri=result.tga_s3_uri,
+                webp_s3_uri=result.webp_s3_uri,
+                map_s3_uri=result.map_s3_uri,
+                map_data_saved=parse_map and missing_maps_module.mapparse_available(),
+            )
+        )
+    return FetchMissingMapsResponse(
+        requested=len(missing), fetched=fetched, results=results
+    )
+
+
+@app.get("/api/map_image/{map_name}", response_model=None)
+def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
+    """Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).
+
+    Strips a trailing `.map` extension and tries case-insensitive variants in S3.
+    Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that
+    haven't been migrated yet.
+    """
+    s3_uri = missing_maps_module.find_s3_webp(map_name)
+    if s3_uri is not None:
+        return RedirectResponse(replay_files.presigned_url(s3_uri), status_code=302)
+    base = map_name.removesuffix(".map")
+    for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
+        if os.path.exists(candidate):
+            return FileResponse(candidate)
+    raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
 
 
 @app.get("/", include_in_schema=False)
