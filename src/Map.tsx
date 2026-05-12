@@ -192,7 +192,6 @@ export default function GameMap(props: {
                     const playerColor = playerEntry?.color
                       ? getColorHex(playerEntry.color)
                       : undefined
-                    const dotColor = playerColor ?? color
                     return (
                       <Tooltip
                         key={`${category}-${i}`}
@@ -228,8 +227,10 @@ export default function GameMap(props: {
                                 width: size * 1.5,
                                 height: size * 1.5,
                                 borderRadius: "100%",
-                                bgcolor: dotColor,
-                                border: "2px solid white",
+                                bgcolor: color,
+                                border: playerColor
+                                  ? `3px solid ${playerColor}`
+                                  : "2px solid white",
                                 boxShadow: "0 0 4px rgba(0,0,0,0.6)",
                                 display: "flex",
                                 alignItems: "center",
