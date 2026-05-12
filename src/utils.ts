@@ -23,9 +23,14 @@ export function getColorHex(colorName: string): string {
     lime: "#BFFF00",
     silver: "#C0C0C0",
     maroon: "#800000",
+    metallicgrey: "#808080",
   }
   if (colorName === "-1") return "#000000"
-  return colorMap[colorName.toLowerCase()] || colorName
+  const mapped = colorMap[colorName.toLowerCase()]
+  if (mapped) return mapped
+  if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(colorName)) return colorName
+  if (/^(rgb|rgba|hsl|hsla|color)\(/i.test(colorName)) return colorName
+  return "#808080"
 }
 
 export function buildPlayerColorMap(
