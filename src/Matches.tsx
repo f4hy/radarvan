@@ -24,6 +24,7 @@ import _ from "lodash"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
+import { toGeneralName } from "./general_utils"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import {
@@ -75,7 +76,11 @@ function buildPlayerPositions(
       .filter((p) => p.startingPosition != null)
       .map((p) => [
         p.startingPosition!,
-        { name: normalizePlayerName(p.name), color: p.color },
+        {
+          name: normalizePlayerName(p.name),
+          color: p.color,
+          general: toGeneralName(p.general),
+        },
       ]),
   )
 }

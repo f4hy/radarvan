@@ -11,7 +11,11 @@ import { Client } from "./Client"
 import { getColorHex } from "./utils"
 import type { MapDataPayload } from "./api"
 
-export type PlayerPosition = { name: string; color?: string }
+export type PlayerPosition = {
+  name: string
+  color?: string
+  general?: string
+}
 
 type PointCategory = "playerStarts" | "supply" | "tech"
 
@@ -219,6 +223,21 @@ export default function GameMap(props: {
                               : {}),
                           }}
                         >
+                          {playerEntry?.name && (
+                            <Typography
+                              sx={{
+                                fontSize: 9,
+                                lineHeight: 1.2,
+                                color: playerColor ?? "white",
+                                textShadow: "0 0 3px #000",
+                                fontWeight: "bold",
+                                whiteSpace: "nowrap",
+                                mb: "1px",
+                              }}
+                            >
+                              {playerEntry.name}
+                            </Typography>
+                          )}
                           {symbol ? (
                             symbol
                           ) : (
@@ -244,7 +263,7 @@ export default function GameMap(props: {
                               {"playerNumber" in pt ? pt.playerNumber : ""}
                             </Box>
                           )}
-                          {playerEntry && (
+                          {playerEntry?.general && (
                             <Typography
                               sx={{
                                 fontSize: 9,
@@ -256,7 +275,7 @@ export default function GameMap(props: {
                                 mt: "1px",
                               }}
                             >
-                              {playerEntry.name}
+                              {playerEntry.general}
                             </Typography>
                           )}
                         </Box>
