@@ -23,7 +23,7 @@ import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
-import GameMap from "./Map"
+import GameMap, { type PlayerPosition } from "./Map"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import {
@@ -67,11 +67,16 @@ function normalizePlayerName(name: string): string {
   return name
 }
 
-function buildPlayerPositions(players: Player[]): Record<number, string> {
+function buildPlayerPositions(
+  players: Player[],
+): Record<number, PlayerPosition> {
   return Object.fromEntries(
     players
       .filter((p) => p.startingPosition != null)
-      .map((p) => [p.startingPosition!, normalizePlayerName(p.name)]),
+      .map((p) => [
+        p.startingPosition!,
+        { name: normalizePlayerName(p.name), color: p.color },
+      ]),
   )
 }
 

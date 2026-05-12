@@ -8,7 +8,10 @@ import html2canvas from "html2canvas"
 import * as React from "react"
 import { MAPLIST } from "./maplist"
 import { Client } from "./Client"
+import { getColorHex } from "./utils"
 import type { MapDataPayload } from "./api"
+
+export type PlayerPosition = { name: string; color?: string }
 
 type PointCategory = "playerStarts" | "supply" | "tech"
 
@@ -81,7 +84,7 @@ export type EventDot = {
 
 export default function GameMap(props: {
   mapname: string
-  playerPositions?: Record<number, string>
+  playerPositions?: Record<number, PlayerPosition>
   eventDots?: EventDot[]
   showDownload?: boolean
 }) {
@@ -182,10 +185,14 @@ export default function GameMap(props: {
                   return points.map((pt, i) => {
                     const name = "name" in pt ? pt.name : ""
                     const { color, size, symbol } = pointStyle(category, name)
-                    const playerName =
+                    const playerEntry =
                       !symbol && "playerNumber" in pt
                         ? props.playerPositions?.[pt.playerNumber]
                         : undefined
+                    const playerColor = playerEntry?.color
+                      ? getColorHex(playerEntry.color)
+                      : undefined
+                    const dotColor = playerColor ?? color
                     return (
                       <Tooltip
                         key={`${category}-${i}`}
@@ -221,7 +228,7 @@ export default function GameMap(props: {
                                 width: size * 1.5,
                                 height: size * 1.5,
                                 borderRadius: "100%",
-                                bgcolor: color,
+                                bgcolor: dotColor,
                                 border: "2px solid white",
                                 boxShadow: "0 0 4px rgba(0,0,0,0.6)",
                                 display: "flex",
@@ -236,19 +243,19 @@ export default function GameMap(props: {
                               {"playerNumber" in pt ? pt.playerNumber : ""}
                             </Box>
                           )}
-                          {playerName && (
+                          {playerEntry && (
                             <Typography
                               sx={{
                                 fontSize: 9,
                                 lineHeight: 1.2,
-                                color: "white",
+                                color: playerColor ?? "white",
                                 textShadow: "0 0 3px #000",
                                 fontWeight: "bold",
                                 whiteSpace: "nowrap",
                                 mt: "1px",
                               }}
                             >
-                              {playerName}
+                              {playerEntry.name}
                             </Typography>
                           )}
                         </Box>

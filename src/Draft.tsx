@@ -217,7 +217,10 @@ export default function DisplayDraft() {
       Object.fromEntries(
         assignments.map((a) => [
           a.positionNumber,
-          a.playerName + "[" + a.team + "]-" + toGeneralName(a.general),
+          {
+            name:
+              a.playerName + "[" + a.team + "]-" + toGeneralName(a.general),
+          },
         ]),
       ),
     [assignments],
