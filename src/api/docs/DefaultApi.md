@@ -4467,11 +4467,11 @@ example().catch(console.error);
 
 ## uploadReplayApiUploadReplayPost
 
-> MatchInfo uploadReplayApiUploadReplayPost(file)
+> MatchInfo uploadReplayApiUploadReplayPost(file, macId, boardId, playerName, clientVersion, sourceTag)
 
 Upload Replay
 
-Upload a .rep file, save it to S3, parse it, and return the match info.
+Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label
 
 ### Example
 
@@ -4493,6 +4493,16 @@ async function example() {
   const body = {
     // Blob
     file: BINARY_DATA_HERE,
+    // string (optional)
+    macId: macId_example,
+    // string (optional)
+    boardId: boardId_example,
+    // string (optional)
+    playerName: playerName_example,
+    // string (optional)
+    clientVersion: clientVersion_example,
+    // string (optional)
+    sourceTag: sourceTag_example,
   } satisfies UploadReplayApiUploadReplayPostRequest;
 
   try {
@@ -4513,6 +4523,11 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **file** | `Blob` |  | [Defaults to `undefined`] |
+| **macId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **boardId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **playerName** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **clientVersion** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **sourceTag** | `string` |  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
