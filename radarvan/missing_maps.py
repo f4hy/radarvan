@@ -104,15 +104,15 @@ def list_missing_maps(replay_manager: ReplayManager) -> list[MissingMap]:
             continue
         seen_basenames.add(compare)
         missing.append(
-            MissingMap(map_name=replay_files.map_basename(raw_path), sample_match_id=match_id)
+            MissingMap(
+                map_name=replay_files.map_basename(raw_path), sample_match_id=match_id
+            )
         )
     missing.sort(key=lambda m: m.map_name.lower())
     return missing
 
 
-def get_map_crc_from_match(
-    match_id: int, replay_manager: ReplayManager
-) -> str | None:
+def get_map_crc_from_match(match_id: int, replay_manager: ReplayManager) -> str | None:
     """Return the hex MapCRC for the given match, by reading its parsed JSON from S3."""
     json_uri = replay_manager.session.scalar(
         select(ParsedReplayJson.json_s3_uri)
@@ -262,7 +262,9 @@ def fetch_and_upload(
             replay_manager.save_map_data(extracted.base_name, payload)
         return fetched
     except Exception as e:
-        logger.warning("Failed to fetch %s (crc=%s): %s", missing.map_name, missing.map_crc_hex, e)
+        logger.warning(
+            "Failed to fetch %s (crc=%s): %s", missing.map_name, missing.map_crc_hex, e
+        )
         return None
 
 

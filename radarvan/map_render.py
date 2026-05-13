@@ -33,7 +33,16 @@ def _draw_text_with_outline(
     fill: str,
 ) -> None:
     x, y = xy
-    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1)):
+    for dx, dy in (
+        (-1, 0),
+        (1, 0),
+        (0, -1),
+        (0, 1),
+        (-1, -1),
+        (1, 1),
+        (-1, 1),
+        (1, -1),
+    ):
         draw.text((x + dx, y + dy), text, font=font, fill="black", anchor="mm")
     draw.text((x, y), text, font=font, fill=fill, anchor="mm")
 
