@@ -493,7 +493,6 @@ function DisplayMatchesForDate(props: {
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
   const date = fmt(props.date)
-  const idx = props.idx
   const borderProps = props.selected ? { border: "3px solid green" } : {}
   return (
     <>
@@ -670,7 +669,10 @@ export default function DisplayMatches() {
   return (
     <Stack>
       <Accordion slotProps={{ transition: { unmountOnExit: true } }}>
-        <AccordionSummary expandIcon={<ArrowDownwardIcon />} sx={{ bgcolor: "primary.light" }}>
+        <AccordionSummary
+          expandIcon={<ArrowDownwardIcon />}
+          sx={{ bgcolor: "primary.light" }}
+        >
           <Typography>Activity Calendar (click to expand)</Typography>
         </AccordionSummary>
         <AccordionDetails>

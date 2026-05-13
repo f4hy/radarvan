@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-NON_COMPETITIVE: set[str] = set(["EasyArmy", "MediumArmy"])
+NON_COMPETITIVE: set[str] = {"EasyArmy", "MediumArmy"}
 
 MIN_GAMES = 1
 ITERATIONS = 5
@@ -47,7 +47,7 @@ class NamedRating:
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     r = model.rating(name=name)
     known_computers = set(player_ids.CPU_NAME_MAPPING.values())
-    known_players = {player_ids.PLAYER_NAME_MAPPING.values()}
+    known_players = set(player_ids.PLAYER_NAME_MAPPING.values())
     if name in NON_COMPETITIVE:
         return NamedRating(name=name, mu=1.0, sigma=r.sigma / 2.0)
     if name in known_computers:

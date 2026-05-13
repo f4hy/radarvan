@@ -324,44 +324,6 @@ function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
   )
 }
 
-function buildPlayerKillSourceSankeyData(
-  playerName: string,
-  killEvents: KillEventOutput[],
-): SankeyData {
-  const byDamageType: Record<string, Record<string, number>> = {}
-  for (const ev of killEvents) {
-    if (ev.killerPlayer !== playerName) continue
-    if (!byDamageType[ev.damageType]) byDamageType[ev.damageType] = {}
-    byDamageType[ev.damageType][ev.victim] =
-      (byDamageType[ev.damageType][ev.victim] ?? 0) + 1
-  }
-
-  const nodeNames: string[] = []
-  const nodeIdx = new Map<string, number>()
-  const links: { source: number; target: number; value: number }[] = []
-
-  function addNode(name: string): number {
-    if (!nodeIdx.has(name)) {
-      nodeIdx.set(name, nodeNames.length)
-      nodeNames.push(name)
-    }
-    return nodeIdx.get(name)!
-  }
-
-  const playerIdx = addNode(playerName)
-  for (const [damageType, victims] of Object.entries(byDamageType)) {
-    const total = Object.values(victims).reduce((s, n) => s + n, 0)
-    if (total === 0) continue
-    const dtIdx = addNode(damageType)
-    links.push({ source: playerIdx, target: dtIdx, value: total })
-    for (const [victim, count] of Object.entries(victims)) {
-      links.push({ source: dtIdx, target: addNode(victim), value: count })
-    }
-  }
-
-  return { nodes: nodeNames.map((name) => ({ name })), links }
-}
-
 function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
   const data = React.useMemo(() => {
     const nodeNames: string[] = []

@@ -131,7 +131,7 @@ def determin_general(
 def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
     players: list[Player] = []
     summaries_by_name = {s.name: s for s in (replay.summary or []) if s.name}
-    summaries_by_index = {i: s for i, s in enumerate(replay.summary or [])}
+    summaries_by_index = dict(enumerate(replay.summary or []))
     header_players = (
         replay.header.metadata.players
         if replay.header and replay.header.metadata

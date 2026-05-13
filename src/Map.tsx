@@ -43,7 +43,9 @@ function getMapUrl(mapname: string) {
 }
 
 function getMapImageApiUrl(mapname: string) {
-  return import.meta.env.BASE_URL + "api/map_image/" + encodeURIComponent(mapname)
+  return (
+    import.meta.env.BASE_URL + "api/map_image/" + encodeURIComponent(mapname)
+  )
 }
 
 function resolveMap(mapname: string) {

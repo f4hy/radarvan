@@ -74,7 +74,7 @@ export default function DisplayDraft() {
   >(6)
   const [selectedMap, setSelectedMap] = React.useState<string | null>(null)
   const [players, setPlayers] = React.useState<DraftPlayer[]>([])
-  const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
+  const [_mapData, setMapData] = React.useState<MapDataPayload | null>(null)
   const [assignments, setAssignments] = React.useState<DraftAssignment[]>([])
   const [randomizedAt, setRandomizedAt] = React.useState<string | null>(null)
   const [teamRating, setTeamRating] = React.useState<Record<
@@ -226,8 +226,6 @@ export default function DisplayDraft() {
     [assignments],
   )
 
-  const namesUnique =
-    new Set(players.map((p) => p.name)).size === players.length
   const allNamesValid =
     players.length >= 2 && players.every((p) => VALID_PLAYER_NAMES.has(p.name))
 
