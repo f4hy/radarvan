@@ -8,23 +8,32 @@ Radarvan is a statistics tracking application for Command & Conquer: Generals Ze
 
 ## Common Commands
 
-### Frontend (React)
-- `npm start` - Start development server (proxies `/api` to localhost:8000 via `src/setupProxy.js`)
-- `npm run build` - Build production bundle
-- `npm test` - Run tests
-- `prettier --write .` - Format code (configured to omit semicolons)
+### Combined (Makefile)
+The `Makefile` is the canonical entry point for formatting, linting, type-checking, and CI. `make help` lists every target.
+- `make all` - Format + auto-fix lint + type-check across **both** Python and TypeScript (run this before pushing)
+- `make check` - Python lint + mypy (no formatting)
+- `make ts-check` - TS format-check + ESLint + tsc
+- `make install` - `uv sync` + `npm install`
+- `make test` - `uv run pytest`
+- `make build` - Runs `check` + `ts-check`, then `uv build`
+- `make ci` - Full pipeline: `clean install all build`
+- Python-only targets: `format`, `lint`, `lint-fix`, `typecheck`. TS-only: `ts-format`, `ts-lint`, `ts-lint-fix`, `ts-typecheck`.
+
+### Frontend (Vite + React)
+- `npm start` - Start Vite dev server (`/api` proxied to localhost:8000 via `vite.config.ts`)
+- `npm run build` - Type-check and build production bundle (`tsc && vite build`)
+- `npm test` - Run vitest test suite
 
 ### Backend (Python/FastAPI)
-The backend lives in the `radarvan/` directory. Common tasks typically involve:
-- Starting the FastAPI server (check for uvicorn or similar in deployment scripts)
-- Running database migrations with alembic: `alembic upgrade head`
-- Database connection string is read from `DATABASE_URL` environment variable
+- `fastapi run radarvan/main.py` - Start the server (matches `Procfile`)
+- Python ≥3.13 required; deps locked in `uv.lock` (install via `make install` or `uv sync`)
+- `alembic upgrade head` - Run migrations
+- `DATABASE_URL` env var must be set; `DEV=1` disables scheduled scraping
 
 ### Code Generation
-- `./gen_client.sh` - Regenerate TypeScript API client from the running FastAPI server's OpenAPI spec; FastAPI dev server must be running
-- Protocol buffers are used for data structures (see `proto/match.proto`)
-- TypeScript types are generated in `src/proto/match.ts` from the proto definitions
+- `./gen_client.sh` - Regenerate TypeScript API client from the running FastAPI server's OpenAPI spec; FastAPI dev server must be running first
 - OpenAPI client code is auto-generated in `src/api/` (DO NOT manually edit files marked with auto-generation warnings)
+- `proto/match.proto` exists but is not used by the current code paths — `radarvan/api_types.py` (Pydantic) is the source of truth for the wire format
 
 ## Architecture
 
@@ -57,19 +66,15 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
   - `parse_replay.py` - Replay file parsing (runs cncstats binary)
   - `schedule.py` - Scheduled tasks for scraping
   - `db_utils.py` - Database session management and replay repository (`ReplayManager`)
-- **Data models**: Defined using Protocol Buffers in `proto/match.proto`, which defines:
-  - Generals (USA, China, GLA factions and their variants)
-  - Match information (players, teams, map, duration, winner)
-  - Statistics (win/loss records, APM, costs, upgrades, spending over time)
-- **API types**: `radarvan/api_types.py` — Pydantic models for REST responses (`MatchInfo`, `PlayerStat`, `PlayerStats`, `MatchDetails`, etc.)
+- **API types**: `radarvan/api_types.py` — Pydantic models that define every REST request/response shape (`MatchInfo`, `PlayerStat`, `MatchDetails`, `General`/`Team`/`Faction` enums, etc.). This is the canonical schema; TS types are generated from the resulting OpenAPI spec.
+- **Replay model**: `radarvan/cncstats_model/zhreplay.py` defines `EnhancedReplayV2` (the parsed-replay shape from the cncstats binary). Use this; the older `cncstats_types_v2.py` shapes are reference-only.
 
 ### Data Flow
 1. Game replays are collected (via scraping or manual upload)
 2. Replays are parsed to extract match details (players, generals, teams, winner, costs, actions)
-3. Data is stored in PostgreSQL database
+3. Data is stored in PostgreSQL database; the original `.rep` and the parsed JSON live in S3 (`s3://generals-stats/radarvan/dev/`)
 4. FastAPI serves statistics via REST endpoints
 5. React frontend fetches and displays data using auto-generated TypeScript client
-6. Protocol buffers ensure type consistency between frontend and backend data structures
 
 ### Key Patterns
 - **Game format filtering**: `matches.filter_by_format(games, game_format)` filters by category string ("1v1", "2v2", etc.); `game_composition.competitive_game_filter` requires balanced, non-comp-stomp, team games
@@ -80,7 +85,7 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **Backfill endpoints**: POST endpoints with `max_to_update: int` param that loop through matches and update incrementally; return `{"updated": N}`
 
 ### Environment Configuration
-- Frontend dev proxy is configured in `src/setupProxy.js` (only `/api` routes proxied to `localhost:8000`; static assets served directly from `public/`)
+- Frontend dev proxy is configured in `vite.config.ts` (only `/api` routes proxied to `localhost:8000`; static assets served directly from `public/`)
 - Backend reads `DATABASE_URL` from environment variables
 - `DEV` environment variable controls whether scheduled tasks run
 - Production deployment is on Heroku (radarvan-5e9c302c60e6.herokuapp.com)
@@ -112,6 +117,9 @@ The backend lives in the `radarvan/` directory. Common tasks typically involve:
 - **`list_jsons_parsed_before`**: Uses `DISTINCT ON (match_id)` (PostgreSQL) to return one `ParsedReplayJson` per match. Excludes any `match_id` that has a record with `coalesce(updated_at, created_at) >= before` via a `NOT IN` subquery, so only match_ids where all records predate the cutoff are returned.
 - **Player color utilities**: `getColorHex(colorName)` and `buildPlayerColorMap(summaries, transform?)` are in `src/utils.ts`. Use these instead of inline `reduce` calls when mapping player names to colors. `buildPlayerColorMap` accepts an optional transform (e.g. `getColorHex`) for hex conversion.
 - **Shared `WinRateRadar` component**: `src/WinRateRadar.tsx` renders a recharts RadarChart of win rates. Expects `data: { name: string; winRate: number }[]` and optional `aspect` prop. Used by both `PlayerStats.tsx` and `GeneralStats.tsx`.
+- **Map name resolution**: User-supplied map names should be looked up case- and whitespace-insensitively. Use `ReplayManager.resolve_map_name(name)` to get the canonical stored name, then call `get_map_data`/image helpers with that. `missing_maps.find_s3_webp` also tries case- and whitespace-stripped variants in S3.
+- **Local map image fallback**: `_load_map_image_bytes` in `main.py` first tries S3 via `find_s3_webp`, then exact `dist/maps/{name}.webp`, then a normalized-substring scan of `dist/maps/` (filenames there have prefixes like `maps_defcon6_defcon6.webp` that include the map name as a substring).
+- **`MapRenderPlayer` request shape**: `POST /api/map_render` takes a map name and a list of `MapRenderPlayer` (name, general, team, position_number) and returns a PNG with overlays burned in. Uses `radarvan/map_render.py` (Pillow); team colors mirror frontend `TEAM_COLORS` in `Draft.tsx`.
 
 ## Key Technical Details
 
