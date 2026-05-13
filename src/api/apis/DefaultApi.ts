@@ -324,6 +324,11 @@ export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest 
 
 export interface UploadReplayApiUploadReplayPostRequest {
     file: Blob;
+    macId?: string | null;
+    boardId?: string | null;
+    playerName?: string | null;
+    clientVersion?: string | null;
+    sourceTag?: string | null;
 }
 
 /**
@@ -3462,6 +3467,26 @@ export class DefaultApi extends runtime.BaseAPI {
             formParams.append('file', requestParameters['file'] as any);
         }
 
+        if (requestParameters['macId'] != null) {
+            formParams.append('mac_id', requestParameters['macId'] as any);
+        }
+
+        if (requestParameters['boardId'] != null) {
+            formParams.append('board_id', requestParameters['boardId'] as any);
+        }
+
+        if (requestParameters['playerName'] != null) {
+            formParams.append('player_name', requestParameters['playerName'] as any);
+        }
+
+        if (requestParameters['clientVersion'] != null) {
+            formParams.append('client_version', requestParameters['clientVersion'] as any);
+        }
+
+        if (requestParameters['sourceTag'] != null) {
+            formParams.append('source_tag', requestParameters['sourceTag'] as any);
+        }
+
 
         let urlPath = `/api/upload_replay`;
 
@@ -3475,7 +3500,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Upload a .rep file, save it to S3, parse it, and return the match info.
+     * Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label
      * Upload Replay
      */
     async uploadReplayApiUploadReplayPostRaw(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
@@ -3486,7 +3511,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Upload a .rep file, save it to S3, parse it, and return the match info.
+     * Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label
      * Upload Replay
      */
     async uploadReplayApiUploadReplayPost(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {

@@ -188,7 +188,14 @@ def compute_hash(data: bytes) -> str:
 
 
 def upload_and_parse(
-    data: bytes, file_hash: str, replay_manager: ReplayManager
+    data: bytes,
+    file_hash: str,
+    replay_manager: ReplayManager,
+    mac_id: str | None = None,
+    board_id: str | None = None,
+    uploader_name: str | None = None,
+    client_version: str | None = None,
+    source_tag: str | None = None,
 ) -> ParsedReplayResult:
     """Parse raw replay bytes, then persist .rep + .json to S3 and register in DB.
 
@@ -208,6 +215,11 @@ def upload_and_parse(
         s3_uri=s3_uri,
         file_hash=file_hash,
         source_date=date.today(),
+        mac_id=mac_id,
+        board_id=board_id,
+        uploader_name=uploader_name,
+        client_version=client_version,
+        source_tag=source_tag,
     )
     replay_manager.save_parsed_json(
         json_s3_uri=json_path,

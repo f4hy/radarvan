@@ -10,6 +10,7 @@ import traceback
 from fastapi import (
     FastAPI,
     File,
+    Form,
     HTTPException,
     Request,
     Query,
@@ -677,9 +678,22 @@ async def reparse_non_v2(
 @app.post("/api/upload_replay")
 def upload_replay(
     file: UploadFile = File(...),
+    mac_id: str | None = Form(None),
+    board_id: str | None = Form(None),
+    player_name: str | None = Form(None),
+    client_version: str | None = Form(None),
+    source_tag: str | None = Form(None),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo:
-    """Upload a .rep file, save it to S3, parse it, and return the match info."""
+    """Upload a .rep file, save it to S3, parse it, and return the match info.
+
+    Optional source identifiers are stored on the ReplayFile row:
+    - mac_id: gentool-style MAC-based identifier
+    - board_id: stable identifier not tied to a network interface
+    - player_name: in-game name the uploader played under
+    - client_version: version string of the uploading client
+    - source_tag: free-form uploader-supplied label
+    """
     data = file.file.read()
     file_hash = replay_files.compute_hash(data)
 
@@ -688,7 +702,16 @@ def upload_replay(
             status_code=409, detail=f"Replay already uploaded (hash={file_hash})"
         )
 
-    result = replay_files.upload_and_parse(data, file_hash, replay_manager)
+    result = replay_files.upload_and_parse(
+        data,
+        file_hash,
+        replay_manager,
+        mac_id=mac_id,
+        board_id=board_id,
+        uploader_name=player_name,
+        client_version=client_version,
+        source_tag=source_tag,
+    )
     db_match = matches.replay_to_db_match(result.replay, result.json_path)
     replay_manager.register_match(db_match)
     replay_manager.compute_and_save_composition(db_match.match_id)
@@ -1428,7 +1451,9 @@ def list_missing_maps_endpoint(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[MissingMapInfo]:
     """Maps referenced by matches that have no MapData row, with their CRC."""
-    missing = missing_maps_module.list_missing_maps_with_crc(replay_manager, limit=limit)
+    missing = missing_maps_module.list_missing_maps_with_crc(
+        replay_manager, limit=limit
+    )
     return [
         MissingMapInfo(
             map_name=m.map_name,

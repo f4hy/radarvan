@@ -65,6 +65,13 @@ class ReplayFile(Base):
         String(64), nullable=True, unique=True, index=True
     )
 
+    # Optional uploader-supplied identifiers (set by /api/upload_replay).
+    mac_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    board_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    uploader_name: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    client_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_tag: Mapped[str | None] = mapped_column(String, nullable=True)
+
     # Timestamps
     discovered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     source_date: Mapped[date] = mapped_column(index=True)

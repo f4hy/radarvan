@@ -199,6 +199,11 @@ class ReplayManager:
         s3_uri: str,
         file_hash: str,
         source_date: date,
+        mac_id: str | None = None,
+        board_id: str | None = None,
+        uploader_name: str | None = None,
+        client_version: str | None = None,
+        source_tag: str | None = None,
     ) -> ReplayFile:
         """Register a replay that was uploaded directly (not fetched from a URL)."""
         logger.info(f"Registering uploaded replay {original_url=} {s3_uri=}")
@@ -208,6 +213,11 @@ class ReplayManager:
             source_date=source_date,
             player_id="upload",
             file_hash=file_hash,
+            mac_id=mac_id,
+            board_id=board_id,
+            uploader_name=uploader_name,
+            client_version=client_version,
+            source_tag=source_tag,
         )
         self.session.add(replay_file)
         if self.auto_commit:
