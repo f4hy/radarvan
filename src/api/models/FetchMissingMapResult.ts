@@ -51,6 +51,12 @@ export interface FetchMissingMapResult {
     mapS3Uri?: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof FetchMissingMapResult
+     */
+    mapDataSaved?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof FetchMissingMapResult
      */
@@ -80,6 +86,7 @@ export function FetchMissingMapResultFromJSONTyped(json: any, ignoreDiscriminato
         'tgaS3Uri': json['tga_s3_uri'] == null ? undefined : json['tga_s3_uri'],
         'webpS3Uri': json['webp_s3_uri'] == null ? undefined : json['webp_s3_uri'],
         'mapS3Uri': json['map_s3_uri'] == null ? undefined : json['map_s3_uri'],
+        'mapDataSaved': json['map_data_saved'] == null ? undefined : json['map_data_saved'],
         'error': json['error'] == null ? undefined : json['error'],
     };
 }
@@ -100,6 +107,7 @@ export function FetchMissingMapResultToJSONTyped(value?: FetchMissingMapResult |
         'tga_s3_uri': value['tgaS3Uri'],
         'webp_s3_uri': value['webpS3Uri'],
         'map_s3_uri': value['mapS3Uri'],
+        'map_data_saved': value['mapDataSaved'],
         'error': value['error'],
     };
 }

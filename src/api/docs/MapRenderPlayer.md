@@ -1,34 +1,28 @@
 
-# FetchMissingMapResult
+# MapRenderPlayer
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`mapName` | string
-`baseName` | string
-`tgaS3Uri` | string
-`webpS3Uri` | string
-`mapS3Uri` | string
-`mapDataSaved` | boolean
-`error` | string
+`name` | string
+`general` | [General](General.md)
+`team` | number
+`positionNumber` | number
 
 ## Example
 
 ```typescript
-import type { FetchMissingMapResult } from ''
+import type { MapRenderPlayer } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "mapName": null,
-  "baseName": null,
-  "tgaS3Uri": null,
-  "webpS3Uri": null,
-  "mapS3Uri": null,
-  "mapDataSaved": null,
-  "error": null,
-} satisfies FetchMissingMapResult
+  "name": null,
+  "general": null,
+  "team": null,
+  "positionNumber": null,
+} satisfies MapRenderPlayer
 
 console.log(example)
 
@@ -37,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as FetchMissingMapResult
+const exampleParsed = JSON.parse(exampleJSON) as MapRenderPlayer
 console.log(exampleParsed)
 ```
 

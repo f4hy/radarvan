@@ -829,12 +829,27 @@ class ReplayManager:
             self.session.commit()
 
     def get_map_data(self, map_name: str) -> MapDataPayload | None:
-        """Return the map geometry payload for the given map name (case-insensitive), or None."""
-        stmt = select(MapData).where(MapData.map_name.ilike(map_name))
-        row = self.session.scalar(stmt)
+        """Return the map geometry payload (case- and whitespace-insensitive), or None."""
+        row = self._find_map_data_row(map_name)
         if row is None:
             return None
         return MapDataPayload.model_validate(row.data)
+
+    def _find_map_data_row(self, map_name: str) -> MapData | None:
+        stmt = select(MapData).where(MapData.map_name.ilike(map_name))
+        row = self.session.scalar(stmt)
+        if row is not None:
+            return row
+        normalized = "".join(map_name.split()).lower()
+        stmt = select(MapData).where(
+            func.lower(func.replace(MapData.map_name, " ", "")) == normalized
+        )
+        return self.session.scalar(stmt)
+
+    def resolve_map_name(self, map_name: str) -> str | None:
+        """Return the canonical stored map_name matching the given input, or None."""
+        row = self._find_map_data_row(map_name)
+        return row.map_name if row is not None else None
 
     def list_maps_by_player_count(self) -> dict[int, list[str]]:
         """Return all known maps grouped by number of player starting positions."""

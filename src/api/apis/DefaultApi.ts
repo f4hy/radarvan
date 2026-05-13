@@ -17,6 +17,7 @@ import * as runtime from '../runtime';
 import type {
   DraftRequest,
   DraftResult,
+  FetchMissingMapResult,
   FetchMissingMapsResponse,
   GameComposition,
   GameRecord,
@@ -24,6 +25,7 @@ import type {
   HTTPValidationError,
   HeadToHead,
   MapDataPayload,
+  MapRenderRequest,
   MapStatsResponse,
   MapSummaryRequest,
   MapsByPlayerCount,
@@ -53,6 +55,8 @@ import {
     DraftRequestToJSON,
     DraftResultFromJSON,
     DraftResultToJSON,
+    FetchMissingMapResultFromJSON,
+    FetchMissingMapResultToJSON,
     FetchMissingMapsResponseFromJSON,
     FetchMissingMapsResponseToJSON,
     GameCompositionFromJSON,
@@ -67,6 +71,8 @@ import {
     HeadToHeadToJSON,
     MapDataPayloadFromJSON,
     MapDataPayloadToJSON,
+    MapRenderRequestFromJSON,
+    MapRenderRequestToJSON,
     MapStatsResponseFromJSON,
     MapStatsResponseToJSON,
     MapSummaryRequestFromJSON,
@@ -131,8 +137,14 @@ export interface DeleteOverrideApiOverrideMatchIdDeleteRequest {
     matchId: number;
 }
 
+export interface FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest {
+    matchId: number;
+    parseMap?: boolean;
+}
+
 export interface FetchMissingMapsApiFetchMissingMapsPostRequest {
     maxToUpdate?: number;
+    parseMap?: boolean;
 }
 
 export interface FixIncompleteApiFixIncompletePostRequest {
@@ -251,6 +263,10 @@ export interface RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest {
 
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
     urlOfReplay: string;
+}
+
+export interface RenderMapWithPlayersApiMapRenderPostRequest {
+    mapRenderRequest: MapRenderRequest;
 }
 
 export interface ReparseApiReparseMatchIdPostRequest {
@@ -561,6 +577,61 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for fetchMapForMatchApiFetchMapForMatchMatchIdPost without sending the request
+     */
+    async fetchMapForMatchApiFetchMapForMatchMatchIdPostRequestOpts(requestParameters: FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling fetchMapForMatchApiFetchMapForMatchMatchIdPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['parseMap'] != null) {
+            queryParameters['parse_map'] = requestParameters['parseMap'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/fetch_map_for_match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Fetch the cncstats map for a single match\'s MapCRC and upload to S3.  When `parse_map` is true and the local mapparse binary is available, also parse the .map and store the geometry payload in `MapData`.
+     * Fetch Map For Match
+     */
+    async fetchMapForMatchApiFetchMapForMatchMatchIdPostRaw(requestParameters: FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMissingMapResult>> {
+        const requestOptions = await this.fetchMapForMatchApiFetchMapForMatchMatchIdPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FetchMissingMapResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Fetch the cncstats map for a single match\'s MapCRC and upload to S3.  When `parse_map` is true and the local mapparse binary is available, also parse the .map and store the geometry payload in `MapData`.
+     * Fetch Map For Match
+     */
+    async fetchMapForMatchApiFetchMapForMatchMatchIdPost(requestParameters: FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMissingMapResult> {
+        const response = await this.fetchMapForMatchApiFetchMapForMatchMatchIdPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for fetchMissingMapsApiFetchMissingMapsPost without sending the request
      */
     async fetchMissingMapsApiFetchMissingMapsPostRequestOpts(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest): Promise<runtime.RequestOpts> {
@@ -568,6 +639,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         if (requestParameters['maxToUpdate'] != null) {
             queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        if (requestParameters['parseMap'] != null) {
+            queryParameters['parse_map'] = requestParameters['parseMap'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -588,7 +663,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.
+     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.  When `parse_map` is true and the local mapparse binary is available, the .map file is also parsed and saved to MapData.
      * Fetch Missing Maps
      */
     async fetchMissingMapsApiFetchMissingMapsPostRaw(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMissingMapsResponse>> {
@@ -599,7 +674,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.
+     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.  When `parse_map` is true and the local mapparse binary is available, the .map file is also parsed and saved to MapData.
      * Fetch Missing Maps
      */
     async fetchMissingMapsApiFetchMissingMapsPost(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMissingMapsResponse> {
@@ -2670,6 +2745,63 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async registerReplayUrlApiRegisterReplayUrlPost(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
         const response = await this.registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for renderMapWithPlayersApiMapRenderPost without sending the request
+     */
+    async renderMapWithPlayersApiMapRenderPostRequestOpts(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['mapRenderRequest'] == null) {
+            throw new runtime.RequiredError(
+                'mapRenderRequest',
+                'Required parameter "mapRenderRequest" was null or undefined when calling renderMapWithPlayersApiMapRenderPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/map_render`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: MapRenderRequestToJSON(requestParameters['mapRenderRequest']),
+        };
+    }
+
+    /**
+     * Render a map image with player positions (name, general, team color) baked in.
+     * Render Map With Players
+     */
+    async renderMapWithPlayersApiMapRenderPostRaw(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const requestOptions = await this.renderMapWithPlayersApiMapRenderPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Render a map image with player positions (name, general, team color) baked in.
+     * Render Map With Players
+     */
+    async renderMapWithPlayersApiMapRenderPost(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.renderMapWithPlayersApiMapRenderPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

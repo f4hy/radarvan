@@ -31,6 +31,8 @@ docs/MapGeneralWL.md
 docs/MapPlayerStart.md
 docs/MapPlayerWL.md
 docs/MapPoint.md
+docs/MapRenderPlayer.md
+docs/MapRenderRequest.md
 docs/MapStatsResponse.md
 docs/MapSummaryPlayer.md
 docs/MapSummaryRequest.md
@@ -107,6 +109,8 @@ models/MapGeneralWL.ts
 models/MapPlayerStart.ts
 models/MapPlayerWL.ts
 models/MapPoint.ts
+models/MapRenderPlayer.ts
+models/MapRenderRequest.ts
 models/MapStatsResponse.ts
 models/MapSummaryPlayer.ts
 models/MapSummaryRequest.ts

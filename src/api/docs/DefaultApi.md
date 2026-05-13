@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost*
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
 | [**debugMatchApiDebugMatchMatchIdGet**](DefaultApi.md#debugmatchapidebugmatchmatchidget) | **GET** /api/debug/match/{match_id} | Debug Match |
 | [**deleteOverrideApiOverrideMatchIdDelete**](DefaultApi.md#deleteoverrideapioverridematchiddelete) | **DELETE** /api/override/{match_id} | Delete Override |
+| [**fetchMapForMatchApiFetchMapForMatchMatchIdPost**](DefaultApi.md#fetchmapformatchapifetchmapformatchmatchidpost) | **POST** /api/fetch_map_for_match/{match_id} | Fetch Map For Match |
 | [**fetchMissingMapsApiFetchMissingMapsPost**](DefaultApi.md#fetchmissingmapsapifetchmissingmapspost) | **POST** /api/fetch_missing_maps | Fetch Missing Maps |
 | [**fixIncompleteApiFixIncompletePost**](DefaultApi.md#fixincompleteapifixincompletepost) | **POST** /api/fix_incomplete/ | Fix Incomplete |
 | [**fixUnkPlayersApiFixUnkPlayerPost**](DefaultApi.md#fixunkplayersapifixunkplayerpost) | **POST** /api/fix_unk_player/ | Fix Unk Players |
@@ -53,6 +54,7 @@ All URIs are relative to *http://localhost*
 | [**refreshMatchesFromJsonApiRefreshMatchesFromJsonPost**](DefaultApi.md#refreshmatchesfromjsonapirefreshmatchesfromjsonpost) | **POST** /api/refresh_matches_from_json/ | Refresh Matches From Json |
 | [**registerMatchesApiRegisterMatchesPost**](DefaultApi.md#registermatchesapiregistermatchespost) | **POST** /api/register_matches/ | Register Matches |
 | [**registerReplayUrlApiRegisterReplayUrlPost**](DefaultApi.md#registerreplayurlapiregisterreplayurlpost) | **POST** /api/register_replay_url | Register Replay Url |
+| [**renderMapWithPlayersApiMapRenderPost**](DefaultApi.md#rendermapwithplayersapimaprenderpost) | **POST** /api/map_render | Render Map With Players |
 | [**reparseApiReparseMatchIdPost**](DefaultApi.md#reparseapireparsematchidpost) | **POST** /api/reparse/{match_id} | Reparse |
 | [**reparseBeforeDateApiReparseBeforeDatePost**](DefaultApi.md#reparsebeforedateapireparsebeforedatepost) | **POST** /api/reparse_before_date/ | Reparse Before Date |
 | [**reparseNonV2ApiReparseNonV2Post**](DefaultApi.md#reparsenonv2apireparsenonv2post) | **POST** /api/reparse_non_v2/ | Reparse Non V2 |
@@ -418,13 +420,88 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## fetchMapForMatchApiFetchMapForMatchMatchIdPost
+
+> FetchMissingMapResult fetchMapForMatchApiFetchMapForMatchMatchIdPost(matchId, parseMap)
+
+Fetch Map For Match
+
+Fetch the cncstats map for a single match\&#39;s MapCRC and upload to S3.  When &#x60;parse_map&#x60; is true and the local mapparse binary is available, also parse the .map and store the geometry payload in &#x60;MapData&#x60;.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number
+    matchId: 56,
+    // boolean (optional)
+    parseMap: true,
+  } satisfies FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest;
+
+  try {
+    const data = await api.fetchMapForMatchApiFetchMapForMatchMatchIdPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+| **parseMap** | `boolean` |  | [Optional] [Defaults to `true`] |
+
+### Return type
+
+[**FetchMissingMapResult**](FetchMissingMapResult.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## fetchMissingMapsApiFetchMissingMapsPost
 
-> FetchMissingMapsResponse fetchMissingMapsApiFetchMissingMapsPost(maxToUpdate)
+> FetchMissingMapsResponse fetchMissingMapsApiFetchMissingMapsPost(maxToUpdate, parseMap)
 
 Fetch Missing Maps
 
-Pull up to &#x60;max_to_update&#x60; missing maps from cncstats and upload to S3.
+Pull up to &#x60;max_to_update&#x60; missing maps from cncstats and upload to S3.  When &#x60;parse_map&#x60; is true and the local mapparse binary is available, the .map file is also parsed and saved to MapData.
 
 ### Example
 
@@ -446,6 +523,8 @@ async function example() {
   const body = {
     // number (optional)
     maxToUpdate: 56,
+    // boolean (optional)
+    parseMap: true,
   } satisfies FetchMissingMapsApiFetchMissingMapsPostRequest;
 
   try {
@@ -466,6 +545,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **maxToUpdate** | `number` |  | [Optional] [Defaults to `10`] |
+| **parseMap** | `boolean` |  | [Optional] [Defaults to `true`] |
 
 ### Return type
 
@@ -3432,6 +3512,78 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## renderMapWithPlayersApiMapRenderPost
+
+> any renderMapWithPlayersApiMapRenderPost(mapRenderRequest)
+
+Render Map With Players
+
+Render a map image with player positions (name, general, team color) baked in.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { RenderMapWithPlayersApiMapRenderPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // MapRenderRequest
+    mapRenderRequest: ...,
+  } satisfies RenderMapWithPlayersApiMapRenderPostRequest;
+
+  try {
+    const data = await api.renderMapWithPlayersApiMapRenderPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **mapRenderRequest** | [MapRenderRequest](MapRenderRequest.md) |  | |
+
+### Return type
+
+**any**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 

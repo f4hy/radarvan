@@ -45,6 +45,7 @@ from . import superlatives
 from . import create_teams
 from . import draft as draft_module
 from . import missing_maps as missing_maps_module
+from . import map_render as map_render_module
 from radarvan.api_types import (
     MatchDetails,
     MapStatsResponse,
@@ -71,6 +72,7 @@ from radarvan.api_types import (
     DraftPlayerRequest,
     DraftRequest,
     DraftResult,
+    MapRenderRequest,
     MapSummaryRequest,
     MapsByPlayerCount,
     MissingMapInfo,
@@ -1506,6 +1508,55 @@ def fetch_missing_maps(
         )
     return FetchMissingMapsResponse(
         requested=len(missing), fetched=fetched, results=results
+    )
+
+
+def _load_map_image_bytes(map_name: str) -> bytes:
+    s3_uri = missing_maps_module.find_s3_webp(map_name)
+    if s3_uri is not None:
+        fs = replay_files.get_fs()
+        data: bytes = fs.read_bytes(s3_uri)
+        return data
+    base = map_name.removesuffix(".map")
+    for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
+        if os.path.exists(candidate):
+            with open(candidate, "rb") as f:
+                return f.read()
+    maps_dir = "dist/maps"
+    needle = "".join(base.split()).lower()
+    if os.path.isdir(maps_dir) and needle:
+        for fname in os.listdir(maps_dir):
+            if not fname.endswith(".webp"):
+                continue
+            if needle in "".join(fname.removesuffix(".webp").split()).lower():
+                with open(os.path.join(maps_dir, fname), "rb") as f:
+                    return f.read()
+    raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
+
+
+@app.post("/api/map_render", response_model=None)
+def render_map_with_players(
+    request: MapRenderRequest,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> Response:
+    """Render a map image with player positions (name, general, team color) baked in."""
+    canonical = replay_manager.resolve_map_name(request.map_name)
+    if canonical is None:
+        raise HTTPException(
+            status_code=404, detail=f"No map data for '{request.map_name}'"
+        )
+    map_data = replay_manager.get_map_data(canonical)
+    if map_data is None:
+        raise HTTPException(
+            status_code=404, detail=f"No map data for '{request.map_name}'"
+        )
+    image_bytes = _load_map_image_bytes(canonical)
+    png = map_render_module.render_map(image_bytes, map_data, request.players)
+    base = canonical.removesuffix(".map").split("/")[-1]
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{base}.png"'},
     )
 
 

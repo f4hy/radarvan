@@ -353,13 +353,18 @@ def s3_webp_exists(base_name: str) -> bool:
 
 
 def find_s3_webp(map_name: str) -> str | None:
-    """Look up the S3 webp path for a map name (case-insensitive, w/ or w/o .map)."""
+    """Look up the S3 webp path for a map name (case-/whitespace-insensitive, w/ or w/o .map)."""
     fs = replay_files.get_fs()
+    no_ws = "".join(map_name.split())
     candidates = [
         map_name,
         map_name.removesuffix(".map"),
         map_name.lower(),
         map_name.lower().removesuffix(".map"),
+        no_ws,
+        no_ws.removesuffix(".map"),
+        no_ws.lower(),
+        no_ws.lower().removesuffix(".map"),
     ]
     seen: set[str] = set()
     for c in candidates:

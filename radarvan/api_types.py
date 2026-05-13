@@ -727,6 +727,22 @@ class DraftRequest(BaseModel):
     players: list[DraftPlayerRequest]
 
 
+class MapRenderPlayer(BaseModel):
+    model_config = _SLOTS
+
+    name: str
+    general: General
+    team: int
+    position_number: int
+
+
+class MapRenderRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    players: list[MapRenderPlayer]
+
+
 class MapSummaryPlayer(BaseModel):
     model_config = _SLOTS
 

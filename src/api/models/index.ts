@@ -30,6 +30,8 @@ export * from './MapGeneralWL';
 export * from './MapPlayerStart';
 export * from './MapPlayerWL';
 export * from './MapPoint';
+export * from './MapRenderPlayer';
+export * from './MapRenderRequest';
 export * from './MapStatsResponse';
 export * from './MapSummaryPlayer';
 export * from './MapSummaryRequest';
