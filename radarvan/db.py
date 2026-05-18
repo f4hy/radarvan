@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import UTC, datetime, date
 import enum
 from enum import IntEnum
 from sqlalchemy import (
@@ -17,6 +17,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
+
+def _utcnow() -> datetime:
+    """Replacement for the deprecated datetime.utcnow() used as a column default.
+
+    Returns an aware UTC datetime. SQLAlchemy will store it as-is on tz-aware
+    columns and silently strip the tzinfo on naive columns (preserving the
+    existing-stored-value semantics — i.e. wall-clock UTC).
+    """
+    return datetime.now(UTC)
 
 
 class General(IntEnum):
@@ -73,7 +83,7 @@ class ReplayFile(Base):
     source_tag: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Timestamps
-    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     source_date: Mapped[date] = mapped_column(index=True)
 
     # Relationships
@@ -99,7 +109,7 @@ class ParsedReplayJson(Base):
 
     # File info
     num_time_stamps: Mapped[int | None] = mapped_column(default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
@@ -244,6 +254,10 @@ class ComputedStatistic(Base):
     date_computed: Mapped[date] = mapped_column(index=True)
 
 
+# NOTE: "compostion" is a misspelling baked into the table name from an early
+# migration. Renaming requires a Postgres ALTER TABLE + alembic revision; the
+# typo is intentionally preserved everywhere it appears (model, attrs, debug
+# payload keys) to avoid touching production. Do not "fix" without migrating.
 class MatchCompostion(Base):
     __tablename__ = "match_compostion"
 

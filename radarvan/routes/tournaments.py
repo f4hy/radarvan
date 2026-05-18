@@ -1,0 +1,101 @@
+"""Tournament endpoints."""
+
+import asyncio
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends
+
+from .. import tournament
+from ..api_types import TournamentReport, TournamentResult
+from ..cache import details_from_id, sorted_deduped_matches
+from ..db_utils import ReplayManager
+from ..dependencies import get_replay_manager
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+_report_semaphore = asyncio.Semaphore(value=1)
+
+
+@router.get("/api/is_tournament_game/{match_id}")
+def is_tournament_game(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> str | None:
+    """test if a match is a tournament game."""
+    match_info = sorted_deduped_matches(replay_manager).get(match_id)
+    if match_info is None:
+        return None
+    return tournament.is_tournament_game(match_info)
+
+
+@router.get("/api/tournament_results/")
+def get_tournament_results(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[TournamentResult]:
+    """Get results for all tournaments."""
+    replays = sorted_deduped_matches(replay_manager)
+    tournament_games = tournament.tournament_games(list(replays.values()))
+    results = tournament.create_tournament_results(tournament_games)
+    return results
+
+
+async def save_report(
+    name: str, replay_manager: ReplayManager, save: bool = True
+) -> TournamentReport:
+    async with _report_semaphore:
+        replays = sorted_deduped_matches(replay_manager)
+        tournament_games = tournament.tournament_games(list(replays.values())).get(
+            name, []
+        )
+        if save is False:
+            tournament_games = tournament_games[:5]
+        details = await asyncio.gather(
+            *[
+                asyncio.to_thread(details_from_id, g.id, replay_manager)
+                for g in tournament_games
+            ]
+        )
+        logger.info(f"finished details {len(details)}")
+    valid_details = [d for d in details if d is not None]
+    results = tournament.tournament_report(name, tournament_games, valid_details)
+    if save:
+        replay_manager.save_tournament_report(results)
+    return results
+
+
+@router.get("/api/tournament_report/{tournament_name}")
+async def get_tournament_report(
+    background_tasks: BackgroundTasks,
+    tournament_name: str = "2025_2v2_tournament",
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> TournamentReport:
+    """Get report for a specific tournament."""
+    existing = replay_manager.get_tournament_report_by_name(tournament_name)
+    if not existing:
+        background_tasks.add_task(save_report, tournament_name, replay_manager)
+        return TournamentReport(name="", stats=[])
+
+    return existing
+
+
+@router.post("/api/generate_tournament_report/{tournament_name}")
+async def generate_tournament_report(
+    background_tasks: BackgroundTasks,
+    tournament_name: str = "2025_2v2_tournament",
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> str:
+    background_tasks.add_task(save_report, tournament_name, replay_manager)
+    return "OK"
+
+
+@router.post("/api/test_tournament_report/{tournament_name}")
+async def test_tournament_report(
+    background_tasks: BackgroundTasks,
+    tournament_name: str = "2025_2v2_tournament",
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> TournamentReport:
+    report = await save_report(tournament_name, replay_manager, save=False)
+    return report
