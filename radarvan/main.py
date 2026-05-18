@@ -7,7 +7,6 @@ cache warming, S3 connection test).
 
 import logging
 import traceback
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -62,20 +61,9 @@ app = FastAPI(
 
 PROTECTED = [Depends(verify_api_key)]
 
-_DEFAULT_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:8000",
-    "https://radarvan-5e9c302c60e6.herokuapp.com",
-]
-_env_origins = [
-    o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()
-]
-origins = _env_origins or _DEFAULT_ORIGINS
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
