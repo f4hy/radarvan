@@ -58,8 +58,9 @@ app = FastAPI(
     description="Stats for generals",
     version="0.1.0",
     lifespan=lifespan,
-    dependencies=[Depends(verify_api_key)],
 )
+
+PROTECTED = [Depends(verify_api_key)]
 
 _DEFAULT_ORIGINS = [
     "http://localhost:5173",
@@ -91,17 +92,17 @@ async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse
     )
 
 
-# Routers
-app.include_router(files.router)
-app.include_router(matches.router)
-app.include_router(players.router)
-app.include_router(generals.router)
-app.include_router(teams.router)
-app.include_router(maps.router)
-app.include_router(draft.router)
-app.include_router(superlatives.router)
-app.include_router(tournaments.router)
-app.include_router(admin.router)
+# Routers — all API routes require an API key; static/index routes below do not.
+app.include_router(files.router, dependencies=PROTECTED)
+app.include_router(matches.router, dependencies=PROTECTED)
+app.include_router(players.router, dependencies=PROTECTED)
+app.include_router(generals.router, dependencies=PROTECTED)
+app.include_router(teams.router, dependencies=PROTECTED)
+app.include_router(maps.router, dependencies=PROTECTED)
+app.include_router(draft.router, dependencies=PROTECTED)
+app.include_router(superlatives.router, dependencies=PROTECTED)
+app.include_router(tournaments.router, dependencies=PROTECTED)
+app.include_router(admin.router, dependencies=PROTECTED)
 
 
 @app.get("/", include_in_schema=False)
