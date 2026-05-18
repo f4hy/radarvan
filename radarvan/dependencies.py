@@ -4,18 +4,17 @@ Imported by all routers. Keep this module side-effect free aside from the
 single DB engine + sessionmaker created at import time.
 """
 
+import asyncio
 from collections.abc import Generator
 import logging
 import os
 
-from fastapi import HTTPException, Request, Response, Security
+from fastapi import Depends, HTTPException, Request, Response, Security
 from fastapi.security import APIKeyHeader
-
 from sqlalchemy.orm import Session
 
-from fastapi import Depends
-
 from .db_utils import DatabaseManager, ReplayManager
+from .notify import notify
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,9 @@ API_KEYS_READ = set(filter(None, os.getenv("API_KEY_READ", "").split(",")))
 API_KEYS_WRITE = set(filter(None, os.getenv("API_KEY_WRITE", "").split(",")))
 ENFORCE_AUTH = os.getenv("ENFORCE_AUTH") is not None
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# Keep strong refs to in-flight fire-and-forget tasks so they aren't GC'd mid-await.
+_background_tasks: set[asyncio.Task[None]] = set()
 
 
 async def verify_api_key(
@@ -53,6 +55,15 @@ async def verify_api_key(
             request.method,
             request.url.path,
         )
+        if access == "none":
+            task = asyncio.create_task(
+                asyncio.to_thread(
+                    notify,
+                    f"Call to {request.url.path} not authenticated. Check auth",
+                )
+            )
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
         return
     if access == "none":
         raise HTTPException(status_code=403, detail="Forbidden")
