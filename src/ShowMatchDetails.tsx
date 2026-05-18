@@ -295,6 +295,7 @@ interface StyledTableRow {
   moneyCollected: number | null
   valueDestroyed: number
   valueLost: number
+  efficiency: number | null
 }
 
 function renderCash(value: number | null | undefined): string {
@@ -302,6 +303,13 @@ function renderCash(value: number | null | undefined): string {
     return "?"
   }
   return "$" + value.toLocaleString("en-US")
+}
+
+function renderRatio(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "?"
+  }
+  return value.toFixed(2)
 }
 
 const columns: Array<{
@@ -358,6 +366,12 @@ const columns: Array<{
     align: "right",
     render: (v) => renderCash(v as number),
   },
+  {
+    key: "efficiency",
+    label: "Efficiency",
+    align: "right",
+    render: (v) => renderRatio(v as number | null),
+  },
 ]
 
 function GameDetailsTable(props: { matchDetails: MatchDetails }) {
@@ -386,6 +400,11 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
         sumValue(s.unitsDestroyed ?? {}) + sumValue(s.buildingsDestroyed ?? {})
       const valueLost =
         sumValue(s.unitsLost ?? {}) + sumValue(s.buildingsLost ?? {})
+      const moneyCollected = extractFromStatsData("money_earned", s.name)
+      const efficiency =
+        moneyCollected && moneyCollected > 0
+          ? valueDestroyed / moneyCollected
+          : null
       return {
         player: s.name,
         team: s.team,
@@ -393,7 +412,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
         won: s.win,
         general: s.side,
         moneySpent: extractFromStatsData("money_spent", s.name),
-        moneyCollected: extractFromStatsData("money_earned", s.name),
+        moneyCollected,
         xp: extractFromStatsData("xp", s.name),
         unitsBuilt: extractFromStatsData("units_built", s.name),
         buildingsBuilt: extractFromStatsData("buildings_built", s.name),
@@ -411,6 +430,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
         ),
         valueDestroyed,
         valueLost,
+        efficiency,
       }
     })
   }, [props.matchDetails])
