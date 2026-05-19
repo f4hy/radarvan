@@ -486,6 +486,8 @@ class GameRecord(BaseModel):
     game_timestamp: datetime
     match_id: int
     replay_file_url: str
+    replay_presigned_url: str | None = None
+    json_presigned_url: str | None = None
     created_at: datetime
     game_date: date
     game_version: str | None = None

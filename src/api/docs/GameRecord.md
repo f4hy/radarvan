@@ -11,6 +11,8 @@ Name | Type
 `gameTimestamp` | Date
 `matchId` | number
 `replayFileUrl` | string
+`replayPresignedUrl` | string
+`jsonPresignedUrl` | string
 `createdAt` | Date
 `gameDate` | Date
 `gameVersion` | string
@@ -28,6 +30,8 @@ const example = {
   "gameTimestamp": null,
   "matchId": null,
   "replayFileUrl": null,
+  "replayPresignedUrl": null,
+  "jsonPresignedUrl": null,
   "createdAt": null,
   "gameDate": null,
   "gameVersion": null,

@@ -71,21 +71,23 @@ function downloadReplay(url: string) {
 }
 
 function DownloadButton(props: {
-  url: string
+  url: string | null | undefined
   title: string
   text: string
-  disabled?: boolean
 }) {
+  const enabled = !!props.url
   return (
     <Tooltip title={props.title}>
-      <Button
-        variant="contained"
-        onClick={() => downloadReplay(props.url)}
-        endIcon={<DownloadIcon />}
-        disabled={props.disabled}
-      >
-        {props.text}
-      </Button>
+      <span>
+        <Button
+          variant="contained"
+          onClick={() => enabled && downloadReplay(props.url!)}
+          endIcon={<DownloadIcon />}
+          disabled={!enabled}
+        >
+          {props.text}
+        </Button>
+      </span>
     </Tooltip>
   )
 }
@@ -139,17 +141,16 @@ function DisplayDataTable(props: { data: GameRecord[] }) {
                 </TableCell>
                 <TableCell>
                   <DownloadButton
-                    url={row.replayFileUrl}
+                    url={row.replayPresignedUrl}
                     title={row.replayFileUrl}
                     text="replay"
                   />
                 </TableCell>
                 <TableCell>
                   <DownloadButton
-                    url={row.jsonS3Uri}
-                    title={"soon" + row.jsonS3Uri}
+                    url={row.jsonPresignedUrl}
+                    title={row.jsonS3Uri}
                     text="parsed json"
-                    disabled={true}
                   />
                 </TableCell>
                 <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>

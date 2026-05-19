@@ -61,13 +61,19 @@ def list_replays(
     filters: ReplayFilters = Query(),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[GameRecord]:
-    listed = replay_manager.list_jsons()
-    if filters.match_id:
-        listed = [x for x in listed if x.match_id == filters.match_id]
-    if filters.game_date:
-        listed = [x for x in listed if x.game_date == filters.game_date]
+    listed = replay_manager.list_jsons(
+        match_id=filters.match_id, game_date=filters.game_date
+    )
     logger.info(f"Found {len(listed)=}")
-    converted = [GameRecord.model_validate(ls, from_attributes=True) for ls in listed]
+    converted = []
+    for ls in listed:
+        record = GameRecord.model_validate(ls, from_attributes=True)
+        record.json_presigned_url = replay_files.presigned_url(ls.json_s3_uri)
+        if ls.replay_file is not None:
+            record.replay_presigned_url = replay_files.presigned_url(
+                ls.replay_file.s3_uri
+            )
+        converted.append(record)
     return converted
 
 

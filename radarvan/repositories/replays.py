@@ -216,18 +216,26 @@ class ReplayRepo(BaseRepo):
         query = self.session.query(ReplayFile)
         return list(self.session.execute(query).scalars().all())
 
-    def list_jsons(self, date: date | None = None) -> list[ParsedReplayJson]:
-        """List all jsons or filter by date."""
+    def list_jsons(
+        self,
+        match_id: int | None = None,
+        game_date: date | None = None,
+    ) -> list[ParsedReplayJson]:
+        """List parsed jsons, optionally filtered by match_id and/or game_date."""
         from sqlalchemy.orm import selectinload
 
         stmt = (
             select(ParsedReplayJson)
             .order_by(ParsedReplayJson.game_timestamp.desc())
-            .options(selectinload(ParsedReplayJson.match).selectinload(Match.players))
+            .options(
+                selectinload(ParsedReplayJson.match).selectinload(Match.players),
+                selectinload(ParsedReplayJson.replay_file),
+            )
         )
-
-        if date:
-            stmt = stmt.where(ParsedReplayJson.game_date == date)
+        if match_id is not None:
+            stmt = stmt.where(ParsedReplayJson.match_id == match_id)
+        if game_date is not None:
+            stmt = stmt.where(ParsedReplayJson.game_date == game_date)
 
         return list(self.session.scalars(stmt).all())
 

@@ -59,6 +59,18 @@ export interface GameRecord {
     replayFileUrl: string;
     /**
      * 
+     * @type {string}
+     * @memberof GameRecord
+     */
+    replayPresignedUrl?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof GameRecord
+     */
+    jsonPresignedUrl?: string | null;
+    /**
+     * 
      * @type {Date}
      * @memberof GameRecord
      */
@@ -111,6 +123,8 @@ export function GameRecordFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'gameTimestamp': (new Date(json['game_timestamp'])),
         'matchId': json['match_id'],
         'replayFileUrl': json['replay_file_url'],
+        'replayPresignedUrl': json['replay_presigned_url'] == null ? undefined : json['replay_presigned_url'],
+        'jsonPresignedUrl': json['json_presigned_url'] == null ? undefined : json['json_presigned_url'],
         'createdAt': (new Date(json['created_at'])),
         'gameDate': (new Date(json['game_date'])),
         'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
@@ -134,6 +148,8 @@ export function GameRecordToJSONTyped(value?: GameRecord | null, ignoreDiscrimin
         'game_timestamp': value['gameTimestamp'].toISOString(),
         'match_id': value['matchId'],
         'replay_file_url': value['replayFileUrl'],
+        'replay_presigned_url': value['replayPresignedUrl'],
+        'json_presigned_url': value['jsonPresignedUrl'],
         'created_at': value['createdAt'].toISOString(),
         'game_date': value['gameDate'].toISOString().substring(0,10),
         'game_version': value['gameVersion'],

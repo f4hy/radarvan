@@ -60,7 +60,6 @@ All URIs are relative to *http://localhost*
 | [**reparseNonV2ApiReparseNonV2Post**](DefaultApi.md#reparsenonv2apireparsenonv2post) | **POST** /api/reparse_non_v2/ | Reparse Non V2 |
 | [**reparseRecentApiReparseRecentPost**](DefaultApi.md#reparserecentapireparserecentpost) | **POST** /api/reparse_recent/ | Reparse Recent |
 | [**replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet**](DefaultApi.md#replayswithoutplayerstatsapireplayswithoutplayerstatsget) | **GET** /api/replays_without_playerstats/ | Replays Without Playerstats |
-| [**repraseApiRepraseMatchIdPost**](DefaultApi.md#repraseapireprasematchidpost) | **POST** /api/reprase/{match_id} | Reprase |
 | [**resetMatchApiMatchMatchIdDelete**](DefaultApi.md#resetmatchapimatchmatchiddelete) | **DELETE** /api/match/{match_id} | Reset Match |
 | [**saveMapDataApiMapDataMapNamePost**](DefaultApi.md#savemapdataapimapdatamapnamepost) | **POST** /api/map_data/{map_name} | Save Map Data |
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
@@ -3113,7 +3112,7 @@ example().catch(console.error);
 
 ## partitionTeamsApiPartitionTeamsTeamSizeGet
 
-> Array&lt;Array&lt;string&gt;&gt; partitionTeamsApiPartitionTeamsTeamSizeGet(teamSize, players)
+> Array&lt;Array&lt;string | null&gt;&gt; partitionTeamsApiPartitionTeamsTeamSizeGet(teamSize, players)
 
 Partition Teams
 
@@ -3163,7 +3162,7 @@ example().catch(console.error);
 
 ### Return type
 
-**Array<Array<string>>**
+**Array<Array<string | null>>**
 
 ### Authorization
 
@@ -3940,78 +3939,6 @@ example().catch(console.error);
 ### Return type
 
 **Array<{ [key: string]: any; }>**
-
-### Authorization
-
-[APIKeyHeader](../README.md#APIKeyHeader)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## repraseApiRepraseMatchIdPost
-
-> MatchInfo repraseApiRepraseMatchIdPost(matchId)
-
-Reprase
-
-Rerun the replay parser on this match.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from '';
-import type { RepraseApiRepraseMatchIdPostRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
-
-  const body = {
-    // number
-    matchId: 56,
-  } satisfies RepraseApiRepraseMatchIdPostRequest;
-
-  try {
-    const data = await api.repraseApiRepraseMatchIdPost(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **matchId** | `number` |  | [Defaults to `undefined`] |
-
-### Return type
-
-[**MatchInfo**](MatchInfo.md)
 
 ### Authorization
 

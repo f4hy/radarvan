@@ -291,10 +291,6 @@ export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest
     maxToReturn?: number;
 }
 
-export interface RepraseApiRepraseMatchIdPostRequest {
-    matchId: number;
-}
-
 export interface ResetMatchApiMatchMatchIdDeleteRequest {
     matchId: number;
 }
@@ -2500,7 +2496,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Partition Teams
      */
-    async partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Array<string>>>> {
+    async partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Array<string | null>>>> {
         const requestOptions = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
@@ -2510,7 +2506,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Partition Teams
      */
-    async partitionTeamsApiPartitionTeamsTeamSizeGet(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Array<string>>> {
+    async partitionTeamsApiPartitionTeamsTeamSizeGet(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Array<string | null>>> {
         const response = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -3059,57 +3055,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<{ [key: string]: any; }>> {
         const response = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for repraseApiRepraseMatchIdPost without sending the request
-     */
-    async repraseApiRepraseMatchIdPostRequestOpts(requestParameters: RepraseApiRepraseMatchIdPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['matchId'] == null) {
-            throw new runtime.RequiredError(
-                'matchId',
-                'Required parameter "matchId" was null or undefined when calling repraseApiRepraseMatchIdPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/reprase/{match_id}`;
-        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Rerun the replay parser on this match.
-     * Reprase
-     */
-    async repraseApiRepraseMatchIdPostRaw(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
-        const requestOptions = await this.repraseApiRepraseMatchIdPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => MatchInfoFromJSON(jsonValue));
-    }
-
-    /**
-     * Rerun the replay parser on this match.
-     * Reprase
-     */
-    async repraseApiRepraseMatchIdPost(requestParameters: RepraseApiRepraseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
-        const response = await this.repraseApiRepraseMatchIdPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

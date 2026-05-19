@@ -57,7 +57,11 @@ function getTeamPartition(
     teamSize: teamSize,
     players: players,
   })
-    .then(callback)
+    .then((result) =>
+      callback(
+        result.map((team) => team.filter((p): p is string => p !== null)),
+      ),
+    )
     .catch(onError)
 }
 
