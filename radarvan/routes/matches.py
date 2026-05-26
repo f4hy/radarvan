@@ -5,11 +5,10 @@ from datetime import date
 import structlog
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
-from .. import match_details, replay_files
 from ..api_types import MatchDetails, MatchInfo, Matches, Team
-from ..cache import sorted_deduped_matches
+from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
 
@@ -95,12 +94,19 @@ def get_match_by_id(
 @router.get("/api/details/{match_id}")
 def get_match_details(
     match_id: int,
+    response: Response,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchDetails:
-    """Get details about a particular match"""
-    replay_json = replay_manager.get_replay_json_by_match_id(match_id)
-    if not replay_json:
+    """Get details about a particular match.
+
+    Result is cached in-process (see cache.details_from_id, invalidated on
+    reparse/upload). Existing details are immutable until reparse, so we also
+    let the browser cache them; an unparsed match returns empty and is not
+    cached so it picks up data once processed.
+    """
+    details = details_from_id(match_id, replay_manager)
+    if details is None:
+        response.headers["Cache-Control"] = "no-cache"
         return empty_match_details(match_id)
-    replay = replay_files.parse_replay(replay_json.replay_file_url, replay_manager)
-    details = match_details.match_details_from_replay(replay)
-    return details or empty_match_details(match_id)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return details

@@ -26,6 +26,15 @@ logger = structlog.get_logger(__name__)
 
 _latest_ts_cache: TTLCache[str, str] = TTLCache(maxsize=1, ttl=60)
 
+# cachetools caches are not thread-safe; sync endpoints run in uvicorn's
+# threadpool, so concurrent access can corrupt LRU bookkeeping. Each @cached
+# below gets its own lock. cachetools holds the lock only around the cache
+# get/set (and cache_clear), never around the wrapped call, so there is no
+# deadlock even when one cached function calls another.
+_sorted_lock = threading.Lock()
+_competitive_lock = threading.Lock()
+_details_lock = threading.Lock()
+
 
 def latest_match_ts(replay_manager: ReplayManager) -> str:
     if "v" not in _latest_ts_cache:
@@ -38,7 +47,7 @@ def details_key(match_id: int, replay_manager: ReplayManager) -> str:
     return str(match_id)
 
 
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts)
+@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_sorted_lock)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
@@ -49,7 +58,7 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     return sorted_matches
 
 
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts)
+@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_competitive_lock)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
     filtered = {
@@ -61,7 +70,7 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     return filtered
 
 
-@cached(cache=LRUCache(maxsize=100), key=details_key)
+@cached(cache=LRUCache(maxsize=100), key=details_key, lock=_details_lock)
 def details_from_id(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
