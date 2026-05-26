@@ -2,7 +2,7 @@
 
 from collections import Counter
 from datetime import date
-import logging
+import structlog
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -13,7 +13,7 @@ from ..cache import sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 

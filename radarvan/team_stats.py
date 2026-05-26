@@ -6,7 +6,7 @@ from .api_types import MatchInfo, TeamRecord, TeamSizeGroup, TeamStatsResponse
 from . import replay_files
 from .general_stats import CPU_NAMES
 from .player_ids import resolve_player_name
-import logging
+import structlog
 
 
 class PlayerResult(NamedTuple):
@@ -14,7 +14,7 @@ class PlayerResult(NamedTuple):
     won: bool
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 MIN_GAMES = 2
 
@@ -72,6 +72,8 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
         groups.append(TeamSizeGroup(size=team_size, teams=teams_for_size))
 
     logger.info(
-        f"team stats: {sum(len(g.teams) for g in groups)} teams across {len(groups)} size groups"
+        "team stats",
+        teams=sum(len(g.teams) for g in groups),
+        size_groups=len(groups),
     )
     return TeamStatsResponse(groups=groups)

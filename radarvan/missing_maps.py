@@ -16,7 +16,7 @@ by the separate `mapparse` binary which is not run from this module.
 
 from __future__ import annotations
 
-import logging
+import structlog
 import os
 import shutil
 import subprocess
@@ -36,7 +36,7 @@ from .db import MapData, Match, ParsedReplayJson
 from .db_utils import ReplayManager
 from . import replay_files
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 CNCSTATS_GET_MAP_URL = "http://cncstats.computersrfun.org:8080/get_map"
@@ -120,13 +120,13 @@ def get_map_crc_from_match(match_id: int, replay_manager: ReplayManager) -> str 
         .limit(1)
     )
     if not json_uri:
-        logger.warning("No parsed JSON for match %s", match_id)
+        logger.warning("no parsed JSON for match", match_id=match_id)
         return None
     fs = replay_files.get_fs()
     try:
         data = fs.read_text(json_uri)
     except Exception as e:
-        logger.warning("Could not read %s: %s", json_uri, e)
+        logger.warning("could not read", json_uri=json_uri, error=repr(e))
         return None
     replay = EnhancedReplayV2.model_validate_json(data)
     return replay.header.metadata.map_crc
@@ -166,7 +166,7 @@ def fetch_map_zip(hex_crc: str) -> bytes:
     """Download the cncstats map zip for the given hex CRC. Raises on HTTP error."""
     decimal = hex_crc_to_decimal(hex_crc)
     url = f"{CNCSTATS_GET_MAP_URL}?crc={decimal}"
-    logger.info("Fetching cncstats map zip from %s", url)
+    logger.info("fetching cncstats map zip", url=url)
     resp = httpx.get(url, timeout=60.0, follow_redirects=True)
     resp.raise_for_status()
     return resp.content
@@ -228,7 +228,7 @@ def upload_map_assets(
     fs.write_bytes(tga_uri, tga)
     fs.write_bytes(webp_uri, webp)
     fs.write_bytes(map_uri, map_file)
-    logger.info("Uploaded map assets for %s to %s", base_name, S3_MAPS_PREFIX)
+    logger.info("uploaded map assets", base_name=base_name, prefix=S3_MAPS_PREFIX)
     return FetchedMap(
         base_name=base_name,
         tga_s3_uri=tga_uri,
@@ -248,7 +248,7 @@ def fetch_and_upload(
     the .map via the local mapparse binary and saves the geometry to MapData.
     """
     if not missing.map_crc_hex:
-        logger.warning("No CRC for %s; skipping", missing.map_name)
+        logger.warning("no CRC, skipping", map_name=missing.map_name)
         return None
     try:
         zip_bytes = fetch_map_zip(missing.map_crc_hex)
@@ -263,7 +263,10 @@ def fetch_and_upload(
         return fetched
     except Exception as e:
         logger.warning(
-            "Failed to fetch %s (crc=%s): %s", missing.map_name, missing.map_crc_hex, e
+            "failed to fetch map",
+            map_name=missing.map_name,
+            crc=missing.map_crc_hex,
+            error=repr(e),
         )
         return None
 
@@ -332,18 +335,18 @@ def fetch_and_upload_for_match(
     if parse_and_save:
         if not mapparse_available():
             logger.warning(
-                "mapparse not available; skipping geometry parse for %s",
-                extracted.base_name,
+                "mapparse not available, skipping geometry parse",
+                base_name=extracted.base_name,
             )
         else:
             payload = parse_map_file(extracted.map_file)
             replay_manager.save_map_data(extracted.base_name, payload)
             logger.info(
-                "Saved MapData for %s (%d player_starts, %d supply, %d tech)",
-                extracted.base_name,
-                len(payload.player_starts),
-                len(payload.supply),
-                len(payload.tech),
+                "saved MapData",
+                base_name=extracted.base_name,
+                player_starts=len(payload.player_starts),
+                supply=len(payload.supply),
+                tech=len(payload.tech),
             )
     return fetched, payload
 
@@ -378,6 +381,6 @@ def find_s3_webp(map_name: str) -> str | None:
             if fs.exists(uri):
                 return uri
         except Exception as e:
-            logger.debug("fs.exists failed for %s: %s", uri, e)
+            logger.debug("fs.exists failed", uri=uri, error=repr(e))
             continue
     return None

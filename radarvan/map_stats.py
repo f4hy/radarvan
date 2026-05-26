@@ -23,11 +23,11 @@ from . import replay_files
 from .replay_files import map_basename
 from . import general_stats as general_stats_module
 from .player_ids import resolve_player_name
-import logging
+import structlog
 
 RECENT_RESULTS_LIMIT = 5
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 MIN_GAMES = 5
 
@@ -99,7 +99,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
             )
         )
 
-    logger.info(f"map stats: {len(maps)} maps with >= {MIN_GAMES} games")
+    logger.info("map stats", maps=len(maps), min_games=MIN_GAMES)
     return MapStatsResponse(maps=maps)
 
 

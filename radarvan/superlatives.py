@@ -11,9 +11,9 @@ from .api_types import (
 from .player_ids import resolve_player_name
 from .player_rating import RatingDailyChange
 from .replay_files import map_basename
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 EXCLUDED_PLAYERS: frozenset[str] = frozenset({"HardArmy"})
 
@@ -788,7 +788,7 @@ def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
         result: list[Statistic] = fn(*args)
         return result
     except Exception:
-        logger.exception(f"Error computing superlative stat group {fn.__name__}")
+        logger.exception("error computing superlative stat group", group=fn.__name__)
         return []
 
 

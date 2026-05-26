@@ -9,9 +9,9 @@ from radarvan.api_types import (
     MatchInfo,
 )
 from datetime import date
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 NON_COMPETITIVE: set[str] = {"EasyArmy", "MediumArmy"}
@@ -118,7 +118,7 @@ def _build_teams(game: MatchInfo) -> TeamBuildResult | None:
     teams: dict[int, list[str]] = defaultdict(list)
     counts: dict[str, int] = defaultdict(int)
     actual_players = [p for p in game.players if p.team > 0]
-    logger.info(f"game: {game.id} players {[game.players]}")
+    logger.debug("processing game", game_id=game.id, players=game.players)
     for player in actual_players:
         name = player_ids.resolve_player_name(player.name, player.color)
         teams[player.team].append(name)
@@ -132,7 +132,9 @@ def _compute_surprise_uncertainty(
     score_values: list[float], prediction: list[float]
 ) -> float:
     surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction))
-    logger.info(f"scores:{score_values} prediction={prediction} {surprize=}")
+    logger.debug(
+        "surprise", scores=score_values, prediction=prediction, surprise=surprize
+    )
     return (surprize - 0.5) * 0.1 if surprize > 0.85 else 0.0
 
 
@@ -148,8 +150,7 @@ def _update_ratings_for_game(
     pteams = [[players[p].to_rating(model) for p in team] for team in teams.values()]
     prediction = model.predict_win(teams=pteams)
     surprize_uncertainty_add = _compute_surprise_uncertainty(score_values, prediction)
-    logger.info(f"{teams}")
-    logger.info(f"adding {surprize_uncertainty_add}")
+    logger.debug("rating game", teams=teams, uncertainty_add=surprize_uncertainty_add)
     new_ratings = model.rate(teams=pteams, scores=score_values)
     updated: dict[str, NamedRating] = {}
     history: dict[str, NamedRating] = {}
@@ -215,8 +216,13 @@ def _log_sorted_ratings(
     sorted_ratings: list[NamedRating], game_counts: dict[str, int]
 ) -> None:
     for rating in sorted_ratings:
-        logger.info(
-            f"{rating.name}[games={game_counts.get(rating.name)}]: {rating.ordinal():.1f} (μ={rating.mu:.1f}, σ={rating.sigma:.1f})"
+        logger.debug(
+            "rating",
+            name=rating.name,
+            games=game_counts.get(rating.name),
+            ordinal=round(rating.ordinal(), 1),
+            mu=round(rating.mu, 1),
+            sigma=round(rating.sigma, 1),
         )
 
 
@@ -245,14 +251,14 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     filtered_games = [g for g in games if filter_for_rating(g)]
     all_players = _collect_all_players(filtered_games)
     player_ratings = {name: initialize_player(name, model) for name in all_players}
-    logger.info(f"players: {player_ratings}")
+    logger.debug("initial players", players=player_ratings)
 
     for i in range(ITERATIONS):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
         player_ratings, game_counts, rating_over_time, match_changes = _process_games(
             filtered_games, min_sigmaed, model
         )
-        logger.info(f"Pass {i}")
+        logger.debug("pass", iteration=i)
         _log_sorted_ratings(
             [
                 r
@@ -261,7 +267,7 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             ],
             game_counts,
         )
-    logger.info("===")
+    logger.debug("done computing ratings")
 
     ratings = [
         r

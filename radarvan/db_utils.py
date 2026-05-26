@@ -9,7 +9,7 @@ with the many existing callers.
 
 from collections.abc import Generator
 from contextlib import contextmanager
-import logging
+import structlog
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -27,7 +27,7 @@ from .repositories import (
     TournamentRepo,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 __all__ = [

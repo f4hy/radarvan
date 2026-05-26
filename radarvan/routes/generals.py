@@ -1,6 +1,6 @@
 """Generals (faction) stats endpoints."""
 
-import logging
+import structlog
 
 from fastapi import APIRouter, Depends, Query
 
@@ -10,7 +10,7 @@ from ..cache import competitive_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 

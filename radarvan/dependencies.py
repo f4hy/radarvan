@@ -6,7 +6,7 @@ single DB engine + sessionmaker created at import time.
 
 import asyncio
 from collections.abc import Generator
-import logging
+import structlog
 import os
 
 from fastapi import Depends, HTTPException, Request, Response, Security
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from .db_utils import DatabaseManager, ReplayManager
 from .notify import notify
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
@@ -49,11 +49,11 @@ async def verify_api_key(
     is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
     if not ENFORCE_AUTH:
         logger.info(
-            "Auth not enforced: key_present=%s access=%s method=%s path=%s",
-            key is not None,
-            access,
-            request.method,
-            request.url.path,
+            "auth not enforced",
+            key_present=key is not None,
+            access=access,
+            method=request.method,
+            path=request.url.path,
         )
         if access == "none":
             task = asyncio.create_task(

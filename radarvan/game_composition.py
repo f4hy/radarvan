@@ -1,4 +1,4 @@
-import logging
+import structlog
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Protocol
 from .db import MatchPlayer
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class Player(Protocol):
@@ -91,7 +91,7 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     Returns:
         GameComposition object with detailed game information
     """
-    logger.info(f"Computing match comp on {players}")
+    logger.debug("computing match comp", players=players)
     total_players = len(players)
     num_humans = sum(1 for p in players if p.type == "H")
     num_computers = sum(1 for p in players if p.type == "C")

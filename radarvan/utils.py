@@ -6,11 +6,11 @@ from typing import Any, cast
 from .api_types import Player, General, Team
 from .cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
 from .cncstats_model.header import Player as HeaderPlayer
-import logging
+import structlog
 import time
 import functools
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def log_duration[F: Callable[..., Any]](func: F) -> F:
@@ -24,7 +24,9 @@ def log_duration[F: Callable[..., Any]](func: F) -> F:
         result = func(*args, **kwargs)
         end_time = time.time()
         duration = end_time - start_time
-        logger.info(f"Function '{func.__name__}' executed in {duration:.4f} seconds.")
+        logger.debug(
+            "function executed", function=func.__name__, duration_s=round(duration, 4)
+        )
         return result
 
     return cast(F, wrapper)
@@ -72,7 +74,7 @@ def side_to_general(side: str) -> General:
             return General.DEMO
         case "":
             return General.UNRECOGNIZED
-    logger.warning(f"Unknown side {side=}")
+    logger.warning("unknown side", side=side)
     return General.UNRECOGNIZED
 
 

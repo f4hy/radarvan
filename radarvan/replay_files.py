@@ -2,7 +2,7 @@
 
 import hashlib
 import re
-import logging
+import structlog
 import fsspec
 from datetime import date
 from typing import NamedTuple
@@ -16,7 +16,7 @@ import boto3
 from urllib.parse import urlparse
 from botocore.config import Config
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class ParsedReplayResult(NamedTuple):
@@ -60,7 +60,7 @@ def test_connection() -> None:
     fs = get_fs()
     fs.write_text(f"{s3_root}test.txt", "test")
     listing = fs.ls(s3_root)
-    logger.info(f"Listing {listing=}")
+    logger.info("listing", listing=listing)
 
 
 def save_replay_if_missing(
@@ -69,7 +69,7 @@ def save_replay_if_missing(
     if replay_manager.get_replay_file(replay_path):
         return
     fs = get_fs()
-    with log_time(f"Does not exist, saving {replay_path}", logger):
+    with log_time("saving replay", logger, path=replay_path):
         raw_data = fsspec.filesystem("http").read_bytes(replay_path)
         fs.write_bytes(save_path, raw_data)
     replay_manager.register_replay(replay_path, save_path, compute_hash(raw_data))
@@ -84,9 +84,9 @@ def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
 
 def parse_json(json_path: str) -> EnhancedReplayV2:
     fs = get_fs()
-    with log_time(f"reading {json_path}", logger):
+    with log_time("reading json", logger, path=json_path):
         json_data = fs.read_text(json_path)
-    with log_time(f"Validing {json_path}", logger):
+    with log_time("validating json", logger, path=json_path):
         parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
     return parsed_replay
 
@@ -104,17 +104,17 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
         save_replay_if_missing(path, replay_path, replay_manager)
 
     json_path = replay_path.replace(".rep", ".json")
-    logger.debug(f"{json_path=} {replay_path=}")
+    logger.debug("paths", json_path=json_path, replay_path=replay_path)
 
     fs = get_fs()
     existing = replay_manager.get_parsed_file(json_path)
     if existing and existing.is_v2 is True:
-        with log_time(f"reading {json_path}", logger):
+        with log_time("reading json", logger, path=json_path):
             json_data = fs.read_text(json_path)
-        with log_time(f"Validing {json_path}", logger):
+        with log_time("validating json", logger, path=json_path):
             parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
     else:
-        logger.info(f"Does not exist {json_path=}")
+        logger.info("json does not exist", json_path=json_path)
         raw_replay = fs.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay, replay_manager)
         fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
@@ -124,16 +124,16 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
             json_s3_uri=json_path,
         )
 
-    logger.debug(f"Finished parsing replay {path=}")
+    logger.debug("finished parsing replay", path=path)
     return with_filename(parsed_replay, path)
 
 
 def reparse(
     match_id: int, replay_manager: ReplayManager, force: bool = False
 ) -> ParsedReplayResult | None:
-    logger.info(f"Reparsing {match_id=}")
+    logger.info("reparsing", match_id=match_id)
     existing = replay_manager.get_replay_json_by_match_id(match_id)
-    logger.info(f"Existing {existing=}")
+    logger.info("existing", existing=existing)
 
     if existing is None:
         return None
@@ -166,7 +166,7 @@ def reparse(
 def reparse_paths(
     json_path: str, original_path: str, replay_path: str, replay_manager: ReplayManager
 ) -> ParsedReplayResult | None:
-    logger.info(f"Reparsing {original_path} ")
+    logger.info("reparsing", original_path=original_path)
 
     fs = get_fs()
     raw_replay = fs.read_bytes(replay_path)

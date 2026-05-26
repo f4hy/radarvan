@@ -1,6 +1,6 @@
 import statistics
 from collections import Counter
-import logging
+import structlog
 from itertools import combinations
 from .player_ids import resolve_player_name
 from datetime import date
@@ -20,7 +20,7 @@ from .api_types import (
     Statistic,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def sorted_tuple(s: Sequence[str]) -> tuple[str, ...]:
@@ -51,7 +51,7 @@ TOURNAMENT_MAP = {t.name: t for t in TOURNAMENTS}
 def overrides_for_tournament(tournament_id: str) -> list[MatchupResult]:
     """Overrides in case matchupes were not recorred, e.g. missing from gentool uploade."""
 
-    logger.info(f"Getting overrides for {tournament_id}")
+    logger.info("getting overrides", tournament_id=tournament_id)
     if tournament_id == "2025_2v2_tournament":
         logger.warning("pancake+131 vs Neo and Coredawg was not uploaded to gentool")
         return [
@@ -192,7 +192,9 @@ def create_tournament_results(
                     team_tuple = tuple(sorted(player_set))
                     if team_tuple not in team_records:
                         logger.warning(
-                            f"Skipping unrecognized team in match {match.id}: {team_tuple}"
+                            "skipping unrecognized team in match",
+                            match_id=match.id,
+                            team=team_tuple,
                         )
                         continue
                     if any(player_won.get(name, False) for name in player_set):
@@ -222,17 +224,21 @@ def create_tournament_results(
             for i, j in combinations(tournament.teams, 2)
             if i != j
         ]
-        logger.info(
-            f"all matchesup {len(all_matchups)} {[(m.team1, m.team2) for m in all_matchups]}"
+        logger.debug(
+            "all matchups",
+            count=len(all_matchups),
+            matchups=[(m.team1, m.team2) for m in all_matchups],
         )
         for i in all_matchups:
-            logger.info(f"M {i}")
+            logger.debug("matchup", matchup=i)
 
         for ms in all_matchups:
             found = False
             for m in matchups:
                 logger.debug(
-                    f" outcome {set(m.outcome.keys())} compared to {{ms.team1, ms.team2}}"
+                    "comparing outcome",
+                    outcome=set(m.outcome.keys()),
+                    teams={ms.team1, ms.team2},
                 )
                 if set(m.outcome.keys()) == {ms.team1, ms.team2}:
                     found = True
@@ -543,7 +549,7 @@ def ave_times(
                 date_computed=computed_at,
             )
         )
-    logger.info(f"AVe times {ret}")
+    logger.debug("ave times", times=ret)
     return ret
 
 

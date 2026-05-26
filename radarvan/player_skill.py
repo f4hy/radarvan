@@ -15,7 +15,7 @@ Subsumes both OpenSkill (time-evolution) and batch BT (likelihood) in one princi
 model. Output is each player's skill at their most recent game.
 """
 
-import logging
+import structlog
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import NamedTuple
@@ -27,7 +27,7 @@ from . import game_composition
 from . import player_ids
 from .api_types import MatchInfo
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(slots=True)
@@ -206,9 +206,9 @@ def _fit(
             for p in range(len(prep.player_dates))
         )
         if it % 5 == 0:
-            logger.info(f"iter {it}: max_change={max_change:.6e}")
+            logger.debug("iter", iteration=it, max_change=max_change)
         if max_change < tol:
-            logger.info(f"converged at iter {it} max_change={max_change:.2e}")
+            logger.debug("converged", iteration=it, max_change=max_change)
             break
 
 

@@ -8,10 +8,10 @@ from . import match_details as match_details_module
 from . import superlatives as superlatives_module
 from . import matches as matches_module
 from . import player_rating as player_rating_module
-import logging
+import structlog
 from .notify import notify
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 async def update_games(
@@ -24,10 +24,9 @@ async def update_games(
     base = scrape_games.BASE
     paths = await scrape_games.get_replay_urls(days, base, replay_manager)
     register_matches(replay_manager)
-    msg = f"Done updating, found {len(paths)}."
-    logger.info(msg)
+    logger.info("done updating", found=len(paths))
     if do_notify:
-        notify("DEBUG:" + msg)
+        notify(f"DEBUG:Done updating, found {len(paths)}.")
 
 
 async def compute_and_save_superlatives(
@@ -36,7 +35,9 @@ async def compute_and_save_superlatives(
     """Recompute all superlatives and persist them, replacing any previous results."""
     stale = replay_manager.computed_stats_are_stale(days=3)
     start = datetime.now()
-    logger.info(f"Computing superlatives (started at {start:%Y-%m-%d %H:%M:%S}).")
+    logger.info(
+        "computing superlatives", started_at=start.strftime("%Y-%m-%d %H:%M:%S")
+    )
     if stale:
         notify(message=f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})")
     competitive = [
@@ -51,7 +52,7 @@ async def compute_and_save_superlatives(
     details = await match_details_module.load_many_superlative_data(
         match_ids, db_manager
     )
-    logger.info(f"Loaded {len(details)} match details for superlatives.")
+    logger.info("loaded match details for superlatives", count=len(details))
     ratings_and_counts = player_rating_module.compute_player_ratings(competitive)
     result = superlatives_module.get_superlatives(
         competitive, details, ratings_and_counts.daily_changes
@@ -59,9 +60,14 @@ async def compute_and_save_superlatives(
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     duration = datetime.now() - start
-    msg = f"Saved {len(result.stats)} computed statistics for Records page. Started at {start:%Y-%m-%d %H:%M:%S}, took {duration}."
-    logger.info(msg)
+    logger.info(
+        "saved computed statistics",
+        count=len(result.stats),
+        started_at=start.strftime("%Y-%m-%d %H:%M:%S"),
+        took=str(duration),
+    )
     if stale:
+        msg = f"Saved {len(result.stats)} computed statistics for Records page. Started at {start:%Y-%m-%d %H:%M:%S}, took {duration}."
         notify(message=msg)
 
 
@@ -81,7 +87,7 @@ def get_scheduler(
     scheduler.add_job(
         update_games,
         "interval",
-        minutes=60,
+        minutes=60 * 6,
         args=[replay_manager, 1, False],
         id="update_games",
     )

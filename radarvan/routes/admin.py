@@ -8,7 +8,7 @@ verify_api_key dependency on the FastAPI app.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 import asyncio
-import logging
+import structlog
 from typing import Any, NamedTuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -21,7 +21,7 @@ from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import IS_DEV, db_manager, get_replay_manager
 from ..game_composition import GameComposition
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -130,7 +130,7 @@ def reparse_recent(
     """Re-run cncstats on all matches whose game_date is within the last `days` days."""
     since = date.today() - timedelta(days=days)
     candidates = replay_manager.list_jsons_since_date(since)
-    logger.info(f"reparse_recent: {len(candidates)} candidates since {since}")
+    logger.info("reparse_recent", candidates=len(candidates), since=since)
     updated_ids: set[int] = set()
     for record in candidates:
         updated = matches.reparse_replay(record.match_id, replay_manager)
@@ -156,7 +156,7 @@ def reparse_before_date(
     up new fields added to the parser output.
     """
     candidates = replay_manager.list_jsons_parsed_before(before, limit=max_to_update)
-    logger.info(f"reparse_before_date: {len(candidates)} candidates before {before}")
+    logger.info("reparse_before_date", candidates=len(candidates), before=before)
     updated_ids: set[int] = set()
     for record in candidates:
         try:
@@ -165,7 +165,7 @@ def reparse_before_date(
                 replay_manager.compute_and_save_composition(record.match_id)
                 updated_ids.add(updated.id)
         except ValueError:
-            logger.info(f"Unable to reparse {record.match_id}")
+            logger.info("unable to reparse", match_id=record.match_id)
     return {
         "updated": len(updated_ids),
         "checked": len(candidates),
@@ -185,7 +185,7 @@ async def reparse_non_v2(
     up new fields added to the parser output.
     """
     candidates = replay_manager.list_jsons_non_v2(limit=max_to_update)
-    logger.info(f"reparse_before_date: {len(candidates)} candidates")
+    logger.info("reparse_non_v2", candidates=len(candidates))
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
@@ -197,7 +197,9 @@ async def reparse_non_v2(
                     try:
                         updated = matches.reparse_existing(parsed, rm)
                     except Exception as e:
-                        logger.exception(f"Error reparseing match {parsed.match_id}")
+                        logger.exception(
+                            "error reparsing match", match_id=parsed.match_id
+                        )
                         raise RuntimeError(
                             f"Error reparseing match {parsed.match_id}"
                         ) from e
@@ -287,7 +289,7 @@ def update_matches_missing_data(
     missing_game_version = replay_manager.list_matches_without_game_version(
         max_to_update
     )
-    logger.info(f"{len(missing_game_version)=}")
+    logger.info("missing game version", count=len(missing_game_version))
     updated_count = 0
     for missing in missing_game_version:
         replay = replay_files.parse_json(missing.json_s3_uri)
@@ -295,7 +297,7 @@ def update_matches_missing_data(
             replay.header.version.lower().replace("version", "").strip()
         )
         result = replay_manager.update_match(missing)
-        logger.info(f"Updated {missing.match_id} success={result}")
+        logger.info("updated", match_id=missing.match_id, success=result)
         if result:
             updated_count += 1
         if updated_count >= max_to_update:
@@ -348,7 +350,9 @@ def refresh_matches_from_json(
                 new_match = future.result()
                 parsed.append(MatchPair(db_match=db_match, new_match=new_match))
             except Exception:
-                logger.exception(f"Failed to load JSON for match {db_match.match_id}")
+                logger.exception(
+                    "failed to load JSON for match", match_id=db_match.match_id
+                )
 
     # Phase 2: compare and write in a single transaction
     updated_count = 0
@@ -382,13 +386,17 @@ def fix_incomplete(
     winner_but_incomplete = replay_manager.list_matches_with_winner_but_incomplete(
         max_to_update
     )
-    logger.info(f"{len(winner_but_incomplete)=} ")
+    logger.info("winner but incomplete", count=len(winner_but_incomplete))
     updated_count = 0
     for need_fix, has_stats in winner_but_incomplete:
-        logger.info(need_fix.incomplete)
-        logger.info(f"{need_fix.winning_team_id=}  {has_stats}")
+        logger.info(
+            "fixing match",
+            incomplete=need_fix.incomplete,
+            winning_team_id=need_fix.winning_team_id,
+            has_stats=has_stats,
+        )
         matches.reparse_replay(need_fix.match_id, replay_manager)
-        logger.info(f"Updated {need_fix}")
+        logger.info("updated", match=need_fix)
         updated_count += 1
         if updated_count >= max_to_update:
             break
@@ -401,11 +409,11 @@ def fix_unk_players(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int]:
     match_ids = replay_manager.list_matches_with_player_unk(max_to_update * 10)
-    logger.info(f"{len(match_ids)=} ")
+    logger.info("matches with unknown player", count=len(match_ids))
     updated_count = 0
     for match_id in match_ids:
         updated = matches.reparse_replay(match_id, replay_manager)
-        logger.info(f"Updated {updated}")
+        logger.info("updated", match=updated)
         if updated:
             updated_count += 1
         if updated_count >= max_to_update:

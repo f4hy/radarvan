@@ -2,7 +2,7 @@
 
 from collections.abc import Generator
 from datetime import date
-import logging
+import structlog
 from typing import Any
 
 from pydantic import BaseModel
@@ -28,7 +28,7 @@ from ..cache import invalidate_match_caches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -52,7 +52,7 @@ def list_files(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[ReplayFileSchema]:
     listed = list(replay_manager.list_files())
-    logger.info(f"Found {len(listed)=}")
+    logger.info("found files", count=len(listed))
     return [ReplayFileSchema.model_validate(f) for f in listed]
 
 
@@ -64,7 +64,7 @@ def list_replays(
     listed = replay_manager.list_jsons(
         match_id=filters.match_id, game_date=filters.game_date
     )
-    logger.info(f"Found {len(listed)=}")
+    logger.info("found files", count=len(listed))
     converted = []
     for ls in listed:
         record = GameRecord.model_validate(ls, from_attributes=True)
@@ -201,7 +201,7 @@ def get_presigned_for_match_id(
     presigned = {d: replay_files.presigned_url(d) for d in replay_urls} | {
         d: replay_files.presigned_url(d) for d in json_urls
     }
-    logger.info(f"file_data {presigned=}")
+    logger.debug("presigned urls", presigned=presigned)
     return presigned
 
 

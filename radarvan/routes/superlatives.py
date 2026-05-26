@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import date
-import logging
+import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
@@ -12,7 +12,7 @@ from ..db_utils import ReplayManager
 from ..dependencies import db_manager, get_replay_manager
 from ..notify import notify
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -56,7 +56,7 @@ async def _do_recompute(
     )
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
-    logger.info(f"saved {len(result.stats)} computed statistics")
+    logger.info("saved computed statistics", count=len(result.stats))
     if stale:
         notify("Recomputed superlatives")
 

@@ -1,7 +1,7 @@
 """Tournament endpoints."""
 
 import asyncio
-import logging
+import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 
@@ -11,7 +11,7 @@ from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -58,7 +58,7 @@ async def save_report(
                 for g in tournament_games
             ]
         )
-        logger.info(f"finished details {len(details)}")
+        logger.info("finished details", count=len(details))
     valid_details = [d for d in details if d is not None]
     results = tournament.tournament_report(name, tournament_games, valid_details)
     if save:

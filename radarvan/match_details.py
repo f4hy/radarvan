@@ -20,14 +20,14 @@ from .api_types import (
     SuperlativeData,
     SuperlativePlayerSummary,
 )
-import logging
+import structlog
 from dataclasses import dataclass
 from pydantic import BaseModel
 from .utils import minutess_per_step
 
 from .db_utils import ReplayManager, DatabaseManager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass
@@ -397,7 +397,7 @@ def load_match_details_threadsafe(
         with db_manager.get_session() as session:
             return load_match_details(match_id, _ReplayManager(session))
     except Exception:
-        logger.exception(f"Failed to load match details for match_id={match_id}")
+        logger.exception("failed to load match details", match_id=match_id)
         return None
 
 

@@ -1,7 +1,7 @@
 """Get match info from a replay."""
 
 from .log_time import log_time
-import logging
+import structlog
 import os
 from datetime import datetime
 
@@ -12,9 +12,10 @@ from .api_types import MatchInfo, Player, Team
 from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
+from .logging_config import configure_logging
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass
@@ -33,12 +34,14 @@ def determine_winner(replay: EnhancedReplayV2, players: list[Player]) -> WinnerA
     winner_player = player_map.get(_winners[0].name or "")
     if winner_player is None:
         logger.info(
-            f"Winner name {_winners[0].name!r} not in player list {list(player_map)}"
+            "winner not in player list",
+            winner=_winners[0].name,
+            players=list(player_map),
         )
         return WinnerAndNotes(wining_team=Team.NONE, notes="Winner not in player list")
     winning_team = winner_player.team
     if winning_team == Team.NONE or winning_team == Team.OBSERVER:
-        logger.info("No winner found in replay")
+        logger.info("no winner found in replay")
         return WinnerAndNotes(wining_team=Team.NONE, notes="No team won?")
     return WinnerAndNotes(
         wining_team=winning_team,
@@ -205,7 +208,7 @@ def match_to_matchinfo(
 
 def register_matches(replay_manager: ReplayManager) -> None:
     replay_jsons = replay_manager.list_jsons_without_match()
-    logger.info(f"replay_jsons without matches {len(replay_jsons)}")
+    logger.info("replay_jsons without matches", count=len(replay_jsons))
     seen: set[int] = set()
     for j in replay_jsons:
         if j.match_id in seen:
@@ -217,14 +220,14 @@ def register_matches(replay_manager: ReplayManager) -> None:
             seen.add(db_match.match_id)
             replay_manager.compute_and_save_composition(db_match.match_id)
         except Exception as e:
-            logger.warning(f"Can not add match {e!r}")
+            logger.warning("can not add match", error=repr(e))
             continue
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
     reparsed = replay_files.reparse(match_id, replay_manager, force=True)
     if reparsed is None:
-        logger.info("No reparse needed")
+        logger.info("no reparse needed")
         return None
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
@@ -243,7 +246,7 @@ def reparse_existing(
         json_path, original_path, replay_path, replay_manager
     )
     if reparsed is None:
-        logger.info("No reparse needed")
+        logger.info("no reparse needed")
         return None
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
@@ -305,7 +308,7 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configure_logging(dev=True)
     constring = os.getenv("DATABASE_URL")
     if constring is None:
         raise RuntimeError("DATABASE_URL environment variable is not set")

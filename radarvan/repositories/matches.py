@@ -8,7 +8,7 @@ fields; reset_match deletes across all four.
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
-import logging
+import structlog
 
 from sqlalchemy import or_, select, func
 
@@ -26,7 +26,7 @@ from ..notify import notify
 
 from .base import BaseRepo
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -52,10 +52,10 @@ class MatchRepo(BaseRepo):
 
     def register_match(self, db_match: Match) -> Match:
         """Insert a new Match. If one already exists with this match_id, return it."""
-        logger.info(f"Registering {db_match=}")
+        logger.info("registering match", match=db_match)
         existing = self.session.get(Match, db_match.match_id)
         if existing is not None:
-            logger.warning(f"Match already exists! {db_match.match_id=}")
+            logger.warning("match already exists", match_id=db_match.match_id)
             return existing
         self.session.add(db_match)
         self._commit_if_auto()
@@ -187,7 +187,9 @@ class MatchRepo(BaseRepo):
         self, match_id: int, winner: int | None, incomplete: str | None = None
     ) -> WinnerOverride:
         """Set winner and/or incomplete override for a match."""
-        logger.info(f"Setting override {match_id} {winner} incomplete={incomplete}")
+        logger.info(
+            "setting override", match_id=match_id, winner=winner, incomplete=incomplete
+        )
 
         existing = self.session.get(WinnerOverride, match_id)
         new_override = WinnerOverride(

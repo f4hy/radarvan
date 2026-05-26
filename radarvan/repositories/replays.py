@@ -8,7 +8,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, date
-import logging
+import structlog
 
 from pydantic import BaseModel
 
@@ -20,7 +20,7 @@ from ..db import Match, ParsedReplayJson, ProcessingStatus, ReplayFile
 
 from .base import BaseRepo
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 # Replay timestamps are wall-clock UTC; the user base plays in US Eastern time
@@ -91,7 +91,7 @@ class ReplayRepo(BaseRepo):
 
     def register_replay(self, from_url: str, s3_uri: str, file_hash: str) -> ReplayFile:
         """Register a new replay scraped from a known source URL."""
-        logger.info(f"Registering {from_url=} {s3_uri=}")
+        logger.info("registering replay", from_url=from_url, s3_uri=s3_uri)
         prefix2 = "https://generals-public.s3.us-east-2.amazonaws.com/reps/"
         if prefix2 in from_url:
             date_str = "2025_10_December"
@@ -129,7 +129,9 @@ class ReplayRepo(BaseRepo):
         source_tag: str | None = None,
     ) -> ReplayFile:
         """Register a replay that was uploaded directly (not fetched from a URL)."""
-        logger.info(f"Registering uploaded replay {original_url=} {s3_uri=}")
+        logger.info(
+            "registering uploaded replay", original_url=original_url, s3_uri=s3_uri
+        )
         replay_file = ReplayFile(
             original_url=original_url,
             s3_uri=s3_uri,
@@ -161,7 +163,11 @@ class ReplayRepo(BaseRepo):
         replay_id = parsed_replay.replay_id
         has_enhanced_stats = parsed_replay.stats is not None
         logger.info(
-            f"Saving parsed json {replay_id=} {original_replay_file_url=} {json_s3_uri=} {game_timestamp=}"
+            "saving parsed json",
+            replay_id=replay_id,
+            original_replay_file_url=original_replay_file_url,
+            json_s3_uri=json_s3_uri,
+            game_timestamp=game_timestamp,
         )
         game_date = (game_timestamp - timedelta(hours=_GAME_DATE_HOUR_OFFSET)).date()
         parsed_json = ParsedReplayJson(

@@ -5,11 +5,10 @@ middleware/exception handlers, and manages the app lifecycle (scheduler,
 cache warming, S3 connection test).
 """
 
-import logging
-import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -18,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from . import exception_handling, middleware, replay_files, schedule
 from .cache import warm_caches
 from .dependencies import IS_DEV, db_manager, verify_api_key
+from .logging_config import configure_logging
 from .routes import (
     admin,
     draft,
@@ -31,13 +31,13 @@ from .routes import (
     tournaments,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Setup and shutdown of the webserver."""
-    logging.basicConfig(level=logging.INFO)
+    configure_logging(dev=IS_DEV)
     logger.info("hello")
     replay_files.test_connection()
     logger.info("connection tested")
@@ -66,14 +66,14 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
-app.add_middleware(middleware.RequestTimingMiddleware)
+app.add_middleware(middleware.RequestContextMiddleware)
 
 
 @app.exception_handler(Exception)
 async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    tb_lines = traceback.format_exception(type(exc), exc, exc.__traceback__, limit=5)
-    logger.info("".join(tb_lines))
+    logger.error("unhandled exception", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},

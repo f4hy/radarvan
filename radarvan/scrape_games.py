@@ -7,14 +7,15 @@ from pathlib import Path
 from urllib.parse import urljoin
 import os
 from datetime import datetime, timedelta
-import logging
+import structlog
 from . import player_ids
 from functools import cache
 from cachetools import TTLCache
 from cachetools_async import cached
 from . import replay_files
+from .logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 BASE = "https://www.gentool.net/data/zh/"
 TIMEOUT = 600.0
 
@@ -27,13 +28,15 @@ def async_client() -> httpx.AsyncClient:
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
 async def get_url(url: str) -> httpx.Response:
     client = async_client()
-    logger.info(f"Getting {url=} ")
+    logger.debug("getting url", url=url)
     async with asyncio.Semaphore(4):
         response = await client.get(url, timeout=TIMEOUT)
     response.raise_for_status()
-    logger.info(f"Finished Reading {url=} in {response.elapsed.total_seconds()}s")
+    logger.debug(
+        "finished reading url", url=url, elapsed_s=response.elapsed.total_seconds()
+    )
     if response.elapsed.total_seconds() > 2:
-        logger.info(f"Waiting {response.elapsed.total_seconds() * 4} s ")
+        logger.debug("waiting", seconds=response.elapsed.total_seconds() * 4)
         await asyncio.sleep(response.elapsed.total_seconds() * 4)
     return response
 
@@ -83,15 +86,15 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
     Download files from an Apache directory listing that match a pattern.
 
     """
-    logger.info(f"Finding links matching {patterns} from {base_url}")
+    logger.debug("finding links", patterns=patterns, base_url=base_url)
 
     try:
         response = await get_url(base_url)
     except httpx.ReadTimeout:
-        logger.info(f"Timed out reading from {base_url}")
+        logger.warning("timed out reading", base_url=base_url)
         return []
     except Exception as e:
-        logger.info(f"Error reading from {base_url} error={e!r}")
+        logger.warning("error reading", base_url=base_url, error=repr(e))
         return []
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -108,7 +111,7 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
             print("href", href)
             file_url = urljoin(base_url, href)
             links.append(file_url)
-    logger.info(f"Found {links}")
+    logger.debug("found links", links=links)
     return links
     #         filename = href.split("/")[-1]
     #         if not filename:
@@ -141,7 +144,7 @@ async def search_dates(days: int, base: str) -> list[list[str]]:
     dir_list_coro = []
     for d in generate_directories(days):
         date_path = f"{base}{d}/"
-        logger.info(f"Searching {date_path}")
+        logger.debug("searching", date_path=date_path)
         dir_list_coro.append(get_player_dirs(date_path))
 
     dir_lists = await asyncio.gather(*dir_list_coro)
@@ -151,7 +154,7 @@ async def search_dates(days: int, base: str) -> list[list[str]]:
 async def search_replays(urls_to_list: list[str]) -> list[list[str]]:
     dir_list_coro = []
     for url in urls_to_list:
-        logger.info(f"Searching {url}")
+        logger.debug("searching", url=url)
         dir_list_coro.append(matching_links(url, [".rep"]))
 
     dir_lists = await asyncio.gather(*dir_list_coro)
@@ -177,9 +180,8 @@ async def get_replay_urls(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configure_logging(dev=True)
     pattern = "09BAC013F91C"
-    logging.basicConfig(level=logging.INFO)
     conn_str = os.getenv("DATABASE_URL")
     if conn_str is None:
         raise RuntimeError("DATABASE_URL environment variable is not set")

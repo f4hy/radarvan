@@ -11,10 +11,10 @@ import httpx
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .cncstats_model.header import Player
 from .db_utils import ReplayManager
-import logging
+import structlog
 from .game_composition import categorize_game_type, PlayerAdapter
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 # PARSE_URL = "https://cncstats.herokuapp.com/replay"
@@ -41,9 +41,7 @@ def parse_replay_data(
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
-    logger.info(
-        f"ccnstats responded with replay in {response.elapsed.total_seconds()}s "
-    )
+    logger.info("cncstats responded", elapsed_s=response.elapsed.total_seconds())
     validated = EnhancedReplayV2.model_validate(response.json())
     header_metadata = validated.header.metadata if validated.header else None
     header_players_raw = (header_metadata.players if header_metadata else None) or []
@@ -55,7 +53,7 @@ def parse_replay_data(
     composition = categorize_game_type(players)
     if composition.is_1v1 and header_metadata is not None:
         header_metadata.players = reassign_1v1_teams(header_metadata.players or [])
-        logger.info(f"Reassigned teams for 1v1 {header_metadata.players}")
+        logger.info("reassigned teams for 1v1", players=header_metadata.players)
 
     overrides = replay_manager.get_overrides()
     override = overrides.get(validated.replay_id, None)
@@ -63,7 +61,11 @@ def parse_replay_data(
         for ps in validated.summary or []:
             override_value = ps.team == override.winning_team_id
             logger.warning(
-                f"Overriding {validated.replay_id} {ps.team} to {override.winning_team_id} {override_value=}"
+                "overriding",
+                replay_id=validated.replay_id,
+                team=ps.team,
+                winning_team_id=override.winning_team_id,
+                win=override_value,
             )
             ps.win = override_value
 

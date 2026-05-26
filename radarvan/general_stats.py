@@ -9,9 +9,9 @@ from .api_types import (
 )
 from . import replay_files
 from . import player_ids
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 CPU_NAMES = set(player_ids.CPU_NAME_MAPPING.values())
@@ -52,5 +52,5 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
     ]
     wins = sum(s.total.wins for s in general_stats.values())
     losses = sum(s.total.losses for s in general_stats.values())
-    logger.info(f"Total wins {wins} total loses {losses}")
+    logger.info("totals", wins=wins, losses=losses)
     return GeneralStats(general_stats=filtered)

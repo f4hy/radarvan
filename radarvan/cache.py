@@ -9,7 +9,7 @@ threading.Event. We must not spawn a fresh worker per invalidation:
 cachetools caches are not thread-safe, and concurrent writes corrupt them.
 """
 
-import logging
+import structlog
 import threading
 
 from cachetools import LRUCache, TTLCache, cached
@@ -21,7 +21,7 @@ from . import match_details
 from . import replay_files
 from .dependencies import db_manager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 _latest_ts_cache: TTLCache[str, str] = TTLCache(maxsize=1, ttl=60)
@@ -42,7 +42,7 @@ def details_key(match_id: int, replay_manager: ReplayManager) -> str:
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
-    logger.info(f"Got {len(deduped)} parsed replays")
+    logger.info("got parsed replays", count=len(deduped))
     sorted_matches = dict(
         sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
     )

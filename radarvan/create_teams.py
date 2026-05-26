@@ -2,10 +2,10 @@ from collections.abc import Iterable, Iterator, Mapping
 from itertools import combinations
 from . import player_ids
 from radarvan.api_types import MatchInfo
-import logging
+import structlog
 from .player_rating import get_model, compute_player_ratings, NamedRating
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Pairs that, when on the same team, are treated as slightly more balanced.
 # Value is a scale factor applied to the advantage (distance from 0.5):
@@ -49,12 +49,14 @@ def balance_teams(
         win1_prop, win2_prop = model.predict_win([team1_ratings, team2_ratings])
         win1_prop = _apply_fudge(win1_prop, team1, team2)
         win2_prop = 1 - win1_prop
-        logger.info(f"Team1 {team1} team2{team2} {win1_prop} {win2_prop}")
+        logger.debug(
+            "team matchup", team1=team1, team2=team2, win1=win1_prop, win2=win2_prop
+        )
         if win1_prop >= 0.5:
             team_win_pct[tuple(team1)] = win1_prop
         if win2_prop >= 0.5:
             team_win_pct[tuple(team2)] = win2_prop
-    logger.info(f"Team win probs {team_win_pct}")
+    logger.debug("team win probs", count=len(team_win_pct))
     return dict(sorted(team_win_pct.items(), key=lambda x: x[1]))
 
 

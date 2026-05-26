@@ -11,10 +11,10 @@ from .api_types import (
 )
 from . import replay_files
 from . import game_composition
-import logging
+import structlog
 from .player_ids import resolve_player_name
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 NEEDED_GAMES = 8
 
