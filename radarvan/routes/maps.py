@@ -25,6 +25,10 @@ from ..dependencies import get_replay_manager
 
 router = APIRouter()
 
+# Routes that must be reachable without an API key (e.g. <img src> loads, which
+# cannot send the X-API-Key header). Included without auth deps in main.py.
+public_router = APIRouter()
+
 
 @router.get("/api/map_stats/")
 def get_map_stats(
@@ -218,7 +222,7 @@ def render_map_with_players(
     )
 
 
-@router.get("/api/map_image/{map_name}", response_model=None)
+@public_router.get("/api/map_image/{map_name}", response_model=None)
 def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
     """Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).
 
