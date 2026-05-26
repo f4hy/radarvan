@@ -28,7 +28,7 @@ from ..api_types import (
 )
 from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import get_replay_manager
+from ..dependencies import cache_short, get_replay_manager
 
 router = APIRouter()
 
@@ -45,7 +45,7 @@ class SelectedPlayers(BaseModel):
     players: list[PlayerEnum] = []
 
 
-@router.get("/api/playerstats")
+@router.get("/api/playerstats", dependencies=[Depends(cache_short)])
 def get_player_stats(
     game_format: str | None = Query(
         None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
@@ -59,7 +59,7 @@ def get_player_stats(
     )
 
 
-@router.get("/api/player_game_counts/team/")
+@router.get("/api/player_game_counts/team/", dependencies=[Depends(cache_short)])
 def get_player_team_game_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[PlayerGameCount]:
@@ -76,7 +76,7 @@ def get_player_team_game_counts(
     return sorted(counts, key=lambda x: x.count, reverse=True)
 
 
-@router.get("/api/player_game_counts/")
+@router.get("/api/player_game_counts/", dependencies=[Depends(cache_short)])
 def get_player_game_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[PlayerGameCount]:
@@ -93,7 +93,7 @@ def get_player_game_counts(
     ]
 
 
-@router.get("/api/player_ratings/")
+@router.get("/api/player_ratings/", dependencies=[Depends(cache_short)])
 def get_player_ratings(
     game_format: str | None = Query(
         None, description="Filter by game format: 2v2, 3v3, 4v4"
@@ -165,7 +165,7 @@ def get_player_ratings(
     )
 
 
-@router.get("/api/player_skills/")
+@router.get("/api/player_skills/", dependencies=[Depends(cache_short)])
 def get_player_skills(
     game_format: str | None = Query(
         None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
@@ -186,7 +186,7 @@ def get_player_skills(
     ]
 
 
-@router.get("/api/player_ratings/daily_changes/")
+@router.get("/api/player_ratings/daily_changes/", dependencies=[Depends(cache_short)])
 def get_player_rating_daily_changes(
     for_date: date,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -203,7 +203,7 @@ def get_player_rating_daily_changes(
     return result
 
 
-@router.get("/api/player_ratings/head_to_head/")
+@router.get("/api/player_ratings/head_to_head/", dependencies=[Depends(cache_short)])
 def get_head_to_head(
     game_format: str | None = Query(None),
     replay_manager: ReplayManager = Depends(get_replay_manager),

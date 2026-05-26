@@ -8,14 +8,14 @@ from .. import general_stats, matches
 from ..api_types import GeneralStats
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
-from ..dependencies import get_replay_manager
+from ..dependencies import cache_short, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
 
-@router.get("/api/generalstats")
+@router.get("/api/generalstats", dependencies=[Depends(cache_short)])
 def get_generals_stats(
     game_format: str | None = Query(
         None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"

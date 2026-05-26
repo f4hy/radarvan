@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from .. import match_details, player_rating, superlatives
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
-from ..dependencies import db_manager, get_replay_manager
+from ..dependencies import cache_short, db_manager, get_replay_manager
 from ..notify import notify
 
 logger = structlog.get_logger(__name__)
@@ -20,7 +20,7 @@ router = APIRouter()
 _recompute_lock = asyncio.Lock()
 
 
-@router.get("/api/superlatives")
+@router.get("/api/superlatives", dependencies=[Depends(cache_short)])
 def get_superlatives(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> superlatives.Superlatives:

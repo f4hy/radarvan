@@ -90,3 +90,12 @@ def get_db_session() -> Generator[Session]:
 def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayManager:
     """Dependency that provides a ReplayManager instance."""
     return ReplayManager(session, notify=True)
+
+
+def cache_short(response: Response) -> None:
+    """Mark a response cacheable for 60s.
+
+    For stats/listing endpoints derived from match data: fresh-ish is fine, it
+    needn't be up to the minute. Apply via ``dependencies=[Depends(cache_short)]``.
+    """
+    response.headers["Cache-Control"] = "public, max-age=60"

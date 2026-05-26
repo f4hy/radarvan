@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Response
 from ..api_types import MatchDetails, MatchInfo, Matches, Team
 from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import get_replay_manager
+from ..dependencies import cache_short, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
@@ -30,7 +30,7 @@ def empty_match_details(match_id: int) -> MatchDetails:
     )
 
 
-@router.get("/api/dates/")
+@router.get("/api/dates/", dependencies=[Depends(cache_short)])
 def get_dates(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[date, float]:
@@ -39,7 +39,7 @@ def get_dates(
     return dict(sorted(dates.items(), reverse=True))
 
 
-@router.get("/api/matches/{match_count}")
+@router.get("/api/matches/{match_count}", dependencies=[Depends(cache_short)])
 def get_matches(
     match_count: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -49,7 +49,7 @@ def get_matches(
     return Matches(matches=replays.values())
 
 
-@router.get("/api/matches/by_date/{date}")
+@router.get("/api/matches/by_date/{date}", dependencies=[Depends(cache_short)])
 def get_matches_by_date(
     date: date,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -59,7 +59,7 @@ def get_matches_by_date(
     return Matches(matches=[r for r in replays.values() if r.date == date])
 
 
-@router.get("/api/team_games_without_winner/")
+@router.get("/api/team_games_without_winner/", dependencies=[Depends(cache_short)])
 def get_team_games_without_winner(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[dict[str, Any]]:

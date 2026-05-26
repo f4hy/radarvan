@@ -9,7 +9,7 @@ from .. import tournament
 from ..api_types import TournamentReport, TournamentResult
 from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import get_replay_manager
+from ..dependencies import cache_short, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
@@ -19,7 +19,7 @@ router = APIRouter()
 _report_semaphore = asyncio.Semaphore(value=1)
 
 
-@router.get("/api/is_tournament_game/{match_id}")
+@router.get("/api/is_tournament_game/{match_id}", dependencies=[Depends(cache_short)])
 def is_tournament_game(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -31,7 +31,7 @@ def is_tournament_game(
     return tournament.is_tournament_game(match_info)
 
 
-@router.get("/api/tournament_results/")
+@router.get("/api/tournament_results/", dependencies=[Depends(cache_short)])
 def get_tournament_results(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[TournamentResult]:
@@ -66,7 +66,7 @@ async def save_report(
     return results
 
 
-@router.get("/api/tournament_report/{tournament_name}")
+@router.get("/api/tournament_report/{tournament_name}", dependencies=[Depends(cache_short)])
 async def get_tournament_report(
     background_tasks: BackgroundTasks,
     tournament_name: str = "2025_2v2_tournament",

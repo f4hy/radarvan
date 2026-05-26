@@ -21,7 +21,7 @@ from ..api_types import (
 )
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
-from ..dependencies import get_replay_manager
+from ..dependencies import cache_short, get_replay_manager
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ _MAP_IMAGE_PRESIGN_TTL = 7 * 24 * 3600
 _MAP_IMAGE_CACHE_MAX_AGE = 24 * 3600
 
 
-@router.get("/api/map_stats/")
+@router.get("/api/map_stats/", dependencies=[Depends(cache_short)])
 def get_map_stats(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MapStatsResponse:
@@ -57,7 +57,7 @@ def get_map_summary(
     return map_stats_module.format_map_summary(summary)
 
 
-@router.get("/api/maps_by_player_count")
+@router.get("/api/maps_by_player_count", dependencies=[Depends(cache_short)])
 def get_maps_by_player_count(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[MapsByPlayerCount]:
