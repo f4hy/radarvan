@@ -29,6 +29,11 @@ router = APIRouter()
 # cannot send the X-API-Key header). Included without auth deps in main.py.
 public_router = APIRouter()
 
+# Map images are static. Presign for the S3 max (7 days) and let browsers cache
+# the redirect for a day — max-age must stay under the presign TTL.
+_MAP_IMAGE_PRESIGN_TTL = 7 * 24 * 3600
+_MAP_IMAGE_CACHE_MAX_AGE = 24 * 3600
+
 
 @router.get("/api/map_stats/")
 def get_map_stats(
@@ -74,11 +79,13 @@ def save_map_data(
 @router.get("/api/map_data/{map_name}")
 def get_map_data(
     map_name: str,
+    response: Response,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MapDataPayload:
     result = replay_manager.get_map_data(map_name)
     if result is None:
         raise HTTPException(status_code=404, detail=f"No map data for '{map_name}'")
+    response.headers["Cache-Control"] = "public, max-age=86400"
     return result
 
 
@@ -230,11 +237,16 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
     Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that
     haven't been migrated yet.
     """
+    # Map images are static, so cache aggressively. The browser caches the
+    # redirect, reusing its presigned URL for up to max-age — which must stay
+    # under the presign TTL or a cached redirect would point at an expired URL.
+    cache_headers = {"Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}"}
     s3_uri = missing_maps_module.find_s3_webp(map_name)
     if s3_uri is not None:
-        return RedirectResponse(replay_files.presigned_url(s3_uri), status_code=302)
+        presigned = replay_files.presigned_url(s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL)
+        return RedirectResponse(presigned, status_code=302, headers=cache_headers)
     base = map_name.removesuffix(".map")
     for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
         if os.path.exists(candidate):
-            return FileResponse(candidate)
+            return FileResponse(candidate, headers=cache_headers)
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")

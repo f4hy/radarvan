@@ -85,10 +85,16 @@ def get_team_games_without_winner(
 @router.get("/api/match/{match_id}")
 def get_match_by_id(
     match_id: int,
+    response: Response,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo | None:
     """Get a single match by its ID."""
-    return sorted_deduped_matches(replay_manager).get(match_id)
+    match = sorted_deduped_matches(replay_manager).get(match_id)
+    if match is None:
+        response.headers["Cache-Control"] = "no-cache"
+        return None
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return match
 
 
 @router.get("/api/details/{match_id}")

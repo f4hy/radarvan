@@ -35,8 +35,8 @@ def get_fs() -> fsspec.AbstractFileSystem:
     return fsspec.filesystem("s3")
 
 
-def presigned_url(s3_path: str) -> str:
-    """preSign a s3_path"""
+def presigned_url(s3_path: str, expires_in: int = 3600) -> str:
+    """preSign a s3_path. expires_in is the URL validity in seconds (S3 caps at 7 days)."""
     parsed = urlparse(s3_path)
     bucket = parsed.netloc
     key = parsed.path.lstrip("/")
@@ -50,7 +50,7 @@ def presigned_url(s3_path: str) -> str:
     url = s3_client.generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket, "Key": key},
-        ExpiresIn=3600,
+        ExpiresIn=expires_in,
     )
 
     return str(url)
