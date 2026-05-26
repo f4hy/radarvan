@@ -74,10 +74,14 @@ app.add_middleware(middleware.RequestContextMiddleware)
 @app.exception_handler(Exception)
 async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("unhandled exception", exc_info=exc)
-    return JSONResponse(
+    response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
     )
+    request_id = getattr(request.state, "request_id", None)
+    if request_id:
+        response.headers[middleware.REQUEST_ID_HEADER] = request_id
+    return response
 
 
 # Routers — all API routes require an API key; static/index routes below do not.

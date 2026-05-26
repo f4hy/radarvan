@@ -27,19 +27,25 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         request_id = request.headers.get(REQUEST_ID_HEADER) or str(uuid.uuid4())
         client_id = request.headers.get(CLIENT_ID_HEADER, "unknown")
+        # Stored on state so the app-level exception handler can echo the id
+        # back on the 500 path, where call_next raises past this point.
+        request.state.request_id = request_id
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(request_id=request_id, client=client_id)
 
         start_time = time.time()
-        response = await call_next(request)
-        process_time = time.time() - start_time
-
-        response.headers[REQUEST_ID_HEADER] = request_id
-        logger.info(
-            "request",
-            method=request.method,
-            path=request.url.path,
-            status=response.status_code,
-            took=round(process_time, 4),
-        )
-        return response
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            response.headers[REQUEST_ID_HEADER] = request_id
+            return response
+        finally:
+            logger.info(
+                "request",
+                method=request.method,
+                path=request.url.path,
+                status=status,
+                took=round(time.time() - start_time, 4),
+            )
+            structlog.contextvars.clear_contextvars()
