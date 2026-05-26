@@ -49,10 +49,9 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     known_computers = set(player_ids.CPU_NAME_MAPPING.values())
     known_players = set(player_ids.PLAYER_NAME_MAPPING.values())
     if name in NON_COMPETITIVE:
-        return NamedRating(name=name, mu=1.0, sigma=r.sigma / 2.0)
+        return NamedRating(name=name, mu=0.5, sigma=r.sigma / 2.0)
     if name in known_computers:
-        return NamedRating(name=name, mu=r.mu / 2.0, sigma=r.sigma / 2.0)
-
+        return NamedRating(name=name, mu=r.mu, sigma=r.sigma / 2.0)
     if name in known_players:
         return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
     return NamedRating(name=name, mu=r.mu, sigma=r.sigma * 8)
