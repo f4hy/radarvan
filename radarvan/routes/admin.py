@@ -137,6 +137,8 @@ def reparse_recent(
         if updated:
             replay_manager.compute_and_save_composition(record.match_id)
             updated_ids.add(updated.id)
+    if updated_ids:
+        invalidate_match_caches()
     return {
         "updated": len(updated_ids),
         "checked": len(candidates),
@@ -166,6 +168,8 @@ def reparse_before_date(
                 updated_ids.add(updated.id)
         except ValueError:
             logger.info("unable to reparse", match_id=record.match_id)
+    if updated_ids:
+        invalidate_match_caches()
     return {
         "updated": len(updated_ids),
         "checked": len(candidates),
@@ -212,6 +216,8 @@ async def reparse_non_v2(
 
     results = await asyncio.gather(*[_reparse_one(r) for r in candidates])
     updated_ids = [r for r in results if r is not None]
+    if updated_ids:
+        invalidate_match_caches()
     return {
         "updated": len(updated_ids),
         "checked": len(candidates),
@@ -246,6 +252,7 @@ def set_override(
     saved = replay_manager.set_override(
         match_id, winner=winner.value if winner else None, incomplete=incomplete
     )
+    invalidate_match_caches()
     return WinnerOverride(
         match_id=saved.match_id,
         winning_team_id=saved.winning_team_id or Team.NONE,
@@ -264,6 +271,7 @@ def reset_match(
         raise HTTPException(
             status_code=404, detail=f"No data found for match {match_id}"
         )
+    invalidate_match_caches()
     return counts
 
 
@@ -278,6 +286,7 @@ def delete_override(
         raise HTTPException(
             status_code=404, detail=f"No override found for match {match_id}"
         )
+    invalidate_match_caches()
     return {"status": "deleted", "match_id": str(match_id)}
 
 
@@ -400,6 +409,8 @@ def fix_incomplete(
         updated_count += 1
         if updated_count >= max_to_update:
             break
+    if updated_count:
+        invalidate_match_caches()
     return {"updated": updated_count}
 
 
@@ -418,4 +429,6 @@ def fix_unk_players(
             updated_count += 1
         if updated_count >= max_to_update:
             break
+    if updated_count:
+        invalidate_match_caches()
     return {"updated": updated_count}

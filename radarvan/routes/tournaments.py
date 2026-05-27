@@ -3,7 +3,7 @@
 import asyncio
 import structlog
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Response
 
 from .. import tournament
 from ..api_types import TournamentReport, TournamentResult
@@ -66,18 +66,23 @@ async def save_report(
     return results
 
 
-@router.get("/api/tournament_report/{tournament_name}", dependencies=[Depends(cache_short)])
+@router.get("/api/tournament_report/{tournament_name}")
 async def get_tournament_report(
     background_tasks: BackgroundTasks,
+    response: Response,
     tournament_name: str = "2025_2v2_tournament",
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> TournamentReport:
     """Get report for a specific tournament."""
     existing = replay_manager.get_tournament_report_by_name(tournament_name)
     if not existing:
+        # Don't cache the empty placeholder — the background task fills it in
+        # seconds and a cached empty report would look perpetually empty.
         background_tasks.add_task(save_report, tournament_name, replay_manager)
+        response.headers["Cache-Control"] = "no-cache"
         return TournamentReport(name="", stats=[])
 
+    response.headers["Cache-Control"] = "private, max-age=60"
     return existing
 
 

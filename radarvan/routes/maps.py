@@ -30,9 +30,12 @@ router = APIRouter()
 public_router = APIRouter()
 
 # Map images are static. Presign for the S3 max (7 days) and let browsers cache
-# the redirect for a day — max-age must stay under the presign TTL.
+# the redirect — max-age must stay under the presign TTL. We keep the cache to
+# 1h (well under the 7-day presign) so that if the deployment ever runs on
+# temporary/STS credentials — which silently cap the presign at the credential
+# lifetime — a cached redirect is unlikely to outlive its presigned URL.
 _MAP_IMAGE_PRESIGN_TTL = 7 * 24 * 3600
-_MAP_IMAGE_CACHE_MAX_AGE = 24 * 3600
+_MAP_IMAGE_CACHE_MAX_AGE = 3600
 
 
 @router.get("/api/map_stats/", dependencies=[Depends(cache_short)])
@@ -85,7 +88,7 @@ def get_map_data(
     result = replay_manager.get_map_data(map_name)
     if result is None:
         raise HTTPException(status_code=404, detail=f"No map data for '{map_name}'")
-    response.headers["Cache-Control"] = "public, max-age=86400"
+    response.headers["Cache-Control"] = "private, max-age=86400"
     return result
 
 

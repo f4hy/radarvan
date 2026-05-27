@@ -93,7 +93,7 @@ def get_match_by_id(
     if match is None:
         response.headers["Cache-Control"] = "no-cache"
         return None
-    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["Cache-Control"] = "private, max-age=3600"
     return match
 
 
@@ -114,5 +114,5 @@ def get_match_details(
     if details is None:
         response.headers["Cache-Control"] = "no-cache"
         return empty_match_details(match_id)
-    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["Cache-Control"] = "private, max-age=3600"
     return details

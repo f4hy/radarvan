@@ -1,4 +1,5 @@
 from .db_utils import ReplayManager, DatabaseManager
+from .cache import invalidate_match_caches
 from .matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
@@ -24,6 +25,7 @@ async def update_games(
     base = scrape_games.BASE
     paths = await scrape_games.get_replay_urls(days, base, replay_manager)
     register_matches(replay_manager)
+    invalidate_match_caches()
     logger.info("done updating", found=len(paths))
     if do_notify:
         notify(f"DEBUG:Done updating, found {len(paths)}.")

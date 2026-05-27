@@ -93,9 +93,11 @@ def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayMana
 
 
 def cache_short(response: Response) -> None:
-    """Mark a response cacheable for 60s.
+    """Mark a response privately cacheable for 60s.
 
     For stats/listing endpoints derived from match data: fresh-ish is fine, it
-    needn't be up to the minute. Apply via ``dependencies=[Depends(cache_short)]``.
+    needn't be up to the minute. ``private`` because these routes are gated by
+    X-API-Key and aren't safe for a shared/CDN cache to serve cross-client.
+    Apply via ``dependencies=[Depends(cache_short)]``.
     """
-    response.headers["Cache-Control"] = "public, max-age=60"
+    response.headers["Cache-Control"] = "private, max-age=60"
