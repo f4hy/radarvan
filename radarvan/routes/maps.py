@@ -13,13 +13,14 @@ from ..api_types import (
     FetchMissingMapResult,
     FetchMissingMapsResponse,
     MapDataPayload,
+    MapMatchCount,
     MapRenderRequest,
     MapStatsResponse,
     MapsByPlayerCount,
     MapSummaryRequest,
     MissingMapInfo,
 )
-from ..cache import competitive_matches
+from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
 
@@ -58,6 +59,24 @@ def get_map_summary(
         list(games.values()), request.map_name.replace(".map", ""), request.players
     )
     return map_stats_module.format_map_summary(summary)
+
+
+@router.get("/api/map_match_counts", dependencies=[Depends(cache_short)])
+def get_map_match_counts(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[MapMatchCount]:
+    """List every map that appears in our match history, with its match count.
+
+    Sorted by match count descending.
+    """
+    games = sorted_deduped_matches(replay_manager)
+    counts: dict[str, int] = {}
+    for m in games.values():
+        counts[m.map] = counts.get(m.map, 0) + 1
+    return [
+        MapMatchCount(map=name, match_count=count)
+        for name, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
 
 
 @router.get("/api/maps_by_player_count", dependencies=[Depends(cache_short)])

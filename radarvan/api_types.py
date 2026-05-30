@@ -687,6 +687,13 @@ class MapsByPlayerCount(BaseModel):
     maps: list[str]
 
 
+class MapMatchCount(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    map: str
+    match_count: int = Field(alias="matchCount")
+
+
 class MissingMapInfo(BaseModel):
     model_config = _SLOTS
 
