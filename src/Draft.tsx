@@ -168,18 +168,11 @@ export default function DisplayDraft() {
     const best = Object.entries(teamRating).reduce((a, b) =>
       Math.abs(a[1] - 0.5) < Math.abs(b[1] - 0.5) ? a : b,
     )
-    const team1Names = best[0].split(",")
-    const skipInPlayers = players.some((p) => p.name === "Skip")
-    const skipOnTeam1 = team1Names.includes("Skip")
-    const newTeam1 = new Set(
-      skipInPlayers && !skipOnTeam1
-        ? players.map((p) => p.name).filter((n) => !team1Names.includes(n))
-        : team1Names,
-    )
+    const team1Names = new Set(best[0].split(","))
     setPlayers((prev) =>
       prev.map((p) => ({
         ...p,
-        team: (newTeam1.has(p.name) ? 1 : 2) as 1 | 2,
+        team: (team1Names.has(p.name) ? 1 : 2) as 1 | 2,
       })),
     )
   }
