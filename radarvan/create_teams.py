@@ -33,17 +33,8 @@ def balance_teams(
 
     model = get_model()
     day_players = [player_ids.resolve_player_name(n) for n in player_list]
-    # When Skip is playing, pin the result key to Skip's team. This saves the
-    # frontend from swapping teams to keep Skip on team 1 — the team we return
-    # as the key is already Skip's team.
-    pin_skip = "Skip" in day_players
-    team_combos: Iterable[tuple[str, ...]] = (
-        (c for c in combinations(day_players, team_size) if "Skip" in c)
-        if pin_skip
-        else combinations(day_players, team_size)
-    )
-    team_win_pct: dict[tuple[str, ...], float] = {}
-    for team1 in team_combos:
+    team_win_pct = {}
+    for team1 in combinations(day_players, team_size):
         if tuple(team1) in team_win_pct:
             continue
         team2 = [p for p in day_players if p not in team1]
@@ -61,13 +52,10 @@ def balance_teams(
         logger.debug(
             "team matchup", team1=team1, team2=team2, win1=win1_prop, win2=win2_prop
         )
-        if pin_skip:
+        if win1_prop >= 0.5:
             team_win_pct[tuple(team1)] = win1_prop
-        else:
-            if win1_prop >= 0.5:
-                team_win_pct[tuple(team1)] = win1_prop
-            if win2_prop >= 0.5:
-                team_win_pct[tuple(team2)] = win2_prop
+        if win2_prop >= 0.5:
+            team_win_pct[tuple(team2)] = win2_prop
     logger.debug("team win probs", count=len(team_win_pct))
     return dict(sorted(team_win_pct.items(), key=lambda x: x[1]))
 
