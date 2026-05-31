@@ -19,6 +19,11 @@ NON_COMPETITIVE: set[str] = {"EasyArmy", "MediumArmy"}
 MIN_GAMES = 1
 ITERATIONS = 5
 
+# When a game has any CPU player, scale down how far each player's rating moves
+# (both mu and sigma). 1.0 = full movement, 0.0 = no movement. CPU games still
+# count, just with diminished weight.
+CPU_GAME_RATING_SCALE = 0.5
+
 
 @dataclass(slots=True)
 class NamedRating:
@@ -151,19 +156,27 @@ def _update_ratings_for_game(
     surprize_uncertainty_add = _compute_surprise_uncertainty(score_values, prediction)
     logger.debug("rating game", teams=teams, uncertainty_add=surprize_uncertainty_add)
     new_ratings = model.rate(teams=pteams, scores=score_values)
+    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
+    has_cpu = any(
+        name in known_computers for team in teams.values() for name in team
+    )
+    scale = CPU_GAME_RATING_SCALE if has_cpu else 1.0
     updated: dict[str, NamedRating] = {}
     history: dict[str, NamedRating] = {}
     for t in new_ratings:
         for p in t:
-            if p.name is not None:
-                new_rate = NamedRating(
-                    name=p.name,
-                    mu=p.mu,
-                    sigma=p.sigma + surprize_uncertainty_add,
-                    at_date=game.date,
-                )
-                updated[p.name] = new_rate
-                history[p.name] = new_rate
+            if p.name is None:
+                continue
+            prev = players[p.name]
+            target_sigma = p.sigma + surprize_uncertainty_add
+            new_rate = NamedRating(
+                name=p.name,
+                mu=prev.mu + scale * (p.mu - prev.mu),
+                sigma=prev.sigma + scale * (target_sigma - prev.sigma),
+                at_date=game.date,
+            )
+            updated[p.name] = new_rate
+            history[p.name] = new_rate
     return RatingUpdateResult(updated=updated, history=history)
 
 
