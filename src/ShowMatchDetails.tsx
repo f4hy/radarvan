@@ -7,18 +7,14 @@ import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
 import {
-  CartesianGrid,
   Legend,
   Line,
   LineChart,
   ReferenceLine,
   ResponsiveContainer,
-  Scatter,
-  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
-  ZAxis,
 } from "recharts"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
@@ -26,15 +22,22 @@ import { Client } from "./Client"
 import {
   KillEventOutput,
   MatchDetails,
-  Upgrades,
   APM,
   PlayerSummary,
   FirstBlood,
   BuildOrder,
   BuildOrderEntry,
+  TimelineEvent,
 } from "./api"
 import GameMap from "./Map"
-import { Alert, Stack } from "@mui/material"
+import { Alert, Stack, Tooltip as MuiTooltip } from "@mui/material"
+import UpgradeIcon from "@mui/icons-material/Upgrade"
+import StarIcon from "@mui/icons-material/Star"
+import BoltIcon from "@mui/icons-material/Bolt"
+import ConstructionIcon from "@mui/icons-material/Construction"
+import WhatshotIcon from "@mui/icons-material/Whatshot"
+import BatteryAlertIcon from "@mui/icons-material/BatteryAlert"
+import GpsFixedIcon from "@mui/icons-material/GpsFixed"
 import Loading from "./Loading"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
@@ -56,15 +59,6 @@ function getDetails(
     .then(callback)
     .catch(onError)
 }
-
-const shapes: (
-  | "circle"
-  | "cross"
-  | "diamond"
-  | "square"
-  | "star"
-  | "triangle"
-)[] = ["circle", "star", "square", "triangle"]
 
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
@@ -140,68 +134,244 @@ function MoneyChart(props: {
   }
 }
 
+const EVENT_TYPE_META: {
+  type: TimelineEvent["eventType"]
+  label: string
+  // Lanes that share a Y-axis row (e.g. both superweapon variants).
+  row: string
+}[] = [
+  { type: "upgrade", label: "Upgrade", row: "upgrades" },
+  { type: "rank_up", label: "Rank Up", row: "rank ups" },
+  { type: "generals_power", label: "Generals Power", row: "powers" },
+  { type: "superweapon_built", label: "Superweapon Built", row: "superweapon" },
+  {
+    type: "superweapon_activated",
+    label: "Superweapon Activated",
+    row: "superweapon",
+  },
+  {
+    type: "search_and_destroy",
+    label: "Search & Destroy",
+    row: "battle plans",
+  },
+  { type: "low_power", label: "Low Power", row: "energy" },
+]
+
+const ROW_ORDER = [
+  "upgrades",
+  "rank ups",
+  "powers",
+  "superweapon",
+  "battle plans",
+  "energy",
+]
+
+const EVENT_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  EVENT_TYPE_META.map((m) => [m.type, m.label]),
+)
+const ROW_FOR_TYPE: Record<string, string> = Object.fromEntries(
+  EVENT_TYPE_META.map((m) => [m.type, m.row]),
+)
+
+const EVENT_TYPE_ICON: Record<string, React.ElementType> = {
+  upgrade: UpgradeIcon,
+  rank_up: StarIcon,
+  generals_power: BoltIcon,
+  superweapon_built: ConstructionIcon,
+  superweapon_activated: WhatshotIcon,
+  search_and_destroy: GpsFixedIcon,
+  low_power: BatteryAlertIcon,
+}
+
 function EventChart(props: {
-  upgrades: { [name: string]: Upgrades }
+  timelineEvents: TimelineEvent[]
   playerSummaries: PlayerSummary[]
 }) {
-  const names = React.useMemo(
-    () => Object.keys(props.upgrades).sort((x1, x2) => x1.localeCompare(x2)),
-    [props.upgrades],
-  )
-  const colors = buildPlayerColorMap(props.playerSummaries)
-  const max = React.useMemo(
-    () =>
-      Math.max(
-        ...Object.values(props.upgrades).map((u) =>
-          Math.max(...u.upgrades.map((g) => g.atMinute)),
-        ),
-      ),
-    [props.upgrades],
-  )
-  if (props.upgrades && names.length > 0) {
-    return (
-      <ResponsiveContainer width="100%" height={300}>
-        <ScatterChart margin={{ top: 5, right: 10, left: 50, bottom: 5 }}>
-          {names.map((name, idx) => (
-            <Scatter
-              key={name}
-              name={name}
-              fill={_.get(colors, name)}
-              data={props.upgrades[name].upgrades}
-              shape={shapes[idx]}
-              legendType={shapes[idx]}
-            ></Scatter>
-          ))}
-          <XAxis
-            type="number"
-            dataKey="atMinute"
-            domain={[0, max]}
-            tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
-          />
-          <YAxis
-            type="number"
-            dataKey="cost"
-            label={{
-              value: "Cost",
-              position: "insideLeft",
-              fontSize: 25,
-              offset: -30,
-              angle: -90,
-            }}
-          />
-          <ZAxis dataKey="upgradeName" name="upgrade" />
-          <Tooltip
-            cursor={{ strokeDasharray: "3 3" }}
-            labelFormatter={(t) => t + "m"}
-          />
-          <CartesianGrid />
-          <Legend />
-        </ScatterChart>
-      </ResponsiveContainer>
+  const events = props.timelineEvents
+  const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
+  const max = Math.max(0, ...events.map((e) => e.atMinute))
+  const grouped = React.useMemo(() => {
+    const players = Array.from(new Set(events.map((e) => e.playerName))).sort(
+      (a, b) => a.localeCompare(b),
     )
-  } else {
-    return <div></div>
+    const byPlayerThenRow = new Map<string, Map<string, TimelineEvent[]>>()
+    for (const e of events) {
+      const row = ROW_FOR_TYPE[e.eventType] ?? e.eventType
+      const rows =
+        byPlayerThenRow.get(e.playerName) ?? new Map<string, TimelineEvent[]>()
+      const bucket = rows.get(row) ?? []
+      bucket.push(e)
+      rows.set(row, bucket)
+      byPlayerThenRow.set(e.playerName, rows)
+    }
+    return players.map((player) => {
+      const rowMap = byPlayerThenRow.get(player) ?? new Map()
+      const lanes = ROW_ORDER.filter(
+        (r) => (rowMap.get(r) ?? []).length > 0,
+      ).map((r) => ({
+        row: r,
+        events: (rowMap.get(r) as TimelineEvent[]) ?? [],
+      }))
+      return { player, lanes }
+    })
+  }, [events])
+  if (events.length === 0) {
+    return null
   }
+  const tickInterval = max > 30 ? 10 : max > 15 ? 5 : max > 5 ? 2 : 1
+  const ticks: number[] = []
+  for (let t = 0; t <= max; t += tickInterval) ticks.push(t)
+  const LABEL_WIDTH = 200
+  const pct = (m: number) => (max > 0 ? (m / max) * 100 : 0)
+  return (
+    <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+      <Typography variant="h5" sx={{ mb: 1 }}>
+        Event Timeline
+      </Typography>
+      <Box sx={{ display: "flex", alignItems: "flex-end", mb: 0.5 }}>
+        <Box sx={{ width: LABEL_WIDTH, flexShrink: 0 }} />
+        <Box
+          sx={{
+            flex: 1,
+            position: "relative",
+            height: 20,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          {ticks.map((t) => (
+            <Box
+              key={t}
+              sx={{
+                position: "absolute",
+                left: `${pct(t)}%`,
+                transform: "translateX(-50%)",
+                bottom: 0,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {t}m
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+      <Stack divider={<Divider sx={{ my: 0.5 }} />}>
+        {grouped.map(({ player, lanes }) => {
+          const playerColor = colors[player] ?? "#888"
+          return (
+            <Box key={player} sx={{ py: 0.5 }}>
+              <Stack
+                direction="row"
+                spacing={0.75}
+                alignItems="center"
+                mb={0.5}
+              >
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    bgcolor: playerColor,
+                  }}
+                />
+                <Typography variant="subtitle2">{player}</Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                {lanes.map(({ row, events: laneEvents }) => (
+                  <Box
+                    key={row}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: 24,
+                    }}
+                  >
+                    <Box sx={{ width: LABEL_WIDTH, flexShrink: 0, pr: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {row}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        position: "relative",
+                        height: 24,
+                        borderRadius: 0.5,
+                        bgcolor: "action.hover",
+                      }}
+                    >
+                      {laneEvents.map((e, i) => {
+                        const Icon = EVENT_TYPE_ICON[e.eventType] ?? UpgradeIcon
+                        const title = `${e.eventName} · ${EVENT_TYPE_LABEL[e.eventType] ?? e.eventType} · ${e.atMinute.toFixed(2)}m${e.cost ? ` · $${e.cost}` : ""}`
+                        return (
+                          <MuiTooltip key={i} title={title} arrow>
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                left: `${pct(e.atMinute)}%`,
+                                top: "50%",
+                                transform: "translate(-50%, -50%)",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: 22,
+                                height: 22,
+                                borderRadius: "50%",
+                                bgcolor: playerColor,
+                                color: "white",
+                                boxShadow: 1,
+                                "&:hover": {
+                                  transform: "translate(-50%, -50%) scale(1.2)",
+                                },
+                                transition: "transform 0.1s",
+                              }}
+                            >
+                              <Icon sx={{ fontSize: 14 }} />
+                            </Box>
+                          </MuiTooltip>
+                        )
+                      })}
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          )
+        })}
+      </Stack>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mt: 1.5, flexWrap: "wrap" }}
+        alignItems="center"
+      >
+        {EVENT_TYPE_META.map(({ type, label }) => {
+          const Icon = EVENT_TYPE_ICON[type] ?? UpgradeIcon
+          return (
+            <Stack key={type} direction="row" spacing={0.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  bgcolor: "grey.600",
+                  color: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Icon sx={{ fontSize: 12 }} />
+              </Box>
+              <Typography variant="caption">{label}</Typography>
+            </Stack>
+          )
+        })}
+      </Stack>
+    </Paper>
+  )
 }
 
 function ApmChart(props: {
@@ -906,7 +1076,7 @@ function DetailViewSelector(props: {
       )}
       {props.selectedDisplay === "Event Chart" && (
         <EventChart
-          upgrades={props.details.upgradeEvents}
+          timelineEvents={props.details.timelineEvents ?? []}
           playerSummaries={props.details.playerSummary}
         />
       )}

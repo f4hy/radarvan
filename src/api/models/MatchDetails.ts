@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { TimelineEvent } from './TimelineEvent';
+import {
+    TimelineEventFromJSON,
+    TimelineEventFromJSONTyped,
+    TimelineEventToJSON,
+    TimelineEventToJSONTyped,
+} from './TimelineEvent';
 import type { Costs } from './Costs';
 import {
     CostsFromJSON,
@@ -171,6 +178,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     apmOverTime?: { [key: string]: { [key: string]: number; }; };
+    /**
+     * 
+     * @type {Array<TimelineEvent>}
+     * @memberof MatchDetails
+     */
+    timelineEvents?: Array<TimelineEvent>;
 }
 
 /**
@@ -213,6 +226,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'timeToSearchDestroy': json['timeToSearchDestroy'] == null ? undefined : json['timeToSearchDestroy'],
         'buildOrders': json['buildOrders'] == null ? undefined : (mapValues(json['buildOrders'], BuildOrderFromJSON)),
         'apmOverTime': json['apmOverTime'] == null ? undefined : json['apmOverTime'],
+        'timelineEvents': json['timelineEvents'] == null ? undefined : ((json['timelineEvents'] as Array<any>).map(TimelineEventFromJSON)),
     };
 }
 
@@ -244,6 +258,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'timeToSearchDestroy': value['timeToSearchDestroy'],
         'buildOrders': value['buildOrders'] == null ? undefined : (mapValues(value['buildOrders'], BuildOrderToJSON)),
         'apmOverTime': value['apmOverTime'],
+        'timelineEvents': value['timelineEvents'] == null ? undefined : ((value['timelineEvents'] as Array<any>).map(TimelineEventToJSON)),
     };
 }
 

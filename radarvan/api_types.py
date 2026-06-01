@@ -421,6 +421,18 @@ class SuperlativeData(BaseModel):
     time_to_search_destroy: dict[str, float] = Field(default_factory=dict)
 
 
+class TimelineEvent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_name: str = Field(alias="playerName")
+    at_minute: float = Field(alias="atMinute")
+    event_name: str = Field(alias="eventName")
+    # One of: "upgrade", "rank_up", "generals_power",
+    # "superweapon_built", "superweapon_activated".
+    event_type: str = Field(alias="eventType")
+    cost: int = 0
+
+
 class BuildOrderEntry(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -468,6 +480,12 @@ class MatchDetails(BaseModel):
     # Per-minute APM time series: {minute: {player_name: apm}}.
     apm_over_time: dict[float, dict[str, float]] = Field(
         default_factory=dict, alias="apmOverTime"
+    )
+    # All player-driven timeline markers (upgrades, rank ups, generals
+    # powers, superweapon builds & activations). Front-end renders them as
+    # per-player horizontal-lane scatter dots with per-type shapes.
+    timeline_events: list[TimelineEvent] = Field(
+        default_factory=list, alias="timelineEvents"
     )
 
 

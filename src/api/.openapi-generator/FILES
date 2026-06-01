@@ -73,6 +73,7 @@ docs/Team.md
 docs/TeamRecord.md
 docs/TeamSizeGroup.md
 docs/TeamStatsResponse.md
+docs/TimelineEvent.md
 docs/Tournament.md
 docs/TournamentReport.md
 docs/TournamentResult.md
@@ -155,6 +156,7 @@ models/Team.ts
 models/TeamRecord.ts
 models/TeamSizeGroup.ts
 models/TeamStatsResponse.ts
+models/TimelineEvent.ts
 models/Tournament.ts
 models/TournamentReport.ts
 models/TournamentResult.ts

@@ -72,6 +72,7 @@ export * from './Team';
 export * from './TeamRecord';
 export * from './TeamSizeGroup';
 export * from './TeamStatsResponse';
+export * from './TimelineEvent';
 export * from './Tournament';
 export * from './TournamentReport';
 export * from './TournamentResult';

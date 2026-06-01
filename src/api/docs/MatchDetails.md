@@ -23,6 +23,7 @@ Name | Type
 `timeToSearchDestroy` | { [key: string]: number; }
 `buildOrders` | [{ [key: string]: BuildOrder; }](BuildOrder.md)
 `apmOverTime` | { [key: string]: { [key: string]: number; }; }
+`timelineEvents` | [Array&lt;TimelineEvent&gt;](TimelineEvent.md)
 
 ## Example
 
@@ -48,6 +49,7 @@ const example = {
   "timeToSearchDestroy": null,
   "buildOrders": null,
   "apmOverTime": null,
+  "timelineEvents": null,
 } satisfies MatchDetails
 
 console.log(example)

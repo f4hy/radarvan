@@ -18,6 +18,7 @@ from .api_types import (
     KillEventOutput,
     MatchDetails,
     Team,
+    TimelineEvent,
     UpgradeEvent,
     Upgrades,
     SuperlativeData,
@@ -59,11 +60,6 @@ class StatsData(BaseModel):
     buildings_built: dict[float, dict[str, int]]
     tech_buildings_captured: dict[float, dict[str, int]]
     faction_buildings_captured: dict[float, dict[str, int]]
-
-
-class TimelineEvent(BaseModel):
-    minute: float
-    event_name: str
 
 
 class AllExtractedData(BaseModel):
@@ -242,14 +238,9 @@ def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
             continue
         if not chunk.details:
             continue
-        detail_name = (
-            getattr(chunk.details, "Name", None)
-            or (chunk.details.get("name") if isinstance(chunk.details, dict) else None)
-            or ""
-        )
-        detail_cost = getattr(chunk.details, "Cost", None) or (
-            chunk.details.get("cost") if isinstance(chunk.details, dict) else None
-        )
+        details = chunk.details if isinstance(chunk.details, dict) else {}
+        detail_name = details.get("Name") or details.get("name") or ""
+        detail_cost = details.get("Cost") or details.get("cost") or 0
         event = UpgradeEvent(
             player_name=chunk.player_name,
             timecode=chunk.time_code,
@@ -546,6 +537,166 @@ def _build_order_from_replay(
     }
 
 
+# Substrings on the cleaned object name that identify a true superweapon
+# structure (one of the three big base-bound powers).
+_SUPERWEAPON_STRUCTURES = ("NuclearMissileLauncher", "ParticleCannonUplink", "ScudStorm")
+
+# Substrings inside SpecialPower order names that mark a *base* superweapon
+# launch (as opposed to a generals-panel power that the engine also tags
+# "Superweapon*").
+_SUPERWEAPON_ACTIVATION_KEYWORDS = (
+    "NeutronMissile",
+    "NuclearMissile",
+    "ParticleCannon",
+    "ScudStorm",
+    "EMPPulse",
+    "AnthraxBomb",
+    "SpectreGunship",
+)
+
+_POWER_NAME_PREFIXES = ("SpecialAbility", "SpecialPower", "Superweapon")
+
+
+def _clean_power_name(raw: str) -> str:
+    """Strip per-general/faction prefixes and the SpecialPower/Superweapon tag."""
+    cleaned = _clean_object_name(raw)
+    for prefix in _POWER_NAME_PREFIXES:
+        if cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix) :]
+            break
+    return _FACTION_PREFIX_RE.sub("", cleaned)
+
+
+def _timeline_events_from_replay(
+    replay: EnhancedReplayV2,
+    upgrades_by_player: dict[str, Upgrades],
+    name_by_idx: dict[int, str],
+) -> list[TimelineEvent]:
+    """Per-player markers for the timeline chart: upgrades, rank ups, generals
+    powers, and superweapon builds / activations."""
+    scale = minutess_per_step(replay)
+    events: list[TimelineEvent] = []
+
+    for player_name, ups in upgrades_by_player.items():
+        for u in ups.upgrades:
+            events.append(
+                TimelineEvent(
+                    player_name=player_name,
+                    at_minute=u.at_minute,
+                    event_name=_clean_object_name(u.upgrade_name),
+                    event_type="upgrade",
+                    cost=u.cost,
+                )
+            )
+
+    for chunk in replay.body:
+        if chunk.order_name not in ("SpecialPowerAtLocation", "SpecialPowerAtObject"):
+            continue
+        details = chunk.details if isinstance(chunk.details, dict) else {}
+        raw_name = details.get("Name") or details.get("name") or ""
+        if not raw_name or raw_name.startswith("SpecialAbility"):
+            # Unit abilities (capture-building, laser-guided missiles, etc.)
+            # would flood the timeline; the user asked for generals powers
+            # and superweapons only.
+            continue
+        if any(kw in raw_name for kw in _SUPERWEAPON_ACTIVATION_KEYWORDS):
+            event_type = "superweapon_activated"
+        else:
+            event_type = "generals_power"
+        events.append(
+            TimelineEvent(
+                player_name=chunk.player_name,
+                at_minute=chunk.time_code * scale,
+                event_name=_clean_power_name(raw_name) or raw_name,
+                event_type=event_type,
+                cost=0,
+            )
+        )
+
+    if replay.stats is not None:
+        seen_rank: set[tuple[str, int]] = set()
+        for rev in sorted(replay.stats.rank_events, key=lambda e: e.frame):
+            if rev.rank_level <= 1 or rev.frame <= 0:
+                continue
+            name = name_by_idx.get(rev.player)
+            if name is None:
+                continue
+            key = (name, rev.rank_level)
+            if key in seen_rank:
+                continue
+            seen_rank.add(key)
+            events.append(
+                TimelineEvent(
+                    player_name=name,
+                    at_minute=rev.frame * scale,
+                    event_name=f"Rank {rev.rank_level}",
+                    event_type="rank_up",
+                    cost=0,
+                )
+            )
+
+        for bev in replay.stats.build_events:
+            cleaned = _clean_object_name(bev.object)
+            if not any(sw in cleaned for sw in _SUPERWEAPON_STRUCTURES):
+                continue
+            name = name_by_idx.get(bev.player)
+            if name is None:
+                continue
+            events.append(
+                TimelineEvent(
+                    player_name=name,
+                    at_minute=bev.frame * scale,
+                    event_name=cleaned,
+                    event_type="superweapon_built",
+                    cost=bev.cost,
+                )
+            )
+
+        # Search & Destroy battle-plan activations: emit on every 0 → 1 flip.
+        prev_sd: dict[int, int] = {}
+        for bpev in sorted(replay.stats.battle_plan_events, key=lambda e: e.frame):
+            prev = prev_sd.get(bpev.player, 0)
+            prev_sd[bpev.player] = bpev.search_and_destroy
+            if bpev.search_and_destroy <= 0 or prev > 0:
+                continue
+            name = name_by_idx.get(bpev.player)
+            if name is None:
+                continue
+            events.append(
+                TimelineEvent(
+                    player_name=name,
+                    at_minute=bpev.frame * scale,
+                    event_name="Search and Destroy",
+                    event_type="search_and_destroy",
+                    cost=0,
+                )
+            )
+
+        # Low-power transitions: emit when consumption first exceeds production.
+        was_low: dict[int, bool] = {}
+        for eev in sorted(replay.stats.energy_events, key=lambda e: e.frame):
+            is_low_now = eev.consumption > eev.production
+            prev_low = was_low.get(eev.player, False)
+            was_low[eev.player] = is_low_now
+            if not is_low_now or prev_low:
+                continue
+            name = name_by_idx.get(eev.player)
+            if name is None:
+                continue
+            events.append(
+                TimelineEvent(
+                    player_name=name,
+                    at_minute=eev.frame * scale,
+                    event_name=f"Low Power ({eev.consumption} > {eev.production})",
+                    event_type="low_power",
+                    cost=0,
+                )
+            )
+
+    events.sort(key=lambda e: (e.at_minute, e.player_name))
+    return events
+
+
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
@@ -618,6 +769,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         replay, name_by_idx
     )
     build_orders = _build_order_from_replay(replay, name_by_idx, upgrades)
+    timeline_events = _timeline_events_from_replay(replay, upgrades, name_by_idx)
 
     hdr = replay.header
     return MatchDetails(
@@ -644,4 +796,5 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         time_to_search_destroy=time_to_search_destroy,
         build_orders=build_orders,
         apm_over_time=apm_over_time(replay),
+        timeline_events=timeline_events,
     )
