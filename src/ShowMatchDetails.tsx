@@ -7,8 +7,6 @@ import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -21,7 +19,6 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-  Cell,
 } from "recharts"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
@@ -207,41 +204,100 @@ function EventChart(props: {
   }
 }
 
-function ApmChart(props: { apms: APM[]; playerSummaries: PlayerSummary[] }) {
-  if (props.apms.length === 0) {
-    return <div>APM data not yet availible</div>
+function ApmChart(props: {
+  apmOverTime: { [key: string]: { [key: string]: number } }
+  apms: APM[]
+  playerSummaries: PlayerSummary[]
+}) {
+  const minuteKeys = Object.keys(props.apmOverTime)
+  if (minuteKeys.length === 0) {
+    return <div>APM data not available for this replay</div>
   }
+  const players = Object.keys(Object.values(props.apmOverTime)[0])
   const colors = buildPlayerColorMap(props.playerSummaries)
-  const data = _.sortBy(props.apms, (a) => -a.apm)
+  const data: { atMinute: number; [player: string]: number }[] = Object.entries(
+    props.apmOverTime,
+  )
+    .map(([atMinute, values]) => ({
+      ...values,
+      atMinute: Number(atMinute),
+    }))
+    .sort((a, b) => a.atMinute - b.atMinute)
+  const averageByPlayer = new Map(props.apms.map((a) => [a.playerName, a.apm]))
+  const max = Math.max(
+    data.reduce(
+      (acc, row) => Math.max(acc, ...players.map((p) => row[p] ?? 0)),
+      0,
+    ),
+    ...Array.from(averageByPlayer.values()),
+  )
+  const maxTime = data[data.length - 1].atMinute
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 5, right: 10, left: 15, bottom: 20 }}
-      >
-        <XAxis
-          type="number"
-          dataKey="apm"
-          label={{ value: "Actions Per Minute", offset: 1, position: "bottom" }}
-        />
-        <YAxis type="category" dataKey="playerName" />
-        <Bar dataKey="apm">
-          {data.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={_.get(colors, entry.playerName)}
+    <>
+      <Typography variant="h5">
+        APM Over Time (1-min windows, dotted = match average)
+      </Typography>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart
+          data={data}
+          margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
+        >
+          <XAxis
+            type="number"
+            dataKey="atMinute"
+            domain={[0, maxTime]}
+            tickFormatter={(t) => t.toFixed(0) + "m"}
+            name="minutes"
+          />
+          <YAxis
+            label={{
+              value: "APM",
+              position: "insideLeft",
+              fontSize: 25,
+              offset: -30,
+              angle: -90,
+            }}
+            domain={[0, max]}
+          />
+          <Tooltip
+            labelFormatter={(t) => `${Number(t).toFixed(0)}m`}
+            formatter={(value) =>
+              typeof value === "number" ? value.toFixed(0) : value
+            }
+          />
+          <Legend />
+          {players.map((n) => (
+            <Line
+              key={n}
+              dataKey={n}
+              strokeWidth={2}
+              stroke={_.get(colors, n)}
+              dot={false}
             />
           ))}
-        </Bar>
-        <Tooltip
-          cursor={false}
-          formatter={(value) =>
-            typeof value === "number" ? value.toFixed(1) : value
-          }
-        />
-      </BarChart>
-    </ResponsiveContainer>
+          {players.map((n) => {
+            const avg = averageByPlayer.get(n)
+            if (avg === undefined) return null
+            return (
+              <ReferenceLine
+                key={`avg-${n}`}
+                y={avg}
+                stroke={_.get(colors, n)}
+                strokeDasharray="4 4"
+                strokeWidth={1.5}
+                ifOverflow="extendDomain"
+                label={{
+                  value: `${n} avg ${avg.toFixed(1)}`,
+                  position: "right",
+                  fill: _.get(colors, n),
+                  fontSize: 11,
+                }}
+              />
+            )
+          })}
+        </LineChart>
+      </ResponsiveContainer>
+    </>
   )
 }
 
@@ -565,7 +621,11 @@ function DetailedGraphs(props: { details: MatchDetails }) {
   const details = props.details
   return (
     <Paper>
-      <ApmChart apms={details.apms} playerSummaries={details.playerSummary} />
+      <ApmChart
+        apmOverTime={details.apmOverTime ?? {}}
+        apms={details.apms}
+        playerSummaries={details.playerSummary}
+      />
       <Divider />
       <CostBreakdown costs={details.costs} />
       <Divider />

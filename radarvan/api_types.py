@@ -465,6 +465,10 @@ class MatchDetails(BaseModel):
     build_orders: dict[str, BuildOrder] = Field(
         default_factory=dict, alias="buildOrders"
     )
+    # Per-minute APM time series: {minute: {player_name: apm}}.
+    apm_over_time: dict[float, dict[str, float]] = Field(
+        default_factory=dict, alias="apmOverTime"
+    )
 
 
 class PairWinLoss(BaseModel):

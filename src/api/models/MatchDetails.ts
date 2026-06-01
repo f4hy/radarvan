@@ -165,6 +165,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     buildOrders?: { [key: string]: BuildOrder; };
+    /**
+     * 
+     * @type {{ [key: string]: { [key: string]: number; }; }}
+     * @memberof MatchDetails
+     */
+    apmOverTime?: { [key: string]: { [key: string]: number; }; };
 }
 
 /**
@@ -206,6 +212,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'timeToRank5': json['timeToRank5'] == null ? undefined : json['timeToRank5'],
         'timeToSearchDestroy': json['timeToSearchDestroy'] == null ? undefined : json['timeToSearchDestroy'],
         'buildOrders': json['buildOrders'] == null ? undefined : (mapValues(json['buildOrders'], BuildOrderFromJSON)),
+        'apmOverTime': json['apmOverTime'] == null ? undefined : json['apmOverTime'],
     };
 }
 
@@ -236,6 +243,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'timeToRank5': value['timeToRank5'],
         'timeToSearchDestroy': value['timeToSearchDestroy'],
         'buildOrders': value['buildOrders'] == null ? undefined : (mapValues(value['buildOrders'], BuildOrderToJSON)),
+        'apmOverTime': value['apmOverTime'],
     };
 }
 

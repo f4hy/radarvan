@@ -22,6 +22,7 @@ Name | Type
 `timeToRank5` | { [key: string]: number; }
 `timeToSearchDestroy` | { [key: string]: number; }
 `buildOrders` | [{ [key: string]: BuildOrder; }](BuildOrder.md)
+`apmOverTime` | { [key: string]: { [key: string]: number; }; }
 
 ## Example
 
@@ -46,6 +47,7 @@ const example = {
   "timeToRank5": null,
   "timeToSearchDestroy": null,
   "buildOrders": null,
+  "apmOverTime": null,
 } satisfies MatchDetails
 
 console.log(example)

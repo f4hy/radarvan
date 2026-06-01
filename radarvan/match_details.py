@@ -20,13 +20,13 @@ from .api_types import (
     Team,
     UpgradeEvent,
     Upgrades,
-    APM,
     SuperlativeData,
     SuperlativePlayerSummary,
 )
 import structlog
 from dataclasses import dataclass
 from pydantic import BaseModel
+from .apm import apm_over_time, apms_from_replay
 from .utils import minutess_per_step
 
 from .db_utils import ReplayManager, DatabaseManager
@@ -74,69 +74,6 @@ class AllExtractedData(BaseModel):
 
 def _sum(i: int | list[int]) -> int:
     return sum(i) if isinstance(i, list) else i
-
-
-def is_action(order_name: str) -> bool:
-    match order_name:
-        case (
-            "Chunksum" | "DeclareUserId" | "EndReplay" | "SelectBox" | "ClearSelection"
-        ):
-            return False
-        case _ if order_name.startswith("Unknown"):
-            return False
-        case _:
-            return True
-
-
-ACTIVE_ACTIONS = {
-    "AttackMove",
-    "AttackObject",
-    "BuildObject",
-    "BuildUpgrade",
-    "CreateUnit",
-    "MoveTo",
-    "ForceAttackObjectGuard",
-    "FlamewallRocketPodContaminate",
-    "Sell",
-}
-
-
-def is_active_action(order_name: str) -> bool:
-    return order_name in ACTIVE_ACTIONS
-
-
-def apms_from_replay(replay: EnhancedReplayV2) -> list[APM]:
-    players = replay.header.metadata.players
-    action_counts = {p.name: 0 for p in players if int(p.team) >= 0 and p.type != "C"}
-    player_first_active = {p.name: -1 for p in players if int(p.team) >= 0}
-    player_last_active = {p.name: 0 for p in players if int(p.team) >= 0}
-
-    for chunk in replay.body:
-        if chunk.player_name not in action_counts:
-            continue
-        if is_action(chunk.order_name):
-            action_counts[chunk.player_name] += 1
-        if is_active_action(chunk.order_name):
-            player_last_active[chunk.player_name] = chunk.time_code
-            if player_first_active[chunk.player_name] < 0:
-                player_first_active[chunk.player_name] = chunk.time_code
-
-    minutes_per = minutess_per_step(replay)
-
-    player_minutes = {
-        name: (player_last_active[name] - first) * minutes_per
-        for name, first in player_first_active.items()
-    }
-
-    return [
-        APM(
-            player_name=name,
-            action_count=count,
-            minutes=player_minutes[name],
-            apm=count / player_minutes[name],
-        )
-        for name, count in action_counts.items()
-    ]
 
 
 def _is_building(name: str | None) -> bool:
@@ -706,4 +643,5 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         time_to_rank_5=time_to_rank_5,
         time_to_search_destroy=time_to_search_destroy,
         build_orders=build_orders,
+        apm_over_time=apm_over_time(replay),
     )
