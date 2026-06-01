@@ -562,6 +562,112 @@ def _min_candidate(
     return current
 
 
+def get_fastest_rank_5_stats(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    computed_at: date,
+) -> list[Statistic]:
+    """Fastest player ever to reach generals rank 5 in a single match."""
+    fastest: tuple[SuperlativeData, str, float] | None = None
+    for d in details:
+        for name, minute in d.time_to_rank_5.items():
+            resolved = _resolve_attacker(match_info_by_id, d, name)
+            if resolved in EXCLUDED_PLAYERS:
+                continue
+            if fastest is None or minute < fastest[2]:
+                fastest = (d, resolved, minute)
+    if fastest is None:
+        return []
+    return [
+        Statistic(
+            stat_name="🎖️ Fastest to Rank 5",
+            date_computed=computed_at,
+            value=_fmt_duration(fastest[2]),
+            player=fastest[1],
+            match_id=fastest[0].match_id,
+        )
+    ]
+
+
+def get_fastest_search_destroy_stats(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    computed_at: date,
+) -> list[Statistic]:
+    """Fastest activation of USA Search & Destroy battle plan in a single match."""
+    fastest: tuple[SuperlativeData, str, float] | None = None
+    for d in details:
+        for name, minute in d.time_to_search_destroy.items():
+            resolved = _resolve_attacker(match_info_by_id, d, name)
+            if resolved in EXCLUDED_PLAYERS:
+                continue
+            if fastest is None or minute < fastest[2]:
+                fastest = (d, resolved, minute)
+    if fastest is None:
+        return []
+    return [
+        Statistic(
+            stat_name="🎯 Fastest Search & Destroy",
+            date_computed=computed_at,
+            value=_fmt_duration(fastest[2]),
+            player=fastest[1],
+            match_id=fastest[0].match_id,
+        )
+    ]
+
+
+@dataclass(slots=True)
+class _XpTotals:
+    xp: int = 0
+    minutes: float = 0.0
+    games: int = 0
+
+
+def get_xp_rate_stats(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    computed_at: date,
+) -> list[Statistic]:
+    """Player with the highest XP-per-minute rate across all matches.
+
+    Eligibility requires at least MIN_GAMES games and a meaningful total play
+    time so one fluky short match can't take the top.
+    """
+    MIN_GAMES = 5
+    MIN_MINUTES = 30.0
+    totals: dict[str, _XpTotals] = {}
+    for d in details:
+        match_info = match_info_by_id.get(d.match_id)
+        if match_info is None or match_info.duration_minutes <= 0:
+            continue
+        for name, xp in d.player_xp_final.items():
+            if xp <= 0:
+                continue
+            resolved = _resolve_attacker(match_info_by_id, d, name)
+            if resolved in EXCLUDED_PLAYERS:
+                continue
+            entry = totals.setdefault(resolved, _XpTotals())
+            entry.xp += xp
+            entry.minutes += match_info.duration_minutes
+            entry.games += 1
+    eligible = {
+        name: t.xp / t.minutes
+        for name, t in totals.items()
+        if t.games >= MIN_GAMES and t.minutes >= MIN_MINUTES
+    }
+    if not eligible:
+        return []
+    top = max(eligible, key=eligible.__getitem__)
+    return [
+        Statistic(
+            stat_name="⭐ Highest XP Rate (per minute)",
+            date_computed=computed_at,
+            value=round(eligible[top], 1),
+            player=top,
+        )
+    ]
+
+
 def get_efficiency_stats(
     details: list[SuperlativeData],
     computed_at: date,
@@ -820,6 +926,9 @@ def get_superlatives(
             (get_player_money_stats, details, computed_at),
             (get_activity_stats, details, computed_at),
             (get_efficiency_stats, details, computed_at),
+            (get_fastest_rank_5_stats, match_info_by_id, details, computed_at),
+            (get_fastest_search_destroy_stats, match_info_by_id, details, computed_at),
+            (get_xp_rate_stats, match_info_by_id, details, computed_at),
         ]:
             stats.extend(_safe_compute(fn, *args))
 

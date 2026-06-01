@@ -265,7 +265,9 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
     cache_headers = {"Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}"}
     s3_uri = missing_maps_module.find_s3_webp(map_name)
     if s3_uri is not None:
-        presigned = replay_files.presigned_url(s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL)
+        presigned = replay_files.presigned_url(
+            s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL
+        )
         return RedirectResponse(presigned, status_code=302, headers=cache_headers)
     base = map_name.removesuffix(".map")
     for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):

@@ -157,9 +157,7 @@ def _update_ratings_for_game(
     logger.debug("rating game", teams=teams, uncertainty_add=surprize_uncertainty_add)
     new_ratings = model.rate(teams=pteams, scores=score_values)
     known_computers = set(player_ids.CPU_NAME_MAPPING.values())
-    has_cpu = any(
-        name in known_computers for team in teams.values() for name in team
-    )
+    has_cpu = any(name in known_computers for team in teams.values() for name in team)
     scale = CPU_GAME_RATING_SCALE if has_cpu else 1.0
     updated: dict[str, NamedRating] = {}
     history: dict[str, NamedRating] = {}

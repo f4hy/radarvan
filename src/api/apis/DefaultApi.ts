@@ -25,6 +25,7 @@ import type {
   HTTPValidationError,
   HeadToHead,
   MapDataPayload,
+  MapMatchCount,
   MapRenderRequest,
   MapStatsResponse,
   MapSummaryRequest,
@@ -71,6 +72,8 @@ import {
     HeadToHeadToJSON,
     MapDataPayloadFromJSON,
     MapDataPayloadToJSON,
+    MapMatchCountFromJSON,
+    MapMatchCountToJSON,
     MapRenderRequestFromJSON,
     MapRenderRequestToJSON,
     MapStatsResponseFromJSON,
@@ -1079,10 +1082,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/map_image/{map_name}`;
         urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
@@ -1116,6 +1115,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMapImageApiMapImageMapNameGet(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.getMapImageApiMapImageMapNameGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getMapMatchCountsApiMapMatchCountsGet without sending the request
+     */
+    async getMapMatchCountsApiMapMatchCountsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/map_match_counts`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List every map that appears in our match history, with its match count.  Sorted by match count descending.
+     * Get Map Match Counts
+     */
+    async getMapMatchCountsApiMapMatchCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapMatchCount>>> {
+        const requestOptions = await this.getMapMatchCountsApiMapMatchCountsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MapMatchCountFromJSON));
+    }
+
+    /**
+     * List every map that appears in our match history, with its match count.  Sorted by match count descending.
+     * Get Map Match Counts
+     */
+    async getMapMatchCountsApiMapMatchCountsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MapMatchCount>> {
+        const response = await this.getMapMatchCountsApiMapMatchCountsGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -1345,7 +1387,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get details about a particular match
+     * Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Existing details are immutable until reparse, so we also let the browser cache them; an unparsed match returns empty and is not cached so it picks up data once processed.
      * Get Match Details
      */
     async getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
@@ -1356,7 +1398,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get details about a particular match
+     * Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Existing details are immutable until reparse, so we also let the browser cache them; an unparsed match returns empty and is not cached so it picks up data once processed.
      * Get Match Details
      */
     async getMatchDetailsApiDetailsMatchIdGet(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {

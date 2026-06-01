@@ -140,6 +140,18 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     playerMoneyCollected?: { [key: string]: number; };
+    /**
+     * 
+     * @type {{ [key: string]: number; }}
+     * @memberof MatchDetails
+     */
+    timeToRank5?: { [key: string]: number; };
+    /**
+     * 
+     * @type {{ [key: string]: number; }}
+     * @memberof MatchDetails
+     */
+    timeToSearchDestroy?: { [key: string]: number; };
 }
 
 /**
@@ -178,6 +190,8 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'killEvents': json['killEvents'] == null ? undefined : ((json['killEvents'] as Array<any>).map(KillEventOutputFromJSON)),
         'playerMoneySpent': json['player_money_spent'] == null ? undefined : json['player_money_spent'],
         'playerMoneyCollected': json['player_money_collected'] == null ? undefined : json['player_money_collected'],
+        'timeToRank5': json['timeToRank5'] == null ? undefined : json['timeToRank5'],
+        'timeToSearchDestroy': json['timeToSearchDestroy'] == null ? undefined : json['timeToSearchDestroy'],
     };
 }
 
@@ -205,6 +219,8 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'killEvents': value['killEvents'] == null ? undefined : ((value['killEvents'] as Array<any>).map(KillEventOutputToJSON)),
         'player_money_spent': value['playerMoneySpent'],
         'player_money_collected': value['playerMoneyCollected'],
+        'timeToRank5': value['timeToRank5'],
+        'timeToSearchDestroy': value['timeToSearchDestroy'],
     };
 }
 

@@ -624,11 +624,91 @@ function KillMap(props: {
   )
 }
 
+const ACADEMY_ROWS: {
+  key: keyof NonNullable<PlayerSummary["academy"]>
+  label: string
+}[] = [
+  { key: "supplyCentersBuilt", label: "Supply Centers Built" },
+  { key: "secondaryIncomeUnitsBuilt", label: "Secondary Income Units" },
+  { key: "gatherersBuilt", label: "Gatherers Built" },
+  { key: "peonsBuilt", label: "Peons Built" },
+  { key: "salvageCollected", label: "Salvage Collected" },
+  { key: "structuresCaptured", label: "Structures Captured" },
+  { key: "structuresGarrisoned", label: "Structures Garrisoned" },
+  { key: "clearedGarrisonedBuildings", label: "Buildings Cleared" },
+  { key: "minesCleared", label: "Mines Cleared" },
+  { key: "vehiclesDisguised", label: "Vehicles Disguised" },
+  { key: "upgradesPurchased", label: "Upgrades Purchased" },
+  { key: "heroesBuilt", label: "Heroes Built" },
+  { key: "firestormsCreated", label: "Firestorms Created" },
+  { key: "specialPowersUsed", label: "Special Powers Used" },
+  { key: "generalsPointsSpent", label: "Generals Points Spent" },
+  { key: "controlGroupsUsed", label: "Control Groups Used" },
+  {
+    key: "doubleClickAttackMoveOrdersGiven",
+    label: "Double-Click Attack-Moves",
+  },
+  { key: "guardAbilityUsedCount", label: "Guard Ability Uses" },
+]
+
+function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
+  const players = props.playerSummaries
+  const anyData = players.some((p) => p.academy != null)
+  if (!anyData) {
+    return <Typography>No academy stats available for this replay.</Typography>
+  }
+  return (
+    <TableContainer component={Paper}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Stat</TableCell>
+            {players.map((p) => (
+              <TableCell key={p.name} align="right">
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  alignItems="center"
+                  justifyContent="flex-end"
+                >
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      bgcolor: getColorHex(p.color),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{p.name}</span>
+                </Stack>
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {ACADEMY_ROWS.map((row) => (
+            <TableRow key={row.key}>
+              <TableCell>{row.label}</TableCell>
+              {players.map((p) => (
+                <TableCell key={p.name} align="right">
+                  {p.academy ? p.academy[row.key].toLocaleString() : "—"}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
 type Displays =
   | "Player Unit and spending breakdown"
   | "Event Chart"
   | "Detailed Graphs"
   | "Kill Map"
+  | "Academy"
 
 function DetailViewSelector(props: {
   selectedDisplay: Displays | null
@@ -679,6 +759,9 @@ function DetailViewSelector(props: {
           mapName={props.details.mapName ?? ""}
         />
       )}
+      {props.selectedDisplay === "Academy" && (
+        <AcademyTable playerSummaries={props.details.playerSummary} />
+      )}
     </>
   )
 }
@@ -705,6 +788,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Event Chart",
     "Detailed Graphs",
     "Kill Map",
+    "Academy",
   ]
 
   return (

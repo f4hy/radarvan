@@ -339,6 +339,31 @@ class ObjectSummary(BaseModel):
     TotalSpent: int
 
 
+class AcademyStats(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    cleared_garrisoned_buildings: int = Field(alias="clearedGarrisonedBuildings")
+    control_groups_used: int = Field(alias="controlGroupsUsed")
+    double_click_attack_move_orders_given: int = Field(
+        alias="doubleClickAttackMoveOrdersGiven"
+    )
+    firestorms_created: int = Field(alias="firestormsCreated")
+    gatherers_built: int = Field(alias="gatherersBuilt")
+    generals_points_spent: int = Field(alias="generalsPointsSpent")
+    guard_ability_used_count: int = Field(alias="guardAbilityUsedCount")
+    heroes_built: int = Field(alias="heroesBuilt")
+    mines_cleared: int = Field(alias="minesCleared")
+    peons_built: int = Field(alias="peonsBuilt")
+    salvage_collected: int = Field(alias="salvageCollected")
+    secondary_income_units_built: int = Field(alias="secondaryIncomeUnitsBuilt")
+    special_powers_used: int = Field(alias="specialPowersUsed")
+    structures_captured: int = Field(alias="structuresCaptured")
+    structures_garrisoned: int = Field(alias="structuresGarrisoned")
+    supply_centers_built: int = Field(alias="supplyCentersBuilt")
+    upgrades_purchased: int = Field(alias="upgradesPurchased")
+    vehicles_disguised: int = Field(alias="vehiclesDisguised")
+
+
 class PlayerSummary(BaseModel):
     model_config = _SLOTS
 
@@ -355,6 +380,7 @@ class PlayerSummary(BaseModel):
     BuildingsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
     UnitsLost: dict[str, ObjectSummary] = Field(default_factory=dict)
     BuildingsLost: dict[str, ObjectSummary] = Field(default_factory=dict)
+    Academy: AcademyStats | None = None
 
 
 class FirstBlood(BaseModel):
@@ -390,6 +416,9 @@ class SuperlativeData(BaseModel):
     total_xp: int
     match_money_spent: int
     player_money_collected: dict[str, int]
+    player_xp_final: dict[str, int] = Field(default_factory=dict)
+    time_to_rank_5: dict[str, float] = Field(default_factory=dict)
+    time_to_search_destroy: dict[str, float] = Field(default_factory=dict)
 
 
 class MatchDetails(BaseModel):
@@ -410,6 +439,12 @@ class MatchDetails(BaseModel):
     kill_events: list[KillEventOutput] = Field(default_factory=list, alias="killEvents")
     player_money_spent: dict[str, int] = Field(default_factory=dict)
     player_money_collected: dict[str, int] = Field(default_factory=dict)
+    # Minute at which each player first hit generals rank 5.
+    time_to_rank_5: dict[str, float] = Field(default_factory=dict, alias="timeToRank5")
+    # Minute at which each player first activated USA Search & Destroy battle plan.
+    time_to_search_destroy: dict[str, float] = Field(
+        default_factory=dict, alias="timeToSearchDestroy"
+    )
 
 
 class PairWinLoss(BaseModel):

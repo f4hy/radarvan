@@ -19,6 +19,7 @@ Name | Type
 `buildingsDestroyed` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `unitsLost` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `buildingsLost` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
+`academy` | [AcademyStats](AcademyStats.md)
 
 ## Example
 
@@ -40,6 +41,7 @@ const example = {
   "buildingsDestroyed": null,
   "unitsLost": null,
   "buildingsLost": null,
+  "academy": null,
 } satisfies PlayerSummary
 
 console.log(example)

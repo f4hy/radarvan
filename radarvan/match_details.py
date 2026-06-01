@@ -11,6 +11,7 @@ from .api_types import (
 )
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .api_types import (
+    AcademyStats,
     KillEventOutput,
     MatchDetails,
     Team,
@@ -345,6 +346,11 @@ def api_player_summaries(
         if s.team == Team.OBSERVER:
             continue
         color = (color_map.get(s.name, "") or "black").lower().replace("color", "")
+        academy = (
+            AcademyStats.model_validate(s.academy.model_dump())
+            if s.academy is not None
+            else None
+        )
         player_summaries.append(
             APIPlayerSummary(
                 Name=s.name,
@@ -369,6 +375,7 @@ def api_player_summaries(
                 BuildingsDestroyed=(buildings_destroyed or {}).get(s.name, {}),
                 UnitsLost=(units_lost or {}).get(s.name, {}),
                 BuildingsLost=(buildings_lost or {}).get(s.name, {}),
+                Academy=academy,
             )
         )
     return player_summaries
@@ -426,6 +433,12 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
             return 0
         return sum(data[max(data)].values())
 
+    def _last_per_player(key: str) -> dict[str, int]:
+        data = d.stats_data.get(key, {})
+        if not data:
+            return {}
+        return dict(data[max(data)])
+
     player_summary = [
         SuperlativePlayerSummary(
             name=ps.Name,
@@ -454,6 +467,9 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
         total_xp=_last_total("xp"),
         match_money_spent=sum(d.player_money_spent.values()),
         player_money_collected=d.player_money_collected,
+        player_xp_final=_last_per_player("xp"),
+        time_to_rank_5=dict(d.time_to_rank_5),
+        time_to_search_destroy=dict(d.time_to_search_destroy),
     )
 
 
@@ -488,6 +504,35 @@ async def load_many_superlative_data(
         chunk_results = await asyncio.gather(*[_bounded(mid) for mid in chunk])
         all_results.extend(r for r in chunk_results if r is not None)
     return all_results
+
+
+def _milestone_timings_from_replay(
+    replay: EnhancedReplayV2, name_by_idx: dict[int, str]
+) -> tuple[dict[str, float], dict[str, float]]:
+    """Return (time_to_rank_5, time_to_search_destroy) in minutes, keyed by player name.
+
+    Each map only contains entries for players who actually reached the milestone.
+    """
+    time_to_rank_5: dict[str, float] = {}
+    time_to_search_destroy: dict[str, float] = {}
+    if replay.stats is None:
+        return time_to_rank_5, time_to_search_destroy
+    scale = minutess_per_step(replay)
+    for rev in replay.stats.rank_events:
+        if rev.rank_level < 5:
+            continue
+        name = name_by_idx.get(rev.player)
+        if name is None or name in time_to_rank_5:
+            continue
+        time_to_rank_5[name] = rev.frame * scale
+    for bpev in replay.stats.battle_plan_events:
+        if bpev.search_and_destroy <= 0:
+            continue
+        name = name_by_idx.get(bpev.player)
+        if name is None or name in time_to_search_destroy:
+            continue
+        time_to_search_destroy[name] = bpev.frame * scale
+    return time_to_rank_5, time_to_search_destroy
 
 
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
@@ -558,6 +603,10 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             lost[victim_name][kev.victim][0] += 1
             lost[victim_name][kev.victim][1] += cost
 
+    time_to_rank_5, time_to_search_destroy = _milestone_timings_from_replay(
+        replay, name_by_idx
+    )
+
     hdr = replay.header
     return MatchDetails(
         match_id=replay.replay_id,
@@ -579,4 +628,6 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             buildings_lost=_to_obj_map(bl_by_player),
         ),
         kill_events=kill_events,
+        time_to_rank_5=time_to_rank_5,
+        time_to_search_destroy=time_to_search_destroy,
     )

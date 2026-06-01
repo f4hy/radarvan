@@ -1,6 +1,7 @@
 apis/DefaultApi.ts
 apis/index.ts
 docs/APM.md
+docs/AcademyStats.md
 docs/Costs.md
 docs/CostsBuiltObject.md
 docs/DateMessage.md
@@ -28,6 +29,7 @@ docs/MapData.md
 docs/MapDataPayload.md
 docs/MapExtent.md
 docs/MapGeneralWL.md
+docs/MapMatchCount.md
 docs/MapPlayerStart.md
 docs/MapPlayerWL.md
 docs/MapPoint.md
@@ -80,6 +82,7 @@ docs/WinLoss.md
 docs/WinnerOverride.md
 index.ts
 models/APM.ts
+models/AcademyStats.ts
 models/Costs.ts
 models/CostsBuiltObject.ts
 models/DateMessage.ts
@@ -106,6 +109,7 @@ models/MapData.ts
 models/MapDataPayload.ts
 models/MapExtent.ts
 models/MapGeneralWL.ts
+models/MapMatchCount.ts
 models/MapPlayerStart.ts
 models/MapPlayerWL.ts
 models/MapPoint.ts

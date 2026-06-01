@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './APM';
+export * from './AcademyStats';
 export * from './Costs';
 export * from './CostsBuiltObject';
 export * from './DateMessage';
@@ -27,6 +28,7 @@ export * from './MapData';
 export * from './MapDataPayload';
 export * from './MapExtent';
 export * from './MapGeneralWL';
+export * from './MapMatchCount';
 export * from './MapPlayerStart';
 export * from './MapPlayerWL';
 export * from './MapPoint';

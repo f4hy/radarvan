@@ -19,6 +19,8 @@ Name | Type
 `killEvents` | [Array&lt;KillEventOutput&gt;](KillEventOutput.md)
 `playerMoneySpent` | { [key: string]: number; }
 `playerMoneyCollected` | { [key: string]: number; }
+`timeToRank5` | { [key: string]: number; }
+`timeToSearchDestroy` | { [key: string]: number; }
 
 ## Example
 
@@ -40,6 +42,8 @@ const example = {
   "killEvents": null,
   "playerMoneySpent": null,
   "playerMoneyCollected": null,
+  "timeToRank5": null,
+  "timeToSearchDestroy": null,
 } satisfies MatchDetails
 
 console.log(example)

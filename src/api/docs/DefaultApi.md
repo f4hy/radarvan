@@ -20,6 +20,7 @@ All URIs are relative to *http://localhost*
 | [**getHeadToHeadApiPlayerRatingsHeadToHeadGet**](DefaultApi.md#getheadtoheadapiplayerratingsheadtoheadget) | **GET** /api/player_ratings/head_to_head/ | Get Head To Head |
 | [**getMapDataApiMapDataMapNameGet**](DefaultApi.md#getmapdataapimapdatamapnameget) | **GET** /api/map_data/{map_name} | Get Map Data |
 | [**getMapImageApiMapImageMapNameGet**](DefaultApi.md#getmapimageapimapimagemapnameget) | **GET** /api/map_image/{map_name} | Get Map Image |
+| [**getMapMatchCountsApiMapMatchCountsGet**](DefaultApi.md#getmapmatchcountsapimapmatchcountsget) | **GET** /api/map_match_counts | Get Map Match Counts |
 | [**getMapStatsApiMapStatsGet**](DefaultApi.md#getmapstatsapimapstatsget) | **GET** /api/map_stats/ | Get Map Stats |
 | [**getMapSummaryApiMapSummaryPost**](DefaultApi.md#getmapsummaryapimapsummarypost) | **POST** /api/map_summary/ | Get Map Summary |
 | [**getMapsByPlayerCountApiMapsByPlayerCountGet**](DefaultApi.md#getmapsbyplayercountapimapsbyplayercountget) | **GET** /api/maps_by_player_count | Get Maps By Player Count |
@@ -1145,11 +1146,7 @@ import type { GetMapImageApiMapImageMapNameGetRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // string
@@ -1181,7 +1178,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -1194,6 +1191,69 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getMapMatchCountsApiMapMatchCountsGet
+
+> Array&lt;MapMatchCount&gt; getMapMatchCountsApiMapMatchCountsGet()
+
+Get Map Match Counts
+
+List every map that appears in our match history, with its match count.  Sorted by match count descending.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetMapMatchCountsApiMapMatchCountsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.getMapMatchCountsApiMapMatchCountsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;MapMatchCount&gt;**](MapMatchCount.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1474,7 +1534,7 @@ example().catch(console.error);
 
 Get Match Details
 
-Get details about a particular match
+Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Existing details are immutable until reparse, so we also let the browser cache them; an unparsed match returns empty and is not cached so it picks up data once processed.
 
 ### Example
 

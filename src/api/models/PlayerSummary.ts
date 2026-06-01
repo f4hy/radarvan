@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AcademyStats } from './AcademyStats';
+import {
+    AcademyStatsFromJSON,
+    AcademyStatsFromJSONTyped,
+    AcademyStatsToJSON,
+    AcademyStatsToJSONTyped,
+} from './AcademyStats';
 import type { ObjectSummary } from './ObjectSummary';
 import {
     ObjectSummaryFromJSON,
@@ -105,6 +112,12 @@ export interface PlayerSummary {
      * @memberof PlayerSummary
      */
     buildingsLost?: { [key: string]: ObjectSummary; };
+    /**
+     * 
+     * @type {AcademyStats}
+     * @memberof PlayerSummary
+     */
+    academy?: AcademyStats | null;
 }
 
 /**
@@ -146,6 +159,7 @@ export function PlayerSummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'buildingsDestroyed': json['BuildingsDestroyed'] == null ? undefined : (mapValues(json['BuildingsDestroyed'], ObjectSummaryFromJSON)),
         'unitsLost': json['UnitsLost'] == null ? undefined : (mapValues(json['UnitsLost'], ObjectSummaryFromJSON)),
         'buildingsLost': json['BuildingsLost'] == null ? undefined : (mapValues(json['BuildingsLost'], ObjectSummaryFromJSON)),
+        'academy': json['Academy'] == null ? undefined : AcademyStatsFromJSON(json['Academy']),
     };
 }
 
@@ -173,6 +187,7 @@ export function PlayerSummaryToJSONTyped(value?: PlayerSummary | null, ignoreDis
         'BuildingsDestroyed': value['buildingsDestroyed'] == null ? undefined : (mapValues(value['buildingsDestroyed'], ObjectSummaryToJSON)),
         'UnitsLost': value['unitsLost'] == null ? undefined : (mapValues(value['unitsLost'], ObjectSummaryToJSON)),
         'BuildingsLost': value['buildingsLost'] == null ? undefined : (mapValues(value['buildingsLost'], ObjectSummaryToJSON)),
+        'Academy': AcademyStatsToJSON(value['academy']),
     };
 }
 
