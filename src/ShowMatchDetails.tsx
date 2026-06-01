@@ -33,6 +33,8 @@ import {
   APM,
   PlayerSummary,
   FirstBlood,
+  BuildOrder,
+  BuildOrderEntry,
 } from "./api"
 import GameMap from "./Map"
 import { Alert, Stack } from "@mui/material"
@@ -703,12 +705,111 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
   )
 }
 
+function fmtMinSec(min: number): string {
+  const totalSec = Math.max(0, Math.round(min * 60))
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${m}:${s.toString().padStart(2, "0")}`
+}
+
+function BuildOrderColumn(props: {
+  title: string
+  entries: BuildOrderEntry[]
+}) {
+  return (
+    <Box sx={{ minWidth: 180 }}>
+      <Typography variant="subtitle2">{props.title}</Typography>
+      {props.entries.length === 0 ? (
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          —
+        </Typography>
+      ) : (
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            columnGap: 1.5,
+            rowGap: 0.25,
+            fontFamily: "monospace",
+            fontSize: "0.875rem",
+            alignItems: "baseline",
+          }}
+        >
+          {props.entries.map((e, i) => (
+            <React.Fragment key={i}>
+              <Box sx={{ color: "text.secondary", textAlign: "right" }}>
+                {fmtMinSec(e.atMinute)}
+              </Box>
+              <Box>{e.name}</Box>
+            </React.Fragment>
+          ))}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+function BuildOrderTab(props: {
+  buildOrders: { [name: string]: BuildOrder }
+  playerSummaries: PlayerSummary[]
+}) {
+  const players = props.playerSummaries.filter(
+    (p) => props.buildOrders[p.name] !== undefined,
+  )
+  if (players.length === 0) {
+    return (
+      <Typography>No build order data available for this replay.</Typography>
+    )
+  }
+  return (
+    <Stack
+      direction="row"
+      spacing={3}
+      sx={{ flexWrap: "wrap", alignItems: "flex-start" }}
+    >
+      {players.map((p) => {
+        const order = props.buildOrders[p.name]
+        return (
+          <Paper key={p.name} sx={{ p: 2, mb: 2 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ mb: 1 }}
+            >
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  bgcolor: getColorHex(p.color),
+                  flexShrink: 0,
+                }}
+              />
+              <Typography variant="h6">{p.name}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                ({p.side})
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={3}>
+              <BuildOrderColumn title="Buildings" entries={order.buildings} />
+              <BuildOrderColumn title="Units" entries={order.units} />
+              <BuildOrderColumn title="Upgrades" entries={order.upgrades} />
+            </Stack>
+          </Paper>
+        )
+      })}
+    </Stack>
+  )
+}
+
 type Displays =
   | "Player Unit and spending breakdown"
   | "Event Chart"
   | "Detailed Graphs"
   | "Kill Map"
   | "Academy"
+  | "Build Order"
 
 function DetailViewSelector(props: {
   selectedDisplay: Displays | null
@@ -762,6 +863,12 @@ function DetailViewSelector(props: {
       {props.selectedDisplay === "Academy" && (
         <AcademyTable playerSummaries={props.details.playerSummary} />
       )}
+      {props.selectedDisplay === "Build Order" && (
+        <BuildOrderTab
+          buildOrders={props.details.buildOrders ?? {}}
+          playerSummaries={props.details.playerSummary}
+        />
+      )}
     </>
   )
 }
@@ -789,6 +896,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Detailed Graphs",
     "Kill Map",
     "Academy",
+    "Build Order",
   ]
 
   return (

@@ -2,6 +2,8 @@
 /* eslint-disable */
 export * from './APM';
 export * from './AcademyStats';
+export * from './BuildOrder';
+export * from './BuildOrderEntry';
 export * from './Costs';
 export * from './CostsBuiltObject';
 export * from './DateMessage';

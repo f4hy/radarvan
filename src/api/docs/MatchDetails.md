@@ -21,6 +21,7 @@ Name | Type
 `playerMoneyCollected` | { [key: string]: number; }
 `timeToRank5` | { [key: string]: number; }
 `timeToSearchDestroy` | { [key: string]: number; }
+`buildOrders` | [{ [key: string]: BuildOrder; }](BuildOrder.md)
 
 ## Example
 
@@ -44,6 +45,7 @@ const example = {
   "playerMoneyCollected": null,
   "timeToRank5": null,
   "timeToSearchDestroy": null,
+  "buildOrders": null,
 } satisfies MatchDetails
 
 console.log(example)

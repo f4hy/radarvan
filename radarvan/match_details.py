@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections import defaultdict
 
 from .api_types import (
@@ -12,6 +13,8 @@ from .api_types import (
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .api_types import (
     AcademyStats,
+    BuildOrder,
+    BuildOrderEntry,
     KillEventOutput,
     MatchDetails,
     Team,
@@ -535,6 +538,77 @@ def _milestone_timings_from_replay(
     return time_to_rank_5, time_to_search_destroy
 
 
+_FACTION_PREFIX_RE = re.compile(r"^(China|America|GLA)")
+
+
+def _clean_object_name(name: str) -> str:
+    """Strip per-general (e.g. ``Chem_``) and side (``China`` / ``America`` /
+    ``GLA``) prefixes from a cncstats object name."""
+    if "_" in name:
+        name = name.split("_", 1)[1]
+    return _FACTION_PREFIX_RE.sub("", name)
+
+
+def _build_order_from_replay(
+    replay: EnhancedReplayV2,
+    name_by_idx: dict[int, str],
+    upgrades_by_player: dict[str, Upgrades],
+) -> dict[str, BuildOrder]:
+    """First 10 buildings, units, and upgrades per player, in chronological order.
+
+    Buildings vs units come straight from cncstats's ``objectType`` on each
+    build event — ``structure`` is a building, everything else (infantry,
+    vehicle, missing) is treated as a unit. The per-player ``buildings_built``
+    / ``units_created`` summary maps aren't always populated, so we don't rely
+    on them.
+    """
+    scale = minutess_per_step(replay)
+    buildings: dict[str, list[BuildOrderEntry]] = defaultdict(list)
+    units: dict[str, list[BuildOrderEntry]] = defaultdict(list)
+    if replay.stats is not None:
+        for bev in sorted(replay.stats.build_events, key=lambda e: e.frame):
+            # Skip game-spawned starters (Command Center + Dozer/Worker) which
+            # appear at frame 0.
+            if bev.frame == 0:
+                continue
+            name = name_by_idx.get(bev.player)
+            if name is None:
+                continue
+            entry = BuildOrderEntry(
+                at_minute=bev.frame * scale,
+                name=_clean_object_name(bev.object),
+                cost=bev.cost,
+            )
+            if bev.object_type == "structure":
+                if len(buildings[name]) < 10:
+                    buildings[name].append(entry)
+            else:
+                if len(units[name]) < 10:
+                    units[name].append(entry)
+
+    upgrades: dict[str, list[BuildOrderEntry]] = {}
+    for player_name, ups in upgrades_by_player.items():
+        first_ten = sorted(ups.upgrades, key=lambda u: u.at_minute)[:10]
+        upgrades[player_name] = [
+            BuildOrderEntry(
+                at_minute=u.at_minute,
+                name=_clean_object_name(u.upgrade_name),
+                cost=u.cost,
+            )
+            for u in first_ten
+        ]
+
+    all_names = set(buildings) | set(units) | set(upgrades)
+    return {
+        name: BuildOrder(
+            buildings=buildings.get(name, []),
+            units=units.get(name, []),
+            upgrades=upgrades.get(name, []),
+        )
+        for name in all_names
+    }
+
+
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
@@ -606,6 +680,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     time_to_rank_5, time_to_search_destroy = _milestone_timings_from_replay(
         replay, name_by_idx
     )
+    build_orders = _build_order_from_replay(replay, name_by_idx, upgrades)
 
     hdr = replay.header
     return MatchDetails(
@@ -630,4 +705,5 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         kill_events=kill_events,
         time_to_rank_5=time_to_rank_5,
         time_to_search_destroy=time_to_search_destroy,
+        build_orders=build_orders,
     )

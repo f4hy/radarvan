@@ -421,6 +421,22 @@ class SuperlativeData(BaseModel):
     time_to_search_destroy: dict[str, float] = Field(default_factory=dict)
 
 
+class BuildOrderEntry(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: float = Field(alias="atMinute")
+    name: str
+    cost: int
+
+
+class BuildOrder(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    buildings: list[BuildOrderEntry]
+    units: list[BuildOrderEntry]
+    upgrades: list[BuildOrderEntry]
+
+
 class MatchDetails(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -444,6 +460,10 @@ class MatchDetails(BaseModel):
     # Minute at which each player first activated USA Search & Destroy battle plan.
     time_to_search_destroy: dict[str, float] = Field(
         default_factory=dict, alias="timeToSearchDestroy"
+    )
+    # Per-player first-10 build order: buildings, units, upgrades.
+    build_orders: dict[str, BuildOrder] = Field(
+        default_factory=dict, alias="buildOrders"
     )
 
 

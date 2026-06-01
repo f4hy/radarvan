@@ -2,6 +2,8 @@ apis/DefaultApi.ts
 apis/index.ts
 docs/APM.md
 docs/AcademyStats.md
+docs/BuildOrder.md
+docs/BuildOrderEntry.md
 docs/Costs.md
 docs/CostsBuiltObject.md
 docs/DateMessage.md
@@ -83,6 +85,8 @@ docs/WinnerOverride.md
 index.ts
 models/APM.ts
 models/AcademyStats.ts
+models/BuildOrder.ts
+models/BuildOrderEntry.ts
 models/Costs.ts
 models/CostsBuiltObject.ts
 models/DateMessage.ts

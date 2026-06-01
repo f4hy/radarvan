@@ -34,6 +34,13 @@ import {
     UpgradesToJSON,
     UpgradesToJSONTyped,
 } from './Upgrades';
+import type { BuildOrder } from './BuildOrder';
+import {
+    BuildOrderFromJSON,
+    BuildOrderFromJSONTyped,
+    BuildOrderToJSON,
+    BuildOrderToJSONTyped,
+} from './BuildOrder';
 import type { FirstBlood } from './FirstBlood';
 import {
     FirstBloodFromJSON,
@@ -152,6 +159,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     timeToSearchDestroy?: { [key: string]: number; };
+    /**
+     * 
+     * @type {{ [key: string]: BuildOrder; }}
+     * @memberof MatchDetails
+     */
+    buildOrders?: { [key: string]: BuildOrder; };
 }
 
 /**
@@ -192,6 +205,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'playerMoneyCollected': json['player_money_collected'] == null ? undefined : json['player_money_collected'],
         'timeToRank5': json['timeToRank5'] == null ? undefined : json['timeToRank5'],
         'timeToSearchDestroy': json['timeToSearchDestroy'] == null ? undefined : json['timeToSearchDestroy'],
+        'buildOrders': json['buildOrders'] == null ? undefined : (mapValues(json['buildOrders'], BuildOrderFromJSON)),
     };
 }
 
@@ -221,6 +235,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'player_money_collected': value['playerMoneyCollected'],
         'timeToRank5': value['timeToRank5'],
         'timeToSearchDestroy': value['timeToSearchDestroy'],
+        'buildOrders': value['buildOrders'] == null ? undefined : (mapValues(value['buildOrders'], BuildOrderToJSON)),
     };
 }
 
