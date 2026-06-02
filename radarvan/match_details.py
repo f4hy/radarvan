@@ -1,227 +1,46 @@
-"""Get match info from a replay."""
+"""Top-level MatchDetails orchestration.
+
+Builds the wire-shape `MatchDetails` returned by `/api/details/{match_id}` by
+pulling together the per-concern extractors:
+
+- APM / APM-over-time → `radarvan.apm`
+- time-series + first-blood → `radarvan.stats_extraction`
+- per-player build order → `radarvan.build_order`
+- timeline markers → `radarvan.timeline_events`
+- rank-5 / search-and-destroy timings → `radarvan.stats_extraction`
+
+Also owns the body-stream upgrade extraction (`events_from_replay`),
+per-player kill/loss aggregation, and the DB-bound loaders.
+"""
 
 from __future__ import annotations
 
 import asyncio
-import re
 from collections import defaultdict
 
 from .api_types import (
-    PlayerSummary as APIPlayerSummary,
-    ObjectSummary as APIObjectSummary,
-)
-from .cncstats_model.zhreplay import EnhancedReplayV2
-from .api_types import (
     AcademyStats,
-    BuildOrder,
-    BuildOrderEntry,
     KillEventOutput,
     MatchDetails,
+    ObjectSummary as APIObjectSummary,
+    PlayerSummary as APIPlayerSummary,
     Team,
-    TimelineEvent,
     UpgradeEvent,
     Upgrades,
-    SuperlativeData,
-    SuperlativePlayerSummary,
 )
-import structlog
-from dataclasses import dataclass
-from pydantic import BaseModel
 from .apm import apm_over_time, apms_from_replay
+from .build_order import build_order_from_replay
+from .cncstats_model.zhreplay import EnhancedReplayV2
+from .db_utils import DatabaseManager, ReplayManager
+from .stats_extraction import (
+    milestone_timings_from_replay,
+    stats_data_from_replay,
+)
+from .timeline_events import timeline_events_from_replay
 from .utils import minutess_per_step
-
-from .db_utils import ReplayManager, DatabaseManager
+import structlog
 
 logger = structlog.get_logger(__name__)
-
-
-@dataclass
-class MoneyData:
-    player_monies: dict[float, dict[str, int]]
-    player_collected: dict[float, dict[str, int]]
-
-
-class FirstBlood(BaseModel):
-    attacker: str
-    victim: str
-    atMinute: float
-
-
-class StatsData(BaseModel):
-    xp: dict[float, dict[str, int]]
-    units_built: dict[float, dict[str, int]]
-    units_lost: dict[float, dict[str, int]]
-    money: dict[float, dict[str, int]]
-    money_earned: dict[float, dict[str, int]]
-    money_spent: dict[float, dict[str, int]]
-    units_killed: dict[float, dict[str, int]]
-    buildings_killed: dict[float, dict[str, int]]
-    buildings_lost: dict[float, dict[str, int]]
-    buildings_built: dict[float, dict[str, int]]
-    tech_buildings_captured: dict[float, dict[str, int]]
-    faction_buildings_captured: dict[float, dict[str, int]]
-
-
-class AllExtractedData(BaseModel):
-    stats_data: StatsData
-    first_blood: FirstBlood | None
-    building_first_blood: FirstBlood | None
-
-
-def _sum(i: int | list[int]) -> int:
-    return sum(i) if isinstance(i, list) else i
-
-
-def _is_building(name: str | None) -> bool:
-    return name == "structure"
-
-
-def _event_counts_to_series(
-    deltas_by_frame: dict[int, dict[str, int]],
-    all_players: set[str],
-    scale: float,
-) -> dict[float, dict[str, int]]:
-    """Convert per-frame event count deltas into a cumulative time series."""
-    result: dict[float, dict[str, int]] = {}
-    cumulative: dict[str, int] = dict.fromkeys(all_players, 0)
-    for frame in sorted(deltas_by_frame):
-        for name, delta in deltas_by_frame[frame].items():
-            cumulative[name] = cumulative.get(name, 0) + delta
-        result[frame * scale] = dict(cumulative)
-    return result
-
-
-def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
-    """Get stats data from replay."""
-
-    if not replay.stats or not replay.game_info:
-        return None
-
-    scale = minutess_per_step(replay)
-    name_by_idx: dict[int, str] = {p.index: p.name for p in replay.summary}
-    all_players: set[str] = set(name_by_idx.values())
-    header_team_by_name = {p.name: int(p.team) for p in replay.header.metadata.players}
-    team_by_idx = {
-        idx: header_team_by_name.get(name, -1) for idx, name in name_by_idx.items()
-    }
-    # money_earned from time series snapshots
-    interval = replay.game_info.snapshot_interval
-    ts_players = [p for p in replay.stats.time_series.players if p.index in name_by_idx]
-    num_snapshots = max((len(p.money_earned) for p in ts_players), default=0)
-    money_earned: dict[float, dict[str, int]] = {}
-    money_spent: dict[float, dict[str, int]] = {}
-    money: dict[float, dict[str, int]] = {}
-    for snap_idx in range(num_snapshots):
-        frame = snap_idx * interval
-        money_earned[frame * scale] = {
-            name_by_idx[p.index]: p.money_earned[snap_idx]
-            for p in ts_players
-            if snap_idx < len(p.money_earned)
-        }
-        money_spent[frame * scale] = {
-            name_by_idx[p.index]: p.money_spent[snap_idx]
-            for p in ts_players
-            if snap_idx < len(p.money_earned)
-        }
-        money[frame * scale] = {
-            name_by_idx[p.index]: p.money[snap_idx]
-            for p in ts_players
-            if snap_idx < len(p.money_earned)
-        }
-
-    # xp from skillPointsEvents — each event records the player's current total
-    xp: dict[float, dict[str, int]] = {}
-    current_xp: dict[str, int] = dict.fromkeys(all_players, 0)
-    xp_by_frame: dict[int, dict[str, int]] = defaultdict(dict)
-    for ev in replay.stats.skill_points_events:
-        name = name_by_idx.get(ev.player, "unk")
-        if name != "unk":
-            xp_by_frame[ev.frame][name] = ev.skill_points
-    for frame in sorted(xp_by_frame):
-        current_xp.update(xp_by_frame[frame])
-        xp[frame * scale] = dict(current_xp)
-
-    # units_built / buildings_built from buildEvents
-    ub_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    bb_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    for bev in replay.stats.build_events:
-        name = name_by_idx.get(bev.player, "unk")
-        if name == "unk":
-            continue
-        if _is_building(bev.object_type):
-            bb_deltas[bev.frame][name] += 1
-        else:
-            ub_deltas[bev.frame][name] += 1
-    units_built = _event_counts_to_series(ub_deltas, all_players, scale)
-    buildings_built = _event_counts_to_series(bb_deltas, all_players, scale)
-
-    # units_killed / buildings_killed (credit killer) and units_lost / buildings_lost (credit victim)
-    uk_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    bk_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    ul_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    bl_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    first_blood: FirstBlood | None = None
-    building_first_blood: FirstBlood | None = None
-    for kev in replay.stats.kill_events:
-        killer_name = name_by_idx.get(kev.killer_player, "unk")
-        victim_name = name_by_idx.get(kev.victim_player, "unk")
-        at_minute = kev.frame * scale
-        is_bldg = _is_building(kev.victim_type)
-        if killer_name != "unk":
-            (bk_deltas if is_bldg else uk_deltas)[kev.frame][killer_name] += 1
-        if victim_name != "unk":
-            (bl_deltas if is_bldg else ul_deltas)[kev.frame][victim_name] += 1
-        if first_blood is None:
-            first_blood = FirstBlood(
-                attacker=killer_name, victim=victim_name, atMinute=at_minute
-            )
-        if building_first_blood is None and is_bldg:
-            building_first_blood = FirstBlood(
-                attacker=killer_name, victim=victim_name, atMinute=at_minute
-            )
-    units_killed = _event_counts_to_series(uk_deltas, all_players, scale)
-    buildings_killed = _event_counts_to_series(bk_deltas, all_players, scale)
-    units_lost = _event_counts_to_series(ul_deltas, all_players, scale)
-    buildings_lost = _event_counts_to_series(bl_deltas, all_players, scale)
-
-    # tech_buildings_captured / faction_buildings_captured from captureEvents
-    # exclude captures where newOwner and oldOwner are on the same team (e.g. garrisoning)
-    tc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    fc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    for cev in replay.stats.capture_events:
-        new_team = team_by_idx.get(cev.new_owner, -1)
-        old_team = team_by_idx.get(cev.old_owner, -1)
-        if new_team >= 0 and new_team == old_team:
-            continue
-        name = name_by_idx.get(cev.new_owner, "unk")
-        if name == "unk":
-            continue
-        if cev.object.startswith("Tech"):
-            tc_deltas[cev.frame][name] += 1
-        else:
-            fc_deltas[cev.frame][name] += 1
-    tech_buildings_captured = _event_counts_to_series(tc_deltas, all_players, scale)
-    faction_buildings_captured = _event_counts_to_series(fc_deltas, all_players, scale)
-
-    sd = StatsData(
-        xp=xp,
-        units_built=units_built,
-        units_lost=units_lost,
-        buildings_built=buildings_built,
-        buildings_lost=buildings_lost,
-        money_earned=money_earned,
-        money_spent=money_spent,
-        money=money,
-        units_killed=units_killed,
-        buildings_killed=buildings_killed,
-        tech_buildings_captured=tech_buildings_captured,
-        faction_buildings_captured=faction_buildings_captured,
-    )
-    return AllExtractedData(
-        stats_data=sd,
-        first_blood=first_blood,
-        building_first_blood=building_first_blood,
-    )
 
 
 def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
@@ -355,348 +174,6 @@ async def load_many_match_details(
     return [r for r in results if r is not None]
 
 
-def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
-    """Convert a full MatchDetails into the smaller SuperlativeData used by superlatives."""
-
-    def _last_total(key: str) -> int:
-        data = d.stats_data.get(key, {})
-        if not data:
-            return 0
-        return sum(data[max(data)].values())
-
-    def _last_per_player(key: str) -> dict[str, int]:
-        data = d.stats_data.get(key, {})
-        if not data:
-            return {}
-        return dict(data[max(data)])
-
-    player_summary = [
-        SuperlativePlayerSummary(
-            name=ps.Name,
-            color=ps.Color,
-            won=ps.Win,
-            money_spent=d.player_money_spent.get(ps.Name, 0),
-            units_created_count=sum(v.Count for v in ps.UnitsCreated.values()),
-            buildings_built_count=sum(v.Count for v in ps.BuildingsBuilt.values()),
-        )
-        for ps in d.player_summary
-    ]
-
-    return SuperlativeData(
-        match_id=d.match_id,
-        first_blood=d.first_blood,
-        building_first_blood=d.building_first_blood,
-        apms=d.apms,
-        player_summary=player_summary,
-        upgrade_counts={
-            player_name: len(upgrades.upgrades)
-            for player_name, upgrades in d.upgrade_events.items()
-            if upgrades.upgrades
-        },
-        total_units_killed=_last_total("units_killed"),
-        total_buildings_killed=_last_total("buildings_killed"),
-        total_xp=_last_total("xp"),
-        match_money_spent=sum(d.player_money_spent.values()),
-        player_money_collected=d.player_money_collected,
-        player_xp_final=_last_per_player("xp"),
-        time_to_rank_5=dict(d.time_to_rank_5),
-        time_to_search_destroy=dict(d.time_to_search_destroy),
-    )
-
-
-async def load_many_superlative_data(
-    match_ids: list[int],
-    db_manager: DatabaseManager,
-    max_concurrent: int = 2,
-    chunk_size: int = 10,
-) -> list[SuperlativeData]:
-    """Load reduced superlative data for many matches in parallel.
-
-    Each match is loaded as full MatchDetails, immediately converted to the smaller
-    SuperlativeData, and the full details discarded — keeping peak memory low.
-
-    Processed in chunks of chunk_size to bound the number of coroutines scheduled at
-    once and give Python's GC a chance to release completed batches between chunks.
-    """
-    semaphore = asyncio.Semaphore(max_concurrent)
-
-    async def _bounded(match_id: int) -> SuperlativeData | None:
-        async with semaphore:
-            details = await asyncio.to_thread(
-                load_match_details_threadsafe, match_id, db_manager
-            )
-        if details is None:
-            return None
-        return superlative_data_from_details(details)
-
-    all_results: list[SuperlativeData] = []
-    for i in range(0, len(match_ids), chunk_size):
-        chunk = match_ids[i : i + chunk_size]
-        chunk_results = await asyncio.gather(*[_bounded(mid) for mid in chunk])
-        all_results.extend(r for r in chunk_results if r is not None)
-    return all_results
-
-
-def _milestone_timings_from_replay(
-    replay: EnhancedReplayV2, name_by_idx: dict[int, str]
-) -> tuple[dict[str, float], dict[str, float]]:
-    """Return (time_to_rank_5, time_to_search_destroy) in minutes, keyed by player name.
-
-    Each map only contains entries for players who actually reached the milestone.
-    """
-    time_to_rank_5: dict[str, float] = {}
-    time_to_search_destroy: dict[str, float] = {}
-    if replay.stats is None:
-        return time_to_rank_5, time_to_search_destroy
-    scale = minutess_per_step(replay)
-    for rev in replay.stats.rank_events:
-        if rev.rank_level < 5:
-            continue
-        name = name_by_idx.get(rev.player)
-        if name is None or name in time_to_rank_5:
-            continue
-        time_to_rank_5[name] = rev.frame * scale
-    for bpev in replay.stats.battle_plan_events:
-        if bpev.search_and_destroy <= 0:
-            continue
-        name = name_by_idx.get(bpev.player)
-        if name is None or name in time_to_search_destroy:
-            continue
-        time_to_search_destroy[name] = bpev.frame * scale
-    return time_to_rank_5, time_to_search_destroy
-
-
-_FACTION_PREFIX_RE = re.compile(r"^(China|America|GLA)")
-
-
-def _clean_object_name(name: str) -> str:
-    """Strip per-general (e.g. ``Chem_``) and side (``China`` / ``America`` /
-    ``GLA``) prefixes from a cncstats object name."""
-    if "_" in name:
-        name = name.split("_", 1)[1]
-    return _FACTION_PREFIX_RE.sub("", name)
-
-
-def _build_order_from_replay(
-    replay: EnhancedReplayV2,
-    name_by_idx: dict[int, str],
-    upgrades_by_player: dict[str, Upgrades],
-) -> dict[str, BuildOrder]:
-    """First 10 buildings, units, and upgrades per player, in chronological order.
-
-    Buildings vs units come straight from cncstats's ``objectType`` on each
-    build event — ``structure`` is a building, everything else (infantry,
-    vehicle, missing) is treated as a unit. The per-player ``buildings_built``
-    / ``units_created`` summary maps aren't always populated, so we don't rely
-    on them.
-    """
-    scale = minutess_per_step(replay)
-    buildings: dict[str, list[BuildOrderEntry]] = defaultdict(list)
-    units: dict[str, list[BuildOrderEntry]] = defaultdict(list)
-    if replay.stats is not None:
-        for bev in sorted(replay.stats.build_events, key=lambda e: e.frame):
-            # Skip game-spawned starters (Command Center + Dozer/Worker) which
-            # appear at frame 0.
-            if bev.frame == 0:
-                continue
-            name = name_by_idx.get(bev.player)
-            if name is None:
-                continue
-            entry = BuildOrderEntry(
-                at_minute=bev.frame * scale,
-                name=_clean_object_name(bev.object),
-                cost=bev.cost,
-            )
-            if bev.object_type == "structure":
-                if len(buildings[name]) < 10:
-                    buildings[name].append(entry)
-            else:
-                if len(units[name]) < 10:
-                    units[name].append(entry)
-
-    upgrades: dict[str, list[BuildOrderEntry]] = {}
-    for player_name, ups in upgrades_by_player.items():
-        first_ten = sorted(ups.upgrades, key=lambda u: u.at_minute)[:10]
-        upgrades[player_name] = [
-            BuildOrderEntry(
-                at_minute=u.at_minute,
-                name=_clean_object_name(u.upgrade_name),
-                cost=u.cost,
-            )
-            for u in first_ten
-        ]
-
-    all_names = set(buildings) | set(units) | set(upgrades)
-    return {
-        name: BuildOrder(
-            buildings=buildings.get(name, []),
-            units=units.get(name, []),
-            upgrades=upgrades.get(name, []),
-        )
-        for name in all_names
-    }
-
-
-# Substrings on the cleaned object name that identify a true superweapon
-# structure (one of the three big base-bound powers).
-_SUPERWEAPON_STRUCTURES = ("NuclearMissileLauncher", "ParticleCannonUplink", "ScudStorm")
-
-# Substrings inside SpecialPower order names that mark a *base* superweapon
-# launch (as opposed to a generals-panel power that the engine also tags
-# "Superweapon*").
-_SUPERWEAPON_ACTIVATION_KEYWORDS = (
-    "NeutronMissile",
-    "NuclearMissile",
-    "ParticleCannon",
-    "ScudStorm",
-    "EMPPulse",
-    "AnthraxBomb",
-    "SpectreGunship",
-)
-
-_POWER_NAME_PREFIXES = ("SpecialAbility", "SpecialPower", "Superweapon")
-
-
-def _clean_power_name(raw: str) -> str:
-    """Strip per-general/faction prefixes and the SpecialPower/Superweapon tag."""
-    cleaned = _clean_object_name(raw)
-    for prefix in _POWER_NAME_PREFIXES:
-        if cleaned.startswith(prefix):
-            cleaned = cleaned[len(prefix) :]
-            break
-    return _FACTION_PREFIX_RE.sub("", cleaned)
-
-
-def _timeline_events_from_replay(
-    replay: EnhancedReplayV2,
-    upgrades_by_player: dict[str, Upgrades],
-    name_by_idx: dict[int, str],
-) -> list[TimelineEvent]:
-    """Per-player markers for the timeline chart: upgrades, rank ups, generals
-    powers, and superweapon builds / activations."""
-    scale = minutess_per_step(replay)
-    events: list[TimelineEvent] = []
-
-    for player_name, ups in upgrades_by_player.items():
-        for u in ups.upgrades:
-            events.append(
-                TimelineEvent(
-                    player_name=player_name,
-                    at_minute=u.at_minute,
-                    event_name=_clean_object_name(u.upgrade_name),
-                    event_type="upgrade",
-                    cost=u.cost,
-                )
-            )
-
-    for chunk in replay.body:
-        if chunk.order_name not in ("SpecialPowerAtLocation", "SpecialPowerAtObject"):
-            continue
-        details = chunk.details if isinstance(chunk.details, dict) else {}
-        raw_name = details.get("Name") or details.get("name") or ""
-        if not raw_name or raw_name.startswith("SpecialAbility"):
-            # Unit abilities (capture-building, laser-guided missiles, etc.)
-            # would flood the timeline; the user asked for generals powers
-            # and superweapons only.
-            continue
-        if any(kw in raw_name for kw in _SUPERWEAPON_ACTIVATION_KEYWORDS):
-            event_type = "superweapon_activated"
-        else:
-            event_type = "generals_power"
-        events.append(
-            TimelineEvent(
-                player_name=chunk.player_name,
-                at_minute=chunk.time_code * scale,
-                event_name=_clean_power_name(raw_name) or raw_name,
-                event_type=event_type,
-                cost=0,
-            )
-        )
-
-    if replay.stats is not None:
-        seen_rank: set[tuple[str, int]] = set()
-        for rev in sorted(replay.stats.rank_events, key=lambda e: e.frame):
-            if rev.rank_level <= 1 or rev.frame <= 0:
-                continue
-            name = name_by_idx.get(rev.player)
-            if name is None:
-                continue
-            key = (name, rev.rank_level)
-            if key in seen_rank:
-                continue
-            seen_rank.add(key)
-            events.append(
-                TimelineEvent(
-                    player_name=name,
-                    at_minute=rev.frame * scale,
-                    event_name=f"Rank {rev.rank_level}",
-                    event_type="rank_up",
-                    cost=0,
-                )
-            )
-
-        for bev in replay.stats.build_events:
-            cleaned = _clean_object_name(bev.object)
-            if not any(sw in cleaned for sw in _SUPERWEAPON_STRUCTURES):
-                continue
-            name = name_by_idx.get(bev.player)
-            if name is None:
-                continue
-            events.append(
-                TimelineEvent(
-                    player_name=name,
-                    at_minute=bev.frame * scale,
-                    event_name=cleaned,
-                    event_type="superweapon_built",
-                    cost=bev.cost,
-                )
-            )
-
-        # Search & Destroy battle-plan activations: emit on every 0 → 1 flip.
-        prev_sd: dict[int, int] = {}
-        for bpev in sorted(replay.stats.battle_plan_events, key=lambda e: e.frame):
-            prev = prev_sd.get(bpev.player, 0)
-            prev_sd[bpev.player] = bpev.search_and_destroy
-            if bpev.search_and_destroy <= 0 or prev > 0:
-                continue
-            name = name_by_idx.get(bpev.player)
-            if name is None:
-                continue
-            events.append(
-                TimelineEvent(
-                    player_name=name,
-                    at_minute=bpev.frame * scale,
-                    event_name="Search and Destroy",
-                    event_type="search_and_destroy",
-                    cost=0,
-                )
-            )
-
-        # Low-power transitions: emit when consumption first exceeds production.
-        was_low: dict[int, bool] = {}
-        for eev in sorted(replay.stats.energy_events, key=lambda e: e.frame):
-            is_low_now = eev.consumption > eev.production
-            prev_low = was_low.get(eev.player, False)
-            was_low[eev.player] = is_low_now
-            if not is_low_now or prev_low:
-                continue
-            name = name_by_idx.get(eev.player)
-            if name is None:
-                continue
-            events.append(
-                TimelineEvent(
-                    player_name=name,
-                    at_minute=eev.frame * scale,
-                    event_name=f"Low Power ({eev.consumption} > {eev.production})",
-                    event_type="low_power",
-                    cost=0,
-                )
-            )
-
-    events.sort(key=lambda e: (e.at_minute, e.player_name))
-    return events
-
-
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
@@ -755,7 +232,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             )
         )
         cost = unit_cost.get(kev.victim, 0)
-        is_bldg = _is_building(kev.victim_type)
+        is_bldg = kev.victim_type == "structure"
         if killer_name != "unk":
             dest = bd_by_player if is_bldg else ud_by_player
             dest[killer_name][kev.victim][0] += 1
@@ -765,11 +242,11 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             lost[victim_name][kev.victim][0] += 1
             lost[victim_name][kev.victim][1] += cost
 
-    time_to_rank_5, time_to_search_destroy = _milestone_timings_from_replay(
+    time_to_rank_5, time_to_search_destroy = milestone_timings_from_replay(
         replay, name_by_idx
     )
-    build_orders = _build_order_from_replay(replay, name_by_idx, upgrades)
-    timeline_events = _timeline_events_from_replay(replay, upgrades, name_by_idx)
+    build_orders = build_order_from_replay(replay, name_by_idx, upgrades)
+    timeline_events = timeline_events_from_replay(replay, upgrades, name_by_idx)
 
     hdr = replay.header
     return MatchDetails(

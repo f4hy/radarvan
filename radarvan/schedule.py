@@ -5,7 +5,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 from . import scrape_games
 from . import game_composition
-from . import match_details as match_details_module
 from . import superlatives as superlatives_module
 from . import matches as matches_module
 from . import player_rating as player_rating_module
@@ -51,7 +50,7 @@ async def compute_and_save_superlatives(
         and "mismatch" not in m.incomplete.lower()
     ]
     match_ids = [m.id for m in competitive]
-    details = await match_details_module.load_many_superlative_data(
+    details = await superlatives_module.load_many_superlative_data(
         match_ids, db_manager
     )
     logger.info("loaded match details for superlatives", count=len(details))

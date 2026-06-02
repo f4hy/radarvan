@@ -12,22 +12,24 @@ is populated (older format), the original order-stream logic is used.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 
 from .api_types import APM
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .utils import minutess_per_step
 
 
+_NON_ACTIONS = {
+    "Chunksum",
+    "DeclareUserId",
+    "EndReplay",
+    "SelectBox",
+    "ClearSelection",
+}
+
+
 def is_action(order_name: str) -> bool:
-    match order_name:
-        case (
-            "Chunksum" | "DeclareUserId" | "EndReplay" | "SelectBox" | "ClearSelection"
-        ):
-            return False
-        case _ if order_name.startswith("Unknown"):
-            return False
-        case _:
-            return True
+    return order_name not in _NON_ACTIONS and not order_name.startswith("Unknown")
 
 
 ACTIVE_ACTIONS = {
@@ -78,36 +80,52 @@ def _stats_action_events(replay: EnhancedReplayV2) -> list[tuple[int, int]]:
     return events
 
 
+def _build_apm_records(
+    counts: dict[str, int],
+    first_frame: dict[str, int],
+    last_frame: dict[str, int],
+    minutes_per: float,
+    fallback_minutes: float = 0.0,
+) -> list[APM]:
+    """Construct APM records from per-player action counts and first/last frames.
+
+    `fallback_minutes` is used when a player's first/last frame collapse
+    (e.g. a single event) — set to total game duration for the stats path,
+    0 for the body path (which then reports 0 APM rather than infinite).
+    """
+    result: list[APM] = []
+    for name, count in counts.items():
+        if count == 0:
+            result.append(APM(player_name=name, action_count=0, minutes=0.0, apm=0.0))
+            continue
+        active = (last_frame.get(name, 0) - first_frame.get(name, 0)) * minutes_per
+        if active <= 0:
+            active = fallback_minutes
+        result.append(
+            APM(
+                player_name=name,
+                action_count=count,
+                minutes=active,
+                apm=count / active if active > 0 else 0.0,
+            )
+        )
+    return result
+
+
 def _apms_from_body(replay: EnhancedReplayV2) -> list[APM]:
     players = replay.header.metadata.players
-    action_counts = {p.name: 0 for p in players if int(p.team) >= 0 and p.type != "C"}
-    player_first_active = {p.name: -1 for p in players if int(p.team) >= 0}
-    player_last_active = {p.name: 0 for p in players if int(p.team) >= 0}
-
+    counts = {p.name: 0 for p in players if int(p.team) >= 0 and p.type != "C"}
+    first_frame: dict[str, int] = {}
+    last_frame: dict[str, int] = {}
     for chunk in replay.body:
-        if chunk.player_name not in action_counts:
+        if chunk.player_name not in counts:
             continue
         if is_action(chunk.order_name):
-            action_counts[chunk.player_name] += 1
+            counts[chunk.player_name] += 1
         if is_active_action(chunk.order_name):
-            player_last_active[chunk.player_name] = chunk.time_code
-            if player_first_active[chunk.player_name] < 0:
-                player_first_active[chunk.player_name] = chunk.time_code
-
-    minutes_per = minutess_per_step(replay)
-    player_minutes = {
-        name: (player_last_active[name] - first) * minutes_per
-        for name, first in player_first_active.items()
-    }
-    return [
-        APM(
-            player_name=name,
-            action_count=count,
-            minutes=player_minutes[name],
-            apm=count / player_minutes[name] if player_minutes[name] > 0 else 0.0,
-        )
-        for name, count in action_counts.items()
-    ]
+            last_frame[chunk.player_name] = chunk.time_code
+            first_frame.setdefault(chunk.player_name, chunk.time_code)
+    return _build_apm_records(counts, first_frame, last_frame, minutess_per_step(replay))
 
 
 def _apms_from_stats(replay: EnhancedReplayV2) -> list[APM]:
@@ -122,31 +140,15 @@ def _apms_from_stats(replay: EnhancedReplayV2) -> list[APM]:
         if name is None:
             continue
         counts[name] += 1
-        if name not in first_frame or frame < first_frame[name]:
+        if frame < first_frame.get(name, frame + 1):
             first_frame[name] = frame
-        if name not in last_frame or frame > last_frame[name]:
+        if frame > last_frame.get(name, -1):
             last_frame[name] = frame
-
     minutes_per = minutess_per_step(replay)
     total_minutes = (replay.header.frame_count or 1) * minutes_per
-    result: list[APM] = []
-    for name, count in counts.items():
-        if count == 0:
-            result.append(APM(player_name=name, action_count=0, minutes=0.0, apm=0.0))
-            continue
-        active_frames = last_frame[name] - first_frame[name]
-        active_minutes = active_frames * minutes_per
-        if active_minutes <= 0:
-            active_minutes = total_minutes
-        result.append(
-            APM(
-                player_name=name,
-                action_count=count,
-                minutes=active_minutes,
-                apm=count / active_minutes,
-            )
-        )
-    return result
+    return _build_apm_records(
+        counts, first_frame, last_frame, minutes_per, fallback_minutes=total_minutes
+    )
 
 
 def apms_from_replay(replay: EnhancedReplayV2) -> list[APM]:
@@ -161,56 +163,25 @@ def apms_from_replay(replay: EnhancedReplayV2) -> list[APM]:
     return _apms_from_stats(replay)
 
 
-def _apm_over_time_from_body(
-    replay: EnhancedReplayV2,
+def _bucket_apm_over_time(
+    actions: Iterable[tuple[int, str]],
+    tracked: set[str],
+    minutes_per: float,
 ) -> dict[float, dict[str, float]]:
-    players = replay.header.metadata.players
-    tracked = {p.name for p in players if int(p.team) >= 0 and p.type != "C"}
-    if not tracked:
-        return {}
-    minutes_per = minutess_per_step(replay)
+    """Bucket `(frame, player_name)` actions into per-minute APM windows."""
     counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     max_minute = 0
-    for chunk in replay.body:
-        if chunk.player_name not in tracked:
-            continue
-        if not is_action(chunk.order_name):
-            continue
-        minute = int(chunk.time_code * minutes_per)
-        counts[minute][chunk.player_name] += 1
-        if minute > max_minute:
-            max_minute = minute
-    return _fill_minute_series(counts, max_minute, tracked)
-
-
-def _apm_over_time_from_stats(
-    replay: EnhancedReplayV2,
-) -> dict[float, dict[str, float]]:
-    tracked = _tracked_humans(replay)
-    if not tracked:
-        return {}
-    names = set(tracked.values())
-    minutes_per = minutess_per_step(replay)
-    counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    max_minute = 0
-    for frame, idx in _stats_action_events(replay):
-        name = tracked.get(idx)
-        if name is None:
+    for frame, name in actions:
+        if name not in tracked:
             continue
         minute = int(frame * minutes_per)
         counts[minute][name] += 1
         if minute > max_minute:
             max_minute = minute
-    return _fill_minute_series(counts, max_minute, names)
-
-
-def _fill_minute_series(
-    counts: dict[int, dict[str, int]], max_minute: int, names: set[str]
-) -> dict[float, dict[str, float]]:
     result: dict[float, dict[str, float]] = {}
     for minute in range(max_minute + 1):
         bucket = counts.get(minute, {})
-        result[float(minute)] = {name: float(bucket.get(name, 0)) for name in names}
+        result[float(minute)] = {name: float(bucket.get(name, 0)) for name in tracked}
     return result
 
 
@@ -221,6 +192,25 @@ def apm_over_time(replay: EnhancedReplayV2) -> dict[float, dict[str, float]]:
     action count in the bucket equals APM. Empty buckets are filled with 0
     for each tracked player so chart lines stay continuous.
     """
+    minutes_per = minutess_per_step(replay)
     if replay.body:
-        return _apm_over_time_from_body(replay)
-    return _apm_over_time_from_stats(replay)
+        players = replay.header.metadata.players
+        tracked = {p.name for p in players if int(p.team) >= 0 and p.type != "C"}
+        if not tracked:
+            return {}
+        actions = (
+            (chunk.time_code, chunk.player_name)
+            for chunk in replay.body
+            if chunk.player_name in tracked and is_action(chunk.order_name)
+        )
+        return _bucket_apm_over_time(actions, tracked, minutes_per)
+    name_by_idx = _tracked_humans(replay)
+    if not name_by_idx:
+        return {}
+    names = set(name_by_idx.values())
+    actions = (
+        (frame, name_by_idx[idx])
+        for frame, idx in _stats_action_events(replay)
+        if idx in name_by_idx
+    )
+    return _bucket_apm_over_time(actions, names, minutes_per)

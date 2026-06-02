@@ -1,13 +1,17 @@
+import asyncio
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pydantic import BaseModel
 
 from .api_types import (
+    MatchDetails,
     MatchInfo,
     SuperlativeData,
+    SuperlativePlayerSummary,
     Statistic,
 )
+from .db_utils import DatabaseManager
 from .player_ids import resolve_player_name
 from .player_rating import RatingDailyChange
 from .replay_files import map_basename
@@ -49,6 +53,92 @@ class ApmTotals:
 class Superlatives(BaseModel):
     stats: list[Statistic]
     computed_at: date
+
+
+def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
+    """Convert a full MatchDetails into the smaller SuperlativeData used by superlatives."""
+
+    def _last_total(key: str) -> int:
+        data = d.stats_data.get(key, {})
+        if not data:
+            return 0
+        return sum(data[max(data)].values())
+
+    def _last_per_player(key: str) -> dict[str, int]:
+        data = d.stats_data.get(key, {})
+        if not data:
+            return {}
+        return dict(data[max(data)])
+
+    player_summary = [
+        SuperlativePlayerSummary(
+            name=ps.Name,
+            color=ps.Color,
+            won=ps.Win,
+            money_spent=d.player_money_spent.get(ps.Name, 0),
+            units_created_count=sum(v.Count for v in ps.UnitsCreated.values()),
+            buildings_built_count=sum(v.Count for v in ps.BuildingsBuilt.values()),
+        )
+        for ps in d.player_summary
+    ]
+
+    return SuperlativeData(
+        match_id=d.match_id,
+        first_blood=d.first_blood,
+        building_first_blood=d.building_first_blood,
+        apms=d.apms,
+        player_summary=player_summary,
+        upgrade_counts={
+            player_name: len(upgrades.upgrades)
+            for player_name, upgrades in d.upgrade_events.items()
+            if upgrades.upgrades
+        },
+        total_units_killed=_last_total("units_killed"),
+        total_buildings_killed=_last_total("buildings_killed"),
+        total_xp=_last_total("xp"),
+        match_money_spent=sum(d.player_money_spent.values()),
+        player_money_collected=d.player_money_collected,
+        player_xp_final=_last_per_player("xp"),
+        time_to_rank_5=dict(d.time_to_rank_5),
+        time_to_search_destroy=dict(d.time_to_search_destroy),
+    )
+
+
+async def load_many_superlative_data(
+    match_ids: list[int],
+    db_manager: DatabaseManager,
+    max_concurrent: int = 2,
+    chunk_size: int = 10,
+) -> list[SuperlativeData]:
+    """Load reduced superlative data for many matches in parallel.
+
+    Each match is loaded as full MatchDetails, immediately converted to the smaller
+    SuperlativeData, and the full details discarded — keeping peak memory low.
+
+    Processed in chunks of chunk_size to bound the number of coroutines scheduled at
+    once and give Python's GC a chance to release completed batches between chunks.
+    """
+    # Imported here to break a cycle: match_details depends on this module's
+    # SuperlativeData type, and we depend on it for the DB-bound loader.
+    from .match_details import load_match_details_threadsafe
+
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def _bounded(match_id: int) -> SuperlativeData | None:
+        async with semaphore:
+            details = await asyncio.to_thread(
+                load_match_details_threadsafe, match_id, db_manager
+            )
+        if details is None:
+            return None
+        return superlative_data_from_details(details)
+
+    all_results: list[SuperlativeData] = []
+    for i in range(0, len(match_ids), chunk_size):
+        chunk = match_ids[i : i + chunk_size]
+        chunk_results = await asyncio.gather(*[_bounded(mid) for mid in chunk])
+        all_results.extend(r for r in chunk_results if r is not None)
+    return all_results
 
 
 def get_game_count_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:

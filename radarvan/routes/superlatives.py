@@ -6,7 +6,7 @@ import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import match_details, player_rating, superlatives
+from .. import player_rating, superlatives
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, db_manager, get_replay_manager
@@ -45,7 +45,7 @@ async def _do_recompute(
         if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
     ]
     stale = replay_manager.computed_stats_are_stale(days=3)
-    details = await match_details.load_many_superlative_data(
+    details = await superlatives.load_many_superlative_data(
         [g.id for g in game_list], db_manager
     )
     if stale:

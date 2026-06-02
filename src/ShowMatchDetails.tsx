@@ -38,6 +38,9 @@ import ConstructionIcon from "@mui/icons-material/Construction"
 import WhatshotIcon from "@mui/icons-material/Whatshot"
 import BatteryAlertIcon from "@mui/icons-material/BatteryAlert"
 import GpsFixedIcon from "@mui/icons-material/GpsFixed"
+import CancelIcon from "@mui/icons-material/Cancel"
+import FlagIcon from "@mui/icons-material/Flag"
+import RadarIcon from "@mui/icons-material/Radar"
 import Loading from "./Loading"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
@@ -134,54 +137,72 @@ function MoneyChart(props: {
   }
 }
 
-const EVENT_TYPE_META: {
-  type: TimelineEvent["eventType"]
-  label: string
-  // Lanes that share a Y-axis row (e.g. both superweapon variants).
-  row: string
-}[] = [
-  { type: "upgrade", label: "Upgrade", row: "upgrades" },
-  { type: "rank_up", label: "Rank Up", row: "rank ups" },
-  { type: "generals_power", label: "Generals Power", row: "powers" },
-  { type: "superweapon_built", label: "Superweapon Built", row: "superweapon" },
+// Single source of truth for timeline event types: label, row (shared
+// Y-axis lane), and the icon to render. Row order in this list also
+// defines the per-player lane ordering.
+const EVENT_TYPES = [
+  { type: "upgrade", label: "Upgrade", row: "upgrades", icon: UpgradeIcon },
+  { type: "rank_up", label: "Rank Up", row: "rank ups", icon: StarIcon },
+  {
+    type: "generals_power",
+    label: "Generals Power",
+    row: "powers",
+    icon: BoltIcon,
+  },
+  {
+    type: "superweapon_built",
+    label: "Superweapon Built",
+    row: "superweapon",
+    icon: ConstructionIcon,
+  },
   {
     type: "superweapon_activated",
     label: "Superweapon Activated",
     row: "superweapon",
+    icon: WhatshotIcon,
   },
   {
     type: "search_and_destroy",
     label: "Search & Destroy",
     row: "battle plans",
+    icon: GpsFixedIcon,
   },
-  { type: "low_power", label: "Low Power", row: "energy" },
-]
+  {
+    type: "low_power",
+    label: "Low Power",
+    row: "energy",
+    icon: BatteryAlertIcon,
+  },
+  {
+    type: "first_radar",
+    label: "First Radar",
+    row: "scouting",
+    icon: RadarIcon,
+  },
+  {
+    type: "tech_capture",
+    label: "Tech Capture",
+    row: "captures",
+    icon: FlagIcon,
+  },
+  {
+    type: "player_eliminated",
+    label: "Eliminated",
+    row: "eliminations",
+    icon: CancelIcon,
+  },
+] as const satisfies readonly {
+  type: string
+  label: string
+  row: string
+  icon: React.ElementType
+}[]
 
-const ROW_ORDER = [
-  "upgrades",
-  "rank ups",
-  "powers",
-  "superweapon",
-  "battle plans",
-  "energy",
-]
+const EVENT_TYPE_BY_KEY = Object.fromEntries(
+  EVENT_TYPES.map((m) => [m.type, m]),
+) as Record<string, (typeof EVENT_TYPES)[number]>
 
-const EVENT_TYPE_LABEL: Record<string, string> = Object.fromEntries(
-  EVENT_TYPE_META.map((m) => [m.type, m.label]),
-)
-const ROW_FOR_TYPE: Record<string, string> = Object.fromEntries(
-  EVENT_TYPE_META.map((m) => [m.type, m.row]),
-)
-
-const EVENT_TYPE_ICON: Record<string, React.ElementType> = {
-  upgrade: UpgradeIcon,
-  rank_up: StarIcon,
-  generals_power: BoltIcon,
-  superweapon_built: ConstructionIcon,
-  superweapon_activated: WhatshotIcon,
-  search_and_destroy: GpsFixedIcon,
-  low_power: BatteryAlertIcon,
-}
+const ROW_ORDER = [...new Set(EVENT_TYPES.map((m) => m.row))]
 
 function EventChart(props: {
   timelineEvents: TimelineEvent[]
@@ -196,7 +217,7 @@ function EventChart(props: {
     )
     const byPlayerThenRow = new Map<string, Map<string, TimelineEvent[]>>()
     for (const e of events) {
-      const row = ROW_FOR_TYPE[e.eventType] ?? e.eventType
+      const row = EVENT_TYPE_BY_KEY[e.eventType].row
       const rows =
         byPlayerThenRow.get(e.playerName) ?? new Map<string, TimelineEvent[]>()
       const bucket = rows.get(row) ?? []
@@ -302,8 +323,9 @@ function EventChart(props: {
                       }}
                     >
                       {laneEvents.map((e, i) => {
-                        const Icon = EVENT_TYPE_ICON[e.eventType] ?? UpgradeIcon
-                        const title = `${e.eventName} · ${EVENT_TYPE_LABEL[e.eventType] ?? e.eventType} · ${e.atMinute.toFixed(2)}m${e.cost ? ` · $${e.cost}` : ""}`
+                        const meta = EVENT_TYPE_BY_KEY[e.eventType]
+                        const Icon = meta.icon
+                        const title = `${e.eventName} · ${meta.label} · ${e.atMinute.toFixed(2)}m${e.cost ? ` · $${e.cost}` : ""}`
                         return (
                           <MuiTooltip key={i} title={title} arrow>
                             <Box
@@ -347,8 +369,7 @@ function EventChart(props: {
         sx={{ mt: 1.5, flexWrap: "wrap" }}
         alignItems="center"
       >
-        {EVENT_TYPE_META.map(({ type, label }) => {
-          const Icon = EVENT_TYPE_ICON[type] ?? UpgradeIcon
+        {EVENT_TYPES.map(({ type, label, icon: Icon }) => {
           return (
             <Stack key={type} direction="row" spacing={0.5} alignItems="center">
               <Box
@@ -384,7 +405,7 @@ function ApmChart(props: {
     return <div>APM data not available for this replay</div>
   }
   const players = Object.keys(Object.values(props.apmOverTime)[0])
-  const colors = buildPlayerColorMap(props.playerSummaries)
+  const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
   const data: { atMinute: number; [player: string]: number }[] = Object.entries(
     props.apmOverTime,
   )

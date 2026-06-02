@@ -91,6 +91,25 @@ The `Makefile` is the canonical entry point for formatting, linting, type-checki
 - Production deployment is on Heroku (radarvan-5e9c302c60e6.herokuapp.com)
 - Static files served via explicit `serve_index()` route (returns `index.html` with `Cache-Control: no-cache`) followed by `StaticFiles` mount — ensures browser revalidates after deploys
 
+## Reference Fixtures (`references/`)
+
+Use these to inspect real cncstats / API shapes without running anything. Read with `jq` (already installed).
+
+- **`references/example_replay.rep`** — raw replay binary (match `92990953`). The unparsed input that cncstats consumes. Rarely needed directly; consult only if debugging the parser itself.
+- **`references/example_cncstats_output.json`** — the parsed JSON cncstats emits from the `.rep` above. **This is the canonical shape of `EnhancedReplayV2`** as it arrives in our code. Consult whenever asking "what does a replay's `body` / `stats.buildEvents` / `summary` actually look like?" Has the corrected (non-empty) body with 9 597 chunks and the full `stats` block (build / kill / capture / battle-plan / energy / rank / science / skill / radar / death / time-series events).
+- **`references/example_api_match_details.json`** — sample response from `GET /api/details/{match_id}` (match `349863312`). Consult when asking "what does the wire shape of `MatchDetails` look like to the front-end?" Note: this was captured *before* the upgradeName / new-event-types fixes, so its `upgradeEvents` field has empty strings — useful as a "stale cache" example, not as ground truth.
+- **`references/cncstats_schema.json`** — the cncstats Swagger 2.0 spec. Definitions for every event type live under `definitions.*` (e.g. `zhreplay.EnrichedBuildEvent`, `statsfile.BattlePlanEvent`). Consult when asking "what fields are guaranteed on event X, and what's their type?"
+
+Common workflow: when something in `MatchDetails` looks wrong, first `jq` the matching path in `example_cncstats_output.json` to confirm what cncstats produces, then trace through `radarvan/match_details.py` or `radarvan/apm.py` to find the transformation that's losing data. To exercise the full pipeline locally:
+
+```python
+import json
+from radarvan.cncstats_model.zhreplay import EnhancedReplayV2
+from radarvan.match_details import match_details_from_replay
+replay = EnhancedReplayV2.model_validate(json.load(open("references/example_cncstats_output.json")))
+details = match_details_from_replay(replay)
+```
+
 ## Python Conventions
 
 - **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types
@@ -120,6 +139,15 @@ The `Makefile` is the canonical entry point for formatting, linting, type-checki
 - **Map name resolution**: User-supplied map names should be looked up case- and whitespace-insensitively. Use `ReplayManager.resolve_map_name(name)` to get the canonical stored name, then call `get_map_data`/image helpers with that. `missing_maps.find_s3_webp` also tries case- and whitespace-stripped variants in S3.
 - **Local map image fallback**: `_load_map_image_bytes` in `main.py` first tries S3 via `find_s3_webp`, then exact `dist/maps/{name}.webp`, then a normalized-substring scan of `dist/maps/` (filenames there have prefixes like `maps_defcon6_defcon6.webp` that include the map name as a substring).
 - **`MapRenderPlayer` request shape**: `POST /api/map_render` takes a map name and a list of `MapRenderPlayer` (name, general, team, position_number) and returns a PNG with overlays burned in. Uses `radarvan/map_render.py` (Pillow); team colors mirror frontend `TEAM_COLORS` in `Draft.tsx`.
+- **APM derivation has two paths**: `radarvan/apm.py` prefers `replay.body` (legacy per-order chunks) and falls back to `replay.stats.*_events` (build / capture / battle-plan / science-points) when the body is empty — newer cncstats outputs sometimes ship an empty body. `apm_over_time(replay)` returns `{minute: {player_name: apm}}` in 1-minute windows. Counts are scoped to non-observer humans (`team >= 0`, `player_type == "Human"`); active duration is first-to-last action frame with a total-duration fallback.
+- **Body chunk `details` is a plain dict with capitalized keys**: `BodyChunk.details: Any` deserializes to e.g. `{"Name": "Upgrade_InfantryCaptureBuilding", "Cost": 1000}` — `getattr(d, "Name", None)` always returns `None` (it's not an object), and `d.get("name")` misses (case-sensitive). Always use `d.get("Name")` / `d.get("Cost")`. The pattern `details = chunk.details if isinstance(chunk.details, dict) else {}` is in `events_from_replay`.
+- **Summary index vs header order are NOT the same**: `replay.summary[*].index` (1-based) is the canonical player index used in every `stats.*_events.player` / `killEvents.killerPlayer` / `buildEvents.player` / `battle_plan_events.player` / etc. `replay.header.metadata.players[*]` is in a *different order* and is 0-based — don't enumerate that list to resolve event player indices. Build `name_by_idx = {p.index: p.name for p in replay.summary}`.
+- **`details_from_id` is a process-wide LRU cache**: `radarvan/cache.py:details_from_id` memoises `MatchDetails` by `match_id` until the process restarts or `invalidate_match_caches()` runs. After changing any code that affects `MatchDetails` output, either restart FastAPI or `POST /api/reparse/{match_id}` to invalidate. Browsers also cache `/api/details/` for 1 hour (`Cache-Control: private, max-age=3600`) — hard-refresh (Ctrl-Shift-R) when verifying changes.
+- **Object-name cleaning**: `radarvan/match_details.py:_clean_object_name` strips a leading `<Prefix>_` token (e.g. `Lazr_`, `Tank_`, `SupW_`) **and then** the `China` / `America` / `GLA` faction prefix — so `Lazr_AmericaVehicleChinook` → `VehicleChinook`. Use it for build / upgrade / superweapon names rendered to the UI. `_clean_power_name` additionally strips `SpecialAbility` / `SpecialPower` / `Superweapon` prefixes for power names.
+- **Special-power categorization**: cncstats encodes three families inside `body[].details.Name` for `SpecialPowerAtLocation` / `SpecialPowerAtObject` orders: (a) `SpecialAbility*` — unit-level abilities (capture-building, laser-guided missile, etc.) — skip these on timelines, they flood the data; (b) `SpecialPower*` — actual generals-panel powers (SpyDrone, SpySatellite, …); (c) `Superweapon*` — a mix of generals powers AND true base-bound superweapons. To distinguish a true superweapon activation, match the name against `_SUPERWEAPON_ACTIVATION_KEYWORDS` (`NeutronMissile`, `NuclearMissile`, `ParticleCannon`, `ScudStorm`, `EMPPulse`, `AnthraxBomb`, `SpectreGunship`). Anything else under `Superweapon*` is treated as a generals power.
+- **Superweapon buildings**: detected by substring match on the cleaned object name against `_SUPERWEAPON_STRUCTURES` (`NuclearMissileLauncher`, `ParticleCannonUplink`, `ScudStorm`). Cost is typically 5 000 but cost-based detection is brittle — stick to the name list.
+- **`MatchDetails.timeline_events`**: a flat `list[TimelineEvent]` (each has `player_name`, `at_minute`, `event_name`, `event_type`, `cost`) of player-driven markers — `upgrade`, `rank_up`, `generals_power`, `superweapon_built`, `superweapon_activated`, `search_and_destroy`, `low_power`. `search_and_destroy` fires only on `0 → 1` transitions of `battle_plan_events.search_and_destroy`. `low_power` fires only on the OK → low transition (`consumption > production` from `energy_events`). Rank-up events with `rank_level <= 1` or `frame <= 0` are dropped (they're the initial state).
+- **EventChart is fully MUI**: `src/ShowMatchDetails.tsx:EventChart` renders the timeline using `@mui/material` `Box`/`Stack`/`Paper`/`Tooltip` + `@mui/icons-material` icons — no recharts. Lanes are grouped by player; rows for a single player are kept together via the explicit `ROW_ORDER` array. Adding a new event type means updating `EVENT_TYPE_META`, `EVENT_TYPE_ICON`, and (if a new row) `ROW_ORDER` together.
 
 ## Key Technical Details
 
