@@ -125,7 +125,9 @@ def _apms_from_body(replay: EnhancedReplayV2) -> list[APM]:
         if is_active_action(chunk.order_name):
             last_frame[chunk.player_name] = chunk.time_code
             first_frame.setdefault(chunk.player_name, chunk.time_code)
-    return _build_apm_records(counts, first_frame, last_frame, minutess_per_step(replay))
+    return _build_apm_records(
+        counts, first_frame, last_frame, minutess_per_step(replay)
+    )
 
 
 def _apms_from_stats(replay: EnhancedReplayV2) -> list[APM]:

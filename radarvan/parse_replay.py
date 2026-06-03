@@ -13,12 +13,21 @@ from .cncstats_model.header import Player
 from .db_utils import ReplayManager
 import structlog
 from .game_composition import categorize_game_type, PlayerAdapter
+from functools import cache
 
 logger = structlog.get_logger(__name__)
 
 
 # PARSE_URL = "https://cncstats.herokuapp.com/replay"
 PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
+
+
+@cache
+def http_client() -> httpx.Client:
+    token = os.environ["CNCSTATS_APIKEY"]
+    headers = {"Authorization": f"Bearer {token}"}
+    logger.info("Building httpx client", token_len=len(token))
+    return httpx.Client(timeout=30, headers=headers)
 
 
 def reassign_1v1_teams(players: list[Player]) -> list[Player]:
@@ -37,11 +46,11 @@ def parse_replay_data(
     data: bytes, replay_manager: ReplayManager, debug: bool = False
 ) -> EnhancedReplayV2:
     logger.info("Calling cncstats to parse replay")
-    response = httpx.post(PARSE_URL, files={"file": data}, timeout=30)
+    response = http_client().post(PARSE_URL, files={"file": data})
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
-    logger.info("cncstats responded", elapsed_s=response.elapsed.total_seconds())
+    logger.info("cncstats responded", elapsed_s=response.elapsed.total_seconds(), resp_headers=response.headers)
     validated = EnhancedReplayV2.model_validate(response.json())
     header_metadata = validated.header.metadata if validated.header else None
     header_players_raw = (header_metadata.players if header_metadata else None) or []

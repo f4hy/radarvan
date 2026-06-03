@@ -19,7 +19,11 @@ from .utils import minutess_per_step
 
 # Substrings on the cleaned object name that identify a true superweapon
 # structure (one of the three big base-bound powers).
-_SUPERWEAPON_STRUCTURES = ("NuclearMissileLauncher", "ParticleCannonUplink", "ScudStorm")
+_SUPERWEAPON_STRUCTURES = (
+    "NuclearMissileLauncher",
+    "ParticleCannonUplink",
+    "ScudStorm",
+)
 
 # Substrings inside SpecialPower order names that mark a *base* superweapon
 # launch (as opposed to a generals-panel power that the engine also tags
