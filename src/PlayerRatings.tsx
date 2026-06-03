@@ -36,6 +36,8 @@ import {
 import { HeadToHead, PlayerRatingData, PlayerSkill } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import { PlayerLabel } from "./PlayerChip"
+import { BRAND_COLOR, WIN_COLOR, LOSS_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
@@ -191,7 +193,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 <CartesianGrid strokeDasharray="5 5" vertical={false} />
                 <Area
                   dataKey="skill"
-                  fill="#42A5F5"
+                  fill={BRAND_COLOR}
                   connectNulls
                   type="linear"
                 />
@@ -209,7 +211,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                       return <g key={`dot-${cx}-${cy}`} />
                     }
                     const pos = delta >= 0
-                    const color = pos ? "#4caf50" : "#f44336"
+                    const color = pos ? WIN_COLOR : LOSS_COLOR
                     const label = `${pos ? "+" : ""}${delta.toFixed(1)}`
                     return (
                       <text
@@ -550,7 +552,7 @@ function SkillScatterChart(props: { data: RatingEntry[]; isMobile: boolean }) {
           bottom: isMobile ? 30 : 5,
         }}
       >
-        <Scatter name="skill" data={data} shape="triangle" fill="blue">
+        <Scatter name="skill" data={data} shape="triangle" fill={BRAND_COLOR}>
           <LabelList
             dataKey="ordinal"
             position="bottom"
@@ -610,7 +612,7 @@ function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
         margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="5 5" vertical={false} />
-        <Bar dataKey="gameCount" fill="#42A5F5" />
+        <Bar dataKey="gameCount" fill={BRAND_COLOR} />
         <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
         <YAxis
           label={
@@ -738,7 +740,13 @@ export function DisplayPlayerRatingTrend() {
   ).sort((a, b) => a - b)
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 800, p: 1 }}>
+    <Paper sx={{ flexGrow: 1, maxWidth: 800, p: { xs: 1.5, sm: 2 } }}>
+      <Typography variant="h5" sx={{ mb: 0.5 }}>
+        Rating Trend
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Recent form and rating change over 7 / 14 / 30 days.
+      </Typography>
       <FormatSelector format={format} onChange={setFormat} />
       <TableContainer>
         <Table size="small">
@@ -763,7 +771,9 @@ export function DisplayPlayerRatingTrend() {
             {data.map((r, i) => (
               <TableRow key={r.name} hover>
                 <TableCell>{i + 1}</TableCell>
-                <TableCell>{r.name}</TableCell>
+                <TableCell>
+                  <PlayerLabel name={r.name} />
+                </TableCell>
                 <TableCell
                   align="right"
                   sx={{ fontVariantNumeric: "tabular-nums" }}

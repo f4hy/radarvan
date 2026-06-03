@@ -1,5 +1,4 @@
 import Box from "@mui/material/Box"
-import Chip from "@mui/material/Chip"
 import Divider from "@mui/material/Divider"
 import LinearProgress from "@mui/material/LinearProgress"
 import Loading from "./Loading"
@@ -11,6 +10,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "./api"
 import { Client } from "./Client"
+import { PlayerChip } from "./PlayerChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { winRate } from "./utils"
 
@@ -31,28 +31,43 @@ function TeamRow(props: { team: TeamRecord }) {
   const { team } = props
   const rate = winRate(team.wins, team.losses)
   const total = team.wins + team.losses
+  // De-emphasize small-sample rows so a 100% (3 games) doesn't read as loudly
+  // as a 64% (22 games). Bars fade in as the sample grows toward ~15 games.
+  const confidence = Math.min(1, total / 15)
   return (
     <Paper elevation={1} sx={{ p: 1.5 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 1,
+          mb: 0.75,
+        }}
+      >
         <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
           {team.players.map((p) => (
-            <Chip key={p} label={p} size="small" />
+            <PlayerChip key={p} name={p} />
           ))}
         </Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ whiteSpace: "nowrap", ml: 1, alignSelf: "center" }}
-        >
-          {(rate * 100).toFixed(0)}% &nbsp;({team.wins}W–{team.losses}L ·{" "}
-          {total} games)
-        </Typography>
+        <Box sx={{ textAlign: "right", whiteSpace: "nowrap" }}>
+          <Typography
+            component="span"
+            sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}
+            color={`${getRateColor(rate)}.main`}
+          >
+            {(rate * 100).toFixed(0)}%
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+            {team.wins}W–{team.losses}L · {total}g
+          </Typography>
+        </Box>
       </Box>
       <LinearProgress
         variant="determinate"
         value={rate * 100}
         color={getRateColor(rate)}
-        sx={{ height: 7, borderRadius: 4 }}
+        sx={{ height: 7, borderRadius: 4, opacity: 0.45 + 0.55 * confidence }}
       />
     </Paper>
   )

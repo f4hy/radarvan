@@ -33,6 +33,33 @@ export function getColorHex(colorName: string): string {
   return "#808080"
 }
 
+// Stable, deterministic color for a player name, so the same player reads as
+// the same color everywhere (team stats, records, leaderboards). Uses a fixed
+// palette of readable, saturated hues picked by hashing the name.
+const PLAYER_HUE_PALETTE = [
+  "#2f6df0",
+  "#7c4dff",
+  "#00897b",
+  "#e0457b",
+  "#f5871f",
+  "#3949ab",
+  "#0b8043",
+  "#c2185b",
+  "#00838f",
+  "#5e35b1",
+  "#d81b60",
+  "#1565c0",
+]
+
+export function playerColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0
+  }
+  const idx = Math.abs(hash) % PLAYER_HUE_PALETTE.length
+  return PLAYER_HUE_PALETTE[idx]
+}
+
 export function buildPlayerColorMap(
   playerSummaries: Array<{ name: string; color: string }>,
   transform: (color: string) => string = (c) => c,

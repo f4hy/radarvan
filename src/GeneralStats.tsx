@@ -26,6 +26,7 @@ import { toGeneralName } from "./general_utils"
 import { Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { winRate } from "./utils"
+import { CHART_WIN, CHART_LOSS } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
@@ -66,7 +67,7 @@ function GeneralWinLossChart(props: {
         }}
       >
         <CartesianGrid strokeDasharray="5 5" vertical={false} />
-        <Bar dataKey="wins" fill="#42A5F5" name="Wins">
+        <Bar dataKey="wins" fill={CHART_WIN} name="Wins">
           {!props.isMobile && (
             <LabelList dataKey="wins" position="top" fontSize={11} />
           )}
@@ -78,7 +79,7 @@ function GeneralWinLossChart(props: {
             formatter={(v) => `${(Number(v) * 100).toFixed(0)}%`}
           />
         </Bar>
-        <Bar dataKey="losses" fill="#FF7043" name="Losses">
+        <Bar dataKey="losses" fill={CHART_LOSS} name="Losses">
           {!props.isMobile && (
             <LabelList dataKey="losses" position="top" fontSize={11} />
           )}
@@ -200,7 +201,9 @@ export default function DisplayGeneralStats() {
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Grid container spacing={2} alignItems="flex-start">
         <Grid size={{ xs: 12, md: 4 }}>
-          <Typography variant="h4">Ordered by winrate </Typography>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Ordered by winrate
+          </Typography>
           <Grid container spacing={2}>
             {sorted.map((m) => (
               <Grid key={m.general} size={12}>

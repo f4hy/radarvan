@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts"
+import { BRAND_COLOR } from "./theme"
 
 export default function WinRateRadar(props: {
   data: { name: string; winRate: number }[]
@@ -22,9 +23,9 @@ export default function WinRateRadar(props: {
         <Radar
           dataKey="winRate"
           name="Win Rate"
-          fill="#42A5F5"
+          fill={BRAND_COLOR}
           fillOpacity={0.4}
-          stroke="#42A5F5"
+          stroke={BRAND_COLOR}
         />
         <Tooltip
           formatter={(value) => [`${(value as number) ?? 0}%`, "Win Rate"]}

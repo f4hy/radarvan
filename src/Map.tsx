@@ -159,7 +159,7 @@ export default function GameMap(props: {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              bgcolor: "grey.200",
+              bgcolor: "action.hover",
               color: "text.secondary",
               gap: 1,
             }}

@@ -35,6 +35,7 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import CasinoIcon from "@mui/icons-material/Casino"
 import { isDebug } from "./utils"
 import DisplayDraft from "./Draft"
+import radarvanLogo from "./img/radarvan_logo.webp"
 const drawerWidth = 190
 
 export default function Menu() {
@@ -46,101 +47,73 @@ export default function Menu() {
     setMobileOpen(!mobileOpen)
   }
 
+  const navItems: { value: Selection; text: string; icon: React.ReactNode }[] =
+    [
+      { value: "Matches", text: "Matches", icon: <ListIcon /> },
+      { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
+      {
+        value: "GeneralStats",
+        text: "General Stats",
+        icon: <MilitaryTechIcon />,
+      },
+      { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
+      { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
+      { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
+      { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
+      {
+        value: "Superlatives",
+        text: "Records",
+        icon: <WorkspacePremiumIcon />,
+      },
+      { value: "Draft", text: "Skip In and Out", icon: <CasinoIcon /> },
+      {
+        value: "PlayerRatingTrend",
+        text: "Rating Trend",
+        icon: <LeaderboardIcon />,
+      },
+      ...(debug
+        ? ([
+            {
+              value: "PlayerRating",
+              text: "Player Ratings",
+              icon: <LeaderboardIcon />,
+            },
+            { value: "DebugData", text: "Debug Matchid", icon: <TableView /> },
+          ] as const)
+        : []),
+    ]
+
   const drawer = (
     <div>
-      <Toolbar />
+      <Toolbar sx={{ px: 2 }}>
+        <Box
+          component="img"
+          src={radarvanLogo}
+          alt="radarvan"
+          sx={{
+            width: "100%",
+            maxWidth: 150,
+            height: "auto",
+            display: "block",
+          }}
+        />
+      </Toolbar>
       <Divider />
-      <List>
-        <MenuItem
-          value="Matches"
-          text="Matches"
-          open={true}
-          icon={<ListIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="PlayerStats"
-          text="Player Stats"
-          open={true}
-          icon={<PersonIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="GeneralStats"
-          text="General Stats"
-          open={true}
-          icon={<MilitaryTechIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="Tournaments"
-          text="Tournaments"
-          open={true}
-          icon={<EmojiEventsIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="BalanceTeams"
-          text="Balance Teams"
-          open={true}
-          icon={<BalanceIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="MapStats"
-          text="Map Stats"
-          open={true}
-          icon={<MapIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="TeamStats"
-          text="Team Stats"
-          open={true}
-          icon={<GroupsIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="Superlatives"
-          text="Records"
-          open={true}
-          icon={<WorkspacePremiumIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="Draft"
-          text="Skip In and Out"
-          open={true}
-          icon={<CasinoIcon />}
-          callback={setSelection}
-        />
-        <MenuItem
-          value="PlayerRatingTrend"
-          text="Rating Trend"
-          open={true}
-          icon={<LeaderboardIcon />}
-          callback={setSelection}
-        />
-        {debug && (
+      <List sx={{ px: 1 }}>
+        {navItems.map((item) => (
           <MenuItem
-            value="PlayerRating"
-            text="Player Ratings"
-            open={true}
-            icon={<LeaderboardIcon />}
-            callback={setSelection}
+            key={item.value}
+            value={item.value}
+            text={item.text}
+            icon={item.icon}
+            selected={selection === item.value}
+            callback={(s) => {
+              setSelection(s)
+              setMobileOpen(false)
+            }}
           />
-        )}
-        {debug && (
-          <MenuItem
-            value="DebugData"
-            text="Debug Matchid"
-            open={true}
-            icon={<TableView />}
-            callback={setSelection}
-          />
-        )}
+        ))}
       </List>
-      <Divider />
     </div>
   )
 
@@ -165,7 +138,7 @@ export default function Menu() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {selection}
+            {navItems.find((i) => i.value === selection)?.text ?? selection}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -209,12 +182,17 @@ export default function Menu() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 1.5, sm: 3 },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minWidth: 0,
+          bgcolor: "background.default",
+          minHeight: "100vh",
         }}
       >
         <Toolbar />
-        <Main selection={selection} />
+        <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
+          <Main selection={selection} />
+        </Box>
       </Box>
     </Box>
   )
@@ -235,10 +213,10 @@ type Selection =
   | "Draft"
 
 interface MenuItemProps {
-  open: boolean
   value: Selection
   text: string
   icon: React.ReactNode
+  selected: boolean
   callback: (s: Selection) => void
   disabled?: boolean
 }
@@ -275,28 +253,38 @@ function Main(props: { selection: Selection }) {
 }
 
 function MenuItem(props: MenuItemProps) {
-  const open = props.open
   return (
     <ListItemButton
       key={props.value}
       disabled={props.disabled}
+      selected={props.selected}
       sx={{
-        minHeight: 48,
-        justifyContent: open ? "initial" : "center",
-        px: 2.5,
+        minHeight: 44,
+        borderRadius: 1.5,
+        mb: 0.25,
+        px: 1.5,
       }}
       onClick={() => props.callback(props.value)}
     >
       <ListItemIcon
         sx={{
           minWidth: 0,
-          mr: open ? 3 : "auto",
+          mr: 2,
           justifyContent: "center",
+          color: props.selected ? "primary.main" : "text.secondary",
         }}
       >
         {props.icon}
       </ListItemIcon>
-      <ListItemText primary={props.text} sx={{ opacity: open ? 1 : 0 }} />
+      <ListItemText
+        primary={props.text}
+        slotProps={{
+          primary: {
+            fontWeight: props.selected ? 700 : 500,
+            color: props.selected ? "primary.main" : "text.primary",
+          },
+        }}
+      />
     </ListItemButton>
   )
 }

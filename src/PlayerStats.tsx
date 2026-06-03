@@ -47,6 +47,7 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { isDebug, winRate } from "./utils"
+import { CHART_WIN, CHART_LOSS } from "./theme"
 import WinRateRadar from "./WinRateRadar"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -284,8 +285,8 @@ function DisplayPlayerStat(props: {
           <ResponsiveContainer width="99%">
             <BarChart data={data} layout="horizontal">
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
-              <Bar dataKey="wins" fill="#42A5F5" />
-              <Bar dataKey="losses" fill="#FF7043" />
+              <Bar dataKey="wins" fill={CHART_WIN} />
+              <Bar dataKey="losses" fill={CHART_LOSS} />
               <XAxis
                 dataKey="general"
                 height={130}
@@ -370,15 +371,20 @@ function RankedPlayerCard(props: {
   children: React.ReactNode
 }) {
   return (
-    <Grid>
+    <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }}>
       <Paper
-        sx={{ p: 1, textAlign: "center", minWidth: 110 }}
+        sx={{ p: 1, textAlign: "center", height: "100%" }}
         variant="outlined"
       >
         <DisplayGeneral general={props.general} />
-        <Typography variant="caption" display="block">
+        <Typography
+          variant="subtitle2"
+          display="block"
+          sx={{ mt: 0.5, mb: 0.5 }}
+        >
           {toGeneralName(props.general)}
         </Typography>
+        <Divider sx={{ mb: 0.5 }} />
         {props.children}
       </Paper>
     </Grid>

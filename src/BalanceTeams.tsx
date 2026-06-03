@@ -172,7 +172,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   return (
     <Stack
       spacing={1}
-      sx={{ mt: 1, p: 1.5, bgcolor: "grey.300", borderRadius: 1 }}
+      sx={{ mt: 1, p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}
     >
       {loading && <LinearProgress />}
       {filtered.map(([team, winRate]) => (

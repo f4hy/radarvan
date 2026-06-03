@@ -52,6 +52,7 @@ import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { buildPlayerColorMap, getColorHex } from "./utils"
+import { BRAND_COLOR } from "./theme"
 
 function getDetails(
   id: number,
@@ -72,7 +73,7 @@ function MoneyChart(props: {
   const lines = props.horizontalLines ?? []
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
-    const colors = buildPlayerColorMap(props.playerSummaries)
+    const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
     const data = Object.entries(props.money).map(([atMinute, values]) => ({
       ...values,
       atMinute: atMinute,
@@ -124,7 +125,7 @@ function MoneyChart(props: {
                 key={i}
                 y={value}
                 label={{ value: `${i + 2}⭐`, position: "insideLeft" }}
-                stroke="blue"
+                stroke={BRAND_COLOR}
                 strokeDasharray="3 3"
               />
             ))}
@@ -564,64 +565,83 @@ function renderRatio(value: number | null | undefined): string {
 const columns: Array<{
   key: keyof StyledTableRow
   label: string
+  group: string
   align?: "left" | "right" | "center"
   render?: (value: StyledTableRow[keyof StyledTableRow]) => React.ReactNode
 }> = [
-  { key: "player", label: "Player" },
-  { key: "team", label: "Team" },
+  { key: "player", label: "Player", group: "Player" },
+  { key: "team", label: "Team", group: "Player" },
   {
     key: "won",
     label: "Won",
+    group: "Player",
     render: (value) => (value ? "✅" : "❌"),
   },
   {
     key: "general",
     label: "Side",
+    group: "Player",
     render: (v) => {
       const s = String(v ?? "")
       return s.split(" ").length > 1 ? s.split(" ")[1] : s
     },
   },
-  { key: "xp", label: "XP" },
-  { key: "unitsBuilt", label: "🛻 Built" },
-  { key: "buildingsBuilt", label: "🏢 Built" },
-  { key: "unitsLost", label: "🛻 Lost" },
-  { key: "buildingsLost", label: "🏢 Lost" },
-  { key: "unitsKilled", label: "🛻 Killed" },
-  { key: "buildingsKilled", label: "🏢 Killed" },
-  { key: "tech_buildings_captured", label: "⭐ 🚩" },
-  { key: "faction_buildings_captured", label: "🏢 🚩" },
+  { key: "xp", label: "XP", group: "XP" },
+  { key: "unitsBuilt", label: "🛻 Built", group: "Built" },
+  { key: "buildingsBuilt", label: "🏢 Built", group: "Built" },
+  { key: "unitsLost", label: "🛻 Lost", group: "Lost" },
+  { key: "buildingsLost", label: "🏢 Lost", group: "Lost" },
+  { key: "unitsKilled", label: "🛻 Killed", group: "Killed" },
+  { key: "buildingsKilled", label: "🏢 Killed", group: "Killed" },
+  { key: "tech_buildings_captured", label: "⭐ 🚩", group: "Captured" },
+  { key: "faction_buildings_captured", label: "🏢 🚩", group: "Captured" },
   {
     key: "moneySpent",
     label: "$ Spent",
+    group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number | null),
   },
   {
     key: "moneyCollected",
     label: "$ Collected",
+    group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number | null),
   },
   {
     key: "valueDestroyed",
     label: "$ Destroyed",
+    group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number),
   },
   {
     key: "valueLost",
     label: "$ Lost",
+    group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number),
   },
   {
     key: "efficiency",
     label: "Efficiency",
+    group: "Economy",
     align: "right",
     render: (v) => renderRatio(v as number | null),
   },
 ]
+
+// Contiguous column groups, in order, for the grouped header row.
+const columnGroups: { group: string; span: number }[] = columns.reduce(
+  (acc, col) => {
+    const last = acc[acc.length - 1]
+    if (last && last.group === col.group) last.span += 1
+    else acc.push({ group: col.group, span: 1 })
+    return acc
+  },
+  [] as { group: string; span: number }[],
+)
 
 function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   const [sortBy, setSortBy] = React.useState<null | keyof StyledTableRow>(
@@ -704,17 +724,49 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
       >
         <TableHead>
           <TableRow>
-            {columns.map((column) => (
-              <TableCell key={column.key} align={column.align}>
-                <TableSortLabel
-                  active={column.key === sortBy}
-                  direction={"desc"}
-                  onClick={() => setSortBy(column.key)}
-                >
-                  {column.label}
-                </TableSortLabel>
+            {columnGroups.map((g, i) => (
+              <TableCell
+                key={g.group}
+                colSpan={g.span}
+                align="center"
+                sx={{
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  fontSize: "0.62rem !important",
+                  letterSpacing: "0.04em",
+                  borderLeft: i === 0 ? undefined : "2px solid",
+                  borderLeftColor: "divider",
+                  bgcolor: "action.hover",
+                }}
+              >
+                {g.group}
               </TableCell>
             ))}
+          </TableRow>
+          <TableRow>
+            {columns.map((column, i) => {
+              const groupStart =
+                i === 0 || columns[i - 1].group !== column.group
+              return (
+                <TableCell
+                  key={column.key}
+                  align={column.align}
+                  sx={{
+                    borderLeft: groupStart && i !== 0 ? "2px solid" : undefined,
+                    borderLeftColor: "divider",
+                  }}
+                >
+                  <TableSortLabel
+                    active={column.key === sortBy}
+                    direction={"desc"}
+                    onClick={() => setSortBy(column.key)}
+                  >
+                    {column.label}
+                  </TableSortLabel>
+                </TableCell>
+              )
+            })}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -723,13 +775,25 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
               key={index}
               sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}
             >
-              {columns.map((column) => (
-                <TableCell key={column.key} align={column.align}>
-                  {column.render
-                    ? column.render(row[column.key])
-                    : row[column.key]}
-                </TableCell>
-              ))}
+              {columns.map((column, i) => {
+                const groupStart =
+                  i === 0 || columns[i - 1].group !== column.group
+                return (
+                  <TableCell
+                    key={column.key}
+                    align={column.align}
+                    sx={{
+                      borderLeft:
+                        groupStart && i !== 0 ? "2px solid" : undefined,
+                      borderLeftColor: "rgba(26, 34, 48, 0.12)",
+                    }}
+                  >
+                    {column.render
+                      ? column.render(row[column.key])
+                      : row[column.key]}
+                  </TableCell>
+                )
+              })}
             </TableRow>
           ))}
         </TableBody>
@@ -1074,15 +1138,18 @@ function DetailViewSelector(props: {
   )
   return (
     <>
-      <Typography>Select which detailed charts to show</Typography>
+      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+        Select which detailed charts to show
+      </Typography>
       <ToggleButtonGroup
         exclusive
         value={props.selectedDisplay}
         onChange={handleChange}
         color="primary"
+        sx={{ flexWrap: "wrap" }}
       >
         {props.choices.map((v) => (
-          <ToggleButton key={v} size="large" value={v}>
+          <ToggleButton key={v} value={v}>
             {v}
           </ToggleButton>
         ))}

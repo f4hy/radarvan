@@ -12,8 +12,8 @@ import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
-import PersonIcon from "@mui/icons-material/Person"
 import SportsScoreIcon from "@mui/icons-material/SportsScore"
+import { PlayerChip } from "./PlayerChip"
 
 const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
   { label: "Overview", keywords: ["Games"] },
@@ -91,14 +91,7 @@ const StatCard = React.memo(function StatCard({
           {displayValue}
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
-          {stat.player && (
-            <Chip
-              icon={<PersonIcon />}
-              label={stat.player}
-              size="small"
-              variant="outlined"
-            />
-          )}
+          {stat.player && <PlayerChip name={stat.player} />}
           {stat.matchId != null && (
             <Chip
               icon={<SportsScoreIcon />}

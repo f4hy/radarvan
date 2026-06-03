@@ -336,15 +336,26 @@ function TeamProgressChart(props: {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-sm mb-1">{data.team}</p>
-          <p className="text-sm">Current Wins: {data.wins}</p>
-          <p className="text-sm">Losses: {data.losses}</p>
-          <p className="text-sm">
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid rgba(26,34,48,0.18)",
+            borderRadius: 8,
+            padding: 12,
+            color: "#1a2230",
+            fontSize: "0.8rem",
+            lineHeight: 1.5,
+            boxShadow: "0 2px 8px rgba(16,24,40,0.12)",
+          }}
+        >
+          <p style={{ fontWeight: 700, margin: "0 0 4px" }}>{data.team}</p>
+          <p style={{ margin: 0 }}>Current Wins: {data.wins}</p>
+          <p style={{ margin: 0 }}>Losses: {data.losses}</p>
+          <p style={{ margin: 0 }}>
             Games Played: {data.wins + data.losses}/{props.total}
           </p>
-          <p className="text-sm">Outstanding: {data.gamesOutstanding}</p>
-          <p className="text-sm text-blue-600">
+          <p style={{ margin: 0 }}>Outstanding: {data.gamesOutstanding}</p>
+          <p style={{ margin: 0, color: "#2f6df0" }}>
             Max Possible: {data.maxPossibleWins}
           </p>
         </div>

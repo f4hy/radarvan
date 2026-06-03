@@ -9,9 +9,7 @@ import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Card from "@mui/material/Card"
-import CardHeader from "@mui/material/CardHeader"
 import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
-import CardContent from "@mui/material/CardContent"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
@@ -38,6 +36,7 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { ActivityCalendar } from "react-activity-calendar"
+import { getColorHex } from "./utils"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 function getDates(
@@ -55,10 +54,6 @@ function getMatches(
   Client.getMatchesByDateApiMatchesByDateDateGet({ date: date })
     .then(callback)
     .catch(onError)
-}
-
-function playerNameStyle(_player: Player) {
-  return { WebkitTextStroke: `0.5px grey` }
 }
 
 function normalizePlayerName(name: string): string {
@@ -87,79 +82,122 @@ function buildPlayerPositions(
 
 function winRateColor(w: number, l: number): string {
   const rate = w + l === 0 ? 0.5 : w / (w + l)
-  // interpolate between near-black #424242 (rate=0) and green #4caf50 (rate=1)
-  const r = Math.round(66 + 10 * rate)
-  const g = Math.round(66 + 109 * rate)
-  const b = Math.round(66 + 14 * rate)
+  // interpolate muted red (rate=0) → muted green (rate=1)
+  const r = Math.round(200 - 118 * rate)
+  const g = Math.round(90 + 86 * rate)
+  const b = Math.round(90 + 37 * rate)
   return `rgb(${r},${g},${b})`
 }
 
+// Win/loss is carried by a single colored status band at the top of an
+// otherwise-neutral card, so names stay readable and the page isn't wall-to-wall
+// saturated panels. Solid enough for white band text.
+const WON_BAND = "#2f8f57"
+const LOST_BAND = "#c2544f"
+const NEUTRAL_BAND = "#7a828f"
+
+function StatusBand(props: {
+  color: string
+  icon: React.ReactNode
+  label: string
+  center?: boolean
+}) {
+  return (
+    <Box
+      sx={{
+        bgcolor: props.color,
+        color: "#fff",
+        px: 1.5,
+        py: 0.5,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: props.center ? "center" : "flex-start",
+        gap: 0.75,
+        "& .MuiSvgIcon-root": { fontSize: "1.1rem" },
+      }}
+    >
+      {props.icon}
+      <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+        {props.label}
+      </Typography>
+    </Box>
+  )
+}
+
 function TeamCard(props: { players: Player[]; won: boolean }) {
-  let color = props.won ? "#c5e1a5" : "#e57373"
   const team = props.players[0]?.team
-  let title = (props.won ? "Won" : "Lost") + " Team:" + props.players[0]?.team
+  let label = `${props.won ? "Won" : "Lost"} · Team ${team}`
   let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
+  let bandColor = props.won ? WON_BAND : LOST_BAND
   if (team === Team.NUMBER_0) {
-    title = "Unkown Team"
+    label = "Unknown Team"
     icon = <QuestionMarkIcon />
+    bandColor = NEUTRAL_BAND
   }
   if (team === Team.NUMBER_MINUS_1) {
-    title = "Observer"
+    label = "Observers"
     icon = <VisibilityIcon />
-    color = "#D3D3D3"
+    bandColor = NEUTRAL_BAND
   }
   return (
     <Card
       sx={{
-        backgroundColor: color,
         width: { xs: "100%", sm: "50%", md: "auto" },
         flex: { md: 1 },
         minWidth: 0,
+        overflow: "hidden",
       }}
     >
-      <CardHeader title={title} avatar={icon} component="div" />
-      {props.players.map((p) => (
-        <CardContent key={p?.name + "-" + p.general} component="div">
-          <Stack direction="row" divider={<Divider flexItem />} spacing={4}>
-            <DisplayGeneral general={p!.general} />{" "}
+      <StatusBand color={bandColor} icon={icon} label={label} />
+      <Stack divider={<Divider />}>
+        {props.players.map((p) => (
+          <Box
+            key={p.name + "-" + p.general}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              px: 1.5,
+              py: 1,
+            }}
+          >
+            <DisplayGeneral general={p.general} />
             <Typography
-              variant="h5"
-              color={p.color}
-              fontWeight="fontWeightBold"
-              sx={playerNameStyle(p)}
+              variant="h6"
+              fontWeight={700}
+              noWrap
+              sx={{ color: getColorHex(p.color) }}
             >
               {normalizePlayerName(p.name)}
             </Typography>
-          </Stack>
-        </CardContent>
-      ))}
+          </Box>
+        ))}
+      </Stack>
     </Card>
   )
 }
 
 function FfaPlayerCard(props: { player: Player }) {
   const { player } = props
-  const bgColor = player.won ? "#c5e1a5" : "#eeeeee"
   return (
-    <Card sx={{ backgroundColor: bgColor, minWidth: 160 }}>
-      <CardContent component="div">
-        <Stack spacing={1} alignItems="center">
-          {player.won ? (
-            <EmojiEventsIcon color="success" />
-          ) : (
-            <ErrorIcon color="disabled" />
-          )}
-          <DisplayGeneral general={player.general} />
-          <Typography
-            variant="h6"
-            color={player.color}
-            fontWeight="fontWeightBold"
-            sx={playerNameStyle(player)}
-          >
-            {normalizePlayerName(player.name)}
-          </Typography>
-        </Stack>
-      </CardContent>
+    <Card sx={{ minWidth: 150, overflow: "hidden" }}>
+      <StatusBand
+        color={player.won ? WON_BAND : NEUTRAL_BAND}
+        icon={player.won ? <EmojiEventsIcon /> : <ErrorIcon />}
+        label={player.won ? "Winner" : "Lost"}
+        center
+      />
+      <Stack spacing={1} alignItems="center" sx={{ p: 1.5 }}>
+        <DisplayGeneral general={player.general} />
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          noWrap
+          sx={{ color: getColorHex(player.color) }}
+        >
+          {normalizePlayerName(player.name)}
+        </Typography>
+      </Stack>
     </Card>
   )
 }
@@ -187,10 +225,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
     </Box>
   )
   return (
-    <Paper
-      sx={{ width: "99%", maxWidth: 1600, borderRadius: 3 }}
-      variant="outlined"
-    >
+    <Box sx={{ width: "99%", maxWidth: 1600, mb: 2 }}>
       <ListItem>
         <ListItemText primary={header} />
       </ListItem>
@@ -215,7 +250,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
         </Tooltip>
       </Stack>
       {details ? <ShowMatchDetails id={match.id} /> : null}
-    </Paper>
+    </Box>
   )
 }
 
@@ -293,6 +328,9 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
     width: "99%",
     maxWidth: 1600,
     borderRadius: 3,
+    bgcolor: "transparent",
+    border: "none",
+    mb: 2,
   }
   const incomplete = (props.match.incomplete ?? "").length !== 0
   const matchDisplay = (
@@ -509,7 +547,7 @@ function DisplayMatchesForDate(props: {
             ratingChanges={ratingChanges}
           />
         </AccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ bgcolor: "background.default" }}>
           {matchList.matches.length === 0 ? (
             <MatchRowLoading />
           ) : (
@@ -671,9 +709,11 @@ export default function DisplayMatches() {
       <Accordion slotProps={{ transition: { unmountOnExit: true } }}>
         <AccordionSummary
           expandIcon={<ArrowDownwardIcon />}
-          sx={{ bgcolor: "primary.light" }}
+          sx={{ bgcolor: "action.hover" }}
         >
-          <Typography>Activity Calendar (click to expand)</Typography>
+          <Typography fontWeight={600} color="text.secondary">
+            Activity Calendar (click to expand)
+          </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <MatchActivityCalendar
