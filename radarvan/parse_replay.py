@@ -19,7 +19,8 @@ logger = structlog.get_logger(__name__)
 
 
 # PARSE_URL = "https://cncstats.herokuapp.com/replay"
-PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
+# PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
+PARSE_URL = "https://cncstats.computersrfun.org/replay"
 
 
 @cache
@@ -50,7 +51,11 @@ def parse_replay_data(
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
-    logger.info("cncstats responded", elapsed_s=response.elapsed.total_seconds(), resp_headers=response.headers)
+    logger.info(
+        "cncstats responded",
+        elapsed_s=response.elapsed.total_seconds(),
+        resp_headers=response.headers,
+    )
     validated = EnhancedReplayV2.model_validate(response.json())
     header_metadata = validated.header.metadata if validated.header else None
     header_players_raw = (header_metadata.players if header_metadata else None) or []
