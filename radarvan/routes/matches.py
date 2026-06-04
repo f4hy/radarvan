@@ -57,11 +57,21 @@ def get_matches(
 @router.get("/api/matches/by_date/{date}", dependencies=[Depends(cache_short)])
 def get_matches_by_date(
     date: date,
+    exclude_dev: bool = False,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> Matches:
-    """Get all matches for a specific date."""
+    """Get all matches for a specific date.
+
+    When exclude_dev is set, matches sourced from a "dev-" zulu build are omitted.
+    """
     replays = sorted_deduped_matches(replay_manager)
-    return Matches(matches=[r for r in replays.values() if r.date == date])
+    return Matches(
+        matches=[
+            r
+            for r in replays.values()
+            if r.date == date and not (exclude_dev and r.is_dev)
+        ]
+    )
 
 
 @router.get("/api/team_games_without_winner/", dependencies=[Depends(cache_short)])

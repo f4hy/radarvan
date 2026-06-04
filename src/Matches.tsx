@@ -51,7 +51,11 @@ function getMatches(
   callback: (m: Matches) => void,
   onError = console.error,
 ) {
-  Client.getMatchesByDateApiMatchesByDateDateGet({ date: date })
+  // Hide dev-build matches (is_dev) unless ?debug=True is set.
+  Client.getMatchesByDateApiMatchesByDateDateGet({
+    date: date,
+    excludeDev: !isDebug(),
+  })
     .then(callback)
     .catch(onError)
 }
@@ -528,13 +532,6 @@ function DisplayMatchesForDate(props: {
     },
     [],
   )
-  // Hide dev-build matches (is_dev) unless ?debug=True is set.
-  const debug = React.useMemo(() => isDebug(), [])
-  const visibleMatches = React.useMemo(
-    () =>
-      debug ? matchList.matches : matchList.matches.filter((m) => !m.isDev),
-    [debug, matchList.matches],
-  )
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
   const date = fmt(props.date)
@@ -550,7 +547,7 @@ function DisplayMatchesForDate(props: {
           <MatchDateSummary
             date={date}
             count={props.count}
-            matches={visibleMatches}
+            matches={matchList.matches}
             ratingChanges={ratingChanges}
           />
         </AccordionSummary>
@@ -558,7 +555,7 @@ function DisplayMatchesForDate(props: {
           {matchList.matches.length === 0 ? (
             <MatchRowLoading />
           ) : (
-            visibleMatches.map((m, matchIdx) => (
+            matchList.matches.map((m, matchIdx) => (
               <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
             ))
           )}
