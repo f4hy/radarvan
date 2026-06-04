@@ -18,6 +18,7 @@ Name | Type
 `notes` | string
 `gameVersion` | string
 `composition` | [GameComposition](GameComposition.md)
+`isDev` | boolean
 
 ## Example
 
@@ -38,6 +39,7 @@ const example = {
   "notes": null,
   "gameVersion": null,
   "composition": null,
+  "isDev": null,
 } satisfies MatchInfo
 
 console.log(example)

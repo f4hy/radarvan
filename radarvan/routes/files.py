@@ -12,6 +12,7 @@ from fastapi import (
     Depends,
     File,
     Form,
+    Header,
     HTTPException,
     Query,
     UploadFile,
@@ -113,6 +114,7 @@ def upload_replay(
     player_name: str | None = Form(None),
     client_version: str | None = Form(None),
     source_tag: str | None = Form(None),
+    x_zulu_build: str | None = Header(None),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo:
     """Upload a .rep file, save it to S3, parse it, and return the match info.
@@ -123,6 +125,9 @@ def upload_replay(
     - player_name: in-game name the uploader played under
     - client_version: version string of the uploading client
     - source_tag: free-form uploader-supplied label
+
+    The optional X-Zulu-Build request header is captured on the ReplayFile; when
+    it starts with "dev-" the replay and its match are flagged is_dev.
     """
     data = file.file.read()
     file_hash = replay_files.compute_hash(data)
@@ -141,8 +146,12 @@ def upload_replay(
         uploader_name=player_name,
         client_version=client_version,
         source_tag=source_tag,
+        zulu_build=x_zulu_build,
     )
-    db_match = matches.replay_to_db_match(result.replay, result.json_path)
+    is_dev = replay_files.is_dev_build(x_zulu_build)
+    db_match = matches.replay_to_db_match(
+        result.replay, result.json_path, is_dev=is_dev
+    )
     replay_manager.register_match(db_match)
     replay_manager.compute_and_save_composition(db_match.match_id)
     invalidate_match_caches()

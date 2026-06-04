@@ -127,6 +127,8 @@ class ReplayRepo(BaseRepo):
         uploader_name: str | None = None,
         client_version: str | None = None,
         source_tag: str | None = None,
+        zulu_build: str | None = None,
+        is_dev: bool = False,
     ) -> ReplayFile:
         """Register a replay that was uploaded directly (not fetched from a URL)."""
         logger.info(
@@ -143,6 +145,8 @@ class ReplayRepo(BaseRepo):
             uploader_name=uploader_name,
             client_version=client_version,
             source_tag=source_tag,
+            zulu_build=zulu_build,
+            is_dev=is_dev,
         )
         self.session.add(replay_file)
         if self.auto_commit:

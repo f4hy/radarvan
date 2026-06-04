@@ -1746,11 +1746,11 @@ example().catch(console.error);
 
 ## getMatchesApiMatchesMatchCountGet
 
-> Matches getMatchesApiMatchesMatchCountGet(matchCount)
+> Matches getMatchesApiMatchesMatchCountGet(matchCount, excludeDev)
 
 Get Matches
 
-Get listing of matches, up to a return count limit for paging.
+Get listing of matches, up to a return count limit for paging.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted.
 
 ### Example
 
@@ -1772,6 +1772,8 @@ async function example() {
   const body = {
     // number
     matchCount: 56,
+    // boolean (optional)
+    excludeDev: true,
   } satisfies GetMatchesApiMatchesMatchCountGetRequest;
 
   try {
@@ -1792,6 +1794,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **matchCount** | `number` |  | [Defaults to `undefined`] |
+| **excludeDev** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 
@@ -4454,11 +4457,11 @@ example().catch(console.error);
 
 ## uploadReplayApiUploadReplayPost
 
-> MatchInfo uploadReplayApiUploadReplayPost(file, macId, boardId, playerName, clientVersion, sourceTag)
+> MatchInfo uploadReplayApiUploadReplayPost(file, xZuluBuild, macId, boardId, playerName, clientVersion, sourceTag)
 
 Upload Replay
 
-Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label
+Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label  The optional X-Zulu-Build request header is captured on the ReplayFile; when it starts with \&quot;dev-\&quot; the replay and its match are flagged is_dev.
 
 ### Example
 
@@ -4480,6 +4483,8 @@ async function example() {
   const body = {
     // Blob
     file: BINARY_DATA_HERE,
+    // string (optional)
+    xZuluBuild: xZuluBuild_example,
     // string (optional)
     macId: macId_example,
     // string (optional)
@@ -4510,6 +4515,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **file** | `Blob` |  | [Defaults to `undefined`] |
+| **xZuluBuild** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **macId** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **boardId** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **playerName** | `string` |  | [Optional] [Defaults to `undefined`] |

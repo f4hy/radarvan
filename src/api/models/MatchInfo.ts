@@ -113,6 +113,12 @@ export interface MatchInfo {
      * @memberof MatchInfo
      */
     composition?: GameComposition | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MatchInfo
+     */
+    isDev?: boolean;
 }
 
 
@@ -154,6 +160,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'notes': json['notes'] == null ? undefined : json['notes'],
         'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
         'composition': json['composition'] == null ? undefined : GameCompositionFromJSON(json['composition']),
+        'isDev': json['is_dev'] == null ? undefined : json['is_dev'],
     };
 }
 
@@ -180,6 +187,7 @@ export function MatchInfoToJSONTyped(value?: MatchInfo | null, ignoreDiscriminat
         'notes': value['notes'],
         'game_version': value['gameVersion'],
         'composition': GameCompositionToJSON(value['composition']),
+        'is_dev': value['isDev'],
     };
 }
 

@@ -86,6 +86,7 @@ class MatchInfo(BaseModel):
     notes: str = ""
     game_version: str | None = None
     composition: GameComposition | None = None
+    is_dev: bool = False
 
 
 class Matches(BaseModel):

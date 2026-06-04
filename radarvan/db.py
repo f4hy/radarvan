@@ -82,6 +82,13 @@ class ReplayFile(Base):
     client_version: Mapped[str | None] = mapped_column(String, nullable=True)
     source_tag: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # Value of the X-Zulu-Build header sent to /api/upload_replay (if any).
+    zulu_build: Mapped[str | None] = mapped_column(String, nullable=True)
+    # True when the uploader's zulu_build started with "dev-" (a dev client).
+    is_dev: Mapped[bool] = mapped_column(
+        default=False, server_default="false", index=True
+    )
+
     # Timestamps
     discovered_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     source_date: Mapped[date] = mapped_column(index=True)
@@ -152,6 +159,10 @@ class Match(Base):
         DateTime(timezone=True), onupdate=func.now()
     )
     game_version: Mapped[str | None] = mapped_column(String(10))
+    # Mirrors ReplayFile.is_dev: True when sourced from a "dev-" zulu build.
+    is_dev: Mapped[bool] = mapped_column(
+        default=False, server_default="false", index=True
+    )
 
     __table_args__ = (
         CheckConstraint("duration_minutes >= 0", name="check_duration_positive"),

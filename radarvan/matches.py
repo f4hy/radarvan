@@ -119,7 +119,9 @@ def match_from_replay(
 
 
 @utils.log_duration
-def replay_to_db_match(replay: EnhancedReplayV2, json_s3_uri: str) -> db.Match:
+def replay_to_db_match(
+    replay: EnhancedReplayV2, json_s3_uri: str, is_dev: bool = False
+) -> db.Match:
     """replay to match."""
     match_id = replay.replay_id
     players = utils.players_from_replay(replay)
@@ -161,6 +163,7 @@ def replay_to_db_match(replay: EnhancedReplayV2, json_s3_uri: str) -> db.Match:
         incomplete=incomplete or "",
         notes=incomplete,
         game_version=game_version,
+        is_dev=is_dev,
     )
 
 
@@ -203,6 +206,7 @@ def match_to_matchinfo(
         notes="" if override is not None else (db_match.notes or ""),
         game_version=db_match.game_version,
         composition=comp,
+        is_dev=db_match.is_dev,
     )
 
 
@@ -214,7 +218,8 @@ def register_matches(replay_manager: ReplayManager) -> None:
         if j.match_id in seen:
             continue
         parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
-        db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri)
+        is_dev = j.replay_file.is_dev if j.replay_file is not None else False
+        db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri, is_dev=is_dev)
         try:
             replay_manager.register_match(db_match)
             seen.add(db_match.match_id)

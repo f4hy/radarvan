@@ -187,6 +187,11 @@ def compute_hash(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def is_dev_build(zulu_build: str | None) -> bool:
+    """A replay is a "dev" replay when its X-Zulu-Build header starts with "dev-"."""
+    return bool(zulu_build and zulu_build.startswith("dev-"))
+
+
 def upload_and_parse(
     data: bytes,
     file_hash: str,
@@ -196,6 +201,7 @@ def upload_and_parse(
     uploader_name: str | None = None,
     client_version: str | None = None,
     source_tag: str | None = None,
+    zulu_build: str | None = None,
 ) -> ParsedReplayResult:
     """Parse raw replay bytes, then persist .rep + .json to S3 and register in DB.
 
@@ -220,6 +226,8 @@ def upload_and_parse(
         uploader_name=uploader_name,
         client_version=client_version,
         source_tag=source_tag,
+        zulu_build=zulu_build,
+        is_dev=is_dev_build(zulu_build),
     )
     replay_manager.save_parsed_json(
         json_s3_uri=json_path,

@@ -36,7 +36,7 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { ActivityCalendar } from "react-activity-calendar"
-import { getColorHex } from "./utils"
+import { getColorHex, isDebug } from "./utils"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 function getDates(
@@ -528,6 +528,13 @@ function DisplayMatchesForDate(props: {
     },
     [],
   )
+  // Hide dev-build matches (is_dev) unless ?debug=True is set.
+  const debug = React.useMemo(() => isDebug(), [])
+  const visibleMatches = React.useMemo(
+    () =>
+      debug ? matchList.matches : matchList.matches.filter((m) => !m.isDev),
+    [debug, matchList.matches],
+  )
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
   const date = fmt(props.date)
@@ -543,7 +550,7 @@ function DisplayMatchesForDate(props: {
           <MatchDateSummary
             date={date}
             count={props.count}
-            matches={matchList.matches}
+            matches={visibleMatches}
             ratingChanges={ratingChanges}
           />
         </AccordionSummary>
@@ -551,7 +558,7 @@ function DisplayMatchesForDate(props: {
           {matchList.matches.length === 0 ? (
             <MatchRowLoading />
           ) : (
-            matchList.matches.map((m, matchIdx) => (
+            visibleMatches.map((m, matchIdx) => (
               <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
             ))
           )}

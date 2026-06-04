@@ -204,6 +204,7 @@ export interface GetMatchReplayUrlApiReplayUrlMatchIdGetRequest {
 
 export interface GetMatchesApiMatchesMatchCountGetRequest {
     matchCount: number;
+    excludeDev?: boolean;
 }
 
 export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
@@ -323,6 +324,7 @@ export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest 
 
 export interface UploadReplayApiUploadReplayPostRequest {
     file: Blob;
+    xZuluBuild?: string | null;
     macId?: string | null;
     boardId?: string | null;
     playerName?: string | null;
@@ -1521,6 +1523,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters['excludeDev'] != null) {
+            queryParameters['exclude_dev'] = requestParameters['excludeDev'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.apiKey) {
@@ -1540,7 +1546,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get listing of matches, up to a return count limit for paging.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
      * Get Matches
      */
     async getMatchesApiMatchesMatchCountGetRaw(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
@@ -1551,7 +1557,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.
+     * Get listing of matches, up to a return count limit for paging.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
      * Get Matches
      */
     async getMatchesApiMatchesMatchCountGet(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
@@ -3430,6 +3436,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['xZuluBuild'] != null) {
+            headerParameters['x-zulu-build'] = String(requestParameters['xZuluBuild']);
+        }
+
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
         }
@@ -3487,7 +3497,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label
+     * Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label  The optional X-Zulu-Build request header is captured on the ReplayFile; when it starts with \"dev-\" the replay and its match are flagged is_dev.
      * Upload Replay
      */
     async uploadReplayApiUploadReplayPostRaw(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
@@ -3498,7 +3508,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label
+     * Upload a .rep file, save it to S3, parse it, and return the match info.  Optional source identifiers are stored on the ReplayFile row: - mac_id: gentool-style MAC-based identifier - board_id: stable identifier not tied to a network interface - player_name: in-game name the uploader played under - client_version: version string of the uploading client - source_tag: free-form uploader-supplied label  The optional X-Zulu-Build request header is captured on the ReplayFile; when it starts with \"dev-\" the replay and its match are flagged is_dev.
      * Upload Replay
      */
     async uploadReplayApiUploadReplayPost(requestParameters: UploadReplayApiUploadReplayPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {

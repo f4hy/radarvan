@@ -78,6 +78,9 @@ class MatchRepo(BaseRepo):
             )
         # Preserve the original creation timestamp since new_match won't have it set.
         new_match.created_at = existing.created_at
+        # Preserve is_dev: it comes from the upload header, not the replay, so a
+        # reparse-built match always has the default False and would clobber it.
+        new_match.is_dev = existing.is_dev
         # Clear players before merge: new MatchPlayer objects have no id, so merge
         # would insert duplicates rather than replace the existing rows.
         existing.players.clear()
