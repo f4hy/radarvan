@@ -9,6 +9,9 @@ Name | Type
 `atMinute` | number
 `name` | string
 `cost` | number
+`count` | number
+`endMinute` | number
+`isEconomy` | boolean
 
 ## Example
 
@@ -20,6 +23,9 @@ const example = {
   "atMinute": null,
   "name": null,
   "cost": null,
+  "count": null,
+  "endMinute": null,
+  "isEconomy": null,
 } satisfies BuildOrderEntry
 
 console.log(example)

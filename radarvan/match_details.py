@@ -50,7 +50,9 @@ logger = structlog.get_logger(__name__)
 # extracting more data into an existing field, or fixing a computation. Schema
 # changes (new/renamed/retyped fields) are caught automatically by the
 # model_json_schema hash below, so you do NOT need to bump this for those.
-_DETAILS_LOGIC_VERSION = 1
+# v2: APM no longer explodes for players with a near-zero active window
+# (apm.py:_MIN_ACTIVE_MINUTES) — invalidates rows cached with the old garbage.
+_DETAILS_LOGIC_VERSION = 2
 
 
 def _compute_details_version() -> str:
@@ -160,14 +162,28 @@ def api_player_summaries(
 def load_match_details(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
-    """Load and parse match details for a single match_id. Returns None if not found."""
+    """Resolve MatchDetails for one match through the durable, versioned DB cache.
+
+    On a cache hit at the current DETAILS_VERSION we return the small persisted
+    projection without re-reading or re-validating the multi-MB S3 replay. On a
+    miss we recompute from the S3 JSON and write the result back, so every
+    caller (the /api/details + /api/build_orders endpoints via
+    `cache.details_from_id`, and the superlatives / bulk loaders here) shares
+    one warm cache. Returns None if the match isn't found.
+    """
     from . import replay_files
 
+    cached = replay_manager.get_cached_details(match_id, DETAILS_VERSION)
+    if cached is not None:
+        return cached
     rep = replay_manager.get_replay_json_by_match_id(match_id)
     if rep is None:
         return None
     replay = replay_files.parse_replay(rep.replay_file_url, replay_manager)
-    return match_details_from_replay(replay)
+    details = match_details_from_replay(replay)
+    if details is not None:
+        replay_manager.save_cached_details(match_id, details, DETAILS_VERSION)
+    return details
 
 
 def load_match_details_threadsafe(

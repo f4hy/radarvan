@@ -18,7 +18,6 @@ from . import game_composition, matches, player_ids, player_rating
 from .api_types import MatchInfo, MatchDetails
 from .db_utils import ReplayManager
 from . import match_details
-from . import replay_files
 from .dependencies import db_manager
 
 logger = structlog.get_logger(__name__)
@@ -76,26 +75,16 @@ def details_from_id(
 ) -> MatchDetails | None:
     """Resolve MatchDetails through a two-tier cache.
 
-    The in-process LRU (this decorator) fronts a durable, versioned DB cache
-    (`MatchDetailsCache`). On a DB hit at the current DETAILS_VERSION we skip
-    re-reading + re-validating the multi-MB raw replay from S3 entirely; on a
-    miss we recompute from the S3 JSON and write the small derived projection
-    back so the next process (post-restart/deploy) and the next match-detail
-    view are cheap. Reparse explicitly deletes the row (raw replay changed but
-    version did not); a DETAILS_VERSION bump invalidates every row implicitly.
+    This in-process LRU (the decorator) fronts the durable, versioned DB cache
+    implemented in `match_details.load_match_details` (`MatchDetailsCache`): a
+    DB hit at the current DETAILS_VERSION skips re-reading + re-validating the
+    multi-MB raw replay from S3; a miss recomputes and writes the small derived
+    projection back. The same loader backs the superlatives / bulk paths, so
+    every caller shares one warm cache. Reparse explicitly deletes the row (raw
+    replay changed but version did not); a DETAILS_VERSION bump invalidates all
+    rows implicitly.
     """
-    version = match_details.DETAILS_VERSION
-    cached_details = replay_manager.get_cached_details(match_id, version)
-    if cached_details is not None:
-        return cached_details
-    rep = replay_manager.get_replay_json_by_match_id(match_id)
-    if rep is None:
-        return None
-    par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
-    details = match_details.match_details_from_replay(par)
-    if details is not None:
-        replay_manager.save_cached_details(match_id, details, version)
-    return details
+    return match_details.load_match_details(match_id, replay_manager)
 
 
 def _warm_caches() -> None:

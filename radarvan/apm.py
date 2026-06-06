@@ -49,6 +49,14 @@ def is_active_action(order_name: str) -> bool:
     return order_name in ACTIVE_ACTIONS
 
 
+# Minimum active window (minutes) for a per-player APM estimate. A player whose
+# actions span less than this — e.g. a single-frame burst, or someone wiped out
+# seconds in — has no reliable active duration; using the raw span divides by a
+# near-zero number and produces absurd APM (millions). Below the threshold we
+# fall back to the game-duration denominator instead.
+_MIN_ACTIVE_MINUTES = 0.5
+
+
 def _tracked_humans(replay: EnhancedReplayV2) -> dict[int, str]:
     """Map summary player index → player name, for non-observer humans."""
     return {
@@ -99,7 +107,7 @@ def _build_apm_records(
             result.append(APM(player_name=name, action_count=0, minutes=0.0, apm=0.0))
             continue
         active = (last_frame.get(name, 0) - first_frame.get(name, 0)) * minutes_per
-        if active <= 0:
+        if active < _MIN_ACTIVE_MINUTES:
             active = fallback_minutes
         result.append(
             APM(

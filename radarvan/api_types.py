@@ -440,6 +440,13 @@ class BuildOrderEntry(BaseModel):
     at_minute: float = Field(alias="atMinute")
     name: str
     cost: int
+    # Number of consecutive identical builds collapsed into this row (>=1).
+    count: int = 1
+    # End of the collapsed run; None for single (count==1) entries.
+    end_minute: float | None = Field(default=None, alias="endMinute")
+    # Economy/non-combat unit (worker, dozer, supply). UI dims these. Always
+    # False for buildings and upgrades.
+    is_economy: bool = Field(default=False, alias="isEconomy")
 
 
 class BuildOrder(BaseModel):

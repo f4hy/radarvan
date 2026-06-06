@@ -37,6 +37,24 @@ export interface BuildOrderEntry {
      * @memberof BuildOrderEntry
      */
     cost: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof BuildOrderEntry
+     */
+    count?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof BuildOrderEntry
+     */
+    endMinute?: number | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof BuildOrderEntry
+     */
+    isEconomy?: boolean;
 }
 
 /**
@@ -62,6 +80,9 @@ export function BuildOrderEntryFromJSONTyped(json: any, ignoreDiscriminator: boo
         'atMinute': json['atMinute'],
         'name': json['name'],
         'cost': json['cost'],
+        'count': json['count'] == null ? undefined : json['count'],
+        'endMinute': json['endMinute'] == null ? undefined : json['endMinute'],
+        'isEconomy': json['isEconomy'] == null ? undefined : json['isEconomy'],
     };
 }
 
@@ -79,6 +100,9 @@ export function BuildOrderEntryToJSONTyped(value?: BuildOrderEntry | null, ignor
         'atMinute': value['atMinute'],
         'name': value['name'],
         'cost': value['cost'],
+        'count': value['count'],
+        'endMinute': value['endMinute'],
+        'isEconomy': value['isEconomy'],
     };
 }
 

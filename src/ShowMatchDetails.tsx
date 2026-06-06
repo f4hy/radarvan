@@ -74,10 +74,15 @@ function MoneyChart(props: {
   if (props.money && Object.keys(props.money).length > 0) {
     const players = Object.keys(Object.values(props.money)[0])
     const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
-    const data = Object.entries(props.money).map(([atMinute, values]) => ({
-      ...values,
-      atMinute: atMinute,
-    }))
+    // atMinute must be numeric (the XAxis is type="number") and the rows must
+    // be sorted by time — object key order isn't guaranteed (e.g. after a
+    // Postgres jsonb round-trip), and unsorted points draw zig-zag lines.
+    const data = Object.entries(props.money)
+      .map(([atMinute, values]) => ({
+        ...values,
+        atMinute: Number(atMinute),
+      }))
+      .sort((a, b) => a.atMinute - b.atMinute)
     const max = Object.values(props.money).reduce((acc, cur) => {
       return Math.max(acc, ...Object.values(cur))
     }, 0)
@@ -109,7 +114,7 @@ function MoneyChart(props: {
               }}
               domain={[0, max]}
             />
-            <Tooltip labelFormatter={(t) => t.slice(0, 4) + "m"} />
+            <Tooltip labelFormatter={(t) => `${Number(t).toFixed(1)}m`} />
             <Legend />
             {players.map((n, _i) => (
               <Line
@@ -416,13 +421,18 @@ function ApmChart(props: {
     }))
     .sort((a, b) => a.atMinute - b.atMinute)
   const averageByPlayer = new Map(props.apms.map((a) => [a.playerName, a.apm]))
-  const max = Math.max(
-    data.reduce(
-      (acc, row) => Math.max(acc, ...players.map((p) => row[p] ?? 0)),
-      0,
-    ),
-    ...Array.from(averageByPlayer.values()),
+  const seriesMax = data.reduce(
+    (acc, row) => Math.max(acc, ...players.map((p) => row[p] ?? 0)),
+    0,
   )
+  // Include the average lines in the domain, but ignore pathological outliers
+  // so a single bad average can't collapse the whole chart (a degenerate
+  // active window used to yield averages in the hundreds of millions). Averages
+  // can legitimately exceed the per-minute series max, so allow generous slack.
+  const saneAverages = Array.from(averageByPlayer.values()).filter(
+    (v) => Number.isFinite(v) && v <= seriesMax * 5,
+  )
+  const max = Math.max(seriesMax, ...saneAverages, 0)
   const maxTime = data[data.length - 1].atMinute
   return (
     <>
@@ -477,7 +487,7 @@ function ApmChart(props: {
                 stroke={_.get(colors, n)}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
-                ifOverflow="extendDomain"
+                ifOverflow="hidden"
                 label={{
                   value: `${n} avg ${avg.toFixed(1)}`,
                   position: "right",
@@ -1050,14 +1060,40 @@ function BuildOrderColumn(props: {
             alignItems: "baseline",
           }}
         >
-          {props.entries.map((e, i) => (
-            <React.Fragment key={i}>
-              <Box sx={{ color: "text.secondary", textAlign: "right" }}>
-                {fmtMinSec(e.atMinute)}
-              </Box>
-              <Box>{e.name}</Box>
-            </React.Fragment>
-          ))}
+          {props.entries.map((e, i) => {
+            const count = e.count ?? 1
+            const isRun = count > 1 && e.endMinute != null
+            // Collapsed run → show the span (start–end); single build → one time.
+            const when = isRun
+              ? `${fmtMinSec(e.atMinute)}–${fmtMinSec(e.endMinute as number)}`
+              : fmtMinSec(e.atMinute)
+            // Economy/non-combat builds (workers, dozers, supply) are dimmed.
+            const dim = e.isEconomy ? 0.5 : 1
+            return (
+              <React.Fragment key={i}>
+                <Box
+                  sx={{
+                    color: "text.secondary",
+                    textAlign: "right",
+                    opacity: dim,
+                  }}
+                >
+                  {when}
+                </Box>
+                <Box sx={{ opacity: dim }}>
+                  {e.name}
+                  {count > 1 && (
+                    <Box
+                      component="span"
+                      sx={{ color: "text.secondary", ml: 0.5 }}
+                    >
+                      &times;{count}
+                    </Box>
+                  )}
+                </Box>
+              </React.Fragment>
+            )
+          })}
         </Box>
       )}
     </Box>
