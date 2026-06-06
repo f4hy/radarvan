@@ -237,6 +237,9 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
+    # The raw replay changed but DETAILS_VERSION did not, so the version check
+    # alone won't invalidate the persisted MatchDetails row — drop it explicitly.
+    replay_manager.delete_cached_details(match_id)
     return match_from_replay(parsed_replay)
 
 
@@ -256,6 +259,8 @@ def reparse_existing(
     parsed_replay, json_s3 = reparsed
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
+    # Invalidate the persisted MatchDetails row (see reparse_replay).
+    replay_manager.delete_cached_details(existing.match_id)
     return match_from_replay(parsed_replay, filter_short=False)
 
 

@@ -6,6 +6,7 @@ together via the `ReplayManager` facade in `radarvan.db_utils`.
 """
 
 from .base import BaseRepo
+from .details import MatchDetailsRepo
 from .maps import MapRepo
 from .matches import MatchDebugData, MatchRepo
 from .replays import AllFilesForId, FileListing, ReplayRepo, ReplayToProcess
@@ -18,6 +19,7 @@ __all__ = [
     "FileListing",
     "MapRepo",
     "MatchDebugData",
+    "MatchDetailsRepo",
     "MatchRepo",
     "ReplayRepo",
     "ReplayToProcess",

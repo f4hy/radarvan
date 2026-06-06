@@ -209,6 +209,7 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
 
 export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
+    excludeDev?: boolean;
 }
 
 export interface GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest {
@@ -1578,6 +1579,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters['excludeDev'] != null) {
+            queryParameters['exclude_dev'] = requestParameters['excludeDev'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.apiKey) {
@@ -1601,7 +1606,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all matches for a specific date.
+     * Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
      * Get Matches By Date
      */
     async getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
@@ -1612,7 +1617,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all matches for a specific date.
+     * Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
      * Get Matches By Date
      */
     async getMatchesByDateApiMatchesByDateDateGet(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {

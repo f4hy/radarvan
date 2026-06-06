@@ -74,11 +74,28 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
 def details_from_id(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
+    """Resolve MatchDetails through a two-tier cache.
+
+    The in-process LRU (this decorator) fronts a durable, versioned DB cache
+    (`MatchDetailsCache`). On a DB hit at the current DETAILS_VERSION we skip
+    re-reading + re-validating the multi-MB raw replay from S3 entirely; on a
+    miss we recompute from the S3 JSON and write the small derived projection
+    back so the next process (post-restart/deploy) and the next match-detail
+    view are cheap. Reparse explicitly deletes the row (raw replay changed but
+    version did not); a DETAILS_VERSION bump invalidates every row implicitly.
+    """
+    version = match_details.DETAILS_VERSION
+    cached_details = replay_manager.get_cached_details(match_id, version)
+    if cached_details is not None:
+        return cached_details
     rep = replay_manager.get_replay_json_by_match_id(match_id)
     if rep is None:
         return None
     par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
-    return match_details.match_details_from_replay(par)
+    details = match_details.match_details_from_replay(par)
+    if details is not None:
+        replay_manager.save_cached_details(match_id, details, version)
+    return details
 
 
 def _warm_caches() -> None:

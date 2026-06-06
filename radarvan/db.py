@@ -15,6 +15,7 @@ from sqlalchemy import (
     Float,
     DateTime,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -288,6 +289,36 @@ class MatchCompostion(Base):
     is_team_game: Mapped[bool | None] = mapped_column()
 
     match: Mapped[Match] = relationship(back_populates="composition")
+
+
+class MatchDetailsCache(Base):
+    """Durable, versioned cache of the derived MatchDetails wire shape.
+
+    The raw (multi-MB, cncstats-owned, format-volatile) parsed replay stays in
+    S3. This table stores only the small, *we-own-it* projection served by
+    `/api/details/{match_id}`, so the request path doesn't re-read and
+    re-validate the giant blob on every hit (and survives process restarts,
+    unlike the in-process LRU in `cache.py`).
+
+    `data` is the JSON-serialized MatchDetails (by_alias, so keys match the wire
+    shape). `version` is the `match_details.DETAILS_VERSION` that produced the
+    row; a read only trusts a row whose version equals the current version, so
+    bumping the derivation logic transparently invalidates every row. Rows are
+    refreshed lazily on read (and explicitly deleted on reparse, when the raw
+    replay changed but the version did not).
+    """
+
+    __tablename__ = "match_details_cache"
+
+    match_id: Mapped[int] = mapped_column(primary_key=True)
+    version: Mapped[str] = mapped_column(String(64), index=True)
+    data: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<MatchDetailsCache(match_id={self.match_id}, version={self.version})>"
 
 
 class MapData(Base):

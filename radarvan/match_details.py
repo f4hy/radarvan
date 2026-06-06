@@ -16,6 +16,8 @@ per-player kill/loss aggregation, and the DB-bound loaders.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 from collections import defaultdict
 
 from .api_types import (
@@ -41,6 +43,30 @@ from .utils import minutess_per_step
 import structlog
 
 logger = structlog.get_logger(__name__)
+
+
+# Bump this when the *logic* of match_details_from_replay (or any extractor it
+# calls) changes the output WITHOUT changing the MatchDetails schema — e.g.
+# extracting more data into an existing field, or fixing a computation. Schema
+# changes (new/renamed/retyped fields) are caught automatically by the
+# model_json_schema hash below, so you do NOT need to bump this for those.
+_DETAILS_LOGIC_VERSION = 1
+
+
+def _compute_details_version() -> str:
+    """Stable id for the current MatchDetails *definition* + derivation logic.
+
+    The schema hash auto-invalidates persisted rows whenever the MatchDetails
+    shape changes; the logic-version prefix lets us force-invalidate on
+    behavior changes that don't touch the shape. Computed once at import — the
+    schema is fixed for the life of the process.
+    """
+    schema_json = json.dumps(MatchDetails.model_json_schema(), sort_keys=True)
+    schema_hash = hashlib.sha256(schema_json.encode()).hexdigest()[:12]
+    return f"{_DETAILS_LOGIC_VERSION}-{schema_hash}"
+
+
+DETAILS_VERSION = _compute_details_version()
 
 
 def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:

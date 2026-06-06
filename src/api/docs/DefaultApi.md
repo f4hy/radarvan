@@ -1821,11 +1821,11 @@ example().catch(console.error);
 
 ## getMatchesByDateApiMatchesByDateDateGet
 
-> Matches getMatchesByDateApiMatchesByDateDateGet(date)
+> Matches getMatchesByDateApiMatchesByDateDateGet(date, excludeDev)
 
 Get Matches By Date
 
-Get all matches for a specific date.
+Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted.
 
 ### Example
 
@@ -1847,6 +1847,8 @@ async function example() {
   const body = {
     // Date
     date: 2013-10-20,
+    // boolean (optional)
+    excludeDev: true,
   } satisfies GetMatchesByDateApiMatchesByDateDateGetRequest;
 
   try {
@@ -1867,6 +1869,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **date** | `Date` |  | [Defaults to `undefined`] |
+| **excludeDev** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 
