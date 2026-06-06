@@ -14,7 +14,7 @@ from collections import defaultdict
 from .api_types import BuildOrder, BuildOrderEntry, Upgrades
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .replay_helpers import clean_object_name, is_initial_seed_frame
-from .utils import minutess_per_step
+from .utils import minutes_per_step
 
 # Number of (collapsed) rows kept per category.
 _MAX_ROWS = 10
@@ -68,7 +68,7 @@ def build_order_from_replay(
     vehicle, missing) is treated as a unit. Consecutive identical builds are
     collapsed into runs *before* capping, and economy units are flagged.
     """
-    scale = minutess_per_step(replay)
+    scale = minutes_per_step(replay)
     buildings: dict[str, list[BuildOrderEntry]] = defaultdict(list)
     units: dict[str, list[BuildOrderEntry]] = defaultdict(list)
     if replay.stats is not None:

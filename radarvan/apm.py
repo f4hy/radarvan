@@ -16,7 +16,7 @@ from collections.abc import Iterable
 
 from .api_types import APM
 from .cncstats_model.zhreplay import EnhancedReplayV2
-from .utils import minutess_per_step
+from .utils import minutes_per_step
 
 
 _NON_ACTIONS = {
@@ -133,9 +133,7 @@ def _apms_from_body(replay: EnhancedReplayV2) -> list[APM]:
         if is_active_action(chunk.order_name):
             last_frame[chunk.player_name] = chunk.time_code
             first_frame.setdefault(chunk.player_name, chunk.time_code)
-    return _build_apm_records(
-        counts, first_frame, last_frame, minutess_per_step(replay)
-    )
+    return _build_apm_records(counts, first_frame, last_frame, minutes_per_step(replay))
 
 
 def _apms_from_stats(replay: EnhancedReplayV2) -> list[APM]:
@@ -154,7 +152,7 @@ def _apms_from_stats(replay: EnhancedReplayV2) -> list[APM]:
             first_frame[name] = frame
         if frame > last_frame.get(name, -1):
             last_frame[name] = frame
-    minutes_per = minutess_per_step(replay)
+    minutes_per = minutes_per_step(replay)
     total_minutes = (replay.header.frame_count or 1) * minutes_per
     return _build_apm_records(
         counts, first_frame, last_frame, minutes_per, fallback_minutes=total_minutes
@@ -202,7 +200,7 @@ def apm_over_time(replay: EnhancedReplayV2) -> dict[float, dict[str, float]]:
     action count in the bucket equals APM. Empty buckets are filled with 0
     for each tracked player so chart lines stay continuous.
     """
-    minutes_per = minutess_per_step(replay)
+    minutes_per = minutes_per_step(replay)
     if replay.body:
         players = replay.header.metadata.players
         tracked = {p.name for p in players if int(p.team) >= 0 and p.type != "C"}

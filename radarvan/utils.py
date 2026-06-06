@@ -39,7 +39,7 @@ def duration_minutes(replay: EnhancedReplayV2) -> float:
     return (end - start).total_seconds() / 60.0
 
 
-def minutess_per_step(replay: EnhancedReplayV2) -> float:
+def minutes_per_step(replay: EnhancedReplayV2) -> float:
     """Scale factor to convert a timecode to minutes."""
     minutes = duration_minutes(replay)
     stamps = (replay.header.frame_count if replay.header else None) or 1

@@ -15,7 +15,7 @@ from .replay_helpers import (
     clean_object_name,
     is_initial_seed_frame,
 )
-from .utils import minutess_per_step
+from .utils import minutes_per_step
 
 # Substrings on the cleaned object name that identify a true superweapon
 # structure (one of the three big base-bound powers).
@@ -63,7 +63,7 @@ def timeline_events_from_replay(
     name_by_idx: dict[int, str],
 ) -> list[TimelineEvent]:
     """Per-player markers for the timeline chart."""
-    scale = minutess_per_step(replay)
+    scale = minutes_per_step(replay)
     events: list[TimelineEvent] = []
 
     for player_name, ups in upgrades_by_player.items():

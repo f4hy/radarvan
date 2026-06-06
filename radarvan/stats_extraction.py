@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 from .cncstats_model.zhreplay import EnhancedReplayV2
-from .utils import minutess_per_step
+from .utils import minutes_per_step
 
 
 @dataclass
@@ -75,7 +75,7 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     if not replay.stats or not replay.game_info:
         return None
 
-    scale = minutess_per_step(replay)
+    scale = minutes_per_step(replay)
     name_by_idx: dict[int, str] = {p.index: p.name for p in replay.summary}
     all_players: set[str] = set(name_by_idx.values())
     header_team_by_name = {p.name: int(p.team) for p in replay.header.metadata.players}
@@ -213,7 +213,7 @@ def milestone_timings_from_replay(
     time_to_search_destroy: dict[str, float] = {}
     if replay.stats is None:
         return time_to_rank_5, time_to_search_destroy
-    scale = minutess_per_step(replay)
+    scale = minutes_per_step(replay)
     for rev in replay.stats.rank_events:
         if rev.rank_level < 5:
             continue

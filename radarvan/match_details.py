@@ -39,7 +39,7 @@ from .stats_extraction import (
     stats_data_from_replay,
 )
 from .timeline_events import timeline_events_from_replay
-from .utils import minutess_per_step
+from .utils import minutes_per_step
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -72,7 +72,7 @@ DETAILS_VERSION = _compute_details_version()
 
 
 def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
-    scale = minutess_per_step(replay)
+    scale = minutes_per_step(replay)
     player_index_to_name: dict[int, str] = {
         i: p.name for i, p in enumerate(replay.header.metadata.players)
     }
@@ -239,7 +239,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         name_by_idx[p.index] = p.name
         player_money_spent[p.name] = p.money_spent
         player_money_collected[p.name] = p.money_earned
-    scale = minutess_per_step(replay)
+    scale = minutes_per_step(replay)
     unit_cost: dict[str, int] = {}
     for bev in replay.stats.build_events if replay.stats else []:
         if bev.object not in unit_cost and bev.cost > 0:
