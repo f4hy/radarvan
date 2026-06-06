@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  BuildOrder,
   DraftRequest,
   DraftResult,
   FetchMissingMapResult,
@@ -52,6 +53,8 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
+    BuildOrderFromJSON,
+    BuildOrderToJSON,
     DraftRequestFromJSON,
     DraftRequestToJSON,
     DraftResultFromJSON,
@@ -160,6 +163,10 @@ export interface FixUnkPlayersApiFixUnkPlayerPostRequest {
 
 export interface GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest {
     tournamentName: string;
+}
+
+export interface GetBuildOrdersApiBuildOrdersMatchIdGetRequest {
+    matchId: number;
 }
 
 export interface GetFilesForMatchIdApiFilesForMatchGetRequest {
@@ -829,6 +836,57 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async generateTournamentReportApiGenerateTournamentReportTournamentNamePost(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
         const response = await this.generateTournamentReportApiGenerateTournamentReportTournamentNamePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getBuildOrdersApiBuildOrdersMatchIdGet without sending the request
+     */
+    async getBuildOrdersApiBuildOrdersMatchIdGetRequestOpts(requestParameters: GetBuildOrdersApiBuildOrdersMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getBuildOrdersApiBuildOrdersMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/build_orders/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Per-player build orders for a match (the same data the match details page shows).  Keyed by player name; each value has the player\'s first-10 buildings, units, and upgrades in chronological order. Projected from the cached MatchDetails (see cache.details_from_id), so it shares the durable, versioned details cache and runs no extra computation. An unparsed match returns {} uncached so it picks up data once processed.
+     * Get Build Orders
+     */
+    async getBuildOrdersApiBuildOrdersMatchIdGetRaw(requestParameters: GetBuildOrdersApiBuildOrdersMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: BuildOrder; }>> {
+        const requestOptions = await this.getBuildOrdersApiBuildOrdersMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => runtime.mapValues(jsonValue, BuildOrderFromJSON));
+    }
+
+    /**
+     * Per-player build orders for a match (the same data the match details page shows).  Keyed by player name; each value has the player\'s first-10 buildings, units, and upgrades in chronological order. Projected from the cached MatchDetails (see cache.details_from_id), so it shares the durable, versioned details cache and runs no extra computation. An unparsed match returns {} uncached so it picks up data once processed.
+     * Get Build Orders
+     */
+    async getBuildOrdersApiBuildOrdersMatchIdGet(requestParameters: GetBuildOrdersApiBuildOrdersMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: BuildOrder; }> {
+        const response = await this.getBuildOrdersApiBuildOrdersMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -14,6 +14,7 @@ All URIs are relative to *http://localhost*
 | [**fixIncompleteApiFixIncompletePost**](DefaultApi.md#fixincompleteapifixincompletepost) | **POST** /api/fix_incomplete/ | Fix Incomplete |
 | [**fixUnkPlayersApiFixUnkPlayerPost**](DefaultApi.md#fixunkplayersapifixunkplayerpost) | **POST** /api/fix_unk_player/ | Fix Unk Players |
 | [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
+| [**getBuildOrdersApiBuildOrdersMatchIdGet**](DefaultApi.md#getbuildordersapibuildordersmatchidget) | **GET** /api/build_orders/{match_id} | Get Build Orders |
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
@@ -760,6 +761,78 @@ example().catch(console.error);
 ### Return type
 
 **string**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getBuildOrdersApiBuildOrdersMatchIdGet
+
+> { [key: string]: BuildOrder; } getBuildOrdersApiBuildOrdersMatchIdGet(matchId)
+
+Get Build Orders
+
+Per-player build orders for a match (the same data the match details page shows).  Keyed by player name; each value has the player\&#39;s first-10 buildings, units, and upgrades in chronological order. Projected from the cached MatchDetails (see cache.details_from_id), so it shares the durable, versioned details cache and runs no extra computation. An unparsed match returns {} uncached so it picks up data once processed.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetBuildOrdersApiBuildOrdersMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies GetBuildOrdersApiBuildOrdersMatchIdGetRequest;
+
+  try {
+    const data = await api.getBuildOrdersApiBuildOrdersMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**{ [key: string]: BuildOrder; }**](BuildOrder.md)
 
 ### Authorization
 
