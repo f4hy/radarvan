@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Response
 
-from ..api_types import MatchDetails, MatchInfo, Matches, Team
+from ..api_types import BuildOrder, MatchDetails, MatchInfo, Matches, Team
 from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
@@ -131,3 +131,25 @@ def get_match_details(
         return empty_match_details(match_id)
     response.headers["Cache-Control"] = "private, max-age=3600"
     return details
+
+
+@router.get("/api/build_orders/{match_id}")
+def get_build_orders(
+    match_id: int,
+    response: Response,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, BuildOrder]:
+    """Per-player build orders for a match (the same data the match details page shows).
+
+    Keyed by player name; each value has the player's first-10 buildings, units,
+    and upgrades in chronological order. Projected from the cached MatchDetails
+    (see cache.details_from_id), so it shares the durable, versioned details
+    cache and runs no extra computation. An unparsed match returns {} uncached
+    so it picks up data once processed.
+    """
+    details = details_from_id(match_id, replay_manager)
+    if details is None:
+        response.headers["Cache-Control"] = "no-cache"
+        return {}
+    response.headers["Cache-Control"] = "private, max-age=3600"
+    return details.build_orders
