@@ -20,7 +20,7 @@ from .utils import minutes_per_step
 
 
 _NON_ACTIONS = {
-    "Chunksum",
+    "Checksum",
     "DeclareUserId",
     "EndReplay",
     "SelectBox",
