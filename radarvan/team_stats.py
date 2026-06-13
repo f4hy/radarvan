@@ -36,11 +36,11 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
         # Group human players by team number
         teams: dict[int, list[PlayerResult]] = defaultdict(list)
         for player in game.players:
-            if player.name.lower() in CPU_NAMES:
-                continue
             if player.team <= 0:
                 continue
             name = resolve_player_name(player.name, player.color)
+            if name in CPU_NAMES:
+                continue
             teams[player.team].append(PlayerResult(name=name, won=player.won))
 
         if not teams:
