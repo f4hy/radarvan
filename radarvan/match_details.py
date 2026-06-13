@@ -53,7 +53,9 @@ logger = structlog.get_logger(__name__)
 # v2: APM no longer explodes for players with a near-zero active window
 # (apm.py:_MIN_ACTIVE_MINUTES) — invalidates rows cached with the old garbage.
 # v3: apm_over_time now uses 10s windows (was 1-min) scaled to an APM rate.
-_DETAILS_LOGIC_VERSION = 3
+# v4: body-path APM no longer counts periodic "Checksum" engine heartbeats as
+# player actions (the _NON_ACTIONS exclusion had a typo, "Chunksum").
+_DETAILS_LOGIC_VERSION = 4
 
 
 def _compute_details_version() -> str:
