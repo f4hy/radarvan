@@ -4,8 +4,12 @@ from . import player_ids
 from radarvan.api_types import MatchInfo
 import structlog
 from .player_rating import get_model, compute_player_ratings, NamedRating
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
+from typing import Any
 
 logger = structlog.get_logger(__name__)
+
 
 # Pairs that, when on the same team, are treated as slightly more balanced.
 # Value is a scale factor applied to the advantage (distance from 0.5):
@@ -23,8 +27,15 @@ def _apply_fudge(win_pct: float, team1: Iterable[str], team2: Iterable[str]) -> 
     return win_pct
 
 
+def balance_teams_key(
+    games: list[MatchInfo], player_list: frozenset[str]
+) -> tuple[Any, ...]:
+    return hashkey(player_list)
+
+
+@cached(cache=TTLCache(maxsize=128, ttl=43200), key=balance_teams_key)
 def balance_teams(
-    games: list[MatchInfo], player_list: set[str]
+    games: list[MatchInfo], player_list: frozenset[str]
 ) -> dict[tuple[str, ...], float]:
     team_size = len(player_list) // 2
     ratings = compute_player_ratings(games).ratings
