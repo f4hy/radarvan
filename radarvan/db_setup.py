@@ -9,7 +9,6 @@ from tqdm import tqdm
 constring = os.getenv("DATABASE_URL")
 if constring is None:
     raise RuntimeError("DATABASE_URL environment variable is not set")
-print("!!", constring)
 db_manager = DatabaseManager(constring)
 
 
