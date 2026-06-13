@@ -41,8 +41,9 @@ class RateLimitStore(Protocol):
     can't both slip past the limit).
     """
 
-    def check(self, key: str, limit: int, window_seconds: float) -> RateLimitDecision:
-        ...
+    def check(
+        self, key: str, limit: int, window_seconds: float
+    ) -> RateLimitDecision: ...
 
 
 class InMemoryRateLimitStore:
