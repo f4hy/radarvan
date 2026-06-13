@@ -52,7 +52,8 @@ logger = structlog.get_logger(__name__)
 # model_json_schema hash below, so you do NOT need to bump this for those.
 # v2: APM no longer explodes for players with a near-zero active window
 # (apm.py:_MIN_ACTIVE_MINUTES) — invalidates rows cached with the old garbage.
-_DETAILS_LOGIC_VERSION = 2
+# v3: apm_over_time now uses 10s windows (was 1-min) scaled to an APM rate.
+_DETAILS_LOGIC_VERSION = 3
 
 
 def _compute_details_version() -> str:

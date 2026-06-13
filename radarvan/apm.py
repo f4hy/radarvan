@@ -171,34 +171,53 @@ def apms_from_replay(replay: EnhancedReplayV2) -> list[APM]:
     return _apms_from_stats(replay)
 
 
+# Width of each APM-over-time window. Smaller windows give a finer (spikier)
+# instantaneous APM curve. Counts in a sub-minute window are scaled up to an
+# actions-per-minute rate so the series stays on the same APM scale as the
+# per-match average reference lines.
+_APM_WINDOW_SECONDS = 10
+_APM_WINDOW_MINUTES = _APM_WINDOW_SECONDS / 60.0
+
+
 def _bucket_apm_over_time(
     actions: Iterable[tuple[int, str]],
     tracked: set[str],
     minutes_per: float,
+    window_minutes: float = _APM_WINDOW_MINUTES,
 ) -> dict[float, dict[str, float]]:
-    """Bucket `(frame, player_name)` actions into per-minute APM windows."""
+    """Bucket `(frame, player_name)` actions into APM windows of `window_minutes`.
+
+    Keyed by each window's start time in minutes. The per-window action count is
+    divided by the window width, so each value is an actions-per-minute rate
+    (not a raw count) regardless of window size.
+    """
     counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    max_minute = 0
+    max_bucket = 0
     for frame, name in actions:
         if name not in tracked:
             continue
-        minute = int(frame * minutes_per)
-        counts[minute][name] += 1
-        if minute > max_minute:
-            max_minute = minute
+        bucket = int(frame * minutes_per / window_minutes)
+        counts[bucket][name] += 1
+        if bucket > max_bucket:
+            max_bucket = bucket
+    # actions in a window → actions per minute
+    per_minute = 1.0 / window_minutes
     result: dict[float, dict[str, float]] = {}
-    for minute in range(max_minute + 1):
-        bucket = counts.get(minute, {})
-        result[float(minute)] = {name: float(bucket.get(name, 0)) for name in tracked}
+    for bucket in range(max_bucket + 1):
+        at_minute = bucket * window_minutes
+        in_window = counts.get(bucket, {})
+        result[at_minute] = {
+            name: in_window.get(name, 0) * per_minute for name in tracked
+        }
     return result
 
 
 def apm_over_time(replay: EnhancedReplayV2) -> dict[float, dict[str, float]]:
-    """Per-minute windowed APM time series, shaped as {minute: {player: apm}}.
+    """Windowed APM time series, shaped as {minute: {player: apm}}.
 
-    Each bucket spans one minute of real (post-scaling) game time, so the
-    action count in the bucket equals APM. Empty buckets are filled with 0
-    for each tracked player so chart lines stay continuous.
+    Each bucket spans `_APM_WINDOW_SECONDS` of real (post-scaling) game time and
+    its value is the actions-per-minute rate in that window. Empty buckets are
+    filled with 0 for each tracked player so chart lines stay continuous.
     """
     minutes_per = minutes_per_step(replay)
     if replay.body:

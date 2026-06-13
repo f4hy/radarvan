@@ -63,15 +63,26 @@ app = FastAPI(
 
 PROTECTED = [Depends(verify_api_key)]
 
+# Middleware order matters. add_middleware prepends, so the LAST added is the
+# outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit, app —
+# so CORS decorates every response (including the limiter's 429), request-id is
+# bound before the limiter logs, and the limiter rejects just before app work.
+app.add_middleware(middleware.RateLimitMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(middleware.RequestContextMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID"],
+    expose_headers=[
+        "X-Request-ID",
+        "Retry-After",
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Reset",
+    ],
 )
-app.add_middleware(middleware.RequestContextMiddleware)
-app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.exception_handler(Exception)

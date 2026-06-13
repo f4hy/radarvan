@@ -437,7 +437,7 @@ function ApmChart(props: {
   return (
     <>
       <Typography variant="h5">
-        APM Over Time (1-min windows, dotted = match average)
+        APM Over Time (10s windows, dotted = match average)
       </Typography>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
