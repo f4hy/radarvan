@@ -25,11 +25,21 @@ def async_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=600.0)
 
 
+@cache
+def _request_semaphore() -> asyncio.Semaphore:
+    """Shared semaphore limiting concurrent scrape requests.
+
+    Built lazily (and cached) so all callers share one limiter; a per-call
+    ``asyncio.Semaphore(4)`` would never actually cap concurrency.
+    """
+    return asyncio.Semaphore(4)
+
+
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
 async def get_url(url: str) -> httpx.Response:
     client = async_client()
     logger.debug("getting url", url=url)
-    async with asyncio.Semaphore(4):
+    async with _request_semaphore():
         response = await client.get(url, timeout=TIMEOUT)
     response.raise_for_status()
     logger.debug(
