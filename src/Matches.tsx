@@ -213,9 +213,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
     () => buildPlayerPositions(match.players),
     [match.players],
   )
-  const date = match.timestamp.toLocaleString("en-US", {
-    timeZone: "America/New_York",
-  })
+  const date = match.timestamp.toLocaleString("en-US")
   const header = (
     <Box>
       <Typography variant="body2" fontWeight="bold">
@@ -309,9 +307,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
     return <FfaMatchDisplay match={props.match} />
   }
 
-  const date = props.match.timestamp.toLocaleString("en-US", {
-    timeZone: "America/New_York",
-  })
+  const date = props.match.timestamp.toLocaleString("en-US")
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
     <Box>

@@ -7,7 +7,7 @@ almost always queried together, so they share a repo.
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta, date
+from datetime import UTC, datetime, date
 import structlog
 
 from pydantic import BaseModel
@@ -17,18 +17,11 @@ from sqlalchemy.orm import joinedload
 
 from ..cncstats_model.zhreplay import EnhancedReplayV2
 from ..db import Match, ParsedReplayJson, ProcessingStatus, ReplayFile
+from ..utils import game_night_date
 
 from .base import BaseRepo
 
 logger = structlog.get_logger(__name__)
-
-
-# Replay timestamps are wall-clock UTC; the user base plays in US Eastern time
-# (UTC-5 standard, UTC-4 DST). game_date is what we display on the "Matches" UI
-# grouped-by-day view, so a 5h shift puts late-night East Coast games on the
-# date the players actually played them. This is approximate during DST — a
-# real fix is to store the player's local TZ on the upload and shift accordingly.
-_GAME_DATE_HOUR_OFFSET = 5
 
 
 @dataclass(frozen=True)
@@ -163,7 +156,7 @@ class ReplayRepo(BaseRepo):
         """Save the result of parsing."""
         hdr = parsed_replay.header
         ts_begin = (hdr.time_stamp_begin if hdr else None) or 0
-        game_timestamp = datetime.fromtimestamp(ts_begin)
+        game_timestamp = datetime.fromtimestamp(ts_begin, tz=UTC)
         replay_id = parsed_replay.replay_id
         has_enhanced_stats = parsed_replay.stats is not None
         logger.info(
@@ -173,7 +166,7 @@ class ReplayRepo(BaseRepo):
             json_s3_uri=json_s3_uri,
             game_timestamp=game_timestamp,
         )
-        game_date = (game_timestamp - timedelta(hours=_GAME_DATE_HOUR_OFFSET)).date()
+        game_date = game_night_date(ts_begin)
         parsed_json = ParsedReplayJson(
             json_s3_uri=json_s3_uri,
             match_id=replay_id,
