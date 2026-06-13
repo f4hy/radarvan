@@ -796,7 +796,7 @@ export function DisplayPlayerRatingTrend() {
   )
 }
 
-const emptyPlayerRatingData = { playerRating: [], playerRatingOverTime: {} }
+const emptyPlayerRatingData = { playerRating: [], playerRatingOvertime: {} }
 export default function DisplayPlayerRatings() {
   const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
     emptyPlayerRatingData,
