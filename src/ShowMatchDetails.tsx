@@ -665,8 +665,16 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
       if (d === undefined) {
         return null
       }
-      const vals = Object.values(d)
-      const last = vals[vals.length - 1]
+      // Pick the value at the latest minute. Object key order isn't guaranteed
+      // (e.g. after a Postgres jsonb round-trip), so select by max numeric key
+      // rather than trusting the last entry.
+      const entries = Object.entries(d)
+      if (entries.length === 0) {
+        return null
+      }
+      const last = entries.reduce((a, b) =>
+        Number(b[0]) > Number(a[0]) ? b : a,
+      )[1]
       if (last === undefined) {
         return null
       }
