@@ -14,13 +14,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from . import exception_handling, middleware, parse_replay, replay_files, schedule
 from .cache import warm_caches
-from .dependencies import IS_DEV, db_manager, verify_api_key
+from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
 from .logging_config import configure_logging
 from .routes import (
     admin,
+    auth,
     draft,
     files,
     generals,
@@ -64,9 +66,16 @@ app = FastAPI(
 PROTECTED = [Depends(verify_api_key)]
 
 # Middleware order matters. add_middleware prepends, so the LAST added is the
-# outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit, app —
-# so CORS decorates every response (including the limiter's 429), request-id is
-# bound before the limiter logs, and the limiter rejects just before app work.
+# outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit,
+# Session, app — so CORS decorates every response (including the limiter's 429),
+# request-id is bound before the limiter logs, the limiter rejects just before
+# app work, and Session (innermost) populates request.session for the handlers.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    same_site="lax",
+    https_only=not IS_DEV,
+)
 app.add_middleware(middleware.RateLimitMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(middleware.RequestContextMiddleware)
@@ -112,6 +121,9 @@ app.include_router(admin.router, dependencies=PROTECTED)
 
 # Public asset routes — reachable without an API key (browser <img> loads).
 app.include_router(maps.public_router)
+
+# Auth routes — browser-/cookie-driven, deliberately not behind the API key.
+app.include_router(auth.router)
 
 
 @app.get("/", include_in_schema=False)

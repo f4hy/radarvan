@@ -321,6 +321,38 @@ class MatchDetailsCache(Base):
         return f"<MatchDetailsCache(match_id={self.match_id}, version={self.version})>"
 
 
+class User(Base):
+    """A community member authenticated via Discord OAuth2.
+
+    `discord_id` is the stable Discord snowflake (the login identity).
+    `player_name` is the in-game name the user claims from
+    `player_ids.PLAYER_NAMES`; it is NULL until the user picks one on first
+    login, and is unique so two Discord accounts can't claim the same player.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    discord_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    discord_username: Mapped[str] = mapped_column(String)
+    discord_avatar: Mapped[str | None] = mapped_column(String, nullable=True)
+    player_name: Mapped[str | None] = mapped_column(
+        String, unique=True, index=True, nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<User(id={self.id}, discord_id={self.discord_id}, "
+            f"player_name={self.player_name})>"
+        )
+
+
 class MapData(Base):
     """Parsed map geometry data keyed by map name."""
 

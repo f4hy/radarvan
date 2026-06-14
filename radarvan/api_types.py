@@ -938,3 +938,29 @@ class DraftResult(BaseModel):
 
     assignments: list[DraftAssignment]
     randomized_at: datetime = Field(alias="randomizedAt")
+
+
+class CurrentUser(BaseModel):
+    model_config = _SLOTS
+
+    discord_id: str
+    discord_username: str
+    discord_avatar: str | None = None
+    player_name: str | None = None
+    # True until the user has claimed an in-game name from PLAYER_NAMES.
+    needs_player_selection: bool
+
+
+class AuthStatus(BaseModel):
+    model_config = _SLOTS
+
+    logged_in: bool
+    user: CurrentUser | None = None
+    # The in-game names a logged-in user may claim (sorted PLAYER_NAMES).
+    available_players: list[str] = Field(default_factory=list)
+
+
+class SelectPlayerRequest(BaseModel):
+    model_config = _SLOTS
+
+    player_name: str

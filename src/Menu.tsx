@@ -5,7 +5,10 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import PersonIcon from "@mui/icons-material/Person"
+import AccountCircleIcon from "@mui/icons-material/AccountCircle"
+import LoginIcon from "@mui/icons-material/Login"
 import AppBar from "@mui/material/AppBar"
+import Button from "@mui/material/Button"
 import Box from "@mui/material/Box"
 import CssBaseline from "@mui/material/CssBaseline"
 import Divider from "@mui/material/Divider"
@@ -35,6 +38,9 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import CasinoIcon from "@mui/icons-material/Casino"
 import { isDebug } from "./utils"
 import DisplayDraft from "./Draft"
+import Account from "./Account"
+import { useAuth } from "./AuthContext"
+import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 const drawerWidth = 190
 
@@ -42,6 +48,16 @@ export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [selection, setSelection] = React.useState<Selection>("Matches")
   const debug = React.useMemo(() => isDebug(), [])
+  const { status } = useAuth()
+
+  // After returning from Discord without an in-game name yet, drop the user
+  // straight onto the Account page to finish the one-time selection.
+  const needsSelection = status?.user?.needs_player_selection ?? false
+  React.useEffect(() => {
+    if (needsSelection) {
+      setSelection("Account")
+    }
+  }, [needsSelection])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -140,6 +156,25 @@ export default function Menu() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {navItems.find((i) => i.value === selection)?.text ?? selection}
           </Typography>
+          {status?.logged_in ? (
+            <Button
+              color="inherit"
+              startIcon={<AccountCircleIcon />}
+              onClick={() => setSelection("Account")}
+            >
+              {status.user?.player_name ??
+                status.user?.discord_username ??
+                "Account"}
+            </Button>
+          ) : (
+            <Button
+              color="inherit"
+              startIcon={<LoginIcon />}
+              onClick={startDiscordLogin}
+            >
+              Login
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
       <Box
@@ -211,6 +246,7 @@ type Selection =
   | "PlayerRatingTrend"
   | "Superlatives"
   | "Draft"
+  | "Account"
 
 interface MenuItemProps {
   value: Selection
@@ -245,6 +281,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayPlayerRatingTrend />
     case "Draft":
       return <DisplayDraft />
+    case "Account":
+      return <Account />
     case "DebugData":
       return <DisplayDebugData />
     default:

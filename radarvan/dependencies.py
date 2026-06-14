@@ -6,6 +6,7 @@ single DB engine + sessionmaker created at import time.
 
 import asyncio
 from collections.abc import Generator
+import secrets
 import structlog
 import os
 
@@ -13,6 +14,7 @@ from fastapi import Depends, HTTPException, Request, Response, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
+from . import db, users
 from .db_utils import DatabaseManager, ReplayManager
 from .notify import notify
 
@@ -21,6 +23,18 @@ logger = structlog.get_logger(__name__)
 conn_str = os.environ["DATABASE_URL"]
 db_manager = DatabaseManager(conn_str)
 IS_DEV = os.getenv("DEV") is not None
+
+# Secret used to sign the session cookie (Starlette SessionMiddleware). Set
+# SESSION_SECRET in every real environment; the random fallback keeps dev
+# working but invalidates all sessions on each process restart.
+_session_secret = os.getenv("SESSION_SECRET")
+if not _session_secret:
+    logger.warning("SESSION_SECRET not set; using an ephemeral per-process secret")
+    _session_secret = secrets.token_urlsafe(32)
+SESSION_SECRET: str = _session_secret
+
+# Where to send the browser after a successful Discord login (the SPA root).
+FRONTEND_URL = os.getenv("FRONTEND_URL", "/")
 
 API_KEYS_READ = set(filter(None, os.getenv("API_KEY_READ", "").split(",")))
 API_KEYS_WRITE = set(filter(None, os.getenv("API_KEY_WRITE", "").split(",")))
@@ -90,6 +104,28 @@ def get_db_session() -> Generator[Session]:
 def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayManager:
     """Dependency that provides a ReplayManager instance."""
     return ReplayManager(session, notify=True)
+
+
+def get_current_user(
+    request: Request, session: Session = Depends(get_db_session)
+) -> db.User | None:
+    """Resolve the logged-in user from the signed session cookie, or None.
+
+    Requires SessionMiddleware (added in main.py) so ``request.session`` exists.
+    """
+    user_id = request.session.get("user_id")
+    if user_id is None:
+        return None
+    return users.get_user_by_id(session, user_id)
+
+
+def require_current_user(
+    user: db.User | None = Depends(get_current_user),
+) -> db.User:
+    """Like get_current_user but 401s when no user is authenticated."""
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
 
 
 def cache_short(response: Response) -> None:
