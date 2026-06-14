@@ -264,7 +264,7 @@ def balance_teams(
     games = competitive_matches(replay_manager)
 
     team_scores = create_teams.balance_teams(
-        list(games.values()), player_list=set(players)
+        list(games.values()), player_list=frozenset(players)
     )
     return {
         ",".join(resolved_to_raw.get(p, p) for p in team): score

@@ -3,6 +3,7 @@
 import datetime
 from collections.abc import Callable
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 from .api_types import Player, General, Team
 from .cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
 from .cncstats_model.header import Player as HeaderPlayer
@@ -34,9 +35,30 @@ def log_duration[F: Callable[..., Any]](func: F) -> F:
 
 def duration_minutes(replay: EnhancedReplayV2) -> float:
     header = replay.header
-    start = datetime.datetime.fromtimestamp(header.time_stamp_begin or 0)
-    end = datetime.datetime.fromtimestamp(header.time_stamp_end or 0)
+    start = datetime.datetime.fromtimestamp(
+        header.time_stamp_begin or 0, tz=datetime.UTC
+    )
+    end = datetime.datetime.fromtimestamp(header.time_stamp_end or 0, tz=datetime.UTC)
     return (end - start).total_seconds() / 60.0
+
+
+# The community plays in US Eastern; the "game night" view groups late sessions
+# onto the evening they started. We convert the match's UTC instant to Eastern
+# (ZoneInfo handles the EST/EDT switch automatically) and roll the day boundary
+# forward to ~5am local, so games played into the early morning (e.g. a Saturday
+# night running to 1-2am Sunday) still count toward the night they began.
+GAME_NIGHT_TZ = ZoneInfo("America/New_York")
+_GAME_NIGHT_ROLLOVER_HOURS = 5
+
+
+def game_night_date(timestamp: int | float) -> datetime.date:
+    """Calendar date of the 'game night' a match belongs to.
+
+    `timestamp` is the replay's `time_stamp_begin` — a POSIX (UTC) epoch.
+    """
+    instant = datetime.datetime.fromtimestamp(timestamp, tz=datetime.UTC)
+    local = instant.astimezone(GAME_NIGHT_TZ)
+    return (local - datetime.timedelta(hours=_GAME_NIGHT_ROLLOVER_HOURS)).date()
 
 
 def minutes_per_step(replay: EnhancedReplayV2) -> float:

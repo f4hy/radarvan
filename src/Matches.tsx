@@ -213,8 +213,10 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
     () => buildPlayerPositions(match.players),
     [match.players],
   )
+  // Timestamps are stored UTC; render in the viewer's local zone with the zone
+  // abbreviation (users span US Eastern/Mountain/Pacific) so the time is unambiguous.
   const date = match.timestamp.toLocaleString("en-US", {
-    timeZone: "America/New_York",
+    timeZoneName: "short",
   })
   const header = (
     <Box>
@@ -310,7 +312,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
   }
 
   const date = props.match.timestamp.toLocaleString("en-US", {
-    timeZone: "America/New_York",
+    timeZoneName: "short",
   })
   const winningTeam = displayTeam(props.match.winningTeam)
   let header = (

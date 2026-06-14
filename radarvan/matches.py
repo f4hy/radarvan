@@ -3,7 +3,7 @@
 from .log_time import log_time
 import structlog
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 
 from . import db
 from . import replay_files
@@ -106,8 +106,8 @@ def match_from_replay(
     replay_name = (header.replay_name if header else None) or ""
     return MatchInfo(
         id=replay.replay_id,
-        timestamp=timestamp,
-        date=datetime.fromtimestamp(timestamp).date(),
+        timestamp=datetime.fromtimestamp(timestamp, tz=UTC),
+        date=utils.game_night_date(timestamp),
         map=map_path,
         winning_team=winner_data.wining_team,
         players=players,
@@ -154,7 +154,7 @@ def replay_to_db_match(
     return db.Match(
         match_id=match_id,
         json_s3_uri=json_s3_uri,
-        timestamp=datetime.fromtimestamp(timestamp),
+        timestamp=datetime.fromtimestamp(timestamp, tz=UTC),
         map=map_path,
         winning_team_id=winner_data.wining_team,
         players=db_players,
