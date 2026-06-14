@@ -154,7 +154,8 @@ def map_summary(
         return MapSummaryResponse(map_name=map_name, total_games=0)
 
     request_generals = {p.general for p in players}
-    request_resolved = [resolve_player_name(p.name) for p in players]
+    # p.name is alias-resolved at validation (MapSummaryPlayer.name is PlayerName).
+    request_resolved = [p.name for p in players]
     request_names = set(request_resolved)
 
     pg_wl: dict[tuple[str, General], list[int]] = defaultdict(lambda: [0, 0])
@@ -298,7 +299,7 @@ def _team_h2h(
     display: dict[int, list[str]] = defaultdict(list)
     for p in players:
         if p.team >= Team.ONE:
-            resolved = resolve_player_name(p.name)
+            resolved = p.name  # already alias-resolved (MapSummaryPlayer.name is PlayerName)
             teams[p.team].append(_player_key(resolved, p.general, with_general))
             display[p.team].append(
                 f"{resolved}[{p.general.name}]" if with_general else resolved

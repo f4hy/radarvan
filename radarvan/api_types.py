@@ -853,7 +853,7 @@ class MapRenderRequest(BaseModel):
 class MapSummaryPlayer(BaseModel):
     model_config = _SLOTS
 
-    name: str
+    name: PlayerName
     general: General
     team: int = 0
 
