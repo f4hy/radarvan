@@ -36,8 +36,11 @@ import DisplayTeamStats from "./TeamStats"
 import DisplaySuperlatives from "./Superlatives"
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import CasinoIcon from "@mui/icons-material/Casino"
+import HowToVoteIcon from "@mui/icons-material/HowToVote"
 import { isDebug } from "./utils"
 import DisplayDraft from "./Draft"
+import MapVoting from "./MapVoting"
+import ChooseMap from "./ChooseMap"
 import Account from "./Account"
 import { useAuth } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
@@ -82,6 +85,8 @@ export default function Menu() {
         icon: <WorkspacePremiumIcon />,
       },
       { value: "Draft", text: "Skip In and Out", icon: <CasinoIcon /> },
+      { value: "MapVoting", text: "Map Voting", icon: <HowToVoteIcon /> },
+      { value: "ChooseMap", text: "Choose Map", icon: <CasinoIcon /> },
       {
         value: "PlayerRatingTrend",
         text: "Rating Trend",
@@ -246,6 +251,8 @@ type Selection =
   | "PlayerRatingTrend"
   | "Superlatives"
   | "Draft"
+  | "MapVoting"
+  | "ChooseMap"
   | "Account"
 
 interface MenuItemProps {
@@ -281,6 +288,10 @@ function Main(props: { selection: Selection }) {
       return <DisplayPlayerRatingTrend />
     case "Draft":
       return <DisplayDraft />
+    case "MapVoting":
+      return <MapVoting />
+    case "ChooseMap":
+      return <ChooseMap />
     case "Account":
       return <Account />
     case "DebugData":

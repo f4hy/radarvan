@@ -32,6 +32,7 @@ from .routes import (
     superlatives,
     teams,
     tournaments,
+    votes,
 )
 
 logger = structlog.get_logger(__name__)
@@ -124,6 +125,9 @@ app.include_router(maps.public_router)
 
 # Auth routes — browser-/cookie-driven, deliberately not behind the API key.
 app.include_router(auth.router)
+
+# Map voting — cookie-identified (like auth), so not behind the API key.
+app.include_router(votes.router)
 
 
 @app.get("/", include_in_schema=False)

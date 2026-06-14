@@ -10,18 +10,18 @@ import secrets
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
 
-from .. import oauth, users
+from .. import oauth
 from ..api_types import AuthStatus, CurrentUser, SelectPlayerRequest
 from ..db import User
 from ..dependencies import (
     FRONTEND_URL,
     get_current_user,
-    get_db_session,
+    get_user_repo,
     require_current_user,
 )
 from ..player_ids import PLAYER_NAMES
+from ..repositories import UserRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -31,20 +31,10 @@ _OAUTH_STATE_KEY = "oauth_state"
 _AVAILABLE_PLAYERS = sorted(PLAYER_NAMES)
 
 
-def _current_user(user: User) -> CurrentUser:
-    return CurrentUser(
-        discord_id=user.discord_id,
-        discord_username=user.discord_username,
-        discord_avatar=user.discord_avatar,
-        player_name=user.player_name,
-        needs_player_selection=user.player_name is None,
-    )
-
-
 def _logged_in_status(user: User) -> AuthStatus:
     return AuthStatus(
         logged_in=True,
-        user=_current_user(user),
+        user=CurrentUser.model_validate(user),
         available_players=_AVAILABLE_PLAYERS,
     )
 
@@ -64,7 +54,7 @@ async def discord_callback(
     request: Request,
     code: str | None = None,
     state: str | None = None,
-    session: Session = Depends(get_db_session),
+    repo: UserRepo = Depends(get_user_repo),
 ) -> RedirectResponse:
     """Handle Discord's redirect: validate state, upsert the user, set session."""
     expected = request.session.pop(_OAUTH_STATE_KEY, None)
@@ -75,7 +65,7 @@ async def discord_callback(
     discord_id = str(profile["id"])
     username = profile.get("global_name") or profile.get("username") or "unknown"
     avatar = profile.get("avatar")
-    user = users.upsert_discord_user(session, discord_id, username, avatar)
+    user = repo.upsert_discord_user(discord_id, username, avatar)
     request.session["user_id"] = user.id
     logger.info("discord login", discord_id=discord_id, user_id=user.id)
     return RedirectResponse(FRONTEND_URL, status_code=303)
@@ -93,17 +83,17 @@ def me(user: User | None = Depends(get_current_user)) -> AuthStatus:
 def select_player(
     req: SelectPlayerRequest,
     user: User = Depends(require_current_user),
-    session: Session = Depends(get_db_session),
+    repo: UserRepo = Depends(get_user_repo),
 ) -> AuthStatus:
     """Claim an in-game name (first-login step). Name must be in PLAYER_NAMES."""
     if req.player_name not in PLAYER_NAMES:
         raise HTTPException(status_code=400, detail="Unknown player name")
-    existing = users.get_user_by_player_name(session, req.player_name)
+    existing = repo.get_by_player_name(req.player_name)
     if existing is not None and existing.id != user.id:
         raise HTTPException(
             status_code=409, detail="That player name is already claimed"
         )
-    users.set_player_name(session, user, req.player_name)
+    repo.set_player_name(user, req.player_name)
     return _logged_in_status(user)
 
 

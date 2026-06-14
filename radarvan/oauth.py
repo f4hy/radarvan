@@ -12,6 +12,7 @@ All configuration comes from environment variables (see ``auth.md``).
 """
 
 import os
+from functools import cache
 from urllib.parse import urlencode
 
 import httpx
@@ -31,6 +32,13 @@ REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "")
 SCOPE = "identify"
 
 _HTTP_TIMEOUT = 10.0
+
+
+@cache
+def _client() -> httpx.AsyncClient:
+    """Process-wide async client, reused across the two back-to-back Discord
+    calls in one login (token exchange then user fetch hit the same host)."""
+    return httpx.AsyncClient(timeout=_HTTP_TIMEOUT)
 
 
 def is_configured() -> bool:
@@ -60,22 +68,20 @@ async def exchange_code(code: str) -> str:
         "code": code,
         "redirect_uri": REDIRECT_URI,
     }
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
-        resp = await client.post(
-            DISCORD_TOKEN_URL,
-            data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        resp.raise_for_status()
-        return str(resp.json()["access_token"])
+    resp = await _client().post(
+        DISCORD_TOKEN_URL,
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    resp.raise_for_status()
+    return str(resp.json()["access_token"])
 
 
 async def fetch_user(access_token: str) -> dict[str, str]:
     """Fetch the authenticated user's Discord profile (id, username, avatar)."""
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
-        resp = await client.get(
-            DISCORD_USER_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        resp.raise_for_status()
-        return dict(resp.json())
+    resp = await _client().get(
+        DISCORD_USER_URL,
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    resp.raise_for_status()
+    return dict(resp.json())

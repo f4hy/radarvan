@@ -14,9 +14,10 @@ from fastapi import Depends, HTTPException, Request, Response, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
-from . import db, users
+from . import db
 from .db_utils import DatabaseManager, ReplayManager
 from .notify import notify
+from .repositories import MapVoteRepo, UserRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -106,8 +107,18 @@ def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayMana
     return ReplayManager(session, notify=True)
 
 
+def get_user_repo(session: Session = Depends(get_db_session)) -> UserRepo:
+    """Dependency that provides a UserRepo instance."""
+    return UserRepo(session)
+
+
+def get_map_vote_repo(session: Session = Depends(get_db_session)) -> MapVoteRepo:
+    """Dependency that provides a MapVoteRepo instance."""
+    return MapVoteRepo(session)
+
+
 def get_current_user(
-    request: Request, session: Session = Depends(get_db_session)
+    request: Request, repo: UserRepo = Depends(get_user_repo)
 ) -> db.User | None:
     """Resolve the logged-in user from the signed session cookie, or None.
 
@@ -116,7 +127,7 @@ def get_current_user(
     user_id = request.session.get("user_id")
     if user_id is None:
         return None
-    return users.get_user_by_id(session, user_id)
+    return repo.get_by_id(user_id)
 
 
 def require_current_user(

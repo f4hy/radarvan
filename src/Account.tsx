@@ -46,7 +46,7 @@ function LoginPrompt() {
 }
 
 function PlayerSelection({ players }: { players: string[] }) {
-  const { refresh } = useAuth()
+  const { setStatus } = useAuth()
   const [name, setName] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
@@ -56,8 +56,8 @@ function PlayerSelection({ players }: { players: string[] }) {
     setSaving(true)
     setError(null)
     try {
-      await selectPlayer(name)
-      await refresh()
+      // The POST already returns the updated status — apply it directly.
+      setStatus(await selectPlayer(name))
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save")
     } finally {

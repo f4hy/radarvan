@@ -4,8 +4,10 @@ import { AuthStatus, fetchAuthStatus } from "./auth"
 interface AuthContextValue {
   status: AuthStatus | null
   loading: boolean
-  // Re-fetch /api/auth/me (call after login/select/logout).
+  // Re-fetch /api/auth/me (call after login/logout).
   refresh: () => Promise<void>
+  // Apply an AuthStatus a mutation already returned, avoiding a redundant GET.
+  setStatus: (status: AuthStatus) => void
 }
 
 const AuthContext = React.createContext<AuthContextValue | undefined>(undefined)
@@ -28,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh])
 
   const value = React.useMemo(
-    () => ({ status, loading, refresh }),
+    () => ({ status, loading, refresh, setStatus }),
     [status, loading, refresh],
   )
 

@@ -353,6 +353,47 @@ class User(Base):
         )
 
 
+class MapVote(Base):
+    """A logged-in user's vote or veto for a map, scoped to a player count.
+
+    Votes and vetoes are per (user, player_count): a user may cast up to a
+    fixed number of each (enforced in the repository, not the schema). A map can
+    be voted OR vetoed but not both — one row per (user, player_count, map_name),
+    with `choice` flipping between 'vote' and 'veto'.
+    """
+
+    __tablename__ = "map_votes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    player_count: Mapped[int] = mapped_column(SmallInteger, index=True)
+    map_name: Mapped[str] = mapped_column(String)
+    choice: Mapped[str] = mapped_column(String(8))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint("choice in ('vote', 'veto')", name="check_vote_choice"),
+        Index("idx_map_votes_user_count", "user_id", "player_count"),
+        Index(
+            "uq_map_votes_user_count_map",
+            "user_id",
+            "player_count",
+            "map_name",
+            unique=True,
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<MapVote(user_id={self.user_id}, player_count={self.player_count}, "
+            f"map_name={self.map_name!r}, choice={self.choice})>"
+        )
+
+
 class MapData(Base):
     """Parsed map geometry data keyed by map name."""
 

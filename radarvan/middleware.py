@@ -18,7 +18,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 CLIENT_ID_HEADER = "X-Client-Id"
 
 # Rate-limit config (env-overridable). 0 disables the limiter entirely.
-RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "120"))
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "1200"))
 # Max random seconds added to the advertised Retry-After so a burst of throttled
 # clients don't all retry on the same tick (thundering herd).
 RATE_LIMIT_RETRY_JITTER_SECONDS = float(os.getenv("RATE_LIMIT_RETRY_JITTER", "5"))

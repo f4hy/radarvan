@@ -1,14 +1,27 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import AfterValidator, BaseModel, Field, ConfigDict, computed_field
 from datetime import datetime, date
 from enum import IntEnum
-from typing import Literal
+from typing import Annotated, Literal
 from .game_composition import GameComposition
+from .player_ids import resolve_player_name
 
 _SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 _SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
 # Classes with field aliases must use an inline ConfigDict so the pydantic mypy plugin
 # can statically resolve populate_by_name=True. _SLOTS and _SLOTS_FA are safe to share
 # because none of those classes have aliases.
+
+
+def _resolve_player_name(name: str) -> str:
+    # Single-arg wrapper so pydantic's AfterValidator doesn't try to pass its
+    # second positional (ValidationInfo) as resolve_player_name's `color`.
+    return resolve_player_name(name)
+
+
+# Type for any request field carrying a player name: alias→canonical resolution
+# happens automatically at request validation, so endpoints can't forget it.
+# Wire/OpenAPI type stays a plain string. See CLAUDE.md (player name resolution).
+PlayerName = Annotated[str, AfterValidator(_resolve_player_name)]
 
 
 class General(IntEnum):
@@ -941,14 +954,18 @@ class DraftResult(BaseModel):
 
 
 class CurrentUser(BaseModel):
-    model_config = _SLOTS
+    model_config = _SLOTS_FA
 
     discord_id: str
     discord_username: str
     discord_avatar: str | None = None
     player_name: str | None = None
-    # True until the user has claimed an in-game name from PLAYER_NAMES.
-    needs_player_selection: bool
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def needs_player_selection(self) -> bool:
+        """True until the user has claimed an in-game name from PLAYER_NAMES."""
+        return self.player_name is None
 
 
 class AuthStatus(BaseModel):
@@ -964,3 +981,69 @@ class SelectPlayerRequest(BaseModel):
     model_config = _SLOTS
 
     player_name: str
+
+
+MapVoteChoice = Literal["vote", "veto"]
+
+
+class MapVoteOption(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    game_count: int
+    last_played: datetime | None = None
+    days_since_last_played: int | None = None
+    # The logged-in viewer's pick for this map (None if unset or logged out).
+    my_choice: MapVoteChoice | None = None
+
+
+class MapVotePage(BaseModel):
+    model_config = _SLOTS
+
+    player_count: int
+    logged_in: bool
+    vote_limit: int
+    veto_limit: int
+    votes_used: int
+    vetoes_used: int
+    # Maps for this player count, ordered by total games played (desc).
+    maps: list[MapVoteOption] = Field(default_factory=list)
+
+
+class SetMapVoteRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    # None clears the viewer's pick for this map.
+    choice: MapVoteChoice | None = None
+
+
+class ChooseMapRequest(BaseModel):
+    model_config = _SLOTS
+
+    # In-game names of the players in this game; only their votes count.
+    # PlayerName auto-resolves aliases (e.g. "skp" -> "Skip") at validation.
+    players: list[PlayerName] = Field(default_factory=list)
+
+
+class ChooseMapCandidate(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    votes: int
+    vetoes: int
+    # Selection weight (vote count if eligible, else 0).
+    weight: int
+    # In the draw pool: has votes and no vetoes.
+    eligible: bool
+
+
+class ChooseMapResult(BaseModel):
+    model_config = _SLOTS
+
+    player_count: int
+    # The backend's authoritative weighted-random pick (None if no eligible map).
+    chosen_map: str | None = None
+    # Every map with at least one vote or veto, for the reveal animation,
+    # ordered by votes desc then name.
+    candidates: list[ChooseMapCandidate] = Field(default_factory=list)

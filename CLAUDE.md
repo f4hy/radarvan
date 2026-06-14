@@ -156,5 +156,5 @@ details = match_details_from_replay(replay)
 - **Protobuf usage**: Match data structures are defined in proto files and compiled to TypeScript
 - **Database migrations**: Managed with Alembic (config in `alembic.ini`)
 - **Cloud integration**: Replay files and parsed JSON are stored in S3 (`s3://generals-stats/radarvan/dev/`) via `fsspec`; local filesystem is not used for replays
-- **Player name resolution**: `resolve_player_name(name, color)` handles name aliases/overrides; used in player stats and superlatives
+- **Player name resolution**: `resolve_player_name(name, color)` handles name aliases/overrides; used in player stats and superlatives. **Any player name arriving over the wire** (API request body/query param) must be alias-resolved before matching accounts/users/stored data — clients send in-game aliases (e.g. `skp`→`Skip`), not always the canonical name. Don't call `resolve_player_name` ad-hoc in handlers; instead type the request field as `api_types.PlayerName` (`Annotated[str, AfterValidator(...)]`), so resolution happens automatically at request validation and can't be forgotten. `list[PlayerName]` works for lists (e.g. `ChooseMapRequest.players`).
 - **Frontend format toggles**: `FORMAT_OPTIONS` arrays drive ToggleButtonGroup; selected format is passed as `gameFormat` query param; state is reset on format change

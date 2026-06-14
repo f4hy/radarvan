@@ -8,6 +8,11 @@ export function winRate(wins: number, losses: number): number {
   return tot > 0 ? wins / tot : 0
 }
 
+// Strip the directory path and ".map" extension from a map name/path for display.
+export function displayMapName(name: string): string {
+  return (name.split("/").pop() ?? name).replace(/\.map$/i, "")
+}
+
 export function getColorHex(colorName: string): string {
   const colorMap: { [key: string]: string } = {
     pink: "#FFC0CB",

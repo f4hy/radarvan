@@ -8,6 +8,11 @@ from ..db import MapData
 from .base import BaseRepo
 
 
+def normalize_map_name(name: str) -> str:
+    """Whitespace-insensitive, lowercased map-name key for matching."""
+    return "".join(name.split()).lower()
+
+
 class MapRepo(BaseRepo):
     """Operations on MapData (parsed map geometry)."""
 
@@ -29,7 +34,7 @@ class MapRepo(BaseRepo):
         row = self.session.scalar(stmt)
         if row is not None:
             return row
-        normalized = "".join(map_name.split()).lower()
+        normalized = normalize_map_name(map_name)
         stmt = select(MapData).where(
             func.lower(func.replace(MapData.map_name, " ", "")) == normalized
         )
