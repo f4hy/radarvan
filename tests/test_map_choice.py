@@ -6,19 +6,22 @@ from collections import Counter
 from radarvan.map_choice import choose_map
 
 
-def test_vetoed_maps_are_excluded() -> None:
+def test_veto_is_minus_three_votes_with_hard_veto_at_zero() -> None:
     tally = {
-        "voted": (3, 0),
-        "vetoed": (5, 1),  # has a veto -> out, despite more votes
-        "novotes": (0, 0),  # no votes -> out
+        "survives": (5, 1),  # net 5 - 3 = 2 > 0 -> stays, despite a veto
+        "boundary": (3, 1),  # net 0 -> hard vetoed
+        "buried": (2, 1),  # net -1 -> hard vetoed
+        "novotes": (0, 0),  # net 0 -> out
     }
     result = choose_map(2, tally, rng=random.Random(1))
     by_name = {c.map_name: c for c in result.candidates}
-    assert by_name["voted"].eligible is True
-    assert by_name["vetoed"].eligible is False
+    assert by_name["survives"].eligible is True
+    assert by_name["survives"].weight == 2  # weighted by net score
+    assert by_name["boundary"].eligible is False
+    assert by_name["buried"].eligible is False
     assert by_name["novotes"].eligible is False
-    # Only "voted" is eligible, so it must be chosen.
-    assert result.chosen_map == "voted"
+    # Only "survives" is net-positive, so it must be chosen.
+    assert result.chosen_map == "survives"
 
 
 def test_no_eligible_maps_returns_none() -> None:

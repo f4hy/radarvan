@@ -66,7 +66,9 @@ function CandidateRow({
         sx={{
           flexGrow: 1,
           fontWeight: winner || highlighted ? 700 : 400,
-          textDecoration: candidate.vetoes > 0 ? "line-through" : undefined,
+          // Strike through only maps knocked out of the draw (net score <= 0),
+          // not every vetoed map — a veto is -3 votes, not an instant removal.
+          textDecoration: candidate.eligible ? undefined : "line-through",
         }}
         noWrap
       >

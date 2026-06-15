@@ -1,13 +1,18 @@
 """Weighted-random map selection for the 'choose map' draw.
 
-The pick is authoritative on the backend (not the animated frontend). A map is
-eligible only if it has at least one vote and no vetoes; among eligible maps the
-draw is weighted by vote count.
+The pick is authoritative on the backend (not the animated frontend). Each veto
+counts as a number of negative votes (VETO_VOTE_PENALTY); a map's score is
+``votes - VETO_VOTE_PENALTY * vetoes``. A map stays in the draw only with a
+net-positive score (score <= 0 is a hard veto), and the draw is weighted by that
+net score.
 """
 
 import random
 
 from .api_types import ChooseMapCandidate, ChooseMapResult
+
+# Each veto subtracts this many votes from a map's score.
+VETO_VOTE_PENALTY = 3
 
 
 def choose_map(
@@ -16,7 +21,7 @@ def choose_map(
     *,
     rng: random.Random | None = None,
 ) -> ChooseMapResult:
-    """Pick a map weighted by votes; any veto removes a map from the pool.
+    """Pick a map weighted by net score (votes - 3*vetoes); net <= 0 is vetoed.
 
     `tally` is {map_name: (votes, vetoes)} (only maps with votes/vetoes).
     """
@@ -24,13 +29,14 @@ def choose_map(
 
     candidates: list[ChooseMapCandidate] = []
     for map_name, (votes, vetoes) in tally.items():
-        eligible = votes > 0 and vetoes == 0
+        net = votes - VETO_VOTE_PENALTY * vetoes
+        eligible = net > 0
         candidates.append(
             ChooseMapCandidate(
                 map_name=map_name,
                 votes=votes,
                 vetoes=vetoes,
-                weight=votes if eligible else 0,
+                weight=net if eligible else 0,
                 eligible=eligible,
             )
         )
