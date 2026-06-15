@@ -1,6 +1,7 @@
 """Map stats, geometry, render, and image endpoints."""
 
 import os
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse
@@ -202,26 +203,52 @@ def fetch_missing_maps(
     )
 
 
+_MAPS_DIR = "dist/maps"
+
+
+def _map_match_key(name: str) -> str:
+    """Alphanumeric-lowercase key so spaces, underscores, brackets, and case
+    don't block matching (e.g. `[RANK] Territorial Dispute ZH v1` vs the bundled
+    `userdata_maps_[rank] territorial dispute zh v1_...webp`)."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def _find_dist_map_path(map_name: str) -> str | None:
+    """Resolve a map name to a bundled webp in dist/maps, or None.
+
+    Tries exact filenames first, then a normalized exact match, then a
+    normalized substring match (bundled filenames carry prefixes that embed the
+    map name, e.g. `userdata_maps_<name>_<name>.webp`).
+    """
+    base = map_name.removesuffix(".map")
+    for candidate in (f"{_MAPS_DIR}/{base}.webp", f"{_MAPS_DIR}/{map_name}.webp"):
+        if os.path.exists(candidate):
+            return candidate
+    if not os.path.isdir(_MAPS_DIR):
+        return None
+    needle = _map_match_key(base)
+    if not needle:
+        return None
+    webps = [f for f in os.listdir(_MAPS_DIR) if f.endswith(".webp")]
+    for fname in webps:
+        if _map_match_key(fname.removesuffix(".webp")) == needle:
+            return os.path.join(_MAPS_DIR, fname)
+    for fname in webps:
+        if needle in _map_match_key(fname.removesuffix(".webp")):
+            return os.path.join(_MAPS_DIR, fname)
+    return None
+
+
 def _load_map_image_bytes(map_name: str) -> bytes:
     s3_uri = missing_maps_module.find_s3_webp(map_name)
     if s3_uri is not None:
         fs = replay_files.get_fs()
         data: bytes = fs.read_bytes(s3_uri)
         return data
-    base = map_name.removesuffix(".map")
-    for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
-        if os.path.exists(candidate):
-            with open(candidate, "rb") as f:
-                return f.read()
-    maps_dir = "dist/maps"
-    needle = "".join(base.split()).lower()
-    if os.path.isdir(maps_dir) and needle:
-        for fname in os.listdir(maps_dir):
-            if not fname.endswith(".webp"):
-                continue
-            if needle in "".join(fname.removesuffix(".webp").split()).lower():
-                with open(os.path.join(maps_dir, fname), "rb") as f:
-                    return f.read()
+    path = _find_dist_map_path(map_name)
+    if path is not None:
+        with open(path, "rb") as f:
+            return f.read()
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
 
 
@@ -269,8 +296,7 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
             s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL
         )
         return RedirectResponse(presigned, status_code=302, headers=cache_headers)
-    base = map_name.removesuffix(".map")
-    for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
-        if os.path.exists(candidate):
-            return FileResponse(candidate, headers=cache_headers)
+    path = _find_dist_map_path(map_name)
+    if path is not None:
+        return FileResponse(path, headers=cache_headers)
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
