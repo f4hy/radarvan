@@ -6,6 +6,7 @@ session cookie identifies the voter. Reads are open; casting requires login.
 """
 
 import threading
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import structlog
@@ -50,24 +51,69 @@ def _norm(map_name: str) -> str:
     return normalize_map_name(base)
 
 
-_play_stats_lock = threading.Lock()
+_index_lock = threading.Lock()
 
 
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_play_stats_lock)
-def _map_play_stats(
-    replay_manager: ReplayManager,
-) -> dict[str, tuple[int, datetime]]:
-    """{normalized map -> (total games, last-played timestamp)} across all games.
+@dataclass
+class _MapAgg:
+    """Per-map aggregate backing the voting list."""
 
-    Cached on the latest-match timestamp (same key as the match caches), so it
-    only recomputes when new matches land — not on every vote read/write.
+    display_name: str
+    game_count: int = 0
+    last_played: datetime | None = None
+    # Player counts this map is associated with: distinct real-player counts seen
+    # in games on it, plus its MapData start-position count when geometry exists.
+    counts: set[int] = field(default_factory=set)
+
+
+@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_index_lock)
+def _match_map_index(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
+    """{normalized map -> aggregate} over every map in match history.
+
+    The voting list is sourced from games we've actually played (not just maps
+    with parsed MapData geometry), so a played map appears even if its geometry
+    was never fetched. Cached on the latest-match timestamp.
     """
-    stats: dict[str, tuple[int, datetime]] = {}
+    index: dict[str, _MapAgg] = {}
     for match in sorted_deduped_matches(replay_manager).values():
         key = _norm(match.map)
-        count, last = stats.get(key, (0, match.timestamp))
-        stats[key] = (count + 1, max(last, match.timestamp))
-    return stats
+        agg = index.get(key)
+        if agg is None:
+            agg = _MapAgg(display_name=map_basename(match.map).removesuffix(".map"))
+            index[key] = agg
+        agg.game_count += 1
+        if agg.last_played is None or match.timestamp > agg.last_played:
+            agg.last_played = match.timestamp
+        real_players = sum(1 for p in match.players if p.team >= 1)
+        if real_players > 0:
+            agg.counts.add(real_players)
+    return index
+
+
+def _merged_maps(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
+    """Played maps merged with MapData capacities.
+
+    Match history is the source of truth for which maps appear; MapData adds the
+    authoritative start-position count and canonical name when geometry exists.
+    Returns fresh copies so the cached match index is never mutated.
+    """
+    merged: dict[str, _MapAgg] = {
+        key: _MapAgg(agg.display_name, agg.game_count, agg.last_played, set(agg.counts))
+        for key, agg in _match_map_index(replay_manager).items()
+    }
+    for start_count, names in maps_by_player_count(replay_manager).items():
+        for name in names:
+            key = _norm(name)
+            agg = merged.get(key)
+            if agg is None:
+                agg = _MapAgg(display_name=name)
+                merged[key] = agg
+            else:
+                # Prefer the canonical MapData name for display/votes/image lookup.
+                agg.display_name = name
+            if start_count > 0:
+                agg.counts.add(start_count)
+    return merged
 
 
 def _build_page(
@@ -76,22 +122,22 @@ def _build_page(
     vote_repo: MapVoteRepo,
     user: User | None,
 ) -> MapVotePage:
-    map_names = maps_by_player_count(replay_manager).get(player_count, [])
-    play_stats = _map_play_stats(replay_manager)
     choices = vote_repo.get_choices(user.id, player_count) if user is not None else {}
     now = datetime.now(UTC)
 
     options: list[MapVoteOption] = []
-    for name in map_names:
-        count, last = play_stats.get(_norm(name), (0, None))
+    for agg in _merged_maps(replay_manager).values():
+        if player_count not in agg.counts:
+            continue
+        last = agg.last_played
         days = (now - last).days if last is not None else None
         options.append(
             MapVoteOption(
-                map_name=name,
-                game_count=count,
+                map_name=agg.display_name,
+                game_count=agg.game_count,
                 last_played=last,
                 days_since_last_played=days,
-                my_choice=choices.get(name),
+                my_choice=choices.get(agg.display_name),
             )
         )
     options.sort(key=lambda o: (-o.game_count, o.map_name))
@@ -111,9 +157,11 @@ def _build_page(
 def player_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[int]:
-    """Player counts (map capacities) that have at least one known map."""
-    grouped = maps_by_player_count(replay_manager)
-    return sorted(count for count, maps in grouped.items() if count > 0 and maps)
+    """Player counts we have maps for (real players seen in games + MapData capacities)."""
+    counts: set[int] = set()
+    for agg in _merged_maps(replay_manager).values():
+        counts |= agg.counts
+    return sorted(c for c in counts if c > 0)
 
 
 @router.get("/players")
@@ -144,8 +192,12 @@ def set_vote(
     user: User = Depends(require_current_user),
 ) -> MapVotePage:
     """Cast/clear a vote or veto for a map (requires login)."""
-    map_names = maps_by_player_count(replay_manager).get(player_count, [])
-    if req.map_name not in map_names:
+    valid_maps = {
+        agg.display_name
+        for agg in _merged_maps(replay_manager).values()
+        if player_count in agg.counts
+    }
+    if req.map_name not in valid_maps:
         raise HTTPException(status_code=400, detail="Unknown map for this player count")
     try:
         vote_repo.set_choice(user.id, player_count, req.map_name, req.choice)

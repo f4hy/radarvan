@@ -87,6 +87,40 @@ def test_tally_filters_to_given_users(session: Session) -> None:
     assert repo.tally(4, user_ids=[]) == {}
 
 
+def test_played_map_without_mapdata_appears_by_observed_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from radarvan.routes import votes
+
+    # A map with games but no MapData geometry still shows, grouped by the
+    # real-player count observed in its games.
+    monkeypatch.setattr(
+        votes,
+        "_match_map_index",
+        lambda rm: {"k": votes._MapAgg("coastline wold", game_count=3, counts={4})},
+    )
+    monkeypatch.setattr(votes, "maps_by_player_count", lambda rm: {})
+
+    page4 = votes._build_page(4, object(), None, None)  # type: ignore[arg-type]
+    assert [o.map_name for o in page4.maps] == ["coastline wold"]
+    # Not a 2-player map (only ever played 4-player).
+    assert votes._build_page(2, object(), None, None).maps == []  # type: ignore[arg-type]
+
+
+def test_mapdata_overlay_adds_capacity_and_canonical_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from radarvan.routes import votes
+
+    # MapData with no games contributes capacity 8 and a canonical name.
+    monkeypatch.setattr(votes, "_match_map_index", lambda rm: {})
+    monkeypatch.setattr(votes, "maps_by_player_count", lambda rm: {8: ["Big Map"]})
+
+    page = votes._build_page(8, object(), None, None)  # type: ignore[arg-type]
+    assert [o.map_name for o in page.maps] == ["Big Map"]
+    assert page.maps[0].game_count == 0
+
+
 def test_choose_map_request_resolves_aliases_at_validation() -> None:
     from radarvan.api_types import ChooseMapRequest
 
