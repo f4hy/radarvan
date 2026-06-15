@@ -4,7 +4,9 @@ import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Snackbar from "@mui/material/Snackbar"
+import InputAdornment from "@mui/material/InputAdornment"
 import Stack from "@mui/material/Stack"
+import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
@@ -13,6 +15,7 @@ import BlockIcon from "@mui/icons-material/Block"
 import ThumbUpIcon from "@mui/icons-material/ThumbUp"
 import LoginIcon from "@mui/icons-material/Login"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
+import SearchIcon from "@mui/icons-material/Search"
 import GameMap from "./Map"
 import Loading from "./Loading"
 import PlayerCountPicker from "./PlayerCountPicker"
@@ -26,6 +29,11 @@ import {
   fetchVotePage,
   setVote,
 } from "./voting"
+
+// Case- and whitespace-insensitive key for filtering.
+function searchKey(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, "")
+}
 
 function lastPlayedLabel(days: number | null): string {
   if (days === null) return "never played"
@@ -91,6 +99,7 @@ export default function MapVoting() {
   const [loading, setLoading] = React.useState(true)
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [query, setQuery] = React.useState("")
 
   React.useEffect(() => {
     let cancelled = false
@@ -231,6 +240,23 @@ export default function MapVoting() {
         </Alert>
       )}
 
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Search maps…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
+
       <Box
         sx={{
           display: "grid",
@@ -238,14 +264,20 @@ export default function MapVoting() {
           gap: 2,
         }}
       >
-        {page.maps.map((option) => (
-          <MapCard
-            key={option.map_name}
-            option={option}
-            disabled={!page.logged_in || pending}
-            onChoose={(choice) => choose(option.map_name, choice)}
-          />
-        ))}
+        {page.maps
+          .filter((option) =>
+            searchKey(displayMapName(option.map_name)).includes(
+              searchKey(query),
+            ),
+          )
+          .map((option) => (
+            <MapCard
+              key={option.map_name}
+              option={option}
+              disabled={!page.logged_in || pending}
+              onChoose={(choice) => choose(option.map_name, choice)}
+            />
+          ))}
       </Box>
       {errorBar}
     </Stack>
