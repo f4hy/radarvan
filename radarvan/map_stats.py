@@ -299,7 +299,9 @@ def _team_h2h(
     display: dict[int, list[str]] = defaultdict(list)
     for p in players:
         if p.team >= Team.ONE:
-            resolved = p.name  # already alias-resolved (MapSummaryPlayer.name is PlayerName)
+            resolved = (
+                p.name
+            )  # already alias-resolved (MapSummaryPlayer.name is PlayerName)
             teams[p.team].append(_player_key(resolved, p.general, with_general))
             display[p.team].append(
                 f"{resolved}[{p.general.name}]" if with_general else resolved
