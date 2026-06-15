@@ -93,10 +93,14 @@ export default function GameMap(props: {
   playerPositions?: Record<number, PlayerPosition>
   eventDots?: EventDot[]
   showDownload?: boolean
+  // When true, don't fetch the map overlay data (player starts / supply / tech)
+  // up front — only the image. The data is fetched on first hover and then kept.
+  deferData?: boolean
 }) {
   const [imgError, setImgError] = React.useState(false)
   const [triedFallback, setTriedFallback] = React.useState(false)
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
+  const [dataRequested, setDataRequested] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   async function downloadScreenshot() {
@@ -119,6 +123,7 @@ export default function GameMap(props: {
   React.useEffect(() => {
     setImgError(false)
     setTriedFallback(false)
+    setDataRequested(false)
   }, [mapname])
 
   React.useEffect(() => {
@@ -129,6 +134,11 @@ export default function GameMap(props: {
     const resolved = mapDataResolved[mapname]
     if (resolved) {
       setMapData(resolved)
+      return
+    }
+    // Deferred maps wait for a hover before fetching overlay data.
+    if (props.deferData && !dataRequested) {
+      setMapData(null)
       return
     }
     setMapData(null)
@@ -144,13 +154,18 @@ export default function GameMap(props: {
     return () => {
       cancelled = true
     }
-  }, [mapname])
+  }, [mapname, props.deferData, dataRequested])
 
   const showPlaceholder = !mapUrl || imgError
 
   return (
     <Tooltip title={"Map " + mapname}>
-      <Card sx={{ minHeight: 300, minWidth: 300, position: "relative" }}>
+      <Card
+        sx={{ minHeight: 300, minWidth: 300, position: "relative" }}
+        onMouseEnter={
+          props.deferData ? () => setDataRequested(true) : undefined
+        }
+      >
         {showPlaceholder ? (
           <Box
             sx={{

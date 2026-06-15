@@ -30,6 +30,9 @@ import {
   setVote,
 } from "./voting"
 
+// Cap how many map cards render at once; the rest are behind "Load all".
+const MAP_RENDER_CAP = 40
+
 // Case- and whitespace-insensitive key for filtering.
 function searchKey(s: string): string {
   return s.toLowerCase().replace(/\s+/g, "")
@@ -57,7 +60,7 @@ function MapCard({
   }
   return (
     <Stack spacing={1}>
-      <GameMap mapname={option.map_name} />
+      <GameMap mapname={option.map_name} deferData />
       <Typography
         variant="subtitle1"
         noWrap
@@ -100,6 +103,7 @@ export default function MapVoting() {
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
+  const [showAll, setShowAll] = React.useState(false)
 
   React.useEffect(() => {
     let cancelled = false
@@ -125,6 +129,9 @@ export default function MapVoting() {
     }
     let cancelled = false
     setLoading(true)
+    // Fresh count -> start uncapped-search clean.
+    setQuery("")
+    setShowAll(false)
     fetchVotePage(selected)
       .then((p) => {
         if (!cancelled) setPage(p)
@@ -245,7 +252,10 @@ export default function MapVoting() {
         size="small"
         placeholder="Search maps…"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setShowAll(false)
+        }}
         slotProps={{
           input: {
             startAdornment: (
@@ -257,28 +267,43 @@ export default function MapVoting() {
         }}
       />
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 2,
-        }}
-      >
-        {page.maps
-          .filter((option) =>
-            searchKey(displayMapName(option.map_name)).includes(
-              searchKey(query),
-            ),
-          )
-          .map((option) => (
-            <MapCard
-              key={option.map_name}
-              option={option}
-              disabled={!page.logged_in || pending}
-              onChoose={(choice) => choose(option.map_name, choice)}
-            />
-          ))}
-      </Box>
+      {(() => {
+        const filtered = page.maps.filter((option) =>
+          searchKey(displayMapName(option.map_name)).includes(searchKey(query)),
+        )
+        const visible = showAll ? filtered : filtered.slice(0, MAP_RENDER_CAP)
+        const hidden = filtered.length - visible.length
+        return (
+          <>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                gap: 2,
+              }}
+            >
+              {visible.map((option) => (
+                <MapCard
+                  key={option.map_name}
+                  option={option}
+                  disabled={!page.logged_in || pending}
+                  onChoose={(choice) => choose(option.map_name, choice)}
+                />
+              ))}
+            </Box>
+            {hidden > 0 && (
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setShowAll(true)}
+                sx={{ mt: 1 }}
+              >
+                Load all {filtered.length} maps ({hidden} more)
+              </Button>
+            )}
+          </>
+        )
+      })()}
       {errorBar}
     </Stack>
   )

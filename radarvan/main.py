@@ -26,6 +26,7 @@ from .routes import (
     draft,
     files,
     generals,
+    map_upload,
     maps,
     matches,
     players,
@@ -128,6 +129,9 @@ app.include_router(auth.router)
 
 # Map voting — cookie-identified (like auth), so not behind the API key.
 app.include_router(votes.router)
+
+# Map upload — login-gated (like auth), so not behind the API key.
+app.include_router(map_upload.router)
 
 
 @app.get("/", include_in_schema=False)

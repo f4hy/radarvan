@@ -41,7 +41,9 @@ import { isDebug } from "./utils"
 import DisplayDraft from "./Draft"
 import MapVoting from "./MapVoting"
 import ChooseMap from "./ChooseMap"
+import MapUpload from "./MapUpload"
 import Account from "./Account"
+import UploadFileIcon from "@mui/icons-material/UploadFile"
 import { useAuth } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
@@ -87,6 +89,7 @@ export default function Menu() {
       { value: "Draft", text: "Skip In and Out", icon: <CasinoIcon /> },
       { value: "MapVoting", text: "Map Voting", icon: <HowToVoteIcon /> },
       { value: "ChooseMap", text: "Choose Map", icon: <CasinoIcon /> },
+      { value: "MapUpload", text: "Upload Map", icon: <UploadFileIcon /> },
       {
         value: "PlayerRatingTrend",
         text: "Rating Trend",
@@ -253,6 +256,7 @@ type Selection =
   | "Draft"
   | "MapVoting"
   | "ChooseMap"
+  | "MapUpload"
   | "Account"
 
 interface MenuItemProps {
@@ -292,6 +296,8 @@ function Main(props: { selection: Selection }) {
       return <MapVoting />
     case "ChooseMap":
       return <ChooseMap />
+    case "MapUpload":
+      return <MapUpload />
     case "Account":
       return <Account />
     case "DebugData":

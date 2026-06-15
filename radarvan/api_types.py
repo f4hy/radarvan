@@ -1047,3 +1047,25 @@ class ChooseMapResult(BaseModel):
     # Every map with at least one vote or veto, for the reveal animation,
     # ordered by votes desc then name.
     candidates: list[ChooseMapCandidate] = Field(default_factory=list)
+
+
+class MapUploadItem(BaseModel):
+    model_config = _SLOTS
+
+    base_name: str
+    # WebP data URL of the converted .tga — set in preview, omitted on commit.
+    image: str | None = None
+    # Number of player start positions (from parsed geometry), if available.
+    player_count: int | None = None
+    # True if a map with this name already has assets in S3.
+    already_exists: bool = False
+    # True once the assets have actually been saved (commit response).
+    saved: bool = False
+
+
+class MapUploadResponse(BaseModel):
+    model_config = _SLOTS
+
+    committed: bool
+    maps: list[MapUploadItem] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
