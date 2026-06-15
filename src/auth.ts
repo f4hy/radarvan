@@ -11,6 +11,7 @@ export interface CurrentUser {
   discord_avatar: string | null
   player_name: string | null
   needs_player_selection: boolean
+  is_admin: boolean
 }
 
 export interface AuthStatus {

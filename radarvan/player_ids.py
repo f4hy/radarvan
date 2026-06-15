@@ -87,6 +87,15 @@ NAME_MAPPING = PLAYER_NAME_MAPPING | CPU_NAME_MAPPING
 
 PLAYER_NAMES = set(NAME_MAPPING.values())
 
+# Players (by claimed in-game name) with admin privileges. Hard-coded for now;
+# add names here to grant admin.
+ADMIN_PLAYERS: set[str] = {"Modus", "OneThree111"}
+
+
+def is_admin(player_name: str | None) -> bool:
+    """True if the given claimed in-game name is an admin."""
+    return player_name is not None and player_name in ADMIN_PLAYERS
+
 
 def resolve_player_name(name: str, color: str = "") -> str:
     """Resolve a player name from their in-game name and optional color."""

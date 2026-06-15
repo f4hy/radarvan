@@ -3,7 +3,7 @@ from datetime import datetime, date
 from enum import IntEnum
 from typing import Annotated, Literal
 from .game_composition import GameComposition
-from .player_ids import resolve_player_name
+from .player_ids import is_admin as _is_admin_player, resolve_player_name
 
 _SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 _SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
@@ -966,6 +966,12 @@ class CurrentUser(BaseModel):
     def needs_player_selection(self) -> bool:
         """True until the user has claimed an in-game name from PLAYER_NAMES."""
         return self.player_name is None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def is_admin(self) -> bool:
+        """True if the claimed in-game name is in player_ids.ADMIN_PLAYERS."""
+        return _is_admin_player(self.player_name)
 
 
 class AuthStatus(BaseModel):

@@ -196,6 +196,13 @@ export default function MapVoting() {
     )
   }
 
+  // Filter over all maps (search reaches everything), then cap how many render.
+  const filtered = page.maps.filter((option) =>
+    searchKey(displayMapName(option.map_name)).includes(searchKey(query)),
+  )
+  const visible = showAll ? filtered : filtered.slice(0, MAP_RENDER_CAP)
+  const hidden = filtered.length - visible.length
+
   return (
     <Stack spacing={2}>
       <Stack
@@ -267,43 +274,32 @@ export default function MapVoting() {
         }}
       />
 
-      {(() => {
-        const filtered = page.maps.filter((option) =>
-          searchKey(displayMapName(option.map_name)).includes(searchKey(query)),
-        )
-        const visible = showAll ? filtered : filtered.slice(0, MAP_RENDER_CAP)
-        const hidden = filtered.length - visible.length
-        return (
-          <>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                gap: 2,
-              }}
-            >
-              {visible.map((option) => (
-                <MapCard
-                  key={option.map_name}
-                  option={option}
-                  disabled={!page.logged_in || pending}
-                  onChoose={(choice) => choose(option.map_name, choice)}
-                />
-              ))}
-            </Box>
-            {hidden > 0 && (
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => setShowAll(true)}
-                sx={{ mt: 1 }}
-              >
-                Load all {filtered.length} maps ({hidden} more)
-              </Button>
-            )}
-          </>
-        )
-      })()}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: 2,
+        }}
+      >
+        {visible.map((option) => (
+          <MapCard
+            key={option.map_name}
+            option={option}
+            disabled={!page.logged_in || pending}
+            onChoose={(choice) => choose(option.map_name, choice)}
+          />
+        ))}
+      </Box>
+      {hidden > 0 && (
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={() => setShowAll(true)}
+          sx={{ mt: 1 }}
+        >
+          Load all {filtered.length} maps ({hidden} more)
+        </Button>
+      )}
       {errorBar}
     </Stack>
   )

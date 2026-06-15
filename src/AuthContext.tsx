@@ -44,3 +44,9 @@ export function useAuth(): AuthContextValue {
   }
   return ctx
 }
+
+// True if the logged-in user is an admin (player_ids.ADMIN_PLAYERS). Also gates
+// what used to be the ?debug=True views.
+export function useIsAdmin(): boolean {
+  return useAuth().status?.user?.is_admin ?? false
+}

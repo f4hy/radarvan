@@ -18,7 +18,7 @@ import Tabs from "@mui/material/Tabs"
 import * as React from "react"
 import { PlayerEnum, PlayerEnumFromJSON } from "./api"
 import { Client } from "./Client"
-import { isDebug } from "./utils"
+import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 interface TeamWinRating {
@@ -127,6 +127,7 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const [teamRating, setTeamRating] = React.useState<TeamWinRating>({})
   const [loading, setLoading] = React.useState(false)
   const { showError, errorSnackbar } = useErrorSnackbar()
+  const isAdmin = useIsAdmin()
 
   React.useEffect(() => {
     if (props.selectedPlayers.length >= 2) {
@@ -152,12 +153,12 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
         ...entries.map(([, winRate]) => 1.0 - Math.abs(winRate - 0.5) * 2),
       ),
     )
-    return isDebug()
+    return isAdmin
       ? entries
       : entries.filter(
           ([, winRate]) => 1.0 - Math.abs(winRate - 0.5) * 2 >= threshold,
         )
-  }, [teamRating])
+  }, [teamRating, isAdmin])
 
   if (props.selectedPlayers.length % 2 !== 0) {
     return (

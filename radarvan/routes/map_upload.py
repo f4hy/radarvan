@@ -8,6 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from .. import map_upload as map_upload_module
+from .. import player_ids
 from ..api_types import MapUploadResponse
 from ..db import User
 from ..db_utils import ReplayManager
@@ -50,7 +51,9 @@ def upload_maps(
             status_code=400,
             detail="No valid maps found (each needs both a .map and a .tga)",
         )
-    items, errors = map_upload_module.process(uploads, commit, replay_manager)
+    items, errors = map_upload_module.process(
+        uploads, commit, replay_manager, player_ids.is_admin(user.player_name)
+    )
     logger.info(
         "map upload",
         user_id=user.id,

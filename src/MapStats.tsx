@@ -20,7 +20,8 @@ import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import GameMap from "./Map"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { isDebug, winRate } from "./utils"
+import { useIsAdmin } from "./AuthContext"
+import { winRate } from "./utils"
 
 function getMapStats(
   callback: (m: MapStatsResponse) => void,
@@ -362,7 +363,7 @@ const MapCard = React.memo(function MapCard(props: {
   onToggle: (mapName: string, expanded: boolean) => void
 }) {
   const { map } = props
-  const debug = isDebug()
+  const debug = useIsAdmin()
   const [tab, setTab] = React.useState<"players" | "generals">("generals")
   const [everExpanded, setEverExpanded] = React.useState(props.expanded)
 

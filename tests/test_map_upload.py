@@ -3,7 +3,10 @@
 import zipfile
 from io import BytesIO
 
-from radarvan.map_upload import maps_from_pair, maps_from_zip
+import pytest
+
+from radarvan import map_upload, missing_maps
+from radarvan.map_upload import MapUpload, maps_from_pair, maps_from_zip
 
 
 def _zip(entries: dict[str, bytes]) -> bytes:
@@ -43,3 +46,47 @@ def test_maps_from_pair_uses_map_stem() -> None:
     assert maps[0].base_name == "My Map"
     assert maps[0].tga == b"tga"
     assert maps[0].map_file == b"map"
+
+
+def _stub_convert(monkeypatch: pytest.MonkeyPatch, exists: bool) -> list[tuple]:
+    """Stub out conversion/parse/S3 so process() can be unit-tested. Returns the
+    list that captures upload_map_assets calls."""
+    uploaded: list[tuple] = []
+    monkeypatch.setattr(missing_maps, "tga_to_webp", lambda b: b"webp")
+    monkeypatch.setattr(missing_maps, "mapparse_available", lambda: False)
+    monkeypatch.setattr(missing_maps, "s3_webp_exists", lambda name: exists)
+    monkeypatch.setattr(
+        missing_maps, "upload_map_assets", lambda *a, **k: uploaded.append(a)
+    )
+    return uploaded
+
+
+def test_overwrite_blocked_for_non_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+    uploaded = _stub_convert(monkeypatch, exists=True)
+    uploads = [MapUpload(base_name="Existing", tga=b"t", map_file=b"m")]
+
+    items, errors = map_upload.process(uploads, True, object(), is_admin=False)  # type: ignore[arg-type]
+    assert uploaded == []  # nothing written
+    assert items[0].saved is False
+    assert items[0].already_exists is True
+    assert any("admin" in e for e in errors)
+
+
+def test_admin_can_overwrite(monkeypatch: pytest.MonkeyPatch) -> None:
+    uploaded = _stub_convert(monkeypatch, exists=True)
+    uploads = [MapUpload(base_name="Existing", tga=b"t", map_file=b"m")]
+
+    items, errors = map_upload.process(uploads, True, object(), is_admin=True)  # type: ignore[arg-type]
+    assert len(uploaded) == 1
+    assert items[0].saved is True
+    assert errors == []
+
+
+def test_non_admin_can_save_new_map(monkeypatch: pytest.MonkeyPatch) -> None:
+    uploaded = _stub_convert(monkeypatch, exists=False)
+    uploads = [MapUpload(base_name="Brand New", tga=b"t", map_file=b"m")]
+
+    items, errors = map_upload.process(uploads, True, object(), is_admin=False)  # type: ignore[arg-type]
+    assert len(uploaded) == 1
+    assert items[0].saved is True
+    assert errors == []

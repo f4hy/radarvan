@@ -37,7 +37,6 @@ import DisplaySuperlatives from "./Superlatives"
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import CasinoIcon from "@mui/icons-material/Casino"
 import HowToVoteIcon from "@mui/icons-material/HowToVote"
-import { isDebug } from "./utils"
 import DisplayDraft from "./Draft"
 import MapVoting from "./MapVoting"
 import ChooseMap from "./ChooseMap"
@@ -52,8 +51,8 @@ const drawerWidth = 190
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [selection, setSelection] = React.useState<Selection>("Matches")
-  const debug = React.useMemo(() => isDebug(), [])
   const { status } = useAuth()
+  const debug = status?.user?.is_admin ?? false
 
   // After returning from Discord without an in-game name yet, drop the user
   // straight onto the Account page to finish the one-time selection.

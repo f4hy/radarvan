@@ -89,12 +89,15 @@ def process(
     uploads: list[MapUpload],
     commit: bool,
     replay_manager: ReplayManager,
+    is_admin: bool,
 ) -> tuple[list[MapUploadItem], list[str]]:
     """Convert (and, when committing, save) each map. Returns (items, errors).
 
     Preview (commit=False): convert tga->webp, parse geometry if the mapparse
     binary is available, and return the image — no writes. Commit: also upload
     the .tga/.webp/.map to S3 and save the geometry to MapData when parsed.
+    Overwriting a map that already exists requires admin; non-admin overwrite
+    attempts are skipped and reported.
     """
     items: list[MapUploadItem] = []
     errors: list[str] = []
@@ -116,10 +119,17 @@ def process(
                     "map geometry parse failed", base_name=u.base_name, error=repr(e)
                 )
         already_exists = missing_maps.s3_webp_exists(u.base_name)
-        if commit:
+        blocked = commit and already_exists and not is_admin
+        if blocked:
+            errors.append(
+                f"{u.base_name}: already exists — overwrite requires admin"
+            )
+        saved = False
+        if commit and not blocked:
             missing_maps.upload_map_assets(u.base_name, u.tga, webp, u.map_file)
             if payload is not None:
                 replay_manager.save_map_data(u.base_name, payload)
+            saved = True
         items.append(
             MapUploadItem(
                 base_name=u.base_name,
@@ -127,7 +137,7 @@ def process(
                 image=None if commit else _data_url(webp),
                 player_count=player_count,
                 already_exists=already_exists,
-                saved=commit,
+                saved=saved,
             )
         )
     return items, errors

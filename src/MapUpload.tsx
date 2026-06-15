@@ -46,7 +46,13 @@ function FilePicker({
   )
 }
 
-function PreviewGrid({ result }: { result: MapUploadResponse }) {
+function PreviewGrid({
+  result,
+  isAdmin,
+}: {
+  result: MapUploadResponse
+  isAdmin: boolean
+}) {
   return (
     <Box
       sx={{
@@ -93,7 +99,11 @@ function PreviewGrid({ result }: { result: MapUploadResponse }) {
                   size="small"
                   color="warning"
                   variant="outlined"
-                  label="already exists — will overwrite"
+                  label={
+                    isAdmin
+                      ? "already exists — will overwrite"
+                      : "already exists — needs admin to overwrite"
+                  }
                 />
               )}
             </Stack>
@@ -110,8 +120,8 @@ export default function MapUpload() {
   const [tga, setTga] = React.useState<File | null>(null)
   const [map, setMap] = React.useState<File | null>(null)
   const [zip, setZip] = React.useState<File | null>(null)
-  const [preview, setPreview] = React.useState<MapUploadResponse | null>(null)
-  const [saved, setSaved] = React.useState<MapUploadResponse | null>(null)
+  // One result for both phases; `committed` distinguishes preview from save.
+  const [result, setResult] = React.useState<MapUploadResponse | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -122,33 +132,19 @@ export default function MapUpload() {
 
   const ready = mode === "zip" ? zip !== null : tga !== null && map !== null
 
-  const resetResults = () => {
-    setPreview(null)
-    setSaved(null)
+  // Any input change invalidates the prior preview/save result.
+  React.useEffect(() => {
+    setResult(null)
     setError(null)
-  }
+  }, [tga, map, zip, mode])
 
-  const doPreview = async () => {
-    setBusy(true)
-    resetResults()
-    try {
-      setPreview(await uploadMaps(currentFiles(), false))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Preview failed")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const doSave = async () => {
+  const run = async (commit: boolean) => {
     setBusy(true)
     setError(null)
     try {
-      const result = await uploadMaps(currentFiles(), true)
-      setSaved(result)
-      setPreview(null)
+      setResult(await uploadMaps(currentFiles(), commit))
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed")
+      setError(e instanceof Error ? e.message : "Upload failed")
     } finally {
       setBusy(false)
     }
@@ -157,6 +153,9 @@ export default function MapUpload() {
   if (authLoading) {
     return null
   }
+
+  const isAdmin = status?.user?.is_admin ?? false
+  const savedCount = result?.maps.filter((m) => m.saved).length ?? 0
 
   if (!status?.logged_in) {
     return (
@@ -193,10 +192,7 @@ export default function MapUpload() {
         size="small"
         value={mode}
         onChange={(_, next: Mode | null) => {
-          if (next) {
-            setMode(next)
-            resetResults()
-          }
+          if (next) setMode(next)
         }}
       >
         <ToggleButton value="files">.tga + .map</ToggleButton>
@@ -210,19 +206,13 @@ export default function MapUpload() {
               label="Choose .tga"
               accept=".tga"
               file={tga}
-              onPick={(f) => {
-                setTga(f)
-                resetResults()
-              }}
+              onPick={setTga}
             />
             <FilePicker
               label="Choose .map"
               accept=".map"
               file={map}
-              onPick={(f) => {
-                setMap(f)
-                resetResults()
-              }}
+              onPick={setMap}
             />
           </>
         ) : (
@@ -230,10 +220,7 @@ export default function MapUpload() {
             label="Choose .zip"
             accept=".zip"
             file={zip}
-            onPick={(f) => {
-              setZip(f)
-              resetResults()
-            }}
+            onPick={setZip}
           />
         )}
       </Stack>
@@ -243,43 +230,45 @@ export default function MapUpload() {
           variant="contained"
           startIcon={<UploadFileIcon />}
           disabled={!ready || busy}
-          onClick={doPreview}
+          onClick={() => run(false)}
         >
           Preview
         </Button>
-        {preview && preview.maps.length > 0 && (
+        {result && !result.committed && result.maps.length > 0 && (
           <Button
             variant="contained"
             color="success"
             startIcon={<SaveIcon />}
             disabled={busy}
-            onClick={doSave}
+            onClick={() => run(true)}
           >
-            Save {preview.maps.length} map
-            {preview.maps.length === 1 ? "" : "s"}
+            Save {result.maps.length} map
+            {result.maps.length === 1 ? "" : "s"}
           </Button>
         )}
       </Stack>
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      {saved && (
-        <Alert severity="success">
-          Saved {saved.maps.length} map{saved.maps.length === 1 ? "" : "s"}.
+      {result?.committed && (
+        <Alert severity={savedCount > 0 ? "success" : "warning"}>
+          Saved {savedCount} map{savedCount === 1 ? "" : "s"}.
         </Alert>
       )}
 
-      {preview?.errors.map((e, i) => (
+      {result?.errors.map((e, i) => (
         <Alert key={i} severity="warning">
           {e}
         </Alert>
       ))}
 
-      {preview && preview.maps.length === 0 && !preview.errors.length && (
+      {result && result.maps.length === 0 && !result.errors.length && (
         <Alert severity="warning">No valid maps found in the upload.</Alert>
       )}
 
-      {preview && preview.maps.length > 0 && <PreviewGrid result={preview} />}
+      {result && result.maps.length > 0 && (
+        <PreviewGrid result={result} isAdmin={isAdmin} />
+      )}
     </Stack>
   )
 }
