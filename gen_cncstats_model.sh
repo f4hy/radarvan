@@ -2,7 +2,7 @@
 set -x
 set -e
 
-curl -o cncstats_schema.json http://cncstats.computersrfun.org:8080/swagger/doc.json
+curl -o cncstats_schema.json https://cncstats.computersrfun.org/swagger/doc.json
 
 datamodel-codegen  \
 		--input cncstats_schema.json\

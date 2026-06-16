@@ -48,20 +48,75 @@ import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 const drawerWidth = 190
 
+const ALL_SELECTIONS = [
+  "Matches",
+  "GeneralStats",
+  "PlayerStats",
+  "DebugData",
+  "MapStats",
+  "TeamStats",
+  "Tournaments",
+  "BalanceTeams",
+  "PlayerRating",
+  "PlayerRatingTrend",
+  "Superlatives",
+  "Draft",
+  "MapVoting",
+  "ChooseMap",
+  "MapUpload",
+  "Account",
+] as const
+
+type Selection = (typeof ALL_SELECTIONS)[number]
+
+// Selection <-> URL slug (e.g. "PlayerStats" <-> "player-stats") so each page is
+// linkable/bookmarkable via ?page=.
+function toSlug(s: Selection): string {
+  return s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
+}
+
+const SLUG_TO_SELECTION: Record<string, Selection> = Object.fromEntries(
+  ALL_SELECTIONS.map((s) => [toSlug(s), s]),
+)
+
+function selectionFromUrl(): Selection {
+  const slug = new URLSearchParams(window.location.search).get("page")
+  return (slug ? SLUG_TO_SELECTION[slug] : undefined) ?? "Matches"
+}
+
+function pushPage(s: Selection): void {
+  const params = new URLSearchParams(window.location.search)
+  params.set("page", toSlug(s))
+  window.history.pushState(null, "", `?${params.toString()}`)
+}
+
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const [selection, setSelection] = React.useState<Selection>("Matches")
+  const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
+
+  // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
+  const navigate = React.useCallback((s: Selection) => {
+    setSelection(s)
+    pushPage(s)
+  }, [])
+
+  // Keep in sync with browser back/forward.
+  React.useEffect(() => {
+    const onPop = () => setSelection(selectionFromUrl())
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
+  }, [])
 
   // After returning from Discord without an in-game name yet, drop the user
   // straight onto the Account page to finish the one-time selection.
   const needsSelection = status?.user?.needs_player_selection ?? false
   React.useEffect(() => {
     if (needsSelection) {
-      setSelection("Account")
+      navigate("Account")
     }
-  }, [needsSelection])
+  }, [needsSelection, navigate])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -131,7 +186,7 @@ export default function Menu() {
             icon={item.icon}
             selected={selection === item.value}
             callback={(s) => {
-              setSelection(s)
+              navigate(s)
               setMobileOpen(false)
             }}
           />
@@ -167,7 +222,7 @@ export default function Menu() {
             <Button
               color="inherit"
               startIcon={<AccountCircleIcon />}
-              onClick={() => setSelection("Account")}
+              onClick={() => navigate("Account")}
             >
               {status.user?.player_name ??
                 status.user?.discord_username ??
@@ -239,24 +294,6 @@ export default function Menu() {
     </Box>
   )
 }
-
-type Selection =
-  | "Matches"
-  | "GeneralStats"
-  | "PlayerStats"
-  | "DebugData"
-  | "MapStats"
-  | "TeamStats"
-  | "Tournaments"
-  | "BalanceTeams"
-  | "PlayerRating"
-  | "PlayerRatingTrend"
-  | "Superlatives"
-  | "Draft"
-  | "MapVoting"
-  | "ChooseMap"
-  | "MapUpload"
-  | "Account"
 
 interface MenuItemProps {
   value: Selection

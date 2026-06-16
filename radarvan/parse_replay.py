@@ -18,8 +18,6 @@ from functools import cache
 logger = structlog.get_logger(__name__)
 
 
-# PARSE_URL = "https://cncstats.herokuapp.com/replay"
-# PARSE_URL = "http://cncstats.computersrfun.org:8080/replay"
 PARSE_URL = "https://cncstats.computersrfun.org/replay"
 
 

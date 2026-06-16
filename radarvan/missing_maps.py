@@ -39,7 +39,7 @@ from . import replay_files
 logger = structlog.get_logger(__name__)
 
 
-CNCSTATS_GET_MAP_URL = "http://cncstats.computersrfun.org:8080/get_map"
+CNCSTATS_GET_MAP_URL = "https://cncstats.computersrfun.org/get_map"
 S3_MAPS_PREFIX = f"{replay_files.s3_root}maps/"
 # The mapparse binary lives at the repo root. Override with MAPPARSE_BIN if elsewhere.
 MAPPARSE_BIN = os.environ.get("MAPPARSE_BIN", "./mapparse")
