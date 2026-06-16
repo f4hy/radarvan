@@ -24,10 +24,22 @@ import {
 
 type Phase = "pick" | "ready" | "reveal" | "spin" | "done"
 
-// Reveal cadence (ms) and spin timing — tuned for a slow, dramatic build-up.
-const REVEAL_STEP_MS = 550
-const REVEAL_TO_SPIN_MS = 900
-const SPIN_MIN_LOOPS = 4
+// Animation timing. Both phases are bounded to a fixed total time so they don't
+// balloon when there are lots of maps.
+const REVEAL_TOTAL_MS = 1000 // whole vote/veto reveal, regardless of map count
+const REVEAL_TO_SPIN_MS = 600
+const SPIN_DURATION_MS = 2000 // the spin always lasts this long
+const SPIN_LOOPS = 4 // full passes through the maps before landing
+
+// Easing strength (higher = more pronounced acceleration/deceleration).
+const REVEAL_EASE_POWER = 3 // reveal starts slow, speeds up
+const SPIN_EASE_POWER = 3 // spin starts fast, slows down
+
+// Cumulative reveal progress at item `i` of `count`. Concave so the gaps between
+// items shrink as it goes — the reveal starts slow and speeds up.
+function revealProgress(i: number, count: number): number {
+  return 1 - Math.pow(1 - i / count, REVEAL_EASE_POWER)
+}
 
 function CandidateRow({
   candidate,
@@ -131,10 +143,17 @@ export default function ChooseMap() {
   )
 
   // Progressive reveal of each candidate's votes/vetoes, then hand off to spin.
+  // Total reveal is ~REVEAL_TOTAL_MS regardless of map count, and the gap before
+  // each item shrinks as it goes (starts slow, speeds up toward the end).
   React.useEffect(() => {
     if (phase !== "reveal" || !result) return
-    if (revealCount < result.candidates.length) {
-      const t = setTimeout(() => setRevealCount((n) => n + 1), REVEAL_STEP_MS)
+    const count = result.candidates.length
+    if (revealCount < count) {
+      const gap =
+        REVEAL_TOTAL_MS *
+        (revealProgress(revealCount + 1, count) -
+          revealProgress(revealCount, count))
+      const t = setTimeout(() => setRevealCount((n) => n + 1), gap)
       return () => clearTimeout(t)
     }
     const t = setTimeout(
@@ -144,7 +163,8 @@ export default function ChooseMap() {
     return () => clearTimeout(t)
   }, [phase, revealCount, result, eligible.length])
 
-  // Slot-machine spin that decelerates and lands on the backend's chosen map.
+  // Slot-machine spin: a fixed SPIN_DURATION_MS regardless of map count, eased
+  // out (fast then slow) so it decelerates onto the backend's chosen map.
   React.useEffect(() => {
     if (phase !== "spin" || !result) return
     if (!eligible.length) {
@@ -155,20 +175,23 @@ export default function ChooseMap() {
       0,
       eligible.findIndex((c) => c.map_name === result.chosen_map),
     )
-    const totalSteps = eligible.length * SPIN_MIN_LOOPS + target
-    let step = 0
-    let timer = 0
-    const tick = () => {
-      setSpinIndex(step % eligible.length)
-      if (step >= totalSteps) {
+    // Total index advances; lands on `target` at t=1 (advance % len === target).
+    const totalAdvance = eligible.length * SPIN_LOOPS + target
+    const start = performance.now()
+    let raf = 0
+    const frame = (now: number) => {
+      const t = Math.min(1, (now - start) / SPIN_DURATION_MS)
+      const eased = 1 - Math.pow(1 - t, SPIN_EASE_POWER)
+      const advance = Math.min(totalAdvance, Math.floor(eased * totalAdvance))
+      setSpinIndex(advance % eligible.length)
+      if (t >= 1) {
         setPhase("done")
         return
       }
-      step++
-      timer = window.setTimeout(tick, Math.min(70 + step * 9, 460))
+      raf = requestAnimationFrame(frame)
     }
-    tick()
-    return () => window.clearTimeout(timer)
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
   }, [phase, result, eligible])
 
   const draw = async () => {
