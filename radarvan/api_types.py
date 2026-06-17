@@ -1050,6 +1050,8 @@ class ChooseMapResult(BaseModel):
     player_count: int
     # The backend's authoritative weighted-random pick (None if no eligible map).
     chosen_map: str | None = None
+    # The chosen map's CRC (uppercase hex), if we have it stored; None otherwise.
+    chosen_map_crc: str | None = None
     # Every map with at least one vote or veto, for the reveal animation,
     # ordered by votes desc then name.
     candidates: list[ChooseMapCandidate] = Field(default_factory=list)
@@ -1067,6 +1069,10 @@ class MapUploadItem(BaseModel):
     already_exists: bool = False
     # True once the assets have actually been saved (commit response).
     saved: bool = False
+    # The computed map CRC (uppercase hex), available in preview and commit.
+    crc: str | None = None
+    # True once the map was registered with cncstats (commit only).
+    pushed_to_cncstats: bool = False
 
 
 class MapUploadResponse(BaseModel):
@@ -1075,3 +1081,29 @@ class MapUploadResponse(BaseModel):
     committed: bool
     maps: list[MapUploadItem] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
+
+
+class BackfillMapCrcsResponse(BaseModel):
+    model_config = _SLOTS
+
+    processed: int
+    resolved: int
+    # (map_name, crc) per row touched; crc is None when no match could supply it.
+    results: list[tuple[str, str | None]] = Field(default_factory=list)
+
+
+class PushMapResult(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    crc: str | None = None
+    pushed: bool = False
+    error: str | None = None
+
+
+class PushMapsResponse(BaseModel):
+    model_config = _SLOTS
+
+    requested: int
+    pushed: int
+    results: list[PushMapResult] = Field(default_factory=list)

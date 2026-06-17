@@ -14,6 +14,7 @@ from cachetools import LRUCache, cached
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import map_choice
+from .. import missing_maps
 from ..api_types import (
     ChooseMapRequest,
     ChooseMapResult,
@@ -31,24 +32,13 @@ from ..dependencies import (
     get_user_repo,
     require_current_user,
 )
-from ..replay_files import map_basename
+from ..replay_files import map_basename, map_key
 from ..repositories import MapVoteRepo, UserRepo, VoteLimitExceeded
-from ..repositories.maps import normalize_map_name
 from ..repositories.votes import VETO_LIMIT, VOTE_LIMIT
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api/map_vote", tags=["map_vote"])
-
-
-def _norm(map_name: str) -> str:
-    """Normalize a map name/path to a key that joins match history to MapData.
-
-    Match history stores a map_path (e.g. ``maps/foo/foo.map``); MapData stores
-    a canonical name. Strip the path, the ``.map`` suffix, whitespace, and case.
-    """
-    base = map_basename(map_name).removesuffix(".map")
-    return normalize_map_name(base)
 
 
 _index_lock = threading.Lock()
@@ -76,7 +66,7 @@ def _match_map_index(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
     """
     index: dict[str, _MapAgg] = {}
     for match in sorted_deduped_matches(replay_manager).values():
-        key = _norm(match.map)
+        key = map_key(match.map)
         agg = index.get(key)
         if agg is None:
             agg = _MapAgg(display_name=map_basename(match.map).removesuffix(".map"))
@@ -103,7 +93,7 @@ def _merged_maps(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
     }
     for start_count, names in maps_by_player_count(replay_manager).items():
         for name in names:
-            key = _norm(name)
+            key = map_key(name)
             agg = merged.get(key)
             if agg is None:
                 agg = _MapAgg(display_name=name)
@@ -210,16 +200,23 @@ def set_vote(
 def choose_map(
     player_count: int,
     req: ChooseMapRequest,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
     vote_repo: MapVoteRepo = Depends(get_map_vote_repo),
     user_repo: UserRepo = Depends(get_user_repo),
 ) -> ChooseMapResult:
     """Run the authoritative weighted-random draw for this player count.
 
     Only the votes of the players in ``req.players`` are counted, so the draw
-    reflects who's actually playing. Returns the chosen map plus every
-    voted/vetoed map (with tallies) for the frontend's reveal + spin.
+    reflects who's actually playing. Returns the chosen map (with its CRC, when
+    stored) plus every voted/vetoed map (with tallies) for the reveal + spin.
     """
     # req.players are alias-resolved at validation (PlayerName annotated type).
     user_ids = user_repo.ids_for_player_names(req.players)
     tally = vote_repo.tally(player_count, user_ids)
-    return map_choice.choose_map(player_count, tally)
+    result = map_choice.choose_map(player_count, tally)
+    if result.chosen_map is not None:
+        # Stored CRC if we have it, else derive from a match played on this map.
+        crc = missing_maps.crc_for_map(result.chosen_map, replay_manager)
+        if crc is not None:
+            result = result.model_copy(update={"chosen_map_crc": crc})
+    return result

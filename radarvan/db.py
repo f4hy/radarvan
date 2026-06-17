@@ -401,6 +401,9 @@ class MapData(Base):
 
     map_name: Mapped[str] = mapped_column(String, primary_key=True)
     data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    # Game map CRC as an uppercase hex string (e.g. "5BB89B36"), matching the
+    # replay header MapCRC. Used to register/look the map up on cncstats.
+    crc: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

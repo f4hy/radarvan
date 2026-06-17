@@ -142,12 +142,20 @@ def test_choose_map_resolves_player_aliases(session: Session) -> None:
     vote_repo.set_choice(1, 4, "tournament_desert", "vote")
     user_repo = UserRepo(session, auto_commit=False)
 
+    # The chosen map has no stored geometry/CRC here; stub the CRC lookup.
+    class _NoCrc:
+        def get_map_crc(self, name: str) -> None:
+            return None
+
+    rm = _NoCrc()
+
     # "skp" is an alias of "Skip" (PLAYER_NAME_MAPPING) and must resolve to it.
-    result = choose_map(4, ChooseMapRequest(players=["skp"]), vote_repo, user_repo)
+    result = choose_map(4, ChooseMapRequest(players=["skp"]), rm, vote_repo, user_repo)  # type: ignore[arg-type]
     assert result.chosen_map == "tournament_desert"
+    assert result.chosen_map_crc is None
 
     # An unknown name resolves to itself, matches no account -> no eligible maps.
-    empty = choose_map(4, ChooseMapRequest(players=["nobody"]), vote_repo, user_repo)
+    empty = choose_map(4, ChooseMapRequest(players=["nobody"]), rm, vote_repo, user_repo)  # type: ignore[arg-type]
     assert empty.chosen_map is None
 
 

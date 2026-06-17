@@ -7,26 +7,14 @@ import os
 import sys
 import pathlib
 import json
-import httpx
+from .cncstats_client import cncstats_client
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .cncstats_model.header import Player
 from .db_utils import ReplayManager
 import structlog
 from .game_composition import categorize_game_type, PlayerAdapter
-from functools import cache
 
 logger = structlog.get_logger(__name__)
-
-
-PARSE_URL = "https://cncstats.computersrfun.org/replay"
-
-
-@cache
-def http_client() -> httpx.Client:
-    token = os.environ["CNCSTATS_APIKEY"]
-    headers = {"Authorization": f"Bearer {token}"}
-    logger.info("Building httpx client", token_len=len(token))
-    return httpx.Client(timeout=30, headers=headers)
 
 
 def reassign_1v1_teams(players: list[Player]) -> list[Player]:
@@ -45,7 +33,7 @@ def parse_replay_data(
     data: bytes, replay_manager: ReplayManager, debug: bool = False
 ) -> EnhancedReplayV2:
     logger.info("Calling cncstats to parse replay")
-    response = http_client().post(PARSE_URL, files={"file": data})
+    response = cncstats_client().parse_replay(data)
     if debug:
         print(response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))

@@ -102,12 +102,14 @@ def process(
     items: list[MapUploadItem] = []
     errors: list[str] = []
     parse_ok = missing_maps.mapparse_available()
+    push_ok = missing_maps.cncstats_push_enabled()
     for u in uploads:
         try:
             webp = missing_maps.tga_to_webp(u.tga)
         except Exception as e:
             errors.append(f"{u.base_name}: could not convert image ({e})")
             continue
+        crc = missing_maps.compute_map_crc_hex(u.map_file)
         player_count: int | None = None
         payload = None
         if parse_ok:
@@ -121,15 +123,25 @@ def process(
         already_exists = missing_maps.s3_webp_exists(u.base_name)
         blocked = commit and already_exists and not is_admin
         if blocked:
-            errors.append(
-                f"{u.base_name}: already exists — overwrite requires admin"
-            )
+            errors.append(f"{u.base_name}: already exists — overwrite requires admin")
         saved = False
+        pushed = False
         if commit and not blocked:
             missing_maps.upload_map_assets(u.base_name, u.tga, webp, u.map_file)
             if payload is not None:
-                replay_manager.save_map_data(u.base_name, payload)
+                replay_manager.save_map_data(u.base_name, payload, crc=crc)
             saved = True
+            if push_ok:
+                try:
+                    missing_maps.push_map_to_cncstats(
+                        u.map_file, tga=u.tga, map_name=u.base_name
+                    )
+                    pushed = True
+                except Exception as e:
+                    # Best-effort: the map is saved either way, just not on cncstats.
+                    errors.append(
+                        f"{u.base_name}: saved but cncstats push failed ({e})"
+                    )
         items.append(
             MapUploadItem(
                 base_name=u.base_name,
@@ -138,6 +150,8 @@ def process(
                 player_count=player_count,
                 already_exists=already_exists,
                 saved=saved,
+                crc=crc,
+                pushed_to_cncstats=pushed,
             )
         )
     return items, errors

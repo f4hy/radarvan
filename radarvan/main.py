@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import exception_handling, middleware, parse_replay, replay_files, schedule
+from . import cncstats_client, exception_handling, middleware, replay_files, schedule
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
 from .logging_config import configure_logging
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Setup and shutdown of the webserver."""
     configure_logging(dev=IS_DEV)
     logger.info("hello")
-    parse_replay.http_client()
+    cncstats_client.cncstats_client()
     replay_files.test_connection()
     logger.info("connection tested")
     with db_manager.get_replay_manager() as replay_manager:

@@ -12,6 +12,7 @@ from .parse_replay import parse_replay_data
 from . import utils
 from .log_time import log_time
 from .db_utils import ReplayManager
+from .repositories.maps import normalize_map_name
 import boto3
 from urllib.parse import urlparse
 from botocore.config import Config
@@ -248,3 +249,13 @@ def path_filter(url: str) -> bool:
 
 def map_basename(map_path: str) -> str:
     return map_path.split("/")[-1] if map_path else "Unknown"
+
+
+def map_key(name: str) -> str:
+    """Normalized join key between a Match.map path and a MapData.map_name.
+
+    Match history stores a path (e.g. ``maps/foo/foo.map``); MapData stores a
+    canonical name. Strip the path, the ``.map`` suffix, whitespace, and case so
+    the two line up.
+    """
+    return normalize_map_name(map_basename(name).removesuffix(".map"))

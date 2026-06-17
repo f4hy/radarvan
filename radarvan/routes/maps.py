@@ -20,6 +20,9 @@ from ..api_types import (
     MapsByPlayerCount,
     MapSummaryRequest,
     MissingMapInfo,
+    BackfillMapCrcsResponse,
+    PushMapResult,
+    PushMapsResponse,
 )
 from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
@@ -201,6 +204,53 @@ def fetch_missing_maps(
     return FetchMissingMapsResponse(
         requested=len(missing), fetched=fetched, results=results
     )
+
+
+@router.post("/api/backfill_map_crcs")
+def backfill_map_crcs(
+    max_to_update: int = 50,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> BackfillMapCrcsResponse:
+    """Fill in MapData.crc from a sample match's replay (header mapCrc).
+
+    For each MapData row missing a CRC, finds a match played on that map and
+    reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are
+    touched). Processes up to `max_to_update` rows.
+    """
+    results = missing_maps_module.backfill_map_crcs(replay_manager, limit=max_to_update)
+    resolved = sum(1 for _, crc in results if crc is not None)
+    return BackfillMapCrcsResponse(
+        processed=len(results), resolved=resolved, results=results
+    )
+
+
+@router.post("/api/push_maps_to_cncstats")
+def push_maps_to_cncstats(
+    max_to_update: int = 10,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> PushMapsResponse:
+    """Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.
+
+    Reads each stored map's assets, computes its CRC, POSTs them, and records the
+    CRC on the MapData row. Idempotent (cncstats overwrites identical CRCs).
+    Processes up to `max_to_update` maps. Requires `CNCSTATS_API_KEY`.
+    """
+    if not missing_maps_module.cncstats_push_enabled():
+        raise HTTPException(
+            status_code=503, detail="CNCSTATS_API_KEY is not configured"
+        )
+    names = replay_manager.list_map_names()[:max_to_update]
+    results: list[PushMapResult] = []
+    pushed = 0
+    for name in names:
+        try:
+            crc = missing_maps_module.push_stored_map_to_cncstats(name, replay_manager)
+        except Exception as e:
+            results.append(PushMapResult(map_name=name, error=str(e)))
+            continue
+        pushed += 1
+        results.append(PushMapResult(map_name=name, crc=crc, pushed=True))
+    return PushMapsResponse(requested=len(names), pushed=pushed, results=results)
 
 
 _MAPS_DIR = "dist/maps"
