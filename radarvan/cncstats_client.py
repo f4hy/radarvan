@@ -73,7 +73,10 @@ class CncstatsClient:
         """
         if not self._parse_token:
             raise RuntimeError(f"{PARSE_BEARER_ENV} is not set; cannot parse replays")
-        headers = {"Authorization": f"Bearer {self._parse_token}"}
+        headers = {
+            "Authorization": f"Bearer {self._parse_token}",
+            "Accept-Encoding": "gzip",
+        }
         return self._client.post(
             f"{self._base_url}/replay",
             files={"file": data},
