@@ -1,5 +1,7 @@
 """MapData repository."""
 
+from datetime import UTC, datetime
+
 from sqlalchemy import func, select
 
 from ..api_types import MapDataPayload
@@ -55,6 +57,31 @@ class MapRepo(BaseRepo):
     def list_map_names(self) -> list[str]:
         """Return every stored map_name."""
         return list(self.session.scalars(select(MapData.map_name)).all())
+
+    def unsynced_maps(self, limit: int | None = None) -> list[tuple[str, str | None]]:
+        """(map_name, crc) for maps not yet known to be on cncstats, by name.
+
+        Excludes maps we've already pushed / confirmed present (cncstats_synced_at
+        set), so a push run never re-sends them.
+        """
+        stmt = (
+            select(MapData.map_name, MapData.crc)
+            .where(MapData.cncstats_synced_at.is_(None))
+            .order_by(MapData.map_name)
+        )
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        return [(name, crc) for name, crc in self.session.execute(stmt).all()]
+
+    def record_cncstats_sync(self, map_name: str, crc: str) -> bool:
+        """Mark a map as present on cncstats (and store its CRC). False if no row."""
+        row = self.session.get(MapData, map_name)
+        if row is None:
+            return False
+        row.crc = crc
+        row.cncstats_synced_at = datetime.now(UTC)
+        self._commit_if_auto()
+        return True
 
     def get_map_data(self, map_name: str) -> MapDataPayload | None:
         """Return the map geometry payload (case- and whitespace-insensitive), or None."""

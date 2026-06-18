@@ -1,5 +1,6 @@
 """Map stats, geometry, render, and image endpoints."""
 
+import asyncio
 import os
 import re
 
@@ -224,33 +225,68 @@ def backfill_map_crcs(
     )
 
 
+# Bound the in-flight pushes so we don't open an unbounded number of S3 reads /
+# cncstats connections at once.
+_PUSH_CONCURRENCY = 8
+
+
 @router.post("/api/push_maps_to_cncstats")
-def push_maps_to_cncstats(
+async def push_maps_to_cncstats(
     max_to_update: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PushMapsResponse:
     """Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.
 
-    Reads each stored map's assets, computes its CRC, POSTs them, and records the
-    CRC on the MapData row. Idempotent (cncstats overwrites identical CRCs).
-    Processes up to `max_to_update` maps. Requires `CNCSTATS_API_KEY`.
+    Only considers maps not already marked synced, and checks cncstats /map_exists
+    before pushing — so a map is never sent twice. Pushes run concurrently
+    (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back
+    serially (one DB session). Processes up to `max_to_update` unsynced maps.
+    Requires `CNCSTATS_API_KEY`.
     """
     if not missing_maps_module.cncstats_push_enabled():
         raise HTTPException(
             status_code=503, detail="CNCSTATS_API_KEY is not configured"
         )
-    names = replay_manager.list_map_names()[:max_to_update]
+    pending = replay_manager.unsynced_maps(limit=max_to_update)
+    sem = asyncio.Semaphore(_PUSH_CONCURRENCY)
+
+    async def sync_one(name: str, crc: str | None) -> tuple[str, str | None, bool, str | None]:
+        async with sem:
+            try:
+                resolved, pushed = await missing_maps_module.sync_stored_map_to_cncstats(
+                    name, crc
+                )
+                return name, resolved, pushed, None
+            except Exception as e:
+                return name, None, False, str(e)
+
+    rows = await asyncio.gather(*(sync_one(name, crc) for name, crc in pending))
+
     results: list[PushMapResult] = []
     pushed = 0
-    for name in names:
-        try:
-            crc = missing_maps_module.push_stored_map_to_cncstats(name, replay_manager)
-        except Exception as e:
-            results.append(PushMapResult(map_name=name, error=str(e)))
+    already_present = 0
+    for name, crc, was_pushed, error in rows:
+        if error is not None:
+            results.append(PushMapResult(map_name=name, error=error))
             continue
-        pushed += 1
-        results.append(PushMapResult(map_name=name, crc=crc, pushed=True))
-    return PushMapsResponse(requested=len(names), pushed=pushed, results=results)
+        if crc:
+            # Record CRC + synced mark in one update (single DB session, serialized).
+            replay_manager.record_cncstats_sync(name, crc)
+        if was_pushed:
+            pushed += 1
+        else:
+            already_present += 1
+        results.append(
+            PushMapResult(
+                map_name=name, crc=crc, pushed=was_pushed, already_present=not was_pushed
+            )
+        )
+    return PushMapsResponse(
+        requested=len(pending),
+        pushed=pushed,
+        already_present=already_present,
+        results=results,
+    )
 
 
 _MAPS_DIR = "dist/maps"

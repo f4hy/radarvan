@@ -44,6 +44,7 @@ export interface ChooseMapCandidate {
   vetoes: number
   weight: number
   eligible: boolean
+  recently_played: boolean
 }
 
 export interface ChooseMapResult {

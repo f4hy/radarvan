@@ -7,7 +7,7 @@ session cookie identifies the voter. Reads are open; casting requires login.
 
 import threading
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from cachetools import LRUCache, cached
@@ -104,6 +104,23 @@ def _merged_maps(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
             if start_count > 0:
                 agg.counts.add(start_count)
     return merged
+
+
+# Maps played within this window are penalized in the draw (RECENT_PLAY_PENALTY).
+_RECENT_PLAY_WINDOW = timedelta(hours=24)
+
+
+def _recently_played_maps(replay_manager: ReplayManager) -> set[str]:
+    """Display names of maps last played within the recency window.
+
+    Keyed to match the draw tally (vote map names == the page's display names).
+    """
+    cutoff = datetime.now(UTC) - _RECENT_PLAY_WINDOW
+    return {
+        agg.display_name
+        for agg in _merged_maps(replay_manager).values()
+        if agg.last_played is not None and agg.last_played >= cutoff
+    }
 
 
 def _build_page(
@@ -213,7 +230,8 @@ def choose_map(
     # req.players are alias-resolved at validation (PlayerName annotated type).
     user_ids = user_repo.ids_for_player_names(req.players)
     tally = vote_repo.tally(player_count, user_ids)
-    result = map_choice.choose_map(player_count, tally)
+    recent = _recently_played_maps(replay_manager)
+    result = map_choice.choose_map(player_count, tally, recent_maps=recent)
     if result.chosen_map is not None:
         # Stored CRC if we have it, else derive from a match played on this map.
         crc = missing_maps.crc_for_map(result.chosen_map, replay_manager)

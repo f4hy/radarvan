@@ -55,6 +55,13 @@ class CncstatsClient:
         self._parse_token = parse_token
         self._map_api_key = map_api_key
         self._client = client or httpx.Client(timeout=_MAP_TIMEOUT)
+        # Created lazily on first async use (and bound to that event loop).
+        self._async_client: httpx.AsyncClient | None = None
+
+    def _aclient(self) -> httpx.AsyncClient:
+        if self._async_client is None:
+            self._async_client = httpx.AsyncClient(timeout=_MAP_TIMEOUT)
+        return self._async_client
 
     # --- replay parsing -------------------------------------------------
 
@@ -81,6 +88,17 @@ class CncstatsClient:
         """True if a map-registry API key is configured (``/add_map`` usable)."""
         return bool(self._map_api_key)
 
+    async def map_exists_async(self, crc_decimal: int) -> bool:
+        """GET /map_exists — True if cncstats already stores this map's CRC.
+
+        Plain-text ``"true"``/``"false"``; no auth required.
+        """
+        resp = await self._aclient().get(
+            f"{self._base_url}/map_exists", params={"crc": crc_decimal}
+        )
+        resp.raise_for_status()
+        return resp.text.strip().lower() == "true"
+
     def get_map_zip(self, crc_decimal: int) -> bytes:
         """Download the cncstats map zip for a CRC (decimal). Raises on HTTP error."""
         resp = self._client.get(
@@ -91,15 +109,10 @@ class CncstatsClient:
         resp.raise_for_status()
         return resp.content
 
-    def add_map(
-        self,
-        crc_decimal: int,
-        file_type: str,
-        data: bytes,
-        *,
-        map_name: str | None = None,
-    ) -> None:
-        """POST one map asset to ``/add_map`` (raw octet-stream). Raises on error.
+    def _add_map_headers(
+        self, crc_decimal: int, file_type: str, map_name: str | None
+    ) -> dict[str, str]:
+        """X-Map-* headers for an /add_map call.
 
         ``file_type`` is an X-Map-File value (``map``, ``preview``, ``ini``,
         ``str``, ``solo``, ``assets``, ``readme``). cncstats keys assets by
@@ -115,7 +128,34 @@ class CncstatsClient:
         }
         if map_name:
             headers["X-Map-Name"] = map_name
+        return headers
+
+    def add_map(
+        self,
+        crc_decimal: int,
+        file_type: str,
+        data: bytes,
+        *,
+        map_name: str | None = None,
+    ) -> None:
+        """POST one map asset to ``/add_map`` (raw octet-stream). Raises on error."""
+        headers = self._add_map_headers(crc_decimal, file_type, map_name)
         resp = self._client.post(
+            f"{self._base_url}/add_map", content=data, headers=headers
+        )
+        resp.raise_for_status()
+
+    async def add_map_async(
+        self,
+        crc_decimal: int,
+        file_type: str,
+        data: bytes,
+        *,
+        map_name: str | None = None,
+    ) -> None:
+        """Async variant of `add_map`, for pushing many assets concurrently."""
+        headers = self._add_map_headers(crc_decimal, file_type, map_name)
+        resp = await self._aclient().post(
             f"{self._base_url}/add_map", content=data, headers=headers
         )
         resp.raise_for_status()

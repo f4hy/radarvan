@@ -1038,10 +1038,12 @@ class ChooseMapCandidate(BaseModel):
     map_name: str
     votes: int
     vetoes: int
-    # Selection weight (vote count if eligible, else 0).
+    # Selection weight (net score if eligible, else 0).
     weight: int
-    # In the draw pool: has votes and no vetoes.
+    # In the draw pool: net score (votes - penalties) is positive.
     eligible: bool
+    # Played within the recency window, so docked RECENT_PLAY_PENALTY votes.
+    recently_played: bool = False
 
 
 class ChooseMapResult(BaseModel):
@@ -1097,7 +1099,10 @@ class PushMapResult(BaseModel):
 
     map_name: str
     crc: str | None = None
+    # True if we POSTed it to cncstats this run.
     pushed: bool = False
+    # True if cncstats already had it (/map_exists), so we skipped the push.
+    already_present: bool = False
     error: str | None = None
 
 
@@ -1106,4 +1111,6 @@ class PushMapsResponse(BaseModel):
 
     requested: int
     pushed: int
+    # Maps cncstats already had, so we skipped the push.
+    already_present: int = 0
     results: list[PushMapResult] = Field(default_factory=list)

@@ -86,6 +86,14 @@ function CandidateRow({
       >
         {displayMapName(candidate.map_name)}
       </Typography>
+      {candidate.recently_played && (
+        <Chip
+          size="small"
+          color="warning"
+          variant="outlined"
+          label="played <24h (−8)"
+        />
+      )}
       <Chip
         size="small"
         color="success"

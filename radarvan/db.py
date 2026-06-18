@@ -404,6 +404,11 @@ class MapData(Base):
     # Game map CRC as an uppercase hex string (e.g. "5BB89B36"), matching the
     # replay header MapCRC. Used to register/look the map up on cncstats.
     crc: Mapped[str | None] = mapped_column(String, nullable=True)
+    # When set, cncstats is known to have this map (we pushed it, or /map_exists
+    # confirmed it). Used to skip maps already registered on the next push run.
+    cncstats_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

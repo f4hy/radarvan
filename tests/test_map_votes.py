@@ -129,9 +129,12 @@ def test_choose_map_request_resolves_aliases_at_validation() -> None:
     assert req.players == ["Skip", "WildCard", "Skip"]
 
 
-def test_choose_map_resolves_player_aliases(session: Session) -> None:
+def test_choose_map_resolves_player_aliases(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from radarvan.api_types import ChooseMapRequest
     from radarvan.repositories import UserRepo
+    from radarvan.routes import votes as votes_module
     from radarvan.routes.votes import choose_map
 
     user = session.get(User, 1)
@@ -141,6 +144,9 @@ def test_choose_map_resolves_player_aliases(session: Session) -> None:
     vote_repo = _repo(session)
     vote_repo.set_choice(1, 4, "tournament_desert", "vote")
     user_repo = UserRepo(session, auto_commit=False)
+
+    # Recency needs match history; this test is about alias resolution, so stub it.
+    monkeypatch.setattr(votes_module, "_recently_played_maps", lambda rm: set())
 
     # The chosen map has no stored geometry/CRC here; stub the CRC lookup.
     class _NoCrc:

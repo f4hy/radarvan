@@ -42,3 +42,22 @@ def test_candidates_sorted_by_votes_desc() -> None:
     tally = {"a": (1, 0), "b": (5, 0), "c": (3, 0)}
     result = choose_map(2, tally, rng=random.Random(1))
     assert [c.map_name for c in result.candidates] == ["b", "c", "a"]
+
+
+def test_recently_played_is_docked_eight_votes() -> None:
+    tally = {
+        "fresh": (5, 0),  # net 5 -> eligible, weight 5
+        "stale": (5, 0),  # net 5 - 8 = -3 -> knocked out by recency
+        "popular": (12, 0),  # net 12 - 8 = 4 -> survives despite being recent
+    }
+    result = choose_map(
+        2, tally, recent_maps={"stale", "popular"}, rng=random.Random(1)
+    )
+    by_name = {c.map_name: c for c in result.candidates}
+    assert by_name["fresh"].recently_played is False
+    assert by_name["stale"].recently_played is True
+    assert by_name["stale"].eligible is False  # -8 buried it
+    assert by_name["popular"].recently_played is True
+    assert by_name["popular"].eligible is True
+    assert by_name["popular"].weight == 4  # 12 - 8
+    assert result.chosen_map in {"fresh", "popular"}

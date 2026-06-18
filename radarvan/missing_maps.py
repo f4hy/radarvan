@@ -17,6 +17,7 @@ by the separate `mapparse` binary which is not run from this module.
 from __future__ import annotations
 
 import structlog
+import asyncio
 import os
 import shutil
 import subprocess
@@ -278,24 +279,65 @@ def push_map_to_cncstats(
     return crc_hex
 
 
-def push_stored_map_to_cncstats(
-    base_name: str, replay_manager: ReplayManager | None = None
-) -> str:
-    """Push an S3-hosted map (.map + .tga preview) to cncstats. Returns hex CRC.
+async def _post_map_assets_async(
+    crc_dec: int, map_bytes: bytes, tga: bytes | None, map_name: str | None
+) -> None:
+    """POST the .map (and optional .tga preview) to cncstats concurrently."""
+    client = cncstats_client.cncstats_client()
+    pushes = [
+        client.add_map_async(
+            crc_dec, cncstats_client.ADD_MAP_FILE_MAP, map_bytes, map_name=map_name
+        )
+    ]
+    if tga is not None:
+        pushes.append(
+            client.add_map_async(
+                crc_dec, cncstats_client.ADD_MAP_FILE_PREVIEW, tga, map_name=map_name
+            )
+        )
+    await asyncio.gather(*pushes)
 
-    Reads the stored assets, computes the CRC from the .map, registers both, and
-    (when a replay_manager is given) records the CRC on the MapData row.
+
+async def push_map_to_cncstats_async(
+    map_bytes: bytes, *, tga: bytes | None = None, map_name: str | None = None
+) -> str:
+    """Async `push_map_to_cncstats`; posts the .map and .tga concurrently."""
+    crc_hex = compute_map_crc_hex(map_bytes)
+    await _post_map_assets_async(
+        hex_crc_to_decimal(crc_hex), map_bytes, tga, map_name
+    )
+    return crc_hex
+
+
+async def sync_stored_map_to_cncstats(
+    base_name: str, crc_hint: str | None = None
+) -> tuple[str, bool]:
+    """Ensure cncstats has an S3-hosted map; push it only if missing.
+
+    Returns ``(crc_hex, pushed)`` — ``pushed`` is False when cncstats already had
+    the map (checked via /map_exists). When the CRC is already known and cncstats
+    has it, no S3 read happens at all. Blocking S3 reads run in a worker thread so
+    many maps sync concurrently. Recording the CRC / synced state is the caller's
+    job — the DB session is not safe for concurrent use.
     """
+    client = cncstats_client.cncstats_client()
+    # Fast path: known CRC already on cncstats -> nothing to read or push.
+    if crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hint)):
+        return crc_hint, False
+
     fs = replay_files.get_fs()
-    map_bytes: bytes = fs.read_bytes(s3_uri_for(base_name, "map"))
+    map_uri = s3_uri_for(base_name, "map")
+    map_bytes: bytes = await asyncio.to_thread(fs.read_bytes, map_uri)
+    crc_hex = crc_hint or compute_map_crc_hex(map_bytes)
+    if not crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hex)):
+        return crc_hex, False
+
     tga: bytes | None = None
     tga_uri = s3_uri_for(base_name, "tga")
-    if fs.exists(tga_uri):
-        tga = fs.read_bytes(tga_uri)
-    crc_hex = push_map_to_cncstats(map_bytes, tga=tga, map_name=base_name)
-    if replay_manager is not None:
-        replay_manager.set_map_crc(base_name, crc_hex)
-    return crc_hex
+    if await asyncio.to_thread(fs.exists, tga_uri):
+        tga = await asyncio.to_thread(fs.read_bytes, tga_uri)
+    await _post_map_assets_async(hex_crc_to_decimal(crc_hex), map_bytes, tga, base_name)
+    return crc_hex, True
 
 
 def fetch_map_zip(hex_crc: str) -> bytes:
