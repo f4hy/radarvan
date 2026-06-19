@@ -33,7 +33,7 @@ import {
   Area,
   Line,
 } from "recharts"
-import { HeadToHead, PlayerRatingData, PlayerSkill } from "./api"
+import { HeadToHead, PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
 import { PlayerLabel } from "./PlayerChip"
@@ -393,6 +393,121 @@ function PlayerLeaderboard(props: {
         </TableBody>
       </Table>
     </TableContainer>
+  )
+}
+
+function pct(p: number): string {
+  return `${Math.round(p * 100)}%`
+}
+
+function TeamPlayers(props: { names: string[] }) {
+  return (
+    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+      {props.names.map((n) => (
+        <PlayerLabel key={n} name={n} />
+      ))}
+    </Stack>
+  )
+}
+
+// Top games where the rating model's favored team lost. The "surprise" is the
+// favorite's pre-game win-probability edge over the team that actually won.
+function BiggestUpsets(props: { format: GameFormat }) {
+  const [upsets, setUpsets] = React.useState<RatingUpset[] | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    setUpsets(null)
+    const params = props.format === "All" ? {} : { gameFormat: props.format }
+    Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({ limit: 15, ...params })
+      .then(setUpsets)
+      .catch(showError)
+  }, [props.format, showError])
+
+  if (!upsets) return <Loading />
+  if (upsets.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        No upsets — the favored team won every rated game.
+      </Typography>
+    )
+  }
+
+  return (
+    <>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        Games where the favored team (by pre-game rating) lost, biggest shock
+        first. The chance shown is the model&apos;s pre-game win probability.
+      </Typography>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>#</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Match</TableCell>
+              <TableCell>Favored to win</TableCell>
+              <TableCell align="right">Chance</TableCell>
+              <TableCell>Beaten by</TableCell>
+              <TableCell align="right">Chance</TableCell>
+              <TableCell align="right">
+                <MuiTooltip title="Favorite's win-probability edge over the actual winner">
+                  <span>Upset</span>
+                </MuiTooltip>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {upsets.map((u, i) => (
+              <TableRow key={u.matchId} hover>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  {u.atdate ? formatDate(new Date(u.atdate).getTime()) : "—"}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontFamily: "monospace",
+                    fontSize: "0.8em",
+                    color: "text.secondary",
+                  }}
+                >
+                  {u.matchId}
+                </TableCell>
+                <TableCell>
+                  <TeamPlayers names={u.favoredPlayers} />
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {pct(u.favoredWinProb)}
+                </TableCell>
+                <TableCell>
+                  <TeamPlayers names={u.winnerPlayers} />
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {pct(u.winnerWinProb)}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontVariantNumeric: "tabular-nums",
+                    fontWeight: "bold",
+                    color: "error.main",
+                  }}
+                >
+                  +{pct(u.surprise)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {errorSnackbar}
+    </>
   )
 }
 
@@ -834,6 +949,10 @@ export default function DisplayPlayerRatings() {
       <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />
       <SkillScatterChart data={data} isMobile={isMobile} />
       <GameCountBarChart data={data} isMobile={isMobile} />
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Biggest Upsets
+      </Typography>
+      <BiggestUpsets format={format} />
       <Typography variant="h6" sx={{ mt: 2 }}>
         Head-to-Head
       </Typography>

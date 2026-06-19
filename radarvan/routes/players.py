@@ -24,6 +24,7 @@ from ..api_types import (
     PlayerRatingDailyChange,
     PlayerSkill,
     PlayerStats,
+    RatingUpset,
     ShortPlayerRating,
 )
 from ..cache import competitive_matches, sorted_deduped_matches
@@ -163,6 +164,40 @@ def get_player_ratings(
         player_rating_overtime=over_time,
         player_form=player_form,
     )
+
+
+@router.get("/api/player_ratings/upsets/", dependencies=[Depends(cache_short)])
+def get_rating_upsets(
+    limit: int = Query(
+        20, ge=1, le=200, description="Number of top upsets to return"
+    ),
+    game_format: str | None = Query(
+        None, description="Filter by game format: 2v2, 3v3, 4v4"
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[RatingUpset]:
+    """Biggest upsets: games where the model's favored team lost.
+
+    Sorted by surprise (the favorite's win-probability edge over the actual
+    winner) descending; the top ``limit`` are returned.
+    """
+    games = competitive_matches(replay_manager)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    return [
+        RatingUpset(
+            match_id=u.match_id,
+            atdate=u.at_date,
+            favored_team=u.favored_team,
+            favored_players=u.favored_players,
+            favored_win_prob=u.favored_win_prob,
+            winning_team=u.winning_team,
+            winner_players=u.winner_players,
+            winner_win_prob=u.winner_win_prob,
+            surprise=u.surprise,
+        )
+        for u in ratings_and_counts.upsets[:limit]
+    ]
 
 
 @router.get("/api/player_skills/", dependencies=[Depends(cache_short)])

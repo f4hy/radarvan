@@ -80,7 +80,11 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     filtered = {
         m.id: m
         for m in all_matches.values()
-        if game_composition.competitive_game_filter(comp=m.composition)
+        # Disconnects/desyncs/quit-early/too-short games aren't real competitive
+        # results (a balanced 2v2 that ends in a 3-min disconnect would otherwise
+        # pass the composition filter and pollute stats/ratings/upsets).
+        if not m.incomplete
+        and game_composition.competitive_game_filter(comp=m.composition)
         and player_ids.all_teams_have_group_player(m.players)
     }
     return filtered

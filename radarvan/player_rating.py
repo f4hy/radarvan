@@ -82,6 +82,29 @@ class RatingMatchChange:
 
 
 @dataclass(slots=True)
+class GameUpset:
+    """A game where the team the model favored to win lost.
+
+    Probabilities are the model's pre-game ``predict_win`` for each team, using
+    the (converged) ratings from the final rating pass.
+    """
+
+    match_id: int
+    at_date: date
+    favored_team: int
+    favored_win_prob: float
+    favored_players: list[str]
+    winning_team: int
+    winner_win_prob: float
+    winner_players: list[str]
+
+    @property
+    def surprise(self) -> float:
+        """How lopsided the upset was: favorite's edge over the actual winner."""
+        return self.favored_win_prob - self.winner_win_prob
+
+
+@dataclass(slots=True)
 class RatingsAndCounts:
     ratings: list[NamedRating]
     game_counts: dict[str, int]
@@ -90,6 +113,7 @@ class RatingsAndCounts:
     match_changes: dict[str, list[RatingMatchChange]]
     ordinal_high: dict[str, float]
     ordinal_low: dict[str, float]
+    upsets: list[GameUpset]
 
 
 class TeamBuildResult(NamedTuple):
@@ -100,6 +124,7 @@ class TeamBuildResult(NamedTuple):
 class RatingUpdateResult(NamedTuple):
     updated: dict[str, NamedRating]
     history: dict[str, NamedRating]
+    upset: GameUpset | None
 
 
 class ProcessGamesResult(NamedTuple):
@@ -107,6 +132,7 @@ class ProcessGamesResult(NamedTuple):
     game_counts: dict[str, int]
     rating_over_time: dict[str, list[NamedRating]]
     match_changes: dict[str, list[RatingMatchChange]]
+    upsets: list[GameUpset]
 
 
 def _collect_all_players(games: list[MatchInfo]) -> set[str]:
@@ -149,7 +175,8 @@ def _update_ratings_for_game(
     model: PlackettLuce,
 ) -> RatingUpdateResult:
     """Return (updated_player_ratings, new_history_entries)."""
-    scores = {t: 1.0 if game.winning_team == t else 0 for t in teams.keys()}
+    team_ids = list(teams.keys())
+    scores = {t: 1.0 if game.winning_team == t else 0 for t in team_ids}
     score_values = list(scores.values())
     pteams = [[players[p].to_rating(model) for p in team] for team in teams.values()]
     prediction = model.predict_win(teams=pteams)
@@ -158,6 +185,10 @@ def _update_ratings_for_game(
     new_ratings = model.rate(teams=pteams, scores=score_values)
     known_computers = set(player_ids.CPU_NAME_MAPPING.values())
     has_cpu = any(name in known_computers for team in teams.values() for name in team)
+    # CPU games are noise as "upsets" (the rating model down-weights them); skip them.
+    upset = (
+        None if has_cpu else _detect_upset(game, teams, dict(zip(team_ids, prediction)))
+    )
     scale = CPU_GAME_RATING_SCALE if has_cpu else 1.0
     updated: dict[str, NamedRating] = {}
     history: dict[str, NamedRating] = {}
@@ -175,7 +206,28 @@ def _update_ratings_for_game(
             )
             updated[p.name] = new_rate
             history[p.name] = new_rate
-    return RatingUpdateResult(updated=updated, history=history)
+    return RatingUpdateResult(updated=updated, history=history, upset=upset)
+
+
+def _detect_upset(
+    game: MatchInfo,
+    teams: dict[int, list[str]],
+    win_prob_by_team: dict[int, float],
+) -> GameUpset | None:
+    """Return a GameUpset if the model's favored team lost, else None."""
+    favored_team = max(win_prob_by_team, key=lambda t: win_prob_by_team[t])
+    if favored_team == game.winning_team:
+        return None
+    return GameUpset(
+        match_id=game.id,
+        at_date=game.date,
+        favored_team=favored_team,
+        favored_win_prob=win_prob_by_team[favored_team],
+        favored_players=list(teams[favored_team]),
+        winning_team=game.winning_team,
+        winner_win_prob=win_prob_by_team.get(game.winning_team, 0.0),
+        winner_players=list(teams.get(game.winning_team, [])),
+    )
 
 
 def _process_games(
@@ -187,6 +239,7 @@ def _process_games(
     game_counts = dict.fromkeys(players, 0)
     rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in players}
     match_changes: dict[str, list[RatingMatchChange]] = {name: [] for name in players}
+    upsets: list[GameUpset] = []
     for game in sorted(games, key=lambda x: x.timestamp):
         if not game.composition:
             continue
@@ -203,8 +256,10 @@ def _process_games(
         pre_ordinals = {
             name: players[name].ordinal() for team in teams.values() for name in team
         }
-        updated, history = _update_ratings_for_game(game, teams, players, model)
+        updated, history, upset = _update_ratings_for_game(game, teams, players, model)
         players.update(updated)
+        if upset is not None:
+            upsets.append(upset)
         for name, entry in history.items():
             rating_over_time[name].append(entry)
             match_changes[name].append(
@@ -219,6 +274,7 @@ def _process_games(
         game_counts=game_counts,
         rating_over_time=rating_over_time,
         match_changes=match_changes,
+        upsets=upsets,
     )
 
 
@@ -246,6 +302,9 @@ def include_rating(game_counts: dict[str, int], name: str, min_game_count: int) 
 def filter_for_rating(game: MatchInfo) -> bool:
     if game.winning_team < 1:
         return False
+    # Disconnects/desyncs/quit-early/too-short games aren't real results.
+    if game.incomplete:
+        return False
     for p in game.players:
         resolved = player_ids.resolve_player_name(p.name)
         if resolved in NON_COMPETITIVE:
@@ -265,8 +324,8 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     for i in range(ITERATIONS):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
-        player_ratings, game_counts, rating_over_time, match_changes = _process_games(
-            filtered_games, min_sigmaed, model
+        player_ratings, game_counts, rating_over_time, match_changes, upsets = (
+            _process_games(filtered_games, min_sigmaed, model)
         )
         logger.debug("pass", iteration=i)
         _log_sorted_ratings(
@@ -310,6 +369,8 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
             for d, delta in sorted(by_date.items())
         ]
 
+    sorted_upsets = sorted(upsets, key=lambda u: u.surprise, reverse=True)
+
     return RatingsAndCounts(
         ratings=sorted_ratings,
         game_counts=game_counts,
@@ -318,4 +379,5 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
         match_changes=match_changes,
         ordinal_high=ordinal_high,
         ordinal_low=ordinal_low,
+        upsets=sorted_upsets,
     )

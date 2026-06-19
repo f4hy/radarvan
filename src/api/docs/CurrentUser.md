@@ -11,6 +11,7 @@ Name | Type
 `discordAvatar` | string
 `playerName` | string
 `needsPlayerSelection` | boolean
+`isAdmin` | boolean
 
 ## Example
 
@@ -24,6 +25,7 @@ const example = {
   "discordAvatar": null,
   "playerName": null,
   "needsPlayerSelection": null,
+  "isAdmin": null,
 } satisfies CurrentUser
 
 console.log(example)

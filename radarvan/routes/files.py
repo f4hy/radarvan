@@ -1,9 +1,7 @@
 """Replay file listing, upload, and URL endpoints."""
 
-from collections.abc import Generator
 from datetime import date
 import structlog
-from typing import Any
 
 from pydantic import BaseModel
 
@@ -24,6 +22,7 @@ from ..api_types import (
     MatchInfo,
     ParsedReplayJsonSchema,
     ReplayFileSchema,
+    ReplayWithoutPlayerStats,
 )
 from ..cache import invalidate_match_caches
 from ..db_utils import ReplayManager
@@ -218,14 +217,16 @@ def get_presigned_for_match_id(
 def replays_without_playerstats(
     max_to_return: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> Generator[dict[str, Any]]:  # Generator return type - FastAPI streams this
+) -> list[ReplayWithoutPlayerStats]:
     missing_player_stats = replay_manager.list_jsons_without_player_stats(max_to_return)
-    for row in missing_player_stats:
-        yield {
-            "match_id": row.match_id,
-            "url": row.url,
-            "s3_path": row.s3_path,
-            "version": row.version,
-            "presigned_url": replay_files.presigned_url(row.s3_path),
-            "all_replay_urls": row.all_replay_urls,
-        }
+    return [
+        ReplayWithoutPlayerStats(
+            match_id=row.match_id,
+            url=row.url,
+            s3_path=row.s3_path,
+            version=row.version,
+            presigned_url=replay_files.presigned_url(row.s3_path),
+            all_replay_urls=row.all_replay_urls,
+        )
+        for row in missing_player_stats
+    ]

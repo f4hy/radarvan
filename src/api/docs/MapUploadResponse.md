@@ -1,28 +1,26 @@
 
-# ChooseMapResult
+# MapUploadResponse
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`playerCount` | number
-`chosenMap` | string
-`chosenMapCrc` | string
-`candidates` | [Array&lt;ChooseMapCandidate&gt;](ChooseMapCandidate.md)
+`committed` | boolean
+`maps` | [Array&lt;MapUploadItem&gt;](MapUploadItem.md)
+`errors` | Array&lt;string&gt;
 
 ## Example
 
 ```typescript
-import type { ChooseMapResult } from ''
+import type { MapUploadResponse } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "playerCount": null,
-  "chosenMap": null,
-  "chosenMapCrc": null,
-  "candidates": null,
-} satisfies ChooseMapResult
+  "committed": null,
+  "maps": null,
+  "errors": null,
+} satisfies MapUploadResponse
 
 console.log(example)
 
@@ -31,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as ChooseMapResult
+const exampleParsed = JSON.parse(exampleJSON) as MapUploadResponse
 console.log(exampleParsed)
 ```
 

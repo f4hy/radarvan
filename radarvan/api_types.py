@@ -683,6 +683,19 @@ class ParsedReplayJsonSchema(BaseModel):
     has_enhanced_stats: bool | None = None
 
 
+class ReplayWithoutPlayerStats(BaseModel):
+    """A parsed replay still missing player stats (backfill work item)."""
+
+    model_config = _SLOTS_FA
+
+    match_id: int
+    url: str
+    s3_path: str
+    version: str | None = None
+    presigned_url: str
+    all_replay_urls: list[str]
+
+
 class PlayerGameCount(BaseModel):
     model_config = _SLOTS
 
@@ -740,6 +753,26 @@ class PlayerRatingDailyChange(BaseModel):
 
     name: str
     delta: float
+
+
+class RatingUpset(BaseModel):
+    """A game where the rating model's favored team lost.
+
+    Win probabilities are the model's pre-game prediction for each team using the
+    converged ratings; ``surprise`` is the favorite's edge over the actual winner.
+    """
+
+    model_config = _SLOTS_FA
+
+    match_id: int
+    atdate: date
+    favored_team: int
+    favored_players: list[str]
+    favored_win_prob: float
+    winning_team: int
+    winner_players: list[str]
+    winner_win_prob: float
+    surprise: float
 
 
 class MapExtent(BaseModel):

@@ -1,28 +1,28 @@
 
-# ChooseMapResult
+# PushMapsResponse
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`playerCount` | number
-`chosenMap` | string
-`chosenMapCrc` | string
-`candidates` | [Array&lt;ChooseMapCandidate&gt;](ChooseMapCandidate.md)
+`requested` | number
+`pushed` | number
+`alreadyPresent` | number
+`results` | [Array&lt;PushMapResult&gt;](PushMapResult.md)
 
 ## Example
 
 ```typescript
-import type { ChooseMapResult } from ''
+import type { PushMapsResponse } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "playerCount": null,
-  "chosenMap": null,
-  "chosenMapCrc": null,
-  "candidates": null,
-} satisfies ChooseMapResult
+  "requested": null,
+  "pushed": null,
+  "alreadyPresent": null,
+  "results": null,
+} satisfies PushMapsResponse
 
 console.log(example)
 
@@ -31,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as ChooseMapResult
+const exampleParsed = JSON.parse(exampleJSON) as PushMapsResponse
 console.log(exampleParsed)
 ```
 

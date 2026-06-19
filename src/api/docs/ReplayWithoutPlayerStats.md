@@ -1,28 +1,33 @@
 
-# ChooseMapResult
+# ReplayWithoutPlayerStats
 
+A parsed replay still missing player stats (backfill work item).
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`playerCount` | number
-`chosenMap` | string
-`chosenMapCrc` | string
-`candidates` | [Array&lt;ChooseMapCandidate&gt;](ChooseMapCandidate.md)
+`matchId` | number
+`url` | string
+`s3Path` | string
+`version` | string
+`presignedUrl` | string
+`allReplayUrls` | Array&lt;string&gt;
 
 ## Example
 
 ```typescript
-import type { ChooseMapResult } from ''
+import type { ReplayWithoutPlayerStats } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "playerCount": null,
-  "chosenMap": null,
-  "chosenMapCrc": null,
-  "candidates": null,
-} satisfies ChooseMapResult
+  "matchId": null,
+  "url": null,
+  "s3Path": null,
+  "version": null,
+  "presignedUrl": null,
+  "allReplayUrls": null,
+} satisfies ReplayWithoutPlayerStats
 
 console.log(example)
 
@@ -31,7 +36,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as ChooseMapResult
+const exampleParsed = JSON.parse(exampleJSON) as ReplayWithoutPlayerStats
 console.log(exampleParsed)
 ```
 

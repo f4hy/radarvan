@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  BackfillMapCrcsResponse,
   BuildOrder,
   DraftRequest,
   DraftResult,
@@ -41,7 +42,10 @@ import type {
   PlayerRatingData,
   PlayerSkill,
   PlayerStats,
+  PushMapsResponse,
+  RatingUpset,
   ReplayFileSchema,
+  ReplayWithoutPlayerStats,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
   ResponseReparseBeforeDateApiReparseBeforeDatePostValue,
   ResponseReparseRecentApiReparseRecentPostValue,
@@ -53,6 +57,8 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
+    BackfillMapCrcsResponseFromJSON,
+    BackfillMapCrcsResponseToJSON,
     BuildOrderFromJSON,
     BuildOrderToJSON,
     DraftRequestFromJSON,
@@ -105,8 +111,14 @@ import {
     PlayerSkillToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
+    PushMapsResponseFromJSON,
+    PushMapsResponseToJSON,
+    RatingUpsetFromJSON,
+    RatingUpsetToJSON,
     ReplayFileSchemaFromJSON,
     ReplayFileSchemaToJSON,
+    ReplayWithoutPlayerStatsFromJSON,
+    ReplayWithoutPlayerStatsToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
     ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON,
@@ -126,6 +138,10 @@ import {
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
+
+export interface BackfillMapCrcsApiBackfillMapCrcsPostRequest {
+    maxToUpdate?: number;
+}
 
 export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<string>;
@@ -239,6 +255,11 @@ export interface GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest {
     matchId: number;
 }
 
+export interface GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest {
+    limit?: number;
+    gameFormat?: string | null;
+}
+
 export interface GetReplayByUrlApiReplayGetRequest {
     urlOfReplay: string;
 }
@@ -263,6 +284,10 @@ export interface ListReplaysApiReplaysGetRequest {
 export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     teamSize: number;
     players?: Array<PlayerEnum>;
+}
+
+export interface PushMapsToCncstatsApiPushMapsToCncstatsPostRequest {
+    maxToUpdate?: number;
 }
 
 export interface RandomizeDraftApiDraftRandomizePostRequest {
@@ -331,7 +356,7 @@ export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest 
 }
 
 export interface UploadReplayApiUploadReplayPostRequest {
-    file: Blob;
+    file: string;
     xZuluBuild?: string | null;
     macId?: string | null;
     boardId?: string | null;
@@ -344,6 +369,53 @@ export interface UploadReplayApiUploadReplayPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for backfillMapCrcsApiBackfillMapCrcsPost without sending the request
+     */
+    async backfillMapCrcsApiBackfillMapCrcsPostRequestOpts(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/backfill_map_crcs`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Fill in MapData.crc from a sample match\'s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
+     * Backfill Map Crcs
+     */
+    async backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BackfillMapCrcsResponse>> {
+        const requestOptions = await this.backfillMapCrcsApiBackfillMapCrcsPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BackfillMapCrcsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Fill in MapData.crc from a sample match\'s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
+     * Backfill Map Crcs
+     */
+    async backfillMapCrcsApiBackfillMapCrcsPost(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BackfillMapCrcsResponse> {
+        const response = await this.backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for backfillMatchCompositionApiBackfillCompositionPost without sending the request
@@ -2060,6 +2132,57 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getRatingUpsetsApiPlayerRatingsUpsetsGet without sending the request
+     */
+    async getRatingUpsetsApiPlayerRatingsUpsetsGetRequestOpts(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_ratings/upsets/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Biggest upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending; the top ``limit`` are returned.
+     * Get Rating Upsets
+     */
+    async getRatingUpsetsApiPlayerRatingsUpsetsGetRaw(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<RatingUpset>>> {
+        const requestOptions = await this.getRatingUpsetsApiPlayerRatingsUpsetsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(RatingUpsetFromJSON));
+    }
+
+    /**
+     * Biggest upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending; the top ``limit`` are returned.
+     * Get Rating Upsets
+     */
+    async getRatingUpsetsApiPlayerRatingsUpsetsGet(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<RatingUpset>> {
+        const response = await this.getRatingUpsetsApiPlayerRatingsUpsetsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getReplayByUrlApiReplayGet without sending the request
      */
     async getReplayByUrlApiReplayGetRequestOpts(requestParameters: GetReplayByUrlApiReplayGetRequest): Promise<runtime.RequestOpts> {
@@ -2623,6 +2746,53 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for pushMapsToCncstatsApiPushMapsToCncstatsPost without sending the request
+     */
+    async pushMapsToCncstatsApiPushMapsToCncstatsPostRequestOpts(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/push_maps_to_cncstats`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
+     * Push Maps To Cncstats
+     */
+    async pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PushMapsResponse>> {
+        const requestOptions = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PushMapsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
+     * Push Maps To Cncstats
+     */
+    async pushMapsToCncstatsApiPushMapsToCncstatsPost(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushMapsResponse> {
+        const response = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for randomizeDraftApiDraftRandomizePost without sending the request
      */
     async randomizeDraftApiDraftRandomizePostRequestOpts(requestParameters: RandomizeDraftApiDraftRandomizePostRequest): Promise<runtime.RequestOpts> {
@@ -3154,17 +3324,17 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Replays Without Playerstats
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayWithoutPlayerStats>>> {
         const requestOptions = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReplayWithoutPlayerStatsFromJSON));
     }
 
     /**
      * Replays Without Playerstats
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<{ [key: string]: any; }>> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReplayWithoutPlayerStats>> {
         const response = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -3515,8 +3685,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let formParams: { append(param: string, value: any): any };
         let useForm = false;
-        // use FormData to transmit files using content-type "multipart/form-data"
-        useForm = canConsumeForm;
         if (useForm) {
             formParams = new FormData();
         } else {

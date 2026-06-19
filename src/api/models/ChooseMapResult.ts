@@ -41,6 +41,12 @@ export interface ChooseMapResult {
     chosenMap?: string | null;
     /**
      * 
+     * @type {string}
+     * @memberof ChooseMapResult
+     */
+    chosenMapCrc?: string | null;
+    /**
+     * 
      * @type {Array<ChooseMapCandidate>}
      * @memberof ChooseMapResult
      */
@@ -67,6 +73,7 @@ export function ChooseMapResultFromJSONTyped(json: any, ignoreDiscriminator: boo
         
         'playerCount': json['player_count'],
         'chosenMap': json['chosen_map'] == null ? undefined : json['chosen_map'],
+        'chosenMapCrc': json['chosen_map_crc'] == null ? undefined : json['chosen_map_crc'],
         'candidates': json['candidates'] == null ? undefined : ((json['candidates'] as Array<any>).map(ChooseMapCandidateFromJSON)),
     };
 }
@@ -84,6 +91,7 @@ export function ChooseMapResultToJSONTyped(value?: ChooseMapResult | null, ignor
         
         'player_count': value['playerCount'],
         'chosen_map': value['chosenMap'],
+        'chosen_map_crc': value['chosenMapCrc'],
         'candidates': value['candidates'] == null ? undefined : ((value['candidates'] as Array<any>).map(ChooseMapCandidateToJSON)),
     };
 }

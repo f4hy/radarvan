@@ -49,6 +49,12 @@ export interface ChooseMapCandidate {
      * @memberof ChooseMapCandidate
      */
     eligible: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ChooseMapCandidate
+     */
+    recentlyPlayed?: boolean;
 }
 
 /**
@@ -78,6 +84,7 @@ export function ChooseMapCandidateFromJSONTyped(json: any, ignoreDiscriminator: 
         'vetoes': json['vetoes'],
         'weight': json['weight'],
         'eligible': json['eligible'],
+        'recentlyPlayed': json['recently_played'] == null ? undefined : json['recently_played'],
     };
 }
 
@@ -97,6 +104,7 @@ export function ChooseMapCandidateToJSONTyped(value?: ChooseMapCandidate | null,
         'vetoes': value['vetoes'],
         'weight': value['weight'],
         'eligible': value['eligible'],
+        'recently_played': value['recentlyPlayed'],
     };
 }
 

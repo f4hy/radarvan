@@ -1,11 +1,13 @@
 apis/AuthApi.ts
 apis/DefaultApi.ts
+apis/MapUploadApi.ts
 apis/MapVoteApi.ts
 apis/index.ts
 docs/APM.md
 docs/AcademyStats.md
 docs/AuthApi.md
 docs/AuthStatus.md
+docs/BackfillMapCrcsResponse.md
 docs/BuildOrder.md
 docs/BuildOrderEntry.md
 docs/ChooseMapCandidate.md
@@ -48,6 +50,9 @@ docs/MapRenderRequest.md
 docs/MapStatsResponse.md
 docs/MapSummaryPlayer.md
 docs/MapSummaryRequest.md
+docs/MapUploadApi.md
+docs/MapUploadItem.md
+docs/MapUploadResponse.md
 docs/MapVoteApi.md
 docs/MapVoteOption.md
 docs/MapVotePage.md
@@ -73,7 +78,11 @@ docs/PlayerStat.md
 docs/PlayerStatFactionWL.md
 docs/PlayerStats.md
 docs/PlayerSummary.md
+docs/PushMapResult.md
+docs/PushMapsResponse.md
+docs/RatingUpset.md
 docs/ReplayFileSchema.md
+docs/ReplayWithoutPlayerStats.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
 docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
 docs/ResponseReparseRecentApiReparseRecentPostValue.md
@@ -100,6 +109,7 @@ index.ts
 models/APM.ts
 models/AcademyStats.ts
 models/AuthStatus.ts
+models/BackfillMapCrcsResponse.ts
 models/BuildOrder.ts
 models/BuildOrderEntry.ts
 models/ChooseMapCandidate.ts
@@ -141,6 +151,8 @@ models/MapRenderRequest.ts
 models/MapStatsResponse.ts
 models/MapSummaryPlayer.ts
 models/MapSummaryRequest.ts
+models/MapUploadItem.ts
+models/MapUploadResponse.ts
 models/MapVoteOption.ts
 models/MapVotePage.ts
 models/MapsByPlayerCount.ts
@@ -165,7 +177,11 @@ models/PlayerStat.ts
 models/PlayerStatFactionWL.ts
 models/PlayerStats.ts
 models/PlayerSummary.ts
+models/PushMapResult.ts
+models/PushMapsResponse.ts
+models/RatingUpset.ts
 models/ReplayFileSchema.ts
+models/ReplayWithoutPlayerStats.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
 models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
 models/ResponseReparseRecentApiReparseRecentPostValue.ts

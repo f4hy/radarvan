@@ -18,7 +18,7 @@ All URIs are relative to *http://localhost*
 
 Choose Map
 
-Run the authoritative weighted-random draw for this player count.  Only the votes of the players in &#x60;&#x60;req.players&#x60;&#x60; are counted, so the draw reflects who\&#39;s actually playing. Returns the chosen map plus every voted/vetoed map (with tallies) for the frontend\&#39;s reveal + spin.
+Run the authoritative weighted-random draw for this player count.  Only the votes of the players in &#x60;&#x60;req.players&#x60;&#x60; are counted, so the draw reflects who\&#39;s actually playing. Returns the chosen map (with its CRC, when stored) plus every voted/vetoed map (with tallies) for the reveal + spin.
 
 ### Example
 
@@ -157,7 +157,7 @@ No authorization required
 
 Player Counts
 
-Player counts (map capacities) that have at least one known map.
+Player counts we have maps for (real players seen in games + MapData capacities).
 
 ### Example
 

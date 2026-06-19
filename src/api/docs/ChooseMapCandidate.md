@@ -11,6 +11,7 @@ Name | Type
 `vetoes` | number
 `weight` | number
 `eligible` | boolean
+`recentlyPlayed` | boolean
 
 ## Example
 
@@ -24,6 +25,7 @@ const example = {
   "vetoes": null,
   "weight": null,
   "eligible": null,
+  "recentlyPlayed": null,
 } satisfies ChooseMapCandidate
 
 console.log(example)

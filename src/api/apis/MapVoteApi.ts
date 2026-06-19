@@ -91,7 +91,7 @@ export class MapVoteApi extends runtime.BaseAPI {
     }
 
     /**
-     * Run the authoritative weighted-random draw for this player count.  Only the votes of the players in ``req.players`` are counted, so the draw reflects who\'s actually playing. Returns the chosen map plus every voted/vetoed map (with tallies) for the frontend\'s reveal + spin.
+     * Run the authoritative weighted-random draw for this player count.  Only the votes of the players in ``req.players`` are counted, so the draw reflects who\'s actually playing. Returns the chosen map (with its CRC, when stored) plus every voted/vetoed map (with tallies) for the reveal + spin.
      * Choose Map
      */
     async chooseMapApiMapVotePlayerCountChoosePostRaw(requestParameters: ChooseMapApiMapVotePlayerCountChoosePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChooseMapResult>> {
@@ -102,7 +102,7 @@ export class MapVoteApi extends runtime.BaseAPI {
     }
 
     /**
-     * Run the authoritative weighted-random draw for this player count.  Only the votes of the players in ``req.players`` are counted, so the draw reflects who\'s actually playing. Returns the chosen map plus every voted/vetoed map (with tallies) for the frontend\'s reveal + spin.
+     * Run the authoritative weighted-random draw for this player count.  Only the votes of the players in ``req.players`` are counted, so the draw reflects who\'s actually playing. Returns the chosen map (with its CRC, when stored) plus every voted/vetoed map (with tallies) for the reveal + spin.
      * Choose Map
      */
     async chooseMapApiMapVotePlayerCountChoosePost(requestParameters: ChooseMapApiMapVotePlayerCountChoosePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChooseMapResult> {
@@ -177,7 +177,7 @@ export class MapVoteApi extends runtime.BaseAPI {
     }
 
     /**
-     * Player counts (map capacities) that have at least one known map.
+     * Player counts we have maps for (real players seen in games + MapData capacities).
      * Player Counts
      */
     async playerCountsApiMapVotePlayerCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<number | null>>> {
@@ -188,7 +188,7 @@ export class MapVoteApi extends runtime.BaseAPI {
     }
 
     /**
-     * Player counts (map capacities) that have at least one known map.
+     * Player counts we have maps for (real players seen in games + MapData capacities).
      * Player Counts
      */
     async playerCountsApiMapVotePlayerCountsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<number | null>> {
