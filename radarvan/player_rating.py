@@ -305,6 +305,12 @@ def filter_for_rating(game: MatchInfo) -> bool:
     # Disconnects/desyncs/quit-early/too-short games aren't real results.
     if game.incomplete:
         return False
+    if game.composition.is_comp_stomp:
+        return False
+    if game.composition.is_ffa:
+        return False
+    if not game.composition.is_balanced:
+        return False
     for p in game.players:
         resolved = player_ids.resolve_player_name(p.name)
         if resolved in NON_COMPETITIVE:
