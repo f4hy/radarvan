@@ -2591,11 +2591,11 @@ example().catch(console.error);
 
 ## getRatingUpsetsApiPlayerRatingsUpsetsGet
 
-> Array&lt;RatingUpset&gt; getRatingUpsetsApiPlayerRatingsUpsetsGet(limit, gameFormat)
+> Array&lt;RatingUpset&gt; getRatingUpsetsApiPlayerRatingsUpsetsGet(limit, withinDays, minSurprise, gameFormat)
 
 Get Rating Upsets
 
-Biggest upsets: games where the model\&#39;s favored team lost.  Sorted by surprise (the favorite\&#39;s win-probability edge over the actual winner) descending; the top &#x60;&#x60;limit&#x60;&#x60; are returned.
+Upsets: games where the model\&#39;s favored team lost.  Sorted by surprise (the favorite\&#39;s win-probability edge over the actual winner) descending. Optionally restricted to the last &#x60;&#x60;within_days&#x60;&#x60; days and to a &#x60;&#x60;min_surprise&#x60;&#x60; threshold; the top &#x60;&#x60;limit&#x60;&#x60; are returned.
 
 ### Example
 
@@ -2617,6 +2617,10 @@ async function example() {
   const body = {
     // number | Number of top upsets to return (optional)
     limit: 56,
+    // number | Only include upsets from the last N days (optional)
+    withinDays: 56,
+    // number | Only include upsets with at least this surprise (0-1) (optional)
+    minSurprise: 8.14,
     // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
     gameFormat: gameFormat_example,
   } satisfies GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest;
@@ -2639,6 +2643,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **limit** | `number` | Number of top upsets to return | [Optional] [Defaults to `20`] |
+| **withinDays** | `number` | Only include upsets from the last N days | [Optional] [Defaults to `undefined`] |
+| **minSurprise** | `number` | Only include upsets with at least this surprise (0-1) | [Optional] [Defaults to `0.0`] |
 | **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type

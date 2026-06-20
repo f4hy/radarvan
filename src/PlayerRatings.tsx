@@ -410,6 +410,124 @@ function TeamPlayers(props: { names: string[] }) {
   )
 }
 
+// "Recent upsets" = games in the last RECENT_UPSET_DAYS whose upset magnitude
+// (favorite's win-probability edge over the actual winner) is at least
+// RECENT_UPSET_MIN_PCT percent. Tweak these two constants to retune the section.
+const RECENT_UPSET_DAYS = 120
+const RECENT_UPSET_MIN_PCT = 60
+
+function UpsetsTable(props: { upsets: RatingUpset[] }) {
+  return (
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>#</TableCell>
+            <TableCell>Date</TableCell>
+            <TableCell>Match</TableCell>
+            <TableCell>Favored to win</TableCell>
+            <TableCell align="right">Chance</TableCell>
+            <TableCell>Beaten by</TableCell>
+            <TableCell align="right">Chance</TableCell>
+            <TableCell align="right">
+              <MuiTooltip title="Favorite's win-probability edge over the actual winner">
+                <span>Upset</span>
+              </MuiTooltip>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {props.upsets.map((u, i) => (
+            <TableRow key={u.matchId} hover>
+              <TableCell>{i + 1}</TableCell>
+              <TableCell sx={{ whiteSpace: "nowrap" }}>
+                {u.atdate ? formatDate(new Date(u.atdate).getTime()) : "—"}
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontFamily: "monospace",
+                  fontSize: "0.8em",
+                  color: "text.secondary",
+                }}
+              >
+                {u.matchId}
+              </TableCell>
+              <TableCell>
+                <TeamPlayers names={u.favoredPlayers} />
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {pct(u.favoredWinProb)}
+              </TableCell>
+              <TableCell>
+                <TeamPlayers names={u.winnerPlayers} />
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {pct(u.winnerWinProb)}
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontVariantNumeric: "tabular-nums",
+                  fontWeight: "bold",
+                  color: "error.main",
+                }}
+              >
+                +{pct(u.surprise)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+// Recent big shocks: last RECENT_UPSET_DAYS days, surprise >= RECENT_UPSET_MIN_PCT%.
+function RecentUpsets(props: { format: GameFormat }) {
+  const [upsets, setUpsets] = React.useState<RatingUpset[] | null>(null)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    setUpsets(null)
+    const params = props.format === "All" ? {} : { gameFormat: props.format }
+    Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+      limit: 200,
+      withinDays: RECENT_UPSET_DAYS,
+      minSurprise: RECENT_UPSET_MIN_PCT / 100,
+      ...params,
+    })
+      .then(setUpsets)
+      .catch(showError)
+  }, [props.format, showError])
+
+  if (!upsets) return <Loading />
+  if (upsets.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        No upsets above {RECENT_UPSET_MIN_PCT}% in the last {RECENT_UPSET_DAYS}{" "}
+        days.
+      </Typography>
+    )
+  }
+
+  return (
+    <>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        Games in the last {RECENT_UPSET_DAYS} days where the favored team had at
+        least a {RECENT_UPSET_MIN_PCT}% pre-game edge and still lost.
+      </Typography>
+      <UpsetsTable upsets={upsets} />
+      {errorSnackbar}
+    </>
+  )
+}
+
 // Top games where the rating model's favored team lost. The "surprise" is the
 // favorite's pre-game win-probability edge over the team that actually won.
 function BiggestUpsets(props: { format: GameFormat }) {
@@ -439,73 +557,7 @@ function BiggestUpsets(props: { format: GameFormat }) {
         Games where the favored team (by pre-game rating) lost, biggest shock
         first. The chance shown is the model&apos;s pre-game win probability.
       </Typography>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>#</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Match</TableCell>
-              <TableCell>Favored to win</TableCell>
-              <TableCell align="right">Chance</TableCell>
-              <TableCell>Beaten by</TableCell>
-              <TableCell align="right">Chance</TableCell>
-              <TableCell align="right">
-                <MuiTooltip title="Favorite's win-probability edge over the actual winner">
-                  <span>Upset</span>
-                </MuiTooltip>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {upsets.map((u, i) => (
-              <TableRow key={u.matchId} hover>
-                <TableCell>{i + 1}</TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {u.atdate ? formatDate(new Date(u.atdate).getTime()) : "—"}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    fontFamily: "monospace",
-                    fontSize: "0.8em",
-                    color: "text.secondary",
-                  }}
-                >
-                  {u.matchId}
-                </TableCell>
-                <TableCell>
-                  <TeamPlayers names={u.favoredPlayers} />
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  {pct(u.favoredWinProb)}
-                </TableCell>
-                <TableCell>
-                  <TeamPlayers names={u.winnerPlayers} />
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  {pct(u.winnerWinProb)}
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontVariantNumeric: "tabular-nums",
-                    fontWeight: "bold",
-                    color: "error.main",
-                  }}
-                >
-                  +{pct(u.surprise)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <UpsetsTable upsets={upsets} />
       {errorSnackbar}
     </>
   )
@@ -949,6 +1001,10 @@ export default function DisplayPlayerRatings() {
       <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />
       <SkillScatterChart data={data} isMobile={isMobile} />
       <GameCountBarChart data={data} isMobile={isMobile} />
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Recent Upsets
+      </Typography>
+      <RecentUpsets format={format} />
       <Typography variant="h6" sx={{ mt: 2 }}>
         Biggest Upsets
       </Typography>

@@ -171,19 +171,35 @@ def get_rating_upsets(
     limit: int = Query(
         20, ge=1, le=200, description="Number of top upsets to return"
     ),
+    within_days: int | None = Query(
+        None, ge=1, description="Only include upsets from the last N days"
+    ),
+    min_surprise: float = Query(
+        0.0,
+        ge=0.0,
+        le=1.0,
+        description="Only include upsets with at least this surprise (0-1)",
+    ),
     game_format: str | None = Query(
         None, description="Filter by game format: 2v2, 3v3, 4v4"
     ),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[RatingUpset]:
-    """Biggest upsets: games where the model's favored team lost.
+    """Upsets: games where the model's favored team lost.
 
     Sorted by surprise (the favorite's win-probability edge over the actual
-    winner) descending; the top ``limit`` are returned.
+    winner) descending. Optionally restricted to the last ``within_days`` days
+    and to a ``min_surprise`` threshold; the top ``limit`` are returned.
     """
     games = competitive_matches(replay_manager)
     game_list = matches.filter_by_format(list(games.values()), game_format)
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    upsets = ratings_and_counts.upsets
+    if within_days is not None:
+        cutoff = date.today() - timedelta(days=within_days)
+        upsets = [u for u in upsets if u.at_date >= cutoff]
+    if min_surprise > 0.0:
+        upsets = [u for u in upsets if u.surprise >= min_surprise]
     return [
         RatingUpset(
             match_id=u.match_id,
@@ -196,7 +212,7 @@ def get_rating_upsets(
             winner_win_prob=u.winner_win_prob,
             surprise=u.surprise,
         )
-        for u in ratings_and_counts.upsets[:limit]
+        for u in upsets[:limit]
     ]
 
 

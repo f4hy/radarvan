@@ -257,6 +257,8 @@ export interface GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest {
 
 export interface GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest {
     limit?: number;
+    withinDays?: number | null;
+    minSurprise?: number;
     gameFormat?: string | null;
 }
 
@@ -2141,6 +2143,14 @@ export class DefaultApi extends runtime.BaseAPI {
             queryParameters['limit'] = requestParameters['limit'];
         }
 
+        if (requestParameters['withinDays'] != null) {
+            queryParameters['within_days'] = requestParameters['withinDays'];
+        }
+
+        if (requestParameters['minSurprise'] != null) {
+            queryParameters['min_surprise'] = requestParameters['minSurprise'];
+        }
+
         if (requestParameters['gameFormat'] != null) {
             queryParameters['game_format'] = requestParameters['gameFormat'];
         }
@@ -2163,7 +2173,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Biggest upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending; the top ``limit`` are returned.
+     * Upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending. Optionally restricted to the last ``within_days`` days and to a ``min_surprise`` threshold; the top ``limit`` are returned.
      * Get Rating Upsets
      */
     async getRatingUpsetsApiPlayerRatingsUpsetsGetRaw(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<RatingUpset>>> {
@@ -2174,7 +2184,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Biggest upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending; the top ``limit`` are returned.
+     * Upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending. Optionally restricted to the last ``within_days`` days and to a ``min_surprise`` threshold; the top ``limit`` are returned.
      * Get Rating Upsets
      */
     async getRatingUpsetsApiPlayerRatingsUpsetsGet(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<RatingUpset>> {

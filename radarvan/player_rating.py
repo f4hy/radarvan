@@ -305,6 +305,8 @@ def filter_for_rating(game: MatchInfo) -> bool:
     # Disconnects/desyncs/quit-early/too-short games aren't real results.
     if game.incomplete:
         return False
+    if game.composition is None:
+        return False
     if game.composition.is_comp_stomp:
         return False
     if game.composition.is_ffa:
