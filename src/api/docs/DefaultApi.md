@@ -38,6 +38,7 @@ All URIs are relative to *http://localhost*
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
 | [**getPlayerSkillsApiPlayerSkillsGet**](DefaultApi.md#getplayerskillsapiplayerskillsget) | **GET** /api/player_skills/ | Get Player Skills |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
+| [**getPlayerSynergyApiPlayerRatingsSynergyGet**](DefaultApi.md#getplayersynergyapiplayerratingssynergyget) | **GET** /api/player_ratings/synergy/ | Get Player Synergy |
 | [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
 | [**getPresignedForMatchIdApiPresignedUrlsForMatchGet**](DefaultApi.md#getpresignedformatchidapipresignedurlsformatchget) | **GET** /api/presigned_urls_for_match | Get Presigned For Match Id |
 | [**getRatingUpsetsApiPlayerRatingsUpsetsGet**](DefaultApi.md#getratingupsetsapiplayerratingsupsetsget) | **GET** /api/player_ratings/upsets/ | Get Rating Upsets |
@@ -2434,6 +2435,84 @@ example().catch(console.error);
 ### Return type
 
 [**PlayerStats**](PlayerStats.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPlayerSynergyApiPlayerRatingsSynergyGet
+
+> Array&lt;PlayerSynergy&gt; getPlayerSynergyApiPlayerRatingsSynergyGet(gameFormat, minGamesTogether, regularization)
+
+Get Player Synergy
+
+Pairwise synergy: do two players win more/less as teammates than their ratings predict.  Ridge logistic regression over team games with the rating model\&#39;s log-odds as a fixed offset, player main effects, and pairwise interaction terms. Sorted by synergy descending. See &#x60;&#x60;SYNERGY_METHODOLOGY.md&#x60;&#x60;.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerSynergyApiPlayerRatingsSynergyGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+    // number | Only return pairs that have played at least this many games together (optional)
+    minGamesTogether: 56,
+    // number | L2 shrinkage for pair synergy; higher = more conservative (optional)
+    regularization: 8.14,
+  } satisfies GetPlayerSynergyApiPlayerRatingsSynergyGetRequest;
+
+  try {
+    const data = await api.getPlayerSynergyApiPlayerRatingsSynergyGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+| **minGamesTogether** | `number` | Only return pairs that have played at least this many games together | [Optional] [Defaults to `3`] |
+| **regularization** | `number` | L2 shrinkage for pair synergy; higher &#x3D; more conservative | [Optional] [Defaults to `5.0`] |
+
+### Return type
+
+[**Array&lt;PlayerSynergy&gt;**](PlayerSynergy.md)
 
 ### Authorization
 

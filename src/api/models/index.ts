@@ -71,6 +71,7 @@ export * from './PlayerStat';
 export * from './PlayerStatFactionWL';
 export * from './PlayerStats';
 export * from './PlayerSummary';
+export * from './PlayerSynergy';
 export * from './PushMapResult';
 export * from './PushMapsResponse';
 export * from './RatingUpset';

@@ -36,6 +36,7 @@ import {
 import { HeadToHead, PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import { SimplePlayerSynergy } from "./PlayerSynergy"
 import { PlayerLabel } from "./PlayerChip"
 import { BRAND_COLOR, WIN_COLOR, LOSS_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -958,6 +959,10 @@ export function DisplayPlayerRatingTrend() {
           </TableBody>
         </Table>
       </TableContainer>
+      <Typography variant="h6" sx={{ mt: 3, mb: 0.5 }}>
+        Player Synergy
+      </Typography>
+      <SimplePlayerSynergy />
       {errorSnackbar}
     </Paper>
   )

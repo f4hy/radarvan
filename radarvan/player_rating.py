@@ -143,7 +143,7 @@ def _collect_all_players(games: list[MatchInfo]) -> set[str]:
     }
 
 
-def _build_teams(game: MatchInfo) -> TeamBuildResult | None:
+def build_teams(game: MatchInfo) -> TeamBuildResult | None:
     """Return (teams, counts_increment) or None if game should be skipped."""
     teams: dict[int, list[str]] = defaultdict(list)
     counts: dict[str, int] = defaultdict(int)
@@ -241,13 +241,9 @@ def _process_games(
     match_changes: dict[str, list[RatingMatchChange]] = {name: [] for name in players}
     upsets: list[GameUpset] = []
     for game in sorted(games, key=lambda x: x.timestamp):
-        if not game.composition:
+        if not is_ratable_team_game(game):
             continue
-        if not game_composition.competitive_game_filter(game.composition):
-            continue
-        if game.composition.is_1v1:
-            continue
-        result = _build_teams(game)
+        result = build_teams(game)
         if result is None:
             continue
         teams, counts = result
@@ -320,6 +316,19 @@ def filter_for_rating(game: MatchInfo) -> bool:
         if resolved not in player_ids.PLAYER_NAMES:
             return False
     return True
+
+
+def is_ratable_team_game(game: MatchInfo) -> bool:
+    """True for a competitive, balanced, non-1v1 two-team game eligible for rating.
+
+    Single source of truth for "should this game move ratings / count for synergy",
+    shared by the rating pass and the synergy model.
+    """
+    if not filter_for_rating(game):
+        return False
+    if game.composition is None or game.composition.is_1v1:
+        return False
+    return game_composition.competitive_game_filter(game.composition)
 
 
 @cached(cache={}, key=lambda games: frozenset(g.id for g in games))

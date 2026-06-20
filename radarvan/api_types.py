@@ -741,6 +741,33 @@ class PlayerSkill(BaseModel):
     game_count: int
 
 
+class PlayerSynergy(BaseModel):
+    """Whether a pair of players over- or under-performs their combined ratings.
+
+    ``synergy`` is the extra log-odds the pair's team gets purely because the two
+    are paired, beyond what their individual ratings predict (positive = chemistry,
+    negative = anti-synergy). ``win_prob_delta`` expresses the same effect as a
+    win-probability shift at an even (50/50) matchup. See
+    ``SYNERGY_METHODOLOGY.md``.
+    """
+
+    model_config = _SLOTS_FA
+
+    player_a: str
+    player_b: str
+    synergy: float
+    win_prob_delta: float
+    games_together: int
+    wins_together: int
+    expected_wins: float
+    std_error: float
+    z_score: float
+    games_apart: int
+    main_a: float
+    main_b: float
+    adjusted_expected_wins: float
+
+
 class HeadToHead(BaseModel):
     model_config = _SLOTS_FA
 

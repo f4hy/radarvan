@@ -42,6 +42,7 @@ import type {
   PlayerRatingData,
   PlayerSkill,
   PlayerStats,
+  PlayerSynergy,
   PushMapsResponse,
   RatingUpset,
   ReplayFileSchema,
@@ -111,6 +112,8 @@ import {
     PlayerSkillToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
+    PlayerSynergyFromJSON,
+    PlayerSynergyToJSON,
     PushMapsResponseFromJSON,
     PushMapsResponseToJSON,
     RatingUpsetFromJSON,
@@ -249,6 +252,13 @@ export interface GetPlayerSkillsApiPlayerSkillsGetRequest {
 
 export interface GetPlayerStatsApiPlayerstatsGetRequest {
     gameFormat?: string | null;
+}
+
+export interface GetPlayerSynergyApiPlayerRatingsSynergyGetRequest {
+    gameFormat?: string | null;
+    minGamesTogether?: number;
+    regularization?: number;
+    mainRegularization?: number;
 }
 
 export interface GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest {
@@ -2033,6 +2043,65 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerStatsApiPlayerstatsGet(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
         const response = await this.getPlayerStatsApiPlayerstatsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPlayerSynergyApiPlayerRatingsSynergyGet without sending the request
+     */
+    async getPlayerSynergyApiPlayerRatingsSynergyGetRequestOpts(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        if (requestParameters['minGamesTogether'] != null) {
+            queryParameters['min_games_together'] = requestParameters['minGamesTogether'];
+        }
+
+        if (requestParameters['regularization'] != null) {
+            queryParameters['regularization'] = requestParameters['regularization'];
+        }
+
+        if (requestParameters['mainRegularization'] != null) {
+            queryParameters['main_regularization'] = requestParameters['mainRegularization'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_ratings/synergy/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Pairwise synergy: do two players win more/less as teammates than their ratings predict.  Ridge logistic regression over team games with the rating model\'s log-odds as a fixed offset, player main effects, and pairwise interaction terms. Sorted by synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+     * Get Player Synergy
+     */
+    async getPlayerSynergyApiPlayerRatingsSynergyGetRaw(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerSynergy>>> {
+        const requestOptions = await this.getPlayerSynergyApiPlayerRatingsSynergyGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerSynergyFromJSON));
+    }
+
+    /**
+     * Pairwise synergy: do two players win more/less as teammates than their ratings predict.  Ridge logistic regression over team games with the rating model\'s log-odds as a fixed offset, player main effects, and pairwise interaction terms. Sorted by synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+     * Get Player Synergy
+     */
+    async getPlayerSynergyApiPlayerRatingsSynergyGet(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerSynergy>> {
+        const response = await this.getPlayerSynergyApiPlayerRatingsSynergyGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

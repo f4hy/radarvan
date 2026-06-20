@@ -27,6 +27,7 @@ import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
+import DisplayPlayerSynergy from "./PlayerSynergy"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import GroupsIcon from "@mui/icons-material/Groups"
 import MapIcon from "@mui/icons-material/Map"
@@ -59,6 +60,7 @@ const ALL_SELECTIONS = [
   "BalanceTeams",
   "PlayerRating",
   "PlayerRatingTrend",
+  "PlayerSynergy",
   "Superlatives",
   "Draft",
   "MapVoting",
@@ -155,6 +157,11 @@ export default function Menu() {
               value: "PlayerRating",
               text: "Player Ratings",
               icon: <LeaderboardIcon />,
+            },
+            {
+              value: "PlayerSynergy",
+              text: "Player Synergy",
+              icon: <GroupsIcon />,
             },
             { value: "DebugData", text: "Debug Matchid", icon: <TableView /> },
           ] as const)
@@ -326,6 +333,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayPlayerRatings />
     case "PlayerRatingTrend":
       return <DisplayPlayerRatingTrend />
+    case "PlayerSynergy":
+      return <DisplayPlayerSynergy />
     case "Draft":
       return <DisplayDraft />
     case "MapVoting":
