@@ -30,6 +30,7 @@ from .routes import (
     maps,
     matches,
     players,
+    predict,
     superlatives,
     teams,
     tournaments,
@@ -120,6 +121,7 @@ app.include_router(draft.router, dependencies=PROTECTED)
 app.include_router(superlatives.router, dependencies=PROTECTED)
 app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)
+app.include_router(predict.router, dependencies=PROTECTED)
 
 # Public asset routes — reachable without an API key (browser <img> loads).
 app.include_router(maps.public_router)

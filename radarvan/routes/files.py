@@ -16,7 +16,7 @@ from fastapi import (
     UploadFile,
 )
 
-from .. import matches, replay_files
+from .. import matches, ml_inference, replay_files
 from ..api_types import (
     GameRecord,
     MatchInfo,
@@ -158,6 +158,8 @@ def upload_replay(
     match_info = matches.match_from_replay(result.replay)
     if match_info is None:
         raise HTTPException(status_code=422, detail="Replay is too short or invalid")
+    # Best-effort win prediction for the uploaded match (notifies pred vs actual).
+    ml_inference.predict_and_notify(match_info)
     return match_info
 
 

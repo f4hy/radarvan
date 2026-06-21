@@ -34,6 +34,7 @@ import type {
   MapsByPlayerCount,
   MatchDetails,
   MatchInfo,
+  MatchPrediction,
   Matches,
   MissingMapInfo,
   PlayerEnum,
@@ -43,6 +44,7 @@ import type {
   PlayerSkill,
   PlayerStats,
   PlayerSynergy,
+  PredictRequest,
   PushMapsResponse,
   RatingUpset,
   ReplayFileSchema,
@@ -96,6 +98,8 @@ import {
     MatchDetailsToJSON,
     MatchInfoFromJSON,
     MatchInfoToJSON,
+    MatchPredictionFromJSON,
+    MatchPredictionToJSON,
     MatchesFromJSON,
     MatchesToJSON,
     MissingMapInfoFromJSON,
@@ -114,6 +118,8 @@ import {
     PlayerStatsToJSON,
     PlayerSynergyFromJSON,
     PlayerSynergyToJSON,
+    PredictRequestFromJSON,
+    PredictRequestToJSON,
     PushMapsResponseFromJSON,
     PushMapsResponseToJSON,
     RatingUpsetFromJSON,
@@ -296,6 +302,14 @@ export interface ListReplaysApiReplaysGetRequest {
 export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     teamSize: number;
     players?: Array<PlayerEnum>;
+}
+
+export interface PredictFromFeaturesApiPredictPostRequest {
+    predictRequest: PredictRequest;
+}
+
+export interface PredictMatchApiPredictMatchMatchIdGetRequest {
+    matchId: number;
 }
 
 export interface PushMapsToCncstatsApiPushMapsToCncstatsPostRequest {
@@ -2821,6 +2835,110 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async partitionTeamsApiPartitionTeamsTeamSizeGet(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Array<string | null>>> {
         const response = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictFromFeaturesApiPredictPost without sending the request
+     */
+    async predictFromFeaturesApiPredictPostRequestOpts(requestParameters: PredictFromFeaturesApiPredictPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['predictRequest'] == null) {
+            throw new runtime.RequiredError(
+                'predictRequest',
+                'Required parameter "predictRequest" was null or undefined when calling predictFromFeaturesApiPredictPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PredictRequestToJSON(requestParameters['predictRequest']),
+        };
+    }
+
+    /**
+     * Predict the winner from raw features: map, players, teams, generals.
+     * Predict From Features
+     */
+    async predictFromFeaturesApiPredictPostRaw(requestParameters: PredictFromFeaturesApiPredictPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchPrediction>> {
+        const requestOptions = await this.predictFromFeaturesApiPredictPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchPredictionFromJSON(jsonValue));
+    }
+
+    /**
+     * Predict the winner from raw features: map, players, teams, generals.
+     * Predict From Features
+     */
+    async predictFromFeaturesApiPredictPost(requestParameters: PredictFromFeaturesApiPredictPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchPrediction> {
+        const response = await this.predictFromFeaturesApiPredictPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictMatchApiPredictMatchMatchIdGet without sending the request
+     */
+    async predictMatchApiPredictMatchMatchIdGetRequestOpts(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling predictMatchApiPredictMatchMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict/match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Predict the winner of an existing match by id.
+     * Predict Match
+     */
+    async predictMatchApiPredictMatchMatchIdGetRaw(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchPrediction>> {
+        const requestOptions = await this.predictMatchApiPredictMatchMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchPredictionFromJSON(jsonValue));
+    }
+
+    /**
+     * Predict the winner of an existing match by id.
+     * Predict Match
+     */
+    async predictMatchApiPredictMatchMatchIdGet(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchPrediction> {
+        const response = await this.predictMatchApiPredictMatchMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

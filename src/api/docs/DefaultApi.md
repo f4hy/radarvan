@@ -54,6 +54,8 @@ All URIs are relative to *http://localhost*
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
+| [**predictFromFeaturesApiPredictPost**](DefaultApi.md#predictfromfeaturesapipredictpost) | **POST** /api/predict | Predict From Features |
+| [**predictMatchApiPredictMatchMatchIdGet**](DefaultApi.md#predictmatchapipredictmatchmatchidget) | **GET** /api/predict/match/{match_id} | Predict Match |
 | [**pushMapsToCncstatsApiPushMapsToCncstatsPost**](DefaultApi.md#pushmapstocncstatsapipushmapstocncstatspost) | **POST** /api/push_maps_to_cncstats | Push Maps To Cncstats |
 | [**randomizeDraftApiDraftRandomizePost**](DefaultApi.md#randomizedraftapidraftrandomizepost) | **POST** /api/draft/randomize | Randomize Draft |
 | [**recomputeSuperlativesApiSuperlativesRecomputePost**](DefaultApi.md#recomputesuperlativesapisuperlativesrecomputepost) | **POST** /api/superlatives/recompute | Recompute Superlatives |
@@ -2457,7 +2459,7 @@ example().catch(console.error);
 
 ## getPlayerSynergyApiPlayerRatingsSynergyGet
 
-> Array&lt;PlayerSynergy&gt; getPlayerSynergyApiPlayerRatingsSynergyGet(gameFormat, minGamesTogether, regularization)
+> Array&lt;PlayerSynergy&gt; getPlayerSynergyApiPlayerRatingsSynergyGet(gameFormat, minGamesTogether, regularization, mainRegularization)
 
 Get Player Synergy
 
@@ -2487,6 +2489,8 @@ async function example() {
     minGamesTogether: 56,
     // number | L2 shrinkage for pair synergy; higher = more conservative (optional)
     regularization: 8.14,
+    // number | L2 shrinkage for per-player main effects; raise to stop strong players\' main effects running away and saturating pair synergy (optional)
+    mainRegularization: 8.14,
   } satisfies GetPlayerSynergyApiPlayerRatingsSynergyGetRequest;
 
   try {
@@ -2508,7 +2512,8 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 | **minGamesTogether** | `number` | Only return pairs that have played at least this many games together | [Optional] [Defaults to `3`] |
-| **regularization** | `number` | L2 shrinkage for pair synergy; higher &#x3D; more conservative | [Optional] [Defaults to `5.0`] |
+| **regularization** | `number` | L2 shrinkage for pair synergy; higher &#x3D; more conservative | [Optional] [Defaults to `10.0`] |
+| **mainRegularization** | `number` | L2 shrinkage for per-player main effects; raise to stop strong players\&#39; main effects running away and saturating pair synergy | [Optional] [Defaults to `25.0`] |
 
 ### Return type
 
@@ -3537,6 +3542,150 @@ example().catch(console.error);
 ### Return type
 
 **Array<Array<string | null>>**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictFromFeaturesApiPredictPost
+
+> MatchPrediction predictFromFeaturesApiPredictPost(predictRequest)
+
+Predict From Features
+
+Predict the winner from raw features: map, players, teams, generals.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictFromFeaturesApiPredictPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // PredictRequest
+    predictRequest: ...,
+  } satisfies PredictFromFeaturesApiPredictPostRequest;
+
+  try {
+    const data = await api.predictFromFeaturesApiPredictPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **predictRequest** | [PredictRequest](PredictRequest.md) |  | |
+
+### Return type
+
+[**MatchPrediction**](MatchPrediction.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictMatchApiPredictMatchMatchIdGet
+
+> MatchPrediction predictMatchApiPredictMatchMatchIdGet(matchId)
+
+Predict Match
+
+Predict the winner of an existing match by id.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictMatchApiPredictMatchMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies PredictMatchApiPredictMatchMatchIdGetRequest;
+
+  try {
+    const data = await api.predictMatchApiPredictMatchMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MatchPrediction**](MatchPrediction.md)
 
 ### Authorization
 
