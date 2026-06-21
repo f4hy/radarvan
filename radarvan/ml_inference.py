@@ -150,6 +150,38 @@ def build_match_info(
     )
 
 
+def _notify_prediction(
+    pred: MatchPrediction, actual: str | None, *, expect_actual: bool
+) -> None:
+    """Build and emit the notify() message for a prediction.
+
+    ``expect_actual`` distinguishes a played match (report the actual winner, or
+    "no decisive winner" when missing) from a hypothetical matchup (no actual).
+    """
+    predicted = "A" if pred.favored_team == pred.team_a else "B"
+    team_a = ", ".join(pred.team_a_players)
+    team_b = ", ".join(pred.team_b_players)
+    header = (
+        f"🔮 Prediction for match {pred.match_id}"
+        if pred.match_id is not None
+        else "🔮 Hypothetical matchup prediction"
+    )
+    lines = [
+        f"{header} on {pred.map_name}",
+        f"Team A ({team_a}) vs Team B ({team_b})",
+        f"Predicted: Team {predicted} favored ({pred.favored_win_prob:.0%}; "
+        f"P(A wins)={pred.prob_team_a_wins:.0%})",
+    ]
+    if actual is not None:
+        mark = "✅ correct" if actual == predicted else "❌ upset"
+        lines.append(f"Actual: Team {actual} won — {mark}")
+    elif expect_actual:
+        lines.append("Actual: no decisive winner recorded")
+    if pred.unknown_players:
+        lines.append(f"(unknown to model: {', '.join(pred.unknown_players)})")
+    notify("\n".join(lines))
+
+
 def predict_and_notify(match: MatchInfo) -> None:
     """Best-effort: predict a freshly-registered match and notify pred vs actual.
 
@@ -161,36 +193,36 @@ def predict_and_notify(match: MatchInfo) -> None:
         if not model_available():
             return
         pred = predict_match_info(match)
-
         winner = int(match.winning_team)
         actual = (
             "A" if winner == pred.team_a
             else "B" if winner == pred.team_b
             else None
         )
-        predicted = "A" if pred.favored_team == pred.team_a else "B"
-        team_a = ", ".join(pred.team_a_players)
-        team_b = ", ".join(pred.team_b_players)
-        lines = [
-            f"🔮 Prediction for match {match.id} on {pred.map_name}",
-            f"Team A ({team_a}) vs Team B ({team_b})",
-            f"Predicted: Team {predicted} favored ({pred.favored_win_prob:.0%}; "
-            f"P(A wins)={pred.prob_team_a_wins:.0%})",
-        ]
-        if actual is not None:
-            mark = "✅ correct" if actual == predicted else "❌ upset"
-            lines.append(f"Actual: Team {actual} won — {mark}")
-        else:
-            lines.append("Actual: no decisive winner recorded")
-        if pred.unknown_players:
-            lines.append(f"(unknown to model: {', '.join(pred.unknown_players)})")
-        notify("\n".join(lines))
+        _notify_prediction(pred, actual, expect_actual=True)
     except Exception as e:
         logger.info(
             "prediction notify skipped",
             match_id=getattr(match, "id", None),
             error=repr(e),
         )
+
+
+def predict_and_notify_features(
+    map_name: str, players: list[tuple[str, General, int]]
+) -> None:
+    """Best-effort: predict a hypothetical matchup from features and notify.
+
+    Used by pre-game query endpoints (e.g. map_summary) where there is no actual
+    result. Any failure is swallowed.
+    """
+    try:
+        if not model_available():
+            return
+        pred = predict_features(map_name, players)
+        _notify_prediction(pred, actual=None, expect_actual=False)
+    except Exception as e:
+        logger.info("prediction notify skipped", error=repr(e))
 
 
 def predict_features(
