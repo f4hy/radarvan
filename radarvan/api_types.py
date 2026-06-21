@@ -1174,3 +1174,46 @@ class PushMapsResponse(BaseModel):
     # Maps cncstats already had, so we skipped the push.
     already_present: int = 0
     results: list[PushMapResult] = Field(default_factory=list)
+
+
+# --- ML match-outcome prediction -------------------------------------------
+
+
+class PredictPlayer(BaseModel):
+    model_config = _SLOTS
+
+    # PlayerName auto-resolves aliases (e.g. "skp" -> "Skip") at validation, so
+    # the model sees the same canonical names it was trained on.
+    name: PlayerName
+    general: General
+    team: int  # 1-based team id; players with the same id are on the same team
+
+
+class PredictRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    players: list[PredictPlayer]
+
+
+class MatchPrediction(BaseModel):
+    """Win prediction from the exported ONNX model.
+
+    Teams are labelled A/B by ascending team id (the model's canonical ordering);
+    ``prob_team_a_wins`` is the calibrated probability that team A wins.
+    """
+
+    model_config = _SLOTS
+
+    match_id: int | None = None
+    map_name: str
+    team_a: int
+    team_b: int
+    team_a_players: list[str]
+    team_b_players: list[str]
+    prob_team_a_wins: float
+    favored_team: int
+    favored_win_prob: float
+    # Players not in the model's training vocab — their contribution falls back
+    # to UNK, so the prediction for them is weak. Surfaced so callers can judge.
+    unknown_players: list[str] = Field(default_factory=list)
