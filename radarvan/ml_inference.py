@@ -27,6 +27,7 @@ from ml.features import (
 
 from . import game_composition
 from .api_types import General, MatchInfo, MatchPrediction, Player, Team
+from .notify import notify
 
 logger = structlog.get_logger(__name__)
 
@@ -147,6 +148,49 @@ def build_match_info(
         filename="",
         composition=composition,
     )
+
+
+def predict_and_notify(match: MatchInfo) -> None:
+    """Best-effort: predict a freshly-registered match and notify pred vs actual.
+
+    Called from the match-registration paths. Any failure — model files absent,
+    game not a 2-team game, notify webhook error — is swallowed so registration
+    is never affected.
+    """
+    try:
+        if not model_available():
+            return
+        pred = predict_match_info(match)
+
+        winner = int(match.winning_team)
+        actual = (
+            "A" if winner == pred.team_a
+            else "B" if winner == pred.team_b
+            else None
+        )
+        predicted = "A" if pred.favored_team == pred.team_a else "B"
+        team_a = ", ".join(pred.team_a_players)
+        team_b = ", ".join(pred.team_b_players)
+        lines = [
+            f"🔮 Prediction for match {match.id} on {pred.map_name}",
+            f"Team A ({team_a}) vs Team B ({team_b})",
+            f"Predicted: Team {predicted} favored ({pred.favored_win_prob:.0%}; "
+            f"P(A wins)={pred.prob_team_a_wins:.0%})",
+        ]
+        if actual is not None:
+            mark = "✅ correct" if actual == predicted else "❌ upset"
+            lines.append(f"Actual: Team {actual} won — {mark}")
+        else:
+            lines.append("Actual: no decisive winner recorded")
+        if pred.unknown_players:
+            lines.append(f"(unknown to model: {', '.join(pred.unknown_players)})")
+        notify("\n".join(lines))
+    except Exception as e:
+        logger.info(
+            "prediction notify skipped",
+            match_id=getattr(match, "id", None),
+            error=repr(e),
+        )
 
 
 def predict_features(

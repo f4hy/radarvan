@@ -6,6 +6,7 @@ import os
 from datetime import datetime, UTC
 
 from . import db
+from . import ml_inference
 from . import replay_files
 from . import utils
 from .api_types import MatchInfo, Player, Team
@@ -227,6 +228,14 @@ def register_matches(replay_manager: ReplayManager) -> None:
         except Exception as e:
             logger.warning("can not add match", error=repr(e))
             continue
+        # Best-effort win prediction for the newly registered match (notifies
+        # predicted vs actual). Never lets a prediction error affect ingestion.
+        try:
+            mi = match_from_replay(parsed)
+            if mi is not None:
+                ml_inference.predict_and_notify(mi)
+        except Exception as e:
+            logger.info("post-register prediction skipped", error=repr(e))
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
