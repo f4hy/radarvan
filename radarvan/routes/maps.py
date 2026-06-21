@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from .. import map_render as map_render_module
 from .. import map_stats as map_stats_module
+from .. import ml_inference
 from .. import missing_maps as missing_maps_module
 from .. import replay_files
 from ..api_types import (
@@ -62,6 +63,11 @@ def get_map_summary(
     games = competitive_matches(replay_manager)
     summary = map_stats_module.map_summary(
         list(games.values()), request.map_name.replace(".map", ""), request.players
+    )
+    # Best-effort win prediction for this hypothetical matchup (notifies result).
+    resolved_map = replay_manager.resolve_map_name(request.map_name) or request.map_name
+    ml_inference.predict_and_notify_features(
+        resolved_map, [(p.name, p.general, p.team) for p in request.players]
     )
     return map_stats_module.format_map_summary(summary)
 
