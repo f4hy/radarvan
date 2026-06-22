@@ -24,6 +24,7 @@ export function getColorHex(colorName: string): string {
     silver: "#C0C0C0",
     maroon: "#800000",
     metallicgrey: "#808080",
+    violet: "#7F00FF",
   }
   if (colorName === "-1") return "#000000"
   const mapped = colorMap[colorName.toLowerCase()]

@@ -62,3 +62,4 @@ yarn-error.log*
 /references/
 /auth.md
 /.claude/
+/analysis/
