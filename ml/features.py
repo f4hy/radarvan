@@ -15,11 +15,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from radarvan import player_ids
 from radarvan.api_types import General, MatchInfo, Player
+
+from .map_features import N_MAP_FEATURES, normalize_map_name
 
 UNK = 0
 
@@ -49,10 +51,17 @@ class Vocab:
     """Frozen lookup tables. Built from the *training* split only."""
 
     player: dict[str, int]  # resolved player name -> idx (UNK=0)
-    map: dict[str, int]  # map name -> idx (UNK=0)
+    map: dict[str, int]  # map name -> idx (UNK=0); used only by the embedding path
     fmt: dict[str, int]  # composition category -> idx (UNK=0)
     general: dict[int, int]  # General value -> idx (closed)
     faction: dict[int, int]  # faction value -> idx (closed)
+
+    # Numeric map features (the alternative to the `map` embedding). Raw (log-
+    # scaled, unstandardised) vectors keyed by normalized map name, plus the
+    # train-set standardisation stats. See ml/map_features.py.
+    map_feat_raw: dict[str, list[float]] = field(default_factory=dict)
+    map_feat_mean: list[float] = field(default_factory=lambda: [0.0] * N_MAP_FEATURES)
+    map_feat_std: list[float] = field(default_factory=lambda: [1.0] * N_MAP_FEATURES)
 
     @property
     def n_players(self) -> int:
@@ -80,6 +89,21 @@ class Vocab:
     def map_idx(self, name: str) -> int:
         return self.map.get(name, UNK)
 
+    def map_feature_vector(self, name: str) -> list[float]:
+        """Standardised numeric features for a map name.
+
+        Falls back to the train mean (-> standardised zeros) for any map with no
+        geometry — i.e. "an average map", not a degenerate UNK. Generalises to
+        maps unseen in training as long as they have a MapData row.
+        """
+        raw = self.map_feat_raw.get(normalize_map_name(name))
+        if raw is None:
+            return [0.0] * N_MAP_FEATURES
+        return [
+            (raw[i] - self.map_feat_mean[i]) / (self.map_feat_std[i] or 1.0)
+            for i in range(N_MAP_FEATURES)
+        ]
+
     def fmt_idx(self, name: str | None) -> int:
         return self.fmt.get(name or "", UNK)
 
@@ -97,6 +121,9 @@ class Vocab:
             # general/faction are closed sets; stored for completeness.
             "general": {str(k): v for k, v in self.general.items()},
             "faction": {str(k): v for k, v in self.faction.items()},
+            "map_feat_raw": self.map_feat_raw,
+            "map_feat_mean": self.map_feat_mean,
+            "map_feat_std": self.map_feat_std,
         }
 
     def save(self, path: Path) -> None:
@@ -105,12 +132,19 @@ class Vocab:
     @classmethod
     def load(cls, path: Path) -> Vocab:
         raw = json.loads(path.read_text())
+        n = N_MAP_FEATURES
         return cls(
             player={str(k): int(v) for k, v in raw["player"].items()},
             map={str(k): int(v) for k, v in raw["map"].items()},
             fmt={str(k): int(v) for k, v in raw["fmt"].items()},
             general={int(k): int(v) for k, v in raw["general"].items()},
             faction={int(k): int(v) for k, v in raw["faction"].items()},
+            map_feat_raw={
+                str(k): [float(x) for x in v]
+                for k, v in raw.get("map_feat_raw", {}).items()
+            },
+            map_feat_mean=[float(x) for x in raw.get("map_feat_mean", [0.0] * n)],
+            map_feat_std=[float(x) for x in raw.get("map_feat_std", [1.0] * n)],
         )
 
 
@@ -124,8 +158,17 @@ def resolved_real_players(match: MatchInfo) -> list[tuple[str, Player]]:
     return out
 
 
-def build_vocab(matches: Iterable[MatchInfo]) -> Vocab:
-    """Freeze the vocab from (training) matches. Sorted for determinism."""
+def build_vocab(
+    matches: Iterable[MatchInfo],
+    map_feat_table: dict[str, list[float]] | None = None,
+) -> Vocab:
+    """Freeze the vocab from (training) matches. Sorted for determinism.
+
+    ``map_feat_table`` (normalized-name -> raw features, from MapData over *all*
+    maps) is stored as-is for serving; the standardisation mean/std are computed
+    from only the maps that appear in these (training) matches, so normalisation
+    reflects the training distribution.
+    """
     players: set[str] = set()
     maps: set[str] = set()
     formats: set[str] = set()
@@ -135,13 +178,39 @@ def build_vocab(matches: Iterable[MatchInfo]) -> Vocab:
         maps.add(m.map)
         if m.composition is not None:
             formats.add(m.composition.category)
+
+    table = map_feat_table or {}
+    mean, std = _map_feat_stats(maps, table)
     return Vocab(
         player={name: i + 1 for i, name in enumerate(sorted(players))},
         map={name: i + 1 for i, name in enumerate(sorted(maps))},
         fmt={name: i + 1 for i, name in enumerate(sorted(formats))},
         general=_fixed_index(_GENERALS),
         faction=_fixed_index(_FACTIONS),
+        map_feat_raw=table,
+        map_feat_mean=mean,
+        map_feat_std=std,
     )
+
+
+def _map_feat_stats(
+    train_maps: Iterable[str], table: dict[str, list[float]]
+) -> tuple[list[float], list[float]]:
+    """Per-feature mean/std over the training maps that have geometry."""
+    vecs = [
+        table[key]
+        for key in {normalize_map_name(m) for m in train_maps}
+        if key in table
+    ]
+    if not vecs:
+        return [0.0] * N_MAP_FEATURES, [1.0] * N_MAP_FEATURES
+    n = len(vecs)
+    mean = [sum(v[i] for v in vecs) / n for i in range(N_MAP_FEATURES)]
+    std = [
+        (sum((v[i] - mean[i]) ** 2 for v in vecs) / n) ** 0.5 or 1.0
+        for i in range(N_MAP_FEATURES)
+    ]
+    return mean, std
 
 
 @dataclass(slots=True)
@@ -158,6 +227,7 @@ class EncodedMatch:
 
     match_id: int
     map: int
+    map_feat: list[float]  # standardised numeric map features (map-feature path)
     fmt: int
     team_a: list[EncodedPlayer]
     team_b: list[EncodedPlayer]
@@ -199,6 +269,7 @@ def encode_match(match: MatchInfo, vocab: Vocab) -> EncodedMatch | None:
     return EncodedMatch(
         match_id=match.id,
         map=vocab.map_idx(match.map),
+        map_feat=vocab.map_feature_vector(match.map),
         fmt=vocab.fmt_idx(match.composition.category if match.composition else None),
         team_a=teams[a_id],
         team_b=teams[b_id],

@@ -51,6 +51,11 @@ def _session() -> ort.InferenceSession:
 
 
 @lru_cache(maxsize=1)
+def _input_names() -> frozenset[str]:
+    return frozenset(i.name for i in _session().get_inputs())
+
+
+@lru_cache(maxsize=1)
 def _vocab() -> Vocab:
     if not VOCAB_PATH.exists():
         raise ModelUnavailable(f"model vocab not found at {VOCAB_PATH}")
@@ -79,14 +84,20 @@ def _feed(enc: EncodedMatch) -> dict[str, np.ndarray]:
 
     a = team_arrays(enc.team_a)
     b = team_arrays(enc.team_b)
-    return {
+    feed = {
         "a_player": a["player"], "a_general": a["general"],
         "a_faction": a["faction"], "a_start": a["start"], "a_mask": a["mask"],
         "b_player": b["player"], "b_general": b["general"],
         "b_faction": b["faction"], "b_start": b["start"], "b_mask": b["mask"],
-        "map": np.array([enc.map], dtype=np.int64),
         "fmt": np.array([enc.fmt], dtype=np.int64),
     }
+    # The map input is either a numeric feature vector or a name index, depending
+    # on how the loaded model was trained (see ml/export.py).
+    if "map_feat" in _input_names():
+        feed["map_feat"] = np.array([enc.map_feat], dtype=np.float32)
+    else:
+        feed["map"] = np.array([enc.map], dtype=np.int64)
+    return feed
 
 
 def predict_match_info(match: MatchInfo) -> MatchPrediction:

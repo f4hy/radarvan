@@ -21,6 +21,7 @@ from torchmetrics.classification import BinaryAccuracy, BinaryAUROC
 from .config import Config, ModelConfig
 from .dataset import Batch
 from .features import Vocab
+from .map_features import N_MAP_FEATURES
 
 
 def _build_mlp(
@@ -43,8 +44,16 @@ class OutcomeModel(nn.Module):
         self.player_emb = nn.Embedding(vocab.n_players, cfg.emb_player, padding_idx=0)
         self.general_emb = nn.Embedding(vocab.n_generals, cfg.emb_general, padding_idx=0)
         self.faction_emb = nn.Embedding(vocab.n_factions, cfg.emb_faction, padding_idx=0)
-        self.map_emb = nn.Embedding(vocab.n_maps, cfg.emb_map, padding_idx=0)
         self.fmt_emb = nn.Embedding(vocab.n_formats, cfg.emb_format, padding_idx=0)
+
+        # Map representation -> a cfg.emb_map vector, either projected from numeric
+        # geometry features (generalises across maps) or a per-map-name embedding.
+        if cfg.use_map_features:
+            self.map_proj: nn.Linear | None = nn.Linear(N_MAP_FEATURES, cfg.emb_map)
+            self.map_emb: nn.Embedding | None = None
+        else:
+            self.map_proj = None
+            self.map_emb = nn.Embedding(vocab.n_maps, cfg.emb_map, padding_idx=0)
 
         in_dim = (
             cfg.emb_player + cfg.emb_general + cfg.emb_faction
@@ -86,9 +95,12 @@ class OutcomeModel(nn.Module):
 
         # Global bias: captures the base-rate / team-id asymmetry (team_a is the
         # lower team id, and empirically wins != 50%). This is the one term that
-        # is *not* antisymmetric under team swap — deliberately, because the team
-        # ordering carries a real (host/spawn) signal.
-        self.global_bias = nn.Parameter(torch.zeros(1))
+        # is *not* antisymmetric under team swap. With it off the model is
+        # structurally order-invariant: P(A) + P(B after swap) == 1 exactly.
+        if cfg.use_global_bias:
+            self.global_bias: nn.Parameter | None = nn.Parameter(torch.zeros(1))
+        else:
+            self.global_bias = None
         # Post-hoc temperature (calibration). 1.0 until fit on held-out data;
         # a non-persistent-free buffer so it travels in the state_dict.
         self.register_buffer("temperature", torch.ones(1))
@@ -103,9 +115,10 @@ class OutcomeModel(nn.Module):
         unlearn. Small embeddings + zero score head start calibrated.
         """
         embeds = [
-            self.player_emb, self.general_emb, self.faction_emb,
-            self.map_emb, self.fmt_emb,
+            self.player_emb, self.general_emb, self.faction_emb, self.fmt_emb,
         ]
+        if self.map_emb is not None:
+            embeds.append(self.map_emb)
         if self.synergy_emb is not None:
             embeds.append(self.synergy_emb)
         if self.start_emb is not None:
@@ -196,9 +209,17 @@ class OutcomeModel(nn.Module):
 
     # --- public ------------------------------------------------------------
 
+    def _map_embed(self, batch: Batch) -> torch.Tensor:
+        """[B, emb_map] map representation, from numeric features or name embedding."""
+        if self.map_proj is not None:
+            return self.map_proj(batch.map_feat)
+        if self.map_emb is not None:
+            return self.map_emb(batch.map)
+        raise RuntimeError("no map representation configured")
+
     def _logit_terms(self, batch: Batch) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """Raw logit plus its additive decomposition (each term is [B])."""
-        e_map = self.map_emb(batch.map)
+        e_map = self._map_embed(batch)
         e_fmt = self.fmt_emb(batch.fmt)
         h_a = self._encode_players(
             batch.a_player, batch.a_general, batch.a_faction, batch.a_start, e_map, e_fmt
@@ -213,7 +234,10 @@ class OutcomeModel(nn.Module):
             batch.b_player, batch.b_mask
         )
         matchup = self._matchup(batch)
-        bias = self.global_bias.expand(batch.map.shape[0])
+        if self.global_bias is None:
+            bias = torch.zeros(batch.map.shape[0], device=batch.map.device)
+        else:
+            bias = self.global_bias.expand(batch.map.shape[0])
         raw = strength + synergy + matchup + bias
         return raw, {
             "strength": strength,
@@ -242,7 +266,7 @@ class OutcomeModel(nn.Module):
         }
 
     def predict_duration(self, batch: Batch) -> torch.Tensor:
-        e_map = self.map_emb(batch.map)
+        e_map = self._map_embed(batch)
         e_fmt = self.fmt_emb(batch.fmt)
         h_a = self._encode_players(
             batch.a_player, batch.a_general, batch.a_faction, batch.a_start, e_map, e_fmt
