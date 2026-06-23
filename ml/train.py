@@ -183,6 +183,16 @@ def main() -> None:
     parser.add_argument("--no-mlp", action="store_true")
     parser.add_argument("--no-synergy", action="store_true")
     parser.add_argument("--no-matchup", action="store_true")
+    parser.add_argument(
+        "--global-bias",
+        action="store_true",
+        help="Add a team-id base-rate bias (default off -> order-invariant).",
+    )
+    parser.add_argument(
+        "--map-features",
+        action="store_true",
+        help="Use numeric map geometry features instead of the map-name embedding.",
+    )
     parser.add_argument("--aux-duration-weight", type=float, default=None)
     parser.add_argument(
         "--accelerator",
@@ -200,6 +210,8 @@ def main() -> None:
     cfg.model.use_mlp = not args.no_mlp
     cfg.model.use_synergy = not args.no_synergy
     cfg.model.use_matchup = not args.no_matchup
+    cfg.model.use_global_bias = args.global_bias
+    cfg.model.use_map_features = args.map_features
 
     train(args.split_dir, cfg, accelerator=args.accelerator)
 

@@ -31,7 +31,8 @@ class Batch:
     b_faction: torch.Tensor
     b_start: torch.Tensor
     b_mask: torch.Tensor
-    map: torch.Tensor  # [B]
+    map: torch.Tensor  # [B] (map-name embedding path)
+    map_feat: torch.Tensor  # [B, N_MAP_FEATURES] (numeric map-feature path)
     fmt: torch.Tensor  # [B]
     label: torch.Tensor  # [B] float (1 == team_a won)
     duration: torch.Tensor  # [B] float
@@ -88,6 +89,9 @@ def collate(matches: list[EncodedMatch]) -> Batch:
         a_player=a[0], a_general=a[1], a_faction=a[2], a_start=a[3], a_mask=a[4],
         b_player=b[0], b_general=b[1], b_faction=b[2], b_start=b[3], b_mask=b[4],
         map=torch.tensor([m.map for m in matches], dtype=torch.long),
+        map_feat=torch.tensor(
+            [m.map_feat for m in matches], dtype=torch.float32
+        ),
         fmt=torch.tensor([m.fmt for m in matches], dtype=torch.long),
         label=torch.tensor([float(m.label) for m in matches], dtype=torch.float32),
         duration=torch.tensor(

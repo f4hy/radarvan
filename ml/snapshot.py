@@ -24,6 +24,7 @@ from pathlib import Path
 
 import structlog
 
+from radarvan import db as dbmod
 from radarvan import player_rating
 from radarvan.api_types import MatchInfo
 from radarvan.db_utils import DatabaseManager, ReplayManager
@@ -31,6 +32,7 @@ from radarvan.logging_config import configure_logging
 from radarvan.matches import get_match_infos
 
 from .config import DATA_DIR, SCHEMA_VERSION
+from .map_features import build_table
 
 logger = structlog.get_logger(__name__)
 
@@ -62,11 +64,33 @@ def fetch_competitive_matches() -> list[MatchInfo]:
     return competitive
 
 
-def write_snapshot(matches: list[MatchInfo], out_dir: Path) -> Path:
+def fetch_map_feature_table() -> dict[str, list[float]]:
+    """Numeric geometry features for *every* map with a MapData row.
+
+    Frozen into the snapshot so training is reproducible and serving can score
+    any map that has geometry (not just trained ones). Torch-free.
+    """
+    constring = os.getenv("DATABASE_URL")
+    if constring is None:
+        raise RuntimeError("DATABASE_URL environment variable is not set")
+    db_manager = DatabaseManager(constring)
+    with db_manager.SessionLocal() as session:
+        rows = session.query(dbmod.MapData.map_name, dbmod.MapData.data).all()
+    table = build_table((name, data) for name, data in rows)
+    logger.info("map feature table", n_maps=len(table), n_rows=len(rows))
+    return table
+
+
+def write_snapshot(
+    matches: list[MatchInfo],
+    out_dir: Path,
+    map_feat_table: dict[str, list[float]] | None = None,
+) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%d")
     data_path = out_dir / f"snapshot-{stamp}.jsonl.gz"
     manifest_path = out_dir / f"snapshot-{stamp}.manifest.json"
+    map_feat_path = out_dir / f"map_features-{stamp}.json"
 
     # Sort by timestamp so temporal splitting is trivial downstream.
     ordered = sorted(matches, key=lambda m: m.timestamp)
@@ -74,6 +98,9 @@ def write_snapshot(matches: list[MatchInfo], out_dir: Path) -> Path:
         for m in ordered:
             fh.write(m.model_dump_json())
             fh.write("\n")
+
+    if map_feat_table is not None:
+        map_feat_path.write_text(json.dumps(map_feat_table, indent=2, sort_keys=True))
 
     dates = [m.date for m in ordered]
     manifest = {
@@ -85,6 +112,7 @@ def write_snapshot(matches: list[MatchInfo], out_dir: Path) -> Path:
         "date_max": max(dates).isoformat() if dates else None,
         "filter": "player_rating.is_ratable_team_game",
         "data_file": data_path.name,
+        "map_features_file": map_feat_path.name if map_feat_table is not None else None,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
     logger.info("wrote snapshot", path=str(data_path), n=len(ordered))
@@ -107,7 +135,8 @@ def main() -> None:
     matches = fetch_competitive_matches()
     if not matches:
         raise SystemExit("No competitive matches found — check DATABASE_URL / filters.")
-    write_snapshot(matches, args.out_dir)
+    map_feat_table = fetch_map_feature_table()
+    write_snapshot(matches, args.out_dir, map_feat_table)
 
 
 if __name__ == "__main__":

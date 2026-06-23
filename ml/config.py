@@ -35,6 +35,20 @@ class ModelConfig:
     use_synergy: bool = True
     use_matchup: bool = True
 
+    # Map representation: numeric geometry features (size, money/player,
+    # oils/player) projected to emb_map, vs a per-map-name embedding. Tested as a
+    # fix for map sparsity but it was *worse* on held-out dev — even on unseen
+    # maps — because map geometry enters a head-to-head symmetrically and mostly
+    # cancels in score(A)-score(B). Off by default (embedding wins); opt in with
+    # --map-features to experiment / to power map-feature analysis.
+    use_map_features: bool = False
+
+    # Global (team-id base-rate) bias. The only NON-antisymmetric term: when on,
+    # swapping the two teams does not give complementary probabilities. Off by
+    # default so the model is order-invariant (team ordering is treated as
+    # arbitrary); enable with --global-bias to let it learn a host/spawn base rate.
+    use_global_bias: bool = False
+
     # Optional features (off by default; see model_design.md leakage note).
     use_starting_position: bool = False
     use_openskill_numeric: bool = False

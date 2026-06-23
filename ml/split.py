@@ -79,11 +79,20 @@ def main() -> None:
     else:
         train, dev = random_split(matches, args.dev_frac, args.seed)
 
-    # Vocab is frozen from train only — dev sees UNK for novel players/maps.
-    vocab = build_vocab(train)
+    # Sibling map_features-<stamp>.json holds numeric map geometry (optional;
+    # absent => the map-feature path falls back to mean features for every map).
+    stamp = args.snapshot.name.split(".")[0].replace("snapshot-", "")
+    map_feat_path = args.snapshot.parent / f"map_features-{stamp}.json"
+    map_feat_table = (
+        json.loads(map_feat_path.read_text()) if map_feat_path.exists() else None
+    )
+    if map_feat_table is None:
+        logger.warning("no map_features file found", expected=str(map_feat_path))
 
-    stem = args.snapshot.name.split(".")[0].replace("snapshot-", "")
-    out_dir = args.out_dir or (DATA_DIR / f"split-{stem}-{args.mode}")
+    # Vocab is frozen from train only — dev sees UNK for novel players/maps.
+    vocab = build_vocab(train, map_feat_table)
+
+    out_dir = args.out_dir or (DATA_DIR / f"split-{stamp}-{args.mode}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     _write_jsonl_gz(train, out_dir / "train.jsonl.gz")
