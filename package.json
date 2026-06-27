@@ -2,6 +2,13 @@
   "name": "generals-stats",
   "version": "0.1.0",
   "private": true,
+  "description": "Frontend for Radarvan — a stats tracker for Command & Conquer: Generals Zero Hour.",
+  "author": "Brendan Fahy",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/f4hy/radarvan"
+  },
   "dependencies": {
     "@emotion/react": "^11.8.1",
     "@emotion/styled": "^11.8.1",
