@@ -331,7 +331,6 @@ if __name__ == "__main__":
     constring = os.getenv("DATABASE_URL")
     if constring is None:
         raise RuntimeError("DATABASE_URL environment variable is not set")
-    logger.info("using connection string", constring=constring)
     db_manager = DatabaseManager(constring)
     with db_manager.SessionLocal() as session:
         replay_manager = ReplayManager(
