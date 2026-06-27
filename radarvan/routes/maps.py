@@ -256,12 +256,15 @@ async def push_maps_to_cncstats(
     pending = replay_manager.unsynced_maps(limit=max_to_update)
     sem = asyncio.Semaphore(_PUSH_CONCURRENCY)
 
-    async def sync_one(name: str, crc: str | None) -> tuple[str, str | None, bool, str | None]:
+    async def sync_one(
+        name: str, crc: str | None
+    ) -> tuple[str, str | None, bool, str | None]:
         async with sem:
             try:
-                resolved, pushed = await missing_maps_module.sync_stored_map_to_cncstats(
-                    name, crc
-                )
+                (
+                    resolved,
+                    pushed,
+                ) = await missing_maps_module.sync_stored_map_to_cncstats(name, crc)
                 return name, resolved, pushed, None
             except Exception as e:
                 return name, None, False, str(e)
@@ -284,7 +287,10 @@ async def push_maps_to_cncstats(
             already_present += 1
         results.append(
             PushMapResult(
-                map_name=name, crc=crc, pushed=was_pushed, already_present=not was_pushed
+                map_name=name,
+                crc=crc,
+                pushed=was_pushed,
+                already_present=not was_pushed,
             )
         )
     return PushMapsResponse(

@@ -1,3 +1,6 @@
+"""Player identity helpers — the known-player ID/alias tables, ``resolve_player_name``
+for canonicalizing in-game aliases, and ``is_admin`` admin checks."""
+
 from collections.abc import Iterable
 from typing import Protocol
 

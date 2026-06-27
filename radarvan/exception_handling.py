@@ -1,3 +1,6 @@
+"""Global FastAPI exception handler — notifies on unhandled exceptions and returns a
+generic 500 JSON response (``setup_error_handling``)."""
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from . import notify

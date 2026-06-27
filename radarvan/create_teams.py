@@ -1,3 +1,6 @@
+"""Balanced team construction — enumerates team splits and uses player ratings (with
+hand-tuned synergy adjustments for certain pairings) to pick the most even matchup."""
+
 from collections.abc import Iterable, Iterator, Mapping
 from itertools import combinations
 from . import player_ids
