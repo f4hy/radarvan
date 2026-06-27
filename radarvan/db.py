@@ -1,3 +1,7 @@
+"""SQLAlchemy ORM models — the database schema (``Match``, ``MatchPlayer``,
+``ReplayFile``, ``ParsedReplayJson``, ``MatchDetailsCache``, ``User``, ``MapData``, …)
+and the ``Base`` declarative class shared across the backend."""
+
 from datetime import UTC, datetime, date
 import enum
 from enum import IntEnum

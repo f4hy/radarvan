@@ -1,3 +1,6 @@
+"""Draft randomization — spatial clustering that assigns players to map starting
+positions and randomizes generals; backs ``POST /api/draft/randomize``."""
+
 import random
 from datetime import UTC, datetime
 from typing import NamedTuple

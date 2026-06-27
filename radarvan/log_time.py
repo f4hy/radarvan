@@ -1,3 +1,5 @@
+"""``log_time`` context manager that logs an event and its elapsed wall-clock time."""
+
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
