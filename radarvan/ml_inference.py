@@ -221,19 +221,22 @@ def predict_and_notify(match: MatchInfo) -> None:
 
 def predict_and_notify_features(
     map_name: str, players: list[tuple[str, General, int]]
-) -> None:
+) -> MatchPrediction | None:
     """Best-effort: predict a hypothetical matchup from features and notify.
 
     Used by pre-game query endpoints (e.g. map_summary) where there is no actual
-    result. Any failure is swallowed.
+    result. Returns the prediction (so callers can surface it) or None on any
+    failure, which is swallowed.
     """
     try:
         if not model_available():
-            return
+            return None
         pred = predict_features(map_name, players)
         _notify_prediction(pred, actual=None, expect_actual=False)
+        return pred
     except Exception as e:
         logger.info("prediction notify skipped", error=repr(e))
+        return None
 
 
 def predict_features(

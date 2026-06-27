@@ -66,10 +66,10 @@ def get_map_summary(
     )
     # Best-effort win prediction for this hypothetical matchup (notifies result).
     resolved_map = replay_manager.resolve_map_name(request.map_name) or request.map_name
-    ml_inference.predict_and_notify_features(
+    prediction = ml_inference.predict_and_notify_features(
         resolved_map, [(p.name, p.general, p.team) for p in request.players]
     )
-    return map_stats_module.format_map_summary(summary)
+    return map_stats_module.format_map_summary(summary, prediction)
 
 
 @router.get("/api/map_match_counts", dependencies=[Depends(cache_short)])
