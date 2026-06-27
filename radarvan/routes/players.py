@@ -170,9 +170,7 @@ def get_player_ratings(
 
 @router.get("/api/player_ratings/upsets/", dependencies=[Depends(cache_short)])
 def get_rating_upsets(
-    limit: int = Query(
-        20, ge=1, le=200, description="Number of top upsets to return"
-    ),
+    limit: int = Query(20, ge=1, le=200, description="Number of top upsets to return"),
     within_days: int | None = Query(
         None, ge=1, description="Only include upsets from the last N days"
     ),

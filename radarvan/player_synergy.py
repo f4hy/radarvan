@@ -70,7 +70,9 @@ class PairSynergy:
     games_apart: int  # ratable games where the two were on opposing teams
     main_a: float  # player_a's fitted individual main effect (log-odds)
     main_b: float  # player_b's fitted individual main effect (log-odds)
-    adjusted_expected_wins: float  # expected wins from offset + main effects (no pair term)
+    adjusted_expected_wins: (
+        float  # expected wins from offset + main effects (no pair term)
+    )
 
 
 @dataclass(slots=True)
