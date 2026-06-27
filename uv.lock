@@ -2470,7 +2470,7 @@ dev = [
     { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.42.0" },
     { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.42.59" },
     { name = "click", specifier = ">=8.3.0" },
-    { name = "datamodel-code-generator", specifier = ">=0.55.0" },
+    { name = "datamodel-code-generator", specifier = ">=0.66.0" },
     { name = "mypy", specifier = ">=1.18.2" },
     { name = "pg-activity", specifier = ">=3.6.2" },
     { name = "pylsp-mypy", specifier = ">=0.7.0" },

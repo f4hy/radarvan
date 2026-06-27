@@ -42,7 +42,7 @@ dev = [
   "boto3-stubs[s3]>=1.42.0",
   "types-cachetools>=6.2.0.20250827",
   "types-tqdm>=4.67.0.20250809",
-  "datamodel-code-generator>=0.55.0",
+  "datamodel-code-generator>=0.66.0",
   "pg-activity>=3.6.2",
 ]
 
