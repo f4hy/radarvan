@@ -35,7 +35,7 @@ def parse_replay_data(
     logger.info("Calling cncstats to parse replay")
     response = cncstats_client().parse_replay(data)
     if debug:
-        print(response.json())
+        logger.debug("cncstats raw response", response=response.json())
         pathlib.Path("./test.json").write_text(json.dumps(response.json()))
     logger.info(
         "cncstats responded",
