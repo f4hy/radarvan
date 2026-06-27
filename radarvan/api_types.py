@@ -1,14 +1,27 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import AfterValidator, BaseModel, Field, ConfigDict, computed_field
 from datetime import datetime, date
 from enum import IntEnum
-from typing import Literal
+from typing import Annotated, Literal
 from .game_composition import GameComposition
+from .player_ids import is_admin as _is_admin_player, resolve_player_name
 
 _SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 _SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
 # Classes with field aliases must use an inline ConfigDict so the pydantic mypy plugin
 # can statically resolve populate_by_name=True. _SLOTS and _SLOTS_FA are safe to share
 # because none of those classes have aliases.
+
+
+def _resolve_player_name(name: str) -> str:
+    # Single-arg wrapper so pydantic's AfterValidator doesn't try to pass its
+    # second positional (ValidationInfo) as resolve_player_name's `color`.
+    return resolve_player_name(name)
+
+
+# Type for any request field carrying a player name: alias→canonical resolution
+# happens automatically at request validation, so endpoints can't forget it.
+# Wire/OpenAPI type stays a plain string. See CLAUDE.md (player name resolution).
+PlayerName = Annotated[str, AfterValidator(_resolve_player_name)]
 
 
 class General(IntEnum):
@@ -670,6 +683,19 @@ class ParsedReplayJsonSchema(BaseModel):
     has_enhanced_stats: bool | None = None
 
 
+class ReplayWithoutPlayerStats(BaseModel):
+    """A parsed replay still missing player stats (backfill work item)."""
+
+    model_config = _SLOTS_FA
+
+    match_id: int
+    url: str
+    s3_path: str
+    version: str | None = None
+    presigned_url: str
+    all_replay_urls: list[str]
+
+
 class PlayerGameCount(BaseModel):
     model_config = _SLOTS
 
@@ -715,6 +741,33 @@ class PlayerSkill(BaseModel):
     game_count: int
 
 
+class PlayerSynergy(BaseModel):
+    """Whether a pair of players over- or under-performs their combined ratings.
+
+    ``synergy`` is the extra log-odds the pair's team gets purely because the two
+    are paired, beyond what their individual ratings predict (positive = chemistry,
+    negative = anti-synergy). ``win_prob_delta`` expresses the same effect as a
+    win-probability shift at an even (50/50) matchup. See
+    ``SYNERGY_METHODOLOGY.md``.
+    """
+
+    model_config = _SLOTS_FA
+
+    player_a: str
+    player_b: str
+    synergy: float
+    win_prob_delta: float
+    games_together: int
+    wins_together: int
+    expected_wins: float
+    std_error: float
+    z_score: float
+    games_apart: int
+    main_a: float
+    main_b: float
+    adjusted_expected_wins: float
+
+
 class HeadToHead(BaseModel):
     model_config = _SLOTS_FA
 
@@ -727,6 +780,26 @@ class PlayerRatingDailyChange(BaseModel):
 
     name: str
     delta: float
+
+
+class RatingUpset(BaseModel):
+    """A game where the rating model's favored team lost.
+
+    Win probabilities are the model's pre-game prediction for each team using the
+    converged ratings; ``surprise`` is the favorite's edge over the actual winner.
+    """
+
+    model_config = _SLOTS_FA
+
+    match_id: int
+    atdate: date
+    favored_team: int
+    favored_players: list[str]
+    favored_win_prob: float
+    winning_team: int
+    winner_players: list[str]
+    winner_win_prob: float
+    surprise: float
 
 
 class MapExtent(BaseModel):
@@ -840,7 +913,7 @@ class MapRenderRequest(BaseModel):
 class MapSummaryPlayer(BaseModel):
     model_config = _SLOTS
 
-    name: str
+    name: PlayerName
     general: General
     team: int = 0
 
@@ -938,3 +1011,209 @@ class DraftResult(BaseModel):
 
     assignments: list[DraftAssignment]
     randomized_at: datetime = Field(alias="randomizedAt")
+
+
+class CurrentUser(BaseModel):
+    model_config = _SLOTS_FA
+
+    discord_id: str
+    discord_username: str
+    discord_avatar: str | None = None
+    player_name: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def needs_player_selection(self) -> bool:
+        """True until the user has claimed an in-game name from PLAYER_NAMES."""
+        return self.player_name is None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def is_admin(self) -> bool:
+        """True if the claimed in-game name is in player_ids.ADMIN_PLAYERS."""
+        return _is_admin_player(self.player_name)
+
+
+class AuthStatus(BaseModel):
+    model_config = _SLOTS
+
+    logged_in: bool
+    user: CurrentUser | None = None
+    # The in-game names a logged-in user may claim (sorted PLAYER_NAMES).
+    available_players: list[str] = Field(default_factory=list)
+
+
+class SelectPlayerRequest(BaseModel):
+    model_config = _SLOTS
+
+    player_name: str
+
+
+MapVoteChoice = Literal["vote", "veto"]
+
+
+class MapVoteOption(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    game_count: int
+    last_played: datetime | None = None
+    days_since_last_played: int | None = None
+    # The logged-in viewer's pick for this map (None if unset or logged out).
+    my_choice: MapVoteChoice | None = None
+
+
+class MapVotePage(BaseModel):
+    model_config = _SLOTS
+
+    player_count: int
+    logged_in: bool
+    vote_limit: int
+    veto_limit: int
+    votes_used: int
+    vetoes_used: int
+    # Maps for this player count, ordered by total games played (desc).
+    maps: list[MapVoteOption] = Field(default_factory=list)
+
+
+class SetMapVoteRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    # None clears the viewer's pick for this map.
+    choice: MapVoteChoice | None = None
+
+
+class ChooseMapRequest(BaseModel):
+    model_config = _SLOTS
+
+    # In-game names of the players in this game; only their votes count.
+    # PlayerName auto-resolves aliases (e.g. "skp" -> "Skip") at validation.
+    players: list[PlayerName] = Field(default_factory=list)
+
+
+class ChooseMapCandidate(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    votes: int
+    vetoes: int
+    # Selection weight (net score if eligible, else 0).
+    weight: int
+    # In the draw pool: net score (votes - penalties) is positive.
+    eligible: bool
+    # Played within the recency window, so docked RECENT_PLAY_PENALTY votes.
+    recently_played: bool = False
+
+
+class ChooseMapResult(BaseModel):
+    model_config = _SLOTS
+
+    player_count: int
+    # The backend's authoritative weighted-random pick (None if no eligible map).
+    chosen_map: str | None = None
+    # The chosen map's CRC (uppercase hex), if we have it stored; None otherwise.
+    chosen_map_crc: str | None = None
+    # Every map with at least one vote or veto, for the reveal animation,
+    # ordered by votes desc then name.
+    candidates: list[ChooseMapCandidate] = Field(default_factory=list)
+
+
+class MapUploadItem(BaseModel):
+    model_config = _SLOTS
+
+    base_name: str
+    # WebP data URL of the converted .tga — set in preview, omitted on commit.
+    image: str | None = None
+    # Number of player start positions (from parsed geometry), if available.
+    player_count: int | None = None
+    # True if a map with this name already has assets in S3.
+    already_exists: bool = False
+    # True once the assets have actually been saved (commit response).
+    saved: bool = False
+    # The computed map CRC (uppercase hex), available in preview and commit.
+    crc: str | None = None
+    # True once the map was registered with cncstats (commit only).
+    pushed_to_cncstats: bool = False
+
+
+class MapUploadResponse(BaseModel):
+    model_config = _SLOTS
+
+    committed: bool
+    maps: list[MapUploadItem] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
+class BackfillMapCrcsResponse(BaseModel):
+    model_config = _SLOTS
+
+    processed: int
+    resolved: int
+    # (map_name, crc) per row touched; crc is None when no match could supply it.
+    results: list[tuple[str, str | None]] = Field(default_factory=list)
+
+
+class PushMapResult(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    crc: str | None = None
+    # True if we POSTed it to cncstats this run.
+    pushed: bool = False
+    # True if cncstats already had it (/map_exists), so we skipped the push.
+    already_present: bool = False
+    error: str | None = None
+
+
+class PushMapsResponse(BaseModel):
+    model_config = _SLOTS
+
+    requested: int
+    pushed: int
+    # Maps cncstats already had, so we skipped the push.
+    already_present: int = 0
+    results: list[PushMapResult] = Field(default_factory=list)
+
+
+# --- ML match-outcome prediction -------------------------------------------
+
+
+class PredictPlayer(BaseModel):
+    model_config = _SLOTS
+
+    # PlayerName auto-resolves aliases (e.g. "skp" -> "Skip") at validation, so
+    # the model sees the same canonical names it was trained on.
+    name: PlayerName
+    general: General
+    team: int  # 1-based team id; players with the same id are on the same team
+
+
+class PredictRequest(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    players: list[PredictPlayer]
+
+
+class MatchPrediction(BaseModel):
+    """Win prediction from the exported ONNX model.
+
+    Teams are labelled A/B by ascending team id (the model's canonical ordering);
+    ``prob_team_a_wins`` is the calibrated probability that team A wins.
+    """
+
+    model_config = _SLOTS
+
+    match_id: int | None = None
+    map_name: str
+    team_a: int
+    team_b: int
+    team_a_players: list[str]
+    team_b_players: list[str]
+    prob_team_a_wins: float
+    favored_team: int
+    favored_win_prob: float
+    # Players not in the model's training vocab — their contribution falls back
+    # to UNK, so the prediction for them is weak. Surfaced so callers can judge.
+    unknown_players: list[str] = Field(default_factory=list)

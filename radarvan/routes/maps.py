@@ -1,12 +1,15 @@
 """Map stats, geometry, render, and image endpoints."""
 
+import asyncio
 import os
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse
 
 from .. import map_render as map_render_module
 from .. import map_stats as map_stats_module
+from .. import ml_inference
 from .. import missing_maps as missing_maps_module
 from .. import replay_files
 from ..api_types import (
@@ -19,6 +22,9 @@ from ..api_types import (
     MapsByPlayerCount,
     MapSummaryRequest,
     MissingMapInfo,
+    BackfillMapCrcsResponse,
+    PushMapResult,
+    PushMapsResponse,
 )
 from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
@@ -58,7 +64,12 @@ def get_map_summary(
     summary = map_stats_module.map_summary(
         list(games.values()), request.map_name.replace(".map", ""), request.players
     )
-    return map_stats_module.format_map_summary(summary)
+    # Best-effort win prediction for this hypothetical matchup (notifies result).
+    resolved_map = replay_manager.resolve_map_name(request.map_name) or request.map_name
+    prediction = ml_inference.predict_and_notify_features(
+        resolved_map, [(p.name, p.general, p.team) for p in request.players]
+    )
+    return map_stats_module.format_map_summary(summary, prediction)
 
 
 @router.get("/api/map_match_counts", dependencies=[Depends(cache_short)])
@@ -202,26 +213,134 @@ def fetch_missing_maps(
     )
 
 
+@router.post("/api/backfill_map_crcs")
+def backfill_map_crcs(
+    max_to_update: int = 50,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> BackfillMapCrcsResponse:
+    """Fill in MapData.crc from a sample match's replay (header mapCrc).
+
+    For each MapData row missing a CRC, finds a match played on that map and
+    reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are
+    touched). Processes up to `max_to_update` rows.
+    """
+    results = missing_maps_module.backfill_map_crcs(replay_manager, limit=max_to_update)
+    resolved = sum(1 for _, crc in results if crc is not None)
+    return BackfillMapCrcsResponse(
+        processed=len(results), resolved=resolved, results=results
+    )
+
+
+# Bound the in-flight pushes so we don't open an unbounded number of S3 reads /
+# cncstats connections at once.
+_PUSH_CONCURRENCY = 8
+
+
+@router.post("/api/push_maps_to_cncstats")
+async def push_maps_to_cncstats(
+    max_to_update: int = 10,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> PushMapsResponse:
+    """Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.
+
+    Only considers maps not already marked synced, and checks cncstats /map_exists
+    before pushing — so a map is never sent twice. Pushes run concurrently
+    (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back
+    serially (one DB session). Processes up to `max_to_update` unsynced maps.
+    Requires `CNCSTATS_API_KEY`.
+    """
+    if not missing_maps_module.cncstats_push_enabled():
+        raise HTTPException(
+            status_code=503, detail="CNCSTATS_API_KEY is not configured"
+        )
+    pending = replay_manager.unsynced_maps(limit=max_to_update)
+    sem = asyncio.Semaphore(_PUSH_CONCURRENCY)
+
+    async def sync_one(name: str, crc: str | None) -> tuple[str, str | None, bool, str | None]:
+        async with sem:
+            try:
+                resolved, pushed = await missing_maps_module.sync_stored_map_to_cncstats(
+                    name, crc
+                )
+                return name, resolved, pushed, None
+            except Exception as e:
+                return name, None, False, str(e)
+
+    rows = await asyncio.gather(*(sync_one(name, crc) for name, crc in pending))
+
+    results: list[PushMapResult] = []
+    pushed = 0
+    already_present = 0
+    for name, crc, was_pushed, error in rows:
+        if error is not None:
+            results.append(PushMapResult(map_name=name, error=error))
+            continue
+        if crc:
+            # Record CRC + synced mark in one update (single DB session, serialized).
+            replay_manager.record_cncstats_sync(name, crc)
+        if was_pushed:
+            pushed += 1
+        else:
+            already_present += 1
+        results.append(
+            PushMapResult(
+                map_name=name, crc=crc, pushed=was_pushed, already_present=not was_pushed
+            )
+        )
+    return PushMapsResponse(
+        requested=len(pending),
+        pushed=pushed,
+        already_present=already_present,
+        results=results,
+    )
+
+
+_MAPS_DIR = "dist/maps"
+
+
+def _map_match_key(name: str) -> str:
+    """Alphanumeric-lowercase key so spaces, underscores, brackets, and case
+    don't block matching (e.g. `[RANK] Territorial Dispute ZH v1` vs the bundled
+    `userdata_maps_[rank] territorial dispute zh v1_...webp`)."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def _find_dist_map_path(map_name: str) -> str | None:
+    """Resolve a map name to a bundled webp in dist/maps, or None.
+
+    Tries exact filenames first, then a normalized exact match, then a
+    normalized substring match (bundled filenames carry prefixes that embed the
+    map name, e.g. `userdata_maps_<name>_<name>.webp`).
+    """
+    base = map_name.removesuffix(".map")
+    for candidate in (f"{_MAPS_DIR}/{base}.webp", f"{_MAPS_DIR}/{map_name}.webp"):
+        if os.path.exists(candidate):
+            return candidate
+    if not os.path.isdir(_MAPS_DIR):
+        return None
+    needle = _map_match_key(base)
+    if not needle:
+        return None
+    webps = [f for f in os.listdir(_MAPS_DIR) if f.endswith(".webp")]
+    for fname in webps:
+        if _map_match_key(fname.removesuffix(".webp")) == needle:
+            return os.path.join(_MAPS_DIR, fname)
+    for fname in webps:
+        if needle in _map_match_key(fname.removesuffix(".webp")):
+            return os.path.join(_MAPS_DIR, fname)
+    return None
+
+
 def _load_map_image_bytes(map_name: str) -> bytes:
     s3_uri = missing_maps_module.find_s3_webp(map_name)
     if s3_uri is not None:
         fs = replay_files.get_fs()
         data: bytes = fs.read_bytes(s3_uri)
         return data
-    base = map_name.removesuffix(".map")
-    for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
-        if os.path.exists(candidate):
-            with open(candidate, "rb") as f:
-                return f.read()
-    maps_dir = "dist/maps"
-    needle = "".join(base.split()).lower()
-    if os.path.isdir(maps_dir) and needle:
-        for fname in os.listdir(maps_dir):
-            if not fname.endswith(".webp"):
-                continue
-            if needle in "".join(fname.removesuffix(".webp").split()).lower():
-                with open(os.path.join(maps_dir, fname), "rb") as f:
-                    return f.read()
+    path = _find_dist_map_path(map_name)
+    if path is not None:
+        with open(path, "rb") as f:
+            return f.read()
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
 
 
@@ -269,8 +388,7 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
             s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL
         )
         return RedirectResponse(presigned, status_code=302, headers=cache_headers)
-    base = map_name.removesuffix(".map")
-    for candidate in (f"dist/maps/{base}.webp", f"dist/maps/{map_name}.webp"):
-        if os.path.exists(candidate):
-            return FileResponse(candidate, headers=cache_headers)
+    path = _find_dist_map_path(map_name)
+    if path is not None:
+        return FileResponse(path, headers=cache_headers)
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")

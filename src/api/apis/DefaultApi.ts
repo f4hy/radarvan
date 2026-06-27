@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  BackfillMapCrcsResponse,
   BuildOrder,
   DraftRequest,
   DraftResult,
@@ -33,6 +34,7 @@ import type {
   MapsByPlayerCount,
   MatchDetails,
   MatchInfo,
+  MatchPrediction,
   Matches,
   MissingMapInfo,
   PlayerEnum,
@@ -41,7 +43,12 @@ import type {
   PlayerRatingData,
   PlayerSkill,
   PlayerStats,
+  PlayerSynergy,
+  PredictRequest,
+  PushMapsResponse,
+  RatingUpset,
   ReplayFileSchema,
+  ReplayWithoutPlayerStats,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
   ResponseReparseBeforeDateApiReparseBeforeDatePostValue,
   ResponseReparseRecentApiReparseRecentPostValue,
@@ -53,6 +60,8 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
+    BackfillMapCrcsResponseFromJSON,
+    BackfillMapCrcsResponseToJSON,
     BuildOrderFromJSON,
     BuildOrderToJSON,
     DraftRequestFromJSON,
@@ -89,6 +98,8 @@ import {
     MatchDetailsToJSON,
     MatchInfoFromJSON,
     MatchInfoToJSON,
+    MatchPredictionFromJSON,
+    MatchPredictionToJSON,
     MatchesFromJSON,
     MatchesToJSON,
     MissingMapInfoFromJSON,
@@ -105,8 +116,18 @@ import {
     PlayerSkillToJSON,
     PlayerStatsFromJSON,
     PlayerStatsToJSON,
+    PlayerSynergyFromJSON,
+    PlayerSynergyToJSON,
+    PredictRequestFromJSON,
+    PredictRequestToJSON,
+    PushMapsResponseFromJSON,
+    PushMapsResponseToJSON,
+    RatingUpsetFromJSON,
+    RatingUpsetToJSON,
     ReplayFileSchemaFromJSON,
     ReplayFileSchemaToJSON,
+    ReplayWithoutPlayerStatsFromJSON,
+    ReplayWithoutPlayerStatsToJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueFromJSON,
     ResponseGetFilesForMatchIdApiFilesForMatchGetValueToJSON,
     ResponseReparseBeforeDateApiReparseBeforeDatePostValueFromJSON,
@@ -126,6 +147,10 @@ import {
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
+
+export interface BackfillMapCrcsApiBackfillMapCrcsPostRequest {
+    maxToUpdate?: number;
+}
 
 export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<string>;
@@ -235,8 +260,22 @@ export interface GetPlayerStatsApiPlayerstatsGetRequest {
     gameFormat?: string | null;
 }
 
+export interface GetPlayerSynergyApiPlayerRatingsSynergyGetRequest {
+    gameFormat?: string | null;
+    minGamesTogether?: number;
+    regularization?: number;
+    mainRegularization?: number;
+}
+
 export interface GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest {
     matchId: number;
+}
+
+export interface GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest {
+    limit?: number;
+    withinDays?: number | null;
+    minSurprise?: number;
+    gameFormat?: string | null;
 }
 
 export interface GetReplayByUrlApiReplayGetRequest {
@@ -263,6 +302,18 @@ export interface ListReplaysApiReplaysGetRequest {
 export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     teamSize: number;
     players?: Array<PlayerEnum>;
+}
+
+export interface PredictFromFeaturesApiPredictPostRequest {
+    predictRequest: PredictRequest;
+}
+
+export interface PredictMatchApiPredictMatchMatchIdGetRequest {
+    matchId: number;
+}
+
+export interface PushMapsToCncstatsApiPushMapsToCncstatsPostRequest {
+    maxToUpdate?: number;
 }
 
 export interface RandomizeDraftApiDraftRandomizePostRequest {
@@ -331,7 +382,7 @@ export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest 
 }
 
 export interface UploadReplayApiUploadReplayPostRequest {
-    file: Blob;
+    file: string;
     xZuluBuild?: string | null;
     macId?: string | null;
     boardId?: string | null;
@@ -344,6 +395,53 @@ export interface UploadReplayApiUploadReplayPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for backfillMapCrcsApiBackfillMapCrcsPost without sending the request
+     */
+    async backfillMapCrcsApiBackfillMapCrcsPostRequestOpts(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/backfill_map_crcs`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Fill in MapData.crc from a sample match\'s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
+     * Backfill Map Crcs
+     */
+    async backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BackfillMapCrcsResponse>> {
+        const requestOptions = await this.backfillMapCrcsApiBackfillMapCrcsPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BackfillMapCrcsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Fill in MapData.crc from a sample match\'s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
+     * Backfill Map Crcs
+     */
+    async backfillMapCrcsApiBackfillMapCrcsPost(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BackfillMapCrcsResponse> {
+        const response = await this.backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for backfillMatchCompositionApiBackfillCompositionPost without sending the request
@@ -1963,6 +2061,65 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPlayerSynergyApiPlayerRatingsSynergyGet without sending the request
+     */
+    async getPlayerSynergyApiPlayerRatingsSynergyGetRequestOpts(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        if (requestParameters['minGamesTogether'] != null) {
+            queryParameters['min_games_together'] = requestParameters['minGamesTogether'];
+        }
+
+        if (requestParameters['regularization'] != null) {
+            queryParameters['regularization'] = requestParameters['regularization'];
+        }
+
+        if (requestParameters['mainRegularization'] != null) {
+            queryParameters['main_regularization'] = requestParameters['mainRegularization'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_ratings/synergy/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Pairwise synergy: do two players win more/less as teammates than their ratings predict.  Ridge logistic regression over team games with the rating model\'s log-odds as a fixed offset, player main effects, and pairwise interaction terms. Sorted by synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+     * Get Player Synergy
+     */
+    async getPlayerSynergyApiPlayerRatingsSynergyGetRaw(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerSynergy>>> {
+        const requestOptions = await this.getPlayerSynergyApiPlayerRatingsSynergyGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PlayerSynergyFromJSON));
+    }
+
+    /**
+     * Pairwise synergy: do two players win more/less as teammates than their ratings predict.  Ridge logistic regression over team games with the rating model\'s log-odds as a fixed offset, player main effects, and pairwise interaction terms. Sorted by synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+     * Get Player Synergy
+     */
+    async getPlayerSynergyApiPlayerRatingsSynergyGet(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerSynergy>> {
+        const response = await this.getPlayerSynergyApiPlayerRatingsSynergyGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getPlayerTeamGameCountsApiPlayerGameCountsTeamGet without sending the request
      */
     async getPlayerTeamGameCountsApiPlayerGameCountsTeamGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -2056,6 +2213,65 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPresignedForMatchIdApiPresignedUrlsForMatchGet(requestParameters: GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.getPresignedForMatchIdApiPresignedUrlsForMatchGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getRatingUpsetsApiPlayerRatingsUpsetsGet without sending the request
+     */
+    async getRatingUpsetsApiPlayerRatingsUpsetsGetRequestOpts(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['withinDays'] != null) {
+            queryParameters['within_days'] = requestParameters['withinDays'];
+        }
+
+        if (requestParameters['minSurprise'] != null) {
+            queryParameters['min_surprise'] = requestParameters['minSurprise'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_ratings/upsets/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending. Optionally restricted to the last ``within_days`` days and to a ``min_surprise`` threshold; the top ``limit`` are returned.
+     * Get Rating Upsets
+     */
+    async getRatingUpsetsApiPlayerRatingsUpsetsGetRaw(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<RatingUpset>>> {
+        const requestOptions = await this.getRatingUpsetsApiPlayerRatingsUpsetsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(RatingUpsetFromJSON));
+    }
+
+    /**
+     * Upsets: games where the model\'s favored team lost.  Sorted by surprise (the favorite\'s win-probability edge over the actual winner) descending. Optionally restricted to the last ``within_days`` days and to a ``min_surprise`` threshold; the top ``limit`` are returned.
+     * Get Rating Upsets
+     */
+    async getRatingUpsetsApiPlayerRatingsUpsetsGet(requestParameters: GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<RatingUpset>> {
+        const response = await this.getRatingUpsetsApiPlayerRatingsUpsetsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -2623,6 +2839,157 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for predictFromFeaturesApiPredictPost without sending the request
+     */
+    async predictFromFeaturesApiPredictPostRequestOpts(requestParameters: PredictFromFeaturesApiPredictPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['predictRequest'] == null) {
+            throw new runtime.RequiredError(
+                'predictRequest',
+                'Required parameter "predictRequest" was null or undefined when calling predictFromFeaturesApiPredictPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PredictRequestToJSON(requestParameters['predictRequest']),
+        };
+    }
+
+    /**
+     * Predict the winner from raw features: map, players, teams, generals.
+     * Predict From Features
+     */
+    async predictFromFeaturesApiPredictPostRaw(requestParameters: PredictFromFeaturesApiPredictPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchPrediction>> {
+        const requestOptions = await this.predictFromFeaturesApiPredictPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchPredictionFromJSON(jsonValue));
+    }
+
+    /**
+     * Predict the winner from raw features: map, players, teams, generals.
+     * Predict From Features
+     */
+    async predictFromFeaturesApiPredictPost(requestParameters: PredictFromFeaturesApiPredictPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchPrediction> {
+        const response = await this.predictFromFeaturesApiPredictPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictMatchApiPredictMatchMatchIdGet without sending the request
+     */
+    async predictMatchApiPredictMatchMatchIdGetRequestOpts(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling predictMatchApiPredictMatchMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict/match/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Predict the winner of an existing match by id.
+     * Predict Match
+     */
+    async predictMatchApiPredictMatchMatchIdGetRaw(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchPrediction>> {
+        const requestOptions = await this.predictMatchApiPredictMatchMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchPredictionFromJSON(jsonValue));
+    }
+
+    /**
+     * Predict the winner of an existing match by id.
+     * Predict Match
+     */
+    async predictMatchApiPredictMatchMatchIdGet(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchPrediction> {
+        const response = await this.predictMatchApiPredictMatchMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for pushMapsToCncstatsApiPushMapsToCncstatsPost without sending the request
+     */
+    async pushMapsToCncstatsApiPushMapsToCncstatsPostRequestOpts(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/push_maps_to_cncstats`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
+     * Push Maps To Cncstats
+     */
+    async pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PushMapsResponse>> {
+        const requestOptions = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PushMapsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
+     * Push Maps To Cncstats
+     */
+    async pushMapsToCncstatsApiPushMapsToCncstatsPost(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushMapsResponse> {
+        const response = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for randomizeDraftApiDraftRandomizePost without sending the request
      */
     async randomizeDraftApiDraftRandomizePostRequestOpts(requestParameters: RandomizeDraftApiDraftRandomizePostRequest): Promise<runtime.RequestOpts> {
@@ -3154,17 +3521,17 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Replays Without Playerstats
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<{ [key: string]: any; }>>> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReplayWithoutPlayerStats>>> {
         const requestOptions = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReplayWithoutPlayerStatsFromJSON));
     }
 
     /**
      * Replays Without Playerstats
      */
-    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<{ [key: string]: any; }>> {
+    async replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(requestParameters: ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReplayWithoutPlayerStats>> {
         const response = await this.replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -3515,8 +3882,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         let formParams: { append(param: string, value: any): any };
         let useForm = false;
-        // use FormData to transmit files using content-type "multipart/form-data"
-        useForm = canConsumeForm;
         if (useForm) {
             formParams = new FormData();
         } else {

@@ -46,7 +46,8 @@ import {
   WinLoss,
 } from "./api"
 import { Client } from "./Client"
-import { isDebug, winRate } from "./utils"
+import { useIsAdmin } from "./AuthContext"
+import { winRate } from "./utils"
 import { CHART_WIN, CHART_LOSS } from "./theme"
 import WinRateRadar from "./WinRateRadar"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -666,7 +667,7 @@ const empty = { playerStats: [] }
 export default function DisplayPlayerStats() {
   const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
   const [format, setFormat] = React.useState<GameFormat>("All")
-  const debug = isDebug()
+  const debug = useIsAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
     setPlayerStats(empty)

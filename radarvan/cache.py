@@ -33,6 +33,7 @@ _latest_ts_cache: TTLCache[str, str] = TTLCache(maxsize=1, ttl=60)
 _sorted_lock = threading.Lock()
 _competitive_lock = threading.Lock()
 _details_lock = threading.Lock()
+_maps_by_count_lock = threading.Lock()
 
 
 def latest_match_ts(replay_manager: ReplayManager) -> str:
@@ -44,6 +45,22 @@ def latest_match_ts(replay_manager: ReplayManager) -> str:
 
 def details_key(match_id: int, replay_manager: ReplayManager) -> str:
     return str(match_id)
+
+
+@cached(
+    cache=TTLCache(maxsize=1, ttl=600),
+    key=lambda replay_manager: "maps",
+    lock=_maps_by_count_lock,
+)
+def maps_by_player_count(replay_manager: ReplayManager) -> dict[int, list[str]]:
+    """Maps grouped by start-position count.
+
+    Map geometry changes rarely (only when maps are added), but the underlying
+    query loads every MapData row + its JSON blob, so this short-TTL cache keeps
+    the voting endpoints from re-scanning the table on every request. Cleared by
+    invalidate_match_caches() as well, so a re-scrape surfaces new maps promptly.
+    """
+    return replay_manager.list_maps_by_player_count()
 
 
 @cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_sorted_lock)
@@ -63,7 +80,11 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     filtered = {
         m.id: m
         for m in all_matches.values()
-        if game_composition.competitive_game_filter(comp=m.composition)
+        # Disconnects/desyncs/quit-early/too-short games aren't real competitive
+        # results (a balanced 2v2 that ends in a 3-min disconnect would otherwise
+        # pass the composition filter and pollute stats/ratings/upsets).
+        if not m.incomplete
+        and game_composition.competitive_game_filter(comp=m.composition)
         and player_ids.all_teams_have_group_player(m.players)
     }
     return filtered
@@ -133,5 +154,6 @@ def invalidate_match_caches() -> None:
     sorted_deduped_matches.cache_clear()
     competitive_matches.cache_clear()
     details_from_id.cache_clear()
+    maps_by_player_count.cache_clear()
     _ensure_warm_thread()
     _warm_event.set()

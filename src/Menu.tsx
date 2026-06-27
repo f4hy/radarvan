@@ -5,7 +5,10 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import PersonIcon from "@mui/icons-material/Person"
+import AccountCircleIcon from "@mui/icons-material/AccountCircle"
+import LoginIcon from "@mui/icons-material/Login"
 import AppBar from "@mui/material/AppBar"
+import Button from "@mui/material/Button"
 import Box from "@mui/material/Box"
 import CssBaseline from "@mui/material/CssBaseline"
 import Divider from "@mui/material/Divider"
@@ -24,6 +27,7 @@ import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
+import DisplayPlayerSynergy from "./PlayerSynergy"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import GroupsIcon from "@mui/icons-material/Groups"
 import MapIcon from "@mui/icons-material/Map"
@@ -33,15 +37,88 @@ import DisplayTeamStats from "./TeamStats"
 import DisplaySuperlatives from "./Superlatives"
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import CasinoIcon from "@mui/icons-material/Casino"
-import { isDebug } from "./utils"
+import HowToVoteIcon from "@mui/icons-material/HowToVote"
 import DisplayDraft from "./Draft"
+import MapVoting from "./MapVoting"
+import ChooseMap from "./ChooseMap"
+import MapUpload from "./MapUpload"
+import Account from "./Account"
+import UploadFileIcon from "@mui/icons-material/UploadFile"
+import { useAuth } from "./AuthContext"
+import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 const drawerWidth = 190
 
+const ALL_SELECTIONS = [
+  "Matches",
+  "GeneralStats",
+  "PlayerStats",
+  "DebugData",
+  "MapStats",
+  "TeamStats",
+  "Tournaments",
+  "BalanceTeams",
+  "PlayerRating",
+  "PlayerRatingTrend",
+  "PlayerSynergy",
+  "Superlatives",
+  "Draft",
+  "MapVoting",
+  "ChooseMap",
+  "MapUpload",
+  "Account",
+] as const
+
+type Selection = (typeof ALL_SELECTIONS)[number]
+
+// Selection <-> URL slug (e.g. "PlayerStats" <-> "player-stats") so each page is
+// linkable/bookmarkable via ?page=.
+function toSlug(s: Selection): string {
+  return s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
+}
+
+const SLUG_TO_SELECTION: Record<string, Selection> = Object.fromEntries(
+  ALL_SELECTIONS.map((s) => [toSlug(s), s]),
+)
+
+function selectionFromUrl(): Selection {
+  const slug = new URLSearchParams(window.location.search).get("page")
+  return (slug ? SLUG_TO_SELECTION[slug] : undefined) ?? "Matches"
+}
+
+function pushPage(s: Selection): void {
+  const params = new URLSearchParams(window.location.search)
+  params.set("page", toSlug(s))
+  window.history.pushState(null, "", `?${params.toString()}`)
+}
+
 export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const [selection, setSelection] = React.useState<Selection>("Matches")
-  const debug = React.useMemo(() => isDebug(), [])
+  const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
+  const { status } = useAuth()
+  const debug = status?.user?.is_admin ?? false
+
+  // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
+  const navigate = React.useCallback((s: Selection) => {
+    setSelection(s)
+    pushPage(s)
+  }, [])
+
+  // Keep in sync with browser back/forward.
+  React.useEffect(() => {
+    const onPop = () => setSelection(selectionFromUrl())
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
+  }, [])
+
+  // After returning from Discord without an in-game name yet, drop the user
+  // straight onto the Account page to finish the one-time selection.
+  const needsSelection = status?.user?.needs_player_selection ?? false
+  React.useEffect(() => {
+    if (needsSelection) {
+      navigate("Account")
+    }
+  }, [needsSelection, navigate])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -66,6 +143,9 @@ export default function Menu() {
         icon: <WorkspacePremiumIcon />,
       },
       { value: "Draft", text: "Skip In and Out", icon: <CasinoIcon /> },
+      { value: "MapVoting", text: "Map Voting", icon: <HowToVoteIcon /> },
+      { value: "ChooseMap", text: "Choose Map", icon: <CasinoIcon /> },
+      { value: "MapUpload", text: "Upload Map", icon: <UploadFileIcon /> },
       {
         value: "PlayerRatingTrend",
         text: "Rating Trend",
@@ -77,6 +157,11 @@ export default function Menu() {
               value: "PlayerRating",
               text: "Player Ratings",
               icon: <LeaderboardIcon />,
+            },
+            {
+              value: "PlayerSynergy",
+              text: "Player Synergy",
+              icon: <GroupsIcon />,
             },
             { value: "DebugData", text: "Debug Matchid", icon: <TableView /> },
           ] as const)
@@ -108,7 +193,7 @@ export default function Menu() {
             icon={item.icon}
             selected={selection === item.value}
             callback={(s) => {
-              setSelection(s)
+              navigate(s)
               setMobileOpen(false)
             }}
           />
@@ -140,6 +225,25 @@ export default function Menu() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {navItems.find((i) => i.value === selection)?.text ?? selection}
           </Typography>
+          {status?.logged_in ? (
+            <Button
+              color="inherit"
+              startIcon={<AccountCircleIcon />}
+              onClick={() => navigate("Account")}
+            >
+              {status.user?.player_name ??
+                status.user?.discord_username ??
+                "Account"}
+            </Button>
+          ) : (
+            <Button
+              color="inherit"
+              startIcon={<LoginIcon />}
+              onClick={startDiscordLogin}
+            >
+              Login
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
       <Box
@@ -198,20 +302,6 @@ export default function Menu() {
   )
 }
 
-type Selection =
-  | "Matches"
-  | "GeneralStats"
-  | "PlayerStats"
-  | "DebugData"
-  | "MapStats"
-  | "TeamStats"
-  | "Tournaments"
-  | "BalanceTeams"
-  | "PlayerRating"
-  | "PlayerRatingTrend"
-  | "Superlatives"
-  | "Draft"
-
 interface MenuItemProps {
   value: Selection
   text: string
@@ -243,8 +333,18 @@ function Main(props: { selection: Selection }) {
       return <DisplayPlayerRatings />
     case "PlayerRatingTrend":
       return <DisplayPlayerRatingTrend />
+    case "PlayerSynergy":
+      return <DisplayPlayerSynergy />
     case "Draft":
       return <DisplayDraft />
+    case "MapVoting":
+      return <MapVoting />
+    case "ChooseMap":
+      return <ChooseMap />
+    case "MapUpload":
+      return <MapUpload />
+    case "Account":
+      return <Account />
     case "DebugData":
       return <DisplayDebugData />
     default:

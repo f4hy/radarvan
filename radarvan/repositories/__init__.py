@@ -12,12 +12,15 @@ from .matches import MatchDebugData, MatchRepo
 from .replays import AllFilesForId, FileListing, ReplayRepo, ReplayToProcess
 from .stats import StatsRepo
 from .tournaments import TournamentRepo
+from .users import UserRepo
+from .votes import MapVoteRepo, VoteLimitExceeded
 
 __all__ = [
     "AllFilesForId",
     "BaseRepo",
     "FileListing",
     "MapRepo",
+    "MapVoteRepo",
     "MatchDebugData",
     "MatchDetailsRepo",
     "MatchRepo",
@@ -25,4 +28,6 @@ __all__ = [
     "ReplayToProcess",
     "StatsRepo",
     "TournamentRepo",
+    "UserRepo",
+    "VoteLimitExceeded",
 ]

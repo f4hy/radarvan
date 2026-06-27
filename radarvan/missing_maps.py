@@ -17,20 +17,24 @@ by the separate `mapparse` binary which is not run from this module.
 from __future__ import annotations
 
 import structlog
+import asyncio
 import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import zipfile
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 
-import httpx
+from cachetools import LRUCache, cached
 from PIL import Image
 from sqlalchemy import func, select
 
+from . import cncstats_client
 from .api_types import MapDataPayload
+from .cache import latest_match_ts
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db import MapData, Match, ParsedReplayJson
 from .db_utils import ReplayManager
@@ -39,7 +43,6 @@ from . import replay_files
 logger = structlog.get_logger(__name__)
 
 
-CNCSTATS_GET_MAP_URL = "http://cncstats.computersrfun.org:8080/get_map"
 S3_MAPS_PREFIX = f"{replay_files.s3_root}maps/"
 # The mapparse binary lives at the repo root. Override with MAPPARSE_BIN if elsewhere.
 MAPPARSE_BIN = os.environ.get("MAPPARSE_BIN", "./mapparse")
@@ -132,6 +135,75 @@ def get_map_crc_from_match(match_id: int, replay_manager: ReplayManager) -> str 
     return replay.header.metadata.map_crc
 
 
+_crc_index_lock = threading.Lock()
+
+
+@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_crc_index_lock)
+def _sample_match_by_map_key(replay_manager: ReplayManager) -> dict[str, int]:
+    """{normalized map -> a representative match_id} over all match history.
+
+    Uses MIN(match_id) so the choice is stable. The parsed replay for any of
+    these matches carries the map's CRC (header.metadata.mapCrc). Cached on the
+    latest-match timestamp so the full GROUP BY runs once per match-history rev.
+    """
+    rows = replay_manager.session.execute(
+        select(Match.map, func.min(Match.match_id))
+        .where(Match.map != "")
+        .group_by(Match.map)
+    ).all()
+    out: dict[str, int] = {}
+    for raw_path, match_id in rows:
+        key = replay_files.map_key(raw_path or "")
+        if key:
+            out[key] = min(out.get(key, match_id), match_id)
+    return out
+
+
+def crc_for_map(map_name: str, replay_manager: ReplayManager) -> str | None:
+    """Best-effort CRC (hex) for a map: stored value, else a match's replay.
+
+    Prefers the CRC stored on MapData; otherwise derives it from a match played
+    on this map (the replay JSON's mapCrc — the authoritative game value) and
+    writes it back to MapData when a row exists. Returns None if neither source
+    has it. Never raises: a failed lookup degrades to None.
+    """
+    stored = replay_manager.get_map_crc(map_name)
+    if stored:
+        return stored
+    try:
+        match_id = _sample_match_by_map_key(replay_manager).get(
+            replay_files.map_key(map_name)
+        )
+        if match_id is None:
+            return None
+        crc = get_map_crc_from_match(match_id, replay_manager)
+        if crc:
+            replay_manager.set_map_crc(map_name, crc)  # no-op if no MapData row
+        return crc
+    except Exception as e:
+        logger.warning("crc_for_map lookup failed", map_name=map_name, error=repr(e))
+        return None
+
+
+def backfill_map_crcs(
+    replay_manager: ReplayManager, limit: int | None = None
+) -> list[tuple[str, str | None]]:
+    """Populate MapData.crc for rows missing it, from a sample match's replay.
+
+    Returns (map_name, crc) for each row processed (crc is None if no match on
+    that map could supply one). Resumable: only rows with a NULL crc are touched.
+    Delegates to `crc_for_map` per row (the sample-match index is cached, so it
+    is built once across the loop).
+    """
+    stmt = select(MapData).where(MapData.crc.is_(None))
+    out: list[tuple[str, str | None]] = []
+    for row in replay_manager.session.scalars(stmt).all():
+        out.append((row.map_name, crc_for_map(row.map_name, replay_manager)))
+        if limit is not None and len(out) >= limit:
+            break
+    return out
+
+
 def list_missing_maps_with_crc(
     replay_manager: ReplayManager, limit: int | None = None
 ) -> list[MissingMap]:
@@ -162,14 +234,117 @@ def hex_crc_to_decimal(hex_crc: str) -> int:
     return int(hex_crc, 16)
 
 
+def compute_map_crc(map_bytes: bytes) -> int:
+    """SAGE-engine CRC over the raw .map bytes; matches the replay header MapCRC.
+
+    The C&C Generals engine rotates the 32-bit accumulator left by one bit
+    (carrying the high bit) and adds each byte. Validated against cncstats
+    `get_map` output (the .map it returns hashes back to the requested CRC).
+    """
+    crc = 0
+    for byte in map_bytes:
+        hibit = 1 if crc & 0x80000000 else 0
+        crc = ((crc << 1) + byte + hibit) & 0xFFFFFFFF
+    return crc
+
+
+def compute_map_crc_hex(map_bytes: bytes) -> str:
+    """Uppercase hex CRC (no `0x`) matching the replay header format, e.g. 5BB89B36."""
+    return format(compute_map_crc(map_bytes), "08X")
+
+
+def cncstats_push_enabled() -> bool:
+    """True if a cncstats API key is configured so /add_map calls can be made."""
+    return cncstats_client.cncstats_client().map_push_enabled
+
+
+def push_map_to_cncstats(
+    map_bytes: bytes, *, tga: bytes | None = None, map_name: str | None = None
+) -> str:
+    """Register a .map (and optional .tga preview) with cncstats. Returns hex CRC.
+
+    The X-Map-CRC is computed from `map_bytes`, so the registered CRC always
+    matches the asset cncstats stores.
+    """
+    crc_hex = compute_map_crc_hex(map_bytes)
+    crc_dec = hex_crc_to_decimal(crc_hex)
+    client = cncstats_client.cncstats_client()
+    client.add_map(
+        crc_dec, cncstats_client.ADD_MAP_FILE_MAP, map_bytes, map_name=map_name
+    )
+    if tga is not None:
+        client.add_map(
+            crc_dec, cncstats_client.ADD_MAP_FILE_PREVIEW, tga, map_name=map_name
+        )
+    return crc_hex
+
+
+async def _post_map_assets_async(
+    crc_dec: int, map_bytes: bytes, tga: bytes | None, map_name: str | None
+) -> None:
+    """POST the .map (and optional .tga preview) to cncstats concurrently."""
+    client = cncstats_client.cncstats_client()
+    pushes = [
+        client.add_map_async(
+            crc_dec, cncstats_client.ADD_MAP_FILE_MAP, map_bytes, map_name=map_name
+        )
+    ]
+    if tga is not None:
+        pushes.append(
+            client.add_map_async(
+                crc_dec, cncstats_client.ADD_MAP_FILE_PREVIEW, tga, map_name=map_name
+            )
+        )
+    await asyncio.gather(*pushes)
+
+
+async def push_map_to_cncstats_async(
+    map_bytes: bytes, *, tga: bytes | None = None, map_name: str | None = None
+) -> str:
+    """Async `push_map_to_cncstats`; posts the .map and .tga concurrently."""
+    crc_hex = compute_map_crc_hex(map_bytes)
+    await _post_map_assets_async(
+        hex_crc_to_decimal(crc_hex), map_bytes, tga, map_name
+    )
+    return crc_hex
+
+
+async def sync_stored_map_to_cncstats(
+    base_name: str, crc_hint: str | None = None
+) -> tuple[str, bool]:
+    """Ensure cncstats has an S3-hosted map; push it only if missing.
+
+    Returns ``(crc_hex, pushed)`` — ``pushed`` is False when cncstats already had
+    the map (checked via /map_exists). When the CRC is already known and cncstats
+    has it, no S3 read happens at all. Blocking S3 reads run in a worker thread so
+    many maps sync concurrently. Recording the CRC / synced state is the caller's
+    job — the DB session is not safe for concurrent use.
+    """
+    client = cncstats_client.cncstats_client()
+    # Fast path: known CRC already on cncstats -> nothing to read or push.
+    if crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hint)):
+        return crc_hint, False
+
+    fs = replay_files.get_fs()
+    map_uri = s3_uri_for(base_name, "map")
+    map_bytes: bytes = await asyncio.to_thread(fs.read_bytes, map_uri)
+    crc_hex = crc_hint or compute_map_crc_hex(map_bytes)
+    if not crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hex)):
+        return crc_hex, False
+
+    tga: bytes | None = None
+    tga_uri = s3_uri_for(base_name, "tga")
+    if await asyncio.to_thread(fs.exists, tga_uri):
+        tga = await asyncio.to_thread(fs.read_bytes, tga_uri)
+    await _post_map_assets_async(hex_crc_to_decimal(crc_hex), map_bytes, tga, base_name)
+    return crc_hex, True
+
+
 def fetch_map_zip(hex_crc: str) -> bytes:
     """Download the cncstats map zip for the given hex CRC. Raises on HTTP error."""
     decimal = hex_crc_to_decimal(hex_crc)
-    url = f"{CNCSTATS_GET_MAP_URL}?crc={decimal}"
-    logger.info("fetching cncstats map zip", url=url)
-    resp = httpx.get(url, timeout=60.0, follow_redirects=True)
-    resp.raise_for_status()
-    return resp.content
+    logger.info("fetching cncstats map zip", crc=decimal)
+    return cncstats_client.cncstats_client().get_map_zip(decimal)
 
 
 @dataclass(frozen=True)
@@ -259,7 +434,9 @@ def fetch_and_upload(
         )
         if parse_and_save and replay_manager is not None and mapparse_available():
             payload = parse_map_file(extracted.map_file)
-            replay_manager.save_map_data(extracted.base_name, payload)
+            replay_manager.save_map_data(
+                extracted.base_name, payload, crc=missing.map_crc_hex
+            )
         return fetched
     except Exception as e:
         logger.warning(
@@ -340,7 +517,7 @@ def fetch_and_upload_for_match(
             )
         else:
             payload = parse_map_file(extracted.map_file)
-            replay_manager.save_map_data(extracted.base_name, payload)
+            replay_manager.save_map_data(extracted.base_name, payload, crc=crc)
             logger.info(
                 "saved MapData",
                 base_name=extracted.base_name,

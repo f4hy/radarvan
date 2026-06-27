@@ -9,6 +9,8 @@ Name | Type
 `loc` | [Array&lt;LocationInner&gt;](LocationInner.md)
 `msg` | string
 `type` | string
+`input` | any
+`ctx` | object
 
 ## Example
 
@@ -20,6 +22,8 @@ const example = {
   "loc": null,
   "msg": null,
   "type": null,
+  "input": null,
+  "ctx": null,
 } satisfies ValidationError
 
 console.log(example)

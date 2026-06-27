@@ -35,7 +35,7 @@ import {
   TournamentReport,
 } from "./api"
 import { Client } from "./Client"
-import { isDebug } from "./utils"
+import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from "./Matches"
@@ -529,7 +529,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   const [touramentStats, setTournamentStats] =
     React.useState<TournamentReport | null>(null)
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
-  const debug = isDebug()
+  const debug = useIsAdmin()
   const show = props.result.complete === true || debug
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {

@@ -16,6 +16,7 @@ from .api_types import (
     MapSummaryStreak,
     MapSummaryTeamH2H,
     MatchInfo,
+    MatchPrediction,
     Player,
     Team,
 )
@@ -154,7 +155,8 @@ def map_summary(
         return MapSummaryResponse(map_name=map_name, total_games=0)
 
     request_generals = {p.general for p in players}
-    request_resolved = [resolve_player_name(p.name) for p in players]
+    # p.name is alias-resolved at validation (MapSummaryPlayer.name is PlayerName).
+    request_resolved = [p.name for p in players]
     request_names = set(request_resolved)
 
     pg_wl: dict[tuple[str, General], list[int]] = defaultdict(lambda: [0, 0])
@@ -298,7 +300,9 @@ def _team_h2h(
     display: dict[int, list[str]] = defaultdict(list)
     for p in players:
         if p.team >= Team.ONE:
-            resolved = resolve_player_name(p.name)
+            resolved = (
+                p.name
+            )  # already alias-resolved (MapSummaryPlayer.name is PlayerName)
             teams[p.team].append(_player_key(resolved, p.general, with_general))
             display[p.team].append(
                 f"{resolved}[{p.general.name}]" if with_general else resolved
@@ -338,57 +342,49 @@ def _team_h2h(
     )
 
 
-def format_map_summary(s: MapSummaryResponse) -> str:
-    lines = [f"{s.map_name}: total games={s.total_games}"]
+def _format_prediction(p: MatchPrediction) -> str:
+    fav = "A" if p.favored_team == p.team_a else "B"
+    line = (
+        f"AI Predicted winner: Team {fav} ({p.favored_win_prob:.0%}) — "
+        f"A:[{','.join(p.team_a_players)}] vs B:[{','.join(p.team_b_players)}]"
+    )
+    if p.unknown_players:
+        line += f" (unknown to model: {','.join(p.unknown_players)})"
+    return line
+
+
+def format_map_summary(
+    s: MapSummaryResponse, prediction: MatchPrediction | None = None
+) -> str:
+    """Render a concise pre-game summary: ML prediction + the most useful history."""
+    lines = [f"{s.map_name}: {s.total_games} games"]
+    if prediction is not None:
+        lines.append(_format_prediction(prediction))
     if s.total_games == 0:
         return "\n".join(lines)
-    for label, h2h in (
-        ("team h2h on this map", s.team_h2h),
-        ("team h2h on this map (with generals)", s.team_general_h2h),
-        ("team h2h overall (any map)", s.team_h2h_overall),
-        ("team h2h overall (any map, with generals)", s.team_general_h2h_overall),
-    ):
-        if h2h:
-            lines.append(
-                f"{label}: [{','.join(h2h.team1)}] {h2h.team1_wins}"
-                f" - {h2h.team2_wins} [{','.join(h2h.team2)}]"
-            )
-    if s.best_general:
+    if s.team_h2h:
+        h = s.team_h2h
         lines.append(
-            f"best general: {s.best_general.name} "
-            f"({s.best_general.wins}-{s.best_general.losses})"
+            f"h2h here: [{','.join(h.team1)}] {h.team1_wins}-{h.team2_wins} "
+            f"[{','.join(h.team2)}]"
         )
-    if s.best_player:
-        lines.append(
-            f"best record: {s.best_player.name} "
-            f"({s.best_player.wins}-{s.best_player.losses})"
+    if s.player_general_records:
+        recs = ", ".join(
+            f"{r.name}[{r.general.name}] {r.wins}-{r.losses}"
+            for r in s.player_general_records
         )
-    for label, records in (
-        ("overall", s.player_general_overall),
-        ("on this map", s.player_general_records),
-    ):
-        if records:
-            recs = ", ".join(
-                f"{r.name}[{r.general.name}] {r.wins}-{r.losses}" for r in records
-            )
-            lines.append(f"player+general {label}: {recs}")
-    if s.duration:
-        lines.append(
-            f"duration (min): avg {s.duration.avg_minutes:.1f}, "
-            f"shortest {s.duration.shortest_minutes:.1f}, "
-            f"longest {s.duration.longest_minutes:.1f}"
-        )
-    if s.recent_results:
-        recent = ";\n".join(
-            f"{r.date.strftime('%Y-%m-%d')} W:{','.join(r.winners)} "
-            f"L:{','.join(r.losers)} ({r.duration_minutes:.0f}m)"
-            for r in s.recent_results
-        )
-        lines.append(f"\nrecent:\n{recent}\n")
+        lines.append(f"player records here: {recs}")
     if s.streaks:
         streak_strs = [
             f"{st.name} {'W' if st.streak > 0 else 'L'}{abs(st.streak)}"
             for st in s.streaks
         ]
         lines.append(f"streaks: {', '.join(streak_strs)}")
+    if s.recent_results:
+        recent = "; ".join(
+            f"{r.date.strftime('%m-%d')} {','.join(r.winners)} beat "
+            f"{','.join(r.losers)}"
+            for r in s.recent_results[:3]
+        )
+        lines.append(f"recent: {recent}")
     return "\n".join(lines)

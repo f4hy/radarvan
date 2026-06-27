@@ -15,7 +15,7 @@ logger = structlog.get_logger(__name__)
 # Value is a scale factor applied to the advantage (distance from 0.5):
 # win_pct = 0.5 + (win_pct - 0.5) * scale — 0.85 reduces a 10-point edge to 8.5 points.
 SAME_TEAM_FUDGE: dict[frozenset[str], float] = {
-    frozenset({"Modus", "OneThree111"}): 0.85,
+    frozenset({"Modus", "OneThree111"}): 0.9,
 }
 
 

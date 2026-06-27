@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**backfillMapCrcsApiBackfillMapCrcsPost**](DefaultApi.md#backfillmapcrcsapibackfillmapcrcspost) | **POST** /api/backfill_map_crcs | Backfill Map Crcs |
 | [**backfillMatchCompositionApiBackfillCompositionPost**](DefaultApi.md#backfillmatchcompositionapibackfillcompositionpost) | **POST** /api/backfill/composition | Backfill Match Composition |
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
@@ -37,8 +38,10 @@ All URIs are relative to *http://localhost*
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
 | [**getPlayerSkillsApiPlayerSkillsGet**](DefaultApi.md#getplayerskillsapiplayerskillsget) | **GET** /api/player_skills/ | Get Player Skills |
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
+| [**getPlayerSynergyApiPlayerRatingsSynergyGet**](DefaultApi.md#getplayersynergyapiplayerratingssynergyget) | **GET** /api/player_ratings/synergy/ | Get Player Synergy |
 | [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
 | [**getPresignedForMatchIdApiPresignedUrlsForMatchGet**](DefaultApi.md#getpresignedformatchidapipresignedurlsformatchget) | **GET** /api/presigned_urls_for_match | Get Presigned For Match Id |
+| [**getRatingUpsetsApiPlayerRatingsUpsetsGet**](DefaultApi.md#getratingupsetsapiplayerratingsupsetsget) | **GET** /api/player_ratings/upsets/ | Get Rating Upsets |
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
 | [**getSuperlativesApiSuperlativesGet**](DefaultApi.md#getsuperlativesapisuperlativesget) | **GET** /api/superlatives | Get Superlatives |
 | [**getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGet**](DefaultApi.md#getteamgameswithoutwinnerapiteamgameswithoutwinnerget) | **GET** /api/team_games_without_winner/ | Get Team Games Without Winner |
@@ -51,6 +54,9 @@ All URIs are relative to *http://localhost*
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
+| [**predictFromFeaturesApiPredictPost**](DefaultApi.md#predictfromfeaturesapipredictpost) | **POST** /api/predict | Predict From Features |
+| [**predictMatchApiPredictMatchMatchIdGet**](DefaultApi.md#predictmatchapipredictmatchmatchidget) | **GET** /api/predict/match/{match_id} | Predict Match |
+| [**pushMapsToCncstatsApiPushMapsToCncstatsPost**](DefaultApi.md#pushmapstocncstatsapipushmapstocncstatspost) | **POST** /api/push_maps_to_cncstats | Push Maps To Cncstats |
 | [**randomizeDraftApiDraftRandomizePost**](DefaultApi.md#randomizedraftapidraftrandomizepost) | **POST** /api/draft/randomize | Randomize Draft |
 | [**recomputeSuperlativesApiSuperlativesRecomputePost**](DefaultApi.md#recomputesuperlativesapisuperlativesrecomputepost) | **POST** /api/superlatives/recompute | Recompute Superlatives |
 | [**refreshMatchesFromJsonApiRefreshMatchesFromJsonPost**](DefaultApi.md#refreshmatchesfromjsonapirefreshmatchesfromjsonpost) | **POST** /api/refresh_matches_from_json/ | Refresh Matches From Json |
@@ -70,6 +76,78 @@ All URIs are relative to *http://localhost*
 | [**updateMatchesMissingDataApiUpdateMatchesMissingDataPost**](DefaultApi.md#updatematchesmissingdataapiupdatematchesmissingdatapost) | **POST** /api/update_matches_missing_data/ | Update Matches Missing Data |
 | [**uploadReplayApiUploadReplayPost**](DefaultApi.md#uploadreplayapiuploadreplaypost) | **POST** /api/upload_replay | Upload Replay |
 
+
+
+## backfillMapCrcsApiBackfillMapCrcsPost
+
+> BackfillMapCrcsResponse backfillMapCrcsApiBackfillMapCrcsPost(maxToUpdate)
+
+Backfill Map Crcs
+
+Fill in MapData.crc from a sample match\&#39;s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to &#x60;max_to_update&#x60; rows.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { BackfillMapCrcsApiBackfillMapCrcsPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies BackfillMapCrcsApiBackfillMapCrcsPostRequest;
+
+  try {
+    const data = await api.backfillMapCrcsApiBackfillMapCrcsPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `50`] |
+
+### Return type
+
+[**BackfillMapCrcsResponse**](BackfillMapCrcsResponse.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## backfillMatchCompositionApiBackfillCompositionPost
@@ -2379,6 +2457,87 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getPlayerSynergyApiPlayerRatingsSynergyGet
+
+> Array&lt;PlayerSynergy&gt; getPlayerSynergyApiPlayerRatingsSynergyGet(gameFormat, minGamesTogether, regularization, mainRegularization)
+
+Get Player Synergy
+
+Pairwise synergy: do two players win more/less as teammates than their ratings predict.  Ridge logistic regression over team games with the rating model\&#39;s log-odds as a fixed offset, player main effects, and pairwise interaction terms. Sorted by synergy descending. See &#x60;&#x60;SYNERGY_METHODOLOGY.md&#x60;&#x60;.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerSynergyApiPlayerRatingsSynergyGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+    // number | Only return pairs that have played at least this many games together (optional)
+    minGamesTogether: 56,
+    // number | L2 shrinkage for pair synergy; higher = more conservative (optional)
+    regularization: 8.14,
+    // number | L2 shrinkage for per-player main effects; raise to stop strong players\' main effects running away and saturating pair synergy (optional)
+    mainRegularization: 8.14,
+  } satisfies GetPlayerSynergyApiPlayerRatingsSynergyGetRequest;
+
+  try {
+    const data = await api.getPlayerSynergyApiPlayerRatingsSynergyGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+| **minGamesTogether** | `number` | Only return pairs that have played at least this many games together | [Optional] [Defaults to `3`] |
+| **regularization** | `number` | L2 shrinkage for pair synergy; higher &#x3D; more conservative | [Optional] [Defaults to `10.0`] |
+| **mainRegularization** | `number` | L2 shrinkage for per-player main effects; raise to stop strong players\&#39; main effects running away and saturating pair synergy | [Optional] [Defaults to `25.0`] |
+
+### Return type
+
+[**Array&lt;PlayerSynergy&gt;**](PlayerSynergy.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getPlayerTeamGameCountsApiPlayerGameCountsTeamGet
 
 > Array&lt;PlayerGameCount&gt; getPlayerTeamGameCountsApiPlayerGameCountsTeamGet()
@@ -2494,6 +2653,87 @@ example().catch(console.error);
 ### Return type
 
 **{ [key: string]: string | null; }**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getRatingUpsetsApiPlayerRatingsUpsetsGet
+
+> Array&lt;RatingUpset&gt; getRatingUpsetsApiPlayerRatingsUpsetsGet(limit, withinDays, minSurprise, gameFormat)
+
+Get Rating Upsets
+
+Upsets: games where the model\&#39;s favored team lost.  Sorted by surprise (the favorite\&#39;s win-probability edge over the actual winner) descending. Optionally restricted to the last &#x60;&#x60;within_days&#x60;&#x60; days and to a &#x60;&#x60;min_surprise&#x60;&#x60; threshold; the top &#x60;&#x60;limit&#x60;&#x60; are returned.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number | Number of top upsets to return (optional)
+    limit: 56,
+    // number | Only include upsets from the last N days (optional)
+    withinDays: 56,
+    // number | Only include upsets with at least this surprise (0-1) (optional)
+    minSurprise: 8.14,
+    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest;
+
+  try {
+    const data = await api.getRatingUpsetsApiPlayerRatingsUpsetsGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **limit** | `number` | Number of top upsets to return | [Optional] [Defaults to `20`] |
+| **withinDays** | `number` | Only include upsets from the last N days | [Optional] [Defaults to `undefined`] |
+| **minSurprise** | `number` | Only include upsets with at least this surprise (0-1) | [Optional] [Defaults to `0.0`] |
+| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;RatingUpset&gt;**](RatingUpset.md)
 
 ### Authorization
 
@@ -3322,6 +3562,222 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## predictFromFeaturesApiPredictPost
+
+> MatchPrediction predictFromFeaturesApiPredictPost(predictRequest)
+
+Predict From Features
+
+Predict the winner from raw features: map, players, teams, generals.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictFromFeaturesApiPredictPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // PredictRequest
+    predictRequest: ...,
+  } satisfies PredictFromFeaturesApiPredictPostRequest;
+
+  try {
+    const data = await api.predictFromFeaturesApiPredictPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **predictRequest** | [PredictRequest](PredictRequest.md) |  | |
+
+### Return type
+
+[**MatchPrediction**](MatchPrediction.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictMatchApiPredictMatchMatchIdGet
+
+> MatchPrediction predictMatchApiPredictMatchMatchIdGet(matchId)
+
+Predict Match
+
+Predict the winner of an existing match by id.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictMatchApiPredictMatchMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies PredictMatchApiPredictMatchMatchIdGetRequest;
+
+  try {
+    const data = await api.predictMatchApiPredictMatchMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MatchPrediction**](MatchPrediction.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## pushMapsToCncstatsApiPushMapsToCncstatsPost
+
+> PushMapsResponse pushMapsToCncstatsApiPushMapsToCncstatsPost(maxToUpdate)
+
+Push Maps To Cncstats
+
+Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by &#x60;_PUSH_CONCURRENCY&#x60;); the CRC + synced mark are then written back serially (one DB session). Processes up to &#x60;max_to_update&#x60; unsynced maps. Requires &#x60;CNCSTATS_API_KEY&#x60;.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PushMapsToCncstatsApiPushMapsToCncstatsPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies PushMapsToCncstatsApiPushMapsToCncstatsPostRequest;
+
+  try {
+    const data = await api.pushMapsToCncstatsApiPushMapsToCncstatsPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `10`] |
+
+### Return type
+
+[**PushMapsResponse**](PushMapsResponse.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## randomizeDraftApiDraftRandomizePost
 
 > DraftResult randomizeDraftApiDraftRandomizePost(draftRequest)
@@ -4030,7 +4486,7 @@ example().catch(console.error);
 
 ## replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet
 
-> Array&lt;{ [key: string]: any; }&gt; replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(maxToReturn)
+> Array&lt;ReplayWithoutPlayerStats&gt; replaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGet(maxToReturn)
 
 Replays Without Playerstats
 
@@ -4077,7 +4533,7 @@ example().catch(console.error);
 
 ### Return type
 
-**Array<{ [key: string]: any; }>**
+[**Array&lt;ReplayWithoutPlayerStats&gt;**](ReplayWithoutPlayerStats.md)
 
 ### Authorization
 
@@ -4557,8 +5013,8 @@ async function example() {
   const api = new DefaultApi(config);
 
   const body = {
-    // Blob
-    file: BINARY_DATA_HERE,
+    // string
+    file: file_example,
     // string (optional)
     xZuluBuild: xZuluBuild_example,
     // string (optional)
@@ -4590,7 +5046,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **file** | `Blob` |  | [Defaults to `undefined`] |
+| **file** | `string` |  | [Defaults to `undefined`] |
 | **xZuluBuild** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **macId** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **boardId** | `string` |  | [Optional] [Defaults to `undefined`] |

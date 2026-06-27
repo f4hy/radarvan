@@ -1,11 +1,11 @@
-export function isDebug(): boolean {
-  const params = new URLSearchParams(window.location.search)
-  return !!params.get("debug")
-}
-
 export function winRate(wins: number, losses: number): number {
   const tot = wins + losses
   return tot > 0 ? wins / tot : 0
+}
+
+// Strip the directory path and ".map" extension from a map name/path for display.
+export function displayMapName(name: string): string {
+  return (name.split("/").pop() ?? name).replace(/\.map$/i, "")
 }
 
 export function getColorHex(colorName: string): string {
@@ -24,6 +24,7 @@ export function getColorHex(colorName: string): string {
     silver: "#C0C0C0",
     maroon: "#800000",
     metallicgrey: "#808080",
+    violet: "#7F00FF",
   }
   if (colorName === "-1") return "#000000"
   const mapped = colorMap[colorName.toLowerCase()]

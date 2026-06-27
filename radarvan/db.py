@@ -321,6 +321,79 @@ class MatchDetailsCache(Base):
         return f"<MatchDetailsCache(match_id={self.match_id}, version={self.version})>"
 
 
+class User(Base):
+    """A community member authenticated via Discord OAuth2.
+
+    `discord_id` is the stable Discord snowflake (the login identity).
+    `player_name` is the in-game name the user claims from
+    `player_ids.PLAYER_NAMES`; it is NULL until the user picks one on first
+    login, and is unique so two Discord accounts can't claim the same player.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    discord_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    discord_username: Mapped[str] = mapped_column(String)
+    discord_avatar: Mapped[str | None] = mapped_column(String, nullable=True)
+    player_name: Mapped[str | None] = mapped_column(
+        String, unique=True, index=True, nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<User(id={self.id}, discord_id={self.discord_id}, "
+            f"player_name={self.player_name})>"
+        )
+
+
+class MapVote(Base):
+    """A logged-in user's vote or veto for a map, scoped to a player count.
+
+    Votes and vetoes are per (user, player_count): a user may cast up to a
+    fixed number of each (enforced in the repository, not the schema). A map can
+    be voted OR vetoed but not both — one row per (user, player_count, map_name),
+    with `choice` flipping between 'vote' and 'veto'.
+    """
+
+    __tablename__ = "map_votes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    player_count: Mapped[int] = mapped_column(SmallInteger, index=True)
+    map_name: Mapped[str] = mapped_column(String)
+    choice: Mapped[str] = mapped_column(String(8))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint("choice in ('vote', 'veto')", name="check_vote_choice"),
+        Index("idx_map_votes_user_count", "user_id", "player_count"),
+        Index(
+            "uq_map_votes_user_count_map",
+            "user_id",
+            "player_count",
+            "map_name",
+            unique=True,
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<MapVote(user_id={self.user_id}, player_count={self.player_count}, "
+            f"map_name={self.map_name!r}, choice={self.choice})>"
+        )
+
+
 class MapData(Base):
     """Parsed map geometry data keyed by map name."""
 
@@ -328,6 +401,14 @@ class MapData(Base):
 
     map_name: Mapped[str] = mapped_column(String, primary_key=True)
     data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    # Game map CRC as an uppercase hex string (e.g. "5BB89B36"), matching the
+    # replay header MapCRC. Used to register/look the map up on cncstats.
+    crc: Mapped[str | None] = mapped_column(String, nullable=True)
+    # When set, cncstats is known to have this map (we pushed it, or /map_exists
+    # confirmed it). Used to skip maps already registered on the next push run.
+    cncstats_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

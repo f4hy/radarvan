@@ -15,6 +15,7 @@ from .. import (
     player_rating,
     player_skill,
     player_stats,
+    player_synergy,
 )
 from ..api_types import (
     HeadToHead,
@@ -24,6 +25,8 @@ from ..api_types import (
     PlayerRatingDailyChange,
     PlayerSkill,
     PlayerStats,
+    PlayerSynergy,
+    RatingUpset,
     ShortPlayerRating,
 )
 from ..cache import competitive_matches, sorted_deduped_matches
@@ -163,6 +166,96 @@ def get_player_ratings(
         player_rating_overtime=over_time,
         player_form=player_form,
     )
+
+
+@router.get("/api/player_ratings/upsets/", dependencies=[Depends(cache_short)])
+def get_rating_upsets(
+    limit: int = Query(
+        20, ge=1, le=200, description="Number of top upsets to return"
+    ),
+    within_days: int | None = Query(
+        None, ge=1, description="Only include upsets from the last N days"
+    ),
+    min_surprise: float = Query(
+        0.0,
+        ge=0.0,
+        le=1.0,
+        description="Only include upsets with at least this surprise (0-1)",
+    ),
+    game_format: str | None = Query(
+        None, description="Filter by game format: 2v2, 3v3, 4v4"
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[RatingUpset]:
+    """Upsets: games where the model's favored team lost.
+
+    Sorted by surprise (the favorite's win-probability edge over the actual
+    winner) descending. Optionally restricted to the last ``within_days`` days
+    and to a ``min_surprise`` threshold; the top ``limit`` are returned.
+    """
+    games = competitive_matches(replay_manager)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
+    ratings_and_counts = player_rating.compute_player_ratings(game_list)
+    upsets = ratings_and_counts.upsets
+    if within_days is not None:
+        cutoff = date.today() - timedelta(days=within_days)
+        upsets = [u for u in upsets if u.at_date >= cutoff]
+    if min_surprise > 0.0:
+        upsets = [u for u in upsets if u.surprise >= min_surprise]
+    return [
+        RatingUpset(
+            match_id=u.match_id,
+            atdate=u.at_date,
+            favored_team=u.favored_team,
+            favored_players=u.favored_players,
+            favored_win_prob=u.favored_win_prob,
+            winning_team=u.winning_team,
+            winner_players=u.winner_players,
+            winner_win_prob=u.winner_win_prob,
+            surprise=u.surprise,
+        )
+        for u in upsets[:limit]
+    ]
+
+
+@router.get("/api/player_ratings/synergy/", dependencies=[Depends(cache_short)])
+def get_player_synergy(
+    game_format: str | None = Query(
+        None, description="Filter by game format: 2v2, 3v3, 4v4"
+    ),
+    min_games_together: int = Query(
+        player_synergy.DEFAULT_MIN_GAMES_TOGETHER,
+        ge=1,
+        description="Only return pairs that have played at least this many games together",
+    ),
+    regularization: float = Query(
+        player_synergy.DEFAULT_LAMBDA_PAIR,
+        gt=0.0,
+        description="L2 shrinkage for pair synergy; higher = more conservative",
+    ),
+    main_regularization: float = Query(
+        player_synergy.DEFAULT_LAMBDA_MAIN,
+        gt=0.0,
+        description="L2 shrinkage for per-player main effects; raise to stop strong "
+        "players' main effects running away and saturating pair synergy",
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[PlayerSynergy]:
+    """Pairwise synergy: do two players win more/less as teammates than their ratings predict.
+
+    Ridge logistic regression over team games with the rating model's log-odds as a
+    fixed offset, player main effects, and pairwise interaction terms. Sorted by
+    synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+    """
+    games = competitive_matches(replay_manager)
+    game_list = matches.filter_by_format(list(games.values()), game_format)
+    pairs = player_synergy.compute_player_synergy(
+        game_list,
+        lambda_pair=regularization,
+        lambda_main=main_regularization,
+        min_games_together=min_games_together,
+    )
+    return [PlayerSynergy.model_validate(p) for p in pairs]
 
 
 @router.get("/api/player_skills/", dependencies=[Depends(cache_short)])

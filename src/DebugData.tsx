@@ -14,7 +14,7 @@ import {
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
-import { GameRecord, MatchInfo } from "./api"
+import { GameRecord, MatchInfo, MatchPrediction } from "./api"
 import { Client } from "./Client"
 import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
@@ -51,6 +51,60 @@ function getDebugData(
 function reparse(matchId: number) {
   Client.reparseApiReparseMatchIdPost({ matchId: matchId }).then(() =>
     console.log("Parsed " + matchId),
+  )
+}
+
+function getPrediction(
+  matchId: number,
+  callback: (p: MatchPrediction) => void,
+  onError = console.error,
+) {
+  Client.predictMatchApiPredictMatchMatchIdGet({ matchId: matchId })
+    .then(callback)
+    .catch(onError)
+}
+
+function PredictionDisplay(props: { prediction: MatchPrediction }) {
+  const p = props.prediction
+  const favoredA = p.favoredTeam === p.teamA
+  return (
+    <Paper sx={{ p: 2, my: 1 }} variant="outlined">
+      <Typography variant="h6">🔮 Win prediction</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {p.mapName}
+      </Typography>
+      <Box sx={{ display: "flex", gap: 2, alignItems: "center", my: 1 }}>
+        <Box sx={{ fontWeight: favoredA ? "bold" : "normal" }}>
+          <Typography variant="caption" color="text.secondary">
+            Team {p.teamA}
+          </Typography>
+          <Typography variant="body2">{p.teamAPlayers.join(", ")}</Typography>
+          <Typography variant="h6">
+            {(p.probTeamAWins * 100).toFixed(1)}%
+          </Typography>
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          vs
+        </Typography>
+        <Box sx={{ fontWeight: favoredA ? "normal" : "bold" }}>
+          <Typography variant="caption" color="text.secondary">
+            Team {p.teamB}
+          </Typography>
+          <Typography variant="body2">{p.teamBPlayers.join(", ")}</Typography>
+          <Typography variant="h6">
+            {((1 - p.probTeamAWins) * 100).toFixed(1)}%
+          </Typography>
+        </Box>
+      </Box>
+      <Typography variant="body2">
+        Favored: Team {p.favoredTeam} ({(p.favoredWinProb * 100).toFixed(1)}%)
+      </Typography>
+      {p.unknownPlayers && p.unknownPlayers.length > 0 && (
+        <Typography variant="caption" color="warning.main">
+          Unknown to model: {p.unknownPlayers.join(", ")}
+        </Typography>
+      )}
+    </Paper>
   )
 }
 
@@ -300,6 +354,9 @@ export default function DisplayDebugData() {
   )
   const [matchId, setMatchId] = React.useState<string | null>(null)
   const [matchInfo, setMatchInfo] = React.useState<MatchInfo | null>(null)
+  const [prediction, setPrediction] = React.useState<MatchPrediction | null>(
+    null,
+  )
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,6 +367,16 @@ export default function DisplayDebugData() {
     setMatchId(onlyNums)
   }
 
+  const runPrediction = () => {
+    if (matchId !== null) {
+      const num = Number(matchId)
+      if (!isNaN(num)) {
+        setPrediction(null)
+        getPrediction(num, setPrediction, showError)
+      }
+    }
+  }
+
   const submit = () => {
     if (matchId !== null) {
       const num = Number(matchId)
@@ -317,6 +384,7 @@ export default function DisplayDebugData() {
         getGameData(num, setDebugData, showError)
         getDebugData(num, setMatchDebugData, showError)
         setMatchInfo(null)
+        setPrediction(null)
         Client.getMatchByIdApiMatchMatchIdGet({ matchId: num })
           .then(setMatchInfo)
           .catch(showError)
@@ -344,6 +412,14 @@ export default function DisplayDebugData() {
         </Box>
       )}
       {matchInfo && <DisplayMatchInfo match={matchInfo} idx={0} />}
+      {matchId && (
+        <Box sx={{ p: 1 }}>
+          <Button variant="contained" onClick={runPrediction}>
+            Run prediction
+          </Button>
+        </Box>
+      )}
+      {prediction && <PredictionDisplay prediction={prediction} />}
       <DisplayDataTable data={debugData} />
       {Object.entries(matchDebugData).map(([name, data]) => (
         <Stack key={name}>

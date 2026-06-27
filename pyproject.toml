@@ -13,7 +13,9 @@ dependencies = [
     "fastapi[standard]>=0.119.0",
     "fsspec[s3]>=2025.9.0",
     "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
     "numpy>=2.0.0",
+    "onnxruntime>=1.20.0",
     "openskill>=6.2.0",
     "pillow>=11.0.0",
     "psycopg2-binary>=2.9.11",
@@ -42,6 +44,26 @@ dev = [
   "types-tqdm>=4.67.0.20250809",
   "datamodel-code-generator>=0.55.0",
   "pg-activity>=3.6.2",
+]
+
+# ML / model-training deps. Deliberately a NON-default group (not `dev`) so they
+# are never installed into the production app — Heroku installs only
+# [project.dependencies]. Install locally with `uv sync --group ml`.
+# All code that uses these lives under ./ml/.
+ml = [
+  # Pinned to the CUDA 12.4 build: it still ships Pascal kernels (sm_50/sm_60),
+  # which run on the local Quadro P4000 (CC 6.1) — verified with a live matmul.
+  # Newer torch wheels (cu130) start at sm_75 and crash on Pascal. Sourced from
+  # the pytorch-cu124 index below (see [tool.uv.sources]).
+  "torch==2.6.0",
+  "lightning>=2.4.0",
+  "torchmetrics>=1.5.0",
+  "scikit-learn>=1.5.0",
+  "pandas>=2.2.0",
+  "pyarrow>=18.0.0",
+  # ONNX export + a torch-free CPU runtime for serving the exported model.
+  "onnx>=1.17.0",
+  "onnxruntime>=1.20.0",
 ]
 
 [tool.black]
@@ -185,6 +207,7 @@ module = [
     "fsspec.*",   # no stubs available: https://github.com/fsspec/filesystem_spec/issues/451
     "s3fs.*",     # built on fsspec, no stubs
     "apscheduler.*",  # no stubs available
+    "onnxruntime.*",  # no stubs available
 ]
 ignore_missing_imports = true
 
@@ -200,3 +223,14 @@ enabled = true
 live_mode = true
 # Mirror the strictness from the mypy config (optional, can set here directly)
 strict = true
+
+# PyTorch CUDA 12.4 wheels — needed so torch ships Pascal (sm_61) kernels for the
+# local Quadro P4000. `explicit = true` means ONLY packages mapped to it in
+# [tool.uv.sources] are pulled from here; everything else stays on PyPI.
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }

@@ -36,7 +36,8 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { ActivityCalendar } from "react-activity-calendar"
-import { getColorHex, isDebug } from "./utils"
+import { getColorHex } from "./utils"
+import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 function getDates(
@@ -49,12 +50,13 @@ function getDates(
 function getMatches(
   date: Date,
   callback: (m: Matches) => void,
+  excludeDev: boolean,
   onError = console.error,
 ) {
-  // Hide dev-build matches (is_dev) unless ?debug=True is set.
+  // Hide dev-build matches (is_dev) for non-admins.
   Client.getMatchesByDateApiMatchesByDateDateGet({
     date: date,
-    excludeDev: !isDebug(),
+    excludeDev: excludeDev,
   })
     .then(callback)
     .catch(onError)
@@ -517,16 +519,17 @@ function DisplayMatchesForDate(props: {
     PlayerRatingDailyChange[]
   >([])
   const { showError, errorSnackbar } = useErrorSnackbar()
+  const isAdmin = useIsAdmin()
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
-      getMatches(props.date, setMatchList, showError)
+      getMatches(props.date, setMatchList, !isAdmin, showError)
       Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
         forDate: props.date,
       })
         .then(setRatingChanges)
         .catch(showError)
     }
-  }, [expanded, matchList.matches.length, props.date, showError])
+  }, [expanded, matchList.matches.length, props.date, showError, isAdmin])
 
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, isExpanded: boolean) => {
