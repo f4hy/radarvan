@@ -20,7 +20,7 @@ jobs:
       # Python toolchain (uv manages the 3.13 interpreter via uv.lock /
       # .python-version). enable-cache keys off uv.lock for fast installs.
       - name: Set up uv (Python 3.13)
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           python-version: "3.13"
