@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # GitHub Actions used in .github/workflows/.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Frontend dependencies (package.json / package-lock.json at repo root).
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Python dependencies managed by uv (pyproject.toml / uv.lock).
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
