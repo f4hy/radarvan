@@ -1,3 +1,6 @@
+"""Player skill ratings — computes OpenSkill (Plackett-Luce) ratings from match history,
+tracking per-day/per-match rating changes and upsets."""
+
 from dataclasses import dataclass
 from typing import NamedTuple
 from cachetools import cached

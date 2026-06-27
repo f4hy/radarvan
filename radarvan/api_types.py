@@ -1,3 +1,7 @@
+"""Pydantic models defining every REST request/response shape — the canonical wire
+schema (``MatchInfo``, ``PlayerStat``, ``MatchDetails``, the ``General``/``Team``/
+``Faction`` enums, …) from which the TypeScript API client is generated."""
+
 from pydantic import AfterValidator, BaseModel, Field, ConfigDict, computed_field
 from datetime import datetime, date
 from enum import IntEnum

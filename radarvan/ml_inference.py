@@ -71,8 +71,10 @@ def _feed(enc: EncodedMatch) -> dict[str, np.ndarray]:
     max_t = max(len(enc.team_a), len(enc.team_b))
 
     def team_arrays(team: list[EncodedPlayer]) -> dict[str, np.ndarray]:
-        ids = {k: np.zeros((1, max_t), dtype=np.int64) for k in
-               ("player", "general", "faction", "start")}
+        ids = {
+            k: np.zeros((1, max_t), dtype=np.int64)
+            for k in ("player", "general", "faction", "start")
+        }
         mask = np.zeros((1, max_t), dtype=np.float32)
         for j, p in enumerate(team):
             ids["player"][0, j] = p.player
@@ -85,10 +87,16 @@ def _feed(enc: EncodedMatch) -> dict[str, np.ndarray]:
     a = team_arrays(enc.team_a)
     b = team_arrays(enc.team_b)
     feed = {
-        "a_player": a["player"], "a_general": a["general"],
-        "a_faction": a["faction"], "a_start": a["start"], "a_mask": a["mask"],
-        "b_player": b["player"], "b_general": b["general"],
-        "b_faction": b["faction"], "b_start": b["start"], "b_mask": b["mask"],
+        "a_player": a["player"],
+        "a_general": a["general"],
+        "a_faction": a["faction"],
+        "a_start": a["start"],
+        "a_mask": a["mask"],
+        "b_player": b["player"],
+        "b_general": b["general"],
+        "b_faction": b["faction"],
+        "b_start": b["start"],
+        "b_mask": b["mask"],
         "fmt": np.array([enc.fmt], dtype=np.int64),
     }
     # The map input is either a numeric feature vector or a name index, depending
@@ -132,9 +140,7 @@ def predict_match_info(match: MatchInfo) -> MatchPrediction:
     )
 
 
-def build_match_info(
-    map_name: str, players: list[Player]
-) -> MatchInfo:
+def build_match_info(map_name: str, players: list[Player]) -> MatchInfo:
     """Assemble a minimal MatchInfo from raw features for prediction.
 
     The winner is a placeholder (the lowest team id) only so ``encode_match``
@@ -206,9 +212,7 @@ def predict_and_notify(match: MatchInfo) -> None:
         pred = predict_match_info(match)
         winner = int(match.winning_team)
         actual = (
-            "A" if winner == pred.team_a
-            else "B" if winner == pred.team_b
-            else None
+            "A" if winner == pred.team_a else "B" if winner == pred.team_b else None
         )
         _notify_prediction(pred, actual, expect_actual=True)
     except Exception as e:

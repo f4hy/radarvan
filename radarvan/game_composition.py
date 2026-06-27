@@ -1,3 +1,7 @@
+"""Game-type categorization (``categorize_game_type``) and the competitive-game filter
+(``competitive_game_filter``) used to scope leaderboard stats to balanced, non-comp-stomp
+team games."""
+
 import structlog
 from collections import Counter
 from collections.abc import Sequence

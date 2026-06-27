@@ -1,3 +1,6 @@
+"""Starlette HTTP middleware — request-id binding, request timing, and in-memory
+rate limiting."""
+
 import math
 import os
 import random
