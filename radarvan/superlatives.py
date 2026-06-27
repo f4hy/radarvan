@@ -1,3 +1,6 @@
+"""Top-N leaderboard statistics (streaks, APM, kills, money, …) computed across
+matches."""
+
 import asyncio
 from collections import Counter
 from dataclasses import dataclass

@@ -1,3 +1,5 @@
+"""Posts notification messages to a configured webhook (``NOTIFY_WEB_HOOK``)."""
+
 import httpx
 import os
 import structlog

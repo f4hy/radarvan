@@ -1,3 +1,6 @@
+"""APScheduler-backed scheduled tasks — periodically scrapes new games, registers
+matches, and recomputes superlatives/ratings (``get_scheduler``)."""
+
 from .db_utils import ReplayManager, DatabaseManager
 from .cache import invalidate_match_caches
 from .matches import register_matches
