@@ -303,9 +303,7 @@ async def push_map_to_cncstats_async(
 ) -> str:
     """Async `push_map_to_cncstats`; posts the .map and .tga concurrently."""
     crc_hex = compute_map_crc_hex(map_bytes)
-    await _post_map_assets_async(
-        hex_crc_to_decimal(crc_hex), map_bytes, tga, map_name
-    )
+    await _post_map_assets_async(hex_crc_to_decimal(crc_hex), map_bytes, tga, map_name)
     return crc_hex
 
 

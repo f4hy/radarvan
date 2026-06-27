@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Python toolchain (uv manages the 3.13 interpreter via uv.lock /
       # .python-version). enable-cache keys off uv.lock for fast installs.
       - name: Set up uv (Python 3.13)
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           python-version: "3.13"
@@ -28,7 +28,7 @@ jobs:
       # Node 20 LTS for the Vite/React frontend; npm cache keys off
       # package-lock.json.
       - name: Set up Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: npm
