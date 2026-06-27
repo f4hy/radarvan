@@ -1,9 +1,19 @@
+"""(Re)create the database tables and seed them from a local replay JSON dump.
+
+Run as a script (``python -m radarvan.db_setup``) to create all tables and, if
+``replay_json_dump.json`` is present, restore parsed-replay records from it.
+"""
+
 import json
 from .db_utils import DatabaseManager, ReplayManager
 import os
 from pathlib import Path
 from datetime import datetime
+
+import structlog
 from tqdm import tqdm
+
+logger = structlog.get_logger(__name__)
 
 # Initialize database connection (do this once at application startup)
 constring = os.getenv("DATABASE_URL")
@@ -17,7 +27,7 @@ def restore_jsons() -> None:
     if not replay_dump_path.exists():
         return
     parsed = json.loads(replay_dump_path.read_text())
-    print(f"loaded {len(parsed)} from {replay_dump_path}")
+    logger.info("loaded replay dump", count=len(parsed), path=str(replay_dump_path))
     date_format = "%Y-%m-%dT%H:%M:%S"
     with db_manager.SessionLocal() as session:
         replay_manager = ReplayManager(session, auto_commit=False, notify=False)
@@ -38,13 +48,13 @@ def setup_database() -> None:
     # Drop all
     # print("droping tables")
     # db_manager.drop_all_tables()
-    print("droped tables")
+    logger.info("dropped tables")
     # Create all tables
     db_manager.create_all_tables()
-    print("created tables")
+    logger.info("created tables")
 
     restore_jsons()
-    print("Database setup complete!")
+    logger.info("Database setup complete!")
 
 
 if __name__ == "__main__":

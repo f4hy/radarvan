@@ -118,7 +118,7 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
             continue
 
         if any((p in href) for p in patterns):
-            print("href", href)
+            logger.debug("found href", href=href)
             file_url = urljoin(base_url, href)
             links.append(file_url)
     logger.debug("found links", links=links)
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         replay_manager = ReplayManager(session)
 
         all_paths = asyncio.run(get_replay_urls(0, BASE, replay_manager))
-        print("ALL_PATHS", all_paths)
+        logger.debug("all paths", all_paths=all_paths)
         with open("replay_paths.txt", "w") as f:
             for paths in all_paths:
                 for p in paths:
