@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint, type-check, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Python toolchain (uv manages the 3.13 interpreter via uv.lock /
+      # .python-version). enable-cache keys off uv.lock for fast installs.
+      - name: Set up uv (Python 3.13)
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      # Node 20 LTS for the Vite/React frontend; npm cache keys off
+      # package-lock.json.
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # Mirrors `make install` (uv sync + npm install / ci).
+      - name: Install dependencies
+        run: make install
+
+      # Mirrors `make check` (ruff lint + mypy).
+      - name: Python checks (ruff + mypy)
+        run: make check
+
+      # Mirrors `make ts-check` (prettier --check + eslint + tsc).
+      - name: TypeScript checks (prettier + eslint + tsc)
+        run: make ts-check
+
+      # `uv run pytest`. CI runs against a clean git checkout, so any test
+      # that depends on fixtures NOT committed to the repo cannot run here:
+      #   * references/ is gitignored (see .gitignore) -> test_timezone.py and
+      #     test_cncstats_types.py::test_v2_stats_absent_for_old_format
+      #   * tests/new_cncstats_output.json is untracked -> the test_new_output_*
+      #     cases in test_cncstats_types.py
+      # These are deselected below; everything else is gated. DATABASE_URL is a
+      # dummy value because several modules read it at import time -- no real
+      # database is contacted by the offline test suite.
+      - name: Python tests (pytest)
+        env:
+          DATABASE_URL: "sqlite://"
+        run: >
+          uv run pytest
+          --ignore=tests/test_timezone.py
+          --deselect "tests/test_cncstats_types.py::test_v2_stats_absent_for_old_format"
+          --deselect "tests/test_cncstats_types.py::test_new_output_parses_header"
+          --deselect "tests/test_cncstats_types.py::test_new_output_parses_players"
+          --deselect "tests/test_cncstats_types.py::test_new_output_has_stats"
+          --deselect "tests/test_cncstats_types.py::test_new_output_time_series"
+          --deselect "tests/test_cncstats_types.py::test_new_output_game_info"
+          --deselect "tests/test_cncstats_types.py::test_new_output_header_players"
+
+      # Mirrors `npm test` (vitest run).
+      - name: Frontend tests (vitest)
+        run: npm run test
+
+      # Mirrors `npm run build` (tsc && vite build).
+      - name: Frontend build
+        run: npm run build
