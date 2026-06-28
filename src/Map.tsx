@@ -88,7 +88,7 @@ export type EventDot = {
   tooltip?: string
   // Optional styling used by the replay-playback overlay. Defaults preserve the
   // original kill-map look (8px translucent circle).
-  shape?: "circle" | "square"
+  shape?: "circle" | "square" | "x"
   size?: number
   opacity?: number
   borderColor?: string
@@ -310,16 +310,43 @@ export default function GameMap(props: {
             {mapData &&
               props.eventDots?.map((dot, i) => {
                 const size = dot.size ?? 8
+                const common = {
+                  position: "absolute" as const,
+                  left: `${(dot.x / mapData.extent.width) * 100}%`,
+                  top: `${(1 - dot.y / mapData.extent.height) * 100}%`,
+                  transform: "translate(-50%, -50%)",
+                  opacity: dot.opacity ?? 0.75,
+                  pointerEvents: dot.tooltip
+                    ? ("auto" as const)
+                    : ("none" as const),
+                }
+                if (dot.shape === "x") {
+                  return (
+                    <Box
+                      key={i}
+                      component="span"
+                      title={dot.tooltip}
+                      sx={{
+                        ...common,
+                        color: dot.color,
+                        fontSize: size,
+                        lineHeight: 1,
+                        fontWeight: "bold",
+                        textShadow: "0 0 2px rgba(0,0,0,0.9)",
+                        userSelect: "none",
+                      }}
+                    >
+                      ✕
+                    </Box>
+                  )
+                }
                 return (
                   <Box
                     key={i}
                     component="span"
                     title={dot.tooltip}
                     sx={{
-                      position: "absolute",
-                      left: `${(dot.x / mapData.extent.width) * 100}%`,
-                      top: `${(1 - dot.y / mapData.extent.height) * 100}%`,
-                      transform: "translate(-50%, -50%)",
+                      ...common,
                       width: size,
                       height: size,
                       borderRadius: dot.shape === "square" ? "2px" : "50%",
@@ -331,8 +358,6 @@ export default function GameMap(props: {
                         dot.shape === "square"
                           ? "0 0 2px rgba(0,0,0,0.7)"
                           : "none",
-                      opacity: dot.opacity ?? 0.75,
-                      pointerEvents: dot.tooltip ? "auto" : "none",
                     }}
                   />
                 )

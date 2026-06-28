@@ -14,6 +14,7 @@ Name | Type
 `killer` | string
 `victim` | string
 `damageType` | string
+`value` | number
 
 ## Example
 
@@ -30,6 +31,7 @@ const example = {
   "killer": null,
   "victim": null,
   "damageType": null,
+  "value": null,
 } satisfies KillEventOutput
 
 console.log(example)

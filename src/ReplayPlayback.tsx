@@ -17,7 +17,7 @@ import { buildPlayerColorMap, getColorHex } from "./utils"
 const SPEEDS = [1, 2, 4] as const
 // Kills are momentary: a kill marker is shown for this many match-minutes after
 // it happens, then fades out (structures, by contrast, persist).
-const KILL_FADE_MIN = 0.4
+const KILL_FADE_MIN = 1.2
 const TICK_MS = 100
 
 function fmt(minute: number): string {
@@ -25,6 +25,12 @@ function fmt(minute: number): string {
   const m = Math.floor(totalSec / 60)
   const s = totalSec % 60
   return `${m}:${s.toString().padStart(2, "0")}`
+}
+
+// Kill marker size (px) scaled by value destroyed. sqrt keeps cheap units
+// readable while letting expensive losses stand out, clamped to a sane range.
+function killSize(value: number): number {
+  return Math.min(22, Math.max(9, 9 + Math.sqrt(Math.max(0, value)) * 0.26))
 }
 
 /**
@@ -80,10 +86,10 @@ export default function ReplayPlayback(props: {
         y: e.y,
         color: colors[e.playerName] ?? "#888",
         shape: "square",
-        size: 9,
-        opacity: 0.95,
-        borderColor:
-          e.kind === "capture" ? "#ffd700" : "rgba(255,255,255,0.85)",
+        size: 6,
+        opacity: 0.6,
+        // Built structures are subtle (no outline); captures keep a gold border.
+        borderColor: e.kind === "capture" ? "#ffd700" : undefined,
         tooltip: `${e.playerName} ${
           e.kind === "capture" ? "captured" : "built"
         } ${e.name} @ ${fmt(e.atMinute)}`,
@@ -97,10 +103,12 @@ export default function ReplayPlayback(props: {
         x: e.x,
         y: e.y,
         color: colors[e.killerPlayer] ?? "#d33",
-        shape: "circle",
-        size: 7,
-        opacity: 0.85 * (1 - age / KILL_FADE_MIN),
-        tooltip: `${e.killerPlayer} killed ${e.victimPlayer} @ ${fmt(e.atMinute)}`,
+        shape: "x",
+        size: killSize(e.value ?? 0),
+        opacity: 0.9 * (1 - age / KILL_FADE_MIN),
+        tooltip: `${e.killerPlayer} killed ${e.victimPlayer} (${e.killer} → ${e.victim}${
+          e.value ? `, $${e.value}` : ""
+        }) @ ${fmt(e.atMinute)}`,
       })
     }
     return out
@@ -196,8 +204,9 @@ export default function ReplayPlayback(props: {
         ))}
       </Stack>
       <Typography variant="caption" color="text.secondary">
-        ■ structures (persist) · ● kills (flash) · gold border = captured —{" "}
-        {structuresShown} structures, {killsShown} kills so far
+        ■ structures (persist) · ✕ kills (sized by value destroyed) · gold
+        border = captured — {structuresShown} structures, {killsShown} kills so
+        far
       </Typography>
     </Box>
   )

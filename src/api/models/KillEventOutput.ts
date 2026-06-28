@@ -67,6 +67,12 @@ export interface KillEventOutput {
      * @memberof KillEventOutput
      */
     damageType: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof KillEventOutput
+     */
+    value?: number;
 }
 
 /**
@@ -102,6 +108,7 @@ export function KillEventOutputFromJSONTyped(json: any, ignoreDiscriminator: boo
         'killer': json['killer'],
         'victim': json['victim'],
         'damageType': json['damageType'],
+        'value': json['value'] == null ? undefined : json['value'],
     };
 }
 
@@ -124,6 +131,7 @@ export function KillEventOutputToJSONTyped(value?: KillEventOutput | null, ignor
         'killer': value['killer'],
         'victim': value['victim'],
         'damageType': value['damageType'],
+        'value': value['value'],
     };
 }
 

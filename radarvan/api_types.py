@@ -298,6 +298,9 @@ class KillEventOutput(BaseModel):
     killer: str
     victim: str
     damage_type: str = Field(alias="damageType")
+    # Build cost of the destroyed object (0 when unknown). Used to size kill
+    # markers in the replay view by value destroyed.
+    value: int = 0
 
 
 class MapEventOutput(BaseModel):

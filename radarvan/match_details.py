@@ -266,6 +266,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     for kev in replay.stats.kill_events if replay.stats else []:
         killer_name = name_by_idx.get(kev.killer_player, "unk")
         victim_name = name_by_idx.get(kev.victim_player, "unk")
+        cost = unit_cost.get(kev.victim, 0)
         kill_events.append(
             KillEventOutput(
                 at_minute=kev.frame * scale,
@@ -276,9 +277,9 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
                 killer=kev.killer,
                 victim=kev.victim,
                 damage_type=kev.damage_type,
+                value=cost,
             )
         )
-        cost = unit_cost.get(kev.victim, 0)
         is_bldg = kev.victim_type == "structure"
         if killer_name != "unk":
             dest = bd_by_player if is_bldg else ud_by_player
