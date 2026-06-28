@@ -86,6 +86,12 @@ export type EventDot = {
   y: number
   color: string
   tooltip?: string
+  // Optional styling used by the replay-playback overlay. Defaults preserve the
+  // original kill-map look (8px translucent circle).
+  shape?: "circle" | "square"
+  size?: number
+  opacity?: number
+  borderColor?: string
 }
 
 export default function GameMap(props: {
@@ -302,25 +308,35 @@ export default function GameMap(props: {
                 },
               )}
             {mapData &&
-              props.eventDots?.map((dot, i) => (
-                <Box
-                  key={i}
-                  component="span"
-                  title={dot.tooltip}
-                  sx={{
-                    position: "absolute",
-                    left: `${(dot.x / mapData.extent.width) * 100}%`,
-                    top: `${(1 - dot.y / mapData.extent.height) * 100}%`,
-                    transform: "translate(-50%, -50%)",
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    bgcolor: dot.color,
-                    opacity: 0.75,
-                    pointerEvents: dot.tooltip ? "auto" : "none",
-                  }}
-                />
-              ))}
+              props.eventDots?.map((dot, i) => {
+                const size = dot.size ?? 8
+                return (
+                  <Box
+                    key={i}
+                    component="span"
+                    title={dot.tooltip}
+                    sx={{
+                      position: "absolute",
+                      left: `${(dot.x / mapData.extent.width) * 100}%`,
+                      top: `${(1 - dot.y / mapData.extent.height) * 100}%`,
+                      transform: "translate(-50%, -50%)",
+                      width: size,
+                      height: size,
+                      borderRadius: dot.shape === "square" ? "2px" : "50%",
+                      bgcolor: dot.color,
+                      border: dot.borderColor
+                        ? `1.5px solid ${dot.borderColor}`
+                        : "none",
+                      boxShadow:
+                        dot.shape === "square"
+                          ? "0 0 2px rgba(0,0,0,0.7)"
+                          : "none",
+                      opacity: dot.opacity ?? 0.75,
+                      pointerEvents: dot.tooltip ? "auto" : "none",
+                    }}
+                  />
+                )
+              })}
           </Box>
         )}
         {props.showDownload && !showPlaceholder && (

@@ -300,6 +300,24 @@ class KillEventOutput(BaseModel):
     damage_type: str = Field(alias="damageType")
 
 
+class MapEventOutput(BaseModel):
+    """A single map-positioned, time-stamped event for replay playback.
+
+    `kind` is one of "build" (structure completed) or "capture" (neutral/enemy
+    structure taken). `player_name` is the owner after the event; `name` is the
+    cleaned object name. Kill events are served separately via `kill_events`.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: float = Field(alias="atMinute")
+    x: float
+    y: float
+    player_name: str = Field(alias="playerName")
+    kind: str
+    name: str
+
+
 class CostsBuiltObject(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -490,6 +508,11 @@ class MatchDetails(BaseModel):
     building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
     kill_events: list[KillEventOutput] = Field(default_factory=list, alias="killEvents")
+    # Map-positioned structure builds & captures, sorted by time, for the
+    # replay-playback view (kills are in `kill_events`).
+    map_events: list[MapEventOutput] = Field(
+        default_factory=list, alias="mapEvents"
+    )
     player_money_spent: dict[str, int] = Field(default_factory=dict)
     player_money_collected: dict[str, int] = Field(default_factory=dict)
     # Minute at which each player first hit generals rank 5.

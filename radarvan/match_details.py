@@ -23,6 +23,7 @@ from collections import defaultdict
 from .api_types import (
     AcademyStats,
     KillEventOutput,
+    MapEventOutput,
     MatchDetails,
     ObjectSummary as APIObjectSummary,
     PlayerSummary as APIPlayerSummary,
@@ -34,6 +35,7 @@ from .apm import apm_over_time, apms_from_replay
 from .build_order import build_order_from_replay
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db_utils import DatabaseManager, ReplayManager
+from .replay_helpers import clean_object_name
 from .stats_extraction import (
     milestone_timings_from_replay,
     stats_data_from_replay,
@@ -287,6 +289,43 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             lost[victim_name][kev.victim][0] += 1
             lost[victim_name][kev.victim][1] += cost
 
+    # Map-positioned events for the replay-playback view: structures appearing
+    # (builds) and changing hands (captures). Units are intentionally excluded —
+    # they would flood the map and we only want the base-development picture.
+    map_events: list[MapEventOutput] = []
+    if replay.stats:
+        for bev in replay.stats.build_events:
+            if bev.object_type != "structure":
+                continue
+            pname = name_by_idx.get(bev.player)
+            if pname is None:
+                continue
+            map_events.append(
+                MapEventOutput(
+                    at_minute=bev.frame * scale,
+                    x=bev.x,
+                    y=bev.y,
+                    player_name=pname,
+                    kind="build",
+                    name=clean_object_name(bev.object),
+                )
+            )
+        for cev in replay.stats.capture_events:
+            pname = name_by_idx.get(cev.new_owner)
+            if pname is None:
+                continue
+            map_events.append(
+                MapEventOutput(
+                    at_minute=cev.frame * scale,
+                    x=cev.x,
+                    y=cev.y,
+                    player_name=pname,
+                    kind="capture",
+                    name=clean_object_name(cev.object),
+                )
+            )
+    map_events.sort(key=lambda e: e.at_minute)
+
     time_to_rank_5, time_to_search_destroy = milestone_timings_from_replay(
         replay, name_by_idx
     )
@@ -314,6 +353,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             buildings_lost=_to_obj_map(bl_by_player),
         ),
         kill_events=kill_events,
+        map_events=map_events,
         time_to_rank_5=time_to_rank_5,
         time_to_search_destroy=time_to_search_destroy,
         build_orders=build_orders,

@@ -30,6 +30,7 @@ import {
   TimelineEvent,
 } from "./api"
 import GameMap from "./Map"
+import ReplayPlayback from "./ReplayPlayback"
 import { Alert, Stack, Tooltip as MuiTooltip } from "@mui/material"
 import UpgradeIcon from "@mui/icons-material/Upgrade"
 import StarIcon from "@mui/icons-material/Star"
@@ -1167,6 +1168,7 @@ type Displays =
   | "Event Chart"
   | "Detailed Graphs"
   | "Kill Map"
+  | "Replay"
   | "Academy"
   | "Build Order"
 
@@ -1222,6 +1224,14 @@ function DetailViewSelector(props: {
           mapName={props.details.mapName ?? ""}
         />
       )}
+      {props.selectedDisplay === "Replay" && (
+        <ReplayPlayback
+          mapName={props.details.mapName ?? ""}
+          mapEvents={props.details.mapEvents ?? []}
+          killEvents={props.details.killEvents ?? []}
+          playerSummaries={props.details.playerSummary}
+        />
+      )}
       {props.selectedDisplay === "Academy" && (
         <AcademyTable playerSummaries={props.details.playerSummary} />
       )}
@@ -1257,6 +1267,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Event Chart",
     "Detailed Graphs",
     "Kill Map",
+    "Replay",
     "Academy",
     "Build Order",
   ]

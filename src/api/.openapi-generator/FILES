@@ -39,6 +39,7 @@ docs/KillEventOutput.md
 docs/LocationInner.md
 docs/MapData.md
 docs/MapDataPayload.md
+docs/MapEventOutput.md
 docs/MapExtent.md
 docs/MapGeneralWL.md
 docs/MapMatchCount.md
@@ -144,6 +145,7 @@ models/KillEventOutput.ts
 models/LocationInner.ts
 models/MapData.ts
 models/MapDataPayload.ts
+models/MapEventOutput.ts
 models/MapExtent.ts
 models/MapGeneralWL.ts
 models/MapMatchCount.ts

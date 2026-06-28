@@ -34,6 +34,7 @@ export * from './KillEventOutput';
 export * from './LocationInner';
 export * from './MapData';
 export * from './MapDataPayload';
+export * from './MapEventOutput';
 export * from './MapExtent';
 export * from './MapGeneralWL';
 export * from './MapMatchCount';
