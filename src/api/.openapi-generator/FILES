@@ -109,6 +109,8 @@ docs/Upgrades.md
 docs/ValidationError.md
 docs/Value.md
 docs/WinLoss.md
+docs/WinProbOverTime.md
+docs/WinProbPoint.md
 docs/WinnerOverride.md
 index.ts
 models/APM.ts
@@ -213,6 +215,8 @@ models/Upgrades.ts
 models/ValidationError.ts
 models/Value.ts
 models/WinLoss.ts
+models/WinProbOverTime.ts
+models/WinProbPoint.ts
 models/WinnerOverride.ts
 models/index.ts
 runtime.ts

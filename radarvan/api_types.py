@@ -1247,3 +1247,27 @@ class MatchPrediction(BaseModel):
     # Players not in the model's training vocab — their contribution falls back
     # to UNK, so the prediction for them is weak. Surfaced so callers can judge.
     unknown_players: list[str] = Field(default_factory=list)
+
+
+class WinProbPoint(BaseModel):
+    model_config = _SLOTS
+
+    at_minute: float
+    prob_team_a: float
+
+
+class WinProbOverTime(BaseModel):
+    """Win-probability-over-time for one match (sequence ONNX model).
+
+    ``points`` is ordered by time; ``prob_team_a`` is P(team A wins) given the
+    game up to that window. Team A is the lower team id (the model's canonical
+    ordering).
+    """
+
+    model_config = _SLOTS
+
+    match_id: int
+    team_a_players: list[str]
+    team_b_players: list[str]
+    actual_winner: str | None = None  # "team_a" | "team_b" | None
+    points: list[WinProbPoint]

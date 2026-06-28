@@ -57,6 +57,7 @@ import type {
   TeamStatsResponse,
   TournamentReport,
   TournamentResult,
+  WinProbOverTime,
   WinnerOverride,
 } from '../models/index';
 import {
@@ -144,6 +145,8 @@ import {
     TournamentReportToJSON,
     TournamentResultFromJSON,
     TournamentResultToJSON,
+    WinProbOverTimeFromJSON,
+    WinProbOverTimeToJSON,
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
@@ -309,6 +312,10 @@ export interface PredictFromFeaturesApiPredictPostRequest {
 }
 
 export interface PredictMatchApiPredictMatchMatchIdGetRequest {
+    matchId: number;
+}
+
+export interface PredictOverTimeApiPredictOverTimeMatchIdGetRequest {
     matchId: number;
 }
 
@@ -2939,6 +2946,57 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async predictMatchApiPredictMatchMatchIdGet(requestParameters: PredictMatchApiPredictMatchMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchPrediction> {
         const response = await this.predictMatchApiPredictMatchMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictOverTimeApiPredictOverTimeMatchIdGet without sending the request
+     */
+    async predictOverTimeApiPredictOverTimeMatchIdGetRequestOpts(requestParameters: PredictOverTimeApiPredictOverTimeMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling predictOverTimeApiPredictOverTimeMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict/over_time/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Win-probability-over-time curve for an existing match.  Streams the match\'s parsed replay JSON from S3 and runs the sequence ONNX model, returning P(team A wins) at each 30-second window.
+     * Predict Over Time
+     */
+    async predictOverTimeApiPredictOverTimeMatchIdGetRaw(requestParameters: PredictOverTimeApiPredictOverTimeMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WinProbOverTime>> {
+        const requestOptions = await this.predictOverTimeApiPredictOverTimeMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WinProbOverTimeFromJSON(jsonValue));
+    }
+
+    /**
+     * Win-probability-over-time curve for an existing match.  Streams the match\'s parsed replay JSON from S3 and runs the sequence ONNX model, returning P(team A wins) at each 30-second window.
+     * Predict Over Time
+     */
+    async predictOverTimeApiPredictOverTimeMatchIdGet(requestParameters: PredictOverTimeApiPredictOverTimeMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WinProbOverTime> {
+        const response = await this.predictOverTimeApiPredictOverTimeMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

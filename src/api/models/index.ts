@@ -102,4 +102,6 @@ export * from './Upgrades';
 export * from './ValidationError';
 export * from './Value';
 export * from './WinLoss';
+export * from './WinProbOverTime';
+export * from './WinProbPoint';
 export * from './WinnerOverride';

@@ -31,6 +31,7 @@ import {
 } from "./api"
 import GameMap from "./Map"
 import ReplayPlayback from "./ReplayPlayback"
+import AIPredictions from "./AIPredictions"
 import { Alert, Stack, Tooltip as MuiTooltip } from "@mui/material"
 import UpgradeIcon from "@mui/icons-material/Upgrade"
 import StarIcon from "@mui/icons-material/Star"
@@ -42,6 +43,7 @@ import GpsFixedIcon from "@mui/icons-material/GpsFixed"
 import CancelIcon from "@mui/icons-material/Cancel"
 import FlagIcon from "@mui/icons-material/Flag"
 import RadarIcon from "@mui/icons-material/Radar"
+import MovieIcon from "@mui/icons-material/Movie"
 import Loading from "./Loading"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
@@ -1169,8 +1171,21 @@ type Displays =
   | "Detailed Graphs"
   | "Kill Map"
   | "Replay"
+  | "AI"
   | "Academy"
   | "Build Order"
+
+// Decorated tab labels. The ToggleButton `value` stays the plain Displays string
+// (used by the switch); only the rendered label gets an icon/emoji.
+const DISPLAY_LABELS: Partial<Record<Displays, React.ReactNode>> = {
+  AI: "🤖 AI",
+  Replay: (
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      <MovieIcon fontSize="small" />
+      <span>Replay</span>
+    </Stack>
+  ),
+}
 
 function DetailViewSelector(props: {
   selectedDisplay: Displays | null
@@ -1196,7 +1211,7 @@ function DetailViewSelector(props: {
       >
         {props.choices.map((v) => (
           <ToggleButton key={v} value={v}>
-            {v}
+            {DISPLAY_LABELS[v] ?? v}
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
@@ -1231,6 +1246,9 @@ function DetailViewSelector(props: {
           killEvents={props.details.killEvents ?? []}
           playerSummaries={props.details.playerSummary}
         />
+      )}
+      {props.selectedDisplay === "AI" && (
+        <AIPredictions matchId={props.details.matchId} />
       )}
       {props.selectedDisplay === "Academy" && (
         <AcademyTable playerSummaries={props.details.playerSummary} />
@@ -1268,6 +1286,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Detailed Graphs",
     "Kill Map",
     "Replay",
+    "AI",
     "Academy",
     "Build Order",
   ]

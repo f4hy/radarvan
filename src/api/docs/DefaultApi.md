@@ -56,6 +56,7 @@ All URIs are relative to *http://localhost*
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
 | [**predictFromFeaturesApiPredictPost**](DefaultApi.md#predictfromfeaturesapipredictpost) | **POST** /api/predict | Predict From Features |
 | [**predictMatchApiPredictMatchMatchIdGet**](DefaultApi.md#predictmatchapipredictmatchmatchidget) | **GET** /api/predict/match/{match_id} | Predict Match |
+| [**predictOverTimeApiPredictOverTimeMatchIdGet**](DefaultApi.md#predictovertimeapipredictovertimematchidget) | **GET** /api/predict/over_time/{match_id} | Predict Over Time |
 | [**pushMapsToCncstatsApiPushMapsToCncstatsPost**](DefaultApi.md#pushmapstocncstatsapipushmapstocncstatspost) | **POST** /api/push_maps_to_cncstats | Push Maps To Cncstats |
 | [**randomizeDraftApiDraftRandomizePost**](DefaultApi.md#randomizedraftapidraftrandomizepost) | **POST** /api/draft/randomize | Randomize Draft |
 | [**recomputeSuperlativesApiSuperlativesRecomputePost**](DefaultApi.md#recomputesuperlativesapisuperlativesrecomputepost) | **POST** /api/superlatives/recompute | Recompute Superlatives |
@@ -3686,6 +3687,78 @@ example().catch(console.error);
 ### Return type
 
 [**MatchPrediction**](MatchPrediction.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictOverTimeApiPredictOverTimeMatchIdGet
+
+> WinProbOverTime predictOverTimeApiPredictOverTimeMatchIdGet(matchId)
+
+Predict Over Time
+
+Win-probability-over-time curve for an existing match.  Streams the match\&#39;s parsed replay JSON from S3 and runs the sequence ONNX model, returning P(team A wins) at each 30-second window.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictOverTimeApiPredictOverTimeMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies PredictOverTimeApiPredictOverTimeMatchIdGetRequest;
+
+  try {
+    const data = await api.predictOverTimeApiPredictOverTimeMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WinProbOverTime**](WinProbOverTime.md)
 
 ### Authorization
 
