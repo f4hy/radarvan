@@ -13,8 +13,10 @@ import GameMap, { EventDot } from "./Map"
 import { KillEventOutput, MapEventOutput, PlayerSummary } from "./api"
 import { buildPlayerColorMap, getColorHex } from "./utils"
 
-// Speeds are expressed in match-minutes advanced per real second.
-const SPEEDS = [1, 2, 4] as const
+// Playback speed as a multiple of real game time: 1x advances the replay at
+// the actual pace the match was played (one match-minute per 60 real seconds).
+const SPEEDS = [1, 2, 4, 8, 16] as const
+const REALTIME_MIN_PER_SEC = 1 / 60
 // Kills are momentary: a kill marker is shown for this many match-minutes after
 // it happens, then fades out (structures, by contrast, persist).
 const KILL_FADE_MIN = 1.2
@@ -58,14 +60,14 @@ export default function ReplayPlayback(props: {
 
   const [current, setCurrent] = React.useState(0)
   const [playing, setPlaying] = React.useState(false)
-  const [speed, setSpeed] = React.useState<number>(2)
+  const [speed, setSpeed] = React.useState<number>(4)
 
   // Advance the clock while playing; stop once we reach the end.
   React.useEffect(() => {
     if (!playing) return
     const id = window.setInterval(() => {
       setCurrent((c) => {
-        const next = c + speed * (TICK_MS / 1000)
+        const next = c + speed * REALTIME_MIN_PER_SEC * (TICK_MS / 1000)
         return next >= maxMinute ? maxMinute : next
       })
     }, TICK_MS)
