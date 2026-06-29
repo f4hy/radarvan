@@ -3,6 +3,41 @@ export function winRate(wins: number, losses: number): number {
   return tot > 0 ? wins / tot : 0
 }
 
+// Below this many games a win rate is treated as too noisy to trust — used to
+// dim/grey such cells so a 1-0 record doesn't read as a confident 100%.
+export const LOW_SAMPLE_GAMES = 5
+
+// Wilson score interval for a binomial proportion (default z = 1.96 → 95% CI).
+// Unlike the naive wins/n, it accounts for sample size: small n yields a wide
+// interval pulled toward 0.5. `rate` is the point estimate; `low`/`high` are the
+// confidence bounds; all in 0..1. Returns a degenerate interval for n = 0.
+export function wilsonInterval(
+  wins: number,
+  losses: number,
+  z = 1.96,
+): { rate: number; low: number; high: number; n: number } {
+  const n = wins + losses
+  if (n <= 0) return { rate: 0, low: 0, high: 0, n: 0 }
+  const phat = wins / n
+  const z2 = z * z
+  const denom = 1 + z2 / n
+  const center = (phat + z2 / (2 * n)) / denom
+  const margin = (z * Math.sqrt((phat * (1 - phat) + z2 / (4 * n)) / n)) / denom
+  return {
+    rate: phat,
+    low: Math.max(0, center - margin),
+    high: Math.min(1, center + margin),
+    n,
+  }
+}
+
+// The Wilson lower bound — the statistically-honest key for ranking win rates
+// ("how not to sort by average rating"): a 9-1 record outranks a 1-0 one
+// because we're more confident it's genuinely good.
+export function wilsonLowerBound(wins: number, losses: number): number {
+  return wilsonInterval(wins, losses).low
+}
+
 // Format a 0..1 fraction as a whole-number percent, e.g. 0.732 -> "73%".
 export function formatPercent(fraction: number): string {
   return `${(fraction * 100).toFixed(0)}%`

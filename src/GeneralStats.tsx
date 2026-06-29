@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box"
-import Chip from "@mui/material/Chip"
+import MuiTooltip from "@mui/material/Tooltip"
 import Loading from "./Loading"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -19,13 +19,14 @@ import {
   YAxis,
 } from "recharts"
 import WinRateRadar from "./WinRateRadar"
+import WinRateChip from "./WinRateChip"
 import DisplayGeneral from "./Generals"
 import { GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import { toGeneralName } from "./general_utils"
 import { Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
-import { winRate } from "./utils"
+import { winRate, wilsonLowerBound } from "./utils"
 import { CHART_WIN, CHART_LOSS } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -124,7 +125,6 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
   const overall = props.stat.total
   const overallWins = overall?.wins ?? 0
   const overallLosses = overall?.losses ?? 0
-  const rate = winRate(overallWins, overallLosses)
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -133,12 +133,7 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
         <Typography variant="subtitle1" fontWeight="bold">
           {toGeneralName(props.stat.general)}
         </Typography>
-        <Chip
-          label={`${(rate * 100).toFixed(0)}% (${overallWins}W-${overallLosses}L)`}
-          size="small"
-          color={rate >= 0.5 ? "success" : "error"}
-          variant="outlined"
-        />
+        <WinRateChip wins={overallWins} losses={overallLosses} />
       </Stack>
     </Box>
   )
@@ -159,8 +154,8 @@ export default function DisplayGeneralStats() {
     () =>
       [...generalStats.generalStats].sort(
         (a, b) =>
-          winRate(b.total?.wins ?? 0, b.total?.losses ?? 0) -
-          winRate(a.total?.wins ?? 0, a.total?.losses ?? 0),
+          wilsonLowerBound(b.total?.wins ?? 0, b.total?.losses ?? 0) -
+          wilsonLowerBound(a.total?.wins ?? 0, a.total?.losses ?? 0),
       ),
     [generalStats.generalStats],
   )
@@ -201,9 +196,14 @@ export default function DisplayGeneralStats() {
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Grid container spacing={2} alignItems="flex-start">
         <Grid size={{ xs: 12, md: 4 }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            Ordered by winrate
-          </Typography>
+          <MuiTooltip title="Ranked by the lower bound of the 95% Wilson confidence interval, so a well-sampled win rate outranks a lucky small sample. Chips turn green/red only when the interval is confidently above/below 50%; grey means the sample is inconclusive.">
+            <Typography
+              variant="h6"
+              sx={{ mb: 1, cursor: "default", width: "fit-content" }}
+            >
+              Ranked by win rate ⓘ
+            </Typography>
+          </MuiTooltip>
           <Grid container spacing={2}>
             {sorted.map((m) => (
               <Grid key={m.general} size={12}>

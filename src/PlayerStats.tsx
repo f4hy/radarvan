@@ -47,9 +47,10 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { useIsAdmin } from "./AuthContext"
-import { winRate } from "./utils"
+import { winRate, wilsonLowerBound } from "./utils"
 import { CHART_WIN, CHART_LOSS } from "./theme"
 import WinRateRadar from "./WinRateRadar"
+import WinRateChip from "./WinRateChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
@@ -217,16 +218,15 @@ function PlayerBanner(props: {
 }
 
 function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
+  const wins = props.winLoss?.wins ?? 0
+  const losses = props.winLoss?.losses ?? 0
   return (
     <ListItem disableGutters dense>
       <ListItemAvatar>
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
-      <ListItemText
-        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${
-          props.winLoss?.losses ?? 0
-        }]`}
-      />
+      <ListItemText primary={toGeneralName(props.general)} />
+      <WinRateChip wins={wins} losses={losses} />
     </ListItem>
   )
 }
@@ -428,7 +428,13 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
         ([generalNum, list]) =>
           [
             generalNum,
-            list.sort((a, b) => b.winRate - a.winRate).slice(0, 3),
+            list
+              .sort(
+                (a, b) =>
+                  wilsonLowerBound(b.wins, b.losses) -
+                  wilsonLowerBound(a.wins, a.losses),
+              )
+              .slice(0, 3),
           ] as const,
       )
   }, [props.playerStats])
@@ -438,7 +444,7 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h5">Best Player Per General</Typography>
         <Tooltip
-          title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown`}
+          title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown, ranked by the lower bound of the 95% Wilson confidence interval (so a well-sampled win rate beats a lucky small one)`}
         >
           <InfoOutlinedIcon
             fontSize="small"
