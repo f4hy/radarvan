@@ -805,6 +805,53 @@ class HeadToHead(BaseModel):
     losses: int
 
 
+class HeadToHeadGame(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: int = Field(alias="matchId")
+    timestamp: datetime
+    date: date
+    map: str
+    duration_minutes: float = Field(alias="durationMinutes")
+    game_format: str | None = Field(default=None, alias="gameFormat")
+    player1_general: General = Field(alias="player1General")
+    player2_general: General = Field(alias="player2General")
+    player1_won: bool = Field(alias="player1Won")
+    player1_team: list[str] = Field(alias="player1Team")
+    player2_team: list[str] = Field(alias="player2Team")
+
+
+class HeadToHeadGeneralRecord(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    general: General
+    wins: int
+    losses: int
+
+
+class HeadToHeadMapRecord(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    map: str
+    player1_wins: int = Field(alias="player1Wins")
+    player2_wins: int = Field(alias="player2Wins")
+
+
+class HeadToHeadDetail(BaseModel):
+    """Detailed head-to-head record between two players in opposite-team games."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player1: str
+    player2: str
+    player1_wins: int = Field(alias="player1Wins")
+    player2_wins: int = Field(alias="player2Wins")
+    games: list[HeadToHeadGame]
+    player1_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player1ByGeneral")
+    player2_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player2ByGeneral")
+    by_map: list[HeadToHeadMapRecord] = Field(alias="byMap")
+
+
 class PlayerRatingDailyChange(BaseModel):
     model_config = _SLOTS_FA
 

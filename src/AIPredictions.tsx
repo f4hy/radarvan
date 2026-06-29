@@ -20,6 +20,7 @@ import {
 import { Client } from "./Client"
 import { MatchPrediction, ResponseError, WinProbOverTime } from "./api"
 import { formatPercent } from "./utils"
+import WinShareBar from "./WinShareBar"
 import Loading from "./Loading"
 
 // A panel's data once its fetch settles: the result, or a friendly error.
@@ -59,24 +60,7 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
           <Typography sx={{ color: teamA }}>{formatPercent(probA)}</Typography>
         </Stack>
         {/* Probability bar: filled portion = P(Team A wins). */}
-        <Box
-          sx={{
-            position: "relative",
-            height: 14,
-            borderRadius: 1,
-            overflow: "hidden",
-            bgcolor: teamB,
-          }}
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              width: `${probA * 100}%`,
-              bgcolor: teamA,
-            }}
-          />
-        </Box>
+        <WinShareBar fraction={probA} leftColor={teamA} rightColor={teamB} />
         <Stack direction="row" justifyContent="space-between">
           <Typography sx={{ color: teamB, fontWeight: "bold" }}>
             Team B: {pred.teamBPlayers.join(", ")}

@@ -35,6 +35,10 @@ docs/GeneralStats.md
 docs/GeneralWL.md
 docs/HTTPValidationError.md
 docs/HeadToHead.md
+docs/HeadToHeadDetail.md
+docs/HeadToHeadGame.md
+docs/HeadToHeadGeneralRecord.md
+docs/HeadToHeadMapRecord.md
 docs/KillEventOutput.md
 docs/LocationInner.md
 docs/MapData.md
@@ -143,6 +147,10 @@ models/GeneralStats.ts
 models/GeneralWL.ts
 models/HTTPValidationError.ts
 models/HeadToHead.ts
+models/HeadToHeadDetail.ts
+models/HeadToHeadGame.ts
+models/HeadToHeadGeneralRecord.ts
+models/HeadToHeadMapRecord.ts
 models/KillEventOutput.ts
 models/LocationInner.ts
 models/MapData.ts

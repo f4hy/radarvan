@@ -25,6 +25,8 @@ import DisplayGeneralStats from "./GeneralStats"
 import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
+import HeadToHead from "./HeadToHead"
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
 import DisplayPlayerSynergy from "./PlayerSynergy"
@@ -53,6 +55,7 @@ const ALL_SELECTIONS = [
   "Matches",
   "GeneralStats",
   "PlayerStats",
+  "HeadToHead",
   "DebugData",
   "MapStats",
   "TeamStats",
@@ -128,6 +131,11 @@ export default function Menu() {
     [
       { value: "Matches", text: "Matches", icon: <ListIcon /> },
       { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
+      {
+        value: "HeadToHead",
+        text: "Head to Head",
+        icon: <CompareArrowsIcon />,
+      },
       {
         value: "GeneralStats",
         text: "General Stats",
@@ -317,6 +325,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayMatches />
     case "PlayerStats":
       return <DisplayPlayerStats />
+    case "HeadToHead":
+      return <HeadToHead />
     case "GeneralStats":
       return <DisplayGeneralStats />
     case "Tournaments":

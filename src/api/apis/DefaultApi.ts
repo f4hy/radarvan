@@ -26,6 +26,7 @@ import type {
   GeneralStats,
   HTTPValidationError,
   HeadToHead,
+  HeadToHeadDetail,
   MapDataPayload,
   MapMatchCount,
   MapRenderRequest,
@@ -83,6 +84,8 @@ import {
     HTTPValidationErrorToJSON,
     HeadToHeadFromJSON,
     HeadToHeadToJSON,
+    HeadToHeadDetailFromJSON,
+    HeadToHeadDetailToJSON,
     MapDataPayloadFromJSON,
     MapDataPayloadToJSON,
     MapMatchCountFromJSON,
@@ -245,6 +248,12 @@ export interface GetMatchesApiMatchesMatchCountGetRequest {
 export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
     excludeDev?: boolean;
+}
+
+export interface GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest {
+    player1: string;
+    player2: string;
+    gameFormat?: string | null;
 }
 
 export interface GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest {
@@ -1871,6 +1880,75 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerGameCountsApiPlayerGameCountsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerGameCount>> {
         const response = await this.getPlayerGameCountsApiPlayerGameCountsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPlayerHeadToHeadApiPlayerHeadToHeadGet without sending the request
+     */
+    async getPlayerHeadToHeadApiPlayerHeadToHeadGetRequestOpts(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['player1'] == null) {
+            throw new runtime.RequiredError(
+                'player1',
+                'Required parameter "player1" was null or undefined when calling getPlayerHeadToHeadApiPlayerHeadToHeadGet().'
+            );
+        }
+
+        if (requestParameters['player2'] == null) {
+            throw new runtime.RequiredError(
+                'player2',
+                'Required parameter "player2" was null or undefined when calling getPlayerHeadToHeadApiPlayerHeadToHeadGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['player1'] != null) {
+            queryParameters['player1'] = requestParameters['player1'];
+        }
+
+        if (requestParameters['player2'] != null) {
+            queryParameters['player2'] = requestParameters['player2'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_head_to_head/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+     * Get Player Head To Head
+     */
+    async getPlayerHeadToHeadApiPlayerHeadToHeadGetRaw(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeadToHeadDetail>> {
+        const requestOptions = await this.getPlayerHeadToHeadApiPlayerHeadToHeadGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => HeadToHeadDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+     * Get Player Head To Head
+     */
+    async getPlayerHeadToHeadApiPlayerHeadToHeadGet(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeadToHeadDetail> {
+        const response = await this.getPlayerHeadToHeadApiPlayerHeadToHeadGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

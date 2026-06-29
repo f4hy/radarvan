@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 
 from .. import (
     create_teams,
+    head_to_head,
     matches,
     player_ids,
     player_rating,
@@ -19,7 +20,9 @@ from .. import (
 )
 from ..api_types import (
     HeadToHead,
+    HeadToHeadDetail,
     PlayerGameCount,
+    PlayerName,
     PlayerRatings,
     PlayerRatingData,
     PlayerRatingDailyChange,
@@ -342,6 +345,27 @@ def get_head_to_head(
         for name, opponents in h2h.items()
         if name in rated_players
     }
+
+
+@router.get("/api/player_head_to_head/", dependencies=[Depends(cache_short)])
+def get_player_head_to_head(
+    player1: PlayerName,
+    player2: PlayerName,
+    game_format: str | None = Query(
+        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> HeadToHeadDetail:
+    """Detailed head-to-head record between two players (opposite-team games only).
+
+    Considers competitive games where both players took part on *different* teams;
+    the winner of each game is the side whose team won. Aggregates the overall
+    record, each player's record by the general they piloted, and the record by
+    map, plus the full game list (most recent first).
+    """
+    games = list(competitive_matches(replay_manager).values())
+    game_list = matches.filter_by_format(games, game_format)
+    return head_to_head.compute_head_to_head(game_list, player1, player2)
 
 
 @router.get("/api/balance_teams/")

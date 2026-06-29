@@ -34,6 +34,7 @@ All URIs are relative to *http://localhost*
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
+| [**getPlayerHeadToHeadApiPlayerHeadToHeadGet**](DefaultApi.md#getplayerheadtoheadapiplayerheadtoheadget) | **GET** /api/player_head_to_head/ | Get Player Head To Head |
 | [**getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet**](DefaultApi.md#getplayerratingdailychangesapiplayerratingsdailychangesget) | **GET** /api/player_ratings/daily_changes/ | Get Player Rating Daily Changes |
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
 | [**getPlayerSkillsApiPlayerSkillsGet**](DefaultApi.md#getplayerskillsapiplayerskillsget) | **GET** /api/player_skills/ | Get Player Skills |
@@ -2168,6 +2169,84 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPlayerHeadToHeadApiPlayerHeadToHeadGet
+
+> HeadToHeadDetail getPlayerHeadToHeadApiPlayerHeadToHeadGet(player1, player2, gameFormat)
+
+Get Player Head To Head
+
+Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string
+    player1: player1_example,
+    // string
+    player2: player2_example,
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest;
+
+  try {
+    const data = await api.getPlayerHeadToHeadApiPlayerHeadToHeadGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **player1** | `string` |  | [Defaults to `undefined`] |
+| **player2** | `string` |  | [Defaults to `undefined`] |
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**HeadToHeadDetail**](HeadToHeadDetail.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
