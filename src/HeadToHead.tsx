@@ -66,9 +66,15 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
           variant="h3"
           sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
         >
-          <span style={{ color: c1 }}>{player1Wins}</span>
-          <span style={{ color: "#888" }}> — </span>
-          <span style={{ color: c2 }}>{player2Wins}</span>
+          <Box component="span" sx={{ color: c1 }}>
+            {player1Wins}
+          </Box>
+          <Box component="span" sx={{ color: "text.secondary" }}>
+            {" — "}
+          </Box>
+          <Box component="span" sx={{ color: c2 }}>
+            {player2Wins}
+          </Box>
         </Typography>
         <Box sx={{ flex: 1, textAlign: "right" }}>
           <Typography variant="h5" sx={{ color: c2, fontWeight: "bold" }}>
@@ -206,7 +212,9 @@ function GameRow(props: {
         <TableCell align="center">
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <DisplayGeneral general={game.player1General} />
-            <span style={{ color: "#888" }}>vs</span>
+            <Box component="span" sx={{ color: "text.secondary" }}>
+              vs
+            </Box>
             <DisplayGeneral general={game.player2General} />
           </Stack>
         </TableCell>
@@ -214,7 +222,7 @@ function GameRow(props: {
           <Chip
             size="small"
             label={`${winnerName} won`}
-            sx={{ bgcolor: winnerColor, color: "#fff" }}
+            sx={{ bgcolor: winnerColor, color: "common.white" }}
           />
         </TableCell>
         <TableCell align="right">

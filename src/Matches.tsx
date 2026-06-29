@@ -9,12 +9,13 @@ import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Card from "@mui/material/Card"
+import Collapse from "@mui/material/Collapse"
+import IconButton from "@mui/material/IconButton"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
-import ListItem from "@mui/material/ListItem"
-import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 
@@ -112,7 +113,7 @@ function StatusBand(props: {
     <Box
       sx={{
         bgcolor: props.color,
-        color: "#fff",
+        color: "common.white",
         px: 1.5,
         py: 0.5,
         display: "flex",
@@ -208,6 +209,112 @@ function FfaPlayerCard(props: { player: Player }) {
   )
 }
 
+// Shared frame for one match so consecutive matches in a day read as distinct
+// panels: a white surface lifted off the grey page with a hairline border + soft
+// shadow, padded so the inner team cards sit inside a clear boundary.
+const MATCH_CARD_SX = {
+  width: "99%",
+  maxWidth: 1600,
+  borderRadius: 2,
+  bgcolor: "background.paper",
+  p: 1.5,
+  mb: 2.5,
+  boxShadow: 1,
+} as const
+
+// Compact, scannable match header shared by the FFA and team cards: the key
+// facts (format, map, length) read on one line; date/version/id are demoted to a
+// muted caption, with a small secondary action (download) at the top-right. The
+// winner is intentionally omitted — each team card carries a "Won/Lost" band.
+function MatchHeader(props: {
+  match: MatchInfo
+  formatLabel: string
+  action?: React.ReactNode
+}) {
+  const { match } = props
+  const mapName = match.map.split("/").slice(-1)[0]
+  const date = match.timestamp.toLocaleString("en-US", {
+    timeZoneName: "short",
+  })
+  return (
+    <Stack
+      direction="row"
+      justifyContent="space-between"
+      alignItems="flex-start"
+      spacing={1}
+      sx={{ width: "100%" }}
+    >
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        flexWrap="wrap"
+        sx={{ minWidth: 0 }}
+      >
+        <Chip label={props.formatLabel} size="small" variant="outlined" />
+        <Typography variant="body2" fontWeight={600}>
+          {mapName}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {match.durationMinutes.toFixed(1)} min · {date} · v{match.gameVersion}{" "}
+          · ID {match.id}
+        </Typography>
+      </Stack>
+      {props.action}
+    </Stack>
+  )
+}
+
+// Small, secondary download action that lives in the header rather than as a
+// full-width button below the match.
+function DownloadReplayButton(props: { matchId: number; filename: string }) {
+  return (
+    <Tooltip
+      title={`Download replay (${props.filename.split("/").pop() ?? "rep"})`}
+    >
+      <IconButton
+        size="small"
+        aria-label="Download replay"
+        onClick={() => downloadReplay(props.matchId, props.filename)}
+      >
+        <DownloadIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  )
+}
+
+// An accordion-style expander for the heavy match details: full-width row with a
+// rotating chevron. The caller renders the details inside a <Collapse> with
+// unmountOnExit so they aren't fetched until the row is first opened.
+function DetailsExpander(props: { open: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      fullWidth
+      onClick={props.onToggle}
+      endIcon={
+        <ExpandMoreIcon
+          sx={{
+            transform: props.open ? "rotate(180deg)" : "none",
+            transition: "transform 0.2s",
+          }}
+        />
+      }
+      sx={{
+        mt: 1,
+        py: 0.75,
+        justifyContent: "space-between",
+        color: "text.secondary",
+        borderTop: 1,
+        borderColor: "divider",
+        borderRadius: 0,
+        "&:hover": { bgcolor: "action.hover" },
+      }}
+    >
+      {props.open ? "Hide match details" : "Show match details"}
+    </Button>
+  )
+}
+
 function FfaMatchDisplay(props: { match: MatchInfo }) {
   const { match } = props
   const [details, setDetails] = React.useState<boolean>(false)
@@ -215,50 +322,26 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
     () => buildPlayerPositions(match.players),
     [match.players],
   )
-  // Timestamps are stored UTC; render in the viewer's local zone with the zone
-  // abbreviation (users span US Eastern/Mountain/Pacific) so the time is unambiguous.
-  const date = match.timestamp.toLocaleString("en-US", {
-    timeZoneName: "short",
-  })
-  const header = (
-    <Box>
-      <Typography variant="body2" fontWeight="bold">
-        FFA · {date}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Map: {match.map.split("/").slice(-1)} ·{" "}
-        {match.durationMinutes.toFixed(1)}min · v{match.gameVersion} · ID:
-        {match.id}
-      </Typography>
-    </Box>
-  )
   return (
-    <Box sx={{ width: "99%", maxWidth: 1600, mb: 2 }}>
-      <ListItem>
-        <ListItemText primary={header} />
-      </ListItem>
-      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ p: 1 }}>
+    <Paper variant="outlined" sx={MATCH_CARD_SX}>
+      <MatchHeader
+        match={match}
+        formatLabel="FFA"
+        action={
+          <DownloadReplayButton matchId={match.id} filename={match.filename} />
+        }
+      />
+      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
         {match.players.map((p) => (
           <FfaPlayerCard key={p.name} player={p} />
         ))}
         <GameMap mapname={match.map} playerPositions={playerPositions} />
       </Stack>
-      <Stack direction="row">
-        <Button variant="contained" onClick={() => setDetails(!details)}>
-          Match Details
-        </Button>
-        <Tooltip title={match.filename}>
-          <Button
-            variant="contained"
-            onClick={() => downloadReplay(match.id, match.filename)}
-            endIcon={<DownloadIcon />}
-          >
-            Download Replay
-          </Button>
-        </Tooltip>
-      </Stack>
-      {details ? <ShowMatchDetails id={match.id} /> : null}
-    </Box>
+      <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
+      <Collapse in={details} unmountOnExit>
+        <ShowMatchDetails id={match.id} />
+      </Collapse>
+    </Paper>
   )
 }
 
@@ -282,23 +365,6 @@ function downloadReplay(matchId: number, fallbackUrl: string) {
     .catch(console.error)
 }
 
-function displayTeam(team: Team): string {
-  switch (team) {
-    case Team.NUMBER_0:
-      return "No Team"
-    case Team.NUMBER_1:
-      return "Team 1"
-    case Team.NUMBER_2:
-      return "Team 2"
-    case Team.NUMBER_3:
-      return "Team 3"
-    case Team.NUMBER_4:
-      return "Team 4"
-    default:
-      return "Unknown Team"
-  }
-}
-
 export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
   match: MatchInfo
   idx: number
@@ -313,53 +379,44 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
     return <FfaMatchDisplay match={props.match} />
   }
 
-  const date = props.match.timestamp.toLocaleString("en-US", {
-    timeZoneName: "short",
-  })
-  const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
-    <Box>
-      <Typography variant="body2" fontWeight="bold">
-        {props.match.composition?.category} · Winner: {winningTeam} · {date}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Map: {props.match.map.split("/").slice(-1)} ·{" "}
-        {props.match.durationMinutes.toFixed(1)}min · v{props.match.gameVersion}{" "}
-        · ID:{props.match.id}
-      </Typography>
-    </Box>
+    <MatchHeader
+      match={props.match}
+      formatLabel={props.match.composition?.category ?? "?"}
+    />
   )
 
   const teams = _.groupBy(props.match.players, "team")
 
-  const paperprops: Record<string, string | number> = {
-    width: "99%",
-    maxWidth: 1600,
-    borderRadius: 3,
-    bgcolor: "transparent",
-    border: "none",
-    mb: 2,
-  }
+  const paperprops: Record<string, string | number> = { ...MATCH_CARD_SX }
   const incomplete = (props.match.incomplete ?? "").length !== 0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
-      <ListItem key="match">
-        <ListItemText key="match-text" primary={header} />
-        {props.match?.notes?.length ? (
-          <Typography color="warning.main" style={{ fontWeight: "bold" }}>
-            {props.match.notes}
-          </Typography>
-        ) : null}
-        {incomplete ? (
-          <Typography color="error.main" style={{ fontWeight: "bold" }}>
-            {props.match.incomplete}
-          </Typography>
-        ) : null}
-      </ListItem>
+      <MatchHeader
+        match={props.match}
+        formatLabel={props.match.composition?.category ?? "?"}
+        action={
+          <DownloadReplayButton
+            matchId={props.match.id}
+            filename={props.match.filename}
+          />
+        }
+      />
+      {props.match?.notes?.length ? (
+        <Typography color="warning.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+          {props.match.notes}
+        </Typography>
+      ) : null}
+      {incomplete ? (
+        <Typography color="error.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+          {props.match.incomplete}
+        </Typography>
+      ) : null}
       <Stack
         direction="row"
         justifyContent="flex-start"
         flexWrap={{ xs: "wrap", md: "nowrap" }}
+        sx={{ mt: 1 }}
       >
         {Object.values(teams).map((team) => (
           <TeamCard
@@ -375,32 +432,21 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
           />
         </Box>
       </Stack>
-      <Stack direction="row">
-        <Button variant="contained" onClick={() => setDetails(!details)}>
-          Match Details
-        </Button>
-        <Tooltip title={props.match.filename}>
-          <Button
-            variant="contained"
-            onClick={() => downloadReplay(props.match.id, props.match.filename)}
-            endIcon={<DownloadIcon />}
-          >
-            Download Replay
-          </Button>
-        </Tooltip>
-      </Stack>
-      {details ? <ShowMatchDetails id={props.match.id} /> : null}
+      <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
+      <Collapse in={details} unmountOnExit>
+        <ShowMatchDetails id={props.match.id} />
+      </Collapse>
     </Paper>
   )
 
   if (props.match.incomplete) {
-    paperprops["bgcolor"] = "text.disabled"
-    paperprops["borderColor"] = "red"
+    paperprops["bgcolor"] = "action.disabledBackground"
+    paperprops["borderColor"] = "error.main"
     return (
       <Accordion defaultExpanded={false}>
         <AccordionSummary
           expandIcon={<ArrowDownwardIcon />}
-          sx={{ bgcolor: "text.disabled" }}
+          sx={{ bgcolor: "action.hover" }}
         >
           <Typography color="error.main">Mismatch: </Typography>
           {header}
@@ -540,7 +586,9 @@ function DisplayMatchesForDate(props: {
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
   const date = fmt(props.date)
-  const borderProps = props.selected ? { border: "3px solid green" } : {}
+  const borderProps = props.selected
+    ? { borderColor: "primary.main", borderWidth: 2, borderStyle: "solid" }
+    : {}
   return (
     <>
       <Accordion
