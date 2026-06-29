@@ -8,9 +8,9 @@ import Alert from "@mui/material/Alert"
 import Chip from "@mui/material/Chip"
 import { useTheme } from "@mui/material/styles"
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -111,7 +111,8 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
     () =>
       data.points.map((p) => ({
         minute: Number(p.atMinute.toFixed(2)),
-        prob: p.probTeamA * 100,
+        probA: p.probTeamA * 100,
+        probB: (1 - p.probTeamA) * 100,
       })),
     [data.points],
   )
@@ -132,7 +133,7 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
       </Typography>
       <Box sx={{ width: "100%", height: 300, mt: 1.5 }}>
         <ResponsiveContainer>
-          <LineChart
+          <AreaChart
             data={chart}
             margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
           >
@@ -145,19 +146,41 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
             />
             <YAxis domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} />
             <Tooltip
-              formatter={(v) => [`${Number(v).toFixed(0)}%`, "P(Team A wins)"]}
+              formatter={(v, name) => [
+                `${Number(v).toFixed(0)}%`,
+                name === "probA" ? "Team A" : "Team B",
+              ]}
               labelFormatter={(label) => `${Number(label).toFixed(1)} min`}
             />
-            <ReferenceLine y={50} stroke="#888" strokeDasharray="4 4" />
-            <Line
+            <ReferenceLine
+              y={50}
+              stroke="#fff"
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+            />
+            {/* Stacked + expanded: blue fills up to P(Team A), red fills the
+                rest, so the boundary between them is the win probability. */}
+            <Area
               type="monotone"
-              dataKey="prob"
+              dataKey="probA"
+              stackId="prob"
               stroke={teamA}
+              fill={teamA}
+              fillOpacity={0.75}
               strokeWidth={2}
-              dot={false}
               isAnimationActive={false}
             />
-          </LineChart>
+            <Area
+              type="monotone"
+              dataKey="probB"
+              stackId="prob"
+              stroke={teamB}
+              fill={teamB}
+              fillOpacity={0.75}
+              strokeWidth={0}
+              isAnimationActive={false}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </Box>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
