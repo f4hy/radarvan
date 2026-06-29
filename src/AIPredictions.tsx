@@ -4,9 +4,9 @@ import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
 import Paper from "@mui/material/Paper"
 import Divider from "@mui/material/Divider"
-import LinearProgress from "@mui/material/LinearProgress"
 import Alert from "@mui/material/Alert"
 import Chip from "@mui/material/Chip"
+import { useTheme } from "@mui/material/styles"
 import {
   CartesianGrid,
   Line,
@@ -18,21 +18,15 @@ import {
   YAxis,
 } from "recharts"
 import { Client } from "./Client"
-import { MatchPrediction, WinProbOverTime } from "./api"
+import { MatchPrediction, ResponseError, WinProbOverTime } from "./api"
+import { formatPercent } from "./utils"
 import Loading from "./Loading"
 
-const TEAM_A_COLOR = "#1976d2"
-const TEAM_B_COLOR = "#d32f2f"
-
-function fmtPct(p: number): string {
-  return `${(p * 100).toFixed(0)}%`
-}
+// A panel's data once its fetch settles: the result, or a friendly error.
+type Panel<T> = T | { error: string }
 
 function describeError(e: unknown): string {
-  const status =
-    typeof e === "object" && e !== null && "response" in e
-      ? (e as { response?: { status?: number } }).response?.status
-      : undefined
+  const status = e instanceof ResponseError ? e.response.status : undefined
   if (status === 503)
     return "The prediction model isn't deployed on this server yet."
   if (status === 404) return "Match not found."
@@ -42,6 +36,9 @@ function describeError(e: unknown): string {
 }
 
 function PregamePrediction(props: { pred: MatchPrediction }) {
+  const theme = useTheme()
+  const teamA = theme.palette.primary.main
+  const teamB = theme.palette.error.main
   const { pred } = props
   const probA = pred.probTeamAWins
   const favoredA = pred.favoredTeam === pred.teamA
@@ -56,10 +53,10 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
       </Typography>
       <Stack spacing={1.5} sx={{ mt: 1.5 }}>
         <Stack direction="row" justifyContent="space-between">
-          <Typography sx={{ color: TEAM_A_COLOR, fontWeight: "bold" }}>
+          <Typography sx={{ color: teamA, fontWeight: "bold" }}>
             Team A: {pred.teamAPlayers.join(", ")}
           </Typography>
-          <Typography sx={{ color: TEAM_A_COLOR }}>{fmtPct(probA)}</Typography>
+          <Typography sx={{ color: teamA }}>{formatPercent(probA)}</Typography>
         </Stack>
         {/* Probability bar: filled portion = P(Team A wins). */}
         <Box
@@ -68,7 +65,7 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
             height: 14,
             borderRadius: 1,
             overflow: "hidden",
-            bgcolor: TEAM_B_COLOR,
+            bgcolor: teamB,
           }}
         >
           <Box
@@ -76,24 +73,24 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
               position: "absolute",
               inset: 0,
               width: `${probA * 100}%`,
-              bgcolor: TEAM_A_COLOR,
+              bgcolor: teamA,
             }}
           />
         </Box>
         <Stack direction="row" justifyContent="space-between">
-          <Typography sx={{ color: TEAM_B_COLOR, fontWeight: "bold" }}>
+          <Typography sx={{ color: teamB, fontWeight: "bold" }}>
             Team B: {pred.teamBPlayers.join(", ")}
           </Typography>
-          <Typography sx={{ color: TEAM_B_COLOR }}>
-            {fmtPct(1 - probA)}
+          <Typography sx={{ color: teamB }}>
+            {formatPercent(1 - probA)}
           </Typography>
         </Stack>
         <Typography variant="body2">
           Favored:{" "}
-          <strong style={{ color: favoredA ? TEAM_A_COLOR : TEAM_B_COLOR }}>
+          <strong style={{ color: favoredA ? teamA : teamB }}>
             Team {favoredA ? "A" : "B"}
           </strong>{" "}
-          ({fmtPct(pred.favoredWinProb)})
+          ({formatPercent(pred.favoredWinProb)})
         </Typography>
         {pred.unknownPlayers && pred.unknownPlayers.length > 0 && (
           <Typography variant="caption" color="text.secondary">
@@ -106,6 +103,9 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
 }
 
 function OverTimePrediction(props: { data: WinProbOverTime }) {
+  const theme = useTheme()
+  const teamA = theme.palette.primary.main
+  const teamB = theme.palette.error.main
   const { data } = props
   const chart = React.useMemo(
     () =>
@@ -152,7 +152,7 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
             <Line
               type="monotone"
               dataKey="prob"
-              stroke={TEAM_A_COLOR}
+              stroke={teamA}
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
@@ -162,9 +162,8 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
       </Box>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
         <Typography variant="caption" color="text.secondary">
-          Line above 50% favors{" "}
-          <span style={{ color: TEAM_A_COLOR }}>Team A</span>; below favors{" "}
-          <span style={{ color: TEAM_B_COLOR }}>Team B</span>.
+          Line above 50% favors <span style={{ color: teamA }}>Team A</span>;
+          below favors <span style={{ color: teamB }}>Team B</span>.
         </Typography>
         {winner && (
           <Chip
@@ -180,73 +179,49 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
 }
 
 export default function AIPredictions(props: { matchId: number }) {
-  const [pregame, setPregame] = React.useState<MatchPrediction | null>(null)
-  const [overTime, setOverTime] = React.useState<WinProbOverTime | null>(null)
-  const [pregameErr, setPregameErr] = React.useState<string | null>(null)
-  const [overTimeErr, setOverTimeErr] = React.useState<string | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  const [pregame, setPregame] = React.useState<Panel<MatchPrediction> | null>(
+    null,
+  )
+  const [overTime, setOverTime] = React.useState<Panel<WinProbOverTime> | null>(
+    null,
+  )
 
   React.useEffect(() => {
     let cancelled = false
-    setLoading(true)
     setPregame(null)
     setOverTime(null)
-    setPregameErr(null)
-    setOverTimeErr(null)
-    const p1 = Client.predictMatchApiPredictMatchMatchIdGet({
+    Client.predictMatchApiPredictMatchMatchIdGet({ matchId: props.matchId })
+      .then((r) => !cancelled && setPregame(r))
+      .catch((e) => !cancelled && setPregame({ error: describeError(e) }))
+    Client.predictOverTimeApiPredictOverTimeMatchIdGet({
       matchId: props.matchId,
     })
-      .then((r) => {
-        if (!cancelled) setPregame(r)
-      })
-      .catch((e) => {
-        if (!cancelled) setPregameErr(describeError(e))
-      })
-    const p2 = Client.predictOverTimeApiPredictOverTimeMatchIdGet({
-      matchId: props.matchId,
-    })
-      .then((r) => {
-        if (!cancelled) setOverTime(r)
-      })
-      .catch((e) => {
-        if (!cancelled) setOverTimeErr(describeError(e))
-      })
-    Promise.allSettled([p1, p2]).then(() => {
-      if (!cancelled) setLoading(false)
-    })
+      .then((r) => !cancelled && setOverTime(r))
+      .catch((e) => !cancelled && setOverTime({ error: describeError(e) }))
     return () => {
       cancelled = true
     }
   }, [props.matchId])
 
-  if (loading) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <LinearProgress />
-        <Loading />
-      </Box>
-    )
+  if (pregame === null || overTime === null) {
+    return <Loading />
   }
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 760 }}>
       <Paper variant="outlined" sx={{ p: 2 }}>
-        {pregame ? (
-          <PregamePrediction pred={pregame} />
+        {"error" in pregame ? (
+          <Alert severity="info">{pregame.error}</Alert>
         ) : (
-          <Alert severity="info">
-            {pregameErr ?? "No pre-game prediction."}
-          </Alert>
+          <PregamePrediction pred={pregame} />
         )}
       </Paper>
       <Divider />
       <Paper variant="outlined" sx={{ p: 2 }}>
-        {overTime ? (
-          <OverTimePrediction data={overTime} />
+        {"error" in overTime ? (
+          <Alert severity="info">{overTime.error}</Alert>
         ) : (
-          <Alert severity="info">
-            {overTimeErr ?? "No over-time prediction."}
-          </Alert>
+          <OverTimePrediction data={overTime} />
         )}
       </Paper>
     </Stack>

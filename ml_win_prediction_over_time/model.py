@@ -26,7 +26,8 @@ class WinProbModel(nn.Module):
             num_layers=m.num_layers,
             batch_first=True,
             dropout=m.dropout if m.num_layers > 1 else 0.0,
-            bidirectional=False,
+            # Keep this False for serving — a live win bar can't see the future.
+            bidirectional=m.bidirectional,
         )
         self.head = nn.Linear(m.hidden, 1)
 

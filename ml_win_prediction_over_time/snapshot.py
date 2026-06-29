@@ -77,6 +77,10 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
     if side_won[0] == side_won[1]:
         return None  # draw / undetermined
     label_a_win = 1 if side_won[0] else 0
+    # Rosters per canonical side, derived here so serving never re-splits the
+    # teams (and so the names can't drift from label_a_win / prob_team_a).
+    team_a_players = [p.name for p in humans if p.team == team_a]
+    team_b_players = [p.name for p in humans if p.team != team_a]
 
     stats = replay.stats
 
@@ -127,6 +131,8 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
         "frame_count": frame_count,
         "snapshot_interval": snapshot_interval,
         "label_a_win": label_a_win,
+        "team_a_players": team_a_players,
+        "team_b_players": team_b_players,
         "events": events,
         "money": money,
     }

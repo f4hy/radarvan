@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import BUCKET_SECONDS, MAX_BUCKETS, N_FEATURES
+from .config import BUCKET_SECONDS, MAX_BUCKETS
 from .snapshot import EV_CAPTURE, EV_KILL, EV_STRUCT, EV_UNIT, Record
 
 # Per-side cumulative feature order (money is index 0, the rest come from events).
@@ -69,21 +69,21 @@ def match_to_sequence(rec: Record) -> SeqMatch | None:
     si = rec.get("snapshot_interval", 0) or 1
     sec_per_snap = si * sec_per_frame
     money_level = np.zeros((n_buckets, 2), dtype=np.float64)
-    for side in (0, 1):
-        series = rec["money"].get(str(side), [])
-        if not series:
-            continue
-        for b in range(n_buckets):
-            t_sec = (b + 1) * BUCKET_SECONDS
-            k = int(t_sec / sec_per_snap) if sec_per_snap > 0 else 0
-            money_level[b, side] = series[min(max(k, 0), len(series) - 1)]
+    if sec_per_snap > 0:
+        snap_idx = (np.arange(1, n_buckets + 1) * BUCKET_SECONDS / sec_per_snap).astype(int)
+        for side in (0, 1):
+            series = rec["money"].get(str(side), [])
+            if series:
+                arr = np.asarray(series)
+                money_level[:, side] = arr[np.clip(snap_idx, 0, len(arr) - 1)]
 
-    feats = np.zeros((n_buckets, N_FEATURES), dtype=np.float32)
-    for b in range(n_buckets):
-        a = np.log1p(np.concatenate([[money_level[b, 0]], cum[b, 0]]))  # [7]
-        bb = np.log1p(np.concatenate([[money_level[b, 1]], cum[b, 1]]))  # [7]
-        elapsed = (b + 1) / n_buckets
-        feats[b] = np.concatenate([a, bb, a - bb, [elapsed]]).astype(np.float32)
+    # Per-side feature blocks [n_buckets, 7]: money + the 6 cumulative event counts.
+    feat_a = np.log1p(np.concatenate([money_level[:, 0:1], cum[:, 0]], axis=1))
+    feat_b = np.log1p(np.concatenate([money_level[:, 1:2], cum[:, 1]], axis=1))
+    elapsed = (np.arange(1, n_buckets + 1) / n_buckets)[:, None]
+    feats = np.concatenate([feat_a, feat_b, feat_a - feat_b, elapsed], axis=1).astype(
+        np.float32
+    )
 
     return SeqMatch(
         x=feats, label=int(rec["label_a_win"]), length=n_buckets, match_id=rec["match_id"]

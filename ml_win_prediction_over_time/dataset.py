@@ -33,8 +33,9 @@ class Batch:
 
 class SeqDataset(Dataset[_Item]):
     def __init__(self, seqs: list[SeqMatch], stats: FeatureStats):
+        # stats.apply already returns float32 (its inputs are all float32).
         self._items: list[_Item] = [
-            (stats.apply(s.x).astype(np.float32), s.label, s.length) for s in seqs
+            (stats.apply(s.x), s.label, s.length) for s in seqs
         ]
 
     def __len__(self) -> int:

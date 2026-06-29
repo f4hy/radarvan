@@ -52,36 +52,18 @@ def model_available() -> bool:
     return MODEL_PATH.exists() and STATS_PATH.exists()
 
 
-def _rosters(replay: EnhancedReplayV2) -> tuple[list[str], list[str]] | None:
-    """(team_a names, team_b names) with team_a == lower team id; None if not 2-sided.
-
-    Mirrors the canonical side assignment in ``snapshot.record_from_replay`` so the
-    rosters line up with the model's ``prob_team_a``.
-    """
-    humans = [p for p in replay.summary if p.team >= 0 and p.player_type == "Human"]
-    teams = sorted({p.team for p in humans})
-    if len(teams) != 2:
-        return None
-    team_a = teams[0]
-    a = [p.name for p in humans if p.team == team_a]
-    b = [p.name for p in humans if p.team != team_a]
-    return a, b
-
-
 def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
     """Win-probability curve for a parsed replay.
 
     Returns ``None`` if the replay isn't a usable two-team game with a decisive
-    winner (the same gate the model was trained under).
+    winner (the same gate the model was trained under). Rosters come straight
+    from the encoded record, so the names always line up with ``prob_team_a``.
     """
     record = record_from_replay(replay)
     if record is None:
         return None
     seq = match_to_sequence(record)
     if seq is None:
-        return None
-    rosters = _rosters(replay)
-    if rosters is None:
         return None
 
     x = _stats().apply(seq.x).astype(np.float32)[None]  # [1, T, F]
@@ -93,8 +75,8 @@ def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
     actual = "team_a" if record["label_a_win"] else "team_b"
     return WinProbOverTime(
         match_id=int(record["match_id"]),
-        team_a_players=rosters[0],
-        team_b_players=rosters[1],
+        team_a_players=record["team_a_players"],
+        team_b_players=record["team_b_players"],
         actual_winner=actual,
         points=points,
     )
