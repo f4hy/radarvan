@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import json
 import os
 import subprocess
@@ -50,6 +51,21 @@ EV_CAPTURE = 3  # a structure captured
 Record = dict[str, Any]
 
 
+def _higher_slot_is_side_a(match_id: int) -> bool:
+    """Stable per-match coin flip: should the *higher* team slot be side A?
+
+    If side A were always the lower lobby team-slot, the model keys on lobby
+    order — and in our data the lower slot wins only ~42% of games, so the
+    sequence model's t=0 prior (no events yet) sits at ~0.42 instead of 0.5.
+    Team-slot order is arbitrary, so we assign sides by a deterministic hash of
+    the match id; that balances ``label_a_win`` to ~0.5 and removes the spurious
+    order signal. Deterministic (not ``random``) so training and serving — which
+    both call this on the same ``match_id`` — always agree.
+    """
+    digest = hashlib.blake2b(str(match_id).encode(), digest_size=2).digest()
+    return bool(digest[0] & 1)
+
+
 def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
     """Distil one replay into a compact, side-labelled event record.
 
@@ -64,7 +80,9 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
     teams = sorted({p.team for p in humans})
     if len(teams) != 2:
         return None
-    team_a = teams[0]
+    # Side A is one of the two team slots, chosen by a stable per-match hash
+    # rather than "lowest slot" so the model can't key on arbitrary lobby order.
+    team_a = teams[1] if _higher_slot_is_side_a(replay.replay_id) else teams[0]
 
     # side 0 == team_a, side 1 == the other team.
     index_side: dict[int, int] = {}
