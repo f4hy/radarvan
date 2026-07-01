@@ -21,6 +21,7 @@ import type {
   DraftResult,
   FetchMissingMapResult,
   FetchMissingMapsResponse,
+  FFAStats,
   GameComposition,
   GameRecord,
   GeneralStats,
@@ -74,6 +75,8 @@ import {
     FetchMissingMapResultToJSON,
     FetchMissingMapsResponseFromJSON,
     FetchMissingMapsResponseToJSON,
+    FFAStatsFromJSON,
+    FFAStatsToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
     GameRecordFromJSON,
@@ -1042,6 +1045,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.getDatesApiDatesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getFfaStatsApiFfastatsGet without sending the request
+     */
+    async getFfaStatsApiFfastatsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/ffastats`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Stats scoped to human free-for-all games (player wins, general win rates, …).
+     * Get Ffa Stats
+     */
+    async getFfaStatsApiFfastatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FFAStats>> {
+        const requestOptions = await this.getFfaStatsApiFfastatsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FFAStatsFromJSON(jsonValue));
+    }
+
+    /**
+     * Stats scoped to human free-for-all games (player wins, general win rates, …).
+     * Get Ffa Stats
+     */
+    async getFfaStatsApiFfastatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FFAStats> {
+        const response = await this.getFfaStatsApiFfastatsGetRaw(initOverrides);
         return await response.value();
     }
 

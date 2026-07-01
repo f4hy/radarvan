@@ -24,6 +24,7 @@ from .routes import (
     admin,
     auth,
     draft,
+    ffa,
     files,
     generals,
     map_upload,
@@ -115,6 +116,7 @@ app.include_router(files.router, dependencies=PROTECTED)
 app.include_router(matches.router, dependencies=PROTECTED)
 app.include_router(players.router, dependencies=PROTECTED)
 app.include_router(generals.router, dependencies=PROTECTED)
+app.include_router(ffa.router, dependencies=PROTECTED)
 app.include_router(teams.router, dependencies=PROTECTED)
 app.include_router(maps.router, dependencies=PROTECTED)
 app.include_router(draft.router, dependencies=PROTECTED)

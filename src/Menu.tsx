@@ -4,6 +4,7 @@ import TableView from "@mui/icons-material/TableView"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
+import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import PersonIcon from "@mui/icons-material/Person"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 import LoginIcon from "@mui/icons-material/Login"
@@ -25,6 +26,7 @@ import DisplayGeneralStats from "./GeneralStats"
 import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
+import DisplayFFAStats from "./FFA"
 import HeadToHead from "./HeadToHead"
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import DisplayDebugData from "./DebugData"
@@ -55,6 +57,7 @@ const ALL_SELECTIONS = [
   "Matches",
   "GeneralStats",
   "PlayerStats",
+  "FFA",
   "HeadToHead",
   "DebugData",
   "MapStats",
@@ -141,6 +144,7 @@ export default function Menu() {
         text: "General Stats",
         icon: <MilitaryTechIcon />,
       },
+      { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
       { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
       { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
       { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
@@ -329,6 +333,8 @@ function Main(props: { selection: Selection }) {
       return <HeadToHead />
     case "GeneralStats":
       return <DisplayGeneralStats />
+    case "FFA":
+      return <DisplayFFAStats />
     case "Tournaments":
       return <DisplayTournamentResults />
     case "BalanceTeams":
