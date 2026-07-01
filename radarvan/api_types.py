@@ -13,6 +13,7 @@ from pydantic import (
 from datetime import datetime, date
 from enum import IntEnum
 from typing import Annotated, Literal
+from . import bracket as _bracket
 from .game_composition import GameComposition
 from .player_ids import (
     is_admin as _is_admin_player,
@@ -744,8 +745,14 @@ class CreateBracketRequest(BaseModel):
     @model_validator(mode="after")
     def _validate_seeds(self) -> "CreateBracketRequest":
         seeds = sorted(p.seed for p in self.players)
-        if seeds != list(range(1, 13)):
-            raise ValueError("players must have exactly 12 unique seeds numbered 1-12")
+        n = len(seeds)
+        if not (_bracket.MIN_PLAYERS <= n <= _bracket.MAX_PLAYERS):
+            raise ValueError(
+                f"players must number between {_bracket.MIN_PLAYERS} "
+                f"and {_bracket.MAX_PLAYERS}"
+            )
+        if seeds != list(range(1, n + 1)):
+            raise ValueError(f"players must have {n} unique seeds numbered 1-{n}")
         return self
 
 
@@ -756,6 +763,32 @@ class SetBracketMatchRequest(BaseModel):
     best_of: Literal[3, 5, 7, 9] | None = None
     score_a: int | None = None
     score_b: int | None = None
+
+
+class SeedSource(BaseModel):
+    model_config = _SLOTS
+
+    kind: Literal["seed"] = "seed"
+    seed: int
+
+
+class WinnerOfSource(BaseModel):
+    model_config = _SLOTS
+
+    kind: Literal["winner"] = "winner"
+    match_id: str
+
+
+class LoserOfSource(BaseModel):
+    model_config = _SLOTS
+
+    kind: Literal["loser"] = "loser"
+    match_id: str
+
+
+MatchSource = Annotated[
+    SeedSource | WinnerOfSource | LoserOfSource, Field(discriminator="kind")
+]
 
 
 class BracketMatchOutput(BaseModel):
@@ -773,6 +806,8 @@ class BracketMatchOutput(BaseModel):
     score_b: int | None = None
     winner: str | None = None
     status: Literal["pending", "ready", "completed", "not_applicable"]
+    source_a: MatchSource
+    source_b: MatchSource
 
 
 class BracketTournamentOutput(BaseModel):

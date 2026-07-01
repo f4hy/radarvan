@@ -15,6 +15,15 @@ export interface BracketPlayerEntry {
   player_name: string
 }
 
+// Where a match's two slots come from — a raw seed number, or the
+// winner/loser of an earlier match. Drives the frontend's bracket-tree
+// layout so it doesn't need its own copy of the (now player-count-dependent)
+// topology-generation logic.
+export type MatchSource =
+  | { kind: "seed"; seed: number }
+  | { kind: "winner"; match_id: string }
+  | { kind: "loser"; match_id: string }
+
 export interface BracketMatchOutput {
   match_id: string
   bracket: BracketSide
@@ -28,6 +37,8 @@ export interface BracketMatchOutput {
   score_b: number | null
   winner: string | null
   status: BracketMatchStatus
+  source_a: MatchSource
+  source_b: MatchSource
 }
 
 export interface BracketTournamentOutput {

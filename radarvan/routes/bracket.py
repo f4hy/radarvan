@@ -22,7 +22,11 @@ from ..api_types import (
     BracketPlayerEntry,
     BracketTournamentOutput,
     CreateBracketRequest,
+    LoserOfSource,
+    MatchSource,
+    SeedSource,
     SetBracketMatchRequest,
+    WinnerOfSource,
 )
 from ..db import BracketMatchState, BracketTournament, User
 from ..dependencies import get_bracket_repo, require_current_user
@@ -36,6 +40,14 @@ router = APIRouter(tags=["bracket"])
 def _require_tournament_admin(user: User) -> None:
     if not player_ids.is_tournament_admin(user.player_name):
         raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def _to_api_source(source: bracket.Source) -> MatchSource:
+    if isinstance(source, bracket.Seed):
+        return SeedSource(seed=source.seed)
+    if isinstance(source, bracket.WinnerOf):
+        return WinnerOfSource(match_id=source.match_id)
+    return LoserOfSource(match_id=source.match_id)
 
 
 def _resolve(
@@ -74,6 +86,8 @@ def _build_output(
                 score_b=raw.score_b if raw else None,
                 winner=m.winner,
                 status=m.status,
+                source_a=_to_api_source(m.source_a),
+                source_b=_to_api_source(m.source_b),
             )
         )
 
@@ -106,7 +120,7 @@ def get_bracket(
 
 @router.get("/api/bracket_eligible_players")
 def eligible_players() -> list[str]:
-    """Known player names — the pool admins pick the 12 entrants from."""
+    """Known player names — the pool admins pick the 9-16 entrants from."""
     return sorted(player_ids.PLAYER_NAMES)
 
 
@@ -116,7 +130,7 @@ def create_bracket(
     user: User = Depends(require_current_user),
     repo: BracketRepo = Depends(get_bracket_repo),
 ) -> BracketTournamentOutput:
-    """Create (or replace) the bracket with these 12 seeded entrants."""
+    """Create (or replace) the bracket with these 9-16 seeded entrants."""
     _require_tournament_admin(user)
     tournament = repo.create([(p.seed, p.player_name) for p in req.players])
     logger.info(
@@ -134,11 +148,11 @@ def set_bracket_match(
 ) -> BracketTournamentOutput:
     """Set a match's scheduled date / best-of / score (admin only)."""
     _require_tournament_admin(user)
-    if not bracket.is_valid_match_id(match_id):
-        raise HTTPException(status_code=404, detail="Unknown match id")
     tournament = repo.get_active()
     if tournament is None:
         raise HTTPException(status_code=404, detail="No active bracket tournament")
+    if not bracket.is_valid_match_id(match_id, len(tournament.players)):
+        raise HTTPException(status_code=404, detail="Unknown match id")
 
     if req.score_a is not None or req.score_b is not None:
         if req.best_of is None or req.score_a is None or req.score_b is None:

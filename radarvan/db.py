@@ -423,9 +423,10 @@ class BracketTournament(Base):
 
     Only one row exists at a time — creating/resetting a bracket deletes the
     existing row (BracketPlayer/BracketMatchState cascade with it) and
-    inserts a fresh one. See radarvan/bracket.py for the fixed 12-entrant
-    topology; this table (plus BracketPlayer/BracketMatchState) only stores
-    the seeding and per-match results, not the bracket shape itself.
+    inserts a fresh one. See radarvan/bracket.py for the 9-16 entrant
+    topology (a fixed 16-slot bracket with byes for smaller fields); this
+    table (plus BracketPlayer/BracketMatchState) only stores the seeding and
+    per-match results, not the bracket shape itself.
     """
 
     __tablename__ = "bracket_tournaments"

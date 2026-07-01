@@ -15,7 +15,9 @@ import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import { alpha } from "@mui/material/styles"
+import AddIcon from "@mui/icons-material/Add"
 import CloseIcon from "@mui/icons-material/Close"
+import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import Loading from "./Loading"
@@ -33,6 +35,7 @@ import {
   BracketMatchStatus,
   BracketPlayerEntry,
   BracketTournamentOutput,
+  MatchSource,
   SetBracketMatchRequest,
   createBracket,
   fetchBracket,
@@ -60,6 +63,11 @@ const DEFAULT_SEEDS = [
   "Skip",
   "STM",
 ]
+
+// The bracket is always a fixed 16-slot shape (more byes for smaller
+// fields) — mirrors radarvan/bracket.py's MIN_PLAYERS/MAX_PLAYERS.
+const MIN_PLAYERS = 9
+const MAX_PLAYERS = 16
 
 const BEST_OF_OPTIONS = [3, 5, 7, 9] as const
 
@@ -99,110 +107,6 @@ function sliderSx(color: string) {
   } as const
 }
 
-// Static shape of the fixed 12-entrant double-elimination bracket, mirroring
-// the TOPOLOGY in radarvan/bracket.py. This never changes (the bracket is
-// always exactly 12 seeded entrants) — it's only used here to lay the tree
-// out visually; every actual game result comes from the API response.
-type Source =
-  | { kind: "seed"; seed: number }
-  | { kind: "winner"; matchId: string }
-  | { kind: "loser"; matchId: string }
-
-const MATCH_SOURCES: Record<string, [Source, Source]> = {
-  "WB1-1": [
-    { kind: "seed", seed: 8 },
-    { kind: "seed", seed: 9 },
-  ],
-  "WB1-2": [
-    { kind: "seed", seed: 5 },
-    { kind: "seed", seed: 12 },
-  ],
-  "WB1-3": [
-    { kind: "seed", seed: 7 },
-    { kind: "seed", seed: 10 },
-  ],
-  "WB1-4": [
-    { kind: "seed", seed: 6 },
-    { kind: "seed", seed: 11 },
-  ],
-  "WB2-1": [
-    { kind: "seed", seed: 1 },
-    { kind: "winner", matchId: "WB1-1" },
-  ],
-  "WB2-2": [
-    { kind: "seed", seed: 4 },
-    { kind: "winner", matchId: "WB1-2" },
-  ],
-  "WB2-3": [
-    { kind: "seed", seed: 2 },
-    { kind: "winner", matchId: "WB1-3" },
-  ],
-  "WB2-4": [
-    { kind: "seed", seed: 3 },
-    { kind: "winner", matchId: "WB1-4" },
-  ],
-  "WB3-1": [
-    { kind: "winner", matchId: "WB2-1" },
-    { kind: "winner", matchId: "WB2-2" },
-  ],
-  "WB3-2": [
-    { kind: "winner", matchId: "WB2-3" },
-    { kind: "winner", matchId: "WB2-4" },
-  ],
-  "WB4-1": [
-    { kind: "winner", matchId: "WB3-1" },
-    { kind: "winner", matchId: "WB3-2" },
-  ],
-  "LB1-1": [
-    { kind: "loser", matchId: "WB1-1" },
-    { kind: "loser", matchId: "WB1-2" },
-  ],
-  "LB1-2": [
-    { kind: "loser", matchId: "WB1-3" },
-    { kind: "loser", matchId: "WB1-4" },
-  ],
-  "LB2a-1": [
-    { kind: "loser", matchId: "WB2-1" },
-    { kind: "loser", matchId: "WB2-2" },
-  ],
-  "LB2a-2": [
-    { kind: "loser", matchId: "WB2-3" },
-    { kind: "loser", matchId: "WB2-4" },
-  ],
-  "LB2b-1": [
-    { kind: "winner", matchId: "LB1-1" },
-    { kind: "winner", matchId: "LB2a-1" },
-  ],
-  "LB2b-2": [
-    { kind: "winner", matchId: "LB1-2" },
-    { kind: "winner", matchId: "LB2a-2" },
-  ],
-  "LB3-1": [
-    { kind: "winner", matchId: "LB2b-1" },
-    { kind: "loser", matchId: "WB3-1" },
-  ],
-  "LB3-2": [
-    { kind: "winner", matchId: "LB2b-2" },
-    { kind: "loser", matchId: "WB3-2" },
-  ],
-  "LB4-1": [
-    { kind: "winner", matchId: "LB3-1" },
-    { kind: "winner", matchId: "LB3-2" },
-  ],
-  "LB5-1": [
-    { kind: "winner", matchId: "LB4-1" },
-    { kind: "loser", matchId: "WB4-1" },
-  ],
-  "GF-1": [
-    { kind: "winner", matchId: "WB4-1" },
-    { kind: "winner", matchId: "LB5-1" },
-  ],
-  "GF-2": [
-    { kind: "winner", matchId: "WB4-1" },
-    { kind: "winner", matchId: "LB5-1" },
-  ],
-}
-
 type BracketNode =
   | {
       kind: "match"
@@ -220,7 +124,7 @@ function loserOf(match: BracketMatchOutput): string | null {
 }
 
 function buildChild(
-  source: Source,
+  source: MatchSource,
   matchesById: Map<string, BracketMatchOutput>,
   seedToName: Map<number, string>,
   ownBracket: string,
@@ -232,9 +136,9 @@ function buildChild(
       name: seedToName.get(source.seed),
     }
   }
-  const refMatch = matchesById.get(source.matchId)
+  const refMatch = matchesById.get(source.match_id)
   if (refMatch && refMatch.bracket === ownBracket) {
-    return buildNode(source.matchId, matchesById, seedToName, ownBracket)
+    return buildNode(source.match_id, matchesById, seedToName, ownBracket)
   }
   const playerName = refMatch
     ? source.kind === "winner"
@@ -243,7 +147,7 @@ function buildChild(
     : null
   return {
     kind: "ref",
-    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${refMatch?.round_name ?? source.matchId}`,
+    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${refMatch?.round_name ?? source.match_id}`,
     playerName,
   }
 }
@@ -255,7 +159,6 @@ function buildNode(
   ownBracket: string,
 ): BracketNode {
   const match = matchesById.get(matchId)
-  const [sourceA, sourceB] = MATCH_SOURCES[matchId]
   if (!match) {
     return {
       kind: "ref",
@@ -263,9 +166,13 @@ function buildNode(
       playerName: null,
     }
   }
-  if (sourceA.kind === "seed" && sourceB.kind === "seed") {
-    // Both entrants are raw seeds playing each other directly (Winners
-    // Round 1) — nothing earlier to draw, so this is a leaf in the tree.
+  const { source_a: sourceA, source_b: sourceB } = match
+  if (match.bracket === "W" && match.round_number === 1) {
+    // Winners Round 1 is always the tree's true leaf level — nothing
+    // earlier to draw. (Can't tell this from "both slots are raw seeds":
+    // with enough byes, two bye seeds can also meet directly in a LATER
+    // round, e.g. Winners Round 2 at low player counts — that's still a
+    // real round with a column of its own, not a leaf.)
     return { kind: "match", match, children: null }
   }
   return {
@@ -724,7 +631,8 @@ export default function DisplayBracket() {
     React.useState<BracketTournamentOutput | null>(null)
   const [eligiblePlayers, setEligiblePlayers] = React.useState<string[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [seedNames, setSeedNames] = React.useState<string[]>(DEFAULT_SEEDS)
+  const [seedNames, setSeedNames] =
+    React.useState<(string | null)[]>(DEFAULT_SEEDS)
   const [creating, setCreating] = React.useState(false)
   const [editingMatchId, setEditingMatchId] = React.useState<string | null>(
     null,
@@ -740,6 +648,20 @@ export default function DisplayBracket() {
       .finally(() => setLoading(false))
   }, [showError])
 
+  // Keep the create/reset form in sync with whichever tournament is
+  // actually active — otherwise editing (e.g. removing a player) operates on
+  // the hardcoded defaults instead of the real current roster, so the
+  // change doesn't appear to "take" when you reset.
+  React.useEffect(() => {
+    if (bracketData) {
+      setSeedNames(
+        [...bracketData.players]
+          .sort((a, b) => a.seed - b.seed)
+          .map((p) => p.player_name),
+      )
+    }
+  }, [bracketData])
+
   React.useEffect(() => {
     if (isTournamentAdmin) {
       fetchEligiblePlayers()
@@ -748,12 +670,19 @@ export default function DisplayBracket() {
     }
   }, [isTournamentAdmin])
 
+  const seedNamesValid =
+    seedNames.length >= MIN_PLAYERS &&
+    seedNames.length <= MAX_PLAYERS &&
+    seedNames.every((n) => n !== null && n !== "") &&
+    new Set(seedNames).size === seedNames.length
+
   const handleCreate = async () => {
+    if (!seedNamesValid) return
     setCreating(true)
     try {
       const players: BracketPlayerEntry[] = seedNames.map((name, idx) => ({
         seed: idx + 1,
-        player_name: name,
+        player_name: name as string,
       }))
       setBracketData(await createBracket(players))
     } catch (e) {
@@ -807,8 +736,19 @@ export default function DisplayBracket() {
   const winnersTree = bracketData
     ? buildNode("WB4-1", matchesById, seedToName, "W")
     : null
-  const losersTree = bracketData
-    ? buildNode("LB5-1", matchesById, seedToName, "L")
+  // The losers bracket's final match id varies by player count (more byes
+  // means more/fewer reconciliation rounds) — find it dynamically as the
+  // highest-round_number match in the losers bracket, rather than assuming
+  // a fixed id.
+  const lbFinalMatch = (bracketData?.matches ?? [])
+    .filter((m) => m.bracket === "L")
+    .reduce<BracketMatchOutput | null>(
+      (best, m) =>
+        best === null || m.round_number > best.round_number ? m : best,
+      null,
+    )
+  const losersTree = lbFinalMatch
+    ? buildNode(lbFinalMatch.match_id, matchesById, seedToName, "L")
     : null
   const grandFinalNodes = bracketData
     ? [
@@ -850,24 +790,39 @@ export default function DisplayBracket() {
                   options={eligiblePlayers}
                   value={name}
                   onChange={(_e, val) => {
-                    if (val !== null) {
-                      setSeedNames((prev) => {
-                        const next = [...prev]
-                        next[idx] = val
-                        return next
-                      })
-                    }
+                    setSeedNames((prev) => {
+                      const next = [...prev]
+                      next[idx] = val
+                      return next
+                    })
                   }}
                   renderInput={(params) => (
                     <TextField {...params} size="small" label="Player" />
                   )}
                   sx={{ width: 220 }}
                 />
+                <IconButton
+                  size="small"
+                  disabled={seedNames.length <= MIN_PLAYERS}
+                  onClick={() =>
+                    setSeedNames((prev) => prev.filter((_, i) => i !== idx))
+                  }
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
               </Stack>
             ))}
             <Button
+              startIcon={<AddIcon />}
+              disabled={seedNames.length >= MAX_PLAYERS}
+              onClick={() => setSeedNames((prev) => [...prev, null])}
+              sx={{ alignSelf: "flex-start" }}
+            >
+              Add player
+            </Button>
+            <Button
               variant="contained"
-              disabled={creating || new Set(seedNames).size !== 12}
+              disabled={creating || !seedNamesValid}
               onClick={handleCreate}
               sx={{ alignSelf: "flex-start" }}
             >

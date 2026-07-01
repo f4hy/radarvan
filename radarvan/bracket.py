@@ -1,26 +1,37 @@
-"""Fixed 12-entrant double-elimination bracket: static topology + pure resolution.
+"""Double-elimination bracket for 9-16 entrants: topology generation + pure resolution.
 
-The topology below is hand-derived and verified (not a generic N-player
-algorithm — this bracket is always exactly 12 seeded entrants). Standard
-bracket-size-16 seeding gives winners-bracket round 1 four real matches
-(8v9, 5v12, 7v10, 6v11) with seeds 1-4 byeing straight to round 2; every
-round after that is a clean power-of-two single elimination. The losers
-bracket has an inherent sizing mismatch after round 1 (only 4 winners-bracket
-round-1 losers vs. round 2's 4 losers, since byes mean round 1 dropped fewer
-losers than a full bracket would) — LB round 2 is split into a "2a" round
-that lets the fresh round-2 droppers play each other and a "2b" round that
-merges them with round 1's survivors, which is the standard way real
-bracket generators reconcile this. Verified by loss-accounting: every match
+The bracket size is always fixed at 16 (never shrinks for smaller fields) —
+a 9-11 player tournament is "effectively a 16-person bracket with more byes",
+not a smaller bracket. Standard bracket-size-16 seeding (``seed_order(16)``)
+assigns byes to whichever seeds' round-1 opponent would exceed the actual
+entrant count; every round after round 1 is a clean power-of-two single
+elimination (8→4→2→1), regardless of how many byes there were.
+
+The losers bracket is the genuinely tricky part: round 1's bye count shrinks
+the population of first-round losers relative to a full 16-bracket, so the
+survivor count arriving at each subsequent "meet the newly-dropped losers"
+stage doesn't line up 1:1 without reconciliation. ``build_topology`` handles
+this generically via three primitives — ``_halve_once`` (round-1 self-pairing,
+tolerating an odd population by carrying one entrant through untested),
+``_reduce_to`` (repeated self-pairing to shrink a population down to a
+target size), and ``_merge_wave`` (levels two populations to the same size
+via ``_reduce_to`` before pairing them 1:1) — verified by hand for every bye
+count 0-7 (equivalently 16-9 entrants) via loss-accounting: every match
 produces exactly one loss, and a double-elim bracket for N entrants needs
-exactly 2*(N-1) losses (here 22) to reach a champion, or 2*(N-1)+1 (23) if
-the grand final goes to a reset — this topology sums to exactly that.
+exactly 2*(N-1) losses (or 2*(N-1)+1 with a grand-final reset) to reach a
+champion. The old fixed-12 topology (byes=4) is a special case of this and
+collapses onto exactly the same match structure.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Literal
 
 BracketType = Literal["W", "L", "GF"]
 MatchStatus = Literal["pending", "ready", "completed", "not_applicable"]
+
+MIN_PLAYERS = 9
+MAX_PLAYERS = 16
 
 
 @dataclass(frozen=True)
@@ -51,63 +62,230 @@ class MatchDef:
     slot_b: Source
 
 
-# Seeds that bye straight through winners-bracket round 1 to round 2.
-BYE_SEEDS: tuple[int, ...] = (1, 2, 3, 4)
+@dataclass
+class Topology:
+    matches: list[MatchDef]
+    bye_seeds: list[int]
 
-TOPOLOGY: list[MatchDef] = [
-    # Winners bracket round 1 (4 real matches; seeds 1-4 bye to round 2).
-    MatchDef("WB1-1", "W", 1, "Winners Round 1", Seed(8), Seed(9)),
-    MatchDef("WB1-2", "W", 1, "Winners Round 1", Seed(5), Seed(12)),
-    MatchDef("WB1-3", "W", 1, "Winners Round 1", Seed(7), Seed(10)),
-    MatchDef("WB1-4", "W", 1, "Winners Round 1", Seed(6), Seed(11)),
-    # Winners bracket round 2.
-    MatchDef("WB2-1", "W", 2, "Winners Round 2", Seed(1), WinnerOf("WB1-1")),
-    MatchDef("WB2-2", "W", 2, "Winners Round 2", Seed(4), WinnerOf("WB1-2")),
-    MatchDef("WB2-3", "W", 2, "Winners Round 2", Seed(2), WinnerOf("WB1-3")),
-    MatchDef("WB2-4", "W", 2, "Winners Round 2", Seed(3), WinnerOf("WB1-4")),
-    # Winners bracket semifinals.
-    MatchDef(
-        "WB3-1", "W", 3, "Winners Semifinal", WinnerOf("WB2-1"), WinnerOf("WB2-2")
-    ),
-    MatchDef(
-        "WB3-2", "W", 3, "Winners Semifinal", WinnerOf("WB2-3"), WinnerOf("WB2-4")
-    ),
-    # Winners bracket final.
-    MatchDef("WB4-1", "W", 4, "Winners Final", WinnerOf("WB3-1"), WinnerOf("WB3-2")),
-    # Losers bracket round 1: pair winners-round-1 losers among themselves.
-    MatchDef("LB1-1", "L", 1, "Losers Round 1", LoserOf("WB1-1"), LoserOf("WB1-2")),
-    MatchDef("LB1-2", "L", 1, "Losers Round 1", LoserOf("WB1-3"), LoserOf("WB1-4")),
-    # Losers bracket round 2a: pair winners-round-2 losers among themselves
-    # (reconciles LB1's 2 survivors against WB2's 4 fresh droppers).
-    MatchDef("LB2a-1", "L", 2, "Losers Round 2a", LoserOf("WB2-1"), LoserOf("WB2-2")),
-    MatchDef("LB2a-2", "L", 2, "Losers Round 2a", LoserOf("WB2-3"), LoserOf("WB2-4")),
-    # Losers bracket round 2b: LB1 survivors vs LB2a survivors.
-    MatchDef(
-        "LB2b-1", "L", 2, "Losers Round 2b", WinnerOf("LB1-1"), WinnerOf("LB2a-1")
-    ),
-    MatchDef(
-        "LB2b-2", "L", 2, "Losers Round 2b", WinnerOf("LB1-2"), WinnerOf("LB2a-2")
-    ),
-    # Losers bracket round 3: LB2b survivors vs winners-semifinal losers.
-    MatchDef("LB3-1", "L", 3, "Losers Round 3", WinnerOf("LB2b-1"), LoserOf("WB3-1")),
-    MatchDef("LB3-2", "L", 3, "Losers Round 3", WinnerOf("LB2b-2"), LoserOf("WB3-2")),
-    # Losers bracket round 4: pair LB3 survivors.
-    MatchDef("LB4-1", "L", 4, "Losers Round 4", WinnerOf("LB3-1"), WinnerOf("LB3-2")),
-    # Losers bracket round 5: LB4 survivor vs winners-final loser -> LB champion.
-    MatchDef("LB5-1", "L", 5, "Losers Final", WinnerOf("LB4-1"), LoserOf("WB4-1")),
+
+def seed_order(n: int) -> list[int]:
+    """Standard recursive tournament seeding order for a bracket of size n.
+
+    E.g. seed_order(16) == [1,16,8,9,4,13,5,12,2,15,7,10,3,14,6,11] — the
+    textbook seeding so that top seeds meet as late as possible.
+    """
+    if n == 1:
+        return [1]
+    prev = seed_order(n // 2)
+    result: list[int] = []
+    for s in prev:
+        result.append(s)
+        result.append(n + 1 - s)
+    return result
+
+
+_SEED_ORDER_16 = seed_order(16)
+
+
+def _halve_once(
+    sources: list[Source], round_counter: list[int]
+) -> tuple[list[Source], list[MatchDef]]:
+    """One round of pure self-pairing (used only for the losers-bracket's
+    first wave, since there's no existing survivor population yet to level
+    against). An odd population carries its last entrant through untested."""
+    if len(sources) <= 1:
+        return sources, []
+    round_counter[0] += 1
+    rnum = round_counter[0]
+    n = len(sources) // 2
+    matches = [
+        MatchDef(
+            f"LB{rnum}-{i + 1}",
+            "L",
+            rnum,
+            f"Losers Round {rnum}",
+            sources[2 * i],
+            sources[2 * i + 1],
+        )
+        for i in range(n)
+    ]
+    leftover = sources[2 * n :]
+    next_sources: list[Source] = [WinnerOf(m.match_id) for m in matches] + leftover
+    return next_sources, matches
+
+
+def _reduce_to(
+    pool: list[Source], target: int, round_counter: list[int]
+) -> tuple[list[Source], list[MatchDef]]:
+    """Repeatedly self-pair ``pool`` down to exactly ``target`` (0+ rounds).
+
+    Each round pairs off just enough entrants to reach `target` in one more
+    round (``ceil(len/2)``, clamped at ``target``), leaving the rest to carry
+    through untouched — so an odd `pool` never gets stuck.
+    """
+    all_matches: list[MatchDef] = []
+    while len(pool) > target:
+        length = len(pool)
+        new_len = max(target, -(-length // 2))  # ceil(length / 2)
+        k = length - new_len
+        round_counter[0] += 1
+        rnum = round_counter[0]
+        matches = [
+            MatchDef(
+                f"LB{rnum}-{i + 1}",
+                "L",
+                rnum,
+                f"Losers Round {rnum}",
+                pool[2 * i],
+                pool[2 * i + 1],
+            )
+            for i in range(k)
+        ]
+        leftover = pool[2 * k :]
+        pool = [WinnerOf(m.match_id) for m in matches] + leftover
+        all_matches += matches
+    return pool, all_matches
+
+
+def _merge_wave(
+    existing: list[Source],
+    incoming: list[Source],
+    round_counter: list[int],
+    final_round_name: str | None = None,
+) -> tuple[list[Source], list[MatchDef]]:
+    """Level ``existing`` (current LB survivors) and ``incoming`` (a fresh
+    wave of winners-bracket droppers) to the same size via ``_reduce_to``,
+    then pair them 1:1."""
+    matches: list[MatchDef] = []
+    if len(existing) > len(incoming):
+        existing, ms = _reduce_to(existing, len(incoming), round_counter)
+        matches += ms
+    elif len(incoming) > len(existing):
+        incoming, ms = _reduce_to(incoming, len(existing), round_counter)
+        matches += ms
+    round_counter[0] += 1
+    rnum = round_counter[0]
+    name = final_round_name or f"Losers Round {rnum}"
+    merge_matches = [
+        MatchDef(f"LB{rnum}-{i + 1}", "L", rnum, name, a, b)
+        for i, (a, b) in enumerate(zip(existing, incoming))
+    ]
+    matches += merge_matches
+    return [WinnerOf(m.match_id) for m in merge_matches], matches
+
+
+@lru_cache(maxsize=8)
+def build_topology(num_players: int) -> Topology:
+    """Build the full WB/LB/GF match topology for a fixed 16-slot bracket
+    with ``num_players`` real entrants (9-16); the rest bye through round 1.
+    """
+    if not (MIN_PLAYERS <= num_players <= MAX_PLAYERS):
+        raise ValueError(
+            f"num_players must be between {MIN_PLAYERS} and {MAX_PLAYERS}, "
+            f"got {num_players}"
+        )
+
+    matches: list[MatchDef] = []
+    bye_seeds: list[int] = []
+
+    # Winners bracket round 1: byes go to whichever seed's seed_order(16)
+    # partner exceeds num_players (always the *lower* of the pair, since
+    # seed_order always orders each pair low-then-high and the low half of
+    # any pair is always <= 8 <= MIN_PLAYERS <= num_players).
+    pairs = list(zip(_SEED_ORDER_16[0::2], _SEED_ORDER_16[1::2]))
+    round1_sources: list[Source] = []
+    wb1_index = 0
+    for x, y in pairs:
+        if y > num_players:
+            bye_seeds.append(x)
+            round1_sources.append(Seed(x))
+        else:
+            wb1_index += 1
+            match_id = f"WB1-{wb1_index}"
+            matches.append(
+                MatchDef(match_id, "W", 1, "Winners Round 1", Seed(x), Seed(y))
+            )
+            round1_sources.append(WinnerOf(match_id))
+
+    # Winners bracket round 2 (always a clean 8 -> 4, no more byes ever).
+    round2_sources: list[Source] = []
+    for i, (a, b) in enumerate(
+        zip(round1_sources[0::2], round1_sources[1::2]), start=1
+    ):
+        match_id = f"WB2-{i}"
+        matches.append(MatchDef(match_id, "W", 2, "Winners Round 2", a, b))
+        round2_sources.append(WinnerOf(match_id))
+
+    # Winners semifinals (4 -> 2).
+    round3_sources: list[Source] = []
+    for i, (a, b) in enumerate(
+        zip(round2_sources[0::2], round2_sources[1::2]), start=1
+    ):
+        match_id = f"WB3-{i}"
+        matches.append(MatchDef(match_id, "W", 3, "Winners Semifinal", a, b))
+        round3_sources.append(WinnerOf(match_id))
+
+    # Winners final (2 -> 1).
+    wb_final_id = "WB4-1"
+    matches.append(
+        MatchDef(
+            wb_final_id,
+            "W",
+            4,
+            "Winners Final",
+            round3_sources[0],
+            round3_sources[1],
+        )
+    )
+
+    # Losers bracket: process each winners-bracket round's droppers as a wave.
+    wb1_real_ids = [m.match_id for m in matches if m.bracket == "W" and m.round_number == 1]
+    wb2_ids = [m.match_id for m in matches if m.bracket == "W" and m.round_number == 2]
+    wb3_ids = [m.match_id for m in matches if m.bracket == "W" and m.round_number == 3]
+
+    d1: list[Source] = [LoserOf(mid) for mid in wb1_real_ids]
+    d2: list[Source] = [LoserOf(mid) for mid in wb2_ids]
+    d3: list[Source] = [LoserOf(mid) for mid in wb3_ids]
+    d4: list[Source] = [LoserOf(wb_final_id)]
+
+    round_counter = [0]
+    survivors, m1 = _halve_once(d1, round_counter)
+    matches += m1
+    survivors, m2 = _merge_wave(survivors, d2, round_counter)
+    matches += m2
+    survivors, m3 = _merge_wave(survivors, d3, round_counter)
+    matches += m3
+    survivors, m4 = _merge_wave(
+        survivors, d4, round_counter, final_round_name="Losers Final"
+    )
+    matches += m4
+    # The final merge_wave always reduces to exactly one survivor: the
+    # losers-bracket champion.
+    lb_champion_source = survivors[0]
+
     # Grand final; GF-2 (bracket reset) only applies if the losers-bracket
     # entrant (slot_b) wins GF-1.
-    MatchDef("GF-1", "GF", 1, "Grand Final", WinnerOf("WB4-1"), WinnerOf("LB5-1")),
-    MatchDef(
-        "GF-2", "GF", 2, "Grand Final Reset", WinnerOf("WB4-1"), WinnerOf("LB5-1")
-    ),
-]
+    matches.append(
+        MatchDef(
+            "GF-1", "GF", 1, "Grand Final", WinnerOf(wb_final_id), lb_champion_source
+        )
+    )
+    matches.append(
+        MatchDef(
+            "GF-2",
+            "GF",
+            2,
+            "Grand Final Reset",
+            WinnerOf(wb_final_id),
+            lb_champion_source,
+        )
+    )
 
-_BY_ID: dict[str, MatchDef] = {m.match_id: m for m in TOPOLOGY}
+    return Topology(matches=matches, bye_seeds=bye_seeds)
 
 
-def is_valid_match_id(match_id: str) -> bool:
-    return match_id in _BY_ID
+def is_valid_match_id(match_id: str, num_players: int) -> bool:
+    return any(m.match_id == match_id for m in build_topology(num_players).matches)
 
 
 @dataclass
@@ -130,6 +308,8 @@ class ResolvedMatch:
     winner: str | None
     loser: str | None
     status: MatchStatus
+    source_a: Source = field(repr=False)
+    source_b: Source = field(repr=False)
 
 
 @dataclass
@@ -166,12 +346,14 @@ def resolve_bracket(
     seed_to_name: dict[int, str],
     match_states: dict[str, MatchState],
 ) -> BracketResult:
-    """Walk the static topology and derive every match's players/winner/status.
+    """Build the topology for this player count and derive every match's
+    players/winner/status.
 
     ``match_states`` holds only what's persisted (best_of + scores) per match
     id; everything else — who plays whom, whether a match is playable yet,
     who the champion is — is derived fresh each call.
     """
+    topology = build_topology(len(seed_to_name))
     winners: dict[str, str] = {}
     losers: dict[str, str] = {}
     resolved: dict[str, ResolvedMatch] = {}
@@ -183,7 +365,7 @@ def resolve_bracket(
             return winners.get(src.match_id)
         return losers.get(src.match_id)
 
-    for m in TOPOLOGY:
+    for m in topology.matches:
         player_a = resolve_source(m.slot_a)
         player_b = resolve_source(m.slot_b)
 
@@ -201,6 +383,8 @@ def resolve_bracket(
                     winner=None,
                     loser=None,
                     status="not_applicable",
+                    source_a=m.slot_a,
+                    source_b=m.slot_b,
                 )
                 continue
 
@@ -235,6 +419,8 @@ def resolve_bracket(
             winner=winner,
             loser=loser,
             status=status,
+            source_a=m.slot_a,
+            source_b=m.slot_b,
         )
         if winner is not None:
             winners[m.match_id] = winner
@@ -249,7 +435,9 @@ def resolve_bracket(
     else:
         champion, runner_up = gf1.winner, gf1.loser
 
-    bye_advances = [(s, seed_to_name[s]) for s in BYE_SEEDS if s in seed_to_name]
+    bye_advances = [
+        (s, seed_to_name[s]) for s in topology.bye_seeds if s in seed_to_name
+    ]
 
     return BracketResult(
         matches=list(resolved.values()),
