@@ -232,6 +232,23 @@ function winThreshold(bestOf: number): number {
 
 type Side = "a" | "b"
 
+function SliderField({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <Box sx={{ px: 1 }}>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      {children}
+    </Box>
+  )
+}
+
 function MatchEditor({
   match,
   onSave,
@@ -318,10 +335,7 @@ function MatchEditor({
         ))}
       </ToggleButtonGroup>
       {threshold !== null && bestOf !== null && (
-        <Box sx={{ px: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            Games played
-          </Typography>
+        <SliderField label="Games played">
           <Slider
             min={threshold}
             max={bestOf}
@@ -332,13 +346,10 @@ function MatchEditor({
             onChange={(_e, val) => setGamesPlayed(val as number)}
             sx={sliderSx(BRAND_COLOR)}
           />
-        </Box>
+        </SliderField>
       )}
       {threshold !== null && gamesPlayed !== null && (
-        <Box sx={{ px: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            Winner
-          </Typography>
+        <SliderField label="Winner">
           <Slider
             min={0}
             max={gamesPlayed}
@@ -366,7 +377,7 @@ function MatchEditor({
               setWinnerSide(val === threshold ? "a" : "b")
             }}
           />
-        </Box>
+        </SliderField>
       )}
       {scoreA !== null && scoreB !== null && (
         <Typography variant="body2" sx={{ textAlign: "center" }}>
@@ -704,6 +715,54 @@ export default function DisplayBracket() {
     [showError],
   )
 
+  // Shared by every BracketNodeView so opening the edit dialog doesn't need
+  // a fresh closure per section (Winners/Losers/Grand Final).
+  const handleEdit = React.useCallback(
+    (match: BracketMatchOutput) => setEditingMatchId(match.match_id),
+    [],
+  )
+
+  // The recursive tree-building (two full descents plus the grand-final
+  // leaves) only ever depends on bracketData — memoized so it doesn't redo
+  // that work on every unrelated re-render (e.g. typing in the seed form).
+  const { matchesById, winnersTree, losersTree, grandFinalNodes } =
+    React.useMemo(() => {
+      const matchesById = new Map(
+        (bracketData?.matches ?? []).map((m) => [m.match_id, m]),
+      )
+      const seedToName = new Map(
+        (bracketData?.players ?? []).map((p) => [p.seed, p.player_name]),
+      )
+      // WB4-1/GF-1/GF-2 are safe to hardcode (unlike the losers-bracket final
+      // below): the bracket is always a fixed 16-slot shape, so the winners
+      // bracket always has exactly 4 rounds and the grand final always has
+      // exactly these two match ids, regardless of player count or bye count.
+      const winnersTree = bracketData
+        ? buildNode("WB4-1", matchesById, seedToName, "W")
+        : null
+      // The losers bracket's final match id varies by player count (more
+      // byes means more/fewer reconciliation rounds) — find it dynamically
+      // as the highest-round_number match in the losers bracket, rather
+      // than assuming a fixed id.
+      const lbFinalMatch = (bracketData?.matches ?? [])
+        .filter((m) => m.bracket === "L")
+        .reduce<BracketMatchOutput | null>(
+          (best, m) =>
+            best === null || m.round_number > best.round_number ? m : best,
+          null,
+        )
+      const losersTree = lbFinalMatch
+        ? buildNode(lbFinalMatch.match_id, matchesById, seedToName, "L")
+        : null
+      const grandFinalNodes = bracketData
+        ? [
+            buildNode("GF-1", matchesById, seedToName, "GF"),
+            buildNode("GF-2", matchesById, seedToName, "GF"),
+          ]
+        : []
+      return { matchesById, winnersTree, losersTree, grandFinalNodes }
+    }, [bracketData])
+
   if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
     return (
       <Paper sx={{ p: 2 }}>
@@ -727,35 +786,6 @@ export default function DisplayBracket() {
     )
   }
 
-  const matchesById = new Map(
-    (bracketData?.matches ?? []).map((m) => [m.match_id, m]),
-  )
-  const seedToName = new Map(
-    (bracketData?.players ?? []).map((p) => [p.seed, p.player_name]),
-  )
-  const winnersTree = bracketData
-    ? buildNode("WB4-1", matchesById, seedToName, "W")
-    : null
-  // The losers bracket's final match id varies by player count (more byes
-  // means more/fewer reconciliation rounds) — find it dynamically as the
-  // highest-round_number match in the losers bracket, rather than assuming
-  // a fixed id.
-  const lbFinalMatch = (bracketData?.matches ?? [])
-    .filter((m) => m.bracket === "L")
-    .reduce<BracketMatchOutput | null>(
-      (best, m) =>
-        best === null || m.round_number > best.round_number ? m : best,
-      null,
-    )
-  const losersTree = lbFinalMatch
-    ? buildNode(lbFinalMatch.match_id, matchesById, seedToName, "L")
-    : null
-  const grandFinalNodes = bracketData
-    ? [
-        buildNode("GF-1", matchesById, seedToName, "GF"),
-        buildNode("GF-2", matchesById, seedToName, "GF"),
-      ]
-    : []
   const editingMatch = editingMatchId
     ? (matchesById.get(editingMatchId) ?? null)
     : null
@@ -854,19 +884,19 @@ export default function DisplayBracket() {
             title="Winners Bracket"
             nodes={[winnersTree]}
             isAdmin={isTournamentAdmin}
-            onEdit={(match) => setEditingMatchId(match.match_id)}
+            onEdit={handleEdit}
           />
           <BracketTreeSection
             title="Losers Bracket"
             nodes={[losersTree]}
             isAdmin={isTournamentAdmin}
-            onEdit={(match) => setEditingMatchId(match.match_id)}
+            onEdit={handleEdit}
           />
           <BracketTreeSection
             title="Grand Final"
             nodes={grandFinalNodes}
             isAdmin={isTournamentAdmin}
-            onEdit={(match) => setEditingMatchId(match.match_id)}
+            onEdit={handleEdit}
           />
         </>
       )}

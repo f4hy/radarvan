@@ -50,24 +50,30 @@ def _to_api_source(source: bracket.Source) -> MatchSource:
     return LoserOfSource(match_id=source.match_id)
 
 
-def _resolve(
-    tournament: BracketTournament, repo: BracketRepo
-) -> tuple[bracket.BracketResult, dict[str, BracketMatchState]]:
+def _resolve_from_states(
+    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
+) -> bracket.BracketResult:
     seed_to_name = {p.seed: p.player_name for p in tournament.players}
-    raw_states = repo.get_match_states(tournament.id)
     match_states = {
         match_id: bracket.MatchState(
             best_of=row.best_of, score_a=row.score_a, score_b=row.score_b
         )
         for match_id, row in raw_states.items()
     }
-    return bracket.resolve_bracket(seed_to_name, match_states), raw_states
+    return bracket.resolve_bracket(seed_to_name, match_states)
 
 
-def _build_output(
+def _resolve(
     tournament: BracketTournament, repo: BracketRepo
+) -> tuple[bracket.BracketResult, dict[str, BracketMatchState]]:
+    raw_states = repo.get_match_states(tournament.id)
+    return _resolve_from_states(tournament, raw_states), raw_states
+
+
+def _build_output_from_states(
+    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
 ) -> BracketTournamentOutput:
-    result, raw_states = _resolve(tournament, repo)
+    result = _resolve_from_states(tournament, raw_states)
 
     matches = []
     for m in result.matches:
@@ -105,6 +111,12 @@ def _build_output(
         runner_up=result.runner_up,
         needs_reset=result.needs_reset,
     )
+
+
+def _build_output(
+    tournament: BracketTournament, repo: BracketRepo
+) -> BracketTournamentOutput:
+    return _build_output_from_states(tournament, repo.get_match_states(tournament.id))
 
 
 @router.get("/api/bracket")
@@ -154,6 +166,10 @@ def set_bracket_match(
     if not bracket.is_valid_match_id(match_id, len(tournament.players)):
         raise HTTPException(status_code=404, detail="Unknown match id")
 
+    # Fetched once and reused for both the pre-write validation resolve and
+    # the post-write response, patched in place below instead of re-querying.
+    raw_states = repo.get_match_states(tournament.id)
+
     if req.score_a is not None or req.score_b is not None:
         if req.best_of is None or req.score_a is None or req.score_b is None:
             raise HTTPException(
@@ -165,14 +181,14 @@ def set_bracket_match(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
 
-        result, _ = _resolve(tournament, repo)
+        result = _resolve_from_states(tournament, raw_states)
         match = next(m for m in result.matches if m.match_id == match_id)
         if match.player_a is None or match.player_b is None:
             raise HTTPException(
                 status_code=400, detail="This match's players aren't determined yet"
             )
 
-    repo.set_match(
+    raw_states[match_id] = repo.set_match(
         tournament.id,
         match_id,
         req.scheduled_date,
@@ -180,4 +196,4 @@ def set_bracket_match(
         req.score_a,
         req.score_b,
     )
-    return _build_output(tournament, repo)
+    return _build_output_from_states(tournament, raw_states)

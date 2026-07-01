@@ -11,16 +11,16 @@ The losers bracket is the genuinely tricky part: round 1's bye count shrinks
 the population of first-round losers relative to a full 16-bracket, so the
 survivor count arriving at each subsequent "meet the newly-dropped losers"
 stage doesn't line up 1:1 without reconciliation. ``build_topology`` handles
-this generically via three primitives — ``_halve_once`` (round-1 self-pairing,
-tolerating an odd population by carrying one entrant through untested),
-``_reduce_to`` (repeated self-pairing to shrink a population down to a
-target size), and ``_merge_wave`` (levels two populations to the same size
-via ``_reduce_to`` before pairing them 1:1) — verified by hand for every bye
-count 0-7 (equivalently 16-9 entrants) via loss-accounting: every match
-produces exactly one loss, and a double-elim bracket for N entrants needs
-exactly 2*(N-1) losses (or 2*(N-1)+1 with a grand-final reset) to reach a
-champion. The old fixed-12 topology (byes=4) is a special case of this and
-collapses onto exactly the same match structure.
+this generically via two primitives — ``_reduce_to`` (repeated self-pairing
+to shrink a population down to a target size, tolerating an odd population
+by carrying one entrant through untested each round) and ``_merge_wave``
+(levels two populations to the same size via ``_reduce_to`` before pairing
+them 1:1) — verified by hand for every bye count 0-7 (equivalently 16-9
+entrants) via loss-accounting: every match produces exactly one loss, and a
+double-elim bracket for N entrants needs exactly 2*(N-1) losses (or
+2*(N-1)+1 with a grand-final reset) to reach a champion. The old fixed-12
+topology (byes=4) is a special case of this and collapses onto exactly the
+same match structure.
 """
 
 from dataclasses import dataclass, field
@@ -87,33 +87,6 @@ def seed_order(n: int) -> list[int]:
 _SEED_ORDER_16 = seed_order(16)
 
 
-def _halve_once(
-    sources: list[Source], round_counter: list[int]
-) -> tuple[list[Source], list[MatchDef]]:
-    """One round of pure self-pairing (used only for the losers-bracket's
-    first wave, since there's no existing survivor population yet to level
-    against). An odd population carries its last entrant through untested."""
-    if len(sources) <= 1:
-        return sources, []
-    round_counter[0] += 1
-    rnum = round_counter[0]
-    n = len(sources) // 2
-    matches = [
-        MatchDef(
-            f"LB{rnum}-{i + 1}",
-            "L",
-            rnum,
-            f"Losers Round {rnum}",
-            sources[2 * i],
-            sources[2 * i + 1],
-        )
-        for i in range(n)
-    ]
-    leftover = sources[2 * n :]
-    next_sources: list[Source] = [WinnerOf(m.match_id) for m in matches] + leftover
-    return next_sources, matches
-
-
 def _reduce_to(
     pool: list[Source], target: int, round_counter: list[int]
 ) -> tuple[list[Source], list[MatchDef]]:
@@ -145,6 +118,19 @@ def _reduce_to(
         pool = [WinnerOf(m.match_id) for m in matches] + leftover
         all_matches += matches
     return pool, all_matches
+
+
+def _pair_round(
+    sources: list[Source], round_number: int, round_name: str, id_prefix: str
+) -> tuple[list[Source], list[MatchDef]]:
+    """Pair up consecutive `sources` into one clean (bye-free) winners-bracket
+    round — shared by rounds 2, 3, and the final, which only ever differ in
+    round number/name and id prefix."""
+    matches = [
+        MatchDef(f"{id_prefix}-{i}", "W", round_number, round_name, a, b)
+        for i, (a, b) in enumerate(zip(sources[0::2], sources[1::2]), start=1)
+    ]
+    return [WinnerOf(m.match_id) for m in matches], matches
 
 
 def _merge_wave(
@@ -194,62 +180,44 @@ def build_topology(num_players: int) -> Topology:
     # any pair is always <= 8 <= MIN_PLAYERS <= num_players).
     pairs = list(zip(_SEED_ORDER_16[0::2], _SEED_ORDER_16[1::2]))
     round1_sources: list[Source] = []
-    wb1_index = 0
+    wb1_ids: list[str] = []
     for x, y in pairs:
         if y > num_players:
             bye_seeds.append(x)
             round1_sources.append(Seed(x))
         else:
-            wb1_index += 1
-            match_id = f"WB1-{wb1_index}"
+            match_id = f"WB1-{len(wb1_ids) + 1}"
             matches.append(
                 MatchDef(match_id, "W", 1, "Winners Round 1", Seed(x), Seed(y))
             )
+            wb1_ids.append(match_id)
             round1_sources.append(WinnerOf(match_id))
 
-    # Winners bracket round 2 (always a clean 8 -> 4, no more byes ever).
-    round2_sources: list[Source] = []
-    for i, (a, b) in enumerate(
-        zip(round1_sources[0::2], round1_sources[1::2]), start=1
-    ):
-        match_id = f"WB2-{i}"
-        matches.append(MatchDef(match_id, "W", 2, "Winners Round 2", a, b))
-        round2_sources.append(WinnerOf(match_id))
-
-    # Winners semifinals (4 -> 2).
-    round3_sources: list[Source] = []
-    for i, (a, b) in enumerate(
-        zip(round2_sources[0::2], round2_sources[1::2]), start=1
-    ):
-        match_id = f"WB3-{i}"
-        matches.append(MatchDef(match_id, "W", 3, "Winners Semifinal", a, b))
-        round3_sources.append(WinnerOf(match_id))
-
-    # Winners final (2 -> 1).
-    wb_final_id = "WB4-1"
-    matches.append(
-        MatchDef(
-            wb_final_id,
-            "W",
-            4,
-            "Winners Final",
-            round3_sources[0],
-            round3_sources[1],
-        )
+    # Winners bracket round 2 (always a clean 8 -> 4, no more byes ever),
+    # semifinals (4 -> 2), and final (2 -> 1) — three rounds of the same
+    # bye-free pairing, just with a different round number/name/id prefix.
+    round2_sources, wb2_matches = _pair_round(
+        round1_sources, 2, "Winners Round 2", "WB2"
     )
+    matches += wb2_matches
+    round3_sources, wb3_matches = _pair_round(
+        round2_sources, 3, "Winners Semifinal", "WB3"
+    )
+    matches += wb3_matches
+    _, wb4_matches = _pair_round(round3_sources, 4, "Winners Final", "WB4")
+    matches += wb4_matches
+    wb_final_id = wb4_matches[0].match_id
 
     # Losers bracket: process each winners-bracket round's droppers as a wave.
-    wb1_real_ids = [m.match_id for m in matches if m.bracket == "W" and m.round_number == 1]
-    wb2_ids = [m.match_id for m in matches if m.bracket == "W" and m.round_number == 2]
-    wb3_ids = [m.match_id for m in matches if m.bracket == "W" and m.round_number == 3]
-
-    d1: list[Source] = [LoserOf(mid) for mid in wb1_real_ids]
-    d2: list[Source] = [LoserOf(mid) for mid in wb2_ids]
-    d3: list[Source] = [LoserOf(mid) for mid in wb3_ids]
+    d1: list[Source] = [LoserOf(mid) for mid in wb1_ids]
+    d2: list[Source] = [LoserOf(m.match_id) for m in wb2_matches]
+    d3: list[Source] = [LoserOf(m.match_id) for m in wb3_matches]
     d4: list[Source] = [LoserOf(wb_final_id)]
 
     round_counter = [0]
-    survivors, m1 = _halve_once(d1, round_counter)
+    # Wave 1 is `_reduce_to`'s single-round case (target = ceil(len/2)): pure
+    # self-pairing with no incoming wave to level against yet.
+    survivors, m1 = _reduce_to(d1, -(-len(d1) // 2), round_counter)
     matches += m1
     survivors, m2 = _merge_wave(survivors, d2, round_counter)
     matches += m2

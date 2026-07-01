@@ -3,7 +3,7 @@ tracking per-day/per-match rating changes and upsets."""
 
 from dataclasses import dataclass
 from typing import NamedTuple
-from cachetools import cached
+from cachetools import cached, LRUCache
 from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
 from . import player_ids
@@ -19,8 +19,8 @@ logger = structlog.get_logger(__name__)
 
 NON_COMPETITIVE: set[str] = {"EasyArmy", "MediumArmy"}
 
-MIN_GAMES = 1
-ITERATIONS = 5
+MIN_GAMES = 45
+ITERATIONS = 3
 
 # When a game has any CPU player, scale down how far each player's rating moves
 # (both mu and sigma). 1.0 = full movement, 0.0 = no movement. CPU games still
@@ -334,7 +334,10 @@ def is_ratable_team_game(game: MatchInfo) -> bool:
     return game_composition.competitive_game_filter(game.composition)
 
 
-@cached(cache={}, key=lambda games: frozenset(g.id for g in games))
+@cached(
+    cache=LRUCache(maxsize=32),
+    key=lambda games: frozenset(g.id for g in games),
+)
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     model = get_model()
     filtered_games = [g for g in games if filter_for_rating(g)]

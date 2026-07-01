@@ -5,11 +5,12 @@ each player in `.players` (see `radarvan/matches.py`), so lightweight
 `SimpleNamespace` stand-ins are sufficient (mirrors `tests/test_rating_upsets`).
 """
 
+from datetime import date, timedelta
 from types import SimpleNamespace
 
 import pytest
 
-from radarvan.matches import matches_differ
+from radarvan.matches import filter_by_months_back, matches_differ
 
 
 def _player(**overrides: object) -> SimpleNamespace:
@@ -93,3 +94,27 @@ def test_top_level_field_difference_is_detected(field: str, value: object) -> No
 def test_player_field_difference_is_detected(field: str, value: object) -> None:
     new_players = [_player(**{field: value}), _match().players[1]]
     assert matches_differ(_match(), _match(players=new_players)) is True
+
+
+def _game_on(d: date) -> SimpleNamespace:
+    return SimpleNamespace(date=d)
+
+
+def test_filter_by_months_back_none_returns_unchanged() -> None:
+    games = [_game_on(date(2020, 1, 1))]
+    assert filter_by_months_back(games, None) == games
+
+
+def test_filter_by_months_back_drops_older_games() -> None:
+    today = date(2026, 6, 30)
+    recent = _game_on(date(2026, 6, 1))  # within the last month
+    old = _game_on(date(2025, 1, 1))  # well over a year ago
+    result = filter_by_months_back([recent, old], 1, today=today)
+    assert result == [recent]
+
+
+def test_filter_by_months_back_boundary_is_inclusive() -> None:
+    today = date(2026, 6, 30)
+    cutoff_day = _game_on(today - timedelta(days=30))
+    result = filter_by_months_back([cutoff_day], 1, today=today)
+    assert result == [cutoff_day]

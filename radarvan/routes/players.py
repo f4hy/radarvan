@@ -104,10 +104,16 @@ def get_player_ratings(
     game_format: str | None = Query(
         None, description="Filter by game format: 2v2, 3v3, 4v4"
     ),
+    months_back: int | None = Query(
+        None,
+        ge=1,
+        description="Only use matches from the last N months to compute ratings",
+    ),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerRatingData:
     games = competitive_matches(replay_manager)
     game_list = matches.filter_by_format(list(games.values()), game_format)
+    game_list = matches.filter_by_months_back(game_list, months_back)
 
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts
@@ -197,10 +203,9 @@ def get_rating_upsets(
     games = competitive_matches(replay_manager)
     game_list = matches.filter_by_format(list(games.values()), game_format)
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
-    upsets = ratings_and_counts.upsets
-    if within_days is not None:
-        cutoff = date.today() - timedelta(days=within_days)
-        upsets = [u for u in upsets if u.at_date >= cutoff]
+    upsets = matches.filter_since(
+        ratings_and_counts.upsets, within_days, key=lambda u: u.at_date
+    )
     if min_surprise > 0.0:
         upsets = [u for u in upsets if u.surprise >= min_surprise]
     return [

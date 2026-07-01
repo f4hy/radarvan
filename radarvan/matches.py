@@ -3,7 +3,7 @@
 from .log_time import log_time
 import structlog
 import os
-from datetime import datetime, UTC
+from datetime import date, datetime, timedelta, UTC
 
 from . import db
 from . import ml_inference
@@ -15,6 +15,7 @@ from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
 from .logging_config import configure_logging
 from dataclasses import dataclass
+from collections.abc import Callable
 
 logger = structlog.get_logger(__name__)
 
@@ -355,3 +356,34 @@ def filter_by_format(
         for g in games
         if g.composition is not None and g.composition.category == game_format
     ]
+
+
+def filter_since[T](
+    items: list[T],
+    days_back: int | None,
+    key: Callable[[T], date],
+    today: date | None = None,
+) -> list[T]:
+    """Drop items older than ``days_back`` days ago (by ``key(item)``).
+
+    Returns the list unchanged if ``days_back`` is None. Shared by every
+    "restrict to the last N days" filter in this codebase (e.g. the
+    player-ratings upsets endpoint) so the cutoff-and-filter idiom lives in
+    one place.
+    """
+    if days_back is None:
+        return items
+    cutoff = (today or date.today()) - timedelta(days=days_back)
+    return [i for i in items if key(i) >= cutoff]
+
+
+def filter_by_months_back(
+    games: list[MatchInfo], months_back: int | None, today: date | None = None
+) -> list[MatchInfo]:
+    """Drop games older than ``months_back`` months ago. Returns unchanged list if None.
+
+    Months are approximated as 30 days each, consistent with this codebase's
+    other relative-date filters.
+    """
+    days_back = None if months_back is None else months_back * 30
+    return filter_since(games, days_back, key=lambda g: g.date, today=today)
