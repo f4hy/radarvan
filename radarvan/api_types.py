@@ -2,12 +2,23 @@
 schema (``MatchInfo``, ``PlayerStat``, ``MatchDetails``, the ``General``/``Team``/
 ``Faction`` enums, …) from which the TypeScript API client is generated."""
 
-from pydantic import AfterValidator, BaseModel, Field, ConfigDict, computed_field
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    ConfigDict,
+    computed_field,
+    model_validator,
+)
 from datetime import datetime, date
 from enum import IntEnum
 from typing import Annotated, Literal
 from .game_composition import GameComposition
-from .player_ids import is_admin as _is_admin_player, resolve_player_name
+from .player_ids import (
+    is_admin as _is_admin_player,
+    is_tournament_admin as _is_tournament_admin_player,
+    resolve_player_name,
+)
 
 _SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 _SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
@@ -718,6 +729,63 @@ class Statistic(BaseModel):
     match_id: int | None = None
 
 
+class BracketPlayerEntry(BaseModel):
+    model_config = _SLOTS
+
+    seed: int
+    player_name: PlayerName
+
+
+class CreateBracketRequest(BaseModel):
+    model_config = _SLOTS
+
+    players: list[BracketPlayerEntry]
+
+    @model_validator(mode="after")
+    def _validate_seeds(self) -> "CreateBracketRequest":
+        seeds = sorted(p.seed for p in self.players)
+        if seeds != list(range(1, 13)):
+            raise ValueError("players must have exactly 12 unique seeds numbered 1-12")
+        return self
+
+
+class SetBracketMatchRequest(BaseModel):
+    model_config = _SLOTS
+
+    scheduled_date: date | None = None
+    best_of: Literal[3, 5, 7, 9] | None = None
+    score_a: int | None = None
+    score_b: int | None = None
+
+
+class BracketMatchOutput(BaseModel):
+    model_config = _SLOTS
+
+    match_id: str
+    bracket: Literal["W", "L", "GF"]
+    round_number: int
+    round_name: str
+    player_a: str | None = None
+    player_b: str | None = None
+    scheduled_date: date | None = None
+    best_of: int | None = None
+    score_a: int | None = None
+    score_b: int | None = None
+    winner: str | None = None
+    status: Literal["pending", "ready", "completed", "not_applicable"]
+
+
+class BracketTournamentOutput(BaseModel):
+    model_config = _SLOTS
+
+    players: list[BracketPlayerEntry]
+    matches: list[BracketMatchOutput]
+    bye_advances: list[BracketPlayerEntry]
+    champion: str | None = None
+    runner_up: str | None = None
+    needs_reset: bool
+
+
 class TournamentReport(BaseModel):
     model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -1158,6 +1226,12 @@ class CurrentUser(BaseModel):
     def is_admin(self) -> bool:
         """True if the claimed in-game name is in player_ids.ADMIN_PLAYERS."""
         return _is_admin_player(self.player_name)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def is_tournament_admin(self) -> bool:
+        """True if the claimed in-game name is in player_ids.TOURNAMENT_ADMINS."""
+        return _is_tournament_admin_player(self.player_name)
 
 
 class AuthStatus(BaseModel):

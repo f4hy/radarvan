@@ -36,6 +36,8 @@ import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import GroupsIcon from "@mui/icons-material/Groups"
 import MapIcon from "@mui/icons-material/Map"
 import DisplayTournamentResults from "./Tournaments"
+import DisplayBracket, { BRACKET_VISIBLE_TO_ALL } from "./Bracket"
+import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import DisplayMapStats from "./MapStats"
 import DisplayTeamStats from "./TeamStats"
 import DisplaySuperlatives from "./Superlatives"
@@ -48,7 +50,7 @@ import ChooseMap from "./ChooseMap"
 import MapUpload from "./MapUpload"
 import Account from "./Account"
 import UploadFileIcon from "@mui/icons-material/UploadFile"
-import { useAuth } from "./AuthContext"
+import { useAuth, useIsTournamentAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 const drawerWidth = 190
@@ -63,6 +65,7 @@ const ALL_SELECTIONS = [
   "MapStats",
   "TeamStats",
   "Tournaments",
+  "Bracket",
   "BalanceTeams",
   "PlayerRating",
   "PlayerRatingTrend",
@@ -103,6 +106,10 @@ export default function Menu() {
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
+  // The bracket tab is only shown to its two admins while the tournament is
+  // being set up — flip BRACKET_VISIBLE_TO_ALL in Bracket.tsx to open it up.
+  const isTournamentAdmin = useIsTournamentAdmin()
+  const showBracketTab = BRACKET_VISIBLE_TO_ALL || isTournamentAdmin
 
   // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
   const navigate = React.useCallback((s: Selection) => {
@@ -146,6 +153,15 @@ export default function Menu() {
       },
       { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
       { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
+      ...(showBracketTab
+        ? [
+            {
+              value: "Bracket" as const,
+              text: "1v1 Bracket",
+              icon: <AccountTreeIcon />,
+            },
+          ]
+        : []),
       { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
       { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
       { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
@@ -337,6 +353,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayFFAStats />
     case "Tournaments":
       return <DisplayTournamentResults />
+    case "Bracket":
+      return <DisplayBracket />
     case "BalanceTeams":
       return <DisplayBalanceTeams />
     case "MapStats":

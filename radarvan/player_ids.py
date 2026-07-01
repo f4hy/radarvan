@@ -100,6 +100,17 @@ def is_admin(player_name: str | None) -> bool:
     return player_name is not None and player_name in ADMIN_PLAYERS
 
 
+# Admins for the 1v1 double-elimination bracket feature specifically — a
+# separate, narrower set from ADMIN_PLAYERS so granting bracket admin doesn't
+# also grant access to unrelated admin features (debug page, backfills, …).
+TOURNAMENT_ADMINS: set[str] = {"Modus", "Gorn"}
+
+
+def is_tournament_admin(player_name: str | None) -> bool:
+    """True if the given claimed in-game name can administer the 1v1 bracket."""
+    return player_name is not None and player_name in TOURNAMENT_ADMINS
+
+
 def resolve_player_name(name: str, color: str = "") -> str:
     """Resolve a player name from their in-game name and optional color."""
     if name.lower() == "pc":

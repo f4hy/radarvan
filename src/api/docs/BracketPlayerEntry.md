@@ -1,34 +1,24 @@
 
-# CurrentUser
+# BracketPlayerEntry
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`discordId` | string
-`discordUsername` | string
-`discordAvatar` | string
+`seed` | number
 `playerName` | string
-`needsPlayerSelection` | boolean
-`isAdmin` | boolean
-`isTournamentAdmin` | boolean
 
 ## Example
 
 ```typescript
-import type { CurrentUser } from ''
+import type { BracketPlayerEntry } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "discordId": null,
-  "discordUsername": null,
-  "discordAvatar": null,
+  "seed": null,
   "playerName": null,
-  "needsPlayerSelection": null,
-  "isAdmin": null,
-  "isTournamentAdmin": null,
-} satisfies CurrentUser
+} satisfies BracketPlayerEntry
 
 console.log(example)
 
@@ -37,7 +27,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CurrentUser
+const exampleParsed = JSON.parse(exampleJSON) as BracketPlayerEntry
 console.log(exampleParsed)
 ```
 

@@ -50,3 +50,9 @@ export function useAuth(): AuthContextValue {
 export function useIsAdmin(): boolean {
   return useAuth().status?.user?.is_admin ?? false
 }
+
+// True if the logged-in user can administer the 1v1 bracket tournament
+// (player_ids.TOURNAMENT_ADMINS) — a separate, narrower set from useIsAdmin.
+export function useIsTournamentAdmin(): boolean {
+  return useAuth().status?.user?.is_tournament_admin ?? false
+}

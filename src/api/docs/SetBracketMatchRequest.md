@@ -1,34 +1,28 @@
 
-# CurrentUser
+# SetBracketMatchRequest
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`discordId` | string
-`discordUsername` | string
-`discordAvatar` | string
-`playerName` | string
-`needsPlayerSelection` | boolean
-`isAdmin` | boolean
-`isTournamentAdmin` | boolean
+`scheduledDate` | Date
+`bestOf` | number
+`scoreA` | number
+`scoreB` | number
 
 ## Example
 
 ```typescript
-import type { CurrentUser } from ''
+import type { SetBracketMatchRequest } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "discordId": null,
-  "discordUsername": null,
-  "discordAvatar": null,
-  "playerName": null,
-  "needsPlayerSelection": null,
-  "isAdmin": null,
-  "isTournamentAdmin": null,
-} satisfies CurrentUser
+  "scheduledDate": null,
+  "bestOf": null,
+  "scoreA": null,
+  "scoreB": null,
+} satisfies SetBracketMatchRequest
 
 console.log(example)
 
@@ -37,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CurrentUser
+const exampleParsed = JSON.parse(exampleJSON) as SetBracketMatchRequest
 console.log(exampleParsed)
 ```
 

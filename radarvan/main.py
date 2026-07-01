@@ -23,6 +23,7 @@ from .logging_config import configure_logging
 from .routes import (
     admin,
     auth,
+    bracket,
     draft,
     ffa,
     files,
@@ -136,6 +137,10 @@ app.include_router(votes.router)
 
 # Map upload — login-gated (like auth), so not behind the API key.
 app.include_router(map_upload.router)
+
+# Bracket tournament — public reads, login+admin-gated writes (checked inside
+# the route handlers), so not behind the API key.
+app.include_router(bracket.router)
 
 
 @app.get("/", include_in_schema=False)

@@ -55,6 +55,12 @@ export interface CurrentUser {
      * @memberof CurrentUser
      */
     readonly isAdmin: boolean;
+    /**
+     * True if the claimed in-game name is in player_ids.TOURNAMENT_ADMINS.
+     * @type {boolean}
+     * @memberof CurrentUser
+     */
+    readonly isTournamentAdmin: boolean;
 }
 
 /**
@@ -65,6 +71,7 @@ export function instanceOfCurrentUser(value: object): value is CurrentUser {
     if (!('discordUsername' in value) || value['discordUsername'] === undefined) return false;
     if (!('needsPlayerSelection' in value) || value['needsPlayerSelection'] === undefined) return false;
     if (!('isAdmin' in value) || value['isAdmin'] === undefined) return false;
+    if (!('isTournamentAdmin' in value) || value['isTournamentAdmin'] === undefined) return false;
     return true;
 }
 
@@ -84,6 +91,7 @@ export function CurrentUserFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'playerName': json['player_name'] == null ? undefined : json['player_name'],
         'needsPlayerSelection': json['needs_player_selection'],
         'isAdmin': json['is_admin'],
+        'isTournamentAdmin': json['is_tournament_admin'],
     };
 }
 
@@ -91,7 +99,7 @@ export function CurrentUserToJSON(json: any): CurrentUser {
     return CurrentUserToJSONTyped(json, false);
 }
 
-export function CurrentUserToJSONTyped(value?: Omit<CurrentUser, 'needs_player_selection'|'is_admin'> | null, ignoreDiscriminator: boolean = false): any {
+export function CurrentUserToJSONTyped(value?: Omit<CurrentUser, 'needs_player_selection'|'is_admin'|'is_tournament_admin'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

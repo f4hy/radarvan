@@ -1,34 +1,33 @@
 
-# CurrentUser
+# FFAPlayerStat
 
+Per-player record across free-for-all games.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`discordId` | string
-`discordUsername` | string
-`discordAvatar` | string
-`playerName` | string
-`needsPlayerSelection` | boolean
-`isAdmin` | boolean
-`isTournamentAdmin` | boolean
+`name` | string
+`games` | number
+`wins` | number
+`winRate` | number
+`expectedWins` | number
+`dominance` | number
 
 ## Example
 
 ```typescript
-import type { CurrentUser } from ''
+import type { FFAPlayerStat } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "discordId": null,
-  "discordUsername": null,
-  "discordAvatar": null,
-  "playerName": null,
-  "needsPlayerSelection": null,
-  "isAdmin": null,
-  "isTournamentAdmin": null,
-} satisfies CurrentUser
+  "name": null,
+  "games": null,
+  "wins": null,
+  "winRate": null,
+  "expectedWins": null,
+  "dominance": null,
+} satisfies FFAPlayerStat
 
 console.log(example)
 
@@ -37,7 +36,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CurrentUser
+const exampleParsed = JSON.parse(exampleJSON) as FFAPlayerStat
 console.log(exampleParsed)
 ```
 

@@ -1,4 +1,5 @@
 apis/AuthApi.ts
+apis/BracketApi.ts
 apis/DefaultApi.ts
 apis/MapUploadApi.ts
 apis/MapVoteApi.ts
@@ -8,6 +9,10 @@ docs/AcademyStats.md
 docs/AuthApi.md
 docs/AuthStatus.md
 docs/BackfillMapCrcsResponse.md
+docs/BracketApi.md
+docs/BracketMatchOutput.md
+docs/BracketPlayerEntry.md
+docs/BracketTournamentOutput.md
 docs/BuildOrder.md
 docs/BuildOrderEntry.md
 docs/ChooseMapCandidate.md
@@ -15,6 +20,7 @@ docs/ChooseMapRequest.md
 docs/ChooseMapResult.md
 docs/Costs.md
 docs/CostsBuiltObject.md
+docs/CreateBracketRequest.md
 docs/CurrentUser.md
 docs/DateMessage.md
 docs/DefaultApi.md
@@ -22,6 +28,10 @@ docs/DraftAssignment.md
 docs/DraftPlayerRequest.md
 docs/DraftRequest.md
 docs/DraftResult.md
+docs/FFAGeneralStat.md
+docs/FFAMapStat.md
+docs/FFAPlayerStat.md
+docs/FFAStats.md
 docs/Faction.md
 docs/FetchMissingMapResult.md
 docs/FetchMissingMapsResponse.md
@@ -96,6 +106,7 @@ docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
 docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
 docs/ResponseReparseRecentApiReparseRecentPostValue.md
 docs/SelectPlayerRequest.md
+docs/SetBracketMatchRequest.md
 docs/SetMapVoteRequest.md
 docs/ShortPlayerRating.md
 docs/Statistic.md
@@ -121,6 +132,9 @@ models/APM.ts
 models/AcademyStats.ts
 models/AuthStatus.ts
 models/BackfillMapCrcsResponse.ts
+models/BracketMatchOutput.ts
+models/BracketPlayerEntry.ts
+models/BracketTournamentOutput.ts
 models/BuildOrder.ts
 models/BuildOrderEntry.ts
 models/ChooseMapCandidate.ts
@@ -128,12 +142,17 @@ models/ChooseMapRequest.ts
 models/ChooseMapResult.ts
 models/Costs.ts
 models/CostsBuiltObject.ts
+models/CreateBracketRequest.ts
 models/CurrentUser.ts
 models/DateMessage.ts
 models/DraftAssignment.ts
 models/DraftPlayerRequest.ts
 models/DraftRequest.ts
 models/DraftResult.ts
+models/FFAGeneralStat.ts
+models/FFAMapStat.ts
+models/FFAPlayerStat.ts
+models/FFAStats.ts
 models/Faction.ts
 models/FetchMissingMapResult.ts
 models/FetchMissingMapsResponse.ts
@@ -206,6 +225,7 @@ models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
 models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
 models/ResponseReparseRecentApiReparseRecentPostValue.ts
 models/SelectPlayerRequest.ts
+models/SetBracketMatchRequest.ts
 models/SetMapVoteRequest.ts
 models/ShortPlayerRating.ts
 models/Statistic.ts

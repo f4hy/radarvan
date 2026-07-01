@@ -1,34 +1,27 @@
 
-# CurrentUser
+# FFAMapStat
 
+Per-map activity across free-for-all games.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`discordId` | string
-`discordUsername` | string
-`discordAvatar` | string
-`playerName` | string
-`needsPlayerSelection` | boolean
-`isAdmin` | boolean
-`isTournamentAdmin` | boolean
+`map` | string
+`games` | number
+`avgPlayers` | number
 
 ## Example
 
 ```typescript
-import type { CurrentUser } from ''
+import type { FFAMapStat } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "discordId": null,
-  "discordUsername": null,
-  "discordAvatar": null,
-  "playerName": null,
-  "needsPlayerSelection": null,
-  "isAdmin": null,
-  "isTournamentAdmin": null,
-} satisfies CurrentUser
+  "map": null,
+  "games": null,
+  "avgPlayers": null,
+} satisfies FFAMapStat
 
 console.log(example)
 
@@ -37,7 +30,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CurrentUser
+const exampleParsed = JSON.parse(exampleJSON) as FFAMapStat
 console.log(exampleParsed)
 ```
 
