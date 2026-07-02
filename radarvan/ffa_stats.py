@@ -20,6 +20,7 @@ from .api_types import (
     FFAPlayerStat,
     FFAGeneralStat,
     FFAMapStat,
+    FFARecentMatch,
 )
 from . import player_ids
 import structlog
@@ -73,7 +74,9 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
 
     total_games = 0
     total_slots = 0
-    biggest_game = 0
+
+    most_recent: FFARecentMatch | None = None
+    most_recent_timestamp = None
 
     for game in games:
         if not is_ffa_game(game):
@@ -95,7 +98,6 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
 
         total_games += 1
         total_slots += n
-        biggest_game = max(biggest_game, n)
         map_games[game.map] += 1
         map_players[game.map] += n
         expected_per_player = 1.0 / n
@@ -108,6 +110,12 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
             if player.won:
                 player_wins[name] += 1
                 gen_wins[player.general] += 1
+
+        if most_recent_timestamp is None or game.timestamp > most_recent_timestamp:
+            winner_name = next((name for p, name in entries if p.won), None)
+            if winner_name is not None:
+                most_recent_timestamp = game.timestamp
+                most_recent = FFARecentMatch(match_id=game.id, winner=winner_name)
 
     player_stats = [
         FFAPlayerStat(
@@ -160,7 +168,7 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
         total_games=total_games,
         distinct_players=len(player_games),
         avg_players_per_game=avg_players,
-        biggest_game_players=biggest_game,
+        most_recent=most_recent,
         player_stats=player_stats,
         general_stats=general_stats,
         map_stats=map_stats,

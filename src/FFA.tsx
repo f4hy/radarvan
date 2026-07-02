@@ -42,7 +42,7 @@ const empty: FFAStats = {
   totalGames: 0,
   distinctPlayers: 0,
   avgPlayersPerGame: 0,
-  biggestGamePlayers: 0,
+  mostRecent: null,
   playerStats: [],
   generalStats: [],
   mapStats: [],
@@ -98,8 +98,9 @@ function SummaryCards(props: { stats: FFAStats }) {
       </Grid>
       <Grid size={{ xs: 6, md: 3 }}>
         <StatCard
-          label="Biggest FFA"
-          value={`${s.biggestGamePlayers} players`}
+          label="Most Recent FFA"
+          value={s.mostRecent?.winner ?? "—"}
+          hint={s.mostRecent ? `Match #${s.mostRecent.matchId}` : undefined}
         />
       </Grid>
     </Grid>

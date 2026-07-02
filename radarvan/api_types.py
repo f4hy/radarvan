@@ -234,6 +234,15 @@ class FFAMapStat(BaseModel):
     avg_players: float = Field(alias="avgPlayers")
 
 
+class FFARecentMatch(BaseModel):
+    """Pointer to the most recently played FFA game."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: int = Field(alias="matchId")
+    winner: str
+
+
 class FFAStats(BaseModel):
     """Everything the FFA page renders, computed over human free-for-all games."""
 
@@ -242,7 +251,7 @@ class FFAStats(BaseModel):
     total_games: int = Field(alias="totalGames")
     distinct_players: int = Field(alias="distinctPlayers")
     avg_players_per_game: float = Field(alias="avgPlayersPerGame")
-    biggest_game_players: int = Field(alias="biggestGamePlayers")
+    most_recent: FFARecentMatch | None = Field(default=None, alias="mostRecent")
     player_stats: list[FFAPlayerStat] = Field(alias="playerStats")
     general_stats: list[FFAGeneralStat] = Field(alias="generalStats")
     map_stats: list[FFAMapStat] = Field(alias="mapStats")

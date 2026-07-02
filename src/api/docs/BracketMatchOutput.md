@@ -18,6 +18,8 @@ Name | Type
 `scoreB` | number
 `winner` | string
 `status` | string
+`sourceA` | [SourceA](SourceA.md)
+`sourceB` | [SourceB](SourceB.md)
 
 ## Example
 
@@ -38,6 +40,8 @@ const example = {
   "scoreB": null,
   "winner": null,
   "status": null,
+  "sourceA": null,
+  "sourceB": null,
 } satisfies BracketMatchOutput
 
 console.log(example)

@@ -10,7 +10,7 @@ Name | Type
 `totalGames` | number
 `distinctPlayers` | number
 `avgPlayersPerGame` | number
-`biggestGamePlayers` | number
+`mostRecent` | [FFARecentMatch](FFARecentMatch.md)
 `playerStats` | [Array&lt;FFAPlayerStat&gt;](FFAPlayerStat.md)
 `generalStats` | [Array&lt;FFAGeneralStat&gt;](FFAGeneralStat.md)
 `mapStats` | [Array&lt;FFAMapStat&gt;](FFAMapStat.md)
@@ -25,7 +25,7 @@ const example = {
   "totalGames": null,
   "distinctPlayers": null,
   "avgPlayersPerGame": null,
-  "biggestGamePlayers": null,
+  "mostRecent": null,
   "playerStats": null,
   "generalStats": null,
   "mapStats": null,

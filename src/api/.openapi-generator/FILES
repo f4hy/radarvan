@@ -31,6 +31,7 @@ docs/DraftResult.md
 docs/FFAGeneralStat.md
 docs/FFAMapStat.md
 docs/FFAPlayerStat.md
+docs/FFARecentMatch.md
 docs/FFAStats.md
 docs/Faction.md
 docs/FetchMissingMapResult.md
@@ -51,6 +52,7 @@ docs/HeadToHeadGeneralRecord.md
 docs/HeadToHeadMapRecord.md
 docs/KillEventOutput.md
 docs/LocationInner.md
+docs/LoserOfSource.md
 docs/MapData.md
 docs/MapDataPayload.md
 docs/MapEventOutput.md
@@ -105,10 +107,13 @@ docs/ReplayWithoutPlayerStats.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
 docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
 docs/ResponseReparseRecentApiReparseRecentPostValue.md
+docs/SeedSource.md
 docs/SelectPlayerRequest.md
 docs/SetBracketMatchRequest.md
 docs/SetMapVoteRequest.md
 docs/ShortPlayerRating.md
+docs/SourceA.md
+docs/SourceB.md
 docs/Statistic.md
 docs/Superlatives.md
 docs/Team.md
@@ -126,6 +131,7 @@ docs/Value.md
 docs/WinLoss.md
 docs/WinProbOverTime.md
 docs/WinProbPoint.md
+docs/WinnerOfSource.md
 docs/WinnerOverride.md
 index.ts
 models/APM.ts
@@ -152,6 +158,7 @@ models/DraftResult.ts
 models/FFAGeneralStat.ts
 models/FFAMapStat.ts
 models/FFAPlayerStat.ts
+models/FFARecentMatch.ts
 models/FFAStats.ts
 models/Faction.ts
 models/FetchMissingMapResult.ts
@@ -172,6 +179,7 @@ models/HeadToHeadGeneralRecord.ts
 models/HeadToHeadMapRecord.ts
 models/KillEventOutput.ts
 models/LocationInner.ts
+models/LoserOfSource.ts
 models/MapData.ts
 models/MapDataPayload.ts
 models/MapEventOutput.ts
@@ -224,10 +232,13 @@ models/ReplayWithoutPlayerStats.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
 models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
 models/ResponseReparseRecentApiReparseRecentPostValue.ts
+models/SeedSource.ts
 models/SelectPlayerRequest.ts
 models/SetBracketMatchRequest.ts
 models/SetMapVoteRequest.ts
 models/ShortPlayerRating.ts
+models/SourceA.ts
+models/SourceB.ts
 models/Statistic.ts
 models/Superlatives.ts
 models/Team.ts
@@ -245,6 +256,7 @@ models/Value.ts
 models/WinLoss.ts
 models/WinProbOverTime.ts
 models/WinProbPoint.ts
+models/WinnerOfSource.ts
 models/WinnerOverride.ts
 models/index.ts
 runtime.ts

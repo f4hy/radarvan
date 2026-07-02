@@ -75,7 +75,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Create (or replace) the bracket with these 12 seeded entrants.
+     * Create (or replace) the bracket with these 9-16 seeded entrants.
      * Create Bracket
      */
     async createBracketApiBracketPostRaw(requestParameters: CreateBracketApiBracketPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketTournamentOutput>> {
@@ -86,7 +86,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Create (or replace) the bracket with these 12 seeded entrants.
+     * Create (or replace) the bracket with these 9-16 seeded entrants.
      * Create Bracket
      */
     async createBracketApiBracketPost(requestParameters: CreateBracketApiBracketPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
@@ -114,7 +114,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Known player names — the pool admins pick the 12 entrants from.
+     * Known player names — the pool admins pick the 9-16 entrants from.
      * Eligible Players
      */
     async eligiblePlayersApiBracketEligiblePlayersGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string | null>>> {
@@ -125,7 +125,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Known player names — the pool admins pick the 12 entrants from.
+     * Known player names — the pool admins pick the 9-16 entrants from.
      * Eligible Players
      */
     async eligiblePlayersApiBracketEligiblePlayersGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string | null>> {

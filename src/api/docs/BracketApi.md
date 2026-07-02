@@ -17,7 +17,7 @@ All URIs are relative to *http://localhost*
 
 Create Bracket
 
-Create (or replace) the bracket with these 12 seeded entrants.
+Create (or replace) the bracket with these 9-16 seeded entrants.
 
 ### Example
 
@@ -85,7 +85,7 @@ No authorization required
 
 Eligible Players
 
-Known player names — the pool admins pick the 12 entrants from.
+Known player names — the pool admins pick the 9-16 entrants from.
 
 ### Example
 

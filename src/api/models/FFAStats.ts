@@ -34,6 +34,13 @@ import {
     FFAGeneralStatToJSON,
     FFAGeneralStatToJSONTyped,
 } from './FFAGeneralStat';
+import type { FFARecentMatch } from './FFARecentMatch';
+import {
+    FFARecentMatchFromJSON,
+    FFARecentMatchFromJSONTyped,
+    FFARecentMatchToJSON,
+    FFARecentMatchToJSONTyped,
+} from './FFARecentMatch';
 
 /**
  * Everything the FFA page renders, computed over human free-for-all games.
@@ -61,10 +68,10 @@ export interface FFAStats {
     avgPlayersPerGame: number;
     /**
      * 
-     * @type {number}
+     * @type {FFARecentMatch}
      * @memberof FFAStats
      */
-    biggestGamePlayers: number;
+    mostRecent?: FFARecentMatch | null;
     /**
      * 
      * @type {Array<FFAPlayerStat>}
@@ -92,7 +99,6 @@ export function instanceOfFFAStats(value: object): value is FFAStats {
     if (!('totalGames' in value) || value['totalGames'] === undefined) return false;
     if (!('distinctPlayers' in value) || value['distinctPlayers'] === undefined) return false;
     if (!('avgPlayersPerGame' in value) || value['avgPlayersPerGame'] === undefined) return false;
-    if (!('biggestGamePlayers' in value) || value['biggestGamePlayers'] === undefined) return false;
     if (!('playerStats' in value) || value['playerStats'] === undefined) return false;
     if (!('generalStats' in value) || value['generalStats'] === undefined) return false;
     if (!('mapStats' in value) || value['mapStats'] === undefined) return false;
@@ -112,7 +118,7 @@ export function FFAStatsFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'totalGames': json['totalGames'],
         'distinctPlayers': json['distinctPlayers'],
         'avgPlayersPerGame': json['avgPlayersPerGame'],
-        'biggestGamePlayers': json['biggestGamePlayers'],
+        'mostRecent': json['mostRecent'] == null ? undefined : FFARecentMatchFromJSON(json['mostRecent']),
         'playerStats': ((json['playerStats'] as Array<any>).map(FFAPlayerStatFromJSON)),
         'generalStats': ((json['generalStats'] as Array<any>).map(FFAGeneralStatFromJSON)),
         'mapStats': ((json['mapStats'] as Array<any>).map(FFAMapStatFromJSON)),
@@ -133,7 +139,7 @@ export function FFAStatsToJSONTyped(value?: FFAStats | null, ignoreDiscriminator
         'totalGames': value['totalGames'],
         'distinctPlayers': value['distinctPlayers'],
         'avgPlayersPerGame': value['avgPlayersPerGame'],
-        'biggestGamePlayers': value['biggestGamePlayers'],
+        'mostRecent': FFARecentMatchToJSON(value['mostRecent']),
         'playerStats': ((value['playerStats'] as Array<any>).map(FFAPlayerStatToJSON)),
         'generalStats': ((value['generalStats'] as Array<any>).map(FFAGeneralStatToJSON)),
         'mapStats': ((value['mapStats'] as Array<any>).map(FFAMapStatToJSON)),

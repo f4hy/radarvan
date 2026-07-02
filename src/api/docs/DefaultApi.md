@@ -2389,7 +2389,7 @@ example().catch(console.error);
 
 ## getPlayerRatingsApiPlayerRatingsGet
 
-> PlayerRatingData getPlayerRatingsApiPlayerRatingsGet(gameFormat)
+> PlayerRatingData getPlayerRatingsApiPlayerRatingsGet(gameFormat, monthsBack)
 
 Get Player Ratings
 
@@ -2413,6 +2413,8 @@ async function example() {
   const body = {
     // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
     gameFormat: gameFormat_example,
+    // number | Only use matches from the last N months to compute ratings (optional)
+    monthsBack: 56,
   } satisfies GetPlayerRatingsApiPlayerRatingsGetRequest;
 
   try {
@@ -2433,6 +2435,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+| **monthsBack** | `number` | Only use matches from the last N months to compute ratings | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 

@@ -265,6 +265,7 @@ export interface GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetReque
 
 export interface GetPlayerRatingsApiPlayerRatingsGetRequest {
     gameFormat?: string | null;
+    monthsBack?: number | null;
 }
 
 export interface GetPlayerSkillsApiPlayerSkillsGetRequest {
@@ -2060,6 +2061,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         if (requestParameters['gameFormat'] != null) {
             queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        if (requestParameters['monthsBack'] != null) {
+            queryParameters['months_back'] = requestParameters['monthsBack'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

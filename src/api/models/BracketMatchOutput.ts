@@ -13,6 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SourceB } from './SourceB';
+import {
+    SourceBFromJSON,
+    SourceBFromJSONTyped,
+    SourceBToJSON,
+    SourceBToJSONTyped,
+} from './SourceB';
+import type { SourceA } from './SourceA';
+import {
+    SourceAFromJSON,
+    SourceAFromJSONTyped,
+    SourceAToJSON,
+    SourceAToJSONTyped,
+} from './SourceA';
+
 /**
  * 
  * @export
@@ -91,6 +106,18 @@ export interface BracketMatchOutput {
      * @memberof BracketMatchOutput
      */
     status: BracketMatchOutputStatusEnum;
+    /**
+     * 
+     * @type {SourceA}
+     * @memberof BracketMatchOutput
+     */
+    sourceA: SourceA;
+    /**
+     * 
+     * @type {SourceB}
+     * @memberof BracketMatchOutput
+     */
+    sourceB: SourceB;
 }
 
 
@@ -125,6 +152,8 @@ export function instanceOfBracketMatchOutput(value: object): value is BracketMat
     if (!('roundNumber' in value) || value['roundNumber'] === undefined) return false;
     if (!('roundName' in value) || value['roundName'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
+    if (!('sourceA' in value) || value['sourceA'] === undefined) return false;
+    if (!('sourceB' in value) || value['sourceB'] === undefined) return false;
     return true;
 }
 
@@ -150,6 +179,8 @@ export function BracketMatchOutputFromJSONTyped(json: any, ignoreDiscriminator: 
         'scoreB': json['score_b'] == null ? undefined : json['score_b'],
         'winner': json['winner'] == null ? undefined : json['winner'],
         'status': json['status'],
+        'sourceA': SourceAFromJSON(json['source_a']),
+        'sourceB': SourceBFromJSON(json['source_b']),
     };
 }
 
@@ -176,6 +207,8 @@ export function BracketMatchOutputToJSONTyped(value?: BracketMatchOutput | null,
         'score_b': value['scoreB'],
         'winner': value['winner'],
         'status': value['status'],
+        'source_a': SourceAToJSON(value['sourceA']),
+        'source_b': SourceBToJSON(value['sourceB']),
     };
 }
 
