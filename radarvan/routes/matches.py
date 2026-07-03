@@ -79,7 +79,7 @@ def get_team_games_without_winner(
 ) -> list[dict[str, Any]]:
     """Return match IDs and dates for team games with no winner (winning_team=0)."""
     all_matches = sorted_deduped_matches(replay_manager)
-    games_with_no_winner = [
+    return [
         {"match_id": m.id, "date": m.date}
         for m in all_matches.values()
         if m.composition is not None
@@ -93,7 +93,6 @@ def get_team_games_without_winner(
             or "no team" in m.incomplete.lower()
         )
     ]
-    return games_with_no_winner
 
 
 @router.get("/api/match/{match_id}")

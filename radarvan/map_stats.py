@@ -181,10 +181,8 @@ def map_summary(
                 player_results_desc[name].append(p.won)
         d = g.duration_minutes
         total_min += d
-        if d < min_min:
-            min_min = d
-        if d > max_min:
-            max_min = d
+        min_min = min(min_min, d)
+        max_min = max(max_min, d)
 
     best_general = None
     if gen_wl:
@@ -205,7 +203,7 @@ def map_summary(
             wins=pg_wl[(resolved, p.general)][0],
             losses=pg_wl[(resolved, p.general)][1],
         )
-        for p, resolved in zip(players, request_resolved)
+        for p, resolved in zip(players, request_resolved, strict=True)
     ]
 
     duration = MapSummaryDuration(
@@ -267,7 +265,9 @@ def _player_general_records(
     players: list[MapSummaryPlayer],
     request_resolved: list[str],
 ) -> list[MapSummaryPlayerGeneralRecord]:
-    wanted = {(name, p.general) for p, name in zip(players, request_resolved)}
+    wanted = {
+        (name, p.general) for p, name in zip(players, request_resolved, strict=True)
+    }
     wl: dict[tuple[str, General], list[int]] = defaultdict(lambda: [0, 0])
     for g in games:
         if g.incomplete or g.winning_team < 1:
@@ -285,7 +285,7 @@ def _player_general_records(
             wins=wl[(name, p.general)][0],
             losses=wl[(name, p.general)][1],
         )
-        for p, name in zip(players, request_resolved)
+        for p, name in zip(players, request_resolved, strict=True)
     ]
 
 

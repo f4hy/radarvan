@@ -1,7 +1,7 @@
 """Player stats, ratings, skills, balance, partitioning endpoints."""
 
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 
 from pydantic import BaseModel
@@ -118,7 +118,7 @@ def get_player_ratings(
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts
 
-    today = date.today()
+    today = datetime.now(UTC).date()
     seven_days_ago = today - timedelta(days=7)
     fourteen_days_ago = today - timedelta(days=14)
     thirty_days_ago = today - timedelta(days=30)
@@ -395,12 +395,12 @@ def balance_teams(
 @router.get("/api/partition_teams/{team_size}")
 def partition_teams(
     team_size: int = 2,
-    players: SelectedPlayers = Query(default=SelectedPlayers(players=[])),
+    players: SelectedPlayers = Query(
+        default_factory=lambda: SelectedPlayers(players=[])
+    ),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[list[str]]:
     games = list(competitive_matches(replay_manager).values())
-    teams = create_teams.create_balanced_teams(
+    return create_teams.create_balanced_teams(
         games, player_list={str(p.value) for p in players.players}, team_size=team_size
     )
-
-    return teams

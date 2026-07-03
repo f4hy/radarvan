@@ -95,7 +95,7 @@ class ReplayRepo(BaseRepo):
             date_str = base.split("/")[0]
             player = base.split("/")[2]
             player_id = player.split("_")[-1]
-        source_date = datetime.strptime(date_str, "%Y_%m_%B")
+        source_date = datetime.strptime(date_str, "%Y_%m_%B").date()  # noqa: DTZ007 (date has no strptime of its own)
         replay_file = ReplayFile(
             original_url=from_url,
             s3_uri=s3_uri,

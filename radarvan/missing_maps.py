@@ -448,7 +448,7 @@ def fetch_and_upload(
 
 def mapparse_available() -> bool:
     """Return True if the mapparse binary is reachable on this host."""
-    if os.path.isfile(MAPPARSE_BIN) and os.access(MAPPARSE_BIN, os.X_OK):
+    if Path(MAPPARSE_BIN).is_file() and os.access(MAPPARSE_BIN, os.X_OK):
         return True
     return shutil.which(MAPPARSE_BIN) is not None
 

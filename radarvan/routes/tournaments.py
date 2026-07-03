@@ -38,8 +38,7 @@ def get_tournament_results(
     """Get results for all tournaments."""
     replays = sorted_deduped_matches(replay_manager)
     tournament_games = tournament.tournament_games(list(replays.values()))
-    results = tournament.create_tournament_results(tournament_games)
-    return results
+    return tournament.create_tournament_results(tournament_games)
 
 
 async def save_report(name: str, save: bool = True) -> TournamentReport:
@@ -102,5 +101,4 @@ async def generate_tournament_report(
 async def test_tournament_report(
     tournament_name: str = "2025_2v2_tournament",
 ) -> TournamentReport:
-    report = await save_report(tournament_name, save=False)
-    return report
+    return await save_report(tournament_name, save=False)

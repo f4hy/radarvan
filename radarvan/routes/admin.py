@@ -6,7 +6,7 @@ verify_api_key dependency on the FastAPI app.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import asyncio
 import structlog
 from typing import Any, NamedTuple
@@ -129,7 +129,7 @@ def reparse_recent(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on all matches whose game_date is within the last `days` days."""
-    since = date.today() - timedelta(days=days)
+    since = datetime.now(UTC).date() - timedelta(days=days)
     candidates = replay_manager.list_jsons_since_date(since)
     logger.info("reparse_recent", candidates=len(candidates), since=since)
     updated_ids: set[int] = set()

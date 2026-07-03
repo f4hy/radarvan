@@ -165,7 +165,7 @@ def build_teams(game: MatchInfo) -> TeamBuildResult | None:
 def _compute_surprise_uncertainty(
     score_values: list[float], prediction: list[float]
 ) -> float:
-    surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction))
+    surprize = 1.0 - sum(b * p for b, p in zip(score_values, prediction, strict=True))
     logger.debug(
         "surprise", scores=score_values, prediction=prediction, surprise=surprize
     )
@@ -191,7 +191,9 @@ def _update_ratings_for_game(
     has_cpu = any(name in known_computers for team in teams.values() for name in team)
     # CPU games are noise as "upsets" (the rating model down-weights them); skip them.
     upset = (
-        None if has_cpu else _detect_upset(game, teams, dict(zip(team_ids, prediction)))
+        None
+        if has_cpu
+        else _detect_upset(game, teams, dict(zip(team_ids, prediction, strict=True)))
     )
     scale = CPU_GAME_RATING_SCALE if has_cpu else 1.0
     updated: dict[str, NamedRating] = {}
