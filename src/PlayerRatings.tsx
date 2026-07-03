@@ -44,12 +44,19 @@ import { useErrorSnackbar } from "./useErrorSnackbar"
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
+const MONTHS_BACK_OPTIONS = [1, 3, 6, 9, 12] as const
+type MonthsBack = (typeof MONTHS_BACK_OPTIONS)[number] | null
+
 function getPlayerRatings(
   gameFormat: GameFormat,
+  monthsBack: MonthsBack,
   callback: (m: PlayerRatingData) => void,
   onError = console.error,
 ) {
-  const params = gameFormat === "All" ? {} : { gameFormat }
+  const params = {
+    ...(gameFormat === "All" ? {} : { gameFormat }),
+    ...(monthsBack == null ? {} : { monthsBack }),
+  }
   Client.getPlayerRatingsApiPlayerRatingsGet(params)
     .then(callback)
     .catch(onError)
@@ -706,6 +713,35 @@ function FormatSelector(props: {
   )
 }
 
+const MONTHS_BACK_ALL = "all"
+
+function MonthsBackSelector(props: {
+  monthsBack: MonthsBack
+  onChange: (m: MonthsBack) => void
+}) {
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+      <Typography variant="h6">Time Range:</Typography>
+      <ToggleButtonGroup
+        value={props.monthsBack ?? MONTHS_BACK_ALL}
+        exclusive
+        onChange={(_, v) => {
+          if (v == null) return
+          props.onChange(v === MONTHS_BACK_ALL ? null : v)
+        }}
+        size="small"
+      >
+        <ToggleButton value={MONTHS_BACK_ALL}>All</ToggleButton>
+        {MONTHS_BACK_OPTIONS.map((m) => (
+          <ToggleButton key={m} value={m}>
+            {m}mo
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </Stack>
+  )
+}
+
 function SkillScatterChart(props: { data: RatingEntry[]; isMobile: boolean }) {
   const { data, isMobile } = props
   const labelFontSize = isMobile ? 11 : 20
@@ -894,7 +930,7 @@ export function DisplayPlayerRatingTrend() {
 
   React.useEffect(() => {
     setPlayerRatings(null)
-    getPlayerRatings(format, setPlayerRatings, showError)
+    getPlayerRatings(format, null, setPlayerRatings, showError)
   }, [format, showError])
 
   if (!playerRatings) return <Loading />
@@ -974,11 +1010,12 @@ export default function DisplayPlayerRatings() {
     emptyPlayerRatingData,
   )
   const [format, setFormat] = React.useState<GameFormat>("All")
+  const [monthsBack, setMonthsBack] = React.useState<MonthsBack>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
     setPlayerRatings(emptyPlayerRatingData)
-    getPlayerRatings(format, setPlayerRatings, showError)
-  }, [format, showError])
+    getPlayerRatings(format, monthsBack, setPlayerRatings, showError)
+  }, [format, monthsBack, showError])
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -989,6 +1026,7 @@ export default function DisplayPlayerRatings() {
   const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
+      <MonthsBackSelector monthsBack={monthsBack} onChange={setMonthsBack} />
       <Accordion
         disableGutters
         defaultExpanded={false}
