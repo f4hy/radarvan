@@ -1,7 +1,7 @@
 """Bracket tournament repository (1v1 double-elimination bracket).
 
 Only one BracketTournament row exists at a time; ``create`` replaces it.
-Match topology/routing lives in ``radarvan.bracket`` — this repo only
+Match topology/routing lives in ``radarvan.bracket`` - this repo only
 persists the seeded entrant list and per-match date/best-of/score.
 """
 

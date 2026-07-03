@@ -2,7 +2,7 @@
 
 The HTTP concern (radarvan.middleware.RateLimitMiddleware) is decoupled from
 *where* hit counts live via the `RateLimitStore` protocol. Today the only
-backend is in-memory (per worker process). A shared backend — Redis or the DB —
+backend is in-memory (per worker process). A shared backend - Redis or the DB -
 can be dropped in later by implementing the same `check` method, e.g. a Redis
 sorted-set sliding window (ZADD/ZREMRANGEBYSCORE/ZCARD) or an INCR-with-expiry
 fixed window. The middleware passes the window in on each call, so a backend
@@ -23,7 +23,7 @@ class RateLimitDecision:
     """Outcome of recording one request against a key.
 
     `retry_after` is the seconds until a slot frees (0 when allowed) and carries
-    NO jitter — the caller adds jitter when forming the Retry-After header so the
+    NO jitter - the caller adds jitter when forming the Retry-After header so the
     store stays a pure counter.
     """
 
@@ -50,7 +50,7 @@ class InMemoryRateLimitStore:
     """Per-process sliding-window store: a deque of hit timestamps per key.
 
     Accurate within one worker; not shared across workers/dynos (each enforces
-    its own share — acceptable for a single web dyno, and a safe degradation if
+    its own share - acceptable for a single web dyno, and a safe degradation if
     scaled out). Thread-safe because sync endpoints run in uvicorn's threadpool.
     Idle keys are swept periodically so memory doesn't grow with one-off clients.
     """

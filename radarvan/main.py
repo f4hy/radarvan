@@ -74,7 +74,7 @@ PROTECTED = [Depends(verify_api_key)]
 
 # Middleware order matters. add_middleware prepends, so the LAST added is the
 # outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit,
-# Session, app — so CORS decorates every response (including the limiter's 429),
+# Session, app - so CORS decorates every response (including the limiter's 429),
 # request-id is bound before the limiter logs, the limiter rejects just before
 # app work, and Session (innermost) populates request.session for the handlers.
 app.add_middleware(
@@ -117,7 +117,7 @@ async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse
     return response
 
 
-# Routers — all API routes require an API key; static/index routes below do not.
+# Routers - all API routes require an API key; static/index routes below do not.
 app.include_router(files.router, dependencies=PROTECTED)
 app.include_router(matches.router, dependencies=PROTECTED)
 app.include_router(players.router, dependencies=PROTECTED)
@@ -131,19 +131,19 @@ app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)
 app.include_router(predict.router, dependencies=PROTECTED)
 
-# Public asset routes — reachable without an API key (browser <img> loads).
+# Public asset routes - reachable without an API key (browser <img> loads).
 app.include_router(maps.public_router)
 
-# Auth routes — browser-/cookie-driven, deliberately not behind the API key.
+# Auth routes - browser-/cookie-driven, deliberately not behind the API key.
 app.include_router(auth.router)
 
-# Map voting — cookie-identified (like auth), so not behind the API key.
+# Map voting - cookie-identified (like auth), so not behind the API key.
 app.include_router(votes.router)
 
-# Map upload — login-gated (like auth), so not behind the API key.
+# Map upload - login-gated (like auth), so not behind the API key.
 app.include_router(map_upload.router)
 
-# Bracket tournament — public reads, login+admin-gated writes (checked inside
+# Bracket tournament - public reads, login+admin-gated writes (checked inside
 # the route handlers), so not behind the API key.
 app.include_router(bracket.router)
 

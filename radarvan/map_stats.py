@@ -345,7 +345,7 @@ def _team_h2h(
 def _format_prediction(p: MatchPrediction) -> str:
     fav = "A" if p.favored_team == p.team_a else "B"
     line = (
-        f"AI Predicted winner: Team {fav} ({p.favored_win_prob:.0%}) — "
+        f"AI Predicted winner: Team {fav} ({p.favored_win_prob:.0%}) : "
         f"A:[{','.join(p.team_a_players)}] vs B:[{','.join(p.team_b_players)}]"
     )
     if p.unknown_players:

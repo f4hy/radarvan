@@ -1,4 +1,4 @@
-"""Tournament results and reporting — groups matches into tournaments, computes matchup
+"""Tournament results and reporting - groups matches into tournaments, computes matchup
 outcomes, and derives tournament-scoped statistics (faction/unit/APM/time records)."""
 
 import statistics

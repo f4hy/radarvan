@@ -187,7 +187,9 @@ async def get_replay_urls(
                 if p not in existing_paths:
                     # parse_replay is blocking (S3 + cncstats HTTP); keep it off
                     # the event loop. Sequential, so the shared session is safe.
-                    await asyncio.to_thread(replay_files.parse_replay, p, replay_manager)
+                    await asyncio.to_thread(
+                        replay_files.parse_replay, p, replay_manager
+                    )
     return all_replay_paths
 
 

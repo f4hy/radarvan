@@ -27,9 +27,7 @@ def locked_cached[F: Callable[..., Any]](
     (Caches that need ``cache_clear()`` coordination keep explicit locks in
     ``radarvan.cache``.)
     """
-    return cast(
-        Callable[[F], F], cached(cache=cache, key=key, lock=threading.Lock())
-    )
+    return cast(Callable[[F], F], cached(cache=cache, key=key, lock=threading.Lock()))
 
 
 def log_duration[F: Callable[..., Any]](func: F) -> F:
@@ -72,7 +70,7 @@ _GAME_NIGHT_ROLLOVER_HOURS = 5
 def game_night_date(timestamp: int | float) -> datetime.date:
     """Calendar date of the 'game night' a match belongs to.
 
-    `timestamp` is the replay's `time_stamp_begin` — a POSIX (UTC) epoch.
+    `timestamp` is the replay's `time_stamp_begin` - a POSIX (UTC) epoch.
     """
     instant = datetime.datetime.fromtimestamp(timestamp, tz=datetime.UTC)
     local = instant.astimezone(GAME_NIGHT_TZ)

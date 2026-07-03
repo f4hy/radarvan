@@ -1,4 +1,4 @@
-"""Balanced team construction — enumerates team splits and uses player ratings (with
+"""Balanced team construction - enumerates team splits and uses player ratings (with
 hand-tuned synergy adjustments for certain pairings) to pick the most even matchup."""
 
 from collections.abc import Iterable, Iterator, Mapping
@@ -17,7 +17,7 @@ logger = structlog.get_logger(__name__)
 
 # Pairs that, when on the same team, are treated as slightly more balanced.
 # Value is a scale factor applied to the advantage (distance from 0.5):
-# win_pct = 0.5 + (win_pct - 0.5) * scale — 0.85 reduces a 10-point edge to 8.5 points.
+# win_pct = 0.5 + (win_pct - 0.5) * scale - 0.85 reduces a 10-point edge to 8.5 points.
 SAME_TEAM_FUDGE: dict[frozenset[str], float] = {
     frozenset({"Modus", "OneThree111"}): 0.9,
 }

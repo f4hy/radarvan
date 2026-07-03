@@ -1,4 +1,4 @@
-"""APScheduler-backed scheduled tasks — periodically scrapes new games, registers
+"""APScheduler-backed scheduled tasks - periodically scrapes new games, registers
 matches, and recomputes superlatives/ratings (``get_scheduler``).
 
 Every job run opens its own DB session via the DatabaseManager: sessions are
@@ -68,7 +68,7 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
             match_ids, db_manager
         )
         logger.info("loaded match details for superlatives", count=len(details))
-        # Pure computation, but heavy — run off the event loop.
+        # Pure computation, but heavy - run off the event loop.
         ratings_and_counts = await asyncio.to_thread(
             player_rating_module.compute_player_ratings, competitive
         )

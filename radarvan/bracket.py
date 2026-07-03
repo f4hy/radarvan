@@ -1,6 +1,6 @@
 """Double-elimination bracket for 9-16 entrants: topology generation + pure resolution.
 
-The bracket size is always fixed at 16 (never shrinks for smaller fields) —
+The bracket size is always fixed at 16 (never shrinks for smaller fields) -
 a 9-11 player tournament is "effectively a 16-person bracket with more byes",
 not a smaller bracket. Standard bracket-size-16 seeding (``seed_order(16)``)
 assigns byes to whichever seeds' round-1 opponent would exceed the actual
@@ -11,11 +11,11 @@ The losers bracket is the genuinely tricky part: round 1's bye count shrinks
 the population of first-round losers relative to a full 16-bracket, so the
 survivor count arriving at each subsequent "meet the newly-dropped losers"
 stage doesn't line up 1:1 without reconciliation. ``build_topology`` handles
-this generically via two primitives — ``_reduce_to`` (repeated self-pairing
+this generically via two primitives - ``_reduce_to`` (repeated self-pairing
 to shrink a population down to a target size, tolerating an odd population
 by carrying one entrant through untested each round) and ``_merge_wave``
 (levels two populations to the same size via ``_reduce_to`` before pairing
-them 1:1) — verified by hand for every bye count 0-7 (equivalently 16-9
+them 1:1) - verified by hand for every bye count 0-7 (equivalently 16-9
 entrants) via loss-accounting: every match produces exactly one loss, and a
 double-elim bracket for N entrants needs exactly 2*(N-1) losses (or
 2*(N-1)+1 with a grand-final reset) to reach a champion. The old fixed-12
@@ -71,7 +71,7 @@ class Topology:
 def seed_order(n: int) -> list[int]:
     """Standard recursive tournament seeding order for a bracket of size n.
 
-    E.g. seed_order(16) == [1,16,8,9,4,13,5,12,2,15,7,10,3,14,6,11] — the
+    E.g. seed_order(16) == [1,16,8,9,4,13,5,12,2,15,7,10,3,14,6,11] - the
     textbook seeding so that top seeds meet as late as possible.
     """
     if n == 1:
@@ -94,7 +94,7 @@ def _reduce_to(
 
     Each round pairs off just enough entrants to reach `target` in one more
     round (``ceil(len/2)``, clamped at ``target``), leaving the rest to carry
-    through untouched — so an odd `pool` never gets stuck.
+    through untouched - so an odd `pool` never gets stuck.
     """
     all_matches: list[MatchDef] = []
     while len(pool) > target:
@@ -124,7 +124,7 @@ def _pair_round(
     sources: list[Source], round_number: int, round_name: str, id_prefix: str
 ) -> tuple[list[Source], list[MatchDef]]:
     """Pair up consecutive `sources` into one clean (bye-free) winners-bracket
-    round — shared by rounds 2, 3, and the final, which only ever differ in
+    round - shared by rounds 2, 3, and the final, which only ever differ in
     round number/name and id prefix."""
     matches = [
         MatchDef(f"{id_prefix}-{i}", "W", round_number, round_name, a, b)
@@ -194,7 +194,7 @@ def build_topology(num_players: int) -> Topology:
             round1_sources.append(WinnerOf(match_id))
 
     # Winners bracket round 2 (always a clean 8 -> 4, no more byes ever),
-    # semifinals (4 -> 2), and final (2 -> 1) — three rounds of the same
+    # semifinals (4 -> 2), and final (2 -> 1) - three rounds of the same
     # bye-free pairing, just with a different round number/name/id prefix.
     round2_sources, wb2_matches = _pair_round(
         round1_sources, 2, "Winners Round 2", "WB2"
@@ -349,8 +349,8 @@ def resolve_bracket(
     players/winner/status.
 
     ``match_states`` holds only what's persisted (best_of + scores) per match
-    id; everything else — who plays whom, whether a match is playable yet,
-    who the champion is — is derived fresh each call.
+    id; everything else - who plays whom, whether a match is playable yet,
+    who the champion is - is derived fresh each call.
     """
     topology = build_topology(len(seed_to_name))
     winners: dict[str, str] = {}

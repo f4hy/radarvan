@@ -1,4 +1,4 @@
-"""Pydantic models defining every REST request/response shape — the canonical wire
+"""Pydantic models defining every REST request/response shape - the canonical wire
 schema (``MatchInfo``, ``PlayerStat``, ``MatchDetails``, the ``General``/``Team``/
 ``Faction`` enums, …) from which the TypeScript API client is generated."""
 
@@ -1367,7 +1367,7 @@ class MapUploadItem(BaseModel):
     model_config = _SLOTS
 
     base_name: str
-    # WebP data URL of the converted .tga — set in preview, omitted on commit.
+    # WebP data URL of the converted .tga - set in preview, omitted on commit.
     image: str | None = None
     # Number of player start positions (from parsed geometry), if available.
     player_count: int | None = None
@@ -1458,7 +1458,7 @@ class MatchPrediction(BaseModel):
     prob_team_a_wins: float
     favored_team: int
     favored_win_prob: float
-    # Players not in the model's training vocab — their contribution falls back
+    # Players not in the model's training vocab - their contribution falls back
     # to UNK, so the prediction for them is weak. Surfaced so callers can judge.
     unknown_players: list[str] = Field(default_factory=list)
 

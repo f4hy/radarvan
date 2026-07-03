@@ -1,4 +1,4 @@
-"""Starlette HTTP middleware — request-id binding, request timing, and in-memory
+"""Starlette HTTP middleware - request-id binding, request timing, and in-memory
 rate limiting."""
 
 import math
@@ -75,7 +75,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     random jitter so throttled clients don't retry in lockstep) plus
     `X-RateLimit-Limit/Remaining/Reset` headers.
 
-    Only /api/* is limited — static assets and the SPA shell are left alone so
+    Only /api/* is limited - static assets and the SPA shell are left alone so
     the app still loads under throttling. Hit storage is delegated to a
     `RateLimitStore` (default in-memory, per worker); pass a shared
     Redis/DB-backed store to enforce a global limit across workers/dynos.

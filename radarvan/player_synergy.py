@@ -43,7 +43,7 @@ logger = structlog.get_logger(__name__)
 # lambda_pair sets how much shared history a pair needs before its coefficient is
 # believed; lambda_main controls the per-player main effects. Both must be fairly
 # strong: in balanced team games the main effects (and pair terms) have an additive
-# gauge freedom — only the L2 penalty pins them — so a weak penalty lets strong
+# gauge freedom - only the L2 penalty pins them - so a weak penalty lets strong
 # players' main effects run away to absurd magnitudes (they cancel within matchups
 # but blow up the joint fit and saturate the pair coefficients).
 DEFAULT_LAMBDA_PAIR = 10.0
@@ -220,7 +220,7 @@ def compute_player_synergy(
     main = beta[: len(players)]  # fitted per-player main effects
 
     # Per-pair shared-game tallies. `adjusted_expected` is the model's expectation
-    # from offset + main effects only (no pair term) — the baseline the synergy is
+    # from offset + main effects only (no pair term) - the baseline the synergy is
     # actually measured against. `games_apart` counts games where the two were on
     # opposing teams (the key trust signal: a pair that never splits up is the
     # collinear, hard-to-identify case).

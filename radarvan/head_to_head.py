@@ -37,7 +37,7 @@ def compute_head_to_head(
     """Head-to-head detail for ``player1`` vs ``player2`` over ``games``.
 
     Counts games where both played on *different* teams; the winner is the side
-    whose team won. ``games`` may be in any order — the returned game list is
+    whose team won. ``games`` may be in any order - the returned game list is
     sorted most-recent-first. ``player1``/``player2`` are expected to be already
     alias-resolved (equal names yield an empty record).
     """

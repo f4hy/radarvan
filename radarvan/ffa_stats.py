@@ -45,7 +45,7 @@ def is_ffa_game(game: MatchInfo) -> bool:
     Comp-stomps and games containing any CPU are excluded so the stats reflect
     real players battling each other.
     """
-    # NB: we deliberately do *not* call ``replay_files.path_filter`` here — it
+    # NB: we deliberately do *not* call ``replay_files.path_filter`` here - it
     # requires a ``_NvN_`` token in the filename and so would drop every FFA. The
     # ``num_computers > 0`` guard below already excludes the multi-CPU games
     # path_filter was protecting against.

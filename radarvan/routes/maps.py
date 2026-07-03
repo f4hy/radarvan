@@ -37,10 +37,10 @@ router = APIRouter()
 public_router = APIRouter()
 
 # Map images are static. Presign for the S3 max (7 days) and let browsers cache
-# the redirect — max-age must stay under the presign TTL. We keep the cache to
+# the redirect - max-age must stay under the presign TTL. We keep the cache to
 # 1h (well under the 7-day presign) so that if the deployment ever runs on
-# temporary/STS credentials — which silently cap the presign at the credential
-# lifetime — a cached redirect is unlikely to outlive its presigned URL.
+# temporary/STS credentials - which silently cap the presign at the credential
+# lifetime - a cached redirect is unlikely to outlive its presigned URL.
 _MAP_IMAGE_PRESIGN_TTL = 7 * 24 * 3600
 _MAP_IMAGE_CACHE_MAX_AGE = 3600
 
@@ -244,7 +244,7 @@ async def push_maps_to_cncstats(
     """Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.
 
     Only considers maps not already marked synced, and checks cncstats /map_exists
-    before pushing — so a map is never sent twice. Pushes run concurrently
+    before pushing - so a map is never sent twice. Pushes run concurrently
     (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back
     serially (one DB session). Processes up to `max_to_update` unsynced maps.
     Requires `CNCSTATS_API_KEY`.
@@ -385,7 +385,7 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
     haven't been migrated yet.
     """
     # Map images are static, so cache aggressively. The browser caches the
-    # redirect, reusing its presigned URL for up to max-age — which must stay
+    # redirect, reusing its presigned URL for up to max-age - which must stay
     # under the presign TTL or a cached redirect would point at an expired URL.
     cache_headers = {"Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}"}
     s3_uri = missing_maps_module.find_s3_webp(map_name)

@@ -3,7 +3,7 @@
 Provides both the per-match overall APM (`apms_from_replay`) and a per-minute
 windowed time series (`apm_over_time`) for charting APM through the match.
 
-Newer replays from cncstats no longer ship a per-order body stream — `replay.body`
+Newer replays from cncstats no longer ship a per-order body stream - `replay.body`
 is empty. For those, APM is derived from the player-initiated events recorded in
 `replay.stats` (builds, captures, battle plans, science purchases). When `body`
 is populated (older format), the original order-stream logic is used.
@@ -50,8 +50,8 @@ def is_active_action(order_name: str) -> bool:
 
 
 # Minimum active window (minutes) for a per-player APM estimate. A player whose
-# actions span less than this — e.g. a single-frame burst, or someone wiped out
-# seconds in — has no reliable active duration; using the raw span divides by a
+# actions span less than this - e.g. a single-frame burst, or someone wiped out
+# seconds in - has no reliable active duration; using the raw span divides by a
 # near-zero number and produces absurd APM (millions). Below the threshold we
 # fall back to the game-duration denominator instead.
 _MIN_ACTIVE_MINUTES = 0.5
@@ -98,7 +98,7 @@ def _build_apm_records(
     """Construct APM records from per-player action counts and first/last frames.
 
     `fallback_minutes` is used when a player's first/last frame collapse
-    (e.g. a single event) — set to total game duration for the stats path,
+    (e.g. a single event) - set to total game duration for the stats path,
     0 for the body path (which then reports 0 APM rather than infinite).
     """
     result: list[APM] = []

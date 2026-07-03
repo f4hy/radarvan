@@ -6,7 +6,7 @@ date/best-of/score). "Admin" here is the tournament-specific set
 other admin features.
 
 ``/api/bracket_eligible_players`` is deliberately a separate top-level path
-rather than nested under ``/api/bracket`` — the OpenAPI client generator can
+rather than nested under ``/api/bracket`` - the OpenAPI client generator can
 silently merge a static path with a parameterized sibling that shares a
 prefix (see CLAUDE.md gotcha re: ``/api/map_data/by_player_count`` vs.
 ``/api/map_data/{map_name}``).
@@ -135,7 +135,7 @@ def get_bracket(
 
 @router.get("/api/bracket_eligible_players")
 def eligible_players() -> list[str]:
-    """Known player names — the pool admins pick the 9-16 entrants from."""
+    """Known player names - the pool admins pick the 9-16 entrants from."""
     return sorted(player_ids.PLAYER_NAMES)
 
 
@@ -211,7 +211,7 @@ def set_bracket_match(
             )
 
     # Refuse edits that would re-route players through matches that already
-    # have a recorded score — their stored result would silently be attributed
+    # have a recorded score - their stored result would silently be attributed
     # to different players. The admin must clear the downstream result first.
     new_states = dict(states)
     new_states[match_id] = bracket.MatchState(

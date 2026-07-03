@@ -1,4 +1,4 @@
-"""Player identity helpers — the known-player ID/alias tables, ``resolve_player_name``
+"""Player identity helpers - the known-player ID/alias tables, ``resolve_player_name``
 for canonicalizing in-game aliases, and ``is_admin`` admin checks."""
 
 from collections.abc import Iterable
@@ -100,7 +100,7 @@ def is_admin(player_name: str | None) -> bool:
     return player_name is not None and player_name in ADMIN_PLAYERS
 
 
-# Admins for the 1v1 double-elimination bracket feature specifically — a
+# Admins for the 1v1 double-elimination bracket feature specifically - a
 # separate, narrower set from ADMIN_PLAYERS so granting bracket admin doesn't
 # also grant access to unrelated admin features (debug page, backfills, …).
 TOURNAMENT_ADMINS: set[str] = {"Modus", "Gorn"}

@@ -116,7 +116,7 @@ async def load_many_superlative_data(
     """Load reduced superlative data for many matches in parallel.
 
     Each match is loaded as full MatchDetails, immediately converted to the smaller
-    SuperlativeData, and the full details discarded — keeping peak memory low.
+    SuperlativeData, and the full details discarded - keeping peak memory low.
 
     Processed in chunks of chunk_size to bound the number of coroutines scheduled at
     once and give Python's GC a chance to release completed batches between chunks.

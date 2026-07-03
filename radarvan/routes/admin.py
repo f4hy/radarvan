@@ -155,7 +155,7 @@ def reparse_before_date(
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
 
-    Calls cncstats for each match — slower than refresh_matches_from_json but picks
+    Calls cncstats for each match - slower than refresh_matches_from_json but picks
     up new fields added to the parser output.
     """
     candidates = replay_manager.list_jsons_parsed_before(before, limit=max_to_update)
@@ -186,7 +186,7 @@ async def reparse_non_v2(
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
 
-    Calls cncstats for each match — slower than refresh_matches_from_json but picks
+    Calls cncstats for each match - slower than refresh_matches_from_json but picks
     up new fields added to the parser output.
     """
     candidates = replay_manager.list_jsons_non_v2(limit=max_to_update)
@@ -301,7 +301,7 @@ class MatchPair(NamedTuple):
 
 
 def _fetch_and_parse(match_id: int, json_record: ParsedReplayJson) -> Match:
-    """Fetch JSON from S3 and convert to a Match — no DB access, safe to run in threads."""
+    """Fetch JSON from S3 and convert to a Match - no DB access, safe to run in threads."""
     replay = replay_files.with_filename(
         replay_files.parse_json(json_record.json_s3_uri),
         json_record.replay_file_url,
@@ -316,7 +316,7 @@ def refresh_matches_from_json(
 ) -> dict[str, int]:
     """Re-parse existing JSON files from S3 and update DB matches if they differ.
 
-    Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+    Does NOT re-run cncstats - only reloads the already-parsed JSON from S3.
     Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially.
     Fetches up to max_to_update * 4 candidates to account for non-differing matches.
     """

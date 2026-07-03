@@ -107,7 +107,7 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
             if snap_idx < len(p.money_earned)
         }
 
-    # xp from skillPointsEvents — each event records the player's current total
+    # xp from skillPointsEvents - each event records the player's current total
     xp: dict[float, dict[str, int]] = {}
     current_xp: dict[str, int] = dict.fromkeys(all_players, 0)
     xp_by_frame: dict[int, dict[str, int]] = defaultdict(dict)

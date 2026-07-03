@@ -1,7 +1,7 @@
 """Map voting: per-player-count votes and vetoes.
 
 Like the auth routes, these are cookie/identity-driven and deliberately not
-behind the X-API-Key dependency — the frontend calls them same-origin so the
+behind the X-API-Key dependency - the frontend calls them same-origin so the
 session cookie identifies the voter. Reads are open; casting requires login.
 """
 
@@ -175,7 +175,7 @@ def player_counts(
 def voting_players(
     user_repo: UserRepo = Depends(get_user_repo),
 ) -> list[str]:
-    """In-game names with an account — the selectable participants for a draw."""
+    """In-game names with an account - the selectable participants for a draw."""
     return user_repo.list_claimed_player_names()
 
 

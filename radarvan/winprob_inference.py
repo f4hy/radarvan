@@ -1,4 +1,4 @@
-"""Serve win-probability-over-time from the exported ONNX model — torch-free.
+"""Serve win-probability-over-time from the exported ONNX model - torch-free.
 
 The production app has no torch; ONNX Runtime + numpy is all we need at serving
 time. Feature encoding reuses the torch-free encoder in

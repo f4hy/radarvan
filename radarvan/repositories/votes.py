@@ -2,7 +2,7 @@
 
 Limits are enforced here (not in the schema): a user may cast at most
 ``VOTE_LIMIT`` votes and ``VETO_LIMIT`` vetoes per player count. A map can be
-voted or vetoed but not both — setting one replaces the other on that map.
+voted or vetoed but not both - setting one replaces the other on that map.
 """
 
 from sqlalchemy import func, select

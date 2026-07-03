@@ -1,4 +1,4 @@
-"""Serve win predictions from the exported ONNX model — torch-free.
+"""Serve win predictions from the exported ONNX model - torch-free.
 
 The production app has no torch; ONNX Runtime + numpy is all we need at serving
 time. Feature encoding reuses ``ml.features`` (the same torch-free encoder used
@@ -191,7 +191,7 @@ def _notify_prediction(
     ]
     if actual is not None:
         mark = "✅ correct" if actual == predicted else "❌ upset"
-        lines.append(f"Actual: Team {actual} won — {mark}")
+        lines.append(f"Actual: Team {actual} won - {mark}")
     elif expect_actual:
         lines.append("Actual: no decisive winner recorded")
     if pred.unknown_players:
@@ -202,8 +202,8 @@ def _notify_prediction(
 def predict_and_notify(match: MatchInfo) -> None:
     """Best-effort: predict a freshly-registered match and notify pred vs actual.
 
-    Called from the match-registration paths. Any failure — model files absent,
-    game not a 2-team game, notify webhook error — is swallowed so registration
+    Called from the match-registration paths. Any failure - model files absent,
+    game not a 2-team game, notify webhook error - is swallowed so registration
     is never affected.
     """
     try:

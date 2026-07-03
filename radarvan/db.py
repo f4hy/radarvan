@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models — the database schema (``Match``, ``MatchPlayer``,
+"""SQLAlchemy ORM models - the database schema (``Match``, ``MatchPlayer``,
 ``ReplayFile``, ``ParsedReplayJson``, ``MatchDetailsCache``, ``User``, ``MapData``, …)
 and the ``Base`` declarative class shared across the backend."""
 
@@ -29,7 +29,7 @@ def _utcnow() -> datetime:
 
     Returns an aware UTC datetime. SQLAlchemy will store it as-is on tz-aware
     columns and silently strip the tzinfo on naive columns (preserving the
-    existing-stored-value semantics — i.e. wall-clock UTC).
+    existing-stored-value semantics - i.e. wall-clock UTC).
     """
     return datetime.now(UTC)
 
@@ -362,7 +362,7 @@ class MapVote(Base):
 
     Votes and vetoes are per (user, player_count): a user may cast up to a
     fixed number of each (enforced in the repository, not the schema). A map can
-    be voted OR vetoed but not both — one row per (user, player_count, map_name),
+    be voted OR vetoed but not both - one row per (user, player_count, map_name),
     with `choice` flipping between 'vote' and 'veto'.
     """
 
@@ -421,7 +421,7 @@ class MapData(Base):
 class BracketTournament(Base):
     """Singleton row for the current 1v1 double-elimination bracket.
 
-    Only one row exists at a time — creating/resetting a bracket deletes the
+    Only one row exists at a time - creating/resetting a bracket deletes the
     existing row (BracketPlayer/BracketMatchState cascade with it) and
     inserts a fresh one. See radarvan/bracket.py for the 9-16 entrant
     topology (a fixed 16-slot bracket with byes for smaller fields); this
@@ -472,7 +472,7 @@ class BracketMatchState(Base):
     """Mutable per-match state (date/best-of/score) for a bracket match.
 
     ``match_id`` is one of the static ids from radarvan/bracket.py's
-    TOPOLOGY (e.g. "WB1-1", "LB2a-1", "GF-2") — the bracket shape/routing
+    TOPOLOGY (e.g. "WB1-1", "LB2a-1", "GF-2") - the bracket shape/routing
     lives in code; this table only stores what an admin entered.
     """
 

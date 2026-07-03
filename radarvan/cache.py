@@ -23,7 +23,6 @@ from .dependencies import db_manager
 logger = structlog.get_logger(__name__)
 
 
-
 # cachetools caches are not thread-safe; sync endpoints run in uvicorn's
 # threadpool, so concurrent access can corrupt LRU bookkeeping. Each @cached
 # below gets its own lock. cachetools holds the lock only around the cache

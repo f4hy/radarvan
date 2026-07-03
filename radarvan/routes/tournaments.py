@@ -47,7 +47,7 @@ async def save_report(name: str, save: bool = True) -> TournamentReport:
 
     Opens its own DB sessions: this runs as a background task (after the
     request-scoped session is torn down), and the per-match detail loads run
-    in worker threads that must not share one session —
+    in worker threads that must not share one session -
     ``load_many_match_details`` gives each thread its own.
     """
     async with _report_semaphore:
@@ -79,7 +79,7 @@ async def get_tournament_report(
     """Get report for a specific tournament."""
     existing = replay_manager.get_tournament_report_by_name(tournament_name)
     if not existing:
-        # Don't cache the empty placeholder — the background task fills it in
+        # Don't cache the empty placeholder - the background task fills it in
         # seconds and a cached empty report would look perpetually empty.
         background_tasks.add_task(save_report, tournament_name)
         response.headers["Cache-Control"] = "no-cache"
