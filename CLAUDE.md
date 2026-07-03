@@ -4,103 +4,171 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Radarvan is a statistics tracking application for Command & Conquer: Generals Zero Hour. It consists of a React frontend and a FastAPI Python backend that scrapes game data, parses replay files, and provides various statistics endpoints.
+Radarvan is a statistics tracker for Command & Conquer: Generals Zero Hour. A FastAPI backend scrapes/accepts game replays, parses them via the external cncstats service, stores results in PostgreSQL + S3, and serves stats; a React frontend renders them. Production runs on Heroku (radarvan-5e9c302c60e6.herokuapp.com).
 
-## Common Commands
+## Commands
 
-### Combined (Makefile)
-The `Makefile` is the canonical entry point for formatting, linting, type-checking, and CI. `make help` lists every target.
-- `make all` - Format + auto-fix lint + type-check across **both** Python and TypeScript (run this before pushing)
-- `make check` - Python lint + mypy (no formatting)
-- `make ts-check` - TS format-check + ESLint + tsc
-- `make install` - `uv sync` + `npm install`
-- `make test` - `uv run pytest`
-- `make build` - Runs `check` + `ts-check`, then `uv build`
-- `make ci` - Full pipeline: `clean install all build`
-- Python-only targets: `format`, `lint`, `lint-fix`, `typecheck`. TS-only: `ts-format`, `ts-lint`, `ts-lint-fix`, `ts-typecheck`.
+The `Makefile` is the canonical entry point; `make help` lists every target.
 
-### Frontend (Vite + React)
-- `npm start` - Start Vite dev server (`/api` proxied to localhost:8000 via `vite.config.ts`)
-- `npm run build` - Type-check and build production bundle (`tsc && vite build`)
-- `npm test` - Run vitest test suite
+- `make all` — format + auto-fix lint + type-check **both** Python and TypeScript (run before pushing)
+- `make check` — Python ruff + mypy (no formatting) · `make ts-check` — TS format-check + ESLint + tsc
+- `make test` — `uv run pytest` (tests in `tests/`, fixture JSONs live there too)
+- `make install` — `uv sync` + `npm install` · `make ci` — `clean install all build`
+- Python-only: `format`, `lint`, `lint-fix`, `typecheck` · TS-only: `ts-format`, `ts-lint`, `ts-lint-fix`, `ts-typecheck`
 
-### Backend (Python/FastAPI)
-- `fastapi run radarvan/main.py` - Start the server (matches `Procfile`)
-- Python ≥3.13 required; deps locked in `uv.lock` (install via `make install` or `uv sync`)
-- `alembic upgrade head` - Run migrations
-- `DATABASE_URL` env var must be set; `DEV=1` disables scheduled scraping
+**Frontend**: `npm start` (Vite dev server; only `/api` is proxied to localhost:8000 via `vite.config.ts`), `npm run build`, `npm test` (vitest).
 
-### Code Generation
-- `./gen_client.sh` - Regenerate TypeScript API client from the running FastAPI server's OpenAPI spec; FastAPI dev server must be running first
-- OpenAPI client code is auto-generated in `src/api/` (DO NOT manually edit files marked with auto-generation warnings)
-- `proto/match.proto` exists but is not used by the current code paths — `radarvan/api_types.py` (Pydantic) is the source of truth for the wire format
+**Backend**: `fastapi run radarvan/main.py` (matches `Procfile`). Python ≥3.13, deps locked in `uv.lock`. `alembic upgrade head` for migrations (config in `alembic.ini`).
+
+**Client codegen**: `./gen_client.sh` regenerates the TypeScript client in `src/api/` from the running server's OpenAPI spec — the FastAPI server must already be running and serving your changed code. Always use this script (not `npm run openapi-ts` or a manual generator invocation). Never hand-edit `src/api/` (auto-generated). `PlayerEnum.ts` reorders on every regen (Python set iteration) — that churn is normal.
+
+### Dev workflow
+
+- The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones (confirm with `curl`/`ss -ltnp` if unsure). Never run broad `pkill -f vite` / `pkill -f fastapi`; if a stray process must be killed, target the exact PID.
+- Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree — the user manages commits.
+
+### Environment variables
+
+| Var | Purpose |
+|---|---|
+| `DATABASE_URL` | Postgres (required; `postgres://` auto-rewritten to `postgresql://`) |
+| `DEV` | Set = dev mode: no scheduler, ops routes visible in OpenAPI |
+| `API_KEY_READ` / `API_KEY_WRITE` | Comma-separated keys for `X-API-Key`; `ENFORCE_AUTH` set = actually reject |
+| `SESSION_SECRET` | Signs the session cookie (random per-process fallback in dev) |
+| `DISCORD_CLIENT_ID/SECRET`, `DISCORD_REDIRECT_URI` | Discord OAuth login (see `auth.md`) |
+| `NOTIFY_WEB_HOOK` | Discord webhook for `notify()` |
+| `CNCSTATS_APIKEY` | Bearer token for cncstats **replay parsing** (`POST /replay`) |
+| `CNCSTATS_API_KEY` | X-API-Key for the cncstats **map registry** (`/add_map`) — distinct from the above, do not conflate |
+| `ML_MODEL_PATH`/`ML_VOCAB_PATH`, `WINPROB_MODEL_PATH`/`WINPROB_STATS_PATH` | ONNX model files; endpoints 503 when absent |
+| `RATE_LIMIT_PER_MINUTE` | Per-client sliding window on `/api` (0 disables) |
 
 ## Architecture
 
-### Frontend Structure
-- **Entry point**: `src/index.tsx` → `src/App.tsx` → `src/Menu.tsx`
-- **Navigation**: Menu component provides drawer-based navigation between different views
-- **Main views**:
-  - Matches (match listings)
-  - PlayerStats (individual player statistics)
-  - GeneralStats (statistics by general/faction)
-  - Draft (`src/Draft.tsx`) — map/player draft with randomized position and general assignment
-  - DebugData (debug view, only shown with `?debug=True` query param)
-- **API Client**: `src/Client.ts` configures the auto-generated API client, switching between localhost:8000 (dev) and production Heroku endpoint based on NODE_ENV
-- **Styling**: Uses Material-UI (@mui/material) with responsive theming
-- **Charting**: Uses recharts library for data visualization
+### Backend layout (`radarvan/`)
 
-### Backend Structure
-- **Main app**: `radarvan/main.py` - FastAPI application with CORS middleware and request timing
-- **Database**: SQLAlchemy ORM with PostgreSQL, managed via `db_utils.py` and `db.py`
-- **Key modules**:
-  - `matches.py` - Match listing, retrieval, conversion (`match_from_replay`, `replay_to_db_match`, `match_to_matchinfo`, `matches_differ`)
-  - `match_details.py` - Detailed match statistics (APM, upgrades, spending over time, first blood, kill events with map coordinates)
-  - `player_stats.py` - Player-specific win/loss stats by general; accepts `game_format` filter; counts all games per category
-  - `general_stats.py` - General/faction-specific statistics
-  - `superlatives.py` - Top-N leaderboard stats (streaks, APM, kills, money, etc.)
-  - `draft.py` - Spatial clustering assignment for draft randomization; called by `POST /api/draft/randomize` (results cached 30 min via `TTLCache`)
-  - `game_composition.py` - `categorize_game_type`, `competitive_game_filter`
-  - `replay_files.py` - Replay file management; `parse_json(s3_uri)` loads JSON→EnhancedReplayV2 without re-running cncstats; `parse_replay` runs cncstats if JSON not cached
-  - `scrape_games.py` - Web scraping to gather new game data
-  - `parse_replay.py` - Replay file parsing (runs cncstats binary)
-  - `schedule.py` - Scheduled tasks for scraping
-  - `db_utils.py` - Database session management and replay repository (`ReplayManager`)
-- **API types**: `radarvan/api_types.py` — Pydantic models that define every REST request/response shape (`MatchInfo`, `PlayerStat`, `MatchDetails`, `General`/`Team`/`Faction` enums, etc.). This is the canonical schema; TS types are generated from the resulting OpenAPI spec.
-- **Replay model**: `radarvan/cncstats_model/zhreplay.py` defines `EnhancedReplayV2` (the parsed-replay shape from the cncstats binary). Use this; the older `cncstats_types_v2.py` shapes are reference-only.
+- **`main.py`** — app composition only: middleware order, router registration, lifespan (scheduler + cache warm), the single global exception handler, static serving. Route handlers live in **`routes/`** (admin, auth, bracket, draft, ffa, files, generals, map_upload, maps, matches, players, predict, superlatives, teams, tournaments, votes).
+- **`db.py`** — SQLAlchemy ORM models. **`repositories/`** — per-entity repos over a `Session` (`BaseRepo` gives `auto_commit`/`notify`). **`db_utils.py`** — `DatabaseManager` (engine + sessionmaker + `get_replay_manager()` ctx manager) and `ReplayManager`, a multiple-inheritance facade over the repos; new code should prefer the specific repo, the facade exists for legacy callers.
+- **`dependencies.py`** — DI singletons (`db_manager`, `IS_DEV`) and Depends providers: `get_db_session` (commit/rollback/close per request), `get_replay_manager`, `verify_api_key`, `get_current_user`/`require_current_user` (session cookie), `cache_short` (60s private cache header).
+- **`api_types.py`** — Pydantic models defining every REST request/response shape. **This is the canonical wire schema**; TS types are generated from the resulting OpenAPI spec. Includes `PlayerName` (alias-resolving annotated str) and the `General`/`Team`/`Faction` enums.
+- **`cncstats_model/zhreplay.py`** — `EnhancedReplayV2`, the parsed-replay shape from cncstats. This is the **only** replay type to import; `cncstats_types.py`/`cncstats_types_v2.py` are unused reference copies.
+- Ingestion: **`scrape_games.py`** (gentool scraping) → **`replay_files.py`** (S3 read/write, `parse_replay`/`parse_json`/`reparse_paths`/`upload_and_parse`, presigned URLs) → **`parse_replay.py`** (calls cncstats, 1v1 team reassignment, winner overrides) → **`matches.py`** (`match_from_replay`, `replay_to_db_match`, `match_to_matchinfo`, `register_matches`, `reparse_*`, `matches_differ`, `filter_by_format`/`filter_since`/`filter_by_months_back`).
+- Match details: **`match_details.py`** orchestrates the `/api/details/{id}` shape from per-concern extractors — **`apm.py`**, **`stats_extraction.py`** (time series + first blood), **`build_order.py`**, **`timeline_events.py`** — and owns the versioned details cache loaders (`load_match_details`, thread-safe `load_many_match_details`). **`replay_helpers.py`** has `clean_object_name` etc.
+- Stats over `list[MatchInfo]`: `player_stats.py`, `general_stats.py`, `team_stats.py`, `map_stats.py`, `ffa_stats.py`, `head_to_head.py`, `superlatives.py` (records; persisted via `StatsRepo`), `game_composition.py` (`categorize_game_type`, `competitive_game_filter`).
+- Ratings: **`player_rating.py`** (OpenSkill/PlackettLuce, upsets, daily deltas), **`player_skill.py`** (Whole-History Rating), **`player_synergy.py`** (ridge logistic; see `SYNERGY_METHODOLOGY.md`), **`create_teams.py`** (balanced team search).
+- Tournaments: **`tournament.py`** (hard-coded round-robin team tournaments + reports) vs **`bracket.py`** (1v1 double-elim: pure topology generation + resolution for 9–16 entrants; DB stores only seeds + per-match scores, everything else is derived each call).
+- Maps: **`missing_maps.py`** (fetch from cncstats, CRC, S3 assets, push registry), **`map_upload.py`** (user uploads), **`map_render.py`** (Pillow overlay PNG), **`map_choice.py`** + **`draft.py`** (weighted draw, position/general randomization).
+- ML: **`ml_inference.py`** (pre-game win prediction; encoder in `ml/`) and **`winprob_inference.py`** (win-prob-over-time; encoder in `ml_win_prediction_over_time/`) — ONNX Runtime only, no torch in prod.
+- Infra: **`cache.py`** (process-global caches + warming, see invariants), **`schedule.py`** (APScheduler jobs), **`cncstats_client.py`** (single httpx client for cncstats), **`middleware.py`**/`rate_limit.py` (request-id, rate limit), **`notify.py`** (best-effort Discord webhook; never raises), **`player_ids.py`** (identity tables, admin sets), **`utils.py`** (replay helpers, `game_night_date`, `locked_cached`).
 
-### Data Flow
-1. Game replays are collected (via scraping or manual upload)
-2. Replays are parsed to extract match details (players, generals, teams, winner, costs, actions)
-3. Data is stored in PostgreSQL database; the original `.rep` and the parsed JSON live in S3 (`s3://generals-stats/radarvan/dev/`)
-4. FastAPI serves statistics via REST endpoints
-5. React frontend fetches and displays data using auto-generated TypeScript client
+### Auth model (three tiers)
 
-### Key Patterns
-- **Game format filtering**: `matches.filter_by_format(games, game_format)` filters by category string ("1v1", "2v2", etc.); `game_composition.competitive_game_filter` requires balanced, non-comp-stomp, team games
-- **Player stats sources**: `sorted_deduped_matches` (all games, for counts) vs `competitive_matches` (filtered, for W/L) — `get_player_stats` receives all games and filters internally
-- **Replay JSON loading**: Use `replay_files.parse_json(json_s3_uri)` to load an existing JSON from S3 without re-running cncstats; always set `replay.Header.FileName = replay_file_url` after loading
-- **Canonical replay type**: All replay-handling code uses `EnhancedReplayV2` (from `cncstats_types_v2.py`), not `EnhancedReplay`. Do not import `EnhancedReplay` in new code.
-- **Match comparison**: `matches.matches_differ(existing, new)` compares map, winner, duration, incomplete, game_version, and players (name, general, team, color, is_winner, starting_position)
-- **Backfill endpoints**: POST endpoints with `max_to_update: int` param that loop through matches and update incrementally; return `{"updated": N}`
+1. Most `/api` routers require `X-API-Key` (`verify_api_key`; read keys for GET, write keys for mutations; only enforced when `ENFORCE_AUTH` is set).
+2. Cookie-session routes (Discord OAuth): `routes/auth.py`, `votes.py`, `map_upload.py`, `bracket.py` writes — deliberately **not** behind the API key; identity via signed session cookie. Admin checks: `player_ids.ADMIN_PLAYERS` (general admin) vs `player_ids.TOURNAMENT_ADMINS` (bracket only) — separate sets on purpose.
+3. `maps.public_router` (map images) — no auth, because browsers load them via `<img src>`.
 
-### Environment Configuration
-- Frontend dev proxy is configured in `vite.config.ts` (only `/api` routes proxied to `localhost:8000`; static assets served directly from `public/`)
-- Backend reads `DATABASE_URL` from environment variables
-- `DEV` environment variable controls whether scheduled tasks run
-- Production deployment is on Heroku (radarvan-5e9c302c60e6.herokuapp.com)
-- Static files served via explicit `serve_index()` route (returns `index.html` with `Cache-Control: no-cache`) followed by `StaticFiles` mount — ensures browser revalidates after deploys
+### Data flow
 
-## Reference Fixtures (`references/`)
+1. Replays arrive by scheduled gentool scrape or `POST /api/upload_replay`.
+2. cncstats parses the `.rep`; the `.rep` and parsed JSON go to S3 (`s3://generals-stats/radarvan/dev/`), rows to Postgres (`ReplayFile` → `ParsedReplayJson` → `Match`+`MatchPlayer`+`MatchCompostion`).
+3. Derived data is cached (in-process + `match_details_cache` table) and served via REST; the React app consumes it through the generated client.
 
-Use these to inspect real cncstats / API shapes without running anything. Read with `jq` (already installed).
+### Frontend layout (`src/`)
 
-- **`references/example_replay.rep`** — raw replay binary (match `92990953`). The unparsed input that cncstats consumes. Rarely needed directly; consult only if debugging the parser itself.
-- **`references/example_cncstats_output.json`** — the parsed JSON cncstats emits from the `.rep` above. **This is the canonical shape of `EnhancedReplayV2`** as it arrives in our code. Consult whenever asking "what does a replay's `body` / `stats.buildEvents` / `summary` actually look like?" Has the corrected (non-empty) body with 9 597 chunks and the full `stats` block (build / kill / capture / battle-plan / energy / rank / science / skill / radar / death / time-series events).
-- **`references/example_api_match_details.json`** — sample response from `GET /api/details/{match_id}` (match `349863312`). Consult when asking "what does the wire shape of `MatchDetails` look like to the front-end?" Note: this was captured *before* the upgradeName / new-event-types fixes, so its `upgradeEvents` field has empty strings — useful as a "stale cache" example, not as ground truth.
-- **`references/cncstats_schema.json`** — the cncstats Swagger 2.0 spec. Definitions for every event type live under `definitions.*` (e.g. `zhreplay.EnrichedBuildEvent`, `statsfile.BattlePlanEvent`). Consult when asking "what fields are guaranteed on event X, and what's their type?"
+- Entry `index.tsx` → `App.tsx` → `Menu.tsx` (drawer navigation). Views map ~1:1 to backend areas: `Matches`, `ShowMatchDetails`, `PlayerStats`, `PlayerRatings`, `PlayerSynergy`, `GeneralStats`, `MapStats`, `TeamStats`, `HeadToHead`, `FFA`, `Superlatives`, `Tournaments`, `Bracket`, `Draft`, `ChooseMap`/`MapVoting`, `MapUpload`, `BalanceTeams`, `AIPredictions`, `ReplayPlayback`, `Account`; `DebugData` only with `?debug=True`.
+- `Client.ts` configures the generated client (localhost:8000 in dev, Heroku in prod). MUI for components, recharts for charts.
+- Shared pieces: `Map.tsx` (exports `GameMap`), `WinRateRadar.tsx`, `PlayerChip`, `utils.ts` (`getColorHex`, `buildPlayerColorMap`), `AuthContext`, `useErrorSnackbar`.
 
-Common workflow: when something in `MatchDetails` looks wrong, first `jq` the matching path in `example_cncstats_output.json` to confirm what cncstats produces, then trace through `radarvan/match_details.py` or `radarvan/apm.py` to find the transformation that's losing data. To exercise the full pipeline locally:
+## Core invariants — read before writing backend code
+
+**DB sessions and threads.** The request-scoped session comes from `Depends(get_replay_manager)`. Anything that outlives the request must open its own session via `db_manager.get_replay_manager()` (context manager): FastAPI runs background tasks *after* yield-dependency teardown, and scheduler jobs each open a fresh session per run (a shared long-lived session poisons every later job after one failed transaction). Never let session-bound ORM objects cross into `asyncio.to_thread` workers — extract plain values first (see `matches.ReparseInputs`) or use the per-thread loaders `match_details.load_many_match_details` / `superlatives.load_many_superlative_data`. When catching DB errors inside a loop and continuing, call `session.rollback()` in the except branch or every subsequent statement fails with `PendingRollbackError` (see `matches.register_matches`).
+
+**`update_match` needs a detached Match.** `MatchRepo.update_match` clears `existing.players` then merges. Only ever pass it a fresh Match built by `replay_to_db_match` — passing a session-attached instance is the same object via the identity map, and the clear + delete-orphan cascade permanently deletes the match's players.
+
+**Event loop.** Async handlers and scheduler jobs must push blocking work (cncstats HTTP, S3 I/O, heavy computation) through `asyncio.to_thread`. Sequential `to_thread` calls may share one session; concurrent ones must not.
+
+**Caches.** cachetools caches are not thread-safe and sync endpoints run in uvicorn's threadpool: every process-global cache must be locked. For new caches use `utils.locked_cached(cache=..., key=...)`; the caches in `cache.py` keep explicit locks because they coordinate `cache_clear()`. Call `cache.invalidate_match_caches()` after anything that changes match data (registers, reparses, overrides, resets) — it clears all match caches and triggers a background re-warm on the single warm thread.
+
+**The two match sets.** `cache.sorted_deduped_matches` = all games (use for counts/listings); `cache.competitive_matches` = complete + `competitive_game_filter` (balanced, non-comp-stomp, team game, ≤1 CPU) + every team has a known player (use for W/L, ratings, records). Both are keyed on `latest_match_ts` so they refresh when new matches land. `filter_by_format` lives in `matches.py` (it operates on `list[MatchInfo]`), not `game_composition.py`.
+
+**Player names.** Any player name arriving over the wire (body or query param) must be alias-resolved — clients send in-game aliases (`skp`→`Skip`). Don't call `resolve_player_name` ad-hoc in handlers; type the field as `api_types.PlayerName` (works in `list[PlayerName]` too) so resolution happens at validation and can't be forgotten. Internally, resolve with `resolve_player_name(name, player.color)` — color disambiguates the shared alias "pc" (purple→pcap, pink→Pancake).
+
+**MatchDetails cache invalidation.** `cache.details_from_id` is an in-process LRU over the durable `match_details_cache` table; rows are stamped with `match_details.DETAILS_VERSION`. A `MatchDetails` *schema* change auto-bumps the version (embedded `model_json_schema()` hash); a *derivation logic* change that leaves the schema unchanged requires manually bumping `_DETAILS_LOGIC_VERSION` in `match_details.py` — otherwise stale rows keep being served. Reparse paths call `delete_cached_details(match_id)` (raw replay changed, version didn't). Browsers also cache `/api/details/` for 1h — hard-refresh (Ctrl-Shift-R) when verifying.
+
+**`notify()`** (Discord webhook) is best-effort and swallows its own errors, but it's still a blocking HTTP call — in async code dispatch it via `asyncio.to_thread`.
+
+**Backfill endpoint pattern.** Ops endpoints take `max_to_update: int`, loop incrementally, return `{"updated": N, ...}`, and are marked `include_in_schema=IS_DEV` (hidden from prod docs but still routable).
+
+## Python conventions
+
+- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types (e.g. `locked_cached` lives in `utils.py` because `cache.py` imports `player_rating`).
+- **Never mutate function inputs** — return new values (`model_copy(update=...)` for Pydantic).
+- `slots=True` model_config on api_types models; camelCase wire aliases with `populate_by_name`.
+
+## Domain gotchas
+
+### Replay data model
+
+- **`EnhancedReplayV2.stats` is optional** — old replays have `stats=None`. Always guard before touching `stats.*`; return empty structures in the `None` branch. `has_enhanced_stats` in the DB = `replay.stats is not None`.
+- **Summary index vs header order are NOT the same.** `replay.summary[*].index` (1-based) is the canonical player index used by every `stats.*_events` field (`killEvents.killerPlayer`, `buildEvents.player`, …). `replay.header.metadata.players` is a *different order* and 0-based — never enumerate it to resolve event indices. Build `name_by_idx = {p.index: p.name for p in replay.summary}`.
+- **Body chunk `details` is a plain dict with capitalized keys** — `{"Name": ..., "Cost": ...}`. Use `d.get("Name")`; `getattr` and lowercase keys silently return None. Guard with `details = chunk.details if isinstance(chunk.details, dict) else {}`.
+- **Starting position**: replay `StartingPosition` is 0-based; map-data `player_number` is 1-based. The `+1` happens in `utils.players_from_replay()`.
+- **Team 0 players are observers/disconnected**, not FFA participants; `categorize_game_type` ignores them.
+- **Per-player money**: use `stats.players[*].moneySpent`/`moneyEarned` (surfaced as `MatchDetails.player_money_spent/collected`) — `PlayerSummary.MoneySpent` is always 0 for v2 replays.
+- **Buildings vs units** are distinguished by `object_type`/`victim_type == "structure"` on build/kill events.
+- **Game-night dates**: `utils.game_night_date` converts UTC to US Eastern with a 5am rollover so post-midnight games count toward the evening they started. Use it, not `.date()`.
+- **APM has two paths** (`apm.py`): per-order `replay.body` chunks when present, else derived from stats events (newer cncstats outputs ship an empty body). Scoped to non-observer humans; `apm_over_time` returns 10s windows scaled to APM.
+
+### Timelines and special powers (`timeline_events.py`)
+
+- `body[].details.Name` for `SpecialPowerAt*` orders encodes three families: `SpecialAbility*` (unit abilities — skip, they flood timelines), `SpecialPower*` (generals-panel powers), `Superweapon*` (mix of powers AND true superweapons — a true launch matches `_SUPERWEAPON_ACTIVATION_KEYWORDS`). Superweapon *buildings* are detected by name against `_SUPERWEAPON_STRUCTURES`, not cost.
+- `MatchDetails.timeline_events` markers: `search_and_destroy` fires only on 0→1 battle-plan flips; `low_power` only on OK→low transitions; rank-ups with `rank_level <= 1` or seed frames are dropped.
+- Object names rendered to the UI go through `replay_helpers.clean_object_name` (strips `Lazr_`-style prefix then faction prefix); power names additionally through `_clean_power_name`.
+
+### Matches, overrides, reparse
+
+- `matches_differ` compares map, winner, duration (2dp), incomplete, game_version, and the sorted player tuples — extend it if new fields must trigger refresh.
+- `WinnerOverride` takes full precedence in `match_to_matchinfo` and is also baked into freshly parsed JSON by `parse_replay_data`; overrides survive reparses.
+- `session.merge()` + `onupdate` columns: merge copies attribute state by PK, so an unset `updated_at`/`computed_at` merges as NULL. Always set such columns explicitly on objects passed to `merge()` (see `save_parsed_json`, `save_cached_details`).
+- `list_jsons_parsed_before` uses PostgreSQL `DISTINCT ON (match_id)` and excludes match_ids with any record newer than the cutoff.
+- The `match_compostion` table name misspelling is baked into an early migration — intentionally preserved everywhere; do not "fix" without a migration.
+
+### Maps
+
+- **Coordinates**: CnC uses bottom-left origin (y up); CSS top-left. Convert with `top = (1 - y / height) * 100%` (`Map.tsx`); same convention for `eventDots` overlays.
+- **Name resolution**: user-supplied map names are matched case-/whitespace-insensitively — `ReplayManager.resolve_map_name(name)` returns the canonical stored name; `replay_files.map_key` is the normalized join key between `Match.map` paths and `MapData.map_name`. Image lookup order: S3 (`find_s3_webp`, tries variants) → exact `dist/maps/{name}.webp` → normalized-substring scan of `dist/maps/`.
+- **CRC**: `MapData.crc` is uppercase hex matching replay-header `mapCrc`. Played maps: derive from a sample match's parsed JSON (`missing_maps.crc_for_map`/`backfill_map_crcs`). Uploaded maps: recompute from raw bytes via `compute_map_crc` (SAGE rotate-left-1-then-add, validated against cncstats). cncstats uses decimal (`int(hex, 16)`). Pushing to cncstats (`/add_map`, headers `X-API-Key`/`X-Map-CRC`/`X-Map-File`) is gated on `CNCSTATS_API_KEY`, deduped via `MapData.cncstats_synced_at` + `/map_exists`, and run concurrently through `CncstatsClient`'s async methods.
+- **OpenAPI generator path conflicts**: the generator silently merges a static route with a parameterized sibling sharing its prefix (e.g. `/api/map_data/by_player_count` vs `/api/map_data/{map_name}`). Give new static routes a distinct top-level path (`/api/bracket_eligible_players` exists for this reason).
+
+### Bracket (1v1 double elimination)
+
+- `bracket.py` is pure and hand-verified (loss accounting); the DB stores only seeds + per-match date/best-of/scores; players/winners/status are re-derived every call via `resolve_bracket`. Keep new bracket logic in `bracket.py` where it's unit-testable, not in the route.
+- `POST /api/bracket/{match_id}` has **PATCH semantics** via `model_fields_set` — omitted fields keep stored values, explicit null clears. Edits that would re-route players through an already-scored downstream match are rejected with 409 (`bracket.rerouted_scored_matches`); the admin must clear the downstream result first.
+
+### Caching / scheduling specifics
+
+- `_draft_cache` in `routes/draft.py` uses a manual dict-style TTLCache (not `@cached`) because `replay_manager` is a Depends parameter that can't pass through the decorator key.
+- `balance_teams` is TTL-cached on the player set only (12h) — ratings staleness there is accepted.
+- Scheduler (`schedule.py`): scrape+register every 6h, superlatives recompute at 04:00; both take `db_manager` and are also triggerable via `POST /api/scrape/{days}` and `POST /api/superlatives/recompute`.
+
+### Frontend
+
+- The map component is named `GameMap` (from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor. Pass `eventDots?: EventDot[]` to overlay dots in game-space coordinates.
+- `ShowMatchDetails.tsx:EventChart` is pure MUI (no recharts); adding an event type means updating `EVENT_TYPE_META`, `EVENT_TYPE_ICON`, and `ROW_ORDER` together.
+- recharts Sankey `nodePadding` is uniform across columns; `node`/`link` accept custom elements receiving layout props; `payload.sourceLinks` detects leaf nodes.
+- Use `getColorHex`/`buildPlayerColorMap` from `src/utils.ts` for player-color maps; `WinRateRadar` is the shared radar chart (`data: {name, winRate}[]`).
+- Format toggles: `FORMAT_OPTIONS` arrays drive ToggleButtonGroups; selected format goes up as the `gameFormat` query param; reset dependent state on format change.
+- Static serving: `serve_index()` returns `index.html` with `Cache-Control: no-cache` (so deploys revalidate), then a `StaticFiles` mount.
+
+## Reference fixtures (`references/`)
+
+Use these to inspect real cncstats / API shapes without running anything (`jq` is installed).
+
+- **`example_replay.rep`** — raw replay binary (match `92990953`); only needed when debugging the parser itself.
+- **`example_cncstats_output.json`** — the parsed JSON cncstats emits for that replay. **Canonical `EnhancedReplayV2` shape**: full body (9,597 chunks) and complete `stats` block (build/kill/capture/battle-plan/energy/rank/science/skill/radar/death/time-series events). First stop for "what does `stats.buildEvents` actually look like?"
+- **`example_api_match_details.json`** — sample `GET /api/details/{id}` response (match `349863312`). Captured before the upgradeName fixes, so `upgradeEvents` has empty strings — useful as a stale-cache example, not ground truth.
+- **`cncstats_schema.json`** — cncstats Swagger spec; per-event field guarantees live under `definitions.*`.
+
+Workflow: when `MatchDetails` output looks wrong, first `jq` the matching path in `example_cncstats_output.json` to confirm what cncstats produces, then trace the transformation in `radarvan/match_details.py` (or the extractor it delegates to). Full local pipeline:
 
 ```python
 import json
@@ -110,52 +178,4 @@ replay = EnhancedReplayV2.model_validate(json.load(open("references/example_cncs
 details = match_details_from_replay(replay)
 ```
 
-## Python Conventions
-
-- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types
-- **`filter_by_format`** lives in `matches.py` (not `game_composition.py`) because it operates on `list[MatchInfo]`
-
-## Gotchas
-
-- **Map coordinates**: CnC Generals uses bottom-left origin (y increases upward); CSS uses top-left origin. In `Map.tsx`, convert with `top = (1 - y / height) * 100%`.
-- **Starting position indexing**: Replay `StartingPosition` is 0-based; map data `player_number` is 1-based. The `+1` conversion is applied in `utils.players_from_replay()`.
-- **OpenAPI generator path conflicts**: The generator silently merges routes that share a path prefix with a parameterized sibling (e.g., `/api/map_data/by_player_count` conflicts with `/api/map_data/{map_name}`). Use a distinct top-level path instead.
-- **`GameMap` component**: The map display component is named `GameMap` (exported from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor.
-- **`game_composition.py` team 0**: Players on team 0 are observers or disconnected players, not FFA participants. `categorize_game_type` ignores them when determining game type.
-- **Draft cache key**: `_draft_cache` in `main.py` uses manual dict-style `TTLCache` (not `@cached` decorator) because `replay_manager` is a FastAPI `Depends` parameter that can't pass through the decorator.
-- **`EnhancedReplayV2.Stats` is optional**: Old-format replays have `Stats=None`. Always guard with `if replay.Stats is None` before accessing `Stats.players`, `Stats.timeSeries`, etc. Return empty data structures in the `None` branch.
-- **v2 Stats player indices**: `Stats.players[*].index` and `Stats.timeSeries.players[*].index` are the same index space used in all event objects (`killEvents.killerPlayer`, `buildEvents.player`, etc.). Build `name_by_idx = {p.index: p.displayName for p in replay.Stats.players}` to resolve names.
-- **`has_enhanced_stats` in DB**: Set via `replay.Stats is not None` (not by inspecting `BodyChunk.PlayerStats`, which no longer exists in v2).
-- **`_is_building()` in `match_details.py`**: Currently always returns `False` — a placeholder until cncstats adds object-type metadata to kill/build events. The building stat buckets (`buildings_built`, `buildings_killed`, etc.) are intentionally scaffolded but always empty for now.
-- **`MatchDetails.player_money_spent`**: Per-player end-of-game money spent (from `Stats.players[*].moneySpent`). Use this instead of `PlayerSummary.MoneySpent`, which is always 0 for v2 replays.
-- **`MatchDetails.kill_events`**: List of `KillEventOutput` — each has `x`, `y` (game coordinates), `killerPlayer`/`victimPlayer` (display names), `killer`/`victim` (unit names), `damageType`, `atMinute`. Populated from `Stats.killEvents` with player indices resolved to names.
-- **`MatchDetails.map_name`**: Map filename from `replay.Header.Metadata.MapFile`. Use this to display the `GameMap` component in match detail views.
-- **`GameMap` event overlay**: Pass `eventDots?: EventDot[]` (from `src/Map.tsx`) to overlay dots on the map image. Coordinates use the same game-space system as all other map points — `left = (x / extent.width) * 100%`, `top = (1 - y / extent.height) * 100%`.
-- **recharts Sankey `nodePadding`**: Applied uniformly to all columns — there is no per-column or per-node padding. The `node` and `link` props accept custom React elements that receive layout props (`x`, `y`, `width`, `height`, `payload`) injected by recharts. `payload.sourceLinks` is available to detect leaf nodes.
-- **`session.merge()` and `onupdate`**: SQLAlchemy's `onupdate=func.now()` on a column only fires when SQLAlchemy emits an `UPDATE` for that column. `session.merge()` constructs a new Python object and merges by PK — if `updated_at` is not set on the object, merge overwrites the DB value with `NULL`. Always set `updated_at=datetime.utcnow()` explicitly on objects passed to `session.merge()` in `save_parsed_json`.
-- **`list_jsons_parsed_before`**: Uses `DISTINCT ON (match_id)` (PostgreSQL) to return one `ParsedReplayJson` per match. Excludes any `match_id` that has a record with `coalesce(updated_at, created_at) >= before` via a `NOT IN` subquery, so only match_ids where all records predate the cutoff are returned.
-- **Player color utilities**: `getColorHex(colorName)` and `buildPlayerColorMap(summaries, transform?)` are in `src/utils.ts`. Use these instead of inline `reduce` calls when mapping player names to colors. `buildPlayerColorMap` accepts an optional transform (e.g. `getColorHex`) for hex conversion.
-- **Shared `WinRateRadar` component**: `src/WinRateRadar.tsx` renders a recharts RadarChart of win rates. Expects `data: { name: string; winRate: number }[]` and optional `aspect` prop. Used by both `PlayerStats.tsx` and `GeneralStats.tsx`.
-- **Map name resolution**: User-supplied map names should be looked up case- and whitespace-insensitively. Use `ReplayManager.resolve_map_name(name)` to get the canonical stored name, then call `get_map_data`/image helpers with that. `missing_maps.find_s3_webp` also tries case- and whitespace-stripped variants in S3.
-- **Local map image fallback**: `_load_map_image_bytes` in `main.py` first tries S3 via `find_s3_webp`, then exact `dist/maps/{name}.webp`, then a normalized-substring scan of `dist/maps/` (filenames there have prefixes like `maps_defcon6_defcon6.webp` that include the map name as a substring).
-- **Map CRC**: stored on `MapData.crc` (uppercase hex, e.g. `5BB89B36`, matching the replay header `mapCrc`). Two sources: (a) for **played** maps the authoritative game value is in the parsed replay JSON (`header.metadata.mapCrc`) — `missing_maps.crc_for_map` / `backfill_map_crcs` derive it from a sample match; (b) for **uploaded** maps (no replay) recompute from the raw `.map` bytes via `missing_maps.compute_map_crc` (SAGE engine CRC: rotate the 32-bit accumulator left 1 bit carrying the high bit, then add each byte — validated to round-trip against cncstats `get_map`). cncstats decimal = `int(hex, 16)`. Registering a map with cncstats is `POST /add_map` (raw octet-stream; headers `X-API-Key`, `X-Map-CRC` decimal, `X-Map-File` asset type) and needs the `CNCSTATS_API_KEY` env var (`missing_maps.cncstats_push_enabled()` gates it; uploads push best-effort). Ops endpoints: `/api/backfill_map_crcs` fills `MapData.crc` from replays; `/api/push_maps_to_cncstats` registers our S3-hosted maps with cncstats. The push is deduped: it only processes maps with `MapData.cncstats_synced_at` unset, checks cncstats `GET /map_exists?crc=<decimal>` before pushing (skips ones already there), pushes the missing ones concurrently (async client, bounded semaphore), then stamps `cncstats_synced_at` so they're never re-sent. `CncstatsClient` exposes async `add_map_async` / `map_exists_async` over a lazily-created `httpx.AsyncClient` (same singleton, process lifetime).
-- **`MapRenderPlayer` request shape**: `POST /api/map_render` takes a map name and a list of `MapRenderPlayer` (name, general, team, position_number) and returns a PNG with overlays burned in. Uses `radarvan/map_render.py` (Pillow); team colors mirror frontend `TEAM_COLORS` in `Draft.tsx`.
-- **APM derivation has two paths**: `radarvan/apm.py` prefers `replay.body` (legacy per-order chunks) and falls back to `replay.stats.*_events` (build / capture / battle-plan / science-points) when the body is empty — newer cncstats outputs sometimes ship an empty body. `apm_over_time(replay)` returns `{minute: {player_name: apm}}` in 1-minute windows. Counts are scoped to non-observer humans (`team >= 0`, `player_type == "Human"`); active duration is first-to-last action frame with a total-duration fallback.
-- **Body chunk `details` is a plain dict with capitalized keys**: `BodyChunk.details: Any` deserializes to e.g. `{"Name": "Upgrade_InfantryCaptureBuilding", "Cost": 1000}` — `getattr(d, "Name", None)` always returns `None` (it's not an object), and `d.get("name")` misses (case-sensitive). Always use `d.get("Name")` / `d.get("Cost")`. The pattern `details = chunk.details if isinstance(chunk.details, dict) else {}` is in `events_from_replay`.
-- **Summary index vs header order are NOT the same**: `replay.summary[*].index` (1-based) is the canonical player index used in every `stats.*_events.player` / `killEvents.killerPlayer` / `buildEvents.player` / `battle_plan_events.player` / etc. `replay.header.metadata.players[*]` is in a *different order* and is 0-based — don't enumerate that list to resolve event player indices. Build `name_by_idx = {p.index: p.name for p in replay.summary}`.
-- **`details_from_id` is a two-tier cache (LRU over a versioned DB cache)**: `radarvan/cache.py:details_from_id` fronts an in-process LRU with the durable `match_details_cache` table (`db.MatchDetailsCache`, repo in `repositories/details.py`). The raw cncstats JSON stays in S3; only the small derived `MatchDetails` projection is persisted. Each row is stamped with `match_details.DETAILS_VERSION` and a read only trusts a row whose version matches. **After changing anything that affects `MatchDetails` output you must invalidate, or stale rows keep being served:** a change to the `MatchDetails` *schema* (new/renamed/retyped field) auto-bumps the version (it embeds a hash of `MatchDetails.model_json_schema()`); a change to the *derivation logic* that leaves the schema unchanged needs a manual bump of `_DETAILS_LOGIC_VERSION` in `match_details.py`. Reparse paths (`matches.reparse_replay` / `reparse_existing`) call `delete_cached_details(match_id)` because the raw replay changed but the version didn't. Browsers also cache `/api/details/` for 1 hour (`Cache-Control: private, max-age=3600`) — hard-refresh (Ctrl-Shift-R) when verifying changes.
-- **Object-name cleaning**: `radarvan/match_details.py:_clean_object_name` strips a leading `<Prefix>_` token (e.g. `Lazr_`, `Tank_`, `SupW_`) **and then** the `China` / `America` / `GLA` faction prefix — so `Lazr_AmericaVehicleChinook` → `VehicleChinook`. Use it for build / upgrade / superweapon names rendered to the UI. `_clean_power_name` additionally strips `SpecialAbility` / `SpecialPower` / `Superweapon` prefixes for power names.
-- **Special-power categorization**: cncstats encodes three families inside `body[].details.Name` for `SpecialPowerAtLocation` / `SpecialPowerAtObject` orders: (a) `SpecialAbility*` — unit-level abilities (capture-building, laser-guided missile, etc.) — skip these on timelines, they flood the data; (b) `SpecialPower*` — actual generals-panel powers (SpyDrone, SpySatellite, …); (c) `Superweapon*` — a mix of generals powers AND true base-bound superweapons. To distinguish a true superweapon activation, match the name against `_SUPERWEAPON_ACTIVATION_KEYWORDS` (`NeutronMissile`, `NuclearMissile`, `ParticleCannon`, `ScudStorm`, `EMPPulse`, `AnthraxBomb`, `SpectreGunship`). Anything else under `Superweapon*` is treated as a generals power.
-- **Superweapon buildings**: detected by substring match on the cleaned object name against `_SUPERWEAPON_STRUCTURES` (`NuclearMissileLauncher`, `ParticleCannonUplink`, `ScudStorm`). Cost is typically 5 000 but cost-based detection is brittle — stick to the name list.
-- **`MatchDetails.timeline_events`**: a flat `list[TimelineEvent]` (each has `player_name`, `at_minute`, `event_name`, `event_type`, `cost`) of player-driven markers — `upgrade`, `rank_up`, `generals_power`, `superweapon_built`, `superweapon_activated`, `search_and_destroy`, `low_power`. `search_and_destroy` fires only on `0 → 1` transitions of `battle_plan_events.search_and_destroy`. `low_power` fires only on the OK → low transition (`consumption > production` from `energy_events`). Rank-up events with `rank_level <= 1` or `frame <= 0` are dropped (they're the initial state).
-- **EventChart is fully MUI**: `src/ShowMatchDetails.tsx:EventChart` renders the timeline using `@mui/material` `Box`/`Stack`/`Paper`/`Tooltip` + `@mui/icons-material` icons — no recharts. Lanes are grouped by player; rows for a single player are kept together via the explicit `ROW_ORDER` array. Adding a new event type means updating `EVENT_TYPE_META`, `EVENT_TYPE_ICON`, and (if a new row) `ROW_ORDER` together.
-
-## Key Technical Details
-
-- **TypeScript**: Strict mode enabled, targeting ES6
-- **Auto-generated code**: Files in `src/api/` are generated from OpenAPI spec - don't edit manually
-- **Protobuf usage**: Match data structures are defined in proto files and compiled to TypeScript
-- **Database migrations**: Managed with Alembic (config in `alembic.ini`)
-- **Cloud integration**: Replay files and parsed JSON are stored in S3 (`s3://generals-stats/radarvan/dev/`) via `fsspec`; local filesystem is not used for replays
-- **Player name resolution**: `resolve_player_name(name, color)` handles name aliases/overrides; used in player stats and superlatives. **Any player name arriving over the wire** (API request body/query param) must be alias-resolved before matching accounts/users/stored data — clients send in-game aliases (e.g. `skp`→`Skip`), not always the canonical name. Don't call `resolve_player_name` ad-hoc in handlers; instead type the request field as `api_types.PlayerName` (`Annotated[str, AfterValidator(...)]`), so resolution happens automatically at request validation and can't be forgotten. `list[PlayerName]` works for lists (e.g. `ChooseMapRequest.players`).
-- **Frontend format toggles**: `FORMAT_OPTIONS` arrays drive ToggleButtonGroup; selected format is passed as `gameFormat` query param; state is reset on format change
+Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`. `proto/match.proto` is unused by current code paths — `radarvan/api_types.py` is the source of truth for the wire format.
