@@ -210,7 +210,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a match\'s scheduled date / best-of / score (admin only).
+     * Update a match\'s scheduled date / best-of / score (admin only).  PATCH semantics: only fields present in the request body change; omitted fields keep their stored values, and an explicit null clears a field.
      * Set Bracket Match
      */
     async setBracketMatchApiBracketMatchIdPostRaw(requestParameters: SetBracketMatchApiBracketMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketTournamentOutput>> {
@@ -221,7 +221,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a match\'s scheduled date / best-of / score (admin only).
+     * Update a match\'s scheduled date / best-of / score (admin only).  PATCH semantics: only fields present in the request body change; omitted fields keep their stored values, and an explicit null clears a field.
      * Set Bracket Match
      */
     async setBracketMatchApiBracketMatchIdPost(requestParameters: SetBracketMatchApiBracketMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {

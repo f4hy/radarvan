@@ -243,8 +243,7 @@ export interface GetMatchReplayUrlApiReplayUrlMatchIdGetRequest {
     matchId: number;
 }
 
-export interface GetMatchesApiMatchesMatchCountGetRequest {
-    matchCount: number;
+export interface GetMatchesApiMatchesGetRequest {
     excludeDev?: boolean;
 }
 
@@ -395,10 +394,6 @@ export interface SetOverrideApiSetOverridePostRequest {
 
 export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRequest {
     tournamentName: string;
-}
-
-export interface UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest {
-    maxToUpdate?: number;
 }
 
 export interface UploadReplayApiUploadReplayPostRequest {
@@ -1731,16 +1726,9 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for getMatchesApiMatchesMatchCountGet without sending the request
+     * Creates request options for getMatchesApiMatchesGet without sending the request
      */
-    async getMatchesApiMatchesMatchCountGetRequestOpts(requestParameters: GetMatchesApiMatchesMatchCountGetRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['matchCount'] == null) {
-            throw new runtime.RequiredError(
-                'matchCount',
-                'Required parameter "matchCount" was null or undefined when calling getMatchesApiMatchesMatchCountGet().'
-            );
-        }
-
+    async getMatchesApiMatchesGetRequestOpts(requestParameters: GetMatchesApiMatchesGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
         if (requestParameters['excludeDev'] != null) {
@@ -1754,8 +1742,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/matches/{match_count}`;
-        urlPath = urlPath.replace(`{${"match_count"}}`, encodeURIComponent(String(requestParameters['matchCount'])));
+        let urlPath = `/api/matches/`;
 
         return {
             path: urlPath,
@@ -1766,22 +1753,22 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
+     * Get the full match listing.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
      * Get Matches
      */
-    async getMatchesApiMatchesMatchCountGetRaw(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
-        const requestOptions = await this.getMatchesApiMatchesMatchCountGetRequestOpts(requestParameters);
+    async getMatchesApiMatchesGetRaw(requestParameters: GetMatchesApiMatchesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+        const requestOptions = await this.getMatchesApiMatchesGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchesFromJSON(jsonValue));
     }
 
     /**
-     * Get listing of matches, up to a return count limit for paging.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
+     * Get the full match listing.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
      * Get Matches
      */
-    async getMatchesApiMatchesMatchCountGet(requestParameters: GetMatchesApiMatchesMatchCountGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
-        const response = await this.getMatchesApiMatchesMatchCountGetRaw(requestParameters, initOverrides);
+    async getMatchesApiMatchesGet(requestParameters: GetMatchesApiMatchesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
+        const response = await this.getMatchesApiMatchesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -3990,51 +3977,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async testTournamentReportApiTestTournamentReportTournamentNamePost(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
         const response = await this.testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for updateMatchesMissingDataApiUpdateMatchesMissingDataPost without sending the request
-     */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRequestOpts(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['maxToUpdate'] != null) {
-            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/update_matches_missing_data/`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Update Matches Missing Data
-     */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
-        const requestOptions = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Update Matches Missing Data
-     */
-    async updateMatchesMissingDataApiUpdateMatchesMissingDataPost(requestParameters: UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
-        const response = await this.updateMatchesMissingDataApiUpdateMatchesMissingDataPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

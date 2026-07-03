@@ -228,6 +228,9 @@ def register_matches(replay_manager: ReplayManager) -> None:
             replay_manager.compute_and_save_composition(db_match.match_id)
         except Exception as e:
             logger.warning("can not add match", error=repr(e))
+            # A failed flush/commit leaves the session in an aborted
+            # transaction; roll back so the remaining replays can proceed.
+            replay_manager.session.rollback()
             continue
         # Best-effort win prediction for the newly registered match (notifies
         # predicted vs actual). Never lets a prediction error affect ingestion.
@@ -253,15 +256,35 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
     return match_from_replay(parsed_replay)
 
 
-def reparse_existing(
-    existing: db.ParsedReplayJson, replay_manager: ReplayManager
-) -> MatchInfo | None:
-    json_path = existing.json_s3_uri
-    original_path = existing.replay_file_url
-    replay_path = existing.replay_file.s3_uri
+@dataclass(frozen=True)
+class ReparseInputs:
+    """Plain values from a ParsedReplayJson row.
 
+    Extracted on the owning session's thread so reparse work can run in worker
+    threads without carrying session-bound ORM objects across.
+    """
+
+    match_id: int
+    json_path: str
+    original_path: str
+    replay_path: str
+
+    @classmethod
+    def from_row(cls, row: db.ParsedReplayJson) -> "ReparseInputs":
+        return cls(
+            match_id=row.match_id,
+            json_path=row.json_s3_uri,
+            original_path=row.replay_file_url,
+            replay_path=row.replay_file.s3_uri,
+        )
+
+
+def reparse_existing(
+    inputs: ReparseInputs, replay_manager: ReplayManager
+) -> MatchInfo | None:
+    """Reparse from plain paths (no ORM objects, so it's safe in worker threads)."""
     reparsed = replay_files.reparse_paths(
-        json_path, original_path, replay_path, replay_manager
+        inputs.json_path, inputs.original_path, inputs.replay_path, replay_manager
     )
     if reparsed is None:
         logger.info("no reparse needed")
@@ -270,7 +293,7 @@ def reparse_existing(
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
     # Invalidate the persisted MatchDetails row (see reparse_replay).
-    replay_manager.delete_cached_details(existing.match_id)
+    replay_manager.delete_cached_details(inputs.match_id)
     return match_from_replay(parsed_replay, filter_short=False)
 
 

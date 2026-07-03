@@ -40,7 +40,6 @@ TOURNAMENTS = [
             sorted_tuple(["OneThree111", "Pancake"]),
             sorted_tuple(["Neo", "CoreDawg"]),
             sorted_tuple(["STM", "Skip"]),
-            sorted_tuple(["WildCard", "Syn"]),
             sorted_tuple(["Gorn", "EnragedFerret"]),
             sorted_tuple(["Modus", "Tytan"]),
         ],

@@ -5,6 +5,7 @@ middleware/exception handlers, and manages the app lifecycle (scheduler,
 cache warming, S3 connection test).
 """
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -16,10 +17,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cncstats_client, exception_handling, middleware, replay_files, schedule
+from . import cncstats_client, middleware, replay_files, schedule
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
 from .logging_config import configure_logging
+from .notify import notify
 from .routes import (
     admin,
     auth,
@@ -50,14 +52,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     cncstats_client.cncstats_client()
     replay_files.test_connection()
     logger.info("connection tested")
-    with db_manager.get_replay_manager() as replay_manager:
-        scheduler = schedule.get_scheduler(replay_manager, db_manager)
-        if not IS_DEV:
-            scheduler.start()
-        warm_caches()
-        yield
-        if not IS_DEV:
-            scheduler.shutdown()
+    # Jobs open their own sessions per run (see radarvan.schedule).
+    scheduler = schedule.get_scheduler(db_manager)
+    if not IS_DEV:
+        scheduler.start()
+    warm_caches()
+    yield
+    if not IS_DEV:
+        scheduler.shutdown()
     logger.info("goodbye!")
 
 
@@ -102,6 +104,9 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("unhandled exception", exc_info=exc)
+    # notify() swallows its own errors; to_thread keeps the webhook call off
+    # the event loop. Never echo exception details to the client.
+    await asyncio.to_thread(notify, f"Unhandled Exception {request.url.path} {exc!r}")
     response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
@@ -152,5 +157,3 @@ def serve_index() -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory="dist", html=True), name="dist")
-
-exception_handling.setup_error_handling(app)

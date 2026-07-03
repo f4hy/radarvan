@@ -11,7 +11,11 @@ WEB_HOOK = os.environ.get(WEB_HOOK_ENV)
 
 
 def notify(message: str) -> None:
+    """Best-effort: a webhook outage must never break the caller."""
     if not WEB_HOOK:
         logger.warning("web hook not set, skipping notify", message=message)
         return
-    httpx.post(WEB_HOOK, json={"content": message})
+    try:
+        httpx.post(WEB_HOOK, json={"content": message}, timeout=10.0)
+    except Exception:
+        logger.exception("notify webhook failed", message=message)

@@ -50,24 +50,27 @@ def _to_api_source(source: bracket.Source) -> MatchSource:
     return LoserOfSource(match_id=source.match_id)
 
 
-def _resolve_from_states(
-    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
-) -> bracket.BracketResult:
-    seed_to_name = {p.seed: p.player_name for p in tournament.players}
-    match_states = {
+def _states_from_rows(
+    raw_states: dict[str, BracketMatchState],
+) -> dict[str, bracket.MatchState]:
+    return {
         match_id: bracket.MatchState(
             best_of=row.best_of, score_a=row.score_a, score_b=row.score_b
         )
         for match_id, row in raw_states.items()
     }
-    return bracket.resolve_bracket(seed_to_name, match_states)
 
 
-def _resolve(
-    tournament: BracketTournament, repo: BracketRepo
-) -> tuple[bracket.BracketResult, dict[str, BracketMatchState]]:
-    raw_states = repo.get_match_states(tournament.id)
-    return _resolve_from_states(tournament, raw_states), raw_states
+def _seed_to_name(tournament: BracketTournament) -> dict[int, str]:
+    return {p.seed: p.player_name for p in tournament.players}
+
+
+def _resolve_from_states(
+    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
+) -> bracket.BracketResult:
+    return bracket.resolve_bracket(
+        _seed_to_name(tournament), _states_from_rows(raw_states)
+    )
 
 
 def _build_output_from_states(
@@ -158,7 +161,11 @@ def set_bracket_match(
     user: User = Depends(require_current_user),
     repo: BracketRepo = Depends(get_bracket_repo),
 ) -> BracketTournamentOutput:
-    """Set a match's scheduled date / best-of / score (admin only)."""
+    """Update a match's scheduled date / best-of / score (admin only).
+
+    PATCH semantics: only fields present in the request body change; omitted
+    fields keep their stored values, and an explicit null clears a field.
+    """
     _require_tournament_admin(user)
     tournament = repo.get_active()
     if tournament is None:
@@ -169,31 +176,66 @@ def set_bracket_match(
     # Fetched once and reused for both the pre-write validation resolve and
     # the post-write response, patched in place below instead of re-querying.
     raw_states = repo.get_match_states(tournament.id)
+    existing = raw_states.get(match_id)
 
-    if req.score_a is not None or req.score_b is not None:
-        if req.best_of is None or req.score_a is None or req.score_b is None:
+    def merged[T](field: str, current: T) -> T:
+        value: T = getattr(req, field)
+        return value if field in req.model_fields_set else current
+
+    scheduled_date = merged(
+        "scheduled_date", existing.scheduled_date if existing else None
+    )
+    best_of = merged("best_of", existing.best_of if existing else None)
+    score_a = merged("score_a", existing.score_a if existing else None)
+    score_b = merged("score_b", existing.score_b if existing else None)
+
+    seed_to_name = _seed_to_name(tournament)
+    states = _states_from_rows(raw_states)
+    before = bracket.resolve_bracket(seed_to_name, states)
+
+    if score_a is not None or score_b is not None:
+        if best_of is None or score_a is None or score_b is None:
             raise HTTPException(
                 status_code=400,
                 detail="best_of, score_a, and score_b are all required together",
             )
         try:
-            bracket.validate_score(req.best_of, req.score_a, req.score_b)
+            bracket.validate_score(best_of, score_a, score_b)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
 
-        result = _resolve_from_states(tournament, raw_states)
-        match = next(m for m in result.matches if m.match_id == match_id)
+        match = next(m for m in before.matches if m.match_id == match_id)
         if match.player_a is None or match.player_b is None:
             raise HTTPException(
                 status_code=400, detail="This match's players aren't determined yet"
             )
 
+    # Refuse edits that would re-route players through matches that already
+    # have a recorded score — their stored result would silently be attributed
+    # to different players. The admin must clear the downstream result first.
+    new_states = dict(states)
+    new_states[match_id] = bracket.MatchState(
+        best_of=best_of, score_a=score_a, score_b=score_b
+    )
+    after = bracket.resolve_bracket(seed_to_name, new_states)
+    conflicts = bracket.rerouted_scored_matches(
+        before, after, states, edited_match_id=match_id
+    )
+    if conflicts:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"This change would alter the players of {', '.join(conflicts)}, "
+                "which already have a recorded score. Clear those results first."
+            ),
+        )
+
     raw_states[match_id] = repo.set_match(
         tournament.id,
         match_id,
-        req.scheduled_date,
-        req.best_of,
-        req.score_a,
-        req.score_b,
+        scheduled_date,
+        best_of,
+        score_a,
+        score_b,
     )
     return _build_output_from_states(tournament, raw_states)

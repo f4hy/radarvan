@@ -8,6 +8,7 @@ from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
 from . import player_ids
 from . import game_composition
+from .utils import locked_cached
 from radarvan.api_types import (
     MatchInfo,
 )
@@ -334,7 +335,7 @@ def is_ratable_team_game(game: MatchInfo) -> bool:
     return game_composition.competitive_game_filter(game.composition)
 
 
-@cached(
+@locked_cached(
     cache=LRUCache(maxsize=32),
     key=lambda games: frozenset(g.id for g in games),
 )

@@ -103,10 +103,6 @@ class MatchRepo(BaseRepo):
         )
         return list(self.session.scalars(stmt).all())
 
-    def list_matches_without_game_version(self, limit: int = 10) -> list[Match]:
-        stmt = select(Match).where(Match.game_version.is_(None)).limit(limit)
-        return list(self.session.scalars(stmt).all())
-
     def list_matches_with_winner_but_incomplete(
         self, limit: int = 10
     ) -> list[tuple[Match, bool | None]]:

@@ -31,7 +31,7 @@ All URIs are relative to *http://localhost*
 | [**getMatchDetailsApiDetailsMatchIdGet**](DefaultApi.md#getmatchdetailsapidetailsmatchidget) | **GET** /api/details/{match_id} | Get Match Details |
 | [**getMatchJsonUrlApiDebugJsonUrlMatchIdGet**](DefaultApi.md#getmatchjsonurlapidebugjsonurlmatchidget) | **GET** /api/debug/json_url/{match_id} | Get Match Json Url |
 | [**getMatchReplayUrlApiReplayUrlMatchIdGet**](DefaultApi.md#getmatchreplayurlapireplayurlmatchidget) | **GET** /api/replay_url/{match_id} | Get Match Replay Url |
-| [**getMatchesApiMatchesMatchCountGet**](DefaultApi.md#getmatchesapimatchesmatchcountget) | **GET** /api/matches/{match_count} | Get Matches |
+| [**getMatchesApiMatchesGet**](DefaultApi.md#getmatchesapimatchesget) | **GET** /api/matches/ | Get Matches |
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
@@ -76,7 +76,6 @@ All URIs are relative to *http://localhost*
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
 | [**setOverrideApiSetOverridePost**](DefaultApi.md#setoverrideapisetoverridepost) | **POST** /api/set_override/ | Set Override |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
-| [**updateMatchesMissingDataApiUpdateMatchesMissingDataPost**](DefaultApi.md#updatematchesmissingdataapiupdatematchesmissingdatapost) | **POST** /api/update_matches_missing_data/ | Update Matches Missing Data |
 | [**uploadReplayApiUploadReplayPost**](DefaultApi.md#uploadreplayapiuploadreplaypost) | **POST** /api/upload_replay | Upload Replay |
 
 
@@ -1961,13 +1960,13 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## getMatchesApiMatchesMatchCountGet
+## getMatchesApiMatchesGet
 
-> Matches getMatchesApiMatchesMatchCountGet(matchCount, excludeDev)
+> Matches getMatchesApiMatchesGet(excludeDev)
 
 Get Matches
 
-Get listing of matches, up to a return count limit for paging.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted.
+Get the full match listing.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted.
 
 ### Example
 
@@ -1976,7 +1975,7 @@ import {
   Configuration,
   DefaultApi,
 } from '';
-import type { GetMatchesApiMatchesMatchCountGetRequest } from '';
+import type { GetMatchesApiMatchesGetRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
@@ -1987,14 +1986,12 @@ async function example() {
   const api = new DefaultApi(config);
 
   const body = {
-    // number
-    matchCount: 56,
     // boolean (optional)
     excludeDev: true,
-  } satisfies GetMatchesApiMatchesMatchCountGetRequest;
+  } satisfies GetMatchesApiMatchesGetRequest;
 
   try {
-    const data = await api.getMatchesApiMatchesMatchCountGet(body);
+    const data = await api.getMatchesApiMatchesGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -2010,7 +2007,6 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **matchCount** | `number` |  | [Defaults to `undefined`] |
 | **excludeDev** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
@@ -5116,76 +5112,6 @@ example().catch(console.error);
 ### Return type
 
 [**TournamentReport**](TournamentReport.md)
-
-### Authorization
-
-[APIKeyHeader](../README.md#APIKeyHeader)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## updateMatchesMissingDataApiUpdateMatchesMissingDataPost
-
-> { [key: string]: number | null; } updateMatchesMissingDataApiUpdateMatchesMissingDataPost(maxToUpdate)
-
-Update Matches Missing Data
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from '';
-import type { UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
-
-  const body = {
-    // number (optional)
-    maxToUpdate: 56,
-  } satisfies UpdateMatchesMissingDataApiUpdateMatchesMissingDataPostRequest;
-
-  try {
-    const data = await api.updateMatchesMissingDataApiUpdateMatchesMissingDataPost(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **maxToUpdate** | `number` |  | [Optional] [Defaults to `1`] |
-
-### Return type
-
-**{ [key: string]: number | null; }**
 
 ### Authorization
 

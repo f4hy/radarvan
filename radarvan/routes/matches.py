@@ -39,13 +39,12 @@ def get_dates(
     return dict(sorted(dates.items(), reverse=True))
 
 
-@router.get("/api/matches/{match_count}", dependencies=[Depends(cache_short)])
+@router.get("/api/matches/", dependencies=[Depends(cache_short)])
 def get_matches(
-    match_count: int,
     exclude_dev: bool = False,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> Matches:
-    """Get listing of matches, up to a return count limit for paging.
+    """Get the full match listing.
 
     When exclude_dev is set, matches sourced from a "dev-" zulu build are omitted.
     """

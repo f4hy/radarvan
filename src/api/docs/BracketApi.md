@@ -203,7 +203,7 @@ No authorization required
 
 Set Bracket Match
 
-Set a match\&#39;s scheduled date / best-of / score (admin only).
+Update a match\&#39;s scheduled date / best-of / score (admin only).  PATCH semantics: only fields present in the request body change; omitted fields keep their stored values, and an explicit null clears a field.
 
 ### Example
 

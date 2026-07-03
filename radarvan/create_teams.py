@@ -7,7 +7,8 @@ from . import player_ids
 from radarvan.api_types import MatchInfo
 import structlog
 from .player_rating import get_model, compute_player_ratings, NamedRating
-from cachetools import TTLCache, cached
+from .utils import locked_cached
+from cachetools import TTLCache
 from cachetools.keys import hashkey
 from typing import Any
 
@@ -36,7 +37,7 @@ def balance_teams_key(
     return hashkey(player_list)
 
 
-@cached(cache=TTLCache(maxsize=128, ttl=43200), key=balance_teams_key)
+@locked_cached(cache=TTLCache(maxsize=128, ttl=43200), key=balance_teams_key)
 def balance_teams(
     games: list[MatchInfo], player_list: frozenset[str]
 ) -> dict[tuple[str, ...], float]:

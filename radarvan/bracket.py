@@ -310,6 +310,37 @@ def validate_score(best_of: int, score_a: int, score_b: int) -> None:
         raise ValueError("scores cannot both reach the winning threshold")
 
 
+def rerouted_scored_matches(
+    before: BracketResult,
+    after: BracketResult,
+    states: dict[str, MatchState],
+    edited_match_id: str,
+) -> list[str]:
+    """Match ids whose resolved players differ between ``before`` and ``after``
+    while they already have a recorded score in ``states``.
+
+    Editing an upstream result re-routes players through the bracket; any
+    downstream match with a stored score would silently attribute that score
+    to the new players. Callers should reject an edit that returns a non-empty
+    list. The edited match itself is exempt (its own players don't move).
+    """
+    before_by_id = {m.match_id: m for m in before.matches}
+    conflicts: list[str] = []
+    for m_after in after.matches:
+        if m_after.match_id == edited_match_id:
+            continue
+        state = states.get(m_after.match_id)
+        if state is None or state.score_a is None or state.score_b is None:
+            continue
+        m_before = before_by_id[m_after.match_id]
+        if (m_before.player_a, m_before.player_b) != (
+            m_after.player_a,
+            m_after.player_b,
+        ):
+            conflicts.append(m_after.match_id)
+    return conflicts
+
+
 def resolve_bracket(
     seed_to_name: dict[int, str],
     match_states: dict[str, MatchState],

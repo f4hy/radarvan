@@ -50,10 +50,11 @@ def _debug_data_to_dict(data: MatchDebugData) -> dict[str, Any]:
 def scrape(
     background_tasks: BackgroundTasks,
     days: int = 1,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, str]:
+    # The background task runs after this request's session is torn down, so it
+    # gets the db_manager and opens its own session.
     invalidate_match_caches()
-    background_tasks.add_task(schedule.update_games, replay_manager, days=days)
+    background_tasks.add_task(schedule.update_games, db_manager, days)
     return {"scheduled": "ok"}
 
 
@@ -190,22 +191,26 @@ async def reparse_non_v2(
     """
     candidates = replay_manager.list_jsons_non_v2(limit=max_to_update)
     logger.info("reparse_non_v2", candidates=len(candidates))
+    # Extract plain values here, on the request's session: ORM objects must not
+    # cross into the worker threads (sessions aren't thread-safe, and attribute
+    # access can lazy-load through the session they're bound to).
+    work_items = [matches.ReparseInputs.from_row(p) for p in candidates]
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def _reparse_one(parsed: ParsedReplayJson) -> int | None:
+    async def _reparse_one(item: matches.ReparseInputs) -> int | None:
         async with semaphore:
 
             def _work() -> int | None:
                 with db_manager.get_replay_manager() as rm:
                     try:
-                        updated = matches.reparse_existing(parsed, rm)
+                        updated = matches.reparse_existing(item, rm)
                     except Exception as e:
                         logger.exception(
-                            "error reparsing match", match_id=parsed.match_id
+                            "error reparsing match", match_id=item.match_id
                         )
                         raise RuntimeError(
-                            f"Error reparseing match {parsed.match_id}"
+                            f"Error reparseing match {item.match_id}"
                         ) from e
                     if updated:
                         rm.compute_and_save_composition(updated.id)
@@ -214,7 +219,7 @@ async def reparse_non_v2(
 
             return await asyncio.to_thread(_work)
 
-    results = await asyncio.gather(*[_reparse_one(r) for r in candidates])
+    results = await asyncio.gather(*[_reparse_one(w) for w in work_items])
     updated_ids = [r for r in results if r is not None]
     if updated_ids:
         invalidate_match_caches()
@@ -288,30 +293,6 @@ def delete_override(
         )
     invalidate_match_caches()
     return {"status": "deleted", "match_id": str(match_id)}
-
-
-@router.post("/api/update_matches_missing_data/", include_in_schema=IS_DEV)
-def update_matches_missing_data(
-    max_to_update: int = 1,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, int]:
-    missing_game_version = replay_manager.list_matches_without_game_version(
-        max_to_update
-    )
-    logger.info("missing game version", count=len(missing_game_version))
-    updated_count = 0
-    for missing in missing_game_version:
-        replay = replay_files.parse_json(missing.json_s3_uri)
-        missing.game_version = (
-            replay.header.version.lower().replace("version", "").strip()
-        )
-        result = replay_manager.update_match(missing)
-        logger.info("updated", match_id=missing.match_id, success=result)
-        if result:
-            updated_count += 1
-        if updated_count >= max_to_update:
-            break
-    return {"updated": updated_count}
 
 
 class MatchPair(NamedTuple):
