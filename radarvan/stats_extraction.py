@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
+from .cncstats_model.statsfile import IncomeBySource
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .utils import minutes_per_step
 
@@ -42,46 +43,25 @@ class StatsData(BaseModel):
     buildings_built: dict[float, dict[str, int]]
     tech_buildings_captured: dict[float, dict[str, int]]
     faction_buildings_captured: dict[float, dict[str, int]]
-    # Per-source breakdown of cumulative income, only present when cncstats
-    # supplied `incomeBySource` for this replay (newer replay versions only -
-    # see cncstats_model.statsfile.TimeSeriesPlayer.income_by_source). Empty
-    # dicts (no keys at all) when unavailable. To keep the wire payload small,
-    # these series are sparse: an all-zero source is left empty, a player who
-    # never earned from a source is omitted from that source's snapshots, and
-    # only change-boundary snapshots are kept (a missing player/timestep means
-    # "zero" / "unchanged", never "unknown").
-    income_black_market: dict[float, dict[str, int]]
-    income_bounty: dict[float, dict[str, int]]
-    income_crate: dict[float, dict[str, int]]
-    income_hacker: dict[float, dict[str, int]]
-    income_oil_derrick: dict[float, dict[str, int]]
-    income_other: dict[float, dict[str, int]]
-    income_salvage: dict[float, dict[str, int]]
-    income_supply: dict[float, dict[str, int]]
-    income_supply_drop: dict[float, dict[str, int]]
-    income_theft: dict[float, dict[str, int]]
 
 
 class AllExtractedData(BaseModel):
     stats_data: StatsData
+    # Cumulative income broken down by source, keyed by the IncomeBySource
+    # field name ("supply", "oil_derrick", ...). Only populated when cncstats
+    # supplied `incomeBySource` for this replay (newer replay versions only).
+    # Sparse to keep the wire payload small: an all-zero source is omitted, a
+    # player who never earned from a source is omitted from that source's
+    # snapshots, and only change-boundary snapshots are kept - so a missing
+    # source/player/timestep means "zero" / "unchanged", never "unknown".
+    income_by_source: dict[str, dict[float, dict[str, int]]]
     first_blood: FirstBlood | None
     building_first_blood: FirstBlood | None
 
 
-# Attribute names on statsfile.IncomeBySource, reused as the "income_<source>"
-# StatsData/stats_data field names.
-_INCOME_SOURCES = (
-    "black_market",
-    "bounty",
-    "crate",
-    "hacker",
-    "oil_derrick",
-    "other",
-    "salvage",
-    "supply",
-    "supply_drop",
-    "theft",
-)
+# The replay model owns the source list; a source added there flows through
+# extraction (and the wire dict) without further edits here.
+_INCOME_SOURCES = tuple(IncomeBySource.model_fields)
 
 # Trickle sources (supply, black market, hacker) change on nearly every
 # snapshot, so "only changed snapshots" alone can't bound the payload for a
@@ -89,6 +69,33 @@ _INCOME_SOURCES = (
 # pixels wide, so ~300 points is visually lossless while keeping the wire
 # size and recharts render cost flat regardless of match length.
 _MAX_INCOME_SNAPSHOTS = 300
+
+
+def _sparse_keep_indices(
+    series: list[list[int]], num_snapshots: int, max_points: int
+) -> list[int]:
+    """Snapshot indices worth emitting for a set of cumulative series.
+
+    Keeps the endpoints and every index where some series changes value - plus
+    the index right before each change, so plateaus keep their shape when the
+    consumer interpolates between kept points - then thins by a uniform stride
+    if still over ``max_points`` (the endpoints always survive)."""
+    keep: set[int] = {0, num_snapshots - 1}
+    for vals in series:
+        if len(keep) >= num_snapshots:
+            break
+        for i in range(1, len(vals)):
+            if vals[i] != vals[i - 1]:
+                keep.add(i)
+                keep.add(i - 1)
+    kept = sorted(keep)
+    if len(kept) > max_points:
+        stride = -(-len(kept) // max_points)  # ceil division
+        last = kept[-1]
+        kept = kept[::stride]
+        if kept[-1] != last:
+            kept.append(last)
+    return kept
 
 
 def _is_building(name: str | None) -> bool:
@@ -151,44 +158,34 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     # income_by_source: only cncstats replay versions newer than statsVersion 1
     # populate this per-player. The dense form (every source x player x
     # snapshot) is mostly zeros and repeats, so emit it sparse (see the
-    # StatsData field comment): drop all-zero (source, player) pairs, then
-    # keep only the snapshots where some remaining value changes - plus the
-    # snapshot right before each change, so cumulative plateaus keep their
-    # shape when the frontend interpolates between kept points.
+    # AllExtractedData field comment). The series are cumulative, so a
+    # (source, player) pair earned anything iff its final value is nonzero.
+    pruned: dict[str, list[tuple[str, list[int]]]] = {}
+    for src in _INCOME_SOURCES:
+        entries = []
+        for p in ts_players:
+            if p.income_by_source is None:
+                continue
+            vals: list[int] = getattr(p.income_by_source, src)
+            if vals and vals[-1] != 0:
+                entries.append((name_by_idx[p.index], vals))
+        if entries:
+            pruned[src] = entries
     income_by_source: dict[str, dict[float, dict[str, int]]] = {
-        f"income_{src}": {} for src in _INCOME_SOURCES
+        src: {} for src in pruned
     }
-    pruned: dict[str, list[tuple[str, list[int]]]] = {
-        src: [
-            (name_by_idx[p.index], getattr(p.income_by_source, src))
-            for p in ts_players
-            if p.income_by_source is not None and any(getattr(p.income_by_source, src))
-        ]
-        for src in _INCOME_SOURCES
-    }
-    all_income_series = [vals for entries in pruned.values() for _, vals in entries]
-    if all_income_series:
-        keep: set[int] = {0, num_snapshots - 1}
-        for vals in all_income_series:
-            for i in range(1, len(vals)):
-                if vals[i] != vals[i - 1]:
-                    keep.add(i)
-                    keep.add(i - 1)
-        kept = sorted(keep)
-        if len(kept) > _MAX_INCOME_SNAPSHOTS:
-            stride = -(-len(kept) // _MAX_INCOME_SNAPSHOTS)  # ceil division
-            last = kept[-1]
-            kept = kept[::stride]
-            if kept[-1] != last:
-                kept.append(last)
+    if pruned:
+        kept = _sparse_keep_indices(
+            [vals for entries in pruned.values() for _, vals in entries],
+            num_snapshots,
+            _MAX_INCOME_SNAPSHOTS,
+        )
         for snap_idx in kept:
             # Rounded so the JSON keys don't carry 17-digit floats; 3 decimals
             # of a minute is well under the snapshot interval.
             minute = round(snap_idx * interval * scale, 3)
             for src, entries in pruned.items():
-                if not entries:
-                    continue
-                income_by_source[f"income_{src}"][minute] = {
+                income_by_source[src][minute] = {
                     name: vals[snap_idx]
                     for name, vals in entries
                     if snap_idx < len(vals)
@@ -281,10 +278,10 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
         buildings_killed=buildings_killed,
         tech_buildings_captured=tech_buildings_captured,
         faction_buildings_captured=faction_buildings_captured,
-        **income_by_source,
     )
     return AllExtractedData(
         stats_data=sd,
+        income_by_source=income_by_source,
         first_blood=first_blood,
         building_first_blood=building_first_blood,
     )

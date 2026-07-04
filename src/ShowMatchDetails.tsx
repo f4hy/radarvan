@@ -1167,117 +1167,85 @@ function BuildOrderTab(props: {
   )
 }
 
-// Only present in statsData when cncstats supplied incomeBySource for this
-// replay (newer replay versions only - see radarvan.stats_extraction). Each
-// key gets a fixed categorical color so a source's identity/color stays the
-// same across every player's chart regardless of which sources are active.
-// theft/other are rare catch-alls folded into one "Other" band rather than
-// given their own slot in the (8-hue) categorical order.
-const INCOME_SOURCES: { key: string; label: string; color: string }[] = [
-  { key: "income_supply", label: "Supply", color: "#2a78d6" },
-  { key: "income_oil_derrick", label: "Oil Derrick", color: "#1baf7a" },
-  { key: "income_black_market", label: "Black Market", color: "#eda100" },
-  { key: "income_hacker", label: "Hacker", color: "#008300" },
-  { key: "income_crate", label: "Crate", color: "#4a3aa7" },
-  { key: "income_salvage", label: "Salvage", color: "#e34948" },
-  { key: "income_bounty", label: "Bounty", color: "#e87ba4" },
-  { key: "income_supply_drop", label: "Supply Drop", color: "#eb6834" },
+// details.incomeBySource is only populated when cncstats supplied the
+// breakdown for this replay (newer replay versions only), and it is sparse:
+// an all-zero source, a player who never earned from a source, and unchanged
+// timesteps are all omitted - absent means "zero"/"unchanged", never
+// "unknown" (see MatchDetails.income_by_source in radarvan/api_types.py).
+type IncomeBySource = NonNullable<MatchDetails["incomeBySource"]>
+
+// Fixed label/color per known source so a source keeps its identity across
+// every player's chart regardless of which sources are active. Sources the
+// backend sends that aren't listed here (theft, other, anything cncstats
+// adds later) fold into a single gray "Other" band.
+const KNOWN_INCOME_SOURCES: { key: string; label: string; color: string }[] = [
+  { key: "supply", label: "Supply", color: "#2a78d6" },
+  { key: "oil_derrick", label: "Oil Derrick", color: "#1baf7a" },
+  { key: "black_market", label: "Black Market", color: "#eda100" },
+  { key: "hacker", label: "Hacker", color: "#008300" },
+  { key: "crate", label: "Crate", color: "#4a3aa7" },
+  { key: "salvage", label: "Salvage", color: "#e34948" },
+  { key: "bounty", label: "Bounty", color: "#e87ba4" },
+  { key: "supply_drop", label: "Supply Drop", color: "#eb6834" },
 ]
-const INCOME_OTHER_KEYS = ["income_theft", "income_other"]
+const KNOWN_INCOME_KEYS = new Set(KNOWN_INCOME_SOURCES.map((s) => s.key))
 const INCOME_OTHER_COLOR = "#898781"
 const INCOME_OTHER_LABEL = "Other"
 
-// The backend sends these series sparse (see radarvan.stats_extraction): an
-// all-zero source arrives as an empty dict, and a player who never earned
-// from a source is absent from its snapshots. So "has any keys" means active,
-// and a missing player/timestep means zero.
-function isIncomeSeriesActive(
-  statsData: MatchDetails["statsData"],
-  key: string,
-): boolean {
-  return Object.keys(statsData[key] ?? {}).length > 0
-}
-
 function playerHasIncomeFrom(
-  statsData: MatchDetails["statsData"],
-  key: string,
+  series: IncomeBySource[string] | undefined,
   playerName: string,
 ): boolean {
-  return Object.values(statsData[key] ?? {}).some(
+  return Object.values(series ?? {}).some(
     (byPlayer) => (byPlayer[playerName] ?? 0) !== 0,
-  )
-}
-
-function activeIncomeSeries(statsData: MatchDetails["statsData"]) {
-  const main = INCOME_SOURCES.filter((s) =>
-    isIncomeSeriesActive(statsData, s.key),
-  )
-  const other = INCOME_OTHER_KEYS.some((k) =>
-    isIncomeSeriesActive(statsData, k),
-  )
-  return { main, other }
-}
-
-function hasIncomeBySourceData(details: MatchDetails): boolean {
-  const { main, other } = activeIncomeSeries(details.statsData)
-  return main.length > 0 || other
-}
-
-// Highest "$ Collected" (cumulative money_earned) of any player at any point
-// in the match - the same figure shown in the GameDetailsTable column. Used
-// as a common y-axis ceiling so every player's income chart is on the same
-// scale and directly comparable.
-function maxMoneyCollected(statsData: MatchDetails["statsData"]): number {
-  const series = statsData["money_earned"]
-  if (!series) return 0
-  return Object.values(series).reduce(
-    (acc, byPlayer) => Math.max(acc, ...Object.values(byPlayer)),
-    0,
   )
 }
 
 function PlayerIncomeChart(props: {
   playerName: string
-  main: { key: string; label: string; color: string }[]
-  other: boolean
-  statsData: MatchDetails["statsData"]
+  income: IncomeBySource
+  minutes: number[]
   yMax: number
 }) {
-  const { playerName, main, other, statsData, yMax } = props
-  // Sources this player never earned from are dropped from their chart (no
-  // flat zero bands); the source->color mapping stays fixed match-wide.
-  const playerMain = React.useMemo(
-    () => main.filter((s) => playerHasIncomeFrom(statsData, s.key, playerName)),
-    [main, statsData, playerName],
-  )
-  const playerOther =
-    other &&
-    INCOME_OTHER_KEYS.some((k) => playerHasIncomeFrom(statsData, k, playerName))
-  const data = React.useMemo(() => {
-    // Every non-empty income series shares the same (sparse) minute keys, so
-    // any globally-active source supplies the time grid.
-    const anyKey = main[0]?.key ?? INCOME_OTHER_KEYS[0]
-    const minutes = Object.keys(statsData[anyKey] ?? {})
-      .map(Number)
-      .sort((a, b) => a - b)
-    return minutes.map((m) => {
+  const { playerName, income, minutes, yMax } = props
+  const { sources, otherKeys, data } = React.useMemo(() => {
+    // Sources this player never earned from are dropped from their chart (no
+    // flat zero bands); the source->color mapping stays fixed match-wide.
+    const sources = KNOWN_INCOME_SOURCES.filter((s) =>
+      playerHasIncomeFrom(income[s.key], playerName),
+    )
+    const otherKeys = Object.keys(income).filter(
+      (k) =>
+        !KNOWN_INCOME_KEYS.has(k) && playerHasIncomeFrom(income[k], playerName),
+    )
+    // Decode the sparse series over the shared grid with last-value carry
+    // forward - correct for cumulative data, and robust even if the backend
+    // ever emits per-source grids.
+    const last: Record<string, number> = {}
+    const data = minutes.map((m) => {
       const row: Record<string, number> = { atMinute: m }
-      for (const s of playerMain) {
-        row[s.label] = statsData[s.key]?.[m]?.[playerName] ?? 0
+      for (const s of sources) {
+        const v = income[s.key]?.[m]?.[playerName]
+        if (v !== undefined) last[s.key] = v
+        row[s.label] = last[s.key] ?? 0
       }
-      if (playerOther) {
-        row[INCOME_OTHER_LABEL] = INCOME_OTHER_KEYS.reduce(
-          (sum, k) => sum + (statsData[k]?.[m]?.[playerName] ?? 0),
-          0,
-        )
+      let otherSum = 0
+      for (const k of otherKeys) {
+        const v = income[k]?.[m]?.[playerName]
+        if (v !== undefined) last[k] = v
+        otherSum += last[k] ?? 0
+      }
+      if (otherKeys.length > 0) {
+        row[INCOME_OTHER_LABEL] = otherSum
       }
       return row
     })
-  }, [playerName, main, playerMain, playerOther, statsData])
-  if (playerMain.length === 0 && !playerOther) {
+    return { sources, otherKeys, data }
+  }, [playerName, income, minutes])
+  if (sources.length === 0 && otherKeys.length === 0) {
     return null
   }
-  const maxTime = data.length > 0 ? data[data.length - 1].atMinute : 0
+  const maxTime = minutes.length > 0 ? minutes[minutes.length - 1] : 0
   return (
     <>
       <Typography variant="h6">{playerName}</Typography>
@@ -1296,7 +1264,7 @@ function PlayerIncomeChart(props: {
           <YAxis domain={[0, yMax]} />
           <Tooltip labelFormatter={(t) => `${Number(t).toFixed(1)}m`} />
           <Legend />
-          {playerMain.map((s) => (
+          {sources.map((s) => (
             <Area
               key={s.key}
               type="monotone"
@@ -1306,7 +1274,7 @@ function PlayerIncomeChart(props: {
               fill={s.color}
             />
           ))}
-          {playerOther && (
+          {otherKeys.length > 0 && (
             <Area
               type="monotone"
               dataKey={INCOME_OTHER_LABEL}
@@ -1328,26 +1296,36 @@ function PlayerIncomeChart(props: {
 }
 
 function IncomeBySourceTab(props: { details: MatchDetails }) {
-  const { main, other } = React.useMemo(
-    () => activeIncomeSeries(props.details.statsData),
-    [props.details.statsData],
-  )
-  const yMax = React.useMemo(
-    () => maxMoneyCollected(props.details.statsData),
-    [props.details.statsData],
-  )
-  if (main.length === 0 && !other) {
+  const income = props.details.incomeBySource ?? {}
+  // Shared time grid: union of every source's minute keys.
+  const minutes = React.useMemo(() => {
+    const all = new Set<number>()
+    for (const series of Object.values(income)) {
+      for (const m of Object.keys(series)) {
+        all.add(Number(m))
+      }
+    }
+    return [...all].sort((a, b) => a - b)
+  }, [income])
+  if (Object.keys(income).length === 0) {
     return <Typography>No income-by-source data for this replay</Typography>
   }
+  // Common y-axis ceiling: the highest "$ Collected" of any player - the
+  // final cumulative money_earned the API already ships per player (same
+  // figure as the GameDetailsTable column) - so every chart is on the same
+  // scale and directly comparable.
+  const yMax = Math.max(
+    0,
+    ...Object.values(props.details.playerMoneyCollected ?? {}),
+  )
   return (
     <>
       {props.details.playerSummary.map((ps) => (
         <PlayerIncomeChart
           key={ps.name}
           playerName={ps.name}
-          main={main}
-          other={other}
-          statsData={props.details.statsData}
+          income={income}
+          minutes={minutes}
           yMax={yMax}
         />
       ))}
@@ -1478,7 +1456,9 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Player Unit and spending breakdown",
     "Event Chart",
     "Detailed Graphs",
-    ...(hasIncomeBySourceData(details) ? (["Income by Source"] as const) : []),
+    ...(Object.keys(details.incomeBySource ?? {}).length > 0
+      ? (["Income by Source"] as const)
+      : []),
     "Kill Map",
     "Replay",
     "AI",

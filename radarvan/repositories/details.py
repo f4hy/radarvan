@@ -69,10 +69,9 @@ class MatchDetailsRepo(BaseRepo):
     def delete_all_cached_details(self) -> int:
         """Drop every row. Returns the number of rows deleted.
 
-        For a full manual cache bust (e.g. after a derivation change that a
-        version bump should have caught but didn't, or while debugging) -
-        normal invalidation is per-match via delete_cached_details, or
-        implicit via the DETAILS_VERSION check.
+        A debugging hatch: normal invalidation is per-match via
+        delete_cached_details (reparse) or implicit via the DETAILS_VERSION
+        check - derivation changes should bump the version, not call this.
         """
         result = self.session.execute(sa_delete(MatchDetailsCache))
         self._commit_if_auto()

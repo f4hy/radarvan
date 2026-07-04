@@ -57,13 +57,7 @@ logger = structlog.get_logger(__name__)
 # v3: apm_over_time now uses 10s windows (was 1-min) scaled to an APM rate.
 # v4: body-path APM no longer counts periodic "Checksum" engine heartbeats as
 # player actions (the _NON_ACTIONS exclusion had a typo, "Chunksum").
-# v5: stats_data gained income_<source> series (cncstats incomeBySource) -
-# StatsData's shape changed but MatchDetails.stats_data's type annotation
-# (dict[str, dict[float, dict[str, int]]]) didn't, so the schema hash can't
-# catch this on its own.
-# v6: income_<source> series are now sparse (all-zero players/sources omitted,
-# change-boundary snapshots only) - invalidates the dense v5 rows.
-_DETAILS_LOGIC_VERSION = 6
+_DETAILS_LOGIC_VERSION = 4
 
 
 def _compute_details_version() -> str:
@@ -348,6 +342,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         apms=apms,
         upgrade_events=upgrades,
         stats_data=stats_data.stats_data.model_dump() if stats_data else {},
+        income_by_source=stats_data.income_by_source if stats_data else {},
         player_money_spent=player_money_spent,
         player_money_collected=player_money_collected,
         first_blood=first_blood,
