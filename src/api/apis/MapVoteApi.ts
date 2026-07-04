@@ -273,7 +273,7 @@ export class MapVoteApi extends runtime.BaseAPI {
     }
 
     /**
-     * In-game names with an account — the selectable participants for a draw.
+     * In-game names with an account - the selectable participants for a draw.
      * Voting Players
      */
     async votingPlayersApiMapVotePlayersGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string | null>>> {
@@ -284,7 +284,7 @@ export class MapVoteApi extends runtime.BaseAPI {
     }
 
     /**
-     * In-game names with an account — the selectable participants for a draw.
+     * In-game names with an account - the selectable participants for a draw.
      * Voting Players
      */
     async votingPlayersApiMapVotePlayersGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string | null>> {

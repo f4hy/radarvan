@@ -123,6 +123,22 @@ def reparse(
     return replay
 
 
+@router.post("/api/clear_details_cache/", include_in_schema=IS_DEV)
+def clear_details_cache(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Drop every row of the durable MatchDetails cache and the in-process LRU
+    fronting it. Normal invalidation is per-match (reparse) or implicit via
+    DETAILS_VERSION; this is for a full manual bust - e.g. debugging a stale
+    row that shouldn't exist, or a derivation change that should have bumped
+    the version but didn't.
+    """
+    deleted = replay_manager.delete_all_cached_details()
+    details_from_id.cache_clear()
+    logger.info("cleared details cache", deleted=deleted)
+    return {"deleted": deleted}
+
+
 @router.post("/api/reparse_recent/", include_in_schema=IS_DEV)
 def reparse_recent(
     days: int = 3,

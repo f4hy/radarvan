@@ -85,7 +85,7 @@ No authorization required
 
 Eligible Players
 
-Known player names — the pool admins pick the 9-16 entrants from.
+Known player names - the pool admins pick the 9-16 entrants from.
 
 ### Example
 
