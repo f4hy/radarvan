@@ -7,6 +7,7 @@ from pydantic import (
     BaseModel,
     Field,
     ConfigDict,
+    PlainSerializer,
     computed_field,
     model_validator,
 )
@@ -38,6 +39,26 @@ def _resolve_player_name(name: str) -> str:
 # happens automatically at request validation, so endpoints can't forget it.
 # Wire/OpenAPI type stays a plain string. See CLAUDE.md (player name resolution).
 PlayerName = Annotated[str, AfterValidator(_resolve_player_name)]
+
+# Match-clock position in minutes: chart precision only needs ~0.2s resolution,
+# but the raw values carry full float noise (e.g. 1.2437749753490064) that
+# balloons MatchDetails' wire size for no visual benefit. Rounding here (rather
+# than at each extractor) covers every current and future minute-valued field,
+# including as dict keys - pydantic-core serializes a dict key through its
+# annotated type's serializer same as any value. Validation is untouched
+# (PlainSerializer only affects output), so round-tripping cached JSON back
+# through model_validate still works.
+Minute = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 3), return_type=float, when_used="json"),
+]
+
+# Per-minute action-rate value (APM). One decimal is well past the precision
+# the source data supports and plenty for the chart.
+Rate = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 1), return_type=float, when_used="json"),
+]
 
 
 class General(IntEnum):
@@ -362,7 +383,7 @@ class SaveResponse(BaseModel):
 class KillEventOutput(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     killer_player: str = Field(alias="killerPlayer")
     victim_player: str = Field(alias="victimPlayer")
     x: float
@@ -385,7 +406,7 @@ class MapEventOutput(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     x: float
     y: float
     player_name: str = Field(alias="playerName")
@@ -415,8 +436,8 @@ class APM(BaseModel):
 
     player_name: str = Field(alias="playerName")
     action_count: int = Field(alias="actionCount")
-    minutes: float
-    apm: float
+    minutes: Minute
+    apm: Rate
 
 
 class UpgradeEvent(BaseModel):
@@ -426,7 +447,7 @@ class UpgradeEvent(BaseModel):
     timecode: int = 0
     upgrade_name: str = Field(alias="upgradeName")
     cost: int
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
 
 
 class Spent(BaseModel):
@@ -499,7 +520,7 @@ class FirstBlood(BaseModel):
 
     attacker: str
     victim: str
-    atMinute: float
+    atMinute: Minute
 
 
 class SuperlativePlayerSummary(BaseModel):
@@ -528,15 +549,15 @@ class SuperlativeData(BaseModel):
     match_money_spent: int
     player_money_collected: dict[str, int]
     player_xp_final: dict[str, int] = Field(default_factory=dict)
-    time_to_rank_5: dict[str, float] = Field(default_factory=dict)
-    time_to_search_destroy: dict[str, float] = Field(default_factory=dict)
+    time_to_rank_5: dict[str, Minute] = Field(default_factory=dict)
+    time_to_search_destroy: dict[str, Minute] = Field(default_factory=dict)
 
 
 class TimelineEvent(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
     player_name: str = Field(alias="playerName")
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     event_name: str = Field(alias="eventName")
     # One of: "upgrade", "rank_up", "generals_power",
     # "superweapon_built", "superweapon_activated".
@@ -547,13 +568,13 @@ class TimelineEvent(BaseModel):
 class BuildOrderEntry(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     name: str
     cost: int
     # Number of consecutive identical builds collapsed into this row (>=1).
     count: int = 1
     # End of the collapsed run; None for single (count==1) entries.
-    end_minute: float | None = Field(default=None, alias="endMinute")
+    end_minute: Minute | None = Field(default=None, alias="endMinute")
     # Economy/non-combat unit (worker, dozer, supply). UI dims these. Always
     # False for buildings and upgrades.
     is_economy: bool = Field(default=False, alias="isEconomy")
@@ -575,7 +596,7 @@ class MatchDetails(BaseModel):
     costs: list[Costs]
     apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
-    stats_data: dict[str, dict[float, dict[str, int]]] = Field(
+    stats_data: dict[str, dict[Minute, dict[str, int]]] = Field(
         description="at a time map each player to xp"
     )
     # Cumulative income broken down by source ("supply", "oil_derrick", ...),
@@ -583,7 +604,7 @@ class MatchDetails(BaseModel):
     # player who never earned from a source, and unchanged timesteps are all
     # omitted - absent means "zero"/"unchanged". Empty for replays predating
     # cncstats incomeBySource support.
-    income_by_source: dict[str, dict[float, dict[str, int]]] = Field(
+    income_by_source: dict[str, dict[Minute, dict[str, int]]] = Field(
         default_factory=dict, alias="incomeBySource"
     )
     map_name: str = Field(default="", alias="mapName")
@@ -597,9 +618,9 @@ class MatchDetails(BaseModel):
     player_money_spent: dict[str, int] = Field(default_factory=dict)
     player_money_collected: dict[str, int] = Field(default_factory=dict)
     # Minute at which each player first hit generals rank 5.
-    time_to_rank_5: dict[str, float] = Field(default_factory=dict, alias="timeToRank5")
+    time_to_rank_5: dict[str, Minute] = Field(default_factory=dict, alias="timeToRank5")
     # Minute at which each player first activated USA Search & Destroy battle plan.
-    time_to_search_destroy: dict[str, float] = Field(
+    time_to_search_destroy: dict[str, Minute] = Field(
         default_factory=dict, alias="timeToSearchDestroy"
     )
     # Per-player first-10 build order: buildings, units, upgrades.
@@ -607,7 +628,7 @@ class MatchDetails(BaseModel):
         default_factory=dict, alias="buildOrders"
     )
     # Per-minute APM time series: {minute: {player_name: apm}}.
-    apm_over_time: dict[float, dict[str, float]] = Field(
+    apm_over_time: dict[Minute, dict[str, Rate]] = Field(
         default_factory=dict, alias="apmOverTime"
     )
     # All player-driven timeline markers (upgrades, rank ups, generals

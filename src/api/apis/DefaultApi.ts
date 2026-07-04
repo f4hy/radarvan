@@ -243,10 +243,6 @@ export interface GetMatchReplayUrlApiReplayUrlMatchIdGetRequest {
     matchId: number;
 }
 
-export interface GetMatchesApiMatchesGetRequest {
-    excludeDev?: boolean;
-}
-
 export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
     excludeDev?: boolean;
@@ -1765,53 +1761,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchReplayUrlApiReplayUrlMatchIdGet(requestParameters: GetMatchReplayUrlApiReplayUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.getMatchReplayUrlApiReplayUrlMatchIdGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMatchesApiMatchesGet without sending the request
-     */
-    async getMatchesApiMatchesGetRequestOpts(requestParameters: GetMatchesApiMatchesGetRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['excludeDev'] != null) {
-            queryParameters['exclude_dev'] = requestParameters['excludeDev'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/matches/`;
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Get the full match listing.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
-     * Get Matches
-     */
-    async getMatchesApiMatchesGetRaw(requestParameters: GetMatchesApiMatchesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
-        const requestOptions = await this.getMatchesApiMatchesGetRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => MatchesFromJSON(jsonValue));
-    }
-
-    /**
-     * Get the full match listing.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
-     * Get Matches
-     */
-    async getMatchesApiMatchesGet(requestParameters: GetMatchesApiMatchesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
-        const response = await this.getMatchesApiMatchesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

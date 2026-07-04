@@ -32,7 +32,6 @@ All URIs are relative to *http://localhost*
 | [**getMatchDetailsApiDetailsMatchIdGet**](DefaultApi.md#getmatchdetailsapidetailsmatchidget) | **GET** /api/details/{match_id} | Get Match Details |
 | [**getMatchJsonUrlApiDebugJsonUrlMatchIdGet**](DefaultApi.md#getmatchjsonurlapidebugjsonurlmatchidget) | **GET** /api/debug/json_url/{match_id} | Get Match Json Url |
 | [**getMatchReplayUrlApiReplayUrlMatchIdGet**](DefaultApi.md#getmatchreplayurlapireplayurlmatchidget) | **GET** /api/replay_url/{match_id} | Get Match Replay Url |
-| [**getMatchesApiMatchesGet**](DefaultApi.md#getmatchesapimatchesget) | **GET** /api/matches/ | Get Matches |
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
@@ -2004,78 +2003,6 @@ example().catch(console.error);
 ### Return type
 
 **{ [key: string]: string | null; }**
-
-### Authorization
-
-[APIKeyHeader](../README.md#APIKeyHeader)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## getMatchesApiMatchesGet
-
-> Matches getMatchesApiMatchesGet(excludeDev)
-
-Get Matches
-
-Get the full match listing.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from '';
-import type { GetMatchesApiMatchesGetRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
-
-  const body = {
-    // boolean (optional)
-    excludeDev: true,
-  } satisfies GetMatchesApiMatchesGetRequest;
-
-  try {
-    const data = await api.getMatchesApiMatchesGet(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **excludeDev** | `boolean` |  | [Optional] [Defaults to `false`] |
-
-### Return type
-
-[**Matches**](Matches.md)
 
 ### Authorization
 

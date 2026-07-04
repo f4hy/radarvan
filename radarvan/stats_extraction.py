@@ -117,6 +117,24 @@ def _event_counts_to_series(
     return result
 
 
+def _drop_redundant_consecutive(
+    series: dict[float, dict[str, int]],
+) -> dict[float, dict[str, int]]:
+    """Drop rows identical to the previously kept row (the first row always stays).
+
+    Lossless: a straight line between two equal-valued points looks the same
+    whether or not identical points sit between them, so a flat run only needs
+    its starting point.
+    """
+    result: dict[float, dict[str, int]] = {}
+    last: dict[str, int] | None = None
+    for t, values in series.items():
+        if values != last:
+            result[t] = values
+            last = values
+    return result
+
+
 def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     """Get stats data from replay."""
 
@@ -154,6 +172,9 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
             for p in ts_players
             if snap_idx < len(p.money_earned)
         }
+    money_earned = _drop_redundant_consecutive(money_earned)
+    money_spent = _drop_redundant_consecutive(money_spent)
+    money = _drop_redundant_consecutive(money)
 
     # income_by_source: only cncstats replay versions newer than statsVersion 1
     # populate this per-player. The dense form (every source x player x
@@ -181,9 +202,7 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
             _MAX_INCOME_SNAPSHOTS,
         )
         for snap_idx in kept:
-            # Rounded so the JSON keys don't carry 17-digit floats; 3 decimals
-            # of a minute is well under the snapshot interval.
-            minute = round(snap_idx * interval * scale, 3)
+            minute = snap_idx * interval * scale
             for src, entries in pruned.items():
                 income_by_source[src][minute] = {
                     name: vals[snap_idx]
