@@ -3144,7 +3144,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
+     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing - so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
      * Push Maps To Cncstats
      */
     async pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PushMapsResponse>> {
@@ -3155,7 +3155,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing — so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
+     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing - so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
      * Push Maps To Cncstats
      */
     async pushMapsToCncstatsApiPushMapsToCncstatsPost(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushMapsResponse> {
@@ -3285,7 +3285,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
+     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats - only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
      * Refresh Matches From Json
      */
     async refreshMatchesFromJsonApiRefreshMatchesFromJsonPostRaw(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
@@ -3296,7 +3296,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats — only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
+     * Re-parse existing JSON files from S3 and update DB matches if they differ.  Does NOT re-run cncstats - only reloads the already-parsed JSON from S3. Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially. Fetches up to max_to_update * 4 candidates to account for non-differing matches.
      * Refresh Matches From Json
      */
     async refreshMatchesFromJsonApiRefreshMatchesFromJsonPost(requestParameters: RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
@@ -3548,7 +3548,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match - slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
     async reparseBeforeDateApiReparseBeforeDatePostRaw(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
@@ -3559,7 +3559,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match - slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Before Date
      */
     async reparseBeforeDateApiReparseBeforeDatePost(requestParameters: ReparseBeforeDateApiReparseBeforeDatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
@@ -3599,7 +3599,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match - slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
     async reparseNonV2ApiReparseNonV2PostRaw(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }>> {
@@ -3610,7 +3610,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match — slower than refresh_matches_from_json but picks up new fields added to the parser output.
+     * Re-run cncstats on matches whose parsed JSON was last updated before `before`.  Calls cncstats for each match - slower than refresh_matches_from_json but picks up new fields added to the parser output.
      * Reparse Non V2
      */
     async reparseNonV2ApiReparseNonV2Post(requestParameters: ReparseNonV2ApiReparseNonV2PostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: ResponseReparseBeforeDateApiReparseBeforeDatePostValue; }> {
