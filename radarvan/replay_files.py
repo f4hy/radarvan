@@ -4,7 +4,7 @@ import hashlib
 import re
 import structlog
 import fsspec
-from datetime import date
+from datetime import UTC, datetime
 from typing import NamedTuple
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from functools import cache
@@ -88,8 +88,7 @@ def parse_json(json_path: str) -> EnhancedReplayV2:
     with log_time("reading json", logger, path=json_path):
         json_data = fs.read_text(json_path)
     with log_time("validating json", logger, path=json_path):
-        parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
-    return parsed_replay
+        return EnhancedReplayV2.model_validate_json(json_data)
 
 
 # @cached(cache=LRUCache(maxsize=12))
@@ -221,7 +220,7 @@ def upload_and_parse(
         original_url=original_url,
         s3_uri=s3_uri,
         file_hash=file_hash,
-        source_date=date.today(),
+        source_date=datetime.now(UTC).date(),
         mac_id=mac_id,
         board_id=board_id,
         uploader_name=uploader_name,
@@ -248,7 +247,7 @@ def path_filter(url: str) -> bool:
 
 
 def map_basename(map_path: str) -> str:
-    return map_path.split("/")[-1] if map_path else "Unknown"
+    return map_path.rsplit("/", maxsplit=1)[-1] if map_path else "Unknown"
 
 
 def map_key(name: str) -> str:

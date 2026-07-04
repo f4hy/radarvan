@@ -4,7 +4,7 @@ matches."""
 import asyncio
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pydantic import BaseModel
 
 from .api_types import (
@@ -260,7 +260,7 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
                 player=top_player,
             )
         )
-    three_months_ago = date.today() - timedelta(days=90)
+    three_months_ago = datetime.now(UTC).date() - timedelta(days=90)
     recent_current = {n: s for n, s in current.items() if s.end >= three_months_ago}
     if recent_current:
         current_leader = max(recent_current, key=lambda n: recent_current[n].count)
@@ -996,7 +996,7 @@ def get_superlatives(
     details: list[SuperlativeData] | None = None,
     daily_changes: dict[str, list[RatingDailyChange]] | None = None,
 ) -> Superlatives:
-    computed_at = date.today()
+    computed_at = datetime.now(UTC).date()
 
     stats: list[Statistic] = [
         *_safe_compute(get_game_count_stats, games, computed_at),

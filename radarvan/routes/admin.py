@@ -6,7 +6,7 @@ verify_api_key dependency on the FastAPI app.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import asyncio
 import structlog
 from typing import Any, NamedTuple
@@ -123,13 +123,29 @@ def reparse(
     return replay
 
 
+@router.post("/api/clear_details_cache/", include_in_schema=IS_DEV)
+def clear_details_cache(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Drop every row of the durable MatchDetails cache and the in-process LRU
+    fronting it. Normal invalidation is per-match (reparse) or implicit via
+    DETAILS_VERSION; this is for a full manual bust - e.g. debugging a stale
+    row that shouldn't exist, or a derivation change that should have bumped
+    the version but didn't.
+    """
+    deleted = replay_manager.delete_all_cached_details()
+    details_from_id.cache_clear()
+    logger.info("cleared details cache", deleted=deleted)
+    return {"deleted": deleted}
+
+
 @router.post("/api/reparse_recent/", include_in_schema=IS_DEV)
 def reparse_recent(
     days: int = 3,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on all matches whose game_date is within the last `days` days."""
-    since = date.today() - timedelta(days=days)
+    since = datetime.now(UTC).date() - timedelta(days=days)
     candidates = replay_manager.list_jsons_since_date(since)
     logger.info("reparse_recent", candidates=len(candidates), since=since)
     updated_ids: set[int] = set()

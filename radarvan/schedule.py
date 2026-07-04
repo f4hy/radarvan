@@ -10,7 +10,7 @@ from .db_utils import DatabaseManager
 from .cache import invalidate_match_caches
 from .matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime
+from datetime import UTC, datetime
 import asyncio
 from . import scrape_games
 from . import game_composition
@@ -44,7 +44,7 @@ async def update_games(
 
 async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
     """Recompute all superlatives and persist them, replacing any previous results."""
-    start = datetime.now()
+    start = datetime.now(UTC)
     logger.info(
         "computing superlatives", started_at=start.strftime("%Y-%m-%d %H:%M:%S")
     )
@@ -80,7 +80,7 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
         )
         replay_manager.clear_computed_stats()
         replay_manager.save_computed_stats(result.stats)
-    duration = datetime.now() - start
+    duration = datetime.now(UTC) - start
     logger.info(
         "saved computed statistics",
         count=len(result.stats),
@@ -99,7 +99,7 @@ def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
     scheduler.add_job(
         update_games,
         "date",
-        run_date=datetime.now(),
+        run_date=datetime.now(UTC),
         args=[db_manager, 1],
         id="update_games_init",
     )

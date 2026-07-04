@@ -70,16 +70,15 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
     logger.info("got parsed replays", count=len(deduped))
-    sorted_matches = dict(
+    return dict(
         sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
     )
-    return sorted_matches
 
 
 @cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_competitive_lock)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
-    filtered = {
+    return {
         m.id: m
         for m in all_matches.values()
         # Disconnects/desyncs/quit-early/too-short games aren't real competitive
@@ -89,7 +88,6 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
         and game_composition.competitive_game_filter(comp=m.composition)
         and player_ids.all_teams_have_group_player(m.players)
     }
-    return filtered
 
 
 @cached(cache=LRUCache(maxsize=100), key=details_key, lock=_details_lock)

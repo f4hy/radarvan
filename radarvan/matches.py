@@ -346,8 +346,7 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     filtered = [x for x in listing if filter_match(x)]
 
     with log_time("convert"):
-        converted = [match_to_matchinfo(m, overrides.get(m.match_id)) for m in filtered]
-    return converted
+        return [match_to_matchinfo(m, overrides.get(m.match_id)) for m in filtered]
 
 
 if __name__ == "__main__":
@@ -396,7 +395,7 @@ def filter_since[T](
     """
     if days_back is None:
         return items
-    cutoff = (today or date.today()) - timedelta(days=days_back)
+    cutoff = (today or datetime.now(UTC).date()) - timedelta(days=days_back)
     return [i for i in items if key(i) >= cutoff]
 
 

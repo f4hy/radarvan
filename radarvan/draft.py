@@ -54,7 +54,7 @@ def compute_draft(
                 cx = sum(p.x for p in assigned) / len(assigned)
                 cy = sum(p.y for p in assigned) / len(assigned)
 
-                def _dist_to_centroid(i: int) -> float:
+                def _dist_to_centroid(i: int, cx: float = cx, cy: float = cy) -> float:
                     return (remaining[i].x - cx) ** 2 + (remaining[i].y - cy) ** 2
 
                 best = min(range(len(remaining)), key=_dist_to_centroid)
@@ -70,7 +70,7 @@ def compute_draft(
 
     assignments = []
     for t in teams:
-        for player, pos in zip(team_players[t], team_assigned[t]):
+        for player, pos in zip(team_players[t], team_assigned[t], strict=True):
             assignments.append(
                 DraftAssignment(
                     player_name=player.name,

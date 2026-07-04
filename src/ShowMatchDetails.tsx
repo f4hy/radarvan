@@ -7,6 +7,8 @@ import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
 import {
+  Area,
+  AreaChart,
   Legend,
   Line,
   LineChart,
@@ -1165,10 +1167,199 @@ function BuildOrderTab(props: {
   )
 }
 
+// Only present in statsData when cncstats supplied incomeBySource for this
+// replay (newer replay versions only - see radarvan.stats_extraction). Each
+// key gets a fixed categorical color so a source's identity/color stays the
+// same across every player's chart regardless of which sources are active.
+// theft/other are rare catch-alls folded into one "Other" band rather than
+// given their own slot in the (8-hue) categorical order.
+const INCOME_SOURCES: { key: string; label: string; color: string }[] = [
+  { key: "income_supply", label: "Supply", color: "#2a78d6" },
+  { key: "income_oil_derrick", label: "Oil Derrick", color: "#1baf7a" },
+  { key: "income_black_market", label: "Black Market", color: "#eda100" },
+  { key: "income_hacker", label: "Hacker", color: "#008300" },
+  { key: "income_crate", label: "Crate", color: "#4a3aa7" },
+  { key: "income_salvage", label: "Salvage", color: "#e34948" },
+  { key: "income_bounty", label: "Bounty", color: "#e87ba4" },
+  { key: "income_supply_drop", label: "Supply Drop", color: "#eb6834" },
+]
+const INCOME_OTHER_KEYS = ["income_theft", "income_other"]
+const INCOME_OTHER_COLOR = "#898781"
+const INCOME_OTHER_LABEL = "Other"
+
+// The backend sends these series sparse (see radarvan.stats_extraction): an
+// all-zero source arrives as an empty dict, and a player who never earned
+// from a source is absent from its snapshots. So "has any keys" means active,
+// and a missing player/timestep means zero.
+function isIncomeSeriesActive(
+  statsData: MatchDetails["statsData"],
+  key: string,
+): boolean {
+  return Object.keys(statsData[key] ?? {}).length > 0
+}
+
+function playerHasIncomeFrom(
+  statsData: MatchDetails["statsData"],
+  key: string,
+  playerName: string,
+): boolean {
+  return Object.values(statsData[key] ?? {}).some(
+    (byPlayer) => (byPlayer[playerName] ?? 0) !== 0,
+  )
+}
+
+function activeIncomeSeries(statsData: MatchDetails["statsData"]) {
+  const main = INCOME_SOURCES.filter((s) =>
+    isIncomeSeriesActive(statsData, s.key),
+  )
+  const other = INCOME_OTHER_KEYS.some((k) =>
+    isIncomeSeriesActive(statsData, k),
+  )
+  return { main, other }
+}
+
+function hasIncomeBySourceData(details: MatchDetails): boolean {
+  const { main, other } = activeIncomeSeries(details.statsData)
+  return main.length > 0 || other
+}
+
+// Highest "$ Collected" (cumulative money_earned) of any player at any point
+// in the match - the same figure shown in the GameDetailsTable column. Used
+// as a common y-axis ceiling so every player's income chart is on the same
+// scale and directly comparable.
+function maxMoneyCollected(statsData: MatchDetails["statsData"]): number {
+  const series = statsData["money_earned"]
+  if (!series) return 0
+  return Object.values(series).reduce(
+    (acc, byPlayer) => Math.max(acc, ...Object.values(byPlayer)),
+    0,
+  )
+}
+
+function PlayerIncomeChart(props: {
+  playerName: string
+  main: { key: string; label: string; color: string }[]
+  other: boolean
+  statsData: MatchDetails["statsData"]
+  yMax: number
+}) {
+  const { playerName, main, other, statsData, yMax } = props
+  // Sources this player never earned from are dropped from their chart (no
+  // flat zero bands); the source->color mapping stays fixed match-wide.
+  const playerMain = React.useMemo(
+    () => main.filter((s) => playerHasIncomeFrom(statsData, s.key, playerName)),
+    [main, statsData, playerName],
+  )
+  const playerOther =
+    other &&
+    INCOME_OTHER_KEYS.some((k) => playerHasIncomeFrom(statsData, k, playerName))
+  const data = React.useMemo(() => {
+    // Every non-empty income series shares the same (sparse) minute keys, so
+    // any globally-active source supplies the time grid.
+    const anyKey = main[0]?.key ?? INCOME_OTHER_KEYS[0]
+    const minutes = Object.keys(statsData[anyKey] ?? {})
+      .map(Number)
+      .sort((a, b) => a - b)
+    return minutes.map((m) => {
+      const row: Record<string, number> = { atMinute: m }
+      for (const s of playerMain) {
+        row[s.label] = statsData[s.key]?.[m]?.[playerName] ?? 0
+      }
+      if (playerOther) {
+        row[INCOME_OTHER_LABEL] = INCOME_OTHER_KEYS.reduce(
+          (sum, k) => sum + (statsData[k]?.[m]?.[playerName] ?? 0),
+          0,
+        )
+      }
+      return row
+    })
+  }, [playerName, main, playerMain, playerOther, statsData])
+  if (playerMain.length === 0 && !playerOther) {
+    return null
+  }
+  const maxTime = data.length > 0 ? data[data.length - 1].atMinute : 0
+  return (
+    <>
+      <Typography variant="h6">{playerName}</Typography>
+      <ResponsiveContainer width="100%" height={260}>
+        <AreaChart
+          data={data}
+          margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
+        >
+          <XAxis
+            type="number"
+            dataKey="atMinute"
+            domain={[0, maxTime]}
+            tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
+            name="minutes"
+          />
+          <YAxis domain={[0, yMax]} />
+          <Tooltip labelFormatter={(t) => `${Number(t).toFixed(1)}m`} />
+          <Legend />
+          {playerMain.map((s) => (
+            <Area
+              key={s.key}
+              type="monotone"
+              dataKey={s.label}
+              stackId="income"
+              stroke={s.color}
+              fill={s.color}
+            />
+          ))}
+          {playerOther && (
+            <Area
+              type="monotone"
+              dataKey={INCOME_OTHER_LABEL}
+              stackId="income"
+              stroke={INCOME_OTHER_COLOR}
+              fill={INCOME_OTHER_COLOR}
+            />
+          )}
+          <ReferenceLine
+            y={yMax}
+            label={{ value: "highest $ collected", position: "insideTopRight" }}
+            stroke={BRAND_COLOR}
+            strokeDasharray="3 3"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </>
+  )
+}
+
+function IncomeBySourceTab(props: { details: MatchDetails }) {
+  const { main, other } = React.useMemo(
+    () => activeIncomeSeries(props.details.statsData),
+    [props.details.statsData],
+  )
+  const yMax = React.useMemo(
+    () => maxMoneyCollected(props.details.statsData),
+    [props.details.statsData],
+  )
+  if (main.length === 0 && !other) {
+    return <Typography>No income-by-source data for this replay</Typography>
+  }
+  return (
+    <>
+      {props.details.playerSummary.map((ps) => (
+        <PlayerIncomeChart
+          key={ps.name}
+          playerName={ps.name}
+          main={main}
+          other={other}
+          statsData={props.details.statsData}
+          yMax={yMax}
+        />
+      ))}
+    </>
+  )
+}
+
 type Displays =
   | "Player Unit and spending breakdown"
   | "Event Chart"
   | "Detailed Graphs"
+  | "Income by Source"
   | "Kill Map"
   | "Replay"
   | "AI"
@@ -1232,6 +1423,9 @@ function DetailViewSelector(props: {
       {props.selectedDisplay === "Detailed Graphs" && (
         <DetailedGraphs details={props.details} />
       )}
+      {props.selectedDisplay === "Income by Source" && (
+        <IncomeBySourceTab details={props.details} />
+      )}
       {props.selectedDisplay === "Kill Map" && (
         <KillMap
           killEvents={props.details.killEvents ?? []}
@@ -1284,6 +1478,7 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Player Unit and spending breakdown",
     "Event Chart",
     "Detailed Graphs",
+    ...(hasIncomeBySourceData(details) ? (["Income by Source"] as const) : []),
     "Kill Map",
     "Replay",
     "AI",

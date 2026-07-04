@@ -1,7 +1,7 @@
 """Superlatives (leaderboard records) endpoints."""
 
 import asyncio
-from datetime import date
+from datetime import UTC, datetime
 import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -32,7 +32,7 @@ def get_superlatives(
             computed_at=saved_stats[0].date_computed,
         )
     logger.info("no saved superlatives")
-    return superlatives.Superlatives(stats=[], computed_at=date.today())
+    return superlatives.Superlatives(stats=[], computed_at=datetime.now(UTC).date())
 
 
 async def _do_recompute(

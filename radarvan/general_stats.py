@@ -29,7 +29,7 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
         ]
         if sum(1 for n in resolved if n in CPU_NAMES) > 1:
             continue
-        for player, name in zip(game.players, resolved):
+        for player, name in zip(game.players, resolved, strict=True):
             if player.general not in general_stats:
                 general_stats[player.general] = GeneralStat(
                     general=player.general,

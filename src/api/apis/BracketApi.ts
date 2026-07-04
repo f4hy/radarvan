@@ -114,7 +114,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Known player names — the pool admins pick the 9-16 entrants from.
+     * Known player names - the pool admins pick the 9-16 entrants from.
      * Eligible Players
      */
     async eligiblePlayersApiBracketEligiblePlayersGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string | null>>> {
@@ -125,7 +125,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * Known player names — the pool admins pick the 9-16 entrants from.
+     * Known player names - the pool admins pick the 9-16 entrants from.
      * Eligible Players
      */
     async eligiblePlayersApiBracketEligiblePlayersGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string | null>> {

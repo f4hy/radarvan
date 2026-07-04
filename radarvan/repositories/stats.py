@@ -1,6 +1,6 @@
 """ComputedStatistic repository (pre-baked superlatives)."""
 
-from datetime import date
+from datetime import UTC, datetime
 
 from sqlalchemy import delete as sa_delete, func, select
 
@@ -56,4 +56,4 @@ class StatsRepo(BaseRepo):
         latest = self.session.scalar(select(func.max(ComputedStatistic.date_computed)))
         if latest is None:
             return True
-        return (date.today() - latest).days > days
+        return (datetime.now(UTC).date() - latest).days > days

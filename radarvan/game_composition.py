@@ -193,9 +193,12 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     ]
 
     is_comp_stomp = False
-    if len(human_only_teams) >= 1 and len(computer_only_teams) >= 1:
-        if len(human_only_teams) + len(computer_only_teams) == num_teams:
-            is_comp_stomp = True
+    if (
+        len(human_only_teams) >= 1
+        and len(computer_only_teams) >= 1
+        and len(human_only_teams) + len(computer_only_teams) == num_teams
+    ):
+        is_comp_stomp = True
 
     # Determine category string
     if num_teams == 2:
@@ -257,6 +260,4 @@ def competitive_game_filter(comp: GameComposition | None) -> bool:
         return False
     if not comp.is_balanced:
         return False
-    if not comp.is_team_game:
-        return False
-    return True
+    return comp.is_team_game

@@ -198,8 +198,7 @@ def _bucket_apm_over_time(
             continue
         bucket = int(frame * minutes_per / window_minutes)
         counts[bucket][name] += 1
-        if bucket > max_bucket:
-            max_bucket = bucket
+        max_bucket = max(max_bucket, bucket)
     # actions in a window → actions per minute
     per_minute = 1.0 / window_minutes
     result: dict[float, dict[str, float]] = {}

@@ -12,5 +12,5 @@ READ_KEY = secrets.token_urlsafe(32)
 WRITE_KEY = secrets.token_urlsafe(32)
 
 for keyname in ["FRONTEND_KEY", "ZULUCLIENT_KEY", "BILLS_KEY", "CNCSTATS_KEY"]:
-    with open(keyname, 'w') as f:
+    with open(keyname, "w") as f:
         f.write(f"RADARVAN_API_KEY={secrets.token_urlsafe(32)}")

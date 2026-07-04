@@ -129,8 +129,8 @@ def create_balanced_teams(
     team_configs = dict(enumerate(partition_into_teams(resolved_players, team_size)))
 
     config_rating = {
-        id: rate_team_partition(team_config, player_ratings)
-        for id, team_config in team_configs.items()
+        config_id: rate_team_partition(team_config, player_ratings)
+        for config_id, team_config in team_configs.items()
     }
 
     best, _score = min(config_rating.items(), key=lambda x: x[1])

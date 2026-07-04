@@ -56,9 +56,7 @@ def is_ffa_game(game: MatchInfo) -> bool:
         return False
     if comp.num_computers > 0:
         return False
-    if comp.num_humans < MIN_FFA_PLAYERS:
-        return False
-    return True
+    return not comp.num_humans < MIN_FFA_PLAYERS
 
 
 def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:

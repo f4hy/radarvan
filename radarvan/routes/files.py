@@ -170,10 +170,9 @@ def register_replay_url(
 ) -> MatchInfo | None:
     """Register and parse a new replay from a URL."""
     existing = replay_manager.get_replay_file(url_of_replay)
-    if existing:
-        if existing.parsed_replay_json:
-            logger.info("Already parsed, skipping")
-            return None
+    if existing and existing.parsed_replay_json:
+        logger.info("Already parsed, skipping")
+        return None
     replay = replay_files.parse_replay(url_of_replay, replay_manager)
     return matches.reparse_replay(replay.replay_id, replay_manager)
 

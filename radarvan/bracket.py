@@ -128,7 +128,9 @@ def _pair_round(
     round number/name and id prefix."""
     matches = [
         MatchDef(f"{id_prefix}-{i}", "W", round_number, round_name, a, b)
-        for i, (a, b) in enumerate(zip(sources[0::2], sources[1::2]), start=1)
+        for i, (a, b) in enumerate(
+            zip(sources[0::2], sources[1::2], strict=True), start=1
+        )
     ]
     return [WinnerOf(m.match_id) for m in matches], matches
 
@@ -154,7 +156,7 @@ def _merge_wave(
     name = final_round_name or f"Losers Round {rnum}"
     merge_matches = [
         MatchDef(f"LB{rnum}-{i + 1}", "L", rnum, name, a, b)
-        for i, (a, b) in enumerate(zip(existing, incoming))
+        for i, (a, b) in enumerate(zip(existing, incoming, strict=True))
     ]
     matches += merge_matches
     return [WinnerOf(m.match_id) for m in merge_matches], matches
@@ -178,7 +180,7 @@ def build_topology(num_players: int) -> Topology:
     # partner exceeds num_players (always the *lower* of the pair, since
     # seed_order always orders each pair low-then-high and the low half of
     # any pair is always <= 8 <= MIN_PLAYERS <= num_players).
-    pairs = list(zip(_SEED_ORDER_16[0::2], _SEED_ORDER_16[1::2]))
+    pairs = list(zip(_SEED_ORDER_16[0::2], _SEED_ORDER_16[1::2], strict=True))
     round1_sources: list[Source] = []
     wb1_ids: list[str] = []
     for x, y in pairs:

@@ -1,8 +1,8 @@
 """Map stats, geometry, render, and image endpoints."""
 
 import asyncio
-import os
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse
@@ -311,29 +311,30 @@ def _map_match_key(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
-def _find_dist_map_path(map_name: str) -> str | None:
+def _find_dist_map_path(map_name: str) -> Path | None:
     """Resolve a map name to a bundled webp in dist/maps, or None.
 
     Tries exact filenames first, then a normalized exact match, then a
     normalized substring match (bundled filenames carry prefixes that embed the
     map name, e.g. `userdata_maps_<name>_<name>.webp`).
     """
+    maps_dir = Path(_MAPS_DIR)
     base = map_name.removesuffix(".map")
-    for candidate in (f"{_MAPS_DIR}/{base}.webp", f"{_MAPS_DIR}/{map_name}.webp"):
-        if os.path.exists(candidate):
+    for candidate in (maps_dir / f"{base}.webp", maps_dir / f"{map_name}.webp"):
+        if candidate.exists():
             return candidate
-    if not os.path.isdir(_MAPS_DIR):
+    if not maps_dir.is_dir():
         return None
     needle = _map_match_key(base)
     if not needle:
         return None
-    webps = [f for f in os.listdir(_MAPS_DIR) if f.endswith(".webp")]
+    webps = [f for f in maps_dir.iterdir() if f.suffix == ".webp"]
     for fname in webps:
-        if _map_match_key(fname.removesuffix(".webp")) == needle:
-            return os.path.join(_MAPS_DIR, fname)
+        if _map_match_key(fname.stem) == needle:
+            return fname
     for fname in webps:
-        if needle in _map_match_key(fname.removesuffix(".webp")):
-            return os.path.join(_MAPS_DIR, fname)
+        if needle in _map_match_key(fname.stem):
+            return fname
     return None
 
 
@@ -345,8 +346,7 @@ def _load_map_image_bytes(map_name: str) -> bytes:
         return data
     path = _find_dist_map_path(map_name)
     if path is not None:
-        with open(path, "rb") as f:
-            return f.read()
+        return path.read_bytes()
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
 
 

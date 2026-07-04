@@ -67,16 +67,16 @@ def timeline_events_from_replay(
     events: list[TimelineEvent] = []
 
     for player_name, ups in upgrades_by_player.items():
-        for u in ups.upgrades:
-            events.append(
-                TimelineEvent(
-                    player_name=player_name,
-                    at_minute=u.at_minute,
-                    event_name=clean_object_name(u.upgrade_name),
-                    event_type="upgrade",
-                    cost=u.cost,
-                )
+        events.extend(
+            TimelineEvent(
+                player_name=player_name,
+                at_minute=u.at_minute,
+                event_name=clean_object_name(u.upgrade_name),
+                event_type="upgrade",
+                cost=u.cost,
             )
+            for u in ups.upgrades
+        )
 
     for chunk in replay.body:
         if chunk.order_name not in ("SpecialPowerAtLocation", "SpecialPowerAtObject"):
