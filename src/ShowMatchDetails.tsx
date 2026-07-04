@@ -1196,6 +1196,24 @@ const KNOWN_INCOME_KEYS = new Set(KNOWN_INCOME_SOURCES.map((s) => s.key))
 const INCOME_OTHER_COLOR = "#898781"
 const INCOME_OTHER_LABEL = "Other"
 
+function incomeSourceColor(key: string): string {
+  return (
+    KNOWN_INCOME_SOURCES.find((s) => s.key === key)?.color ?? INCOME_OTHER_COLOR
+  )
+}
+
+// Shared time grid: union of every source's minute keys. Every non-empty
+// series shares this same sparse grid (see radarvan.stats_extraction).
+function incomeMinutes(income: IncomeBySource): number[] {
+  const all = new Set<number>()
+  for (const series of Object.values(income)) {
+    for (const m of Object.keys(series)) {
+      all.add(Number(m))
+    }
+  }
+  return [...all].sort((a, b) => a - b)
+}
+
 function playerHasIncomeFrom(
   series: IncomeBySource[string] | undefined,
   playerName: string,
@@ -1307,16 +1325,7 @@ function PlayerIncomeChart(props: {
 
 function IncomeBySourceTab(props: { details: MatchDetails }) {
   const income = props.details.incomeBySource ?? {}
-  // Shared time grid: union of every source's minute keys.
-  const minutes = React.useMemo(() => {
-    const all = new Set<number>()
-    for (const series of Object.values(income)) {
-      for (const m of Object.keys(series)) {
-        all.add(Number(m))
-      }
-    }
-    return [...all].sort((a, b) => a - b)
-  }, [income])
+  const minutes = React.useMemo(() => incomeMinutes(income), [income])
   if (!hasIncomeBySourceData(props.details)) {
     return <Typography>No income-by-source data for this replay</Typography>
   }
@@ -1346,42 +1355,72 @@ function IncomeBySourceTab(props: { details: MatchDetails }) {
 // Three broad economy categories from the same income_by_source breakdown,
 // using only the final (last snapshot) cumulative value per player - a
 // simple totals comparison rather than the time-series detail of the
-// "Income by Source" tab. Colors reuse the same fixed slots as Supply/Oil
-// Derrick there for a consistent identity across tabs.
+// "Income by Source" tab. Supplies/Oil colors are looked up from
+// KNOWN_INCOME_SOURCES (not re-declared) so the two tabs can't drift apart.
 const SUPPLY_INCOME_KEYS = ["supply", "crate"]
 const OIL_INCOME_KEY = "oil_derrick"
 const SECONDARY_ECONOMY_LABEL = "Secondary Economy"
-const ECON_CATEGORY_COLORS = {
-  supplies: "#2a78d6", // blue
-  oil: "#1baf7a", // aqua
-  secondary: "#eda100", // yellow
+const SECONDARY_ECONOMY_COLOR = "#eda100" // yellow - a composite bucket, not a single known source
+
+function econCategories(
+  secondaryKeys: string[],
+): { label: string; keys: string[]; color: string }[] {
+  return [
+    {
+      label: "Supplies",
+      keys: SUPPLY_INCOME_KEYS,
+      color: incomeSourceColor("supply"),
+    },
+    {
+      label: "Oil Derricks",
+      keys: [OIL_INCOME_KEY],
+      color: incomeSourceColor("oil_derrick"),
+    },
+    {
+      label: SECONDARY_ECONOMY_LABEL,
+      keys: secondaryKeys,
+      color: SECONDARY_ECONOMY_COLOR,
+    },
+  ]
 }
 
-function finalIncomeValue(
-  series: IncomeBySource[string] | undefined,
-  minute: number,
+// Final cumulative value for one player, summed across `keys`, carrying each
+// key's last-known value forward over the shared minute grid - matching
+// PlayerIncomeChart's decode, and correct even for a player whose series
+// ends early (e.g. left/disconnected before the match's final snapshot).
+function finalValueForPlayer(
+  income: IncomeBySource,
+  keys: string[],
   playerName: string,
+  minutes: number[],
 ): number {
-  return series?.[minute]?.[playerName] ?? 0
+  const last: Record<string, number> = {}
+  for (const m of minutes) {
+    for (const k of keys) {
+      const v = income[k]?.[m]?.[playerName]
+      if (v !== undefined) last[k] = v
+    }
+  }
+  return keys.reduce((sum, k) => sum + (last[k] ?? 0), 0)
 }
 
 // Bar height is the actual $ value collected; each bar is additionally
 // labeled with that player's share of what these players collected between
-// them - not (yet) the map's total available resource, which cncstats
-// doesn't expose per-map today. Once a per-map high-water mark is available,
-// swap the percent denominator for that instead of the sum below.
+// them this match - not (yet) the map's total available resource, which
+// cncstats doesn't expose per-map today. Once a per-map high-water mark is
+// available, swap the percent denominator for that instead of the sum below.
 function PercentOfTotalChart(props: {
   title: string
-  valueByPlayer: Record<string, number>
-  playerSummaries: PlayerSummary[]
+  rows: { name: string; [key: string]: string | number }[]
+  field: string
+  colors: Record<string, string>
 }) {
-  const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
-  const total = Object.values(props.valueByPlayer).reduce((a, b) => a + b, 0)
-  const data = props.playerSummaries
-    .map((ps) => {
-      const value = props.valueByPlayer[ps.name] ?? 0
+  const total = props.rows.reduce((sum, r) => sum + Number(r[props.field]), 0)
+  const data = props.rows
+    .map((r) => {
+      const value = Number(r[props.field])
       return {
-        name: ps.name,
+        name: r.name,
         value,
         percentLabel:
           total > 0 ? `${((100 * value) / total).toFixed(1)}%` : "-",
@@ -1400,7 +1439,7 @@ function PercentOfTotalChart(props: {
           <Bar dataKey="value">
             <LabelList dataKey="percentLabel" position="top" />
             {data.map((d) => (
-              <Cell key={d.name} fill={colors[d.name]} />
+              <Cell key={d.name} fill={props.colors[d.name]} />
             ))}
           </Bar>
           <XAxis dataKey="name" />
@@ -1414,7 +1453,7 @@ function PercentOfTotalChart(props: {
           />
           <Tooltip
             formatter={(v, _name, item) => [
-              `${v} (${item.payload.percentLabel} of total)`,
+              `${v} (${item.payload.percentLabel} of collected this match)`,
               "$ collected",
             ]}
             cursor={false}
@@ -1427,18 +1466,7 @@ function PercentOfTotalChart(props: {
 
 function EconTab(props: { details: MatchDetails }) {
   const income = props.details.incomeBySource ?? {}
-  // The final kept snapshot is always emitted for every active source (see
-  // radarvan.stats_extraction), so the max minute across all sources gives
-  // each player's true final cumulative value - no interpolation needed.
-  const lastMinute = React.useMemo(
-    () =>
-      Object.values(income).reduce(
-        (max, series) =>
-          Object.keys(series).reduce((m, k) => Math.max(m, Number(k)), max),
-        0,
-      ),
-    [income],
-  )
+  const minutes = React.useMemo(() => incomeMinutes(income), [income])
   const secondaryKeys = React.useMemo(
     () =>
       Object.keys(income).filter(
@@ -1446,25 +1474,26 @@ function EconTab(props: { details: MatchDetails }) {
       ),
     [income],
   )
+  const categories = econCategories(secondaryKeys)
+  const colors = buildPlayerColorMap(props.details.playerSummary, getColorHex)
+  const data = React.useMemo(
+    () =>
+      props.details.playerSummary.map((ps) => {
+        const row: { name: string; [key: string]: string | number } = {
+          name: ps.name,
+        }
+        for (const c of categories) {
+          row[c.label] = finalValueForPlayer(income, c.keys, ps.name, minutes)
+        }
+        return row
+      }),
+    // categories is derived deterministically from secondaryKeys (already a
+    // dep) each render, so it doesn't need to be a dep itself.
+    [props.details.playerSummary, income, minutes, secondaryKeys],
+  )
   if (!hasIncomeBySourceData(props.details)) {
     return <Typography>No econ data for this replay</Typography>
   }
-  const data = props.details.playerSummary.map((ps) => ({
-    name: ps.name,
-    Supplies: SUPPLY_INCOME_KEYS.reduce(
-      (sum, k) => sum + finalIncomeValue(income[k], lastMinute, ps.name),
-      0,
-    ),
-    "Oil Derricks": finalIncomeValue(
-      income[OIL_INCOME_KEY],
-      lastMinute,
-      ps.name,
-    ),
-    [SECONDARY_ECONOMY_LABEL]: secondaryKeys.reduce(
-      (sum, k) => sum + finalIncomeValue(income[k], lastMinute, ps.name),
-      0,
-    ),
-  }))
   return (
     <>
       <ResponsiveContainer width="100%" height={400}>
@@ -1473,21 +1502,14 @@ function EconTab(props: { details: MatchDetails }) {
           layout="horizontal"
           margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
         >
-          <Bar
-            dataKey="Supplies"
-            stackId="econ"
-            fill={ECON_CATEGORY_COLORS.supplies}
-          />
-          <Bar
-            dataKey="Oil Derricks"
-            stackId="econ"
-            fill={ECON_CATEGORY_COLORS.oil}
-          />
-          <Bar
-            dataKey={SECONDARY_ECONOMY_LABEL}
-            stackId="econ"
-            fill={ECON_CATEGORY_COLORS.secondary}
-          />
+          {categories.map((c) => (
+            <Bar
+              key={c.label}
+              dataKey={c.label}
+              stackId="econ"
+              fill={c.color}
+            />
+          ))}
           <XAxis dataKey="name" />
           <YAxis
             label={{
@@ -1502,27 +1524,15 @@ function EconTab(props: { details: MatchDetails }) {
         </BarChart>
       </ResponsiveContainer>
       <Divider />
-      <PercentOfTotalChart
-        title="Supplies - % of total collected"
-        valueByPlayer={Object.fromEntries(
-          data.map((d) => [d.name, d.Supplies]),
-        )}
-        playerSummaries={props.details.playerSummary}
-      />
-      <PercentOfTotalChart
-        title="Oil - % of total collected"
-        valueByPlayer={Object.fromEntries(
-          data.map((d) => [d.name, d["Oil Derricks"]]),
-        )}
-        playerSummaries={props.details.playerSummary}
-      />
-      <PercentOfTotalChart
-        title={`${SECONDARY_ECONOMY_LABEL} - % of total collected`}
-        valueByPlayer={Object.fromEntries(
-          data.map((d) => [d.name, d[SECONDARY_ECONOMY_LABEL]]),
-        )}
-        playerSummaries={props.details.playerSummary}
-      />
+      {categories.map((c) => (
+        <PercentOfTotalChart
+          key={c.label}
+          title={`${c.label} - % of collected this match`}
+          rows={data}
+          field={c.label}
+          colors={colors}
+        />
+      ))}
     </>
   )
 }
