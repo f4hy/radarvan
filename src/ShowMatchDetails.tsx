@@ -1215,7 +1215,8 @@ function PlayerIncomeChart(props: {
       playerHasIncomeFrom(income[s.key], playerName),
     )
     const otherKeys = Object.keys(income).filter(
-      (k) => !KNOWN_INCOME_KEYS.has(k) && playerHasIncomeFrom(income[k], playerName),
+      (k) =>
+        !KNOWN_INCOME_KEYS.has(k) && playerHasIncomeFrom(income[k], playerName),
     )
     // Decode the sparse series over the shared grid with last-value carry
     // forward - correct for cumulative data, and robust even if the backend
@@ -1455,7 +1456,9 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Player Unit and spending breakdown",
     "Event Chart",
     "Detailed Graphs",
-    ...(hasIncomeBySourceData(details) ? (["Income by Source"] as const) : []),
+    ...(Object.keys(details.incomeBySource ?? {}).length > 0
+      ? (["Income by Source"] as const)
+      : []),
     "Kill Map",
     "Replay",
     "AI",
