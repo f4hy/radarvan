@@ -551,6 +551,49 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for clearDetailsCacheApiClearDetailsCachePost without sending the request
+     */
+    async clearDetailsCacheApiClearDetailsCachePostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/clear_details_cache/`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Drop every row of the durable MatchDetails cache and the in-process LRU fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.
+     * Clear Details Cache
+     */
+    async clearDetailsCacheApiClearDetailsCachePostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+        const requestOptions = await this.clearDetailsCacheApiClearDetailsCachePostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Drop every row of the durable MatchDetails cache and the in-process LRU fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.
+     * Clear Details Cache
+     */
+    async clearDetailsCacheApiClearDetailsCachePost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+        const response = await this.clearDetailsCacheApiClearDetailsCachePostRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for computeMatchCompositionApiMatchesMatchIdCompositionPost without sending the request
      */
     async computeMatchCompositionApiMatchesMatchIdCompositionPostRequestOpts(requestParameters: ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest): Promise<runtime.RequestOpts> {

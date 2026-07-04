@@ -12,6 +12,7 @@ Name | Type
 `apms` | [Array&lt;APM&gt;](APM.md)
 `upgradeEvents` | [{ [key: string]: Upgrades; }](Upgrades.md)
 `statsData` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
+`incomeBySource` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
 `mapName` | string
 `firstBlood` | [FirstBlood](FirstBlood.md)
 `buildingFirstBlood` | [FirstBlood](FirstBlood.md)
@@ -39,6 +40,7 @@ const example = {
   "apms": null,
   "upgradeEvents": null,
   "statsData": null,
+  "incomeBySource": null,
   "mapName": null,
   "firstBlood": null,
   "buildingFirstBlood": null,
