@@ -7,7 +7,7 @@ process-lifetime session would poison every later run.
 """
 
 from .db_utils import DatabaseManager
-from .cache import invalidate_match_caches
+from .cache import competitive_matches, invalidate_match_caches
 from .matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
@@ -94,27 +94,20 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
 
 
 async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
-    """Recompute all player profile deep stats and persist them as a batch."""
+    """Recompute all player profile deep stats and persist them as a batch.
+
+    Uses the same ``cache.competitive_matches`` set as the on-demand
+    ``POST /api/player_profile/recompute`` route (routes/profile.py), so the
+    nightly run and a manual trigger always agree on which matches count.
+    """
     start = datetime.now(UTC)
     logger.info(
         "computing player profiles", started_at=start.strftime("%Y-%m-%d %H:%M:%S")
     )
     with db_manager.get_replay_manager() as replay_manager:
         stale = replay_manager.player_profiles_are_stale(days=3)
-        all_matches = await asyncio.to_thread(
-            matches_module.get_match_infos, replay_manager
-        )
-        competitive = [
-            m
-            for m in all_matches
-            if m
-            and game_composition.competitive_game_filter(comp=m.composition)
-            and m.winning_team > 0
-            and "mismatch" not in m.incomplete.lower()
-        ]
-        data = await player_profile_module.load_many_profile_data(
-            competitive, db_manager
-        )
+        games = list(competitive_matches(replay_manager).values())
+        data = await player_profile_module.load_many_profile_data(games, db_manager)
         logger.info("loaded profile data", count=len(data))
         # Pure computation, but heavy - run off the event loop.
         profiles = await asyncio.to_thread(

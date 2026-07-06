@@ -278,22 +278,20 @@ function ProfileBody(props: { profile: PlayerProfile }) {
             </Typography>
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <FavoriteCard
-              label="Favorite Unit"
-              favorite={c.favoriteUnit ?? null}
-            />
-            <FavoriteCard
-              label="Favorite Building"
-              favorite={c.favoriteBuilding ?? null}
-            />
-            <FavoriteCard
-              label="Favorite Upgrade"
-              favorite={c.favoriteUpgrade ?? null}
-            />
-            <FavoriteCard
-              label="Favorite Power"
-              favorite={c.favoritePower ?? null}
-            />
+            {(
+              [
+                ["Favorite Unit", c.favoriteUnit],
+                ["Favorite Building", c.favoriteBuilding],
+                ["Favorite Upgrade", c.favoriteUpgrade],
+                ["Favorite Power", c.favoritePower],
+              ] as const
+            ).map(([label, favorite]) => (
+              <FavoriteCard
+                key={label}
+                label={label}
+                favorite={favorite ?? null}
+              />
+            ))}
           </Stack>
           <AversionChips aversions={c.aversions ?? []} />
           <BadgeGrid badges={c.badges ?? []} />
@@ -405,34 +403,41 @@ function ProfileBody(props: { profile: PlayerProfile }) {
             Tendencies
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <PercentileTile
-              label="Avg APM"
-              value={c.avgApm != null ? `${c.avgApm}` : null}
-              percentile={c.apmPercentile ?? null}
-            />
-            <PercentileTile
-              label="First Blood Rate"
-              value={
-                c.firstBloodRate != null
-                  ? formatPercent(c.firstBloodRate)
-                  : null
-              }
-              percentile={c.firstBloodPercentile ?? null}
-            />
-            <PercentileTile
-              label="Avg Time to Rank 5"
-              value={c.avgTimeToRank5 != null ? `${c.avgTimeToRank5}m` : null}
-              percentile={c.rank5Percentile ?? null}
-            />
-            <PercentileTile
-              label="Superweapons Built"
-              value={
-                c.superweaponsBuiltPerGame != null
-                  ? `${c.superweaponsBuiltPerGame}/game`
-                  : null
-              }
-              percentile={c.superweaponPercentile ?? null}
-            />
+            {(
+              [
+                [
+                  "Avg APM",
+                  c.avgApm != null ? `${c.avgApm}` : null,
+                  c.apmPercentile ?? null,
+                ],
+                [
+                  "First Blood Rate",
+                  c.firstBloodRate != null
+                    ? formatPercent(c.firstBloodRate)
+                    : null,
+                  c.firstBloodPercentile ?? null,
+                ],
+                [
+                  "Avg Time to Rank 5",
+                  c.avgTimeToRank5 != null ? `${c.avgTimeToRank5}m` : null,
+                  c.rank5Percentile ?? null,
+                ],
+                [
+                  "Superweapons Built",
+                  c.superweaponsBuiltPerGame != null
+                    ? `${c.superweaponsBuiltPerGame}/game`
+                    : null,
+                  c.superweaponPercentile ?? null,
+                ],
+              ] as const
+            ).map(([label, value, percentile]) => (
+              <PercentileTile
+                key={label}
+                label={label}
+                value={value}
+                percentile={percentile}
+              />
+            ))}
           </Stack>
         </Box>
       )}

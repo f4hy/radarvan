@@ -93,7 +93,6 @@ def _proj(
         time_to_rank_5=time_to_rank_5,
         academy=academy,
         superweapons_built=superweapons_built,
-        superweapons_launched=0,
     )
 
 

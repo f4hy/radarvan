@@ -247,7 +247,6 @@ class PlayerMatchProjection:
     time_to_rank_5: float | None
     academy: AcademyStats | None
     superweapons_built: int
-    superweapons_launched: int
 
     def category_counts(self, category: ObjectCategory) -> dict[str, int]:
         return {
@@ -290,12 +289,9 @@ def profile_data_from_details(
         if a.apm > 0 and a.minutes >= _MIN_APM_MINUTES
     }
     sw_built: dict[str, int] = defaultdict(int)
-    sw_launched: dict[str, int] = defaultdict(int)
     for ev in details.timeline_events:
         if ev.event_type == "superweapon_built":
             sw_built[ev.player_name] += 1
-        elif ev.event_type == "superweapon_activated":
-            sw_launched[ev.player_name] += 1
     first_blood_attacker = details.first_blood.attacker if details.first_blood else None
 
     projections: list[PlayerMatchProjection] = []
@@ -321,7 +317,6 @@ def profile_data_from_details(
                 time_to_rank_5=details.time_to_rank_5.get(ps.Name),
                 academy=ps.Academy,
                 superweapons_built=sw_built.get(ps.Name, 0),
-                superweapons_launched=sw_launched.get(ps.Name, 0),
             )
         )
     return ProfileMatchData(match_id=details.match_id, players=projections)
@@ -395,6 +390,11 @@ def aggregate_category(
 # Ratios beyond this are all "way more than anyone else"; the exact number is
 # noise (it blows up when the peer rate is ~0), so displayed scores cap here.
 _MAX_SCORE = 100.0
+
+# Bayesian shrinkage strength for _smoothed_rates: how many "pseudo-games" of
+# the pooled rate to blend in, shared default for compute_favorites and
+# compute_aversions.
+_DEFAULT_PSEUDO_GAMES = 5.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -583,9 +583,12 @@ def compute_favorites(
     min_games: int = 10,
     min_count: int = 5,
     min_peer_games: int = 20,
-    pseudo_games: float = 5.0,
+    pseudo_games: float = _DEFAULT_PSEUDO_GAMES,
     min_score: float = 1.25,
     min_rate: float | None = None,
+    peer_totals: tuple[dict[tuple[General, str], int], dict[General, int]]
+    | None = None,
+    usage_factions: dict[str, str] | None = None,
 ) -> dict[str, ScoredObject]:
     """Each player's signature object: highest peer-normalized build rate.
 
@@ -593,13 +596,17 @@ def compute_favorites(
     have ``min_peer_games`` on the same general, and the player must have
     built the object ``min_count`` times total at ``min_rate``+ per game.
     Economy units (workers, dozers, supply trucks) are excluded from UNITS -
-    every game has them.
+    every game has them. ``peer_totals``/``usage_factions`` let a caller that
+    already computed them for this ``agg`` (e.g. to share with
+    compute_aversions) pass them in instead of paying for another scan.
     """
     if min_rate is None:
         min_rate = _MIN_FAVORITE_RATE[category]
-    count_by_go, games_by_general = _peer_totals(agg)
+    count_by_go, games_by_general = peer_totals or _peer_totals(agg)
     cleaner = _CATEGORY_CLEANERS[category]
-    usage_factions = _usage_faction_map(agg)
+    usage_factions = (
+        usage_factions if usage_factions is not None else _usage_faction_map(agg)
+    )
     best: dict[str, ScoredObject] = {}
     for (player, general, obj), c_p in agg.counts.items():
         if c_p < min_count:
@@ -643,8 +650,11 @@ def compute_aversions(
     min_games: int = 10,
     min_peer_games: int = 30,
     min_peer_rate: float = 0.5,
-    pseudo_games: float = 5.0,
+    pseudo_games: float = _DEFAULT_PSEUDO_GAMES,
     max_ratio: float = 0.5,
+    peer_totals: tuple[dict[tuple[General, str], int], dict[General, int]]
+    | None = None,
+    usage_factions: dict[str, str] | None = None,
 ) -> dict[str, list[ScoredObject]]:
     """Objects peers build regularly on a shared general that a player avoids.
 
@@ -653,10 +663,15 @@ def compute_aversions(
     general) builds under ``max_ratio`` of the peer rate. ``score`` is the
     inverted smoothed ratio (higher = stronger avoidance). Returns ALL
     qualifying items per player, sorted by score; the caller trims.
+    ``peer_totals``/``usage_factions`` let a caller that already computed
+    them for this ``agg`` (e.g. to share with compute_favorites) pass them in
+    instead of paying for another scan.
     """
-    count_by_go, games_by_general = _peer_totals(agg)
+    count_by_go, games_by_general = peer_totals or _peer_totals(agg)
     cleaner = _CATEGORY_CLEANERS[category]
-    usage_factions = _usage_faction_map(agg)
+    usage_factions = (
+        usage_factions if usage_factions is not None else _usage_faction_map(agg)
+    )
     # Every object anyone built per general, so a player's zero-count shows up.
     objects_by_general: dict[General, set[str]] = defaultdict(set)
     for general, obj in count_by_go:
@@ -721,6 +736,19 @@ def _mean(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
+def _map_projections(
+    data: list[ProfileMatchData],
+    fix: Callable[[PlayerMatchProjection], PlayerMatchProjection],
+) -> list[ProfileMatchData]:
+    """Rebuild every match's player list through `fix`, preserving match_id."""
+    return [
+        ProfileMatchData(
+            match_id=match.match_id, players=[fix(p) for p in match.players]
+        )
+        for match in data
+    ]
+
+
 def _reconcile_unit_building_split(
     data: list[ProfileMatchData],
 ) -> list[ProfileMatchData]:
@@ -779,12 +807,7 @@ def _reconcile_unit_building_split(
             building_spent=building_spent,
         )
 
-    return [
-        ProfileMatchData(
-            match_id=match.match_id, players=[fix(p) for p in match.players]
-        )
-        for match in data
-    ]
+    return _map_projections(data, fix)
 
 
 def _free_objects(
@@ -852,12 +875,7 @@ def _drop_zero_cost_objects(data: list[ProfileMatchData]) -> list[ProfileMatchDa
             upgrade_spent=_without(proj.upgrade_spent, free_upgrades),
         )
 
-    return [
-        ProfileMatchData(
-            match_id=match.match_id, players=[fix(p) for p in match.players]
-        )
-        for match in data
-    ]
+    return _map_projections(data, fix)
 
 
 def _compute_academy_badges(
@@ -930,9 +948,21 @@ def compute_all_profiles(
     aversions: dict[ObjectCategory, dict[str, list[ScoredObject]]] = {}
     for category in ObjectCategory:
         agg = aggregate_category(active_data, category)
+        # Shared between favorites/aversions below so each is computed once
+        # per category rather than once per caller.
+        peer_totals = _peer_totals(agg)
+        usage_factions = _usage_faction_map(agg)
         min_count = 3 if category == ObjectCategory.POWERS else 5
-        favorites[category] = compute_favorites(agg, category, min_count=min_count)
-        aversions[category] = compute_aversions(agg, category)
+        favorites[category] = compute_favorites(
+            agg,
+            category,
+            min_count=min_count,
+            peer_totals=peer_totals,
+            usage_factions=usage_factions,
+        )
+        aversions[category] = compute_aversions(
+            agg, category, peer_totals=peer_totals, usage_factions=usage_factions
+        )
 
     # Per-player means for every percentile-ranked signal.
     apm_means: dict[str, float] = {}
