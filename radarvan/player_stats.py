@@ -42,7 +42,9 @@ def get_player_stats(
     for game in games:
         if game.incomplete:
             continue
-        if game.composition is None or not game.composition.is_team_game:
+        if game.composition is None or not game_composition.is_recognized_team_game(
+            game.composition
+        ):
             continue
 
         category = game.composition.category

@@ -28,6 +28,7 @@ import argparse
 import asyncio
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 from tqdm import tqdm
 
@@ -35,6 +36,7 @@ from radarvan import matches
 from radarvan.db import ParsedReplayJson
 from radarvan.db_utils import DatabaseManager
 from radarvan.logging_config import configure_logging
+from radarvan.repositories.replays import canonical_replay_sort_key
 
 MAX_CONCURRENT = 30
 
@@ -49,7 +51,7 @@ def _pick_canonical(rows: list[ParsedReplayJson]) -> list[ParsedReplayJson]:
     best: dict[int, ParsedReplayJson] = {}
     best_key: dict[int, tuple[bool, int]] = {}
     for row in rows:
-        key = ("upload" in row.json_s3_uri, row.num_time_stamps or 0)
+        key = canonical_replay_sort_key(row)
         if row.match_id not in best_key or key > best_key[row.match_id]:
             best[row.match_id] = row
             best_key[row.match_id] = key
@@ -68,32 +70,38 @@ async def reparse_all(
         work_items = [matches.ReparseInputs.from_row(row) for row in candidates]
     tqdm.write(f"Reparsing {len(work_items)} matches (max_concurrent={max_concurrent})")
 
-    semaphore = asyncio.Semaphore(max_concurrent)
     failed_match_ids: list[int] = []
 
-    async def reparse_one(item: matches.ReparseInputs) -> None:
-        async with semaphore:
+    def work(item: matches.ReparseInputs) -> None:
+        with db_manager.get_replay_manager() as rm:
+            try:
+                updated = matches.reparse_existing(item, rm)
+                if updated:
+                    rm.compute_and_save_composition(updated.id)
+            except Exception:
+                failed_match_ids.append(item.match_id)
 
-            def work() -> None:
-                with db_manager.get_replay_manager() as rm:
-                    try:
-                        updated = matches.reparse_existing(item, rm)
-                        if updated:
-                            rm.compute_and_save_composition(updated.id)
-                    except Exception:
-                        failed_match_ids.append(item.match_id)
+    # A bare `asyncio.to_thread` would share the default executor (capped at
+    # min(32, cpu_count+4)), so `max_concurrent` wouldn't actually bound
+    # in-flight cncstats calls at 30 on most machines - size our own executor
+    # instead so the semaphore's limit is the real one.
+    loop = asyncio.get_running_loop()
+    with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+        semaphore = asyncio.Semaphore(max_concurrent)
 
-            await asyncio.to_thread(work)
+        async def reparse_one(item: matches.ReparseInputs) -> None:
+            async with semaphore:
+                await loop.run_in_executor(executor, work, item)
 
-    tasks = [asyncio.ensure_future(reparse_one(item)) for item in work_items]
-    for task in tqdm(
-        asyncio.as_completed(tasks),
-        total=len(tasks),
-        desc="Reparsing replays",
-        unit="replay",
-        smoothing=0.1,
-    ):
-        await task
+        tasks = [asyncio.ensure_future(reparse_one(item)) for item in work_items]
+        for task in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="Reparsing replays",
+            unit="replay",
+            smoothing=0.1,
+        ):
+            await task
 
     tqdm.write(f"Reparse complete: {len(work_items)} total, {len(failed_match_ids)} failed")
     if failed_match_ids:
