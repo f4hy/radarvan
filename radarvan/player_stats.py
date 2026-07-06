@@ -23,6 +23,19 @@ def total_games(player_stat: PlayerStat) -> int:
     return sum(wl.wins + wl.losses for wl in player_stat.stats.values())
 
 
+def stats_game_filter(game: MatchInfo) -> bool:
+    """The game set behind the Player Stats page W/L numbers.
+
+    Complete, path-filtered, competitive team games. Shared with the player
+    profile page so its record and per-general numbers match this page's.
+    """
+    return (
+        not game.incomplete
+        and replay_files.path_filter(game.filename)
+        and game_composition.competitive_game_filter(game.composition)
+    )
+
+
 def get_player_stats(
     games: list[MatchInfo], game_format: str | None = None
 ) -> PlayerStats:
@@ -36,7 +49,7 @@ def get_player_stats(
             continue
 
         category = game.composition.category if game.composition else "Unknown"
-        is_competitive = game_composition.competitive_game_filter(game.composition)
+        is_competitive = stats_game_filter(game)
 
         for player in game.players:
             name = resolve_player_name(player.name, player.color)

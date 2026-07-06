@@ -41,6 +41,7 @@ import type {
   MissingMapInfo,
   PlayerEnum,
   PlayerGameCount,
+  PlayerProfile,
   PlayerRatingDailyChange,
   PlayerRatingData,
   PlayerSkill,
@@ -115,6 +116,8 @@ import {
     PlayerEnumToJSON,
     PlayerGameCountFromJSON,
     PlayerGameCountToJSON,
+    PlayerProfileFromJSON,
+    PlayerProfileToJSON,
     PlayerRatingDailyChangeFromJSON,
     PlayerRatingDailyChangeToJSON,
     PlayerRatingDataFromJSON,
@@ -252,6 +255,10 @@ export interface GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest {
     player1: string;
     player2: string;
     gameFormat?: string | null;
+}
+
+export interface GetPlayerProfileApiPlayerProfileGetRequest {
+    player: string;
 }
 
 export interface GetPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetRequest {
@@ -1080,6 +1087,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.getDatesApiDatesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getEligiblePlayersApiPlayerProfileEligiblePlayersGet without sending the request
+     */
+    async getEligiblePlayersApiPlayerProfileEligiblePlayersGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_profile/eligible_players`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Players with a full profile: enough games for favorites/badges to mean anything. Populates the profile page\'s player picker.
+     * Get Eligible Players
+     */
+    async getEligiblePlayersApiPlayerProfileEligiblePlayersGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string | null>>> {
+        const requestOptions = await this.getEligiblePlayersApiPlayerProfileEligiblePlayersGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Players with a full profile: enough games for favorites/badges to mean anything. Populates the profile page\'s player picker.
+     * Get Eligible Players
+     */
+    async getEligiblePlayersApiPlayerProfileEligiblePlayersGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string | null>> {
+        const response = await this.getEligiblePlayersApiPlayerProfileEligiblePlayersGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -1975,6 +2025,60 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerHeadToHeadApiPlayerHeadToHeadGet(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeadToHeadDetail> {
         const response = await this.getPlayerHeadToHeadApiPlayerHeadToHeadGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPlayerProfileApiPlayerProfileGet without sending the request
+     */
+    async getPlayerProfileApiPlayerProfileGetRequestOpts(requestParameters: GetPlayerProfileApiPlayerProfileGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['player'] == null) {
+            throw new runtime.RequiredError(
+                'player',
+                'Required parameter "player" was null or undefined when calling getPlayerProfileApiPlayerProfileGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['player'] != null) {
+            queryParameters['player'] = requestParameters['player'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_profile/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Full profile for one player.  ``computed`` is None until the batch recompute has run at the current PROFILE_VERSION (nightly, or via POST /api/player_profile/recompute).
+     * Get Player Profile
+     */
+    async getPlayerProfileApiPlayerProfileGetRaw(requestParameters: GetPlayerProfileApiPlayerProfileGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerProfile>> {
+        const requestOptions = await this.getPlayerProfileApiPlayerProfileGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlayerProfileFromJSON(jsonValue));
+    }
+
+    /**
+     * Full profile for one player.  ``computed`` is None until the batch recompute has run at the current PROFILE_VERSION (nightly, or via POST /api/player_profile/recompute).
+     * Get Player Profile
+     */
+    async getPlayerProfileApiPlayerProfileGet(requestParameters: GetPlayerProfileApiPlayerProfileGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerProfile> {
+        const response = await this.getPlayerProfileApiPlayerProfileGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -3203,6 +3307,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async randomizeDraftApiDraftRandomizePost(requestParameters: RandomizeDraftApiDraftRandomizePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DraftResult> {
         const response = await this.randomizeDraftApiDraftRandomizePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for recomputePlayerProfilesApiPlayerProfileRecomputePost without sending the request
+     */
+    async recomputePlayerProfilesApiPlayerProfileRecomputePostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_profile/recompute`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Trigger a profile batch recompute in the background and return immediately.
+     * Recompute Player Profiles
+     */
+    async recomputePlayerProfilesApiPlayerProfileRecomputePostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.recomputePlayerProfilesApiPlayerProfileRecomputePostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Trigger a profile batch recompute in the background and return immediately.
+     * Recompute Player Profiles
+     */
+    async recomputePlayerProfilesApiPlayerProfileRecomputePost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.recomputePlayerProfilesApiPlayerProfileRecomputePostRaw(initOverrides);
         return await response.value();
     }
 

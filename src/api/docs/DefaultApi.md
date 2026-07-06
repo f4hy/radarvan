@@ -18,6 +18,7 @@ All URIs are relative to *http://localhost*
 | [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
 | [**getBuildOrdersApiBuildOrdersMatchIdGet**](DefaultApi.md#getbuildordersapibuildordersmatchidget) | **GET** /api/build_orders/{match_id} | Get Build Orders |
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
+| [**getEligiblePlayersApiPlayerProfileEligiblePlayersGet**](DefaultApi.md#geteligibleplayersapiplayerprofileeligibleplayersget) | **GET** /api/player_profile/eligible_players | Get Eligible Players |
 | [**getFfaStatsApiFfastatsGet**](DefaultApi.md#getffastatsapiffastatsget) | **GET** /api/ffastats | Get Ffa Stats |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
 | [**getGeneralsStatsApiGeneralstatsGet**](DefaultApi.md#getgeneralsstatsapigeneralstatsget) | **GET** /api/generalstats | Get Generals Stats |
@@ -36,6 +37,7 @@ All URIs are relative to *http://localhost*
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
 | [**getPlayerHeadToHeadApiPlayerHeadToHeadGet**](DefaultApi.md#getplayerheadtoheadapiplayerheadtoheadget) | **GET** /api/player_head_to_head/ | Get Player Head To Head |
+| [**getPlayerProfileApiPlayerProfileGet**](DefaultApi.md#getplayerprofileapiplayerprofileget) | **GET** /api/player_profile/ | Get Player Profile |
 | [**getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet**](DefaultApi.md#getplayerratingdailychangesapiplayerratingsdailychangesget) | **GET** /api/player_ratings/daily_changes/ | Get Player Rating Daily Changes |
 | [**getPlayerRatingsApiPlayerRatingsGet**](DefaultApi.md#getplayerratingsapiplayerratingsget) | **GET** /api/player_ratings/ | Get Player Ratings |
 | [**getPlayerSkillsApiPlayerSkillsGet**](DefaultApi.md#getplayerskillsapiplayerskillsget) | **GET** /api/player_skills/ | Get Player Skills |
@@ -61,6 +63,7 @@ All URIs are relative to *http://localhost*
 | [**predictOverTimeApiPredictOverTimeMatchIdGet**](DefaultApi.md#predictovertimeapipredictovertimematchidget) | **GET** /api/predict/over_time/{match_id} | Predict Over Time |
 | [**pushMapsToCncstatsApiPushMapsToCncstatsPost**](DefaultApi.md#pushmapstocncstatsapipushmapstocncstatspost) | **POST** /api/push_maps_to_cncstats | Push Maps To Cncstats |
 | [**randomizeDraftApiDraftRandomizePost**](DefaultApi.md#randomizedraftapidraftrandomizepost) | **POST** /api/draft/randomize | Randomize Draft |
+| [**recomputePlayerProfilesApiPlayerProfileRecomputePost**](DefaultApi.md#recomputeplayerprofilesapiplayerprofilerecomputepost) | **POST** /api/player_profile/recompute | Recompute Player Profiles |
 | [**recomputeSuperlativesApiSuperlativesRecomputePost**](DefaultApi.md#recomputesuperlativesapisuperlativesrecomputepost) | **POST** /api/superlatives/recompute | Recompute Superlatives |
 | [**refreshMatchesFromJsonApiRefreshMatchesFromJsonPost**](DefaultApi.md#refreshmatchesfromjsonapirefreshmatchesfromjsonpost) | **POST** /api/refresh_matches_from_json/ | Refresh Matches From Json |
 | [**registerMatchesApiRegisterMatchesPost**](DefaultApi.md#registermatchesapiregistermatchespost) | **POST** /api/register_matches/ | Register Matches |
@@ -1038,6 +1041,69 @@ This endpoint does not need any parameter.
 ### Return type
 
 **{ [key: string]: number; }**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getEligiblePlayersApiPlayerProfileEligiblePlayersGet
+
+> Array&lt;string | null&gt; getEligiblePlayersApiPlayerProfileEligiblePlayersGet()
+
+Get Eligible Players
+
+Players with a full profile: enough games for favorites/badges to mean anything. Populates the profile page\&#39;s player picker.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetEligiblePlayersApiPlayerProfileEligiblePlayersGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.getEligiblePlayersApiPlayerProfileEligiblePlayersGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**Array<string | null>**
 
 ### Authorization
 
@@ -2282,6 +2348,78 @@ example().catch(console.error);
 ### Return type
 
 [**HeadToHeadDetail**](HeadToHeadDetail.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPlayerProfileApiPlayerProfileGet
+
+> PlayerProfile getPlayerProfileApiPlayerProfileGet(player)
+
+Get Player Profile
+
+Full profile for one player.  &#x60;&#x60;computed&#x60;&#x60; is None until the batch recompute has run at the current PROFILE_VERSION (nightly, or via POST /api/player_profile/recompute).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerProfileApiPlayerProfileGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string
+    player: player_example,
+  } satisfies GetPlayerProfileApiPlayerProfileGetRequest;
+
+  try {
+    const data = await api.getPlayerProfileApiPlayerProfileGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **player** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PlayerProfile**](PlayerProfile.md)
 
 ### Authorization
 
@@ -4050,6 +4188,69 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## recomputePlayerProfilesApiPlayerProfileRecomputePost
+
+> { [key: string]: string | null; } recomputePlayerProfilesApiPlayerProfileRecomputePost()
+
+Recompute Player Profiles
+
+Trigger a profile batch recompute in the background and return immediately.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { RecomputePlayerProfilesApiPlayerProfileRecomputePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.recomputePlayerProfilesApiPlayerProfileRecomputePost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: string | null; }**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

@@ -60,6 +60,13 @@ Rate = Annotated[
     PlainSerializer(lambda v: round(v, 1), return_type=float, when_used="json"),
 ]
 
+# Generic two-decimal-place float: per-game rates and percentiles (player
+# profile badges) don't need more precision than that on the wire.
+TwoDecimal = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 2), return_type=float, when_used="json"),
+]
+
 
 class General(IntEnum):
     USA = 0
@@ -921,6 +928,138 @@ class PlayerGameCount(BaseModel):
 
     name: str
     count: int
+
+
+class FavoriteObject(BaseModel):
+    """A peer-normalized signature (or avoided) object for a player.
+
+    Rates are per-game on the general the object was scored against; ``score``
+    is the smoothed ratio player_rate/peer_rate (>1 = builds it more than
+    peers playing the same general).
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    general: General
+    per_game: TwoDecimal = Field(alias="perGame")
+    peer_per_game: TwoDecimal = Field(alias="peerPerGame")
+    score: TwoDecimal
+    games_on_general: int = Field(alias="gamesOnGeneral")
+    total_count: int = Field(alias="totalCount")
+
+
+class ProfileBadge(BaseModel):
+    """A top-3 behavioral standout among profiled players for one stat."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    key: str
+    label: str
+    description: str
+    value: TwoDecimal
+    rank: int
+    tier: Literal["gold", "silver", "bronze"]
+    total_players: int = Field(alias="totalPlayers")
+
+
+class GeneralProfileStat(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    general: General
+    games: int
+    wins: int
+    losses: int
+    win_rate: float = Field(alias="winRate")
+
+
+class MapProfileStat(BaseModel):
+    model_config = _SLOTS
+
+    map: str
+    games: int
+    wins: int
+    losses: int
+
+
+class TeammateProfileStat(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    games_together: int = Field(alias="gamesTogether")
+    wins_together: int = Field(alias="winsTogether")
+    # Pair synergy (log-odds) when the pair passes the synergy model's
+    # min-games gate; None when the teammate was picked by games played.
+    synergy: float | None = None
+
+
+class OpponentProfileStat(BaseModel):
+    """The profiled player's record against one opponent (wins = subject's wins)."""
+
+    model_config = _SLOTS
+
+    name: str
+    wins: int
+    losses: int
+
+
+class PlayerProfileComputed(BaseModel):
+    """MatchDetails-derived deep stats for one player.
+
+    Computed as a batch across all profiled players (percentiles are relative
+    to that population) and persisted per player; see radarvan.player_profile.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    favorite_unit: FavoriteObject | None = Field(None, alias="favoriteUnit")
+    favorite_building: FavoriteObject | None = Field(None, alias="favoriteBuilding")
+    favorite_upgrade: FavoriteObject | None = Field(None, alias="favoriteUpgrade")
+    favorite_power: FavoriteObject | None = Field(None, alias="favoritePower")
+    # Objects peers build regularly on a shared general that this player avoids.
+    aversions: list[FavoriteObject] = Field(default_factory=list)
+    avg_apm: float | None = Field(None, alias="avgApm")
+    apm_percentile: float | None = Field(None, alias="apmPercentile")
+    first_blood_rate: float | None = Field(None, alias="firstBloodRate")
+    first_blood_percentile: float | None = Field(None, alias="firstBloodPercentile")
+    avg_time_to_rank_5: float | None = Field(None, alias="avgTimeToRank5")
+    rank_5_percentile: float | None = Field(None, alias="rank5Percentile")
+    superweapons_built_per_game: float | None = Field(
+        None, alias="superweaponsBuiltPerGame"
+    )
+    superweapon_percentile: float | None = Field(None, alias="superweaponPercentile")
+    badges: list[ProfileBadge] = Field(default_factory=list)
+    games_analyzed: int = Field(alias="gamesAnalyzed")
+    computed_at: date = Field(alias="computedAt")
+
+
+class PlayerProfile(BaseModel):
+    """Full profile for one player: live MatchInfo-derived stats plus the
+    persisted deep stats (None until the batch recompute has run)."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player: str
+    games: int
+    wins: int
+    losses: int
+    generals: list[GeneralProfileStat]
+    most_played_general: GeneralProfileStat | None = Field(
+        None, alias="mostPlayedGeneral"
+    )
+    best_general: GeneralProfileStat | None = Field(None, alias="bestGeneral")
+    favorite_map: MapProfileStat | None = Field(None, alias="favoriteMap")
+    best_map: MapProfileStat | None = Field(None, alias="bestMap")
+    favorite_teammate: TeammateProfileStat | None = Field(
+        None, alias="favoriteTeammate"
+    )
+    nemesis: OpponentProfileStat | None = None
+    favorite_victim: OpponentProfileStat | None = Field(None, alias="favoriteVictim")
+    avg_win_duration_minutes: float | None = Field(None, alias="avgWinDurationMinutes")
+    avg_loss_duration_minutes: float | None = Field(
+        None, alias="avgLossDurationMinutes"
+    )
+    computed: PlayerProfileComputed | None = None
 
 
 class PlayerRatings(BaseModel):

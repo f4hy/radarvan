@@ -10,6 +10,7 @@ from .bracket import BracketRepo
 from .details import MatchDetailsRepo
 from .maps import MapRepo
 from .matches import MatchDebugData, MatchRepo
+from .profiles import ProfileRepo
 from .replays import AllFilesForId, FileListing, ReplayRepo, ReplayToProcess
 from .stats import StatsRepo
 from .tournaments import TournamentRepo
@@ -26,6 +27,7 @@ __all__ = [
     "MatchDebugData",
     "MatchDetailsRepo",
     "MatchRepo",
+    "ProfileRepo",
     "ReplayRepo",
     "ReplayToProcess",
     "StatsRepo",

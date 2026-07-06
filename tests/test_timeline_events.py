@@ -1,7 +1,7 @@
 """Name-cleaning helpers and timeline-event extraction.
 
 The cleaning helpers (`radarvan.replay_helpers.clean_object_name` and
-`radarvan.timeline_events._clean_power_name`) are pure functions and are always
+`radarvan.timeline_events.clean_power_name`) are pure functions and are always
 exercised. The end-to-end `timeline_events_from_replay` test runs against the
 real cncstats fixture `references/example_cncstats_output.json` when present and
 is skipped otherwise (that directory is gitignored, so it is unavailable in a
@@ -16,7 +16,7 @@ import pytest
 from radarvan.api_types import TimelineEvent
 from radarvan.cncstats_model.zhreplay import EnhancedReplayV2
 from radarvan.replay_helpers import clean_object_name
-from radarvan.timeline_events import _clean_power_name, timeline_events_from_replay
+from radarvan.timeline_events import clean_power_name, timeline_events_from_replay
 
 _FIXTURE = (
     Path(__file__).resolve().parents[1]
@@ -50,7 +50,7 @@ def test_clean_object_name(raw: str, expected: str) -> None:
     assert clean_object_name(raw) == expected
 
 
-# --- _clean_power_name -----------------------------------------------------
+# --- clean_power_name -----------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -68,7 +68,7 @@ def test_clean_object_name(raw: str, expected: str) -> None:
     ],
 )
 def test_clean_power_name(raw: str, expected: str) -> None:
-    assert _clean_power_name(raw) == expected
+    assert clean_power_name(raw) == expected
 
 
 # --- timeline_events_from_replay (real fixture) ----------------------------

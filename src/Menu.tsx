@@ -6,6 +6,7 @@ import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import PersonIcon from "@mui/icons-material/Person"
+import BadgeIcon from "@mui/icons-material/Badge"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 import LoginIcon from "@mui/icons-material/Login"
 import AppBar from "@mui/material/AppBar"
@@ -26,6 +27,7 @@ import DisplayGeneralStats from "./GeneralStats"
 import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
+import DisplayPlayerProfile from "./PlayerProfile"
 import DisplayFFAStats from "./FFA"
 import HeadToHead from "./HeadToHead"
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
@@ -59,6 +61,7 @@ const ALL_SELECTIONS = [
   "Matches",
   "GeneralStats",
   "PlayerStats",
+  "PlayerProfile",
   "FFA",
   "HeadToHead",
   "DebugData",
@@ -141,6 +144,11 @@ export default function Menu() {
     [
       { value: "Matches", text: "Matches", icon: <ListIcon /> },
       { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
+      {
+        value: "PlayerProfile",
+        text: "Player Profile",
+        icon: <BadgeIcon />,
+      },
       {
         value: "HeadToHead",
         text: "Head to Head",
@@ -345,6 +353,8 @@ function Main(props: { selection: Selection }) {
       return <DisplayMatches />
     case "PlayerStats":
       return <DisplayPlayerStats />
+    case "PlayerProfile":
+      return <DisplayPlayerProfile />
     case "HeadToHead":
       return <HeadToHead />
     case "GeneralStats":

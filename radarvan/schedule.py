@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 import asyncio
 from . import scrape_games
 from . import game_composition
+from . import player_profile as player_profile_module
 from . import superlatives as superlatives_module
 from . import matches as matches_module
 from . import player_rating as player_rating_module
@@ -92,6 +93,47 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
         notify(message=msg)
 
 
+async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
+    """Recompute all player profile deep stats and persist them as a batch."""
+    start = datetime.now(UTC)
+    logger.info(
+        "computing player profiles", started_at=start.strftime("%Y-%m-%d %H:%M:%S")
+    )
+    with db_manager.get_replay_manager() as replay_manager:
+        stale = replay_manager.player_profiles_are_stale(days=3)
+        all_matches = await asyncio.to_thread(
+            matches_module.get_match_infos, replay_manager
+        )
+        competitive = [
+            m
+            for m in all_matches
+            if m
+            and game_composition.competitive_game_filter(comp=m.composition)
+            and m.winning_team > 0
+            and "mismatch" not in m.incomplete.lower()
+        ]
+        data = await player_profile_module.load_many_profile_data(
+            competitive, db_manager
+        )
+        logger.info("loaded profile data", count=len(data))
+        # Pure computation, but heavy - run off the event loop.
+        profiles = await asyncio.to_thread(
+            player_profile_module.compute_all_profiles, data
+        )
+        replay_manager.save_player_profiles(
+            profiles, player_profile_module.PROFILE_VERSION
+        )
+    duration = datetime.now(UTC) - start
+    logger.info(
+        "saved player profiles",
+        count=len(profiles),
+        started_at=start.strftime("%Y-%m-%d %H:%M:%S"),
+        took=str(duration),
+    )
+    if stale:
+        notify(f"Saved {len(profiles)} player profiles, took {duration}.")
+
+
 def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
     """Get the scheduler with the tasks on it."""
 
@@ -117,6 +159,16 @@ def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
         minute=0,
         args=[db_manager],
         id="compute_superlatives",
+    )
+    # After superlatives: that run leaves match_details_cache warm, so this
+    # second full pass over the same matches is DB-read-only.
+    scheduler.add_job(
+        compute_and_save_player_profiles,
+        "cron",
+        hour=4,
+        minute=30,
+        args=[db_manager],
+        id="compute_player_profiles",
     )
     logger.info("Setup scheduler.")
     return scheduler
