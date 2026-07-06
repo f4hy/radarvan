@@ -96,7 +96,11 @@ logger = structlog.get_logger(__name__)
 # renamed _power_faction_map -> _usage_faction_map, dominance threshold
 # lowered 90% -> 65% (empirically still cleanly separates faction-locked
 # objects from genuinely shared ones; see _FACTION_DOMINANCE_THRESHOLD).
-_PROFILE_LOGIC_VERSION = 12
+# v13: dropped the "Promotion Chaser" (generals_points_spent) badge - already
+# captured in spirit by the Avg Time to Rank 5 tendency stat. Badge
+# descriptions reworded to a direct superlative ("Builds the most X") instead
+# of "more than nearly anyone else" phrasing.
+_PROFILE_LOGIC_VERSION = 13
 
 
 def _compute_profile_version() -> str:
@@ -139,75 +143,71 @@ class _BadgeMeta(NamedTuple):
 _ACADEMY_BADGES: dict[str, _BadgeMeta] = {
     "cleared_garrisoned_buildings": _BadgeMeta(
         "Building Clearer",
-        "Clears enemy-garrisoned buildings more than almost anyone else.",
+        "Clears the most enemy-garrisoned buildings.",
     ),
     "control_groups_used": _BadgeMeta(
         "Control Group Pro",
-        "Relies on control groups (Ctrl+number) far more than most players.",
+        "Relies on control groups (Ctrl+number) the most.",
     ),
     "double_click_attack_move_orders_given": _BadgeMeta(
         "Attack-Move Spammer",
-        "Issues double-click attack-move orders at an exceptional rate.",
+        "Issues the most double-click attack-move orders.",
     ),
     "firestorms_created": _BadgeMeta(
         "Firestarter",
-        "Sets off Inferno Cannon firestorms more than nearly anyone else.",
+        "Sets off the most Inferno Cannon firestorms.",
     ),
     "gatherers_built": _BadgeMeta(
         "Economy Builder",
-        "Builds a standout number of resource-gathering units per game.",
-    ),
-    "generals_points_spent": _BadgeMeta(
-        "Promotion Chaser",
-        "Spends generals points on rank-up abilities at a top-tier rate.",
+        "Builds the most resource-gathering units per game.",
     ),
     "guard_ability_used_count": _BadgeMeta(
         "Guard Duty",
-        "Uses the Guard ability far more often than most players.",
+        "Uses the Guard ability the most.",
     ),
     "heroes_built": _BadgeMeta(
         "Hero Collector",
-        "Builds hero units (Jarmen Kell, Colonel Burton, Black Lotus...) at a standout rate.",
+        "Builds the most hero units (Jarmen Kell, Colonel Burton, Black Lotus...).",
     ),
     "mines_cleared": _BadgeMeta(
         "Minesweeper",
-        "Clears enemy mines more than almost any other player.",
+        "Clears the most enemy mines.",
     ),
     "peons_built": _BadgeMeta(
         "Peon Factory",
-        "Churns out worker units at an exceptional rate.",
+        "Builds the most worker units.",
     ),
     "salvage_collected": _BadgeMeta(
         "Scrap Scavenger",
-        "Collects battlefield salvage more than nearly anyone else.",
+        "Collects the most battlefield salvage.",
     ),
     "secondary_income_units_built": _BadgeMeta(
         "Side Hustler",
-        "Builds secondary income units (black markets, hackers...) at a top-tier rate.",
+        "Builds the most secondary income units (black markets, hackers...).",
     ),
     "special_powers_used": _BadgeMeta(
         "Power User",
-        "Fires off generals powers far more often than most players.",
+        "Fires off the most generals powers.",
     ),
     "structures_captured": _BadgeMeta(
         "Capture Artist",
-        "Captures enemy and neutral structures at an exceptional rate.",
+        "Captures the most enemy and neutral structures.",
     ),
     "structures_garrisoned": _BadgeMeta(
         "Garrison Commander",
-        "Garrisons buildings with troops more than almost anyone else.",
+        "Garrisons the most buildings with troops.",
     ),
     "supply_centers_built": _BadgeMeta(
         "Expansionist",
-        "Builds a standout number of supply centers per game.",
+        "Builds the most supply centers per game.",
     ),
     "upgrades_purchased": _BadgeMeta(
         "Tech Enthusiast",
-        "Purchases upgrades at a top-tier rate compared to other players.",
+        "Purchases the most upgrades.",
     ),
     "vehicles_disguised": _BadgeMeta(
         "Master of Disguise",
-        "Disguises vehicles far more often than most other players.",
+        "Disguises the most vehicles.",
     ),
 }
 
