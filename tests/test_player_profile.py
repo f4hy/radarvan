@@ -31,6 +31,7 @@ from radarvan.player_profile import (
 from radarvan.player_profile import (
     _compute_academy_badges,
     _drop_zero_cost_objects,
+    _merge_general_flavor_variants,
     _reconcile_unit_building_split,
 )
 from radarvan.player_synergy import PairSynergy
@@ -669,6 +670,106 @@ class TestLiveProfile:
         assert profile.games == 0
         assert profile.generals == []
         assert profile.nemesis is None
+
+
+class TestMergeGeneralFlavorVariants:
+    def test_merges_flavor_prefixed_variant_into_canonical_name(self) -> None:
+        # Mirrors the real bug: most of a player's builds are the plain
+        # "AmericaInfantryMissileDefender", a minority are mistagged with
+        # another general's flavor prefix. Both must end up under one key.
+        games = _matches(
+            [
+                [
+                    _proj(
+                        "A",
+                        units={
+                            "AmericaInfantryMissileDefender": 24,
+                            "Lazr_AmericaInfantryMissileDefender": 1,
+                        },
+                    )
+                ],
+            ]
+        )
+        fixed = _merge_general_flavor_variants(games)
+        proj = fixed[0].players[0]
+        assert proj.units == {"AmericaInfantryMissileDefender": 25}
+
+    def test_merges_spent_alongside_counts(self) -> None:
+        games = _matches(
+            [
+                [
+                    _proj(
+                        "A",
+                        units={"Foo": 2, "Tank_Foo": 1},
+                        unit_spent={"Foo": 200, "Tank_Foo": 100},
+                    )
+                ],
+            ]
+        )
+        fixed = _merge_general_flavor_variants(games)
+        proj = fixed[0].players[0]
+        assert proj.units == {"Foo": 3}
+        assert proj.unit_spent == {"Foo": 300}
+
+    def test_applies_to_buildings_upgrades_and_powers(self) -> None:
+        games = _matches(
+            [
+                [
+                    _proj(
+                        "A",
+                        buildings={"Bar": 1, "Infa_Bar": 1},
+                        upgrades={"Baz": 1, "Nuke_Baz": 1},
+                        powers={"Qux": 1, "Slth_Qux": 1},
+                    )
+                ],
+            ]
+        )
+        fixed = _merge_general_flavor_variants(games)
+        proj = fixed[0].players[0]
+        assert proj.buildings == {"Bar": 2}
+        assert proj.upgrades == {"Baz": 2}
+        assert proj.powers == {"Qux": 2}
+
+    def test_unrelated_prefixes_are_not_stripped(self) -> None:
+        # "Upgrade_" is an object-type marker, not a general-flavor code, and
+        # a token outside the known 9-general set must also pass through.
+        games = _matches(
+            [[_proj("A", upgrades={"Upgrade_StealthComanche": 1, "AFG_Weird": 1})]]
+        )
+        fixed = _merge_general_flavor_variants(games)
+        proj = fixed[0].players[0]
+        assert proj.upgrades == {"Upgrade_StealthComanche": 1, "AFG_Weird": 1}
+
+    def test_end_to_end_no_longer_a_spurious_unique_favorite(self) -> None:
+        # Without the merge, the 1 Lazr_-tagged copy has zero peer usage
+        # under its exact key and wins as a "100% unique" favorite despite
+        # being a sliver of the player's real (ordinary) usage.
+        games = []
+        for _ in range(20):
+            games.append(
+                [
+                    _proj(
+                        "A",
+                        units={
+                            "AmericaInfantryMissileDefender": 1,
+                        },
+                    ),
+                    _proj("B", units={"AmericaInfantryMissileDefender": 1}),
+                ]
+            )
+        # A's very first game also logs one flavor-mistagged copy.
+        games[0][0] = _proj(
+            "A",
+            units={
+                "AmericaInfantryMissileDefender": 1,
+                "Lazr_AmericaInfantryMissileDefender": 1,
+            },
+        )
+        profiles = compute_all_profiles(_matches(games), min_profile_games=20)
+        # Common, evenly-built unit: not a favorite for anyone, and
+        # certainly not reported as "peers never build it".
+        fav = profiles["A"].favorite_unit
+        assert fav is None or fav.peer_per_game != 0.0
 
 
 class TestReconcileUnitBuildingSplit:

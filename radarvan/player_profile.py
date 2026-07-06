@@ -100,7 +100,14 @@ logger = structlog.get_logger(__name__)
 # captured in spirit by the Avg Time to Rank 5 tendency stat. Badge
 # descriptions reworded to a direct superlative ("Builds the most X") instead
 # of "more than nearly anyone else" phrasing.
-_PROFILE_LOGIC_VERSION = 13
+# v14: general-flavor-prefixed raw names (Lazr_, Infa_, Tank_, ...) are merged
+# into their canonical form before aggregation - a minority of a player's
+# builds mistagged with another general's flavor prefix were fragmenting off
+# a common unit and, with zero peers under that exact key, spuriously winning
+# as a "100% unique" favorite (e.g. Modus's ordinary Missile Defenders showing
+# "peers never build this" because 27 of 751 were Lazr_-tagged). See
+# _merge_general_flavor_variants.
+_PROFILE_LOGIC_VERSION = 14
 
 
 def _compute_profile_version() -> str:
@@ -749,6 +756,85 @@ def _map_projections(
     ]
 
 
+# The 9 non-base generals each get a short "flavor" prefix cncstats attaches
+# to some of that general's builds (Lazr_ = Laser General, Infa_ = Infantry
+# General, ...) - purely cosmetic, never a different underlying object. It's
+# redundant with the (player, general) grouping every scorer already uses,
+# and appears inconsistently: a handful of a player's builds can carry a
+# flavor tag that doesn't match their attributed general for that match (see
+# _merge_general_flavor_variants). A closed, verified set - "Upgrade_" is a
+# different kind of marker (object type, not general) and is left alone.
+_GENERAL_FLAVOR_PREFIXES = (
+    "AirF_",
+    "Lazr_",
+    "SupW_",
+    "Infa_",
+    "Tank_",
+    "Nuke_",
+    "Chem_",
+    "Demo_",
+    "Slth_",
+)
+
+
+def _canonical_object_name(name: str) -> str:
+    for prefix in _GENERAL_FLAVOR_PREFIXES:
+        if name.startswith(prefix):
+            return name[len(prefix) :]
+    return name
+
+
+def _merge_by_canonical_name(counts: dict[str, int]) -> dict[str, int]:
+    if not any(_canonical_object_name(k) != k for k in counts):
+        return counts
+    merged: dict[str, int] = defaultdict(int)
+    for name, count in counts.items():
+        merged[_canonical_object_name(name)] += count
+    return dict(merged)
+
+
+def _merge_general_flavor_variants(
+    data: list[ProfileMatchData],
+) -> list[ProfileMatchData]:
+    """Collapse general-flavor-prefixed raw names into their canonical form.
+
+    Without this, a player whose declared general is (say) USA but who has a
+    handful of builds mistagged "Lazr_AmericaInfantryMissileDefender" (Laser
+    General's flavor) ends up with that object split into two raw-name
+    buckets: the common "AmericaInfantryMissileDefender" (scores normally)
+    and the rare flavor-tagged variant, which - since literally no peer ever
+    used that exact prefixed key - looks like a 100%-unique favorite despite
+    being a small fraction of the player's actual usage of an ordinary unit.
+    Run first, before the other reconciliation passes, so they see fully
+    pooled counts/spend per canonical object.
+    """
+
+    def fix(proj: PlayerMatchProjection) -> PlayerMatchProjection:
+        units = _merge_by_canonical_name(proj.units)
+        buildings = _merge_by_canonical_name(proj.buildings)
+        upgrades = _merge_by_canonical_name(proj.upgrades)
+        powers = _merge_by_canonical_name(proj.powers)
+        if (
+            units is proj.units
+            and buildings is proj.buildings
+            and upgrades is proj.upgrades
+            and powers is proj.powers
+        ):
+            return proj
+        return replace(
+            proj,
+            units=units,
+            unit_spent=_merge_by_canonical_name(proj.unit_spent),
+            buildings=buildings,
+            building_spent=_merge_by_canonical_name(proj.building_spent),
+            upgrades=upgrades,
+            upgrade_spent=_merge_by_canonical_name(proj.upgrade_spent),
+            powers=powers,
+        )
+
+    return _map_projections(data, fix)
+
+
 def _reconcile_unit_building_split(
     data: list[ProfileMatchData],
 ) -> list[ProfileMatchData]:
@@ -923,6 +1009,7 @@ def compute_all_profiles(
     lopsided rate on a rarely-played general shouldn't set the peer bar a
     regular is judged against.
     """
+    data = _merge_general_flavor_variants(data)
     data = _reconcile_unit_building_split(data)
     data = _drop_zero_cost_objects(data)
     projections_by_player: dict[str, list[PlayerMatchProjection]] = defaultdict(list)
