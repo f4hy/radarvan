@@ -46,6 +46,8 @@ docs/GeneralStat.md
 docs/GeneralStatPlayerWL.md
 docs/GeneralStats.md
 docs/GeneralWL.md
+docs/GeneralWinRatePoint.md
+docs/GeneralWinRateSeries.md
 docs/HTTPValidationError.md
 docs/HeadToHead.md
 docs/HeadToHeadDetail.md
@@ -181,6 +183,8 @@ models/GeneralStat.ts
 models/GeneralStatPlayerWL.ts
 models/GeneralStats.ts
 models/GeneralWL.ts
+models/GeneralWinRatePoint.ts
+models/GeneralWinRateSeries.ts
 models/HTTPValidationError.ts
 models/HeadToHead.ts
 models/HeadToHeadDetail.ts

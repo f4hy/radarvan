@@ -963,6 +963,30 @@ class ProfileBadge(BaseModel):
     total_players: int = Field(alias="totalPlayers")
 
 
+class GeneralWinRatePoint(BaseModel):
+    """One point in a player's running win-rate-over-time series for a general.
+
+    ``wins``/``losses`` are cumulative as of this game (not just this game's
+    result), so plotting ``win_rate`` against ``game_number`` traces how the
+    player's record on this general evolved.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    date: date
+    game_number: int = Field(alias="gameNumber")
+    wins: int
+    losses: int
+    win_rate: float = Field(alias="winRate")
+
+
+class GeneralWinRateSeries(BaseModel):
+    model_config = _SLOTS
+
+    general: General
+    points: list[GeneralWinRatePoint]
+
+
 class GeneralProfileStat(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -1044,6 +1068,9 @@ class PlayerProfile(BaseModel):
     wins: int
     losses: int
     generals: list[GeneralProfileStat]
+    general_win_rate_over_time: list[GeneralWinRateSeries] = Field(
+        default_factory=list, alias="generalWinRateOverTime"
+    )
     most_played_general: GeneralProfileStat | None = Field(
         None, alias="mostPlayedGeneral"
     )

@@ -37,6 +37,8 @@ from .api_types import (
     FavoriteObject,
     General,
     GeneralProfileStat,
+    GeneralWinRatePoint,
+    GeneralWinRateSeries,
     MapProfileStat,
     MatchDetails,
     MatchInfo,
@@ -1166,8 +1168,14 @@ def compute_live_profile(
     teammate_games: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     win_durations: list[float] = []
     loss_durations: list[float] = []
+    general_win_rate_points: dict[General, list[GeneralWinRatePoint]] = defaultdict(
+        list
+    )
 
-    for game in games:
+    # Chronological order so the per-general running series below traces the
+    # record as it actually evolved; every other aggregate here is
+    # order-independent so sorting doesn't change them.
+    for game in sorted(games, key=lambda g: g.timestamp):
         me = None
         for p in game.players:
             if p.team <= 0:
@@ -1184,6 +1192,16 @@ def compute_live_profile(
         losses += not me.won
         wl = general_wl[me.general]
         wl[0 if me.won else 1] += 1
+        total_on_general = wl[0] + wl[1]
+        general_win_rate_points[me.general].append(
+            GeneralWinRatePoint(
+                date=game.date,
+                game_number=total_on_general,
+                wins=wl[0],
+                losses=wl[1],
+                win_rate=round(wl[0] / total_on_general, 3),
+            )
+        )
         map_name = map_basename(game.map)
         mwl = map_wl[map_name]
         mwl[0 if me.won else 1] += 1
@@ -1219,6 +1237,14 @@ def compute_live_profile(
         reverse=True,
     )
     most_played_general = generals[0] if generals else None
+    general_win_rate_over_time = sorted(
+        (
+            GeneralWinRateSeries(general=g, points=points)
+            for g, points in general_win_rate_points.items()
+        ),
+        key=lambda s: len(s.points),
+        reverse=True,
+    )
     eligible_generals = [g for g in generals if g.games >= _MIN_BEST_GENERAL_GAMES]
     best_general = (
         max(eligible_generals, key=lambda s: (s.win_rate, s.games))
@@ -1271,6 +1297,7 @@ def compute_live_profile(
         wins=wins,
         losses=losses,
         generals=generals,
+        general_win_rate_over_time=general_win_rate_over_time,
         most_played_general=most_played_general,
         best_general=best_general,
         favorite_map=favorite_map,

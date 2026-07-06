@@ -9,6 +9,8 @@ import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import TextField from "@mui/material/TextField"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { alpha } from "@mui/material/styles"
@@ -27,16 +29,40 @@ import SportsMmaIcon from "@mui/icons-material/SportsMma"
 import StarIcon from "@mui/icons-material/Star"
 import UpgradeIcon from "@mui/icons-material/Upgrade"
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
+import {
+  Area,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { Client } from "./Client"
-import { FavoriteObject, PlayerProfile, ProfileBadge } from "./api"
+import {
+  FavoriteObject,
+  GeneralWinRateSeries,
+  PlayerProfile,
+  ProfileBadge,
+} from "./api"
 import Loading from "./Loading"
 import PlayerChip from "./PlayerChip"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
 import { toGeneralName } from "./general_utils"
-import { displayMapName, formatPercent, playerColor } from "./utils"
+import {
+  displayMapName,
+  formatPercent,
+  playerColor,
+  wilsonInterval,
+} from "./utils"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+
+// A general needs at least this many games in its running series before it's
+// worth a tab - a handful of points reads as noise, not a trend.
+const MIN_SERIES_GAMES = 5
 
 function playerFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get("player")
@@ -423,6 +449,111 @@ function TempoBars(props: {
   )
 }
 
+/** One general's running win-rate line: game N as this general on the x-axis,
+ * cumulative win rate on the y-axis - traces how a matchup evolved rather
+ * than just its final tally. */
+function GeneralWinRateChart(props: { series: GeneralWinRateSeries }) {
+  const data = props.series.points.map((pt) => {
+    const { low, high } = wilsonInterval(pt.wins, pt.losses)
+    return {
+      gameNumber: pt.gameNumber,
+      winRate: Math.round(pt.winRate * 100),
+      wins: pt.wins,
+      losses: pt.losses,
+      band: [Math.round(low * 100), Math.round(high * 100)] as [number, number],
+    }
+  })
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <ComposedChart
+        data={data}
+        margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="5 5" vertical={false} />
+        <XAxis
+          dataKey="gameNumber"
+          tick={{ fontSize: 12 }}
+          label={{
+            value: "Game # on this general",
+            position: "insideBottom",
+            offset: -3,
+            fontSize: 12,
+          }}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tickFormatter={(v: number) => `${v}%`}
+          width={40}
+          tick={{ fontSize: 12 }}
+        />
+        <ChartTooltip
+          labelFormatter={(v) => `Game ${v}`}
+          formatter={(value, name, item) => {
+            if (name === "band") {
+              const [low, high] = value as [number, number]
+              return [`${low}%–${high}%`, "95% CI"]
+            }
+            const payload = item.payload as { wins: number; losses: number }
+            return [
+              `${value}% (${payload.wins}W-${payload.losses}L)`,
+              "Win rate",
+            ]
+          }}
+        />
+        <Area
+          dataKey="band"
+          name="band"
+          stroke="none"
+          fill={WIN_COLOR}
+          fillOpacity={0.15}
+          isAnimationActive={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="winRate"
+          stroke={WIN_COLOR}
+          strokeWidth={2}
+          dot={false}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+function GeneralWinRateOverTime(props: { series: GeneralWinRateSeries[] }) {
+  const eligible = props.series.filter(
+    (s) => s.points.length >= MIN_SERIES_GAMES,
+  )
+  const [selected, setSelected] = React.useState<number | null>(
+    eligible[0]?.general ?? null,
+  )
+  if (eligible.length === 0) {
+    return null
+  }
+  const current = eligible.find((s) => s.general === selected) ?? eligible[0]
+  return (
+    <Box>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        Win Rate Over Time
+      </Typography>
+      <ToggleButtonGroup
+        value={current.general}
+        exclusive
+        size="small"
+        onChange={(_, v) => v !== null && setSelected(v)}
+        sx={{ mb: 2, flexWrap: "wrap", gap: 0.5 }}
+      >
+        {eligible.map((s) => (
+          <ToggleButton key={s.general} value={s.general}>
+            {toGeneralName(s.general)}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+      <GeneralWinRateChart series={current} />
+    </Box>
+  )
+}
+
 function ProfileBody(props: { profile: PlayerProfile }) {
   const p = props.profile
   const c = p.computed ?? null
@@ -532,6 +663,12 @@ function ProfileBody(props: { profile: PlayerProfile }) {
             </Stack>
           </Grid>
         </Grid>
+        <Box sx={{ mt: 2 }}>
+          <GeneralWinRateOverTime
+            key={p.player}
+            series={p.generalWinRateOverTime ?? []}
+          />
+        </Box>
       </Box>
 
       {hasMaps && (

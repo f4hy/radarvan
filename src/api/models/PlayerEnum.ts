@@ -18,25 +18,25 @@
  * @export
  */
 export const PlayerEnum = {
-    WilyWolf: 'WilyWolf',
-    Syn: 'Syn',
-    CoreDawg: 'CoreDawg',
-    Neo: 'Neo',
-    MediumArmy: 'MediumArmy',
-    Gorn: 'Gorn',
-    EasyArmy: 'EasyArmy',
-    WildCard: 'WildCard',
-    EnragedFerret: 'EnragedFerret',
-    Modus: 'Modus',
-    Shifty: 'Shifty',
-    Skip: 'Skip',
-    Tytan: 'Tytan',
-    HardArmy: 'HardArmy',
-    TacticalAi: 'TacticalAI',
     OneThree111: 'OneThree111',
+    Skip: 'Skip',
+    HardArmy: 'HardArmy',
+    CoreDawg: 'CoreDawg',
+    EasyArmy: 'EasyArmy',
+    Gorn: 'Gorn',
+    WildCard: 'WildCard',
+    MediumArmy: 'MediumArmy',
+    TacticalAi: 'TacticalAI',
+    EnragedFerret: 'EnragedFerret',
+    Neo: 'Neo',
     Pancake: 'Pancake',
-    Stm: 'STM',
-    Pcap: 'pcap'
+    Syn: 'Syn',
+    Pcap: 'pcap',
+    Shifty: 'Shifty',
+    WilyWolf: 'WilyWolf',
+    Tytan: 'Tytan',
+    Modus: 'Modus',
+    Stm: 'STM'
 } as const;
 export type PlayerEnum = typeof PlayerEnum[keyof typeof PlayerEnum];
 

@@ -39,6 +39,8 @@ export * from './GeneralStat';
 export * from './GeneralStatPlayerWL';
 export * from './GeneralStats';
 export * from './GeneralWL';
+export * from './GeneralWinRatePoint';
+export * from './GeneralWinRateSeries';
 export * from './HTTPValidationError';
 export * from './HeadToHead';
 export * from './HeadToHeadDetail';

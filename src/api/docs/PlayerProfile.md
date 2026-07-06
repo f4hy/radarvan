@@ -12,6 +12,7 @@ Name | Type
 `wins` | number
 `losses` | number
 `generals` | [Array&lt;GeneralProfileStat&gt;](GeneralProfileStat.md)
+`generalWinRateOverTime` | [Array&lt;GeneralWinRateSeries&gt;](GeneralWinRateSeries.md)
 `mostPlayedGeneral` | [GeneralProfileStat](GeneralProfileStat.md)
 `bestGeneral` | [GeneralProfileStat](GeneralProfileStat.md)
 `favoriteMap` | [MapProfileStat](MapProfileStat.md)
@@ -35,6 +36,7 @@ const example = {
   "wins": null,
   "losses": null,
   "generals": null,
+  "generalWinRateOverTime": null,
   "mostPlayedGeneral": null,
   "bestGeneral": null,
   "favoriteMap": null,

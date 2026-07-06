@@ -27,6 +27,13 @@ import {
     TeammateProfileStatToJSON,
     TeammateProfileStatToJSONTyped,
 } from './TeammateProfileStat';
+import type { GeneralWinRateSeries } from './GeneralWinRateSeries';
+import {
+    GeneralWinRateSeriesFromJSON,
+    GeneralWinRateSeriesFromJSONTyped,
+    GeneralWinRateSeriesToJSON,
+    GeneralWinRateSeriesToJSONTyped,
+} from './GeneralWinRateSeries';
 import type { MapProfileStat } from './MapProfileStat';
 import {
     MapProfileStatFromJSON,
@@ -86,6 +93,12 @@ export interface PlayerProfile {
      * @memberof PlayerProfile
      */
     generals: Array<GeneralProfileStat>;
+    /**
+     * 
+     * @type {Array<GeneralWinRateSeries>}
+     * @memberof PlayerProfile
+     */
+    generalWinRateOverTime?: Array<GeneralWinRateSeries>;
     /**
      * 
      * @type {GeneralProfileStat}
@@ -175,6 +188,7 @@ export function PlayerProfileFromJSONTyped(json: any, ignoreDiscriminator: boole
         'wins': json['wins'],
         'losses': json['losses'],
         'generals': ((json['generals'] as Array<any>).map(GeneralProfileStatFromJSON)),
+        'generalWinRateOverTime': json['generalWinRateOverTime'] == null ? undefined : ((json['generalWinRateOverTime'] as Array<any>).map(GeneralWinRateSeriesFromJSON)),
         'mostPlayedGeneral': json['mostPlayedGeneral'] == null ? undefined : GeneralProfileStatFromJSON(json['mostPlayedGeneral']),
         'bestGeneral': json['bestGeneral'] == null ? undefined : GeneralProfileStatFromJSON(json['bestGeneral']),
         'favoriteMap': json['favoriteMap'] == null ? undefined : MapProfileStatFromJSON(json['favoriteMap']),
@@ -204,6 +218,7 @@ export function PlayerProfileToJSONTyped(value?: PlayerProfile | null, ignoreDis
         'wins': value['wins'],
         'losses': value['losses'],
         'generals': ((value['generals'] as Array<any>).map(GeneralProfileStatToJSON)),
+        'generalWinRateOverTime': value['generalWinRateOverTime'] == null ? undefined : ((value['generalWinRateOverTime'] as Array<any>).map(GeneralWinRateSeriesToJSON)),
         'mostPlayedGeneral': GeneralProfileStatToJSON(value['mostPlayedGeneral']),
         'bestGeneral': GeneralProfileStatToJSON(value['bestGeneral']),
         'favoriteMap': MapProfileStatToJSON(value['favoriteMap']),
