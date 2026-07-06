@@ -9,7 +9,6 @@ from .api_types import (
     PlayerStat,
     WinLoss,
 )
-from . import replay_files
 from . import game_composition
 import structlog
 from .player_ids import resolve_player_name
@@ -26,13 +25,11 @@ def total_games(player_stat: PlayerStat) -> int:
 def stats_game_filter(game: MatchInfo) -> bool:
     """The game set behind the Player Stats page W/L numbers.
 
-    Complete, path-filtered, competitive team games. Shared with the player
-    profile page so its record and per-general numbers match this page's.
+    Complete, competitive team games. Shared with the player profile page so
+    its record and per-general numbers match this page's.
     """
-    return (
-        not game.incomplete
-        and replay_files.path_filter(game.filename)
-        and game_composition.competitive_game_filter(game.composition)
+    return not game.incomplete and game_composition.competitive_game_filter(
+        game.composition
     )
 
 
@@ -45,10 +42,10 @@ def get_player_stats(
     for game in games:
         if game.incomplete:
             continue
-        if not replay_files.path_filter(game.filename):
+        if game.composition is None or not game.composition.is_team_game:
             continue
 
-        category = game.composition.category if game.composition else "Unknown"
+        category = game.composition.category
         is_competitive = stats_game_filter(game)
 
         for player in game.players:

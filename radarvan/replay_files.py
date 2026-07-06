@@ -1,7 +1,6 @@
 """Manual paths for now."""
 
 import hashlib
-import re
 import structlog
 import fsspec
 from datetime import UTC, datetime
@@ -236,14 +235,6 @@ def upload_and_parse(
     )
 
     return ParsedReplayResult(replay=parsed_replay, json_path=json_path)
-
-
-def path_filter(url: str) -> bool:
-    multi_computer = re.search("HardAI.*HardAI", url)
-    if multi_computer:
-        return False
-    types = {f"_{i}v{i}_" for i in range(5)}
-    return any(t in url for t in types)
 
 
 def map_basename(map_path: str) -> str:

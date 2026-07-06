@@ -3,7 +3,7 @@
 from collections import defaultdict
 from typing import NamedTuple
 from .api_types import MatchInfo, TeamRecord, TeamSizeGroup, TeamStatsResponse
-from . import replay_files
+from . import game_composition
 from .general_stats import CPU_NAMES
 from .player_ids import resolve_player_name
 import structlog
@@ -28,7 +28,7 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
     for game in games:
         if game.incomplete:
             continue
-        if not replay_files.path_filter(game.filename):
+        if not game_composition.competitive_game_filter(game.composition):
             continue
         if game.winning_team < 1:
             continue

@@ -7,7 +7,7 @@ from .api_types import (
     GeneralStats,
     WinLoss,
 )
-from . import replay_files
+from . import game_composition
 from . import player_ids
 import structlog
 
@@ -22,7 +22,7 @@ def get_generals_stats(games: list[MatchInfo]) -> GeneralStats:
     for game in games:
         if game.incomplete or game.winning_team < 1:
             continue
-        if not replay_files.path_filter(game.filename):
+        if not game_composition.competitive_game_filter(game.composition):
             continue
         resolved = [
             player_ids.resolve_player_name(p.name, p.color) for p in game.players
