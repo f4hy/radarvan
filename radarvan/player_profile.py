@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import statistics
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -42,6 +43,7 @@ from .api_types import (
     MapProfileStat,
     MatchDetails,
     MatchInfo,
+    ObjectUsageStat,
     OpponentProfileStat,
     PlayerProfile,
     PlayerProfileComputed,
@@ -109,7 +111,11 @@ logger = structlog.get_logger(__name__)
 # as a "100% unique" favorite (e.g. Modus's ordinary Missile Defenders showing
 # "peers never build this" because 27 of 751 were Lazr_-tagged). See
 # _merge_general_flavor_variants.
-_PROFILE_LOGIC_VERSION = 14
+# v15: added object_usage - every unit/building/upgrade a player has enough
+# games to compare, z-scored against the other profiled players who played
+# the same general (mean/stddev over the raw per-player rate distribution,
+# not the smoothed favorite/aversion ratio). See _object_usage_rates.
+_PROFILE_LOGIC_VERSION = 15
 
 
 def _compute_profile_version() -> str:
@@ -723,6 +729,81 @@ def compute_aversions(
     }
 
 
+# A player needs this many games on a general before their rate for any
+# object on it is trusted enough to report - same floor compute_favorites/
+# compute_aversions use for the subject side.
+_MIN_USAGE_GAMES = 10
+# Need at least this many *other* profiled players' rates to call a mean/
+# stddev meaningful - below this a "population" is just noise.
+_MIN_USAGE_PEERS = 3
+
+
+def _object_usage_rates(
+    agg: CategoryAggregate,
+    category: ObjectCategory,
+    usage_factions: dict[str, str],
+) -> dict[tuple[General, str], dict[str, float]]:
+    """Every profiled player's per-game rate for every (general, object) pair
+    anyone built on that general - 0 for players who never built it, so a
+    non-builder is part of the distribution instead of silently absent (same
+    zero-filling ``compute_aversions`` does, kept here as the raw per-player
+    spread rather than collapsed into one pooled peer rate).
+    """
+    objects_by_general: dict[General, set[str]] = defaultdict(set)
+    for _, general, obj in agg.counts:
+        if not _is_foreign_faction(obj, general, category, usage_factions):
+            objects_by_general[general].add(obj)
+
+    result: dict[tuple[General, str], dict[str, float]] = defaultdict(dict)
+    for (player, general), n_p in agg.games.items():
+        for obj in objects_by_general[general]:
+            result[(general, obj)][player] = agg.counts.get((player, general, obj), 0) / n_p
+    return dict(result)
+
+
+def _player_object_usage(
+    name: str,
+    usage_rates: dict[ObjectCategory, dict[tuple[General, str], dict[str, float]]],
+    games_by_player_general: dict[tuple[str, General], int],
+) -> list[ObjectUsageStat]:
+    """Every unit/building/upgrade ``name`` has enough games to compare,
+    z-scored against the other profiled players who played the same general.
+    A browsable reference (see ObjectUsageStat) - unlike favorites/aversions,
+    nothing here is filtered for being a signature or an outlier.
+    """
+    stats: list[ObjectUsageStat] = []
+    for category, by_key in usage_rates.items():
+        cleaner = _CATEGORY_CLEANERS[category]
+        for (general, obj), rates in by_key.items():
+            if games_by_player_general.get((name, general), 0) < _MIN_USAGE_GAMES:
+                continue
+            player_rate = rates.get(name)
+            if player_rate is None:
+                continue
+            peer_rates = [rate for p, rate in rates.items() if p != name]
+            if len(peer_rates) < _MIN_USAGE_PEERS:
+                continue
+            peer_mean = statistics.mean(peer_rates)
+            peer_stddev = statistics.pstdev(peer_rates)
+            z_score = (
+                (player_rate - peer_mean) / peer_stddev if peer_stddev > 0 else None
+            )
+            stats.append(
+                ObjectUsageStat(
+                    name=cleaner(obj),
+                    general=general,
+                    category=category.value,
+                    per_game=player_rate,
+                    peer_mean_per_game=peer_mean,
+                    peer_stddev_per_game=peer_stddev,
+                    z_score=z_score,
+                    games_on_general=games_by_player_general[(name, general)],
+                    peer_count=len(peer_rates),
+                )
+            )
+    return stats
+
+
 # ---------------------------------------------------------------------------
 # Percentiles / badges
 # ---------------------------------------------------------------------------
@@ -1035,8 +1116,11 @@ def compute_all_profiles(
     ]
     favorites: dict[ObjectCategory, dict[str, ScoredObject]] = {}
     aversions: dict[ObjectCategory, dict[str, list[ScoredObject]]] = {}
+    usage_rates: dict[ObjectCategory, dict[tuple[General, str], dict[str, float]]] = {}
+    games_by_player_general: dict[tuple[str, General], int] = {}
     for category in ObjectCategory:
         agg = aggregate_category(active_data, category)
+        games_by_player_general = agg.games
         # Shared between favorites/aversions below so each is computed once
         # per category rather than once per caller.
         peer_totals = _peer_totals(agg)
@@ -1052,6 +1136,11 @@ def compute_all_profiles(
         aversions[category] = compute_aversions(
             agg, category, peer_totals=peer_totals, usage_factions=usage_factions
         )
+        # The full unit/building/upgrade breakdown - powers excluded (their
+        # names are ability-based and read poorly outside a favorite/aversion
+        # framing where clean_power_name already resolves that ambiguity).
+        if category != ObjectCategory.POWERS:
+            usage_rates[category] = _object_usage_rates(agg, category, usage_factions)
 
     # Per-player means for every percentile-ranked signal.
     apm_means: dict[str, float] = {}
@@ -1127,6 +1216,9 @@ def compute_all_profiles(
                 list(sw_built_rates.values()), sw_built_rates[name]
             ),
             badges=badges,
+            object_usage=_player_object_usage(
+                name, usage_rates, games_by_player_general
+            ),
             games_analyzed=len(projections_by_player[name]),
             computed_at=computed_at,
         )

@@ -949,6 +949,30 @@ class FavoriteObject(BaseModel):
     total_count: int = Field(alias="totalCount")
 
 
+class ObjectUsageStat(BaseModel):
+    """One object's per-game usage rate for a player against the peer
+    distribution - every other profiled player who played the same general.
+
+    Unlike ``FavoriteObject`` (top signature picks only), this covers every
+    unit/building/upgrade the player has enough games to compare, so ``z_score``
+    can be small or negative - it's a browsable reference, not a highlight reel.
+    ``peer_stddev_per_game`` is the population stddev across those peers;
+    ``z_score`` is None when it's 0 (every peer had the identical rate).
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    general: General
+    category: Literal["units", "buildings", "upgrades"]
+    per_game: TwoDecimal = Field(alias="perGame")
+    peer_mean_per_game: TwoDecimal = Field(alias="peerMeanPerGame")
+    peer_stddev_per_game: TwoDecimal = Field(alias="peerStddevPerGame")
+    z_score: TwoDecimal | None = Field(None, alias="zScore")
+    games_on_general: int = Field(alias="gamesOnGeneral")
+    peer_count: int = Field(alias="peerCount")
+
+
 class ProfileBadge(BaseModel):
     """A top-3 behavioral standout among profiled players for one stat."""
 
@@ -1053,6 +1077,11 @@ class PlayerProfileComputed(BaseModel):
     )
     superweapon_percentile: float | None = Field(None, alias="superweaponPercentile")
     badges: list[ProfileBadge] = Field(default_factory=list)
+    # Every unit/building/upgrade with enough games to compare - see
+    # ObjectUsageStat; a browsable reference, not just the favorites above.
+    object_usage: list[ObjectUsageStat] = Field(
+        default_factory=list, alias="objectUsage"
+    )
     games_analyzed: int = Field(alias="gamesAnalyzed")
     computed_at: date = Field(alias="computedAt")
 

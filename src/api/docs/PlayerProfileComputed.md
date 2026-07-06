@@ -21,6 +21,7 @@ Name | Type
 `superweaponsBuiltPerGame` | number
 `superweaponPercentile` | number
 `badges` | [Array&lt;ProfileBadge&gt;](ProfileBadge.md)
+`objectUsage` | [Array&lt;ObjectUsageStat&gt;](ObjectUsageStat.md)
 `gamesAnalyzed` | number
 `computedAt` | Date
 
@@ -45,6 +46,7 @@ const example = {
   "superweaponsBuiltPerGame": null,
   "superweaponPercentile": null,
   "badges": null,
+  "objectUsage": null,
   "gamesAnalyzed": null,
   "computedAt": null,
 } satisfies PlayerProfileComputed

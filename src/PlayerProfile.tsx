@@ -1,4 +1,7 @@
 import * as React from "react"
+import Accordion from "@mui/material/Accordion"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import AccordionSummary from "@mui/material/AccordionSummary"
 import Alert from "@mui/material/Alert"
 import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
@@ -8,6 +11,15 @@ import Chip from "@mui/material/Chip"
 import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import Tab from "@mui/material/Tab"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
+import TableSortLabel from "@mui/material/TableSortLabel"
+import Tabs from "@mui/material/Tabs"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
@@ -19,6 +31,7 @@ import BlockIcon from "@mui/icons-material/Block"
 import BoltIcon from "@mui/icons-material/Bolt"
 import DirectionsRunIcon from "@mui/icons-material/DirectionsRun"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import GroupsIcon from "@mui/icons-material/Groups"
 import HandshakeIcon from "@mui/icons-material/Handshake"
 import InsightsIcon from "@mui/icons-material/Insights"
@@ -43,9 +56,12 @@ import { Client } from "./Client"
 import {
   FavoriteObject,
   GeneralWinRateSeries,
+  ObjectUsageStat,
+  ObjectUsageStatCategoryEnum,
   PlayerProfile,
   ProfileBadge,
 } from "./api"
+import DisplayGeneral from "./Generals"
 import Loading from "./Loading"
 import PlayerChip from "./PlayerChip"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
@@ -554,6 +570,159 @@ function GeneralWinRateOverTime(props: { series: GeneralWinRateSeries[] }) {
   )
 }
 
+type UsageSortKey = "zScore" | "perGame" | "games"
+
+const USAGE_SORT_LABEL: Record<UsageSortKey, string> = {
+  zScore: "Deviation",
+  perGame: "Your/Game",
+  games: "Games",
+}
+
+/** Every object in one category (units/buildings/upgrades), sortable by how
+ * far the player sits from the peer average - the point of this table is to
+ * surface the whole distribution, not just the extremes favorites/aversions
+ * already cover. */
+function ObjectUsageTable(props: { stats: ObjectUsageStat[] }) {
+  const [sortKey, setSortKey] = React.useState<UsageSortKey>("zScore")
+
+  const rows = React.useMemo(() => {
+    const sorted = [...props.stats]
+    sorted.sort((a, b) => {
+      switch (sortKey) {
+        case "zScore":
+          return Math.abs(b.zScore ?? 0) - Math.abs(a.zScore ?? 0)
+        case "perGame":
+          return b.perGame - a.perGame
+        case "games":
+          return b.gamesOnGeneral - a.gamesOnGeneral
+      }
+    })
+    return sorted
+  }, [props.stats, sortKey])
+
+  if (rows.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+        Not enough games to compare yet.
+      </Typography>
+    )
+  }
+
+  return (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>General</TableCell>
+            <TableCell>Object</TableCell>
+            {(["games", "perGame", "zScore"] as UsageSortKey[]).map((key) => (
+              <TableCell key={key} align="right">
+                <TableSortLabel
+                  active={sortKey === key}
+                  direction="desc"
+                  onClick={() => setSortKey(key)}
+                >
+                  {USAGE_SORT_LABEL[key]}
+                </TableSortLabel>
+              </TableCell>
+            ))}
+            <TableCell align="right">Peer Avg</TableCell>
+            <TableCell align="right">Peer StdDev</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((s) => (
+            <TableRow key={`${s.general}-${s.name}`} hover>
+              <TableCell>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <DisplayGeneral general={s.general} />
+                  <Typography variant="body2">
+                    {toGeneralName(s.general)}
+                  </Typography>
+                </Stack>
+              </TableCell>
+              <TableCell>{s.name}</TableCell>
+              <TableCell align="right">{s.gamesOnGeneral}</TableCell>
+              <TableCell align="right">{s.perGame.toFixed(2)}</TableCell>
+              <TableCell align="right">
+                {s.zScore == null ? (
+                  <Typography variant="body2" color="text.secondary">
+                    –
+                  </Typography>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    sx={{ color: s.zScore >= 0 ? WIN_COLOR : LOSS_COLOR }}
+                  >
+                    {s.zScore >= 0 ? "+" : ""}
+                    {s.zScore.toFixed(2)}σ
+                  </Typography>
+                )}
+              </TableCell>
+              <TableCell align="right">
+                {s.peerMeanPerGame.toFixed(2)}
+              </TableCell>
+              <TableCell align="right">
+                ±{s.peerStddevPerGame.toFixed(2)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+const USAGE_CATEGORY_LABEL: Record<ObjectUsageStatCategoryEnum, string> = {
+  units: "Units",
+  buildings: "Buildings",
+  upgrades: "Upgrades",
+}
+
+function ObjectUsageSection(props: { objectUsage: ObjectUsageStat[] }) {
+  const [category, setCategory] =
+    React.useState<ObjectUsageStatCategoryEnum>("units")
+  if (props.objectUsage.length === 0) {
+    return null
+  }
+  const byCategory = {
+    units: props.objectUsage.filter((s) => s.category === "units"),
+    buildings: props.objectUsage.filter((s) => s.category === "buildings"),
+    upgrades: props.objectUsage.filter((s) => s.category === "upgrades"),
+  }
+  return (
+    <Accordion disableGutters TransitionProps={{ unmountOnExit: true }}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography variant="h6">Unit / Building / Upgrade Usage</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Every object with enough games to compare, and how far the
+          player&apos;s per-game rate sits from the average of everyone else who
+          played that general.
+        </Typography>
+        <Tabs
+          value={category}
+          onChange={(_, v) => setCategory(v)}
+          sx={{ mb: 1.5 }}
+        >
+          {(Object.keys(byCategory) as ObjectUsageStatCategoryEnum[]).map(
+            (key) => (
+              <Tab
+                key={key}
+                value={key}
+                label={`${USAGE_CATEGORY_LABEL[key]} (${byCategory[key].length})`}
+              />
+            ),
+          )}
+        </Tabs>
+        <ObjectUsageTable stats={byCategory[category]} />
+      </AccordionDetails>
+    </Accordion>
+  )
+}
+
 function ProfileBody(props: { profile: PlayerProfile }) {
   const p = props.profile
   const c = p.computed ?? null
@@ -780,6 +949,8 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           </Stack>
         </Box>
       )}
+
+      {c !== null && <ObjectUsageSection objectUsage={c.objectUsage ?? []} />}
     </Stack>
   )
 }

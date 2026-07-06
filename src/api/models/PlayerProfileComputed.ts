@@ -20,6 +20,13 @@ import {
     FavoriteObjectToJSON,
     FavoriteObjectToJSONTyped,
 } from './FavoriteObject';
+import type { ObjectUsageStat } from './ObjectUsageStat';
+import {
+    ObjectUsageStatFromJSON,
+    ObjectUsageStatFromJSONTyped,
+    ObjectUsageStatToJSON,
+    ObjectUsageStatToJSONTyped,
+} from './ObjectUsageStat';
 import type { ProfileBadge } from './ProfileBadge';
 import {
     ProfileBadgeFromJSON,
@@ -123,6 +130,12 @@ export interface PlayerProfileComputed {
     badges?: Array<ProfileBadge>;
     /**
      * 
+     * @type {Array<ObjectUsageStat>}
+     * @memberof PlayerProfileComputed
+     */
+    objectUsage?: Array<ObjectUsageStat>;
+    /**
+     * 
      * @type {number}
      * @memberof PlayerProfileComputed
      */
@@ -168,6 +181,7 @@ export function PlayerProfileComputedFromJSONTyped(json: any, ignoreDiscriminato
         'superweaponsBuiltPerGame': json['superweaponsBuiltPerGame'] == null ? undefined : json['superweaponsBuiltPerGame'],
         'superweaponPercentile': json['superweaponPercentile'] == null ? undefined : json['superweaponPercentile'],
         'badges': json['badges'] == null ? undefined : ((json['badges'] as Array<any>).map(ProfileBadgeFromJSON)),
+        'objectUsage': json['objectUsage'] == null ? undefined : ((json['objectUsage'] as Array<any>).map(ObjectUsageStatFromJSON)),
         'gamesAnalyzed': json['gamesAnalyzed'],
         'computedAt': (new Date(json['computedAt'])),
     };
@@ -198,6 +212,7 @@ export function PlayerProfileComputedToJSONTyped(value?: PlayerProfileComputed |
         'superweaponsBuiltPerGame': value['superweaponsBuiltPerGame'],
         'superweaponPercentile': value['superweaponPercentile'],
         'badges': value['badges'] == null ? undefined : ((value['badges'] as Array<any>).map(ProfileBadgeToJSON)),
+        'objectUsage': value['objectUsage'] == null ? undefined : ((value['objectUsage'] as Array<any>).map(ObjectUsageStatToJSON)),
         'gamesAnalyzed': value['gamesAnalyzed'],
         'computedAt': value['computedAt'].toISOString().substring(0,10),
     };

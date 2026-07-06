@@ -87,6 +87,7 @@ docs/Matches.md
 docs/MatchupResult.md
 docs/MissingMapInfo.md
 docs/ObjectSummary.md
+docs/ObjectUsageStat.md
 docs/OpponentProfileStat.md
 docs/ParsedReplayJsonSchema.md
 docs/Player.md
@@ -222,6 +223,7 @@ models/Matches.ts
 models/MatchupResult.ts
 models/MissingMapInfo.ts
 models/ObjectSummary.ts
+models/ObjectUsageStat.ts
 models/OpponentProfileStat.ts
 models/ParsedReplayJsonSchema.ts
 models/Player.ts

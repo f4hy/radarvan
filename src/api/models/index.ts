@@ -78,6 +78,7 @@ export * from './Matches';
 export * from './MatchupResult';
 export * from './MissingMapInfo';
 export * from './ObjectSummary';
+export * from './ObjectUsageStat';
 export * from './OpponentProfileStat';
 export * from './ParsedReplayJsonSchema';
 export * from './Player';
