@@ -771,7 +771,9 @@ def _object_usage_rates(
     result: dict[tuple[General, str], dict[str, float]] = defaultdict(dict)
     for (player, general), n_p in agg.games.items():
         for obj in objects_by_general[general]:
-            result[(general, obj)][player] = agg.counts.get((player, general, obj), 0) / n_p
+            result[(general, obj)][player] = (
+                agg.counts.get((player, general, obj), 0) / n_p
+            )
     return dict(result)
 
 
