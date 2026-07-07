@@ -2,8 +2,9 @@ import Avatar from "@mui/material/Avatar"
 import Chip from "@mui/material/Chip"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
-import { usePlayerColors } from "./PlayerColorsContext"
-import { contrastTextColor, getColorHex, playerColor } from "./utils"
+import { useTheme } from "@mui/material/styles"
+import { usePlayerAccentColor, usePlayerColors } from "./PlayerColorsContext"
+import { playerColor } from "./utils"
 
 /**
  * Consistent player identity used across the app. A small initial avatar
@@ -17,22 +18,23 @@ function initial(name: string): string {
 
 // This community's players rarely contest the same color, so the avatar
 // fill is the player's actual most-common in-game color (from data) when
-// we have it. The old deterministic hash-per-name becomes a secondary ring
-// cue instead, so two players who do happen to share a color still read as
-// distinct. Falls back to hash-as-fill (no ring - nothing to disambiguate)
-// for names without enough game data yet.
+// we have it - usePlayerAccentColor already picks that (or the deterministic
+// hash-per-name fallback). The hash becomes a secondary ring cue on top, so
+// two players who do happen to share a color still read as distinct; no
+// ring when we're already falling back to the hash (nothing to disambiguate).
 function useAvatarColors(name: string): {
   bgcolor: string
   textColor: string
   ringColor: string | null
 } {
-  const actualColor = usePlayerColors()[name]
-  const hash = playerColor(name)
-  if (actualColor == null) {
-    return { bgcolor: hash, textColor: "#fff", ringColor: null }
+  const theme = useTheme()
+  const bgcolor = usePlayerAccentColor(name)
+  const hasActualColor = usePlayerColors()[name] != null
+  return {
+    bgcolor,
+    textColor: theme.palette.getContrastText(bgcolor),
+    ringColor: hasActualColor ? playerColor(name) : null,
   }
-  const bgcolor = getColorHex(actualColor)
-  return { bgcolor, textColor: contrastTextColor(bgcolor), ringColor: hash }
 }
 
 export function PlayerChip(props: {

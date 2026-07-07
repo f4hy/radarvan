@@ -661,6 +661,25 @@ def compute_favorites(
     return best
 
 
+def _objects_by_general(
+    agg: CategoryAggregate,
+    category: ObjectCategory,
+    usage_factions: dict[str, str],
+) -> dict[General, set[str]]:
+    """Every object anyone built per general, excluding foreign-faction/
+    captured-play objects (see ``_is_foreign_faction``) - so a player's zero
+    count for a real object is visible instead of the object being silently
+    absent. Shared by ``compute_aversions`` (peers regularly build it, the
+    player avoids it) and ``_object_usage_rates`` (the full per-player rate
+    distribution).
+    """
+    objects_by_general: dict[General, set[str]] = defaultdict(set)
+    for _, general, obj in agg.counts:
+        if not _is_foreign_faction(obj, general, category, usage_factions):
+            objects_by_general[general].add(obj)
+    return objects_by_general
+
+
 def compute_aversions(
     agg: CategoryAggregate,
     category: ObjectCategory,
@@ -690,10 +709,7 @@ def compute_aversions(
     usage_factions = (
         usage_factions if usage_factions is not None else _usage_faction_map(agg)
     )
-    # Every object anyone built per general, so a player's zero-count shows up.
-    objects_by_general: dict[General, set[str]] = defaultdict(set)
-    for general, obj in count_by_go:
-        objects_by_general[general].add(obj)
+    objects_by_general = _objects_by_general(agg, category, usage_factions)
 
     result: dict[str, list[ScoredObject]] = defaultdict(list)
     for (player, general), n_p in agg.games.items():
@@ -703,8 +719,6 @@ def compute_aversions(
         if n_q < min_peer_games:
             continue
         for obj in objects_by_general[general]:
-            if _is_foreign_faction(obj, general, category, usage_factions):
-                continue
             c_p = agg.counts.get((player, general, obj), 0)
             c_q = count_by_go[(general, obj)] - c_p
             peer_rate = c_q / n_q
@@ -748,14 +762,11 @@ def _object_usage_rates(
 ) -> dict[tuple[General, str], dict[str, float]]:
     """Every profiled player's per-game rate for every (general, object) pair
     anyone built on that general - 0 for players who never built it, so a
-    non-builder is part of the distribution instead of silently absent (same
-    zero-filling ``compute_aversions`` does, kept here as the raw per-player
-    spread rather than collapsed into one pooled peer rate).
+    non-builder is part of the distribution instead of silently absent, kept
+    here as the raw per-player spread rather than collapsed into one pooled
+    peer rate (see ``_objects_by_general``).
     """
-    objects_by_general: dict[General, set[str]] = defaultdict(set)
-    for _, general, obj in agg.counts:
-        if not _is_foreign_faction(obj, general, category, usage_factions):
-            objects_by_general[general].add(obj)
+    objects_by_general = _objects_by_general(agg, category, usage_factions)
 
     result: dict[tuple[General, str], dict[str, float]] = defaultdict(dict)
     for (player, general), n_p in agg.games.items():
@@ -1125,7 +1136,11 @@ def compute_all_profiles(
     games_by_player_general: dict[tuple[str, General], int] = {}
     for category in ObjectCategory:
         agg = aggregate_category(active_data, category)
-        games_by_player_general = agg.games
+        # Games played per (player, general) don't depend on category (every
+        # aggregate_category call counts the same match appearances), so this
+        # only needs capturing once.
+        if not games_by_player_general:
+            games_by_player_general = agg.games
         # Shared between favorites/aversions below so each is computed once
         # per category rather than once per caller.
         peer_totals = _peer_totals(agg)

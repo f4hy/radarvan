@@ -559,6 +559,14 @@ function GeneralWinRateOverTime(props: { series: GeneralWinRateSeries[] }) {
   )
 }
 
+// Track/band/tick/marker all share this vertical center - deriving their
+// top offsets from one value keeps them aligned if a size below ever changes.
+const USAGE_BAR_CENTER = 24
+const USAGE_TRACK_HEIGHT = 4
+const USAGE_BAND_HEIGHT = 8
+const USAGE_TICK_HEIGHT = 12
+const USAGE_MARKER_SIZE = 12
+
 /** Lab-report-style range indicator: 0 always anchors the left edge, a
  * shaded band marks the peer average +/-1 standard deviation, a tick labels
  * the peer median, and a dot marks where the player's own per-game rate
@@ -628,10 +636,10 @@ function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
         <Box
           sx={{
             position: "absolute",
-            top: 22,
+            top: USAGE_BAR_CENTER - USAGE_TRACK_HEIGHT / 2,
             left: 0,
             right: 0,
-            height: 4,
+            height: USAGE_TRACK_HEIGHT,
             borderRadius: 2,
             bgcolor: "action.hover",
           }}
@@ -639,10 +647,10 @@ function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
         <Box
           sx={{
             position: "absolute",
-            top: 20,
+            top: USAGE_BAR_CENTER - USAGE_BAND_HEIGHT / 2,
             left: `${bandStart}%`,
             width: `${bandEnd - bandStart}%`,
-            height: 8,
+            height: USAGE_BAND_HEIGHT,
             borderRadius: 1,
             bgcolor: "action.selected",
           }}
@@ -650,8 +658,8 @@ function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
         <Box
           sx={{
             position: "absolute",
-            top: 18,
-            height: 12,
+            top: USAGE_BAR_CENTER - USAGE_TICK_HEIGHT / 2,
+            height: USAGE_TICK_HEIGHT,
             left: `${medianPercent}%`,
             width: "2px",
             bgcolor: "text.disabled",
@@ -660,10 +668,10 @@ function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
         <Box
           sx={{
             position: "absolute",
-            top: 24,
+            top: USAGE_BAR_CENTER,
             left: `${markerPercent}%`,
-            width: 12,
-            height: 12,
+            width: USAGE_MARKER_SIZE,
+            height: USAGE_MARKER_SIZE,
             transform: "translate(-50%, -50%)",
             borderRadius: "50%",
             bgcolor: markerColor,
