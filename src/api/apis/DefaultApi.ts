@@ -1917,6 +1917,49 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPlayerColorsApiPlayerColorsGet without sending the request
+     */
+    async getPlayerColorsApiPlayerColorsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/player_colors/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Each player\'s most common actual in-game color, keyed by player name - used as their primary identity color in the UI (see PlayerChip).
+     * Get Player Colors
+     */
+    async getPlayerColorsApiPlayerColorsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.getPlayerColorsApiPlayerColorsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Each player\'s most common actual in-game color, keyed by player name - used as their primary identity color in the UI (see PlayerChip).
+     * Get Player Colors
+     */
+    async getPlayerColorsApiPlayerColorsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.getPlayerColorsApiPlayerColorsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getPlayerGameCountsApiPlayerGameCountsGet without sending the request
      */
     async getPlayerGameCountsApiPlayerGameCountsGetRequestOpts(): Promise<runtime.RequestOpts> {

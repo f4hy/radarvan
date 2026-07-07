@@ -967,6 +967,7 @@ class ObjectUsageStat(BaseModel):
     category: Literal["units", "buildings", "upgrades"]
     per_game: TwoDecimal = Field(alias="perGame")
     peer_mean_per_game: TwoDecimal = Field(alias="peerMeanPerGame")
+    peer_median_per_game: TwoDecimal = Field(alias="peerMedianPerGame")
     peer_stddev_per_game: TwoDecimal = Field(alias="peerStddevPerGame")
     z_score: TwoDecimal | None = Field(None, alias="zScore")
     games_on_general: int = Field(alias="gamesOnGeneral")

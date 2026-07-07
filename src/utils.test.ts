@@ -5,6 +5,7 @@ import {
   wilsonLowerBound,
   displayMapName,
   getColorHex,
+  contrastTextColor,
   playerColor,
   buildPlayerColorMap,
 } from "./utils"
@@ -116,6 +117,28 @@ describe("getColorHex", () => {
   it("falls back to grey for unknown input", () => {
     expect(getColorHex("not-a-color")).toBe("#808080")
     expect(getColorHex("#12")).toBe("#808080")
+  })
+})
+
+describe("contrastTextColor", () => {
+  it("picks white text on dark backgrounds", () => {
+    expect(contrastTextColor("#000000")).toBe("#fff")
+    expect(contrastTextColor("#0000FF")).toBe("#fff")
+  })
+
+  it("picks black text on light backgrounds", () => {
+    expect(contrastTextColor("#FFFF00")).toBe("#000")
+    expect(contrastTextColor("#FFD700")).toBe("#000")
+    expect(contrastTextColor("#C0C0C0")).toBe("#000")
+  })
+
+  it("expands 3-digit hex before computing luminance", () => {
+    expect(contrastTextColor("#fff")).toBe("#000")
+    expect(contrastTextColor("#000")).toBe("#fff")
+  })
+
+  it("falls back to white for a non-hex input", () => {
+    expect(contrastTextColor("rgb(1,2,3)")).toBe("#fff")
   })
 })
 

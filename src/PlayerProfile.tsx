@@ -12,13 +12,6 @@ import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import Tab from "@mui/material/Tab"
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableContainer from "@mui/material/TableContainer"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
-import TableSortLabel from "@mui/material/TableSortLabel"
 import Tabs from "@mui/material/Tabs"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
@@ -64,16 +57,12 @@ import {
 import DisplayGeneral from "./Generals"
 import Loading from "./Loading"
 import PlayerChip from "./PlayerChip"
+import { usePlayerAccentColor } from "./PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
 import { toGeneralName } from "./general_utils"
-import {
-  displayMapName,
-  formatPercent,
-  playerColor,
-  wilsonInterval,
-} from "./utils"
+import { displayMapName, formatPercent, wilsonInterval } from "./utils"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 // A general needs at least this many games in its running series before it's
@@ -570,35 +559,183 @@ function GeneralWinRateOverTime(props: { series: GeneralWinRateSeries[] }) {
   )
 }
 
-type UsageSortKey = "zScore" | "perGame" | "games"
+/** Lab-report-style range indicator: 0 always anchors the left edge, a
+ * shaded band marks the peer average +/-1 standard deviation, a tick labels
+ * the peer median, and a dot marks where the player's own per-game rate
+ * falls - reads at a glance instead of forcing a scan across a row of
+ * numbers. */
+function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
+  const { stat, markerColor } = props
 
-const USAGE_SORT_LABEL: Record<UsageSortKey, string> = {
-  zScore: "Deviation",
-  perGame: "Your/Game",
-  games: "Games",
+  // 0 is the shared anchor every row starts from; the right edge is sized
+  // per object so the peer spread, median, and player's own value all fit
+  // comfortably (with a little headroom rather than sitting on the edge).
+  const trackMax =
+    Math.max(
+      stat.peerMeanPerGame + 2 * stat.peerStddevPerGame,
+      stat.peerMedianPerGame,
+      stat.perGame,
+      0.01,
+    ) * 1.15
+
+  const toPercent = (value: number) =>
+    Math.max(0, Math.min(100, (value / trackMax) * 100))
+
+  const bandStart = toPercent(stat.peerMeanPerGame - stat.peerStddevPerGame)
+  const bandEnd = toPercent(stat.peerMeanPerGame + stat.peerStddevPerGame)
+  const medianPercent = toPercent(stat.peerMedianPerGame)
+  const markerPercent = toPercent(stat.perGame)
+  const z = stat.zScore
+
+  return (
+    <Tooltip
+      title={
+        <>
+          Your rate: {stat.perGame.toFixed(2)}/game
+          <br />
+          Peer median: {stat.peerMedianPerGame.toFixed(2)}, avg{" "}
+          {stat.peerMeanPerGame.toFixed(2)} ±{stat.peerStddevPerGame.toFixed(2)}{" "}
+          (n={stat.peerCount})
+          {z != null && (
+            <>
+              <br />
+              {z >= 0 ? "+" : ""}
+              {z.toFixed(2)}σ from average
+            </>
+          )}
+        </>
+      }
+    >
+      <Box sx={{ position: "relative", height: 40 }}>
+        {/* the player's own value, labeled above their marker instead of as
+         * separate text elsewhere in the row */}
+        <Typography
+          variant="caption"
+          fontWeight={700}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: `${markerPercent}%`,
+            transform: "translateX(-50%)",
+            whiteSpace: "nowrap",
+            fontSize: 10,
+            lineHeight: 1,
+            color: markerColor,
+          }}
+        >
+          {stat.perGame.toFixed(2)}
+        </Typography>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 22,
+            left: 0,
+            right: 0,
+            height: 4,
+            borderRadius: 2,
+            bgcolor: "action.hover",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            top: 20,
+            left: `${bandStart}%`,
+            width: `${bandEnd - bandStart}%`,
+            height: 8,
+            borderRadius: 1,
+            bgcolor: "action.selected",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            top: 18,
+            height: 12,
+            left: `${medianPercent}%`,
+            width: "2px",
+            bgcolor: "text.disabled",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            top: 24,
+            left: `${markerPercent}%`,
+            width: 12,
+            height: 12,
+            transform: "translate(-50%, -50%)",
+            borderRadius: "50%",
+            bgcolor: markerColor,
+            border: (theme) => `2px solid ${theme.palette.background.paper}`,
+            boxShadow: 1,
+          }}
+        />
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            position: "absolute",
+            top: 30,
+            left: `${medianPercent}%`,
+            transform: "translateX(-50%)",
+            whiteSpace: "nowrap",
+            fontSize: 10,
+            lineHeight: 1,
+          }}
+        >
+          {stat.peerMedianPerGame.toFixed(2)}
+        </Typography>
+      </Box>
+    </Tooltip>
+  )
 }
 
-/** Every object in one category (units/buildings/upgrades), sortable by how
- * far the player sits from the peer average - the point of this table is to
- * surface the whole distribution, not just the extremes favorites/aversions
- * already cover. */
-function ObjectUsageTable(props: { stats: ObjectUsageStat[] }) {
-  const [sortKey, setSortKey] = React.useState<UsageSortKey>("zScore")
+function ObjectUsageRow(props: { stat: ObjectUsageStat; markerColor: string }) {
+  const { stat } = props
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        py: 0.75,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <Stack
+        direction="row"
+        spacing={0.5}
+        alignItems="center"
+        sx={{ flexBasis: "20%", minWidth: 140, flexShrink: 0 }}
+      >
+        <DisplayGeneral general={stat.general} />
+        <Typography variant="body2" noWrap>
+          {stat.name}
+        </Typography>
+      </Stack>
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+        <ObjectUsageBar stat={stat} markerColor={props.markerColor} />
+      </Box>
+    </Box>
+  )
+}
 
-  const rows = React.useMemo(() => {
-    const sorted = [...props.stats]
-    sorted.sort((a, b) => {
-      switch (sortKey) {
-        case "zScore":
-          return Math.abs(b.zScore ?? 0) - Math.abs(a.zScore ?? 0)
-        case "perGame":
-          return b.perGame - a.perGame
-        case "games":
-          return b.gamesOnGeneral - a.gamesOnGeneral
-      }
-    })
-    return sorted
-  }, [props.stats, sortKey])
+/** Every object in one category (units/buildings/upgrades), sorted by how
+ * far the player sits from the peer average - the point is to surface the
+ * whole distribution, not just the extremes favorites/aversions cover. */
+function ObjectUsageList(props: {
+  stats: ObjectUsageStat[]
+  markerColor: string
+}) {
+  const rows = React.useMemo(
+    () =>
+      [...props.stats].sort(
+        (a, b) => Math.abs(b.zScore ?? 0) - Math.abs(a.zScore ?? 0),
+      ),
+    [props.stats],
+  )
 
   if (rows.length === 0) {
     return (
@@ -609,68 +746,15 @@ function ObjectUsageTable(props: { stats: ObjectUsageStat[] }) {
   }
 
   return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>General</TableCell>
-            <TableCell>Object</TableCell>
-            {(["games", "perGame", "zScore"] as UsageSortKey[]).map((key) => (
-              <TableCell key={key} align="right">
-                <TableSortLabel
-                  active={sortKey === key}
-                  direction="desc"
-                  onClick={() => setSortKey(key)}
-                >
-                  {USAGE_SORT_LABEL[key]}
-                </TableSortLabel>
-              </TableCell>
-            ))}
-            <TableCell align="right">Peer Avg</TableCell>
-            <TableCell align="right">Peer StdDev</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((s) => (
-            <TableRow key={`${s.general}-${s.name}`} hover>
-              <TableCell>
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <DisplayGeneral general={s.general} />
-                  <Typography variant="body2">
-                    {toGeneralName(s.general)}
-                  </Typography>
-                </Stack>
-              </TableCell>
-              <TableCell>{s.name}</TableCell>
-              <TableCell align="right">{s.gamesOnGeneral}</TableCell>
-              <TableCell align="right">{s.perGame.toFixed(2)}</TableCell>
-              <TableCell align="right">
-                {s.zScore == null ? (
-                  <Typography variant="body2" color="text.secondary">
-                    –
-                  </Typography>
-                ) : (
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    sx={{ color: s.zScore >= 0 ? WIN_COLOR : LOSS_COLOR }}
-                  >
-                    {s.zScore >= 0 ? "+" : ""}
-                    {s.zScore.toFixed(2)}σ
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell align="right">
-                {s.peerMeanPerGame.toFixed(2)}
-              </TableCell>
-              <TableCell align="right">
-                ±{s.peerStddevPerGame.toFixed(2)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <Box>
+      {rows.map((s) => (
+        <ObjectUsageRow
+          key={`${s.general}-${s.name}`}
+          stat={s}
+          markerColor={props.markerColor}
+        />
+      ))}
+    </Box>
   )
 }
 
@@ -680,7 +764,10 @@ const USAGE_CATEGORY_LABEL: Record<ObjectUsageStatCategoryEnum, string> = {
   upgrades: "Upgrades",
 }
 
-function ObjectUsageSection(props: { objectUsage: ObjectUsageStat[] }) {
+function ObjectUsageSection(props: {
+  objectUsage: ObjectUsageStat[]
+  markerColor: string
+}) {
   const [category, setCategory] =
     React.useState<ObjectUsageStatCategoryEnum>("units")
   if (props.objectUsage.length === 0) {
@@ -698,9 +785,8 @@ function ObjectUsageSection(props: { objectUsage: ObjectUsageStat[] }) {
       </AccordionSummary>
       <AccordionDetails>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          Every object with enough games to compare, and how far the
-          player&apos;s per-game rate sits from the average of everyone else who
-          played that general.
+          Every object with enough games to compare. The shaded band is the peer
+          average ±1 standard deviation; the dot is where this player falls.
         </Typography>
         <Tabs
           value={category}
@@ -717,7 +803,10 @@ function ObjectUsageSection(props: { objectUsage: ObjectUsageStat[] }) {
             ),
           )}
         </Tabs>
-        <ObjectUsageTable stats={byCategory[category]} />
+        <ObjectUsageList
+          stats={byCategory[category]}
+          markerColor={props.markerColor}
+        />
       </AccordionDetails>
     </Accordion>
   )
@@ -726,7 +815,7 @@ function ObjectUsageSection(props: { objectUsage: ObjectUsageStat[] }) {
 function ProfileBody(props: { profile: PlayerProfile }) {
   const p = props.profile
   const c = p.computed ?? null
-  const accent = playerColor(p.player)
+  const accent = usePlayerAccentColor(p.player)
   const radarData = p.generals
     .filter((g) => g.games >= 5)
     .map((g) => ({
@@ -950,7 +1039,12 @@ function ProfileBody(props: { profile: PlayerProfile }) {
         </Box>
       )}
 
-      {c !== null && <ObjectUsageSection objectUsage={c.objectUsage ?? []} />}
+      {c !== null && (
+        <ObjectUsageSection
+          objectUsage={c.objectUsage ?? []}
+          markerColor={accent}
+        />
+      )}
     </Stack>
   )
 }

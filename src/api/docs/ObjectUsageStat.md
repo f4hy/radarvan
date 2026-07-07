@@ -12,6 +12,7 @@ Name | Type
 `category` | string
 `perGame` | number
 `peerMeanPerGame` | number
+`peerMedianPerGame` | number
 `peerStddevPerGame` | number
 `zScore` | number
 `gamesOnGeneral` | number
@@ -29,6 +30,7 @@ const example = {
   "category": null,
   "perGame": null,
   "peerMeanPerGame": null,
+  "peerMedianPerGame": null,
   "peerStddevPerGame": null,
   "zScore": null,
   "gamesOnGeneral": null,

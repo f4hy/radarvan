@@ -115,7 +115,10 @@ logger = structlog.get_logger(__name__)
 # games to compare, z-scored against the other profiled players who played
 # the same general (mean/stddev over the raw per-player rate distribution,
 # not the smoothed favorite/aversion ratio). See _object_usage_rates.
-_PROFILE_LOGIC_VERSION = 15
+# v16: object_usage also reports the peer median per-game rate, labeled
+# directly on the usage chart (the mean/stddev band alone doesn't give
+# readers a concrete number to anchor on).
+_PROFILE_LOGIC_VERSION = 16
 
 
 def _compute_profile_version() -> str:
@@ -784,6 +787,7 @@ def _player_object_usage(
             if len(peer_rates) < _MIN_USAGE_PEERS:
                 continue
             peer_mean = statistics.mean(peer_rates)
+            peer_median = statistics.median(peer_rates)
             peer_stddev = statistics.pstdev(peer_rates)
             z_score = (
                 (player_rate - peer_mean) / peer_stddev if peer_stddev > 0 else None
@@ -795,6 +799,7 @@ def _player_object_usage(
                     category=category.value,
                     per_game=player_rate,
                     peer_mean_per_game=peer_mean,
+                    peer_median_per_game=peer_median,
                     peer_stddev_per_game=peer_stddev,
                     z_score=z_score,
                     games_on_general=games_by_player_general[(name, general)],

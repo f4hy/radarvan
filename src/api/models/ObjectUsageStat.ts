@@ -69,6 +69,12 @@ export interface ObjectUsageStat {
      * @type {number}
      * @memberof ObjectUsageStat
      */
+    peerMedianPerGame: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ObjectUsageStat
+     */
     peerStddevPerGame: number;
     /**
      * 
@@ -111,6 +117,7 @@ export function instanceOfObjectUsageStat(value: object): value is ObjectUsageSt
     if (!('category' in value) || value['category'] === undefined) return false;
     if (!('perGame' in value) || value['perGame'] === undefined) return false;
     if (!('peerMeanPerGame' in value) || value['peerMeanPerGame'] === undefined) return false;
+    if (!('peerMedianPerGame' in value) || value['peerMedianPerGame'] === undefined) return false;
     if (!('peerStddevPerGame' in value) || value['peerStddevPerGame'] === undefined) return false;
     if (!('gamesOnGeneral' in value) || value['gamesOnGeneral'] === undefined) return false;
     if (!('peerCount' in value) || value['peerCount'] === undefined) return false;
@@ -132,6 +139,7 @@ export function ObjectUsageStatFromJSONTyped(json: any, ignoreDiscriminator: boo
         'category': json['category'],
         'perGame': json['perGame'],
         'peerMeanPerGame': json['peerMeanPerGame'],
+        'peerMedianPerGame': json['peerMedianPerGame'],
         'peerStddevPerGame': json['peerStddevPerGame'],
         'zScore': json['zScore'] == null ? undefined : json['zScore'],
         'gamesOnGeneral': json['gamesOnGeneral'],
@@ -155,6 +163,7 @@ export function ObjectUsageStatToJSONTyped(value?: ObjectUsageStat | null, ignor
         'category': value['category'],
         'perGame': value['perGame'],
         'peerMeanPerGame': value['peerMeanPerGame'],
+        'peerMedianPerGame': value['peerMedianPerGame'],
         'peerStddevPerGame': value['peerStddevPerGame'],
         'zScore': value['zScore'],
         'gamesOnGeneral': value['gamesOnGeneral'],

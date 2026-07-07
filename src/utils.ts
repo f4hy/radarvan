@@ -74,6 +74,26 @@ export function getColorHex(colorName: string): string {
   return "#808080"
 }
 
+// Black or white, whichever reads better on a given hex background - actual
+// game colors (unlike the curated PLAYER_HUE_PALETTE below) include light
+// hues like yellow/gold/pink/silver where white text would wash out.
+export function contrastTextColor(hex: string): string {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex)
+  if (!m) return "#fff"
+  const full =
+    m[1].length === 3
+      ? m[1]
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : m[1]
+  const r = parseInt(full.slice(0, 2), 16)
+  const g = parseInt(full.slice(2, 4), 16)
+  const b = parseInt(full.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6 ? "#000" : "#fff"
+}
+
 // Stable, deterministic color for a player name, so the same player reads as
 // the same color everywhere (team stats, records, leaderboards). Uses a fixed
 // palette of readable, saturated hues picked by hashing the name.

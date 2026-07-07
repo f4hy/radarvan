@@ -35,6 +35,7 @@ All URIs are relative to *http://localhost*
 | [**getMatchReplayUrlApiReplayUrlMatchIdGet**](DefaultApi.md#getmatchreplayurlapireplayurlmatchidget) | **GET** /api/replay_url/{match_id} | Get Match Replay Url |
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
+| [**getPlayerColorsApiPlayerColorsGet**](DefaultApi.md#getplayercolorsapiplayercolorsget) | **GET** /api/player_colors/ | Get Player Colors |
 | [**getPlayerGameCountsApiPlayerGameCountsGet**](DefaultApi.md#getplayergamecountsapiplayergamecountsget) | **GET** /api/player_game_counts/ | Get Player Game Counts |
 | [**getPlayerHeadToHeadApiPlayerHeadToHeadGet**](DefaultApi.md#getplayerheadtoheadapiplayerheadtoheadget) | **GET** /api/player_head_to_head/ | Get Player Head To Head |
 | [**getPlayerProfileApiPlayerProfileGet**](DefaultApi.md#getplayerprofileapiplayerprofileget) | **GET** /api/player_profile/ | Get Player Profile |
@@ -2208,6 +2209,69 @@ This endpoint does not need any parameter.
 ### Return type
 
 [**Array&lt;WinnerOverride&gt;**](WinnerOverride.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPlayerColorsApiPlayerColorsGet
+
+> { [key: string]: string | null; } getPlayerColorsApiPlayerColorsGet()
+
+Get Player Colors
+
+Each player\&#39;s most common actual in-game color, keyed by player name - used as their primary identity color in the UI (see PlayerChip).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPlayerColorsApiPlayerColorsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.getPlayerColorsApiPlayerColorsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: string | null; }**
 
 ### Authorization
 
