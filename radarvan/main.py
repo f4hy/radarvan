@@ -41,6 +41,7 @@ from .routes import (
     tournaments,
     votes,
 )
+from .tracing import configure_tracing
 
 logger = structlog.get_logger(__name__)
 
@@ -70,6 +71,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+configure_tracing(app)
 
 PROTECTED = [Depends(verify_api_key)]
 
