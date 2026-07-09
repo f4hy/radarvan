@@ -223,7 +223,13 @@ function EventChart(props: {
   timelineEvents: TimelineEvent[]
   playerSummaries: PlayerSummary[]
 }) {
-  const events = props.timelineEvents
+  // The backend (timeline_events.py) owns the event_type vocabulary; drop any
+  // type this bundle doesn't know yet so a newer backend (or stale bundle)
+  // can't crash the chart on EVENT_TYPE_BY_KEY[unknown].
+  const events = React.useMemo(
+    () => props.timelineEvents.filter((e) => e.eventType in EVENT_TYPE_BY_KEY),
+    [props.timelineEvents],
+  )
   const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
   const max = Math.max(0, ...events.map((e) => e.atMinute))
   const grouped = React.useMemo(() => {
@@ -663,9 +669,17 @@ const columnGroups: { group: string; span: number }[] = columns.reduce(
 )
 
 function GameDetailsTable(props: { matchDetails: MatchDetails }) {
-  const [sortBy, setSortBy] = React.useState<null | keyof StyledTableRow>(
-    "moneyCollected",
-  )
+  const [sortBy, setSortBy] =
+    React.useState<keyof StyledTableRow>("moneyCollected")
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc")
+  const handleSort = (key: keyof StyledTableRow) => {
+    if (key === sortBy) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"))
+    } else {
+      setSortBy(key)
+      setSortDir("desc")
+    }
+  }
 
   const data: StyledTableRow[] = React.useMemo(() => {
     const { playerSummary: summaries, statsData } = props.matchDetails
@@ -732,8 +746,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   }, [props.matchDetails])
 
   const sortedData = React.useMemo(
-    () => (sortBy ? _.sortBy(data, sortBy) : data),
-    [data, sortBy],
+    () => _.orderBy(data, [sortBy], [sortDir]),
+    [data, sortBy, sortDir],
   )
 
   return (
@@ -786,8 +800,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
                 >
                   <TableSortLabel
                     active={column.key === sortBy}
-                    direction={"desc"}
-                    onClick={() => setSortBy(column.key)}
+                    direction={column.key === sortBy ? sortDir : "desc"}
+                    onClick={() => handleSort(column.key)}
                   >
                     {column.label}
                   </TableSortLabel>
@@ -946,7 +960,8 @@ function KillMap(props: {
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
         {props.playerSummaries.map((ps) => (
           <Stack
-            key={ps.name}
+            // Color is unique per player in a match; names aren't (twin CPUs).
+            key={`${ps.name}-${ps.color}`}
             direction="row"
             spacing={0.5}
             alignItems="center"
@@ -1008,7 +1023,8 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
           <TableRow>
             <TableCell>Stat</TableCell>
             {players.map((p) => (
-              <TableCell key={p.name} align="right">
+              // Color is unique per player in a match; names aren't (twin CPUs).
+              <TableCell key={`${p.name}-${p.color}`} align="right">
                 <Stack
                   direction="row"
                   spacing={0.5}
@@ -1035,7 +1051,7 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
             <TableRow key={row.key}>
               <TableCell>{row.label}</TableCell>
               {players.map((p) => (
-                <TableCell key={p.name} align="right">
+                <TableCell key={`${p.name}-${p.color}`} align="right">
                   {p.academy ? p.academy[row.key].toLocaleString() : "—"}
                 </TableCell>
               ))}
@@ -1138,7 +1154,8 @@ function BuildOrderTab(props: {
       {players.map((p) => {
         const order = props.buildOrders[p.name]
         return (
-          <Paper key={p.name} sx={{ p: 2, mb: 2 }}>
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          <Paper key={`${p.name}-${p.color}`} sx={{ p: 2, mb: 2 }}>
             <Stack
               direction="row"
               spacing={1}
@@ -1341,7 +1358,8 @@ function IncomeBySourceTab(props: { details: MatchDetails }) {
     <>
       {props.details.playerSummary.map((ps) => (
         <PlayerIncomeChart
-          key={ps.name}
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          key={`${ps.name}-${ps.color}`}
           playerName={ps.name}
           income={income}
           minutes={minutes}

@@ -165,12 +165,12 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
         money_spent[frame * scale] = {
             name_by_idx[p.index]: p.money_spent[snap_idx]
             for p in ts_players
-            if snap_idx < len(p.money_earned)
+            if snap_idx < len(p.money_spent)
         }
         money[frame * scale] = {
             name_by_idx[p.index]: p.money[snap_idx]
             for p in ts_players
-            if snap_idx < len(p.money_earned)
+            if snap_idx < len(p.money)
         }
     money_earned = _drop_redundant_consecutive(money_earned)
     money_spent = _drop_redundant_consecutive(money_spent)

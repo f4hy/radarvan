@@ -5,7 +5,6 @@ middleware/exception handlers, and manages the app lifecycle (scheduler,
 cache warming, S3 connection test).
 """
 
-import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -21,7 +20,7 @@ from . import cncstats_client, middleware, replay_files, schedule
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
 from .logging_config import configure_logging
-from .notify import notify
+from .notify import notify_async
 from .routes import (
     admin,
     auth,
@@ -108,9 +107,9 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("unhandled exception", exc_info=exc)
-    # notify() swallows its own errors; to_thread keeps the webhook call off
-    # the event loop. Never echo exception details to the client.
-    await asyncio.to_thread(notify, f"Unhandled Exception {request.url.path} {exc!r}")
+    # notify_async swallows its own errors. Never echo exception details to
+    # the client.
+    await notify_async(f"Unhandled Exception {request.url.path} {exc!r}")
     response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},

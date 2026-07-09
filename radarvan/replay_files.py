@@ -159,19 +159,34 @@ def reparse(
         logger.warning("No change in replay, not resaving")
         return None
 
-    return reparse_paths(json_path, original_path, replay_path, replay_manager)
+    # Pass the replay we just parsed so reparse_paths doesn't re-download and
+    # re-parse it (a second S3 read + cncstats call per reparse).
+    return reparse_paths(
+        json_path, original_path, replay_path, replay_manager, parsed_replay
+    )
 
 
 def reparse_paths(
-    json_path: str, original_path: str, replay_path: str, replay_manager: ReplayManager
+    json_path: str,
+    original_path: str,
+    replay_path: str,
+    replay_manager: ReplayManager,
+    parsed_replay: EnhancedReplayV2 | None = None,
 ) -> ParsedReplayResult | None:
+    """Re-parse a replay from S3 and persist the JSON + DB row.
+
+    ``parsed_replay`` lets a caller that already ran the parser (e.g. ``reparse``,
+    which parses to diff against the stored JSON) skip a second download and
+    cncstats call; when None, the raw replay is fetched and parsed here.
+    """
     logger.info("reparsing", original_path=original_path)
 
     fs = get_fs()
-    raw_replay = fs.read_bytes(replay_path)
-    parsed_replay = with_filename(
-        parse_replay_data(raw_replay, replay_manager), original_path
-    )
+    if parsed_replay is None:
+        raw_replay = fs.read_bytes(replay_path)
+        parsed_replay = with_filename(
+            parse_replay_data(raw_replay, replay_manager), original_path
+        )
 
     replay_manager.save_parsed_json(
         json_s3_uri=json_path,

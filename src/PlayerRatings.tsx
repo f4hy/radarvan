@@ -33,9 +33,10 @@ import {
   Area,
   Line,
 } from "recharts"
-import { HeadToHead, PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
+import { PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import { useFetch } from "./useFetch"
 import { SimplePlayerSynergy } from "./PlayerSynergy"
 import { PlayerLabel } from "./PlayerChip"
 import { BRAND_COLOR, WIN_COLOR, LOSS_COLOR } from "./theme"
@@ -47,19 +48,15 @@ type GameFormat = (typeof FORMAT_OPTIONS)[number]
 const MONTHS_BACK_OPTIONS = [1, 3, 6, 9, 12] as const
 type MonthsBack = (typeof MONTHS_BACK_OPTIONS)[number] | null
 
-function getPlayerRatings(
+function fetchPlayerRatings(
   gameFormat: GameFormat,
   monthsBack: MonthsBack,
-  callback: (m: PlayerRatingData) => void,
-  onError = console.error,
-) {
+): Promise<PlayerRatingData> {
   const params = {
     ...(gameFormat === "All" ? {} : { gameFormat }),
     ...(monthsBack == null ? {} : { monthsBack }),
   }
-  Client.getPlayerRatingsApiPlayerRatingsGet(params)
-    .then(callback)
-    .catch(onError)
+  return Client.getPlayerRatingsApiPlayerRatingsGet(params)
 }
 
 function formatLabel(val: unknown): string {
@@ -498,21 +495,18 @@ function UpsetsTable(props: { upsets: RatingUpset[] }) {
 
 // Recent big shocks: last RECENT_UPSET_DAYS days, surprise >= RECENT_UPSET_MIN_PCT%.
 function RecentUpsets(props: { format: GameFormat }) {
-  const [upsets, setUpsets] = React.useState<RatingUpset[] | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    setUpsets(null)
-    const params = props.format === "All" ? {} : { gameFormat: props.format }
-    Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
-      limit: 200,
-      withinDays: RECENT_UPSET_DAYS,
-      minSurprise: RECENT_UPSET_MIN_PCT / 100,
-      ...params,
-    })
-      .then(setUpsets)
-      .catch(showError)
-  }, [props.format, showError])
+  const upsets = useFetch(
+    () =>
+      Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+        limit: 200,
+        withinDays: RECENT_UPSET_DAYS,
+        minSurprise: RECENT_UPSET_MIN_PCT / 100,
+        ...(props.format === "All" ? {} : { gameFormat: props.format }),
+      }),
+    [props.format],
+    showError,
+  )
 
   if (!upsets) return <Loading />
   if (upsets.length === 0) {
@@ -539,16 +533,16 @@ function RecentUpsets(props: { format: GameFormat }) {
 // Top games where the rating model's favored team lost. The "surprise" is the
 // favorite's pre-game win-probability edge over the team that actually won.
 function BiggestUpsets(props: { format: GameFormat }) {
-  const [upsets, setUpsets] = React.useState<RatingUpset[] | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    setUpsets(null)
-    const params = props.format === "All" ? {} : { gameFormat: props.format }
-    Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({ limit: 15, ...params })
-      .then(setUpsets)
-      .catch(showError)
-  }, [props.format, showError])
+  const upsets = useFetch(
+    () =>
+      Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+        limit: 15,
+        ...(props.format === "All" ? {} : { gameFormat: props.format }),
+      }),
+    [props.format],
+    showError,
+  )
 
   if (!upsets) return <Loading />
   if (upsets.length === 0) {
@@ -572,19 +566,15 @@ function BiggestUpsets(props: { format: GameFormat }) {
 }
 
 function HeadToHeadMatrix(props: { format: GameFormat }) {
-  const [h2h, setH2h] = React.useState<Record<
-    string,
-    Record<string, HeadToHead>
-  > | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    setH2h(null)
-    const params = props.format === "All" ? {} : { gameFormat: props.format }
-    Client.getHeadToHeadApiPlayerRatingsHeadToHeadGet(params)
-      .then(setH2h)
-      .catch(showError)
-  }, [props.format, showError])
+  const h2h = useFetch(
+    () =>
+      Client.getHeadToHeadApiPlayerRatingsHeadToHeadGet(
+        props.format === "All" ? {} : { gameFormat: props.format },
+      ),
+    [props.format],
+    showError,
+  )
 
   if (!h2h) return <Loading />
 
@@ -841,21 +831,16 @@ function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
 const WHR_FORMATS = ["All", "2v2", "3v3", "4v4"] as const
 
 function WhrTable() {
-  const [data, setData] = React.useState<Record<
-    string,
-    Partial<Record<(typeof WHR_FORMATS)[number], number>>
-  > | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    Promise.all(
-      WHR_FORMATS.map((f) =>
-        Client.getPlayerSkillsApiPlayerSkillsGet(
-          f === "All" ? {} : { gameFormat: f },
+  const data = useFetch(
+    () =>
+      Promise.all(
+        WHR_FORMATS.map((f) =>
+          Client.getPlayerSkillsApiPlayerSkillsGet(
+            f === "All" ? {} : { gameFormat: f },
+          ),
         ),
-      ),
-    )
-      .then((results) => {
+      ).then((results) => {
         const byPlayer: Record<
           string,
           Partial<Record<(typeof WHR_FORMATS)[number], number>>
@@ -867,10 +852,11 @@ function WhrTable() {
             byPlayer[s.name][fmt] = s.skill
           }
         })
-        setData(byPlayer)
-      })
-      .catch(showError)
-  }, [showError])
+        return byPlayer
+      }),
+    [],
+    showError,
+  )
 
   if (!data) return <Loading />
 
@@ -923,15 +909,13 @@ function WhrTable() {
 }
 
 export function DisplayPlayerRatingTrend() {
-  const [playerRatings, setPlayerRatings] =
-    React.useState<PlayerRatingData | null>(null)
   const [format, setFormat] = React.useState<GameFormat>("All")
   const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    setPlayerRatings(null)
-    getPlayerRatings(format, null, setPlayerRatings, showError)
-  }, [format, showError])
+  const playerRatings = useFetch(
+    () => fetchPlayerRatings(format, null),
+    [format],
+    showError,
+  )
 
   if (!playerRatings) return <Loading />
 
@@ -1004,24 +988,37 @@ export function DisplayPlayerRatingTrend() {
   )
 }
 
-const emptyPlayerRatingData = { playerRating: [], playerRatingOvertime: {} }
 export default function DisplayPlayerRatings() {
-  const [playerRatings, setPlayerRatings] = React.useState<PlayerRatingData>(
-    emptyPlayerRatingData,
-  )
   const [format, setFormat] = React.useState<GameFormat>("All")
   const [monthsBack, setMonthsBack] = React.useState<MonthsBack>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    setPlayerRatings(emptyPlayerRatingData)
-    getPlayerRatings(format, monthsBack, setPlayerRatings, showError)
-  }, [format, monthsBack, showError])
+  const playerRatings = useFetch(
+    () => fetchPlayerRatings(format, monthsBack),
+    [format, monthsBack],
+    showError,
+  )
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
-  if (playerRatings.playerRating.length === 0) {
+  if (!playerRatings) {
     return <Loading />
+  }
+  // Loaded but empty (e.g. a narrow months-back window where nobody clears
+  // the rating minimum): keep the selectors rendered so the user can switch
+  // back, instead of spinning forever.
+  if (playerRatings.playerRating.length === 0) {
+    return (
+      <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
+        <MonthsBackSelector monthsBack={monthsBack} onChange={setMonthsBack} />
+        <FormatSelector format={format} onChange={setFormat} />
+        <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+          No rated players for this format / time range — ratings need a minimum
+          number of games.
+        </Typography>
+        {errorSnackbar}
+      </Paper>
+    )
   }
   const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
   return (

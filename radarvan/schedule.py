@@ -19,7 +19,7 @@ from . import superlatives as superlatives_module
 from . import matches as matches_module
 from . import player_rating as player_rating_module
 import structlog
-from .notify import notify
+from .notify import notify_async
 
 logger = structlog.get_logger(__name__)
 
@@ -40,7 +40,7 @@ async def update_games(
     invalidate_match_caches()
     logger.info("done updating", found=len(paths))
     if do_notify:
-        notify(f"DEBUG:Done updating, found {len(paths)}.")
+        await notify_async(f"DEBUG:Done updating, found {len(paths)}.")
 
 
 async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
@@ -52,7 +52,9 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
     with db_manager.get_replay_manager() as replay_manager:
         stale = replay_manager.computed_stats_are_stale(days=3)
         if stale:
-            notify(message=f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})")
+            await notify_async(
+                f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})"
+            )
         all_matches = await asyncio.to_thread(
             matches_module.get_match_infos, replay_manager
         )
@@ -90,7 +92,7 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
     )
     if stale:
         msg = f"Saved {len(result.stats)} computed statistics for Records page. Started at {start:%Y-%m-%d %H:%M:%S}, took {duration}."
-        notify(message=msg)
+        await notify_async(msg)
 
 
 async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
@@ -124,7 +126,7 @@ async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
         took=str(duration),
     )
     if stale:
-        notify(f"Saved {len(profiles)} player profiles, took {duration}.")
+        await notify_async(f"Saved {len(profiles)} player profiles, took {duration}.")
 
 
 def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:

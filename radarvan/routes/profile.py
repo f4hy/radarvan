@@ -18,7 +18,7 @@ from ..api_types import PlayerName, PlayerProfile
 from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, db_manager, get_replay_manager
-from ..notify import notify
+from ..notify import notify_async
 
 logger = structlog.get_logger(__name__)
 
@@ -79,8 +79,7 @@ async def _do_recompute_bg() -> None:
             rm = ReplayManager(session)
             count = await _do_recompute(rm)
             session.commit()
-    # notify() swallows errors but blocks on HTTP; keep it off the event loop.
-    await asyncio.to_thread(notify, f"Recomputed {count} player profiles")
+    await notify_async(f"Recomputed {count} player profiles")
 
 
 @router.post("/api/player_profile/recompute")
