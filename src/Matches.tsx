@@ -494,6 +494,7 @@ function MatchDateSummary(props: {
     if (props.matches.length === 0) return []
     const wl: Record<string, { w: number; l: number }> = {}
     for (const m of props.matches) {
+      if (m.incomplete) continue
       for (const p of m.players) {
         if (p.team === Team.NUMBER_MINUS_1) continue
         if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
