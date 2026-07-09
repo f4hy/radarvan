@@ -38,11 +38,9 @@ def get_superlatives(
 async def _do_recompute(
     replay_manager: ReplayManager,
 ) -> superlatives.Superlatives:
-    games = competitive_matches(replay_manager)
+    # competitive_matches already excludes incomplete/mismatch games.
     game_list = [
-        g
-        for g in games.values()
-        if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
+        g for g in competitive_matches(replay_manager).values() if g.winning_team > 0
     ]
     stale = replay_manager.computed_stats_are_stale(days=3)
     details = await superlatives.load_many_superlative_data(

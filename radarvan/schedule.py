@@ -13,10 +13,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
 import asyncio
 from . import scrape_games
-from . import game_composition
 from . import player_profile as player_profile_module
 from . import superlatives as superlatives_module
-from . import matches as matches_module
 from . import player_rating as player_rating_module
 import structlog
 from .notify import notify_async
@@ -55,17 +53,12 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
             await notify_async(
                 f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})"
             )
-        all_matches = await asyncio.to_thread(
-            matches_module.get_match_infos, replay_manager
-        )
-        competitive = [
-            m
-            for m in all_matches
-            if m
-            and game_composition.competitive_game_filter(comp=m.composition)
-            and m.winning_team > 0
-            and "mismatch" not in m.incomplete.lower()
-        ]
+        # Same game set as POST /api/superlatives/recompute (routes/superlatives):
+        # competitive_matches already excludes incomplete/mismatch games, so the
+        # nightly run and a manual trigger always agree on which matches count.
+        # Blocking DB work on a cache miss - keep it off the event loop.
+        games = await asyncio.to_thread(competitive_matches, replay_manager)
+        competitive = [m for m in games.values() if m.winning_team > 0]
         match_ids = [m.id for m in competitive]
         details = await superlatives_module.load_many_superlative_data(
             match_ids, db_manager
