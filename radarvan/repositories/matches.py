@@ -73,9 +73,7 @@ class MatchRepo(BaseRepo):
             existing = self.session.get(Match, db_match.match_id)
             if existing is None:
                 raise
-            logger.warning(
-                "match registered concurrently", match_id=db_match.match_id
-            )
+            logger.warning("match registered concurrently", match_id=db_match.match_id)
             return existing, False
         if self.notify:
             notify(f"Registered Match {db_match}")
