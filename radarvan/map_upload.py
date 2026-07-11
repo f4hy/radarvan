@@ -94,7 +94,7 @@ def process(
     """Convert (and, when committing, save) each map. Returns (items, errors).
 
     Preview (commit=False): convert tga->webp, parse geometry if the mapparse
-    binary is available, and return the image — no writes. Commit: also upload
+    binary is available, and return the image - no writes. Commit: also upload
     the .tga/.webp/.map to S3 and save the geometry to MapData when parsed.
     Overwriting a map that already exists requires admin; non-admin overwrite
     attempts are skipped and reported.
@@ -123,7 +123,7 @@ def process(
         already_exists = missing_maps.s3_webp_exists(u.base_name)
         blocked = commit and already_exists and not is_admin
         if blocked:
-            errors.append(f"{u.base_name}: already exists — overwrite requires admin")
+            errors.append(f"{u.base_name}: already exists - overwrite requires admin")
         saved = False
         pushed = False
         if commit and not blocked:

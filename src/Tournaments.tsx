@@ -37,6 +37,7 @@ import {
 import { Client } from "./Client"
 import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+import { WIN_COLOR, WIN_COLOR_SOFT, LOSS_COLOR } from "./theme"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from "./Matches"
 
@@ -118,7 +119,7 @@ function DisplayTournamentInfo(props: { tournament: Tournament }) {
 function DisplayOverrideBanner(props: { override: string | undefined | null }) {
   if (props.override) {
     return (
-      <Typography color="warning.main" style={{ fontWeight: "bold" }}>
+      <Typography color="warning.main" sx={{ fontWeight: "bold" }}>
         {props.override}
       </Typography>
     )
@@ -129,7 +130,7 @@ function DisplayOverrideBanner(props: { override: string | undefined | null }) {
 function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
   if (props.matches.length === 0) {
     return (
-      <Typography color="warning.main" style={{ fontWeight: "bold" }}>
+      <Typography color="warning.main" sx={{ fontWeight: "bold" }}>
         No recorded matches to show
       </Typography>
     )
@@ -181,7 +182,7 @@ function DisplayMatchup(props: { matchup: MatchupResult }) {
           <Table stickyHeader sx={{ maxHeight: "50%" }}>
             <TableHead>
               <TableRow>
-                <TableCell style={{ width: "20%" }}>Team</TableCell>
+                <TableCell sx={{ width: "20%" }}>Team</TableCell>
                 <TableCell>Wins</TableCell>
               </TableRow>
             </TableHead>
@@ -218,13 +219,13 @@ function TeamRecordsTable(props: {
       <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: "fixed" }}>
         <TableHead>
           <TableRow>
-            <TableCell style={{ width: "10%" }}>
+            <TableCell sx={{ width: "10%" }}>
               <Typography>Team</Typography>
             </TableCell>
-            <TableCell style={{ width: "5%" }}>
+            <TableCell sx={{ width: "5%" }}>
               <Typography>W-L</Typography>
             </TableCell>
-            <TableCell style={{ width: "5%" }}>
+            <TableCell sx={{ width: "5%" }}>
               <Typography>Win %</Typography>
             </TableCell>
             <TableCell>
@@ -336,29 +337,22 @@ function TeamProgressChart(props: {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid rgba(26,34,48,0.18)",
-            borderRadius: 8,
-            padding: 12,
-            color: "#1a2230",
-            fontSize: "0.8rem",
-            lineHeight: 1.5,
-            boxShadow: "0 2px 8px rgba(16,24,40,0.12)",
-          }}
-        >
-          <p style={{ fontWeight: 700, margin: "0 0 4px" }}>{data.team}</p>
-          <p style={{ margin: 0 }}>Current Wins: {data.wins}</p>
-          <p style={{ margin: 0 }}>Losses: {data.losses}</p>
-          <p style={{ margin: 0 }}>
+        <Paper elevation={3} sx={{ p: 1.5, lineHeight: 1.5 }}>
+          <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
+            {data.team}
+          </Typography>
+          <Typography variant="body2">Current Wins: {data.wins}</Typography>
+          <Typography variant="body2">Losses: {data.losses}</Typography>
+          <Typography variant="body2">
             Games Played: {data.wins + data.losses}/{props.total}
-          </p>
-          <p style={{ margin: 0 }}>Outstanding: {data.gamesOutstanding}</p>
-          <p style={{ margin: 0, color: "#2f6df0" }}>
+          </Typography>
+          <Typography variant="body2">
+            Outstanding: {data.gamesOutstanding}
+          </Typography>
+          <Typography variant="body2" color="primary.main">
             Max Possible: {data.maxPossibleWins}
-          </p>
-        </div>
+          </Typography>
+        </Paper>
       )
     }
     return null
@@ -385,14 +379,14 @@ function TeamProgressChart(props: {
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
-        <Bar dataKey="wins" stackId="a" fill="#10b981" name="Current Wins" />
+        <Bar dataKey="wins" stackId="a" fill={WIN_COLOR} name="Current Wins" />
         <Bar
           dataKey="potentialWins"
           stackId="a"
-          fill="#93c5fd"
+          fill={WIN_COLOR_SOFT}
           name="Potential Additional Wins"
         />
-        <Bar dataKey="losses" stackId="a" fill="#f87171" name="Losses" />
+        <Bar dataKey="losses" stackId="a" fill={LOSS_COLOR} name="Losses" />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -492,7 +486,7 @@ function MatchupButtonGrid(props: {
                 }}
               >
                 <Typography
-                  style={{ fontWeight: "bold" }}
+                  sx={{ fontWeight: "bold" }}
                   variant={props.isMobile ? "caption" : "body1"}
                 >
                   {teams.join(" vs ")} {record}
@@ -574,7 +568,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
         <Table stickyHeader sx={{ maxHeight: "50%" }}>
           <TableHead>
             <TableRow>
-              <TableCell style={{ width: "20%" }}>Stat</TableCell>
+              <TableCell sx={{ width: "20%" }}>Stat</TableCell>
               <TableCell>Value</TableCell>
               <TableCell>Player</TableCell>
               <TableCell>MatchId</TableCell>

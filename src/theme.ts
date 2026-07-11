@@ -45,8 +45,20 @@ export const CHART_PALETTE = [
 
 // App chrome.
 const APPBAR_BG = "#1f2733"
-const PAGE_BG = "#f5f6f8"
+// Deepened a touch from near-white so the white cards read as distinct surfaces
+// floating on the canvas rather than blending into it.
+const PAGE_BG = "#e9ecf1"
 const BORDER = "rgba(26, 34, 48, 0.10)"
+
+const FONT_STACK = [
+  "-apple-system",
+  "BlinkMacSystemFont",
+  "Segoe UI",
+  "Roboto",
+  "Helvetica Neue",
+  "Arial",
+  "sans-serif",
+].join(",")
 
 let theme = createTheme({
   palette: {
@@ -65,15 +77,7 @@ let theme = createTheme({
   },
   shape: { borderRadius: 10 },
   typography: {
-    fontFamily: [
-      "-apple-system",
-      "BlinkMacSystemFont",
-      "Segoe UI",
-      "Roboto",
-      "Helvetica Neue",
-      "Arial",
-      "sans-serif",
-    ].join(","),
+    fontFamily: FONT_STACK,
     h4: { fontWeight: 700, letterSpacing: "-0.01em" },
     h5: { fontWeight: 700, letterSpacing: "-0.01em" },
     h6: { fontWeight: 700 },

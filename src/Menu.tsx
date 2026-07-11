@@ -4,7 +4,9 @@ import TableView from "@mui/icons-material/TableView"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
+import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import PersonIcon from "@mui/icons-material/Person"
+import BadgeIcon from "@mui/icons-material/Badge"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 import LoginIcon from "@mui/icons-material/Login"
 import AppBar from "@mui/material/AppBar"
@@ -25,6 +27,10 @@ import DisplayGeneralStats from "./GeneralStats"
 import DisplayBalanceTeams from "./BalanceTeams"
 import DisplayMatches from "./Matches"
 import DisplayPlayerStats from "./PlayerStats"
+import DisplayPlayerProfile from "./PlayerProfile"
+import DisplayFFAStats from "./FFA"
+import HeadToHead from "./HeadToHead"
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import DisplayDebugData from "./DebugData"
 import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
 import DisplayPlayerSynergy from "./PlayerSynergy"
@@ -32,6 +38,8 @@ import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import GroupsIcon from "@mui/icons-material/Groups"
 import MapIcon from "@mui/icons-material/Map"
 import DisplayTournamentResults from "./Tournaments"
+import DisplayBracket, { BRACKET_VISIBLE_TO_ALL } from "./Bracket"
+import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import DisplayMapStats from "./MapStats"
 import DisplayTeamStats from "./TeamStats"
 import DisplaySuperlatives from "./Superlatives"
@@ -44,7 +52,7 @@ import ChooseMap from "./ChooseMap"
 import MapUpload from "./MapUpload"
 import Account from "./Account"
 import UploadFileIcon from "@mui/icons-material/UploadFile"
-import { useAuth } from "./AuthContext"
+import { useAuth, useIsTournamentAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 const drawerWidth = 190
@@ -53,10 +61,14 @@ const ALL_SELECTIONS = [
   "Matches",
   "GeneralStats",
   "PlayerStats",
+  "PlayerProfile",
+  "FFA",
+  "HeadToHead",
   "DebugData",
   "MapStats",
   "TeamStats",
   "Tournaments",
+  "Bracket",
   "BalanceTeams",
   "PlayerRating",
   "PlayerRatingTrend",
@@ -97,6 +109,10 @@ export default function Menu() {
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
+  // The bracket tab is only shown to its two admins while the tournament is
+  // being set up — flip BRACKET_VISIBLE_TO_ALL in Bracket.tsx to open it up.
+  const isTournamentAdmin = useIsTournamentAdmin()
+  const showBracketTab = BRACKET_VISIBLE_TO_ALL || isTournamentAdmin
 
   // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
   const navigate = React.useCallback((s: Selection) => {
@@ -129,11 +145,31 @@ export default function Menu() {
       { value: "Matches", text: "Matches", icon: <ListIcon /> },
       { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
       {
+        value: "PlayerProfile",
+        text: "Player Profile",
+        icon: <BadgeIcon />,
+      },
+      {
+        value: "HeadToHead",
+        text: "Head to Head",
+        icon: <CompareArrowsIcon />,
+      },
+      {
         value: "GeneralStats",
         text: "General Stats",
         icon: <MilitaryTechIcon />,
       },
+      { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
       { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
+      ...(showBracketTab
+        ? [
+            {
+              value: "Bracket" as const,
+              text: "1v1 Bracket",
+              icon: <AccountTreeIcon />,
+            },
+          ]
+        : []),
       { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
       { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
       { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
@@ -249,7 +285,7 @@ export default function Menu() {
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
+        aria-label="Primary navigation"
       >
         <Drawer
           variant="temporary"
@@ -317,10 +353,18 @@ function Main(props: { selection: Selection }) {
       return <DisplayMatches />
     case "PlayerStats":
       return <DisplayPlayerStats />
+    case "PlayerProfile":
+      return <DisplayPlayerProfile />
+    case "HeadToHead":
+      return <HeadToHead />
     case "GeneralStats":
       return <DisplayGeneralStats />
+    case "FFA":
+      return <DisplayFFAStats />
     case "Tournaments":
       return <DisplayTournamentResults />
+    case "Bracket":
+      return <DisplayBracket />
     case "BalanceTeams":
       return <DisplayBalanceTeams />
     case "MapStats":

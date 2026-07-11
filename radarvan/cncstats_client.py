@@ -3,13 +3,13 @@
 Every outbound call to ``cncstats.computersrfun.org`` goes through
 ``CncstatsClient``: replay parsing (``POST /replay``) and the map registry
 (``GET /get_map`` / ``POST /add_map``). Get the process-wide instance via the
-``cncstats_client()`` factory — it is ``@cache``d so one ``httpx.Client`` is
+``cncstats_client()`` factory - it is ``@cache``d so one ``httpx.Client`` is
 reused for the lifetime of the process (connection pooling, one place to
 configure).
 
 Two distinct credentials are involved and must not be conflated:
-  * ``CNCSTATS_APIKEY``  — Bearer token for ``/replay`` parsing.
-  * ``CNCSTATS_API_KEY`` — X-API-Key for the ``/add_map`` registry.
+  * ``CNCSTATS_APIKEY``  - Bearer token for ``/replay`` parsing.
+  * ``CNCSTATS_API_KEY`` - X-API-Key for the ``/add_map`` registry.
 """
 
 from __future__ import annotations
@@ -89,7 +89,7 @@ class CncstatsClient:
         return bool(self._map_api_key)
 
     async def map_exists_async(self, crc_decimal: int) -> bool:
-        """GET /map_exists — True if cncstats already stores this map's CRC.
+        """GET /map_exists - True if cncstats already stores this map's CRC.
 
         Plain-text ``"true"``/``"false"``; no auth required.
         """

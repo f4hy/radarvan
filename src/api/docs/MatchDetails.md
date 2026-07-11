@@ -12,11 +12,13 @@ Name | Type
 `apms` | [Array&lt;APM&gt;](APM.md)
 `upgradeEvents` | [{ [key: string]: Upgrades; }](Upgrades.md)
 `statsData` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
+`incomeBySource` | { [key: string]: { [key: string]: { [key: string]: number; }; }; }
 `mapName` | string
 `firstBlood` | [FirstBlood](FirstBlood.md)
 `buildingFirstBlood` | [FirstBlood](FirstBlood.md)
 `playerSummary` | [Array&lt;PlayerSummary&gt;](PlayerSummary.md)
 `killEvents` | [Array&lt;KillEventOutput&gt;](KillEventOutput.md)
+`mapEvents` | [Array&lt;MapEventOutput&gt;](MapEventOutput.md)
 `playerMoneySpent` | { [key: string]: number; }
 `playerMoneyCollected` | { [key: string]: number; }
 `timeToRank5` | { [key: string]: number; }
@@ -38,11 +40,13 @@ const example = {
   "apms": null,
   "upgradeEvents": null,
   "statsData": null,
+  "incomeBySource": null,
   "mapName": null,
   "firstBlood": null,
   "buildingFirstBlood": null,
   "playerSummary": null,
   "killEvents": null,
+  "mapEvents": null,
   "playerMoneySpent": null,
   "playerMoneyCollected": null,
   "timeToRank5": null,

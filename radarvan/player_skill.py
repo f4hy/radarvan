@@ -1,7 +1,7 @@
 """Whole-History Rating (Coulom, 2008) for player skill estimation.
 
-Each player's skill is modeled as a step function of time — one rating per date the
-player participated in a game — with a Gaussian random-walk prior on changes:
+Each player's skill is modeled as a step function of time - one rating per date the
+player participated in a game - with a Gaussian random-walk prior on changes:
     r_p(t_{k+1}) - r_p(t_k) ~ N(0, w² · (t_{k+1} - t_k))
 
 Game outcomes follow the team Bradley-Terry likelihood:
@@ -21,11 +21,12 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 import numpy as np
-from cachetools import TTLCache, cached
+from cachetools import TTLCache
 
 from . import game_composition
 from . import player_ids
 from .api_types import MatchInfo
+from .utils import locked_cached
 
 logger = structlog.get_logger(__name__)
 
@@ -199,7 +200,7 @@ def _fit(
     tol: float = 1e-3,
 ) -> None:
     """Alternating per-player Newton. Per-player problem is convex, so the inner Newton
-    converges quadratically — info propagates much faster than one-step-per-outer-iter."""
+    converges quadratically - info propagates much faster than one-step-per-outer-iter."""
     for it in range(max_iters):
         max_change = max(
             _update_player(p, prep, w2, l2, inner_iters, tol)
@@ -215,7 +216,7 @@ def _fit(
 _skills_cache: TTLCache[frozenset[int], list[NamedSkill]] = TTLCache(maxsize=8, ttl=600)
 
 
-@cached(cache=_skills_cache, key=lambda games: frozenset(g.id for g in games))
+@locked_cached(cache=_skills_cache, key=lambda games: frozenset(g.id for g in games))
 def compute_player_skills(games: list[MatchInfo]) -> list[NamedSkill]:
     prep = _prepare(games)
     if not prep.games:

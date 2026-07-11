@@ -23,6 +23,7 @@ from collections import defaultdict
 from .api_types import (
     AcademyStats,
     KillEventOutput,
+    MapEventOutput,
     MatchDetails,
     ObjectSummary as APIObjectSummary,
     PlayerSummary as APIPlayerSummary,
@@ -34,6 +35,7 @@ from .apm import apm_over_time, apms_from_replay
 from .build_order import build_order_from_replay
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db_utils import DatabaseManager, ReplayManager
+from .replay_helpers import clean_object_name
 from .stats_extraction import (
     milestone_timings_from_replay,
     stats_data_from_replay,
@@ -46,16 +48,19 @@ logger = structlog.get_logger(__name__)
 
 
 # Bump this when the *logic* of match_details_from_replay (or any extractor it
-# calls) changes the output WITHOUT changing the MatchDetails schema — e.g.
+# calls) changes the output WITHOUT changing the MatchDetails schema - e.g.
 # extracting more data into an existing field, or fixing a computation. Schema
 # changes (new/renamed/retyped fields) are caught automatically by the
 # model_json_schema hash below, so you do NOT need to bump this for those.
 # v2: APM no longer explodes for players with a near-zero active window
-# (apm.py:_MIN_ACTIVE_MINUTES) — invalidates rows cached with the old garbage.
+# (apm.py:_MIN_ACTIVE_MINUTES) - invalidates rows cached with the old garbage.
 # v3: apm_over_time now uses 10s windows (was 1-min) scaled to an APM rate.
 # v4: body-path APM no longer counts periodic "Checksum" engine heartbeats as
 # player actions (the _NON_ACTIONS exclusion had a typo, "Chunksum").
-_DETAILS_LOGIC_VERSION = 4
+# v5: money/money_earned/money_spent time series drop rows identical to the
+# previous kept row (stats_extraction._drop_redundant_consecutive) - same
+# data, fewer wire entries.
+_DETAILS_LOGIC_VERSION = 5
 
 
 def _compute_details_version() -> str:
@@ -63,7 +68,7 @@ def _compute_details_version() -> str:
 
     The schema hash auto-invalidates persisted rows whenever the MatchDetails
     shape changes; the logic-version prefix lets us force-invalidate on
-    behavior changes that don't touch the shape. Computed once at import — the
+    behavior changes that don't touch the shape. Computed once at import - the
     schema is fixed for the life of the process.
     """
     schema_json = json.dumps(MatchDetails.model_json_schema(), sort_keys=True)
@@ -192,7 +197,7 @@ def load_match_details(
 def load_match_details_threadsafe(
     match_id: int, db_manager: DatabaseManager
 ) -> MatchDetails | None:
-    """Load match details with a fresh session — safe to call from any thread."""
+    """Load match details with a fresh session - safe to call from any thread."""
     from .db_utils import ReplayManager as _ReplayManager
 
     try:
@@ -264,6 +269,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     for kev in replay.stats.kill_events if replay.stats else []:
         killer_name = name_by_idx.get(kev.killer_player, "unk")
         victim_name = name_by_idx.get(kev.victim_player, "unk")
+        cost = unit_cost.get(kev.victim, 0)
         kill_events.append(
             KillEventOutput(
                 at_minute=kev.frame * scale,
@@ -274,9 +280,9 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
                 killer=kev.killer,
                 victim=kev.victim,
                 damage_type=kev.damage_type,
+                value=cost,
             )
         )
-        cost = unit_cost.get(kev.victim, 0)
         is_bldg = kev.victim_type == "structure"
         if killer_name != "unk":
             dest = bd_by_player if is_bldg else ud_by_player
@@ -286,6 +292,43 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             lost = bl_by_player if is_bldg else ul_by_player
             lost[victim_name][kev.victim][0] += 1
             lost[victim_name][kev.victim][1] += cost
+
+    # Map-positioned events for the replay-playback view: structures appearing
+    # (builds) and changing hands (captures). Units are intentionally excluded -
+    # they would flood the map and we only want the base-development picture.
+    map_events: list[MapEventOutput] = []
+    if replay.stats:
+        for bev in replay.stats.build_events:
+            if bev.object_type != "structure":
+                continue
+            pname = name_by_idx.get(bev.player)
+            if pname is None:
+                continue
+            map_events.append(
+                MapEventOutput(
+                    at_minute=bev.frame * scale,
+                    x=bev.x,
+                    y=bev.y,
+                    player_name=pname,
+                    kind="build",
+                    name=clean_object_name(bev.object),
+                )
+            )
+        for cev in replay.stats.capture_events:
+            pname = name_by_idx.get(cev.new_owner)
+            if pname is None:
+                continue
+            map_events.append(
+                MapEventOutput(
+                    at_minute=cev.frame * scale,
+                    x=cev.x,
+                    y=cev.y,
+                    player_name=pname,
+                    kind="capture",
+                    name=clean_object_name(cev.object),
+                )
+            )
+    map_events.sort(key=lambda e: e.at_minute)
 
     time_to_rank_5, time_to_search_destroy = milestone_timings_from_replay(
         replay, name_by_idx
@@ -302,6 +345,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         apms=apms,
         upgrade_events=upgrades,
         stats_data=stats_data.stats_data.model_dump() if stats_data else {},
+        income_by_source=stats_data.income_by_source if stats_data else {},
         player_money_spent=player_money_spent,
         player_money_collected=player_money_collected,
         first_blood=first_blood,
@@ -314,6 +358,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             buildings_lost=_to_obj_map(bl_by_player),
         ),
         kill_events=kill_events,
+        map_events=map_events,
         time_to_rank_5=time_to_rank_5,
         time_to_search_destroy=time_to_search_destroy,
         build_orders=build_orders,

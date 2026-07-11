@@ -151,7 +151,7 @@ def upload_replay(
     db_match = matches.replay_to_db_match(
         result.replay, result.json_path, is_dev=is_dev
     )
-    replay_manager.register_match(db_match)
+    _, created = replay_manager.register_match(db_match)
     replay_manager.compute_and_save_composition(db_match.match_id)
     invalidate_match_caches()
 
@@ -159,7 +159,10 @@ def upload_replay(
     if match_info is None:
         raise HTTPException(status_code=422, detail="Replay is too short or invalid")
     # Best-effort win prediction for the uploaded match (notifies pred vs actual).
-    ml_inference.predict_and_notify(match_info)
+    # Only for the upload that actually created the match: the other player's
+    # client uploads the same match moments later and would double-post.
+    if created:
+        ml_inference.predict_and_notify(match_info)
     return match_info
 
 
@@ -170,10 +173,9 @@ def register_replay_url(
 ) -> MatchInfo | None:
     """Register and parse a new replay from a URL."""
     existing = replay_manager.get_replay_file(url_of_replay)
-    if existing:
-        if existing.parsed_replay_json:
-            logger.info("Already parsed, skipping")
-            return None
+    if existing and existing.parsed_replay_json:
+        logger.info("Already parsed, skipping")
+        return None
     replay = replay_files.parse_replay(url_of_replay, replay_manager)
     return matches.reparse_replay(replay.replay_id, replay_manager)
 

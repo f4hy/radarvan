@@ -6,9 +6,11 @@ together via the `ReplayManager` facade in `radarvan.db_utils`.
 """
 
 from .base import BaseRepo
+from .bracket import BracketRepo
 from .details import MatchDetailsRepo
 from .maps import MapRepo
 from .matches import MatchDebugData, MatchRepo
+from .profiles import ProfileRepo
 from .replays import AllFilesForId, FileListing, ReplayRepo, ReplayToProcess
 from .stats import StatsRepo
 from .tournaments import TournamentRepo
@@ -18,12 +20,14 @@ from .votes import MapVoteRepo, VoteLimitExceeded
 __all__ = [
     "AllFilesForId",
     "BaseRepo",
+    "BracketRepo",
     "FileListing",
     "MapRepo",
     "MapVoteRepo",
     "MatchDebugData",
     "MatchDetailsRepo",
     "MatchRepo",
+    "ProfileRepo",
     "ReplayRepo",
     "ReplayToProcess",
     "StatsRepo",

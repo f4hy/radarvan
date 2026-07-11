@@ -21,7 +21,7 @@ def clean_object_name(name: str) -> str:
 
 
 def is_initial_seed_frame(frame: int) -> bool:
-    """True for events the engine emits at game start (frame ≤ 0) — game-spawned
+    """True for events the engine emits at game start (frame ≤ 0) - game-spawned
     Command Center / Dozer / Worker build events and the initial rank-1
     seed. We don't want them in the build-order or timeline views."""
     return frame <= 0

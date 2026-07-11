@@ -3,8 +3,8 @@
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import ml_inference
-from ..api_types import MatchPrediction, PredictRequest
+from .. import ml_inference, replay_files, winprob_inference
+from ..api_types import MatchPrediction, PredictRequest, WinProbOverTime
 from ..cache import sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
@@ -36,6 +36,34 @@ def predict_match(
         return ml_inference.predict_match_info(match)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.get("/api/predict/over_time/{match_id}")
+def predict_over_time(
+    match_id: int,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> WinProbOverTime:
+    """Win-probability-over-time curve for an existing match.
+
+    Streams the match's parsed replay JSON from S3 and runs the sequence ONNX
+    model, returning P(team A wins) at each 30-second window.
+    """
+    if not winprob_inference.model_available():
+        raise HTTPException(
+            status_code=503,
+            detail="win-probability model is not available on this server",
+        )
+    rep = replay_manager.get_replay_json_by_match_id(match_id)
+    if rep is None:
+        raise HTTPException(status_code=404, detail=f"match {match_id} not found")
+    replay = replay_files.parse_json(rep.json_s3_uri)
+    result = winprob_inference.predict_over_time(replay)
+    if result is None:
+        raise HTTPException(
+            status_code=422,
+            detail="match is not a usable 2-team game (cannot predict over time)",
+        )
+    return result
 
 
 @router.post("/api/predict")

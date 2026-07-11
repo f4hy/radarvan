@@ -17,6 +17,11 @@ dependencies = [
     "numpy>=2.5.0",
     "onnxruntime>=1.20.0",
     "openskill>=6.2.0",
+    "opentelemetry-api>=1.43.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.43.0",
+    "opentelemetry-instrumentation-fastapi>=0.64b0",
+    "opentelemetry-instrumentation-httpx>=0.64b0",
+    "opentelemetry-sdk>=1.43.0",
     "pillow>=11.0.0",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.0",
@@ -115,7 +120,30 @@ fix = true
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`) codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F", "UP", "RUF", "S", "C4"]
+#
+# Additions beyond the original set:
+#   B     flake8-bugbear      real bug patterns (mutable defaults, loop-var closures, etc.)
+#   ASYNC flake8-async        blocking calls in async def (httpx/sleep/open) - matches the
+#                             to_thread invariants documented in CLAUDE.md
+#   DTZ   flake8-datetimez    naive datetime/date usage - this codebase has explicit
+#                             UTC/Eastern game-night conversion rules to get right
+#   T20   flake8-print        no stray print() - project uses structlog everywhere
+#   PTH   flake8-use-pathlib  prefer pathlib over os.path
+#   SIM   flake8-simplify     obvious simplifications
+#   RET   flake8-return       redundant return/assign patterns
+#   PERF  Perflint            avoidable perf footguns (list(dict.keys()), etc.)
+#   A     flake8-builtins     shadowing builtins
+#
+# Deliberately NOT enabled:
+#   N (pep8-naming)  - N815 fires on every camelCase Pydantic wire field, which is an
+#                      intentional convention here (see api_types.py), not a bug.
+#   TRY (tryceratops)- TRY003 wants custom exception classes for every raise message;
+#                      too opinionated/invasive for this codebase's style.
+#   BLE (blind-except), ERA (commented-code) - both have a high false-positive rate here:
+#                      BLE flags the intentional best-effort except-Exception-and-notify
+#                      pattern used throughout ingestion; ERA mostly flags plain
+#                      descriptive comments, not actual dead code.
+select = ["E4", "E7", "E9", "F", "UP", "RUF", "S", "C4", "B", "ASYNC", "DTZ", "T20", "PTH", "SIM", "RET", "PERF", "A"]
 ignore = ["E501", "D", "RUF001", "E741"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -124,6 +152,14 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's DI pattern relies on calling these in argument defaults; that's the
+# idiomatic usage, not the mutable-default-argument bug B008 exists to catch.
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Header",
+    "fastapi.Cookie", "fastapi.Body", "fastapi.Form", "fastapi.File", "fastapi.Security",
+]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.

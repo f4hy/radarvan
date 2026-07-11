@@ -1,6 +1,6 @@
 """TournamentReport / TournamentStat repository."""
 
-from datetime import date
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -69,7 +69,7 @@ class TournamentRepo(BaseRepo):
 
             pydantic_stat = PydanticStatistic(
                 stat_name=db_stat.stat_name,
-                date_computed=db_stat.date_computed or date.today(),
+                date_computed=db_stat.date_computed or datetime.now(UTC).date(),
                 value=value,
                 player=db_stat.player,
                 match_id=db_stat.match_id,

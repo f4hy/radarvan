@@ -3,6 +3,7 @@ import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Loading from "./Loading"
+import { useFetch } from "./useFetch"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import List from "@mui/material/List"
@@ -47,21 +48,18 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { useIsAdmin } from "./AuthContext"
-import { winRate } from "./utils"
+import { winRate, wilsonLowerBound } from "./utils"
 import { CHART_WIN, CHART_LOSS } from "./theme"
 import WinRateRadar from "./WinRateRadar"
+import WinRateChip from "./WinRateChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
-function getPlayerStats(
-  gameFormat: GameFormat,
-  callback: (m: PlayerStats) => void,
-  onError = console.error,
-) {
+function fetchPlayerStats(gameFormat: GameFormat): Promise<PlayerStats> {
   const params = gameFormat === "All" ? {} : { gameFormat }
-  Client.getPlayerStatsApiPlayerstatsGet(params).then(callback).catch(onError)
+  return Client.getPlayerStatsApiPlayerstatsGet(params)
 }
 
 function toGeneral(s: string | number): General {
@@ -217,16 +215,15 @@ function PlayerBanner(props: {
 }
 
 function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
+  const wins = props.winLoss?.wins ?? 0
+  const losses = props.winLoss?.losses ?? 0
   return (
     <ListItem disableGutters dense>
       <ListItemAvatar>
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
-      <ListItemText
-        primary={`${toGeneralName(props.general)} [${props.winLoss?.wins ?? 0}:${
-          props.winLoss?.losses ?? 0
-        }]`}
-      />
+      <ListItemText primary={toGeneralName(props.general)} />
+      <WinRateChip wins={wins} losses={losses} />
     </ListItem>
   )
 }
@@ -428,7 +425,13 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
         ([generalNum, list]) =>
           [
             generalNum,
-            list.sort((a, b) => b.winRate - a.winRate).slice(0, 3),
+            list
+              .sort(
+                (a, b) =>
+                  wilsonLowerBound(b.wins, b.losses) -
+                  wilsonLowerBound(a.wins, a.losses),
+              )
+              .slice(0, 3),
           ] as const,
       )
   }, [props.playerStats])
@@ -438,7 +441,7 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h5">Best Player Per General</Typography>
         <Tooltip
-          title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown`}
+          title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown, ranked by the lower bound of the 95% Wilson confidence interval (so a well-sampled win rate beats a lucky small one)`}
         >
           <InfoOutlinedIcon
             fontSize="small"
@@ -662,19 +665,17 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
   )
 }
 
-const empty = { playerStats: [] }
-
 export default function DisplayPlayerStats() {
-  const [playerStats, setPlayerStats] = React.useState<PlayerStats>(empty)
   const [format, setFormat] = React.useState<GameFormat>("All")
   const debug = useIsAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    setPlayerStats(empty)
-    getPlayerStats(format, setPlayerStats, showError)
-  }, [format, showError])
+  const playerStats = useFetch(
+    () => fetchPlayerStats(format),
+    [format],
+    showError,
+  )
   const maxWinLoss = React.useMemo(() => {
-    const maxwl = playerStats.playerStats.reduce(
+    const maxwl = (playerStats?.playerStats ?? []).reduce(
       (acc, s) =>
         Math.max(
           acc,
@@ -687,9 +688,9 @@ export default function DisplayPlayerStats() {
       0,
     )
     return roundUpNearestN(maxwl + 1, 2)
-  }, [playerStats.playerStats])
+  }, [playerStats])
 
-  if (playerStats.playerStats.length === 0) {
+  if (!playerStats) {
     return <Loading />
   }
   return (

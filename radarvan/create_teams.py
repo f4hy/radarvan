@@ -1,4 +1,4 @@
-"""Balanced team construction — enumerates team splits and uses player ratings (with
+"""Balanced team construction - enumerates team splits and uses player ratings (with
 hand-tuned synergy adjustments for certain pairings) to pick the most even matchup."""
 
 from collections.abc import Iterable, Iterator, Mapping
@@ -7,7 +7,8 @@ from . import player_ids
 from radarvan.api_types import MatchInfo
 import structlog
 from .player_rating import get_model, compute_player_ratings, NamedRating
-from cachetools import TTLCache, cached
+from .utils import locked_cached
+from cachetools import TTLCache
 from cachetools.keys import hashkey
 from typing import Any
 
@@ -16,7 +17,7 @@ logger = structlog.get_logger(__name__)
 
 # Pairs that, when on the same team, are treated as slightly more balanced.
 # Value is a scale factor applied to the advantage (distance from 0.5):
-# win_pct = 0.5 + (win_pct - 0.5) * scale — 0.85 reduces a 10-point edge to 8.5 points.
+# win_pct = 0.5 + (win_pct - 0.5) * scale - 0.85 reduces a 10-point edge to 8.5 points.
 SAME_TEAM_FUDGE: dict[frozenset[str], float] = {
     frozenset({"Modus", "OneThree111"}): 0.9,
 }
@@ -36,7 +37,7 @@ def balance_teams_key(
     return hashkey(player_list)
 
 
-@cached(cache=TTLCache(maxsize=128, ttl=43200), key=balance_teams_key)
+@locked_cached(cache=TTLCache(maxsize=128, ttl=43200), key=balance_teams_key)
 def balance_teams(
     games: list[MatchInfo], player_list: frozenset[str]
 ) -> dict[tuple[str, ...], float]:
@@ -128,8 +129,8 @@ def create_balanced_teams(
     team_configs = dict(enumerate(partition_into_teams(resolved_players, team_size)))
 
     config_rating = {
-        id: rate_team_partition(team_config, player_ratings)
-        for id, team_config in team_configs.items()
+        config_id: rate_team_partition(team_config, player_ratings)
+        for config_id, team_config in team_configs.items()
     }
 
     best, _score = min(config_rating.items(), key=lambda x: x[1])

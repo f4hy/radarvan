@@ -25,7 +25,7 @@ class MapRepo(BaseRepo):
 
         Loads-or-creates the row and sets only the fields provided, so a
         geometry save without a CRC leaves any existing CRC untouched (and vice
-        versa via `set_map_crc`) — no `merge()`/`onupdate` NULL-clobber to guard.
+        versa via `set_map_crc`) - no `merge()`/`onupdate` NULL-clobber to guard.
         """
         row = self.session.get(MapData, map_name)
         if row is None:

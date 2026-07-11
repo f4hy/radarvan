@@ -41,7 +41,7 @@ _SUPERWEAPON_ACTIVATION_KEYWORDS = (
 _POWER_NAME_PREFIXES = ("SpecialAbility", "SpecialPower", "Superweapon")
 
 
-def _clean_power_name(raw: str) -> str:
+def clean_power_name(raw: str) -> str:
     """Strip per-general/faction prefixes and the SpecialPower/Superweapon tag.
 
     The faction strip runs twice: once in `clean_object_name` to handle a
@@ -67,16 +67,16 @@ def timeline_events_from_replay(
     events: list[TimelineEvent] = []
 
     for player_name, ups in upgrades_by_player.items():
-        for u in ups.upgrades:
-            events.append(
-                TimelineEvent(
-                    player_name=player_name,
-                    at_minute=u.at_minute,
-                    event_name=clean_object_name(u.upgrade_name),
-                    event_type="upgrade",
-                    cost=u.cost,
-                )
+        events.extend(
+            TimelineEvent(
+                player_name=player_name,
+                at_minute=u.at_minute,
+                event_name=clean_object_name(u.upgrade_name),
+                event_type="upgrade",
+                cost=u.cost,
             )
+            for u in ups.upgrades
+        )
 
     for chunk in replay.body:
         if chunk.order_name not in ("SpecialPowerAtLocation", "SpecialPowerAtObject"):
@@ -96,7 +96,7 @@ def timeline_events_from_replay(
             TimelineEvent(
                 player_name=chunk.player_name,
                 at_minute=chunk.time_code * scale,
-                event_name=_clean_power_name(raw_name) or raw_name,
+                event_name=clean_power_name(raw_name) or raw_name,
                 event_type=event_type,
                 cost=0,
             )

@@ -11,6 +11,7 @@ from datetime import datetime
 import structlog
 
 from sqlalchemy import or_, select, func
+from sqlalchemy.exc import IntegrityError
 
 from ..db import (
     Match,
@@ -50,18 +51,35 @@ class MatchRepo(BaseRepo):
     def get_match(self, match_id: int) -> Match | None:
         return self.session.get(Match, match_id)
 
-    def register_match(self, db_match: Match) -> Match:
-        """Insert a new Match. If one already exists with this match_id, return it."""
+    def register_match(self, db_match: Match) -> tuple[Match, bool]:
+        """Insert a new Match; return (match, created).
+
+        created is False when a match with this match_id already exists,
+        including when a concurrent request inserts it between our existence
+        check and the commit (both players' clients upload the same match at
+        game end, so this races routinely).
+        """
         logger.info("registering match", match=db_match)
         existing = self.session.get(Match, db_match.match_id)
         if existing is not None:
             logger.warning("match already exists", match_id=db_match.match_id)
-            return existing
+            return existing, False
         self.session.add(db_match)
-        self._commit_if_auto()
+        try:
+            self.session.flush()
+            self._commit_if_auto()
+        except IntegrityError:
+            self.session.rollback()
+            existing = self.session.get(Match, db_match.match_id)
+            if existing is None:
+                raise
+            logger.warning(
+                "match registered concurrently", match_id=db_match.match_id
+            )
+            return existing, False
         if self.notify:
             notify(f"Registered Match {db_match}")
-        return db_match
+        return db_match, True
 
     def update_match(self, new_match: Match) -> Match | None:
         """Replace the existing match record with data from new_match."""
@@ -101,10 +119,6 @@ class MatchRepo(BaseRepo):
             .options(selectinload(Match.players))
             .options(selectinload(Match.replay_json))
         )
-        return list(self.session.scalars(stmt).all())
-
-    def list_matches_without_game_version(self, limit: int = 10) -> list[Match]:
-        stmt = select(Match).where(Match.game_version.is_(None)).limit(limit)
         return list(self.session.scalars(stmt).all())
 
     def list_matches_with_winner_but_incomplete(

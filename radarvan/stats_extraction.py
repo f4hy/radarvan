@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
+from .cncstats_model.statsfile import IncomeBySource
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .utils import minutes_per_step
 
@@ -46,8 +47,55 @@ class StatsData(BaseModel):
 
 class AllExtractedData(BaseModel):
     stats_data: StatsData
+    # Cumulative income broken down by source, keyed by the IncomeBySource
+    # field name ("supply", "oil_derrick", ...). Only populated when cncstats
+    # supplied `incomeBySource` for this replay (newer replay versions only).
+    # Sparse to keep the wire payload small: an all-zero source is omitted, a
+    # player who never earned from a source is omitted from that source's
+    # snapshots, and only change-boundary snapshots are kept - so a missing
+    # source/player/timestep means "zero" / "unchanged", never "unknown".
+    income_by_source: dict[str, dict[float, dict[str, int]]]
     first_blood: FirstBlood | None
     building_first_blood: FirstBlood | None
+
+
+# The replay model owns the source list; a source added there flows through
+# extraction (and the wire dict) without further edits here.
+_INCOME_SOURCES = tuple(IncomeBySource.model_fields)
+
+# Trickle sources (supply, black market, hacker) change on nearly every
+# snapshot, so "only changed snapshots" alone can't bound the payload for a
+# long game. Cap the kept grid: a details chart is well under a thousand
+# pixels wide, so ~300 points is visually lossless while keeping the wire
+# size and recharts render cost flat regardless of match length.
+_MAX_INCOME_SNAPSHOTS = 300
+
+
+def _sparse_keep_indices(
+    series: list[list[int]], num_snapshots: int, max_points: int
+) -> list[int]:
+    """Snapshot indices worth emitting for a set of cumulative series.
+
+    Keeps the endpoints and every index where some series changes value - plus
+    the index right before each change, so plateaus keep their shape when the
+    consumer interpolates between kept points - then thins by a uniform stride
+    if still over ``max_points`` (the endpoints always survive)."""
+    keep: set[int] = {0, num_snapshots - 1}
+    for vals in series:
+        if len(keep) >= num_snapshots:
+            break
+        for i in range(1, len(vals)):
+            if vals[i] != vals[i - 1]:
+                keep.add(i)
+                keep.add(i - 1)
+    kept = sorted(keep)
+    if len(kept) > max_points:
+        stride = -(-len(kept) // max_points)  # ceil division
+        last = kept[-1]
+        kept = kept[::stride]
+        if kept[-1] != last:
+            kept.append(last)
+    return kept
 
 
 def _is_building(name: str | None) -> bool:
@@ -66,6 +114,24 @@ def _event_counts_to_series(
         for name, delta in deltas_by_frame[frame].items():
             cumulative[name] = cumulative.get(name, 0) + delta
         result[frame * scale] = dict(cumulative)
+    return result
+
+
+def _drop_redundant_consecutive(
+    series: dict[float, dict[str, int]],
+) -> dict[float, dict[str, int]]:
+    """Drop rows identical to the previously kept row (the first row always stays).
+
+    Lossless: a straight line between two equal-valued points looks the same
+    whether or not identical points sit between them, so a flat run only needs
+    its starting point.
+    """
+    result: dict[float, dict[str, int]] = {}
+    last: dict[str, int] | None = None
+    for t, values in series.items():
+        if values != last:
+            result[t] = values
+            last = values
     return result
 
 
@@ -99,15 +165,52 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
         money_spent[frame * scale] = {
             name_by_idx[p.index]: p.money_spent[snap_idx]
             for p in ts_players
-            if snap_idx < len(p.money_earned)
+            if snap_idx < len(p.money_spent)
         }
         money[frame * scale] = {
             name_by_idx[p.index]: p.money[snap_idx]
             for p in ts_players
-            if snap_idx < len(p.money_earned)
+            if snap_idx < len(p.money)
         }
+    money_earned = _drop_redundant_consecutive(money_earned)
+    money_spent = _drop_redundant_consecutive(money_spent)
+    money = _drop_redundant_consecutive(money)
 
-    # xp from skillPointsEvents — each event records the player's current total
+    # income_by_source: only cncstats replay versions newer than statsVersion 1
+    # populate this per-player. The dense form (every source x player x
+    # snapshot) is mostly zeros and repeats, so emit it sparse (see the
+    # AllExtractedData field comment). The series are cumulative, so a
+    # (source, player) pair earned anything iff its final value is nonzero.
+    pruned: dict[str, list[tuple[str, list[int]]]] = {}
+    for src in _INCOME_SOURCES:
+        entries = []
+        for p in ts_players:
+            if p.income_by_source is None:
+                continue
+            vals: list[int] = getattr(p.income_by_source, src)
+            if vals and vals[-1] != 0:
+                entries.append((name_by_idx[p.index], vals))
+        if entries:
+            pruned[src] = entries
+    income_by_source: dict[str, dict[float, dict[str, int]]] = {
+        src: {} for src in pruned
+    }
+    if pruned:
+        kept = _sparse_keep_indices(
+            [vals for entries in pruned.values() for _, vals in entries],
+            num_snapshots,
+            _MAX_INCOME_SNAPSHOTS,
+        )
+        for snap_idx in kept:
+            minute = snap_idx * interval * scale
+            for src, entries in pruned.items():
+                income_by_source[src][minute] = {
+                    name: vals[snap_idx]
+                    for name, vals in entries
+                    if snap_idx < len(vals)
+                }
+
+    # xp from skillPointsEvents - each event records the player's current total
     xp: dict[float, dict[str, int]] = {}
     current_xp: dict[str, int] = dict.fromkeys(all_players, 0)
     xp_by_frame: dict[int, dict[str, int]] = defaultdict(dict)
@@ -197,6 +300,7 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     )
     return AllExtractedData(
         stats_data=sd,
+        income_by_source=income_by_source,
         first_blood=first_blood,
         building_first_blood=building_first_blood,
     )

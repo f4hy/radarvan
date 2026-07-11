@@ -1,7 +1,7 @@
 """Player stats, ratings, skills, balance, partitioning endpoints."""
 
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 
 from .. import (
     create_teams,
+    head_to_head,
     matches,
     player_ids,
     player_rating,
@@ -19,7 +20,9 @@ from .. import (
 )
 from ..api_types import (
     HeadToHead,
+    HeadToHeadDetail,
     PlayerGameCount,
+    PlayerName,
     PlayerRatings,
     PlayerRatingData,
     PlayerRatingDailyChange,
@@ -62,6 +65,16 @@ def get_player_stats(
     )
 
 
+@router.get("/api/player_colors/", dependencies=[Depends(cache_short)])
+def get_player_colors(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Each player's most common actual in-game color, keyed by player name -
+    used as their primary identity color in the UI (see PlayerChip)."""
+    all_games = sorted_deduped_matches(replay_manager)
+    return player_stats.most_common_colors(list(all_games.values()))
+
+
 @router.get("/api/player_game_counts/team/", dependencies=[Depends(cache_short)])
 def get_player_team_game_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -101,15 +114,21 @@ def get_player_ratings(
     game_format: str | None = Query(
         None, description="Filter by game format: 2v2, 3v3, 4v4"
     ),
+    months_back: int | None = Query(
+        None,
+        ge=1,
+        description="Only use matches from the last N months to compute ratings",
+    ),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerRatingData:
     games = competitive_matches(replay_manager)
     game_list = matches.filter_by_format(list(games.values()), game_format)
+    game_list = matches.filter_by_months_back(game_list, months_back)
 
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     counts = ratings_and_counts.game_counts
 
-    today = date.today()
+    today = datetime.now(UTC).date()
     seven_days_ago = today - timedelta(days=7)
     fourteen_days_ago = today - timedelta(days=14)
     thirty_days_ago = today - timedelta(days=30)
@@ -194,10 +213,9 @@ def get_rating_upsets(
     games = competitive_matches(replay_manager)
     game_list = matches.filter_by_format(list(games.values()), game_format)
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
-    upsets = ratings_and_counts.upsets
-    if within_days is not None:
-        cutoff = date.today() - timedelta(days=within_days)
-        upsets = [u for u in upsets if u.at_date >= cutoff]
+    upsets = matches.filter_since(
+        ratings_and_counts.upsets, within_days, key=lambda u: u.at_date
+    )
     if min_surprise > 0.0:
         upsets = [u for u in upsets if u.surprise >= min_surprise]
     return [
@@ -344,6 +362,27 @@ def get_head_to_head(
     }
 
 
+@router.get("/api/player_head_to_head/", dependencies=[Depends(cache_short)])
+def get_player_head_to_head(
+    player1: PlayerName,
+    player2: PlayerName,
+    game_format: str | None = Query(
+        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
+    ),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> HeadToHeadDetail:
+    """Detailed head-to-head record between two players (opposite-team games only).
+
+    Considers competitive games where both players took part on *different* teams;
+    the winner of each game is the side whose team won. Aggregates the overall
+    record, each player's record by the general they piloted, and the record by
+    map, plus the full game list (most recent first).
+    """
+    games = list(competitive_matches(replay_manager).values())
+    game_list = matches.filter_by_format(games, game_format)
+    return head_to_head.compute_head_to_head(game_list, player1, player2)
+
+
 @router.get("/api/balance_teams/")
 def balance_teams(
     players: list[str] = Query(default=[]),
@@ -366,12 +405,12 @@ def balance_teams(
 @router.get("/api/partition_teams/{team_size}")
 def partition_teams(
     team_size: int = 2,
-    players: SelectedPlayers = Query(default=SelectedPlayers(players=[])),
+    players: SelectedPlayers = Query(
+        default_factory=lambda: SelectedPlayers(players=[])
+    ),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[list[str]]:
     games = list(competitive_matches(replay_manager).values())
-    teams = create_teams.create_balanced_teams(
+    return create_teams.create_balanced_teams(
         games, player_list={str(p.value) for p in players.players}, team_size=team_size
     )
-
-    return teams

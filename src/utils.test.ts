@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest"
 import {
   winRate,
+  wilsonInterval,
+  wilsonLowerBound,
   displayMapName,
   getColorHex,
   playerColor,
@@ -16,6 +18,57 @@ describe("winRate", () => {
 
   it("returns 0 when there are no games (no divide by zero)", () => {
     expect(winRate(0, 0)).toBe(0)
+  })
+})
+
+describe("wilsonInterval", () => {
+  it("returns a degenerate zero interval for no games", () => {
+    expect(wilsonInterval(0, 0)).toEqual({ rate: 0, low: 0, high: 0, n: 0 })
+  })
+
+  it("reports the raw win rate as the point estimate", () => {
+    const ci = wilsonInterval(3, 1)
+    expect(ci.rate).toBeCloseTo(0.75, 10)
+    expect(ci.n).toBe(4)
+  })
+
+  it("brackets the point estimate with low <= rate <= high", () => {
+    const ci = wilsonInterval(7, 3)
+    expect(ci.low).toBeLessThanOrEqual(ci.rate)
+    expect(ci.high).toBeGreaterThanOrEqual(ci.rate)
+  })
+
+  it("clamps the bounds to [0, 1]", () => {
+    const perfect = wilsonInterval(5, 0)
+    expect(perfect.low).toBeGreaterThanOrEqual(0)
+    expect(perfect.high).toBeLessThanOrEqual(1)
+    const winless = wilsonInterval(0, 5)
+    expect(winless.low).toBeGreaterThanOrEqual(0)
+    expect(winless.high).toBeLessThanOrEqual(1)
+  })
+
+  it("gives a wider interval for smaller samples at the same rate", () => {
+    const small = wilsonInterval(1, 0)
+    const large = wilsonInterval(50, 0)
+    expect(large.low).toBeGreaterThan(small.low)
+  })
+
+  it("matches the known Wilson value for 50/50 of 10 (z=1.96)", () => {
+    // phat=0.5, n=10 -> 95% CI is ~0.237..0.763.
+    const ci = wilsonInterval(5, 5)
+    expect(ci.low).toBeCloseTo(0.2366, 3)
+    expect(ci.high).toBeCloseTo(0.7634, 3)
+  })
+})
+
+describe("wilsonLowerBound", () => {
+  it("ranks a well-sampled record above a lucky small one", () => {
+    // A perfect 1-0 looks like 100% but is uncertain; 9-1 is more trustworthy.
+    expect(wilsonLowerBound(9, 1)).toBeGreaterThan(wilsonLowerBound(1, 0))
+  })
+
+  it("is the low bound of the interval", () => {
+    expect(wilsonLowerBound(7, 3)).toBe(wilsonInterval(7, 3).low)
   })
 })
 

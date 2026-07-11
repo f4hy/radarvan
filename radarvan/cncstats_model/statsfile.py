@@ -55,6 +55,19 @@ class EnergyEvent(BaseModel):
     production: int
 
 
+class IncomeBySource(BaseModel):
+    black_market: Annotated[list[int], Field(alias="blackMarket")]
+    bounty: list[int]
+    crate: list[int]
+    hacker: list[int]
+    oil_derrick: Annotated[list[int], Field(alias="oilDerrick")]
+    other: list[int]
+    salvage: list[int]
+    supply: list[int]
+    supply_drop: Annotated[list[int], Field(alias="supplyDrop")]
+    theft: list[int]
+
+
 class RadarEvent(BaseModel):
     frame: int
     has_radar: Annotated[bool, Field(alias="hasRadar")]
@@ -84,6 +97,9 @@ class TimeSeriesPlayer(BaseModel):
     money: list[int]
     money_earned: Annotated[list[int], Field(alias="moneyEarned")]
     money_spent: Annotated[list[int], Field(alias="moneySpent")]
+    income_by_source: Annotated[
+        IncomeBySource | None, Field(alias="incomeBySource")
+    ] = None
 
 
 class TimeSeries(BaseModel):

@@ -9,12 +9,13 @@ import AccordionSummary from "@mui/material/AccordionSummary"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Card from "@mui/material/Card"
+import Collapse from "@mui/material/Collapse"
+import IconButton from "@mui/material/IconButton"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
-import ListItem from "@mui/material/ListItem"
-import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 
@@ -112,7 +113,7 @@ function StatusBand(props: {
     <Box
       sx={{
         bgcolor: props.color,
-        color: "#fff",
+        color: "common.white",
         px: 1.5,
         py: 0.5,
         display: "flex",
@@ -158,7 +159,8 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
       <Stack divider={<Divider />}>
         {props.players.map((p) => (
           <Box
-            key={p.name + "-" + p.general}
+            // Color is unique per player in a match; names aren't (twin CPUs).
+            key={`${p.name}-${p.color}`}
             sx={{
               display: "flex",
               alignItems: "center",
@@ -208,6 +210,112 @@ function FfaPlayerCard(props: { player: Player }) {
   )
 }
 
+// Shared frame for one match so consecutive matches in a day read as distinct
+// panels: a white surface lifted off the grey page with a hairline border + soft
+// shadow, padded so the inner team cards sit inside a clear boundary.
+const MATCH_CARD_SX = {
+  width: "99%",
+  maxWidth: 1600,
+  borderRadius: 2,
+  bgcolor: "background.paper",
+  p: 1.5,
+  mb: 2.5,
+  boxShadow: 1,
+} as const
+
+// Compact, scannable match header shared by the FFA and team cards: the key
+// facts (format, map, length) read on one line; date/version/id are demoted to a
+// muted caption, with a small secondary action (download) at the top-right. The
+// winner is intentionally omitted — each team card carries a "Won/Lost" band.
+function MatchHeader(props: {
+  match: MatchInfo
+  formatLabel: string
+  action?: React.ReactNode
+}) {
+  const { match } = props
+  const mapName = match.map.split("/").slice(-1)[0]
+  const date = match.timestamp.toLocaleString("en-US", {
+    timeZoneName: "short",
+  })
+  return (
+    <Stack
+      direction="row"
+      justifyContent="space-between"
+      alignItems="flex-start"
+      spacing={1}
+      sx={{ width: "100%" }}
+    >
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        flexWrap="wrap"
+        sx={{ minWidth: 0 }}
+      >
+        <Chip label={props.formatLabel} size="small" variant="outlined" />
+        <Typography variant="body2" fontWeight={600}>
+          {mapName}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {match.durationMinutes.toFixed(1)} min · {date} · v{match.gameVersion}{" "}
+          · ID {match.id}
+        </Typography>
+      </Stack>
+      {props.action}
+    </Stack>
+  )
+}
+
+// Small, secondary download action that lives in the header rather than as a
+// full-width button below the match.
+function DownloadReplayButton(props: { matchId: number; filename: string }) {
+  return (
+    <Tooltip
+      title={`Download replay (${props.filename.split("/").pop() ?? "rep"})`}
+    >
+      <IconButton
+        size="small"
+        aria-label="Download replay"
+        onClick={() => downloadReplay(props.matchId, props.filename)}
+      >
+        <DownloadIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  )
+}
+
+// An accordion-style expander for the heavy match details: full-width row with a
+// rotating chevron. The caller renders the details inside a <Collapse> with
+// unmountOnExit so they aren't fetched until the row is first opened.
+function DetailsExpander(props: { open: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      fullWidth
+      onClick={props.onToggle}
+      endIcon={
+        <ExpandMoreIcon
+          sx={{
+            transform: props.open ? "rotate(180deg)" : "none",
+            transition: "transform 0.2s",
+          }}
+        />
+      }
+      sx={{
+        mt: 1,
+        py: 0.75,
+        justifyContent: "space-between",
+        color: "text.secondary",
+        borderTop: 1,
+        borderColor: "divider",
+        borderRadius: 0,
+        "&:hover": { bgcolor: "action.hover" },
+      }}
+    >
+      {props.open ? "Hide match details" : "Show match details"}
+    </Button>
+  )
+}
+
 function FfaMatchDisplay(props: { match: MatchInfo }) {
   const { match } = props
   const [details, setDetails] = React.useState<boolean>(false)
@@ -215,50 +323,27 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
     () => buildPlayerPositions(match.players),
     [match.players],
   )
-  // Timestamps are stored UTC; render in the viewer's local zone with the zone
-  // abbreviation (users span US Eastern/Mountain/Pacific) so the time is unambiguous.
-  const date = match.timestamp.toLocaleString("en-US", {
-    timeZoneName: "short",
-  })
-  const header = (
-    <Box>
-      <Typography variant="body2" fontWeight="bold">
-        FFA · {date}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Map: {match.map.split("/").slice(-1)} ·{" "}
-        {match.durationMinutes.toFixed(1)}min · v{match.gameVersion} · ID:
-        {match.id}
-      </Typography>
-    </Box>
-  )
   return (
-    <Box sx={{ width: "99%", maxWidth: 1600, mb: 2 }}>
-      <ListItem>
-        <ListItemText primary={header} />
-      </ListItem>
-      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ p: 1 }}>
+    <Paper variant="outlined" sx={MATCH_CARD_SX}>
+      <MatchHeader
+        match={match}
+        formatLabel="FFA"
+        action={
+          <DownloadReplayButton matchId={match.id} filename={match.filename} />
+        }
+      />
+      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
         {match.players.map((p) => (
-          <FfaPlayerCard key={p.name} player={p} />
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          <FfaPlayerCard key={`${p.name}-${p.color}`} player={p} />
         ))}
         <GameMap mapname={match.map} playerPositions={playerPositions} />
       </Stack>
-      <Stack direction="row">
-        <Button variant="contained" onClick={() => setDetails(!details)}>
-          Match Details
-        </Button>
-        <Tooltip title={match.filename}>
-          <Button
-            variant="contained"
-            onClick={() => downloadReplay(match.id, match.filename)}
-            endIcon={<DownloadIcon />}
-          >
-            Download Replay
-          </Button>
-        </Tooltip>
-      </Stack>
-      {details ? <ShowMatchDetails id={match.id} /> : null}
-    </Box>
+      <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
+      <Collapse in={details} unmountOnExit>
+        <ShowMatchDetails id={match.id} />
+      </Collapse>
+    </Paper>
   )
 }
 
@@ -282,23 +367,6 @@ function downloadReplay(matchId: number, fallbackUrl: string) {
     .catch(console.error)
 }
 
-function displayTeam(team: Team): string {
-  switch (team) {
-    case Team.NUMBER_0:
-      return "No Team"
-    case Team.NUMBER_1:
-      return "Team 1"
-    case Team.NUMBER_2:
-      return "Team 2"
-    case Team.NUMBER_3:
-      return "Team 3"
-    case Team.NUMBER_4:
-      return "Team 4"
-    default:
-      return "Unknown Team"
-  }
-}
-
 export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
   match: MatchInfo
   idx: number
@@ -313,53 +381,44 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
     return <FfaMatchDisplay match={props.match} />
   }
 
-  const date = props.match.timestamp.toLocaleString("en-US", {
-    timeZoneName: "short",
-  })
-  const winningTeam = displayTeam(props.match.winningTeam)
   let header = (
-    <Box>
-      <Typography variant="body2" fontWeight="bold">
-        {props.match.composition?.category} · Winner: {winningTeam} · {date}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Map: {props.match.map.split("/").slice(-1)} ·{" "}
-        {props.match.durationMinutes.toFixed(1)}min · v{props.match.gameVersion}{" "}
-        · ID:{props.match.id}
-      </Typography>
-    </Box>
+    <MatchHeader
+      match={props.match}
+      formatLabel={props.match.composition?.category ?? "?"}
+    />
   )
 
   const teams = _.groupBy(props.match.players, "team")
 
-  const paperprops: Record<string, string | number> = {
-    width: "99%",
-    maxWidth: 1600,
-    borderRadius: 3,
-    bgcolor: "transparent",
-    border: "none",
-    mb: 2,
-  }
+  const paperprops: Record<string, string | number> = { ...MATCH_CARD_SX }
   const incomplete = (props.match.incomplete ?? "").length !== 0
   const matchDisplay = (
     <Paper sx={paperprops} variant="outlined">
-      <ListItem key="match">
-        <ListItemText key="match-text" primary={header} />
-        {props.match?.notes?.length ? (
-          <Typography color="warning.main" style={{ fontWeight: "bold" }}>
-            {props.match.notes}
-          </Typography>
-        ) : null}
-        {incomplete ? (
-          <Typography color="error.main" style={{ fontWeight: "bold" }}>
-            {props.match.incomplete}
-          </Typography>
-        ) : null}
-      </ListItem>
+      <MatchHeader
+        match={props.match}
+        formatLabel={props.match.composition?.category ?? "?"}
+        action={
+          <DownloadReplayButton
+            matchId={props.match.id}
+            filename={props.match.filename}
+          />
+        }
+      />
+      {props.match?.notes?.length ? (
+        <Typography color="warning.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+          {props.match.notes}
+        </Typography>
+      ) : null}
+      {incomplete ? (
+        <Typography color="error.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+          {props.match.incomplete}
+        </Typography>
+      ) : null}
       <Stack
         direction="row"
         justifyContent="flex-start"
         flexWrap={{ xs: "wrap", md: "nowrap" }}
+        sx={{ mt: 1 }}
       >
         {Object.values(teams).map((team) => (
           <TeamCard
@@ -375,32 +434,21 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
           />
         </Box>
       </Stack>
-      <Stack direction="row">
-        <Button variant="contained" onClick={() => setDetails(!details)}>
-          Match Details
-        </Button>
-        <Tooltip title={props.match.filename}>
-          <Button
-            variant="contained"
-            onClick={() => downloadReplay(props.match.id, props.match.filename)}
-            endIcon={<DownloadIcon />}
-          >
-            Download Replay
-          </Button>
-        </Tooltip>
-      </Stack>
-      {details ? <ShowMatchDetails id={props.match.id} /> : null}
+      <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
+      <Collapse in={details} unmountOnExit>
+        <ShowMatchDetails id={props.match.id} />
+      </Collapse>
     </Paper>
   )
 
   if (props.match.incomplete) {
-    paperprops["bgcolor"] = "text.disabled"
-    paperprops["borderColor"] = "red"
+    paperprops["bgcolor"] = "action.disabledBackground"
+    paperprops["borderColor"] = "error.main"
     return (
       <Accordion defaultExpanded={false}>
         <AccordionSummary
           expandIcon={<ArrowDownwardIcon />}
-          sx={{ bgcolor: "text.disabled" }}
+          sx={{ bgcolor: "action.hover" }}
         >
           <Typography color="error.main">Mismatch: </Typography>
           {header}
@@ -420,8 +468,12 @@ function MatchDateSummary(props: {
   matches: MatchInfo[]
   ratingChanges?: PlayerRatingDailyChange[]
 }) {
-  const date = new Date(props.date)
-  date.setDate(date.getDate() + 2)
+  // props.date is the backend's game-night date key ("YYYY-MM-DD"). Construct
+  // it in local time so it renders as that exact calendar day in every
+  // timezone — new Date("YYYY-MM-DD") parses as UTC midnight, which displays
+  // as the previous evening anywhere west of UTC.
+  const [year, month, day] = props.date.split("-").map(Number)
+  const date = new Date(year, month - 1, day)
   const categoryChips =
     props.matches.length > 0
       ? Object.entries(
@@ -442,6 +494,7 @@ function MatchDateSummary(props: {
     if (props.matches.length === 0) return []
     const wl: Record<string, { w: number; l: number }> = {}
     for (const m of props.matches) {
+      if (m.incomplete) continue
       for (const p of m.players) {
         if (p.team === Team.NUMBER_MINUS_1) continue
         if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
@@ -508,7 +561,7 @@ function MatchDateSummary(props: {
 }
 
 function DisplayMatchesForDate(props: {
-  date: Date
+  dateStr: string // backend game-night date key, "YYYY-MM-DD"
   count: number
   idx: number
   selected: boolean
@@ -520,16 +573,20 @@ function DisplayMatchesForDate(props: {
   >([])
   const { showError, errorSnackbar } = useErrorSnackbar()
   const isAdmin = useIsAdmin()
+  // The generated client serializes Date params via toISOString() (UTC), so
+  // the API param must be UTC midnight of the backend's date key — which is
+  // exactly what new Date("YYYY-MM-DD") produces. Display uses the raw string.
+  const apiDate = React.useMemo(() => new Date(props.dateStr), [props.dateStr])
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
-      getMatches(props.date, setMatchList, !isAdmin, showError)
+      getMatches(apiDate, setMatchList, !isAdmin, showError)
       Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
-        forDate: props.date,
+        forDate: apiDate,
       })
         .then(setRatingChanges)
         .catch(showError)
     }
-  }, [expanded, matchList.matches.length, props.date, showError, isAdmin])
+  }, [expanded, matchList.matches.length, apiDate, showError, isAdmin])
 
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -537,10 +594,9 @@ function DisplayMatchesForDate(props: {
     },
     [],
   )
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-  const date = fmt(props.date)
-  const borderProps = props.selected ? { border: "3px solid green" } : {}
+  const borderProps = props.selected
+    ? { borderColor: "primary.main", borderWidth: 2, borderStyle: "solid" }
+    : {}
   return (
     <>
       <Accordion
@@ -550,7 +606,7 @@ function DisplayMatchesForDate(props: {
       >
         <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
           <MatchDateSummary
-            date={date}
+            date={props.dateStr}
             count={props.count}
             matches={matchList.matches}
             ratingChanges={ratingChanges}
@@ -585,10 +641,10 @@ function groupByYear(
 
 function getEndDate(date: Date): Date {
   const now = new Date()
-  if (date.getFullYear() === now.getFullYear()) {
+  if (date.getUTCFullYear() === now.getUTCFullYear()) {
     return now
   }
-  return new Date(date.getFullYear(), 11, 31)
+  return new Date(Date.UTC(date.getUTCFullYear(), 11, 31))
 }
 
 function toActivityData(dateCounts: Record<string, number>) {
@@ -600,7 +656,14 @@ function toActivityData(dateCounts: Record<string, number>) {
   const maxCount = Math.max(...Object.values(dateCounts))
 
   const data = []
-  for (let d = new Date(yearStart); d <= end; d.setDate(d.getDate() + 1)) {
+  // Step in UTC: the date keys come from toISOString() (UTC), and yearStart is
+  // UTC midnight, so advancing by local days would let a DST shift knock every
+  // subsequent key off by one in some timezones.
+  for (
+    let d = new Date(yearStart);
+    d <= end;
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
     const dateStr = d.toISOString().split("T")[0]
     const count = dateCounts[dateStr] ?? 0
     const level =
@@ -741,7 +804,7 @@ export default function DisplayMatches() {
           }}
         >
           <DisplayMatchesForDate
-            date={new Date(date)}
+            dateStr={date}
             count={count}
             idx={idx}
             selected={date === selectedDate}

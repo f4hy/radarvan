@@ -10,7 +10,7 @@ of its map. This module:
   3. Downloads the cncstats zip, extracts the `.tga` and `.map`.
   4. Converts the `.tga` to `.webp` and uploads all three to S3.
 
-The `.map` is uploaded but not parsed here — the geometry payload is produced
+The `.map` is uploaded but not parsed here - the geometry payload is produced
 by the separate `mapparse` binary which is not run from this module.
 """
 
@@ -98,7 +98,7 @@ def list_missing_maps(replay_manager: ReplayManager) -> list[MissingMap]:
         base = _basename(raw_path or "")
         if not base or base == "unknown":
             continue
-        # Strip a trailing .map extension before comparing — MapData entries
+        # Strip a trailing .map extension before comparing - MapData entries
         # are stored without extension in some cases.
         compare = base.removesuffix(".map")
         if compare in existing or base in existing:
@@ -163,7 +163,7 @@ def crc_for_map(map_name: str, replay_manager: ReplayManager) -> str | None:
     """Best-effort CRC (hex) for a map: stored value, else a match's replay.
 
     Prefers the CRC stored on MapData; otherwise derives it from a match played
-    on this map (the replay JSON's mapCrc — the authoritative game value) and
+    on this map (the replay JSON's mapCrc - the authoritative game value) and
     writes it back to MapData when a row exists. Returns None if neither source
     has it. Never raises: a failed lookup degrades to None.
     """
@@ -312,11 +312,11 @@ async def sync_stored_map_to_cncstats(
 ) -> tuple[str, bool]:
     """Ensure cncstats has an S3-hosted map; push it only if missing.
 
-    Returns ``(crc_hex, pushed)`` — ``pushed`` is False when cncstats already had
+    Returns ``(crc_hex, pushed)`` - ``pushed`` is False when cncstats already had
     the map (checked via /map_exists). When the CRC is already known and cncstats
     has it, no S3 read happens at all. Blocking S3 reads run in a worker thread so
     many maps sync concurrently. Recording the CRC / synced state is the caller's
-    job — the DB session is not safe for concurrent use.
+    job - the DB session is not safe for concurrent use.
     """
     client = cncstats_client.cncstats_client()
     # Fast path: known CRC already on cncstats -> nothing to read or push.
@@ -448,7 +448,7 @@ def fetch_and_upload(
 
 def mapparse_available() -> bool:
     """Return True if the mapparse binary is reachable on this host."""
-    if os.path.isfile(MAPPARSE_BIN) and os.access(MAPPARSE_BIN, os.X_OK):
+    if Path(MAPPARSE_BIN).is_file() and os.access(MAPPARSE_BIN, os.X_OK):
         return True
     return shutil.which(MAPPARSE_BIN) is not None
 
@@ -467,7 +467,7 @@ def parse_map_file(map_bytes: bytes) -> MapDataPayload:
         tf.write(map_bytes)
         tmp_path = tf.name
     try:
-        result = subprocess.run(  # noqa: S603 — MAPPARSE_BIN and tmp_path are operator-controlled
+        result = subprocess.run(  # noqa: S603 - MAPPARSE_BIN and tmp_path are operator-controlled
             [MAPPARSE_BIN, "-json", tmp_path],
             capture_output=True,
             check=True,

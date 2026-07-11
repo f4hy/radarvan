@@ -16,14 +16,17 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cncstats_client, exception_handling, middleware, replay_files, schedule
+from . import cncstats_client, middleware, replay_files, schedule
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
 from .logging_config import configure_logging
+from .notify import notify_async
 from .routes import (
     admin,
     auth,
+    bracket,
     draft,
+    ffa,
     files,
     generals,
     map_upload,
@@ -31,11 +34,13 @@ from .routes import (
     matches,
     players,
     predict,
+    profile,
     superlatives,
     teams,
     tournaments,
     votes,
 )
+from .tracing import configure_tracing
 
 logger = structlog.get_logger(__name__)
 
@@ -48,14 +53,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     cncstats_client.cncstats_client()
     replay_files.test_connection()
     logger.info("connection tested")
-    with db_manager.get_replay_manager() as replay_manager:
-        scheduler = schedule.get_scheduler(replay_manager, db_manager)
-        if not IS_DEV:
-            scheduler.start()
-        warm_caches()
-        yield
-        if not IS_DEV:
-            scheduler.shutdown()
+    # Jobs open their own sessions per run (see radarvan.schedule).
+    scheduler = schedule.get_scheduler(db_manager)
+    if not IS_DEV:
+        scheduler.start()
+    warm_caches()
+    yield
+    if not IS_DEV:
+        scheduler.shutdown()
     logger.info("goodbye!")
 
 
@@ -66,11 +71,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+configure_tracing(app)
+
 PROTECTED = [Depends(verify_api_key)]
 
 # Middleware order matters. add_middleware prepends, so the LAST added is the
 # outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit,
-# Session, app — so CORS decorates every response (including the limiter's 429),
+# Session, app - so CORS decorates every response (including the limiter's 429),
 # request-id is bound before the limiter logs, the limiter rejects just before
 # app work, and Session (innermost) populates request.session for the handlers.
 app.add_middleware(
@@ -100,6 +107,9 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("unhandled exception", exc_info=exc)
+    # notify_async swallows its own errors. Never echo exception details to
+    # the client.
+    await notify_async(f"Unhandled Exception {request.url.path} {exc!r}")
     response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
@@ -110,11 +120,13 @@ async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse
     return response
 
 
-# Routers — all API routes require an API key; static/index routes below do not.
+# Routers - all API routes require an API key; static/index routes below do not.
 app.include_router(files.router, dependencies=PROTECTED)
 app.include_router(matches.router, dependencies=PROTECTED)
 app.include_router(players.router, dependencies=PROTECTED)
+app.include_router(profile.router, dependencies=PROTECTED)
 app.include_router(generals.router, dependencies=PROTECTED)
+app.include_router(ffa.router, dependencies=PROTECTED)
 app.include_router(teams.router, dependencies=PROTECTED)
 app.include_router(maps.router, dependencies=PROTECTED)
 app.include_router(draft.router, dependencies=PROTECTED)
@@ -123,17 +135,21 @@ app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)
 app.include_router(predict.router, dependencies=PROTECTED)
 
-# Public asset routes — reachable without an API key (browser <img> loads).
+# Public asset routes - reachable without an API key (browser <img> loads).
 app.include_router(maps.public_router)
 
-# Auth routes — browser-/cookie-driven, deliberately not behind the API key.
+# Auth routes - browser-/cookie-driven, deliberately not behind the API key.
 app.include_router(auth.router)
 
-# Map voting — cookie-identified (like auth), so not behind the API key.
+# Map voting - cookie-identified (like auth), so not behind the API key.
 app.include_router(votes.router)
 
-# Map upload — login-gated (like auth), so not behind the API key.
+# Map upload - login-gated (like auth), so not behind the API key.
 app.include_router(map_upload.router)
+
+# Bracket tournament - public reads, login+admin-gated writes (checked inside
+# the route handlers), so not behind the API key.
+app.include_router(bracket.router)
 
 
 @app.get("/", include_in_schema=False)
@@ -145,5 +161,3 @@ def serve_index() -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory="dist", html=True), name="dist")
-
-exception_handling.setup_error_handling(app)

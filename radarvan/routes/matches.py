@@ -39,21 +39,6 @@ def get_dates(
     return dict(sorted(dates.items(), reverse=True))
 
 
-@router.get("/api/matches/{match_count}", dependencies=[Depends(cache_short)])
-def get_matches(
-    match_count: int,
-    exclude_dev: bool = False,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> Matches:
-    """Get listing of matches, up to a return count limit for paging.
-
-    When exclude_dev is set, matches sourced from a "dev-" zulu build are omitted.
-    """
-    replays = sorted_deduped_matches(replay_manager)
-    values = [m for m in replays.values() if not (exclude_dev and m.is_dev)]
-    return Matches(matches=values)
-
-
 @router.get("/api/matches/by_date/{date}", dependencies=[Depends(cache_short)])
 def get_matches_by_date(
     date: date,
@@ -80,7 +65,7 @@ def get_team_games_without_winner(
 ) -> list[dict[str, Any]]:
     """Return match IDs and dates for team games with no winner (winning_team=0)."""
     all_matches = sorted_deduped_matches(replay_manager)
-    games_with_no_winner = [
+    return [
         {"match_id": m.id, "date": m.date}
         for m in all_matches.values()
         if m.composition is not None
@@ -94,7 +79,6 @@ def get_team_games_without_winner(
             or "no team" in m.incomplete.lower()
         )
     ]
-    return games_with_no_winner
 
 
 @router.get("/api/match/{match_id}")

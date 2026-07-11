@@ -45,7 +45,7 @@ def _dev_timestamp(
     logger: WrappedLogger, method_name: str, event_dict: EventDict
 ) -> EventDict:
     """Local time of day with millisecond precision (no date) for dev consoles."""
-    event_dict["timestamp"] = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    event_dict["timestamp"] = datetime.now().strftime("%H:%M:%S.%f")[:-3]  # noqa: DTZ005 (intentionally local, not UTC)
     return event_dict
 
 

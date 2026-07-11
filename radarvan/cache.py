@@ -23,24 +23,26 @@ from .dependencies import db_manager
 logger = structlog.get_logger(__name__)
 
 
-_latest_ts_cache: TTLCache[str, str] = TTLCache(maxsize=1, ttl=60)
-
 # cachetools caches are not thread-safe; sync endpoints run in uvicorn's
 # threadpool, so concurrent access can corrupt LRU bookkeeping. Each @cached
 # below gets its own lock. cachetools holds the lock only around the cache
 # get/set (and cache_clear), never around the wrapped call, so there is no
 # deadlock even when one cached function calls another.
+_latest_ts_lock = threading.Lock()
 _sorted_lock = threading.Lock()
 _competitive_lock = threading.Lock()
 _details_lock = threading.Lock()
 _maps_by_count_lock = threading.Lock()
 
 
+@cached(
+    cache=TTLCache(maxsize=1, ttl=60),
+    key=lambda replay_manager: "v",
+    lock=_latest_ts_lock,
+)
 def latest_match_ts(replay_manager: ReplayManager) -> str:
-    if "v" not in _latest_ts_cache:
-        ts = replay_manager.latest_match_created_at()
-        _latest_ts_cache["v"] = ts.isoformat() if ts else ""
-    return _latest_ts_cache["v"]
+    ts = replay_manager.latest_match_created_at()
+    return ts.isoformat() if ts else ""
 
 
 def details_key(match_id: int, replay_manager: ReplayManager) -> str:
@@ -68,16 +70,15 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
     logger.info("got parsed replays", count=len(deduped))
-    sorted_matches = dict(
+    return dict(
         sorted(deduped.items(), key=lambda item: item[1].timestamp, reverse=True)
     )
-    return sorted_matches
 
 
 @cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_competitive_lock)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
-    filtered = {
+    return {
         m.id: m
         for m in all_matches.values()
         # Disconnects/desyncs/quit-early/too-short games aren't real competitive
@@ -87,7 +88,6 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
         and game_composition.competitive_game_filter(comp=m.composition)
         and player_ids.all_teams_have_group_player(m.players)
     }
-    return filtered
 
 
 @cached(cache=LRUCache(maxsize=100), key=details_key, lock=_details_lock)
@@ -150,7 +150,7 @@ def warm_caches() -> None:
 
 def invalidate_match_caches() -> None:
     """Drop all match-related caches and request a background re-warm."""
-    _latest_ts_cache.clear()
+    latest_match_ts.cache_clear()
     sorted_deduped_matches.cache_clear()
     competitive_matches.cache_clear()
     details_from_id.cache_clear()

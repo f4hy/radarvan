@@ -22,6 +22,7 @@ from .repositories import (
     MatchDebugData,
     MatchDetailsRepo,
     MatchRepo,
+    ProfileRepo,
     ReplayRepo,
     ReplayToProcess,
     StatsRepo,
@@ -81,10 +82,11 @@ class ReplayManager(
     StatsRepo,
     TournamentRepo,
     MatchDetailsRepo,
+    ProfileRepo,
 ):
     """Facade over every per-entity repository.
 
     Method resolution: each method lives on exactly one parent repo, so there
-    are no MRO ambiguities. The facade adds no new behavior — it exists so
+    are no MRO ambiguities. The facade adds no new behavior - it exists so
     legacy callers can keep using a single object that does everything.
     """

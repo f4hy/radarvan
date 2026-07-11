@@ -1,8 +1,8 @@
 """Map stats, geometry, render, and image endpoints."""
 
 import asyncio
-import os
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse
@@ -37,10 +37,10 @@ router = APIRouter()
 public_router = APIRouter()
 
 # Map images are static. Presign for the S3 max (7 days) and let browsers cache
-# the redirect — max-age must stay under the presign TTL. We keep the cache to
+# the redirect - max-age must stay under the presign TTL. We keep the cache to
 # 1h (well under the 7-day presign) so that if the deployment ever runs on
-# temporary/STS credentials — which silently cap the presign at the credential
-# lifetime — a cached redirect is unlikely to outlive its presigned URL.
+# temporary/STS credentials - which silently cap the presign at the credential
+# lifetime - a cached redirect is unlikely to outlive its presigned URL.
 _MAP_IMAGE_PRESIGN_TTL = 7 * 24 * 3600
 _MAP_IMAGE_CACHE_MAX_AGE = 3600
 
@@ -244,7 +244,7 @@ async def push_maps_to_cncstats(
     """Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.
 
     Only considers maps not already marked synced, and checks cncstats /map_exists
-    before pushing — so a map is never sent twice. Pushes run concurrently
+    before pushing - so a map is never sent twice. Pushes run concurrently
     (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back
     serially (one DB session). Processes up to `max_to_update` unsynced maps.
     Requires `CNCSTATS_API_KEY`.
@@ -311,29 +311,30 @@ def _map_match_key(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
-def _find_dist_map_path(map_name: str) -> str | None:
+def _find_dist_map_path(map_name: str) -> Path | None:
     """Resolve a map name to a bundled webp in dist/maps, or None.
 
     Tries exact filenames first, then a normalized exact match, then a
     normalized substring match (bundled filenames carry prefixes that embed the
     map name, e.g. `userdata_maps_<name>_<name>.webp`).
     """
+    maps_dir = Path(_MAPS_DIR)
     base = map_name.removesuffix(".map")
-    for candidate in (f"{_MAPS_DIR}/{base}.webp", f"{_MAPS_DIR}/{map_name}.webp"):
-        if os.path.exists(candidate):
+    for candidate in (maps_dir / f"{base}.webp", maps_dir / f"{map_name}.webp"):
+        if candidate.exists():
             return candidate
-    if not os.path.isdir(_MAPS_DIR):
+    if not maps_dir.is_dir():
         return None
     needle = _map_match_key(base)
     if not needle:
         return None
-    webps = [f for f in os.listdir(_MAPS_DIR) if f.endswith(".webp")]
+    webps = [f for f in maps_dir.iterdir() if f.suffix == ".webp"]
     for fname in webps:
-        if _map_match_key(fname.removesuffix(".webp")) == needle:
-            return os.path.join(_MAPS_DIR, fname)
+        if _map_match_key(fname.stem) == needle:
+            return fname
     for fname in webps:
-        if needle in _map_match_key(fname.removesuffix(".webp")):
-            return os.path.join(_MAPS_DIR, fname)
+        if needle in _map_match_key(fname.stem):
+            return fname
     return None
 
 
@@ -345,8 +346,7 @@ def _load_map_image_bytes(map_name: str) -> bytes:
         return data
     path = _find_dist_map_path(map_name)
     if path is not None:
-        with open(path, "rb") as f:
-            return f.read()
+        return path.read_bytes()
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
 
 
@@ -385,7 +385,7 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
     haven't been migrated yet.
     """
     # Map images are static, so cache aggressively. The browser caches the
-    # redirect, reusing its presigned URL for up to max-age — which must stay
+    # redirect, reusing its presigned URL for up to max-age - which must stay
     # under the presign TTL or a cached redirect would point at an expired URL.
     cache_headers = {"Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}"}
     s3_uri = missing_maps_module.find_s3_webp(map_name)

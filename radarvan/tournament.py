@@ -1,4 +1,4 @@
-"""Tournament results and reporting — groups matches into tournaments, computes matchup
+"""Tournament results and reporting - groups matches into tournaments, computes matchup
 outcomes, and derives tournament-scoped statistics (faction/unit/APM/time records)."""
 
 import statistics
@@ -6,7 +6,7 @@ from collections import Counter
 import structlog
 from itertools import combinations
 from .player_ids import resolve_player_name
-from datetime import date
+from datetime import UTC, date, datetime
 from collections.abc import Sequence
 from collections import defaultdict
 from .api_types import (
@@ -40,7 +40,6 @@ TOURNAMENTS = [
             sorted_tuple(["OneThree111", "Pancake"]),
             sorted_tuple(["Neo", "CoreDawg"]),
             sorted_tuple(["STM", "Skip"]),
-            sorted_tuple(["WildCard", "Syn"]),
             sorted_tuple(["Gorn", "EnragedFerret"]),
             sorted_tuple(["Modus", "Tytan"]),
         ],
@@ -191,7 +190,7 @@ def create_tournament_results(
                     teams_in_match[player.team].add(name)
                     player_won[name] = player.won
 
-                for team_enum, player_set in teams_in_match.items():
+                for player_set in teams_in_match.values():
                     team_tuple = tuple(sorted(player_set))
                     if team_tuple not in team_records:
                         logger.warning(
@@ -437,8 +436,7 @@ def most_first_bloods(matches: list[MatchDetails], computed_at: date) -> Statist
 
 def last_val(d: dict[float, dict[str, int]]) -> dict[str, int]:
     last = next(reversed(d.values()))
-    name_mapped = {resolve_player_name(k): v for k, v in last.items()}
-    return name_mapped
+    return {resolve_player_name(k): v for k, v in last.items()}
 
 
 def min_max_stats(matches: list[MatchDetails], computed_at: date) -> list[Statistic]:
@@ -561,7 +559,7 @@ def tournament_report(
     tournament_matches: list[MatchInfo],
     tournament_match_details: list[MatchDetails],
 ) -> TournamentReport:
-    computed_at = date.today()
+    computed_at = datetime.now(UTC).date()
     details = tournament_match_details
 
     stats: list[Statistic] = [

@@ -9,18 +9,51 @@ from .api_types import (
     PlayerStat,
     WinLoss,
 )
-from . import replay_files
 from . import game_composition
+from .general_stats import CPU_NAMES
 import structlog
-from .player_ids import resolve_player_name
+from .player_ids import PLAYER_NAMES, resolve_player_name
 
 logger = structlog.get_logger(__name__)
 
 NEEDED_GAMES = 8
 
 
+def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
+    """Each player's most common raw in-game color across every game they've
+    played (e.g. "Red", "Blue") - this community's players rarely contest the
+    same color, so it doubles as a data-driven identity color for the UI
+    (PlayerChip) instead of an arbitrary hash. Restricted to known roster
+    names (PLAYER_NAMES minus the CPU labels folded into it) - unresolved/
+    CPU/junk names aren't real identities worth a color.
+    """
+    counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
+    for game in games:
+        for p in game.players:
+            if not p.is_real() or p.Type == "C":
+                continue
+            name = resolve_player_name(p.name, p.color)
+            if name not in PLAYER_NAMES or name in CPU_NAMES:
+                continue
+            counts[name][p.color] += 1
+    return {
+        name: color_counts.most_common(1)[0][0] for name, color_counts in counts.items()
+    }
+
+
 def total_games(player_stat: PlayerStat) -> int:
     return sum(wl.wins + wl.losses for wl in player_stat.stats.values())
+
+
+def stats_game_filter(game: MatchInfo) -> bool:
+    """The game set behind the Player Stats page W/L numbers.
+
+    Complete, competitive team games. Shared with the player profile page so
+    its record and per-general numbers match this page's.
+    """
+    return not game.incomplete and game_composition.competitive_game_filter(
+        game.composition
+    )
 
 
 def get_player_stats(
@@ -32,11 +65,13 @@ def get_player_stats(
     for game in games:
         if game.incomplete:
             continue
-        if not replay_files.path_filter(game.filename):
+        if game.composition is None or not game_composition.is_recognized_team_game(
+            game.composition
+        ):
             continue
 
-        category = game.composition.category if game.composition else "Unknown"
-        is_competitive = game_composition.competitive_game_filter(game.composition)
+        category = game.composition.category
+        is_competitive = stats_game_filter(game)
 
         for player in game.players:
             name = resolve_player_name(player.name, player.color)

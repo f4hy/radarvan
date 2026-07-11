@@ -1,13 +1,26 @@
-"""Pydantic models defining every REST request/response shape — the canonical wire
+"""Pydantic models defining every REST request/response shape - the canonical wire
 schema (``MatchInfo``, ``PlayerStat``, ``MatchDetails``, the ``General``/``Team``/
 ``Faction`` enums, …) from which the TypeScript API client is generated."""
 
-from pydantic import AfterValidator, BaseModel, Field, ConfigDict, computed_field
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    ConfigDict,
+    PlainSerializer,
+    computed_field,
+    model_validator,
+)
 from datetime import datetime, date
 from enum import IntEnum
 from typing import Annotated, Literal
+from . import bracket as _bracket
 from .game_composition import GameComposition
-from .player_ids import is_admin as _is_admin_player, resolve_player_name
+from .player_ids import (
+    is_admin as _is_admin_player,
+    is_tournament_admin as _is_tournament_admin_player,
+    resolve_player_name,
+)
 
 _SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 _SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
@@ -26,6 +39,33 @@ def _resolve_player_name(name: str) -> str:
 # happens automatically at request validation, so endpoints can't forget it.
 # Wire/OpenAPI type stays a plain string. See CLAUDE.md (player name resolution).
 PlayerName = Annotated[str, AfterValidator(_resolve_player_name)]
+
+# Match-clock position in minutes: chart precision only needs ~0.2s resolution,
+# but the raw values carry full float noise (e.g. 1.2437749753490064) that
+# balloons MatchDetails' wire size for no visual benefit. Rounding here (rather
+# than at each extractor) covers every current and future minute-valued field,
+# including as dict keys - pydantic-core serializes a dict key through its
+# annotated type's serializer same as any value. Validation is untouched
+# (PlainSerializer only affects output), so round-tripping cached JSON back
+# through model_validate still works.
+Minute = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 3), return_type=float, when_used="json"),
+]
+
+# Per-minute action-rate value (APM). One decimal is well past the precision
+# the source data supports and plenty for the chart.
+Rate = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 1), return_type=float, when_used="json"),
+]
+
+# Generic two-decimal-place float: per-game rates and percentiles (player
+# profile badges) don't need more precision than that on the wire.
+TwoDecimal = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 2), return_type=float, when_used="json"),
+]
 
 
 class General(IntEnum):
@@ -185,6 +225,66 @@ class GeneralStats(BaseModel):
     general_stats: list[GeneralStat]
 
 
+class FFAPlayerStat(BaseModel):
+    """Per-player record across free-for-all games."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    games: int
+    wins: int
+    win_rate: float = Field(alias="winRate")
+    # Expected wins if every player in each FFA were equally likely (sum of 1/N
+    # over the player's games). Lets us judge a win rate against the field size.
+    expected_wins: float = Field(alias="expectedWins")
+    # Actual wins divided by expected wins: 1.0 == exactly average, >1 over-performing.
+    dominance: float
+
+
+class FFAGeneralStat(BaseModel):
+    """Per-general win record across free-for-all games."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    general: General
+    games: int
+    wins: int
+    win_rate: float = Field(alias="winRate")
+
+
+class FFAMapStat(BaseModel):
+    """Per-map activity across free-for-all games."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    map: str
+    games: int
+    avg_players: float = Field(alias="avgPlayers")
+
+
+class FFARecentMatch(BaseModel):
+    """Pointer to the most recently played FFA game."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: int = Field(alias="matchId")
+    winner: str
+
+
+class FFAStats(BaseModel):
+    """Everything the FFA page renders, computed over human free-for-all games."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    total_games: int = Field(alias="totalGames")
+    distinct_players: int = Field(alias="distinctPlayers")
+    avg_players_per_game: float = Field(alias="avgPlayersPerGame")
+    most_recent: FFARecentMatch | None = Field(default=None, alias="mostRecent")
+    player_stats: list[FFAPlayerStat] = Field(alias="playerStats")
+    general_stats: list[FFAGeneralStat] = Field(alias="generalStats")
+    map_stats: list[FFAMapStat] = Field(alias="mapStats")
+
+
 class TeamStat(BaseModel):
     model_config = _SLOTS
 
@@ -290,7 +390,7 @@ class SaveResponse(BaseModel):
 class KillEventOutput(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     killer_player: str = Field(alias="killerPlayer")
     victim_player: str = Field(alias="victimPlayer")
     x: float
@@ -298,6 +398,27 @@ class KillEventOutput(BaseModel):
     killer: str
     victim: str
     damage_type: str = Field(alias="damageType")
+    # Build cost of the destroyed object (0 when unknown). Used to size kill
+    # markers in the replay view by value destroyed.
+    value: int = 0
+
+
+class MapEventOutput(BaseModel):
+    """A single map-positioned, time-stamped event for replay playback.
+
+    `kind` is one of "build" (structure completed) or "capture" (neutral/enemy
+    structure taken). `player_name` is the owner after the event; `name` is the
+    cleaned object name. Kill events are served separately via `kill_events`.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: Minute = Field(alias="atMinute")
+    x: float
+    y: float
+    player_name: str = Field(alias="playerName")
+    kind: str
+    name: str
 
 
 class CostsBuiltObject(BaseModel):
@@ -322,8 +443,8 @@ class APM(BaseModel):
 
     player_name: str = Field(alias="playerName")
     action_count: int = Field(alias="actionCount")
-    minutes: float
-    apm: float
+    minutes: Minute
+    apm: Rate
 
 
 class UpgradeEvent(BaseModel):
@@ -333,7 +454,7 @@ class UpgradeEvent(BaseModel):
     timecode: int = 0
     upgrade_name: str = Field(alias="upgradeName")
     cost: int
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
 
 
 class Spent(BaseModel):
@@ -406,7 +527,7 @@ class FirstBlood(BaseModel):
 
     attacker: str
     victim: str
-    atMinute: float
+    atMinute: Minute
 
 
 class SuperlativePlayerSummary(BaseModel):
@@ -435,15 +556,15 @@ class SuperlativeData(BaseModel):
     match_money_spent: int
     player_money_collected: dict[str, int]
     player_xp_final: dict[str, int] = Field(default_factory=dict)
-    time_to_rank_5: dict[str, float] = Field(default_factory=dict)
-    time_to_search_destroy: dict[str, float] = Field(default_factory=dict)
+    time_to_rank_5: dict[str, Minute] = Field(default_factory=dict)
+    time_to_search_destroy: dict[str, Minute] = Field(default_factory=dict)
 
 
 class TimelineEvent(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
     player_name: str = Field(alias="playerName")
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     event_name: str = Field(alias="eventName")
     # One of: "upgrade", "rank_up", "generals_power",
     # "superweapon_built", "superweapon_activated".
@@ -454,13 +575,13 @@ class TimelineEvent(BaseModel):
 class BuildOrderEntry(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
-    at_minute: float = Field(alias="atMinute")
+    at_minute: Minute = Field(alias="atMinute")
     name: str
     cost: int
     # Number of consecutive identical builds collapsed into this row (>=1).
     count: int = 1
     # End of the collapsed run; None for single (count==1) entries.
-    end_minute: float | None = Field(default=None, alias="endMinute")
+    end_minute: Minute | None = Field(default=None, alias="endMinute")
     # Economy/non-combat unit (worker, dozer, supply). UI dims these. Always
     # False for buildings and upgrades.
     is_economy: bool = Field(default=False, alias="isEconomy")
@@ -482,20 +603,31 @@ class MatchDetails(BaseModel):
     costs: list[Costs]
     apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
-    stats_data: dict[str, dict[float, dict[str, int]]] = Field(
+    stats_data: dict[str, dict[Minute, dict[str, int]]] = Field(
         description="at a time map each player to xp"
+    )
+    # Cumulative income broken down by source ("supply", "oil_derrick", ...),
+    # as {source: {minute: {player: value}}}. Sparse: an all-zero source, a
+    # player who never earned from a source, and unchanged timesteps are all
+    # omitted - absent means "zero"/"unchanged". Empty for replays predating
+    # cncstats incomeBySource support.
+    income_by_source: dict[str, dict[Minute, dict[str, int]]] = Field(
+        default_factory=dict, alias="incomeBySource"
     )
     map_name: str = Field(default="", alias="mapName")
     first_blood: FirstBlood | None = None
     building_first_blood: FirstBlood | None = None
     player_summary: list[PlayerSummary]
     kill_events: list[KillEventOutput] = Field(default_factory=list, alias="killEvents")
+    # Map-positioned structure builds & captures, sorted by time, for the
+    # replay-playback view (kills are in `kill_events`).
+    map_events: list[MapEventOutput] = Field(default_factory=list, alias="mapEvents")
     player_money_spent: dict[str, int] = Field(default_factory=dict)
     player_money_collected: dict[str, int] = Field(default_factory=dict)
     # Minute at which each player first hit generals rank 5.
-    time_to_rank_5: dict[str, float] = Field(default_factory=dict, alias="timeToRank5")
+    time_to_rank_5: dict[str, Minute] = Field(default_factory=dict, alias="timeToRank5")
     # Minute at which each player first activated USA Search & Destroy battle plan.
-    time_to_search_destroy: dict[str, float] = Field(
+    time_to_search_destroy: dict[str, Minute] = Field(
         default_factory=dict, alias="timeToSearchDestroy"
     )
     # Per-player first-10 build order: buildings, units, upgrades.
@@ -503,7 +635,7 @@ class MatchDetails(BaseModel):
         default_factory=dict, alias="buildOrders"
     )
     # Per-minute APM time series: {minute: {player_name: apm}}.
-    apm_over_time: dict[float, dict[str, float]] = Field(
+    apm_over_time: dict[Minute, dict[str, Rate]] = Field(
         default_factory=dict, alias="apmOverTime"
     )
     # All player-driven timeline markers (upgrades, rank ups, generals
@@ -643,6 +775,97 @@ class Statistic(BaseModel):
     match_id: int | None = None
 
 
+class BracketPlayerEntry(BaseModel):
+    model_config = _SLOTS
+
+    seed: int
+    player_name: PlayerName
+
+
+class CreateBracketRequest(BaseModel):
+    model_config = _SLOTS
+
+    players: list[BracketPlayerEntry]
+
+    @model_validator(mode="after")
+    def _validate_seeds(self) -> "CreateBracketRequest":
+        seeds = sorted(p.seed for p in self.players)
+        n = len(seeds)
+        if not (_bracket.MIN_PLAYERS <= n <= _bracket.MAX_PLAYERS):
+            raise ValueError(
+                f"players must number between {_bracket.MIN_PLAYERS} "
+                f"and {_bracket.MAX_PLAYERS}"
+            )
+        if seeds != list(range(1, n + 1)):
+            raise ValueError(f"players must have {n} unique seeds numbered 1-{n}")
+        return self
+
+
+class SetBracketMatchRequest(BaseModel):
+    model_config = _SLOTS
+
+    scheduled_date: date | None = None
+    best_of: Literal[3, 5, 7, 9] | None = None
+    score_a: int | None = None
+    score_b: int | None = None
+
+
+class SeedSource(BaseModel):
+    model_config = _SLOTS
+
+    kind: Literal["seed"] = "seed"
+    seed: int
+
+
+class WinnerOfSource(BaseModel):
+    model_config = _SLOTS
+
+    kind: Literal["winner"] = "winner"
+    match_id: str
+
+
+class LoserOfSource(BaseModel):
+    model_config = _SLOTS
+
+    kind: Literal["loser"] = "loser"
+    match_id: str
+
+
+MatchSource = Annotated[
+    SeedSource | WinnerOfSource | LoserOfSource, Field(discriminator="kind")
+]
+
+
+class BracketMatchOutput(BaseModel):
+    model_config = _SLOTS
+
+    match_id: str
+    bracket: Literal["W", "L", "GF"]
+    round_number: int
+    round_name: str
+    player_a: str | None = None
+    player_b: str | None = None
+    scheduled_date: date | None = None
+    best_of: int | None = None
+    score_a: int | None = None
+    score_b: int | None = None
+    winner: str | None = None
+    status: Literal["pending", "ready", "completed", "not_applicable"]
+    source_a: MatchSource
+    source_b: MatchSource
+
+
+class BracketTournamentOutput(BaseModel):
+    model_config = _SLOTS
+
+    players: list[BracketPlayerEntry]
+    matches: list[BracketMatchOutput]
+    bye_advances: list[BracketPlayerEntry]
+    champion: str | None = None
+    runner_up: str | None = None
+    needs_reset: bool
+
+
 class TournamentReport(BaseModel):
     model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -705,6 +928,195 @@ class PlayerGameCount(BaseModel):
 
     name: str
     count: int
+
+
+class FavoriteObject(BaseModel):
+    """A peer-normalized signature (or avoided) object for a player.
+
+    Rates are per-game on the general the object was scored against; ``score``
+    is the smoothed ratio player_rate/peer_rate (>1 = builds it more than
+    peers playing the same general).
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    general: General
+    per_game: TwoDecimal = Field(alias="perGame")
+    peer_per_game: TwoDecimal = Field(alias="peerPerGame")
+    score: TwoDecimal
+    games_on_general: int = Field(alias="gamesOnGeneral")
+    total_count: int = Field(alias="totalCount")
+
+
+class ObjectUsageStat(BaseModel):
+    """One object's per-game usage rate for a player against the peer
+    distribution - every other profiled player who played the same general.
+
+    Unlike ``FavoriteObject`` (top signature picks only), this covers every
+    unit/building/upgrade the player has enough games to compare, so ``z_score``
+    can be small or negative - it's a browsable reference, not a highlight reel.
+    ``peer_stddev_per_game`` is the population stddev across those peers;
+    ``z_score`` is None when it's 0 (every peer had the identical rate).
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    general: General
+    category: Literal["units", "buildings", "upgrades"]
+    per_game: TwoDecimal = Field(alias="perGame")
+    peer_mean_per_game: TwoDecimal = Field(alias="peerMeanPerGame")
+    peer_median_per_game: TwoDecimal = Field(alias="peerMedianPerGame")
+    peer_stddev_per_game: TwoDecimal = Field(alias="peerStddevPerGame")
+    z_score: TwoDecimal | None = Field(None, alias="zScore")
+    games_on_general: int = Field(alias="gamesOnGeneral")
+    peer_count: int = Field(alias="peerCount")
+
+
+class ProfileBadge(BaseModel):
+    """A top-3 behavioral standout among profiled players for one stat."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    key: str
+    label: str
+    description: str
+    value: TwoDecimal
+    rank: int
+    tier: Literal["gold", "silver", "bronze"]
+    total_players: int = Field(alias="totalPlayers")
+
+
+class GeneralWinRatePoint(BaseModel):
+    """One point in a player's running win-rate-over-time series for a general.
+
+    ``wins``/``losses`` are cumulative as of this game (not just this game's
+    result), so plotting ``win_rate`` against ``game_number`` traces how the
+    player's record on this general evolved.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    date: date
+    game_number: int = Field(alias="gameNumber")
+    wins: int
+    losses: int
+    win_rate: float = Field(alias="winRate")
+
+
+class GeneralWinRateSeries(BaseModel):
+    model_config = _SLOTS
+
+    general: General
+    points: list[GeneralWinRatePoint]
+
+
+class GeneralProfileStat(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    general: General
+    games: int
+    wins: int
+    losses: int
+    win_rate: float = Field(alias="winRate")
+
+
+class MapProfileStat(BaseModel):
+    model_config = _SLOTS
+
+    map: str
+    games: int
+    wins: int
+    losses: int
+
+
+class TeammateProfileStat(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    games_together: int = Field(alias="gamesTogether")
+    wins_together: int = Field(alias="winsTogether")
+    # Pair synergy (log-odds) when the pair passes the synergy model's
+    # min-games gate; None when the teammate was picked by games played.
+    synergy: float | None = None
+
+
+class OpponentProfileStat(BaseModel):
+    """The profiled player's record against one opponent (wins = subject's wins)."""
+
+    model_config = _SLOTS
+
+    name: str
+    wins: int
+    losses: int
+
+
+class PlayerProfileComputed(BaseModel):
+    """MatchDetails-derived deep stats for one player.
+
+    Computed as a batch across all profiled players (percentiles are relative
+    to that population) and persisted per player; see radarvan.player_profile.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    favorite_unit: FavoriteObject | None = Field(None, alias="favoriteUnit")
+    favorite_building: FavoriteObject | None = Field(None, alias="favoriteBuilding")
+    favorite_upgrade: FavoriteObject | None = Field(None, alias="favoriteUpgrade")
+    favorite_power: FavoriteObject | None = Field(None, alias="favoritePower")
+    # Objects peers build regularly on a shared general that this player avoids.
+    aversions: list[FavoriteObject] = Field(default_factory=list)
+    avg_apm: float | None = Field(None, alias="avgApm")
+    apm_percentile: float | None = Field(None, alias="apmPercentile")
+    first_blood_rate: float | None = Field(None, alias="firstBloodRate")
+    first_blood_percentile: float | None = Field(None, alias="firstBloodPercentile")
+    avg_time_to_rank_5: float | None = Field(None, alias="avgTimeToRank5")
+    rank_5_percentile: float | None = Field(None, alias="rank5Percentile")
+    superweapons_built_per_game: float | None = Field(
+        None, alias="superweaponsBuiltPerGame"
+    )
+    superweapon_percentile: float | None = Field(None, alias="superweaponPercentile")
+    badges: list[ProfileBadge] = Field(default_factory=list)
+    # Every unit/building/upgrade with enough games to compare - see
+    # ObjectUsageStat; a browsable reference, not just the favorites above.
+    object_usage: list[ObjectUsageStat] = Field(
+        default_factory=list, alias="objectUsage"
+    )
+    games_analyzed: int = Field(alias="gamesAnalyzed")
+    computed_at: date = Field(alias="computedAt")
+
+
+class PlayerProfile(BaseModel):
+    """Full profile for one player: live MatchInfo-derived stats plus the
+    persisted deep stats (None until the batch recompute has run)."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player: str
+    games: int
+    wins: int
+    losses: int
+    generals: list[GeneralProfileStat]
+    general_win_rate_over_time: list[GeneralWinRateSeries] = Field(
+        default_factory=list, alias="generalWinRateOverTime"
+    )
+    most_played_general: GeneralProfileStat | None = Field(
+        None, alias="mostPlayedGeneral"
+    )
+    best_general: GeneralProfileStat | None = Field(None, alias="bestGeneral")
+    favorite_map: MapProfileStat | None = Field(None, alias="favoriteMap")
+    best_map: MapProfileStat | None = Field(None, alias="bestMap")
+    favorite_teammate: TeammateProfileStat | None = Field(
+        None, alias="favoriteTeammate"
+    )
+    nemesis: OpponentProfileStat | None = None
+    favorite_victim: OpponentProfileStat | None = Field(None, alias="favoriteVictim")
+    avg_win_duration_minutes: float | None = Field(None, alias="avgWinDurationMinutes")
+    avg_loss_duration_minutes: float | None = Field(
+        None, alias="avgLossDurationMinutes"
+    )
+    computed: PlayerProfileComputed | None = None
 
 
 class PlayerRatings(BaseModel):
@@ -777,6 +1189,53 @@ class HeadToHead(BaseModel):
 
     wins: int
     losses: int
+
+
+class HeadToHeadGame(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: int = Field(alias="matchId")
+    timestamp: datetime
+    date: date
+    map: str
+    duration_minutes: float = Field(alias="durationMinutes")
+    game_format: str | None = Field(default=None, alias="gameFormat")
+    player1_general: General = Field(alias="player1General")
+    player2_general: General = Field(alias="player2General")
+    player1_won: bool = Field(alias="player1Won")
+    player1_team: list[str] = Field(alias="player1Team")
+    player2_team: list[str] = Field(alias="player2Team")
+
+
+class HeadToHeadGeneralRecord(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    general: General
+    wins: int
+    losses: int
+
+
+class HeadToHeadMapRecord(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    map: str
+    player1_wins: int = Field(alias="player1Wins")
+    player2_wins: int = Field(alias="player2Wins")
+
+
+class HeadToHeadDetail(BaseModel):
+    """Detailed head-to-head record between two players in opposite-team games."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player1: str
+    player2: str
+    player1_wins: int = Field(alias="player1Wins")
+    player2_wins: int = Field(alias="player2Wins")
+    games: list[HeadToHeadGame]
+    player1_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player1ByGeneral")
+    player2_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player2ByGeneral")
+    by_map: list[HeadToHeadMapRecord] = Field(alias="byMap")
 
 
 class PlayerRatingDailyChange(BaseModel):
@@ -1037,6 +1496,12 @@ class CurrentUser(BaseModel):
         """True if the claimed in-game name is in player_ids.ADMIN_PLAYERS."""
         return _is_admin_player(self.player_name)
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def is_tournament_admin(self) -> bool:
+        """True if the claimed in-game name is in player_ids.TOURNAMENT_ADMINS."""
+        return _is_tournament_admin_player(self.player_name)
+
 
 class AuthStatus(BaseModel):
     model_config = _SLOTS
@@ -1127,7 +1592,7 @@ class MapUploadItem(BaseModel):
     model_config = _SLOTS
 
     base_name: str
-    # WebP data URL of the converted .tga — set in preview, omitted on commit.
+    # WebP data URL of the converted .tga - set in preview, omitted on commit.
     image: str | None = None
     # Number of player start positions (from parsed geometry), if available.
     player_count: int | None = None
@@ -1218,6 +1683,30 @@ class MatchPrediction(BaseModel):
     prob_team_a_wins: float
     favored_team: int
     favored_win_prob: float
-    # Players not in the model's training vocab — their contribution falls back
+    # Players not in the model's training vocab - their contribution falls back
     # to UNK, so the prediction for them is weak. Surfaced so callers can judge.
     unknown_players: list[str] = Field(default_factory=list)
+
+
+class WinProbPoint(BaseModel):
+    model_config = _SLOTS
+
+    at_minute: float
+    prob_team_a: float
+
+
+class WinProbOverTime(BaseModel):
+    """Win-probability-over-time for one match (sequence ONNX model).
+
+    ``points`` is ordered by time; ``prob_team_a`` is P(team A wins) given the
+    game up to that window. Team A is the lower team id (the model's canonical
+    ordering).
+    """
+
+    model_config = _SLOTS
+
+    match_id: int
+    team_a_players: list[str]
+    team_b_players: list[str]
+    actual_winner: str | None = None  # "team_a" | "team_b" | None
+    points: list[WinProbPoint]

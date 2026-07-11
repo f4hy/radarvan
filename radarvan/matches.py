@@ -3,7 +3,7 @@
 from .log_time import log_time
 import structlog
 import os
-from datetime import datetime, UTC
+from datetime import date, datetime, timedelta, UTC
 
 from . import db
 from . import ml_inference
@@ -15,6 +15,7 @@ from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
 from .logging_config import configure_logging
 from dataclasses import dataclass
+from collections.abc import Callable
 
 logger = structlog.get_logger(__name__)
 
@@ -222,11 +223,16 @@ def register_matches(replay_manager: ReplayManager) -> None:
         is_dev = j.replay_file.is_dev if j.replay_file is not None else False
         db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri, is_dev=is_dev)
         try:
-            replay_manager.register_match(db_match)
+            _, created = replay_manager.register_match(db_match)
             seen.add(db_match.match_id)
             replay_manager.compute_and_save_composition(db_match.match_id)
         except Exception as e:
             logger.warning("can not add match", error=repr(e))
+            # A failed flush/commit leaves the session in an aborted
+            # transaction; roll back so the remaining replays can proceed.
+            replay_manager.session.rollback()
+            continue
+        if not created:
             continue
         # Best-effort win prediction for the newly registered match (notifies
         # predicted vs actual). Never lets a prediction error affect ingestion.
@@ -247,20 +253,40 @@ def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | 
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
     # The raw replay changed but DETAILS_VERSION did not, so the version check
-    # alone won't invalidate the persisted MatchDetails row — drop it explicitly.
+    # alone won't invalidate the persisted MatchDetails row - drop it explicitly.
     replay_manager.delete_cached_details(match_id)
     return match_from_replay(parsed_replay)
 
 
-def reparse_existing(
-    existing: db.ParsedReplayJson, replay_manager: ReplayManager
-) -> MatchInfo | None:
-    json_path = existing.json_s3_uri
-    original_path = existing.replay_file_url
-    replay_path = existing.replay_file.s3_uri
+@dataclass(frozen=True)
+class ReparseInputs:
+    """Plain values from a ParsedReplayJson row.
 
+    Extracted on the owning session's thread so reparse work can run in worker
+    threads without carrying session-bound ORM objects across.
+    """
+
+    match_id: int
+    json_path: str
+    original_path: str
+    replay_path: str
+
+    @classmethod
+    def from_row(cls, row: db.ParsedReplayJson) -> "ReparseInputs":
+        return cls(
+            match_id=row.match_id,
+            json_path=row.json_s3_uri,
+            original_path=row.replay_file_url,
+            replay_path=row.replay_file.s3_uri,
+        )
+
+
+def reparse_existing(
+    inputs: ReparseInputs, replay_manager: ReplayManager
+) -> MatchInfo | None:
+    """Reparse from plain paths (no ORM objects, so it's safe in worker threads)."""
     reparsed = replay_files.reparse_paths(
-        json_path, original_path, replay_path, replay_manager
+        inputs.json_path, inputs.original_path, inputs.replay_path, replay_manager
     )
     if reparsed is None:
         logger.info("no reparse needed")
@@ -269,7 +295,7 @@ def reparse_existing(
     update_match = replay_to_db_match(parsed_replay, json_s3)
     replay_manager.update_match(update_match)
     # Invalidate the persisted MatchDetails row (see reparse_replay).
-    replay_manager.delete_cached_details(existing.match_id)
+    replay_manager.delete_cached_details(inputs.match_id)
     return match_from_replay(parsed_replay, filter_short=False)
 
 
@@ -322,8 +348,7 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     filtered = [x for x in listing if filter_match(x)]
 
     with log_time("convert"):
-        converted = [match_to_matchinfo(m, overrides.get(m.match_id)) for m in filtered]
-    return converted
+        return [match_to_matchinfo(m, overrides.get(m.match_id)) for m in filtered]
 
 
 if __name__ == "__main__":
@@ -355,3 +380,34 @@ def filter_by_format(
         for g in games
         if g.composition is not None and g.composition.category == game_format
     ]
+
+
+def filter_since[T](
+    items: list[T],
+    days_back: int | None,
+    key: Callable[[T], date],
+    today: date | None = None,
+) -> list[T]:
+    """Drop items older than ``days_back`` days ago (by ``key(item)``).
+
+    Returns the list unchanged if ``days_back`` is None. Shared by every
+    "restrict to the last N days" filter in this codebase (e.g. the
+    player-ratings upsets endpoint) so the cutoff-and-filter idiom lives in
+    one place.
+    """
+    if days_back is None:
+        return items
+    cutoff = (today or datetime.now(UTC).date()) - timedelta(days=days_back)
+    return [i for i in items if key(i) >= cutoff]
+
+
+def filter_by_months_back(
+    games: list[MatchInfo], months_back: int | None, today: date | None = None
+) -> list[MatchInfo]:
+    """Drop games older than ``months_back`` months ago. Returns unchanged list if None.
+
+    Months are approximated as 30 days each, consistent with this codebase's
+    other relative-date filters.
+    """
+    days_back = None if months_back is None else months_back * 30
+    return filter_since(games, days_back, key=lambda g: g.date, today=today)

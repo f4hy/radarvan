@@ -65,3 +65,14 @@ class MatchDetailsRepo(BaseRepo):
         )
         self._commit_if_auto()
         return bool(result.rowcount)  # type: ignore[attr-defined]
+
+    def delete_all_cached_details(self) -> int:
+        """Drop every row. Returns the number of rows deleted.
+
+        A debugging hatch: normal invalidation is per-match via
+        delete_cached_details (reparse) or implicit via the DETAILS_VERSION
+        check - derivation changes should bump the version, not call this.
+        """
+        result = self.session.execute(sa_delete(MatchDetailsCache))
+        self._commit_if_auto()
+        return result.rowcount  # type: ignore[attr-defined, no-any-return]

@@ -12,6 +12,7 @@ export interface CurrentUser {
   player_name: string | null
   needs_player_selection: boolean
   is_admin: boolean
+  is_tournament_admin: boolean
 }
 
 export interface AuthStatus {

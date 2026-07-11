@@ -45,28 +45,15 @@ jobs:
       - name: TypeScript checks (prettier + eslint + tsc)
         run: make ts-check
 
-      # `uv run pytest`. CI runs against a clean git checkout, so any test
-      # that depends on fixtures NOT committed to the repo cannot run here:
-      #   * references/ is gitignored (see .gitignore) -> test_timezone.py and
-      #     test_cncstats_types.py::test_v2_stats_absent_for_old_format
-      #   * tests/new_cncstats_output.json is untracked -> the test_new_output_*
-      #     cases in test_cncstats_types.py
-      # These are deselected below; everything else is gated. DATABASE_URL is a
-      # dummy value because several modules read it at import time -- no real
-      # database is contacted by the offline test suite.
+      # `uv run pytest`. The whole suite runs against a clean checkout: the
+      # canonical cncstats fixture is committed (references/example_cncstats_output.json)
+      # and tests/new_cncstats_output.json is tracked, so no deselects are needed.
+      # DATABASE_URL is a dummy value because several modules read it at import
+      # time -- no real database is contacted by the offline test suite.
       - name: Python tests (pytest)
         env:
           DATABASE_URL: "sqlite://"
-        run: >
-          uv run pytest
-          --ignore=tests/test_timezone.py
-          --deselect "tests/test_cncstats_types.py::test_v2_stats_absent_for_old_format"
-          --deselect "tests/test_cncstats_types.py::test_new_output_parses_header"
-          --deselect "tests/test_cncstats_types.py::test_new_output_parses_players"
-          --deselect "tests/test_cncstats_types.py::test_new_output_has_stats"
-          --deselect "tests/test_cncstats_types.py::test_new_output_time_series"
-          --deselect "tests/test_cncstats_types.py::test_new_output_game_info"
-          --deselect "tests/test_cncstats_types.py::test_new_output_header_players"
+        run: uv run pytest
 
       # Mirrors `npm test` (vitest run).
       - name: Frontend tests (vitest)

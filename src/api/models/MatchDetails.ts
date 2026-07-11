@@ -41,6 +41,13 @@ import {
     UpgradesToJSON,
     UpgradesToJSONTyped,
 } from './Upgrades';
+import type { MapEventOutput } from './MapEventOutput';
+import {
+    MapEventOutputFromJSON,
+    MapEventOutputFromJSONTyped,
+    MapEventOutputToJSON,
+    MapEventOutputToJSONTyped,
+} from './MapEventOutput';
 import type { BuildOrder } from './BuildOrder';
 import {
     BuildOrderFromJSON,
@@ -114,6 +121,12 @@ export interface MatchDetails {
     statsData: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
     /**
      * 
+     * @type {{ [key: string]: { [key: string]: { [key: string]: number; }; }; }}
+     * @memberof MatchDetails
+     */
+    incomeBySource?: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
+    /**
+     * 
      * @type {string}
      * @memberof MatchDetails
      */
@@ -142,6 +155,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     killEvents?: Array<KillEventOutput>;
+    /**
+     * 
+     * @type {Array<MapEventOutput>}
+     * @memberof MatchDetails
+     */
+    mapEvents?: Array<MapEventOutput>;
     /**
      * 
      * @type {{ [key: string]: number; }}
@@ -215,11 +234,13 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'apms': ((json['apms'] as Array<any>).map(APMFromJSON)),
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
         'statsData': json['stats_data'],
+        'incomeBySource': json['incomeBySource'] == null ? undefined : json['incomeBySource'],
         'mapName': json['mapName'] == null ? undefined : json['mapName'],
         'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
         'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
         'playerSummary': ((json['player_summary'] as Array<any>).map(PlayerSummaryFromJSON)),
         'killEvents': json['killEvents'] == null ? undefined : ((json['killEvents'] as Array<any>).map(KillEventOutputFromJSON)),
+        'mapEvents': json['mapEvents'] == null ? undefined : ((json['mapEvents'] as Array<any>).map(MapEventOutputFromJSON)),
         'playerMoneySpent': json['player_money_spent'] == null ? undefined : json['player_money_spent'],
         'playerMoneyCollected': json['player_money_collected'] == null ? undefined : json['player_money_collected'],
         'timeToRank5': json['timeToRank5'] == null ? undefined : json['timeToRank5'],
@@ -247,11 +268,13 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'apms': ((value['apms'] as Array<any>).map(APMToJSON)),
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
         'stats_data': value['statsData'],
+        'incomeBySource': value['incomeBySource'],
         'mapName': value['mapName'],
         'first_blood': FirstBloodToJSON(value['firstBlood']),
         'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),
         'player_summary': ((value['playerSummary'] as Array<any>).map(PlayerSummaryToJSON)),
         'killEvents': value['killEvents'] == null ? undefined : ((value['killEvents'] as Array<any>).map(KillEventOutputToJSON)),
+        'mapEvents': value['mapEvents'] == null ? undefined : ((value['mapEvents'] as Array<any>).map(MapEventOutputToJSON)),
         'player_money_spent': value['playerMoneySpent'],
         'player_money_collected': value['playerMoneyCollected'],
         'timeToRank5': value['timeToRank5'],

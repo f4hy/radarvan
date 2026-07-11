@@ -7,9 +7,15 @@ import Typography from "@mui/material/Typography"
 import _ from "lodash"
 import * as React from "react"
 import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
   Legend,
   Line,
   LineChart,
+  LabelList,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -30,6 +36,8 @@ import {
   TimelineEvent,
 } from "./api"
 import GameMap from "./Map"
+import ReplayPlayback from "./ReplayPlayback"
+import AIPredictions from "./AIPredictions"
 import { Alert, Stack, Tooltip as MuiTooltip } from "@mui/material"
 import UpgradeIcon from "@mui/icons-material/Upgrade"
 import StarIcon from "@mui/icons-material/Star"
@@ -41,6 +49,7 @@ import GpsFixedIcon from "@mui/icons-material/GpsFixed"
 import CancelIcon from "@mui/icons-material/Cancel"
 import FlagIcon from "@mui/icons-material/Flag"
 import RadarIcon from "@mui/icons-material/Radar"
+import MovieIcon from "@mui/icons-material/Movie"
 import Loading from "./Loading"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
@@ -214,7 +223,13 @@ function EventChart(props: {
   timelineEvents: TimelineEvent[]
   playerSummaries: PlayerSummary[]
 }) {
-  const events = props.timelineEvents
+  // The backend (timeline_events.py) owns the event_type vocabulary; drop any
+  // type this bundle doesn't know yet so a newer backend (or stale bundle)
+  // can't crash the chart on EVENT_TYPE_BY_KEY[unknown].
+  const events = React.useMemo(
+    () => props.timelineEvents.filter((e) => e.eventType in EVENT_TYPE_BY_KEY),
+    [props.timelineEvents],
+  )
   const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
   const max = Math.max(0, ...events.map((e) => e.atMinute))
   const grouped = React.useMemo(() => {
@@ -654,9 +669,17 @@ const columnGroups: { group: string; span: number }[] = columns.reduce(
 )
 
 function GameDetailsTable(props: { matchDetails: MatchDetails }) {
-  const [sortBy, setSortBy] = React.useState<null | keyof StyledTableRow>(
-    "moneyCollected",
-  )
+  const [sortBy, setSortBy] =
+    React.useState<keyof StyledTableRow>("moneyCollected")
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc")
+  const handleSort = (key: keyof StyledTableRow) => {
+    if (key === sortBy) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"))
+    } else {
+      setSortBy(key)
+      setSortDir("desc")
+    }
+  }
 
   const data: StyledTableRow[] = React.useMemo(() => {
     const { playerSummary: summaries, statsData } = props.matchDetails
@@ -723,8 +746,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   }, [props.matchDetails])
 
   const sortedData = React.useMemo(
-    () => (sortBy ? _.sortBy(data, sortBy) : data),
-    [data, sortBy],
+    () => _.orderBy(data, [sortBy], [sortDir]),
+    [data, sortBy, sortDir],
   )
 
   return (
@@ -777,8 +800,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
                 >
                   <TableSortLabel
                     active={column.key === sortBy}
-                    direction={"desc"}
-                    onClick={() => setSortBy(column.key)}
+                    direction={column.key === sortBy ? sortDir : "desc"}
+                    onClick={() => handleSort(column.key)}
                   >
                     {column.label}
                   </TableSortLabel>
@@ -937,7 +960,8 @@ function KillMap(props: {
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
         {props.playerSummaries.map((ps) => (
           <Stack
-            key={ps.name}
+            // Color is unique per player in a match; names aren't (twin CPUs).
+            key={`${ps.name}-${ps.color}`}
             direction="row"
             spacing={0.5}
             alignItems="center"
@@ -999,7 +1023,8 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
           <TableRow>
             <TableCell>Stat</TableCell>
             {players.map((p) => (
-              <TableCell key={p.name} align="right">
+              // Color is unique per player in a match; names aren't (twin CPUs).
+              <TableCell key={`${p.name}-${p.color}`} align="right">
                 <Stack
                   direction="row"
                   spacing={0.5}
@@ -1026,7 +1051,7 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
             <TableRow key={row.key}>
               <TableCell>{row.label}</TableCell>
               {players.map((p) => (
-                <TableCell key={p.name} align="right">
+                <TableCell key={`${p.name}-${p.color}`} align="right">
                   {p.academy ? p.academy[row.key].toLocaleString() : "—"}
                 </TableCell>
               ))}
@@ -1129,7 +1154,8 @@ function BuildOrderTab(props: {
       {players.map((p) => {
         const order = props.buildOrders[p.name]
         return (
-          <Paper key={p.name} sx={{ p: 2, mb: 2 }}>
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          <Paper key={`${p.name}-${p.color}`} sx={{ p: 2, mb: 2 }}>
             <Stack
               direction="row"
               spacing={1}
@@ -1162,13 +1188,396 @@ function BuildOrderTab(props: {
   )
 }
 
+// details.incomeBySource is only populated when cncstats supplied the
+// breakdown for this replay (newer replay versions only), and it is sparse:
+// an all-zero source, a player who never earned from a source, and unchanged
+// timesteps are all omitted - absent means "zero"/"unchanged", never
+// "unknown" (see MatchDetails.income_by_source in radarvan/api_types.py).
+type IncomeBySource = NonNullable<MatchDetails["incomeBySource"]>
+
+// Fixed label/color per known source so a source keeps its identity across
+// every player's chart regardless of which sources are active. Sources the
+// backend sends that aren't listed here (theft, other, anything cncstats
+// adds later) fold into a single gray "Other" band.
+const KNOWN_INCOME_SOURCES: { key: string; label: string; color: string }[] = [
+  { key: "supply", label: "Supply", color: "#2a78d6" },
+  { key: "oil_derrick", label: "Oil Derrick", color: "#1baf7a" },
+  { key: "black_market", label: "Black Market", color: "#eda100" },
+  { key: "hacker", label: "Hacker", color: "#008300" },
+  { key: "crate", label: "Crate", color: "#4a3aa7" },
+  { key: "salvage", label: "Salvage", color: "#e34948" },
+  { key: "bounty", label: "Bounty", color: "#e87ba4" },
+  { key: "supply_drop", label: "Supply Drop", color: "#eb6834" },
+]
+const KNOWN_INCOME_KEYS = new Set(KNOWN_INCOME_SOURCES.map((s) => s.key))
+const INCOME_OTHER_COLOR = "#898781"
+const INCOME_OTHER_LABEL = "Other"
+
+function incomeSourceColor(key: string): string {
+  return (
+    KNOWN_INCOME_SOURCES.find((s) => s.key === key)?.color ?? INCOME_OTHER_COLOR
+  )
+}
+
+// Shared time grid: union of every source's minute keys. Every non-empty
+// series shares this same sparse grid (see radarvan.stats_extraction).
+function incomeMinutes(income: IncomeBySource): number[] {
+  const all = new Set<number>()
+  for (const series of Object.values(income)) {
+    for (const m of Object.keys(series)) {
+      all.add(Number(m))
+    }
+  }
+  return [...all].sort((a, b) => a - b)
+}
+
+function playerHasIncomeFrom(
+  series: IncomeBySource[string] | undefined,
+  playerName: string,
+): boolean {
+  return Object.values(series ?? {}).some(
+    (byPlayer) => (byPlayer[playerName] ?? 0) !== 0,
+  )
+}
+
+// Gates both the "Income by Source" and "Econ" tabs (only present when
+// cncstats supplied the breakdown for this replay).
+function hasIncomeBySourceData(details: MatchDetails): boolean {
+  return Object.keys(details.incomeBySource ?? {}).length > 0
+}
+
+function PlayerIncomeChart(props: {
+  playerName: string
+  income: IncomeBySource
+  minutes: number[]
+  yMax: number
+}) {
+  const { playerName, income, minutes, yMax } = props
+  const { sources, otherKeys, data } = React.useMemo(() => {
+    // Sources this player never earned from are dropped from their chart (no
+    // flat zero bands); the source->color mapping stays fixed match-wide.
+    const sources = KNOWN_INCOME_SOURCES.filter((s) =>
+      playerHasIncomeFrom(income[s.key], playerName),
+    )
+    const otherKeys = Object.keys(income).filter(
+      (k) =>
+        !KNOWN_INCOME_KEYS.has(k) && playerHasIncomeFrom(income[k], playerName),
+    )
+    // Decode the sparse series over the shared grid with last-value carry
+    // forward - correct for cumulative data, and robust even if the backend
+    // ever emits per-source grids.
+    const last: Record<string, number> = {}
+    const data = minutes.map((m) => {
+      const row: Record<string, number> = { atMinute: m }
+      for (const s of sources) {
+        const v = income[s.key]?.[m]?.[playerName]
+        if (v !== undefined) last[s.key] = v
+        row[s.label] = last[s.key] ?? 0
+      }
+      let otherSum = 0
+      for (const k of otherKeys) {
+        const v = income[k]?.[m]?.[playerName]
+        if (v !== undefined) last[k] = v
+        otherSum += last[k] ?? 0
+      }
+      if (otherKeys.length > 0) {
+        row[INCOME_OTHER_LABEL] = otherSum
+      }
+      return row
+    })
+    return { sources, otherKeys, data }
+  }, [playerName, income, minutes])
+  if (sources.length === 0 && otherKeys.length === 0) {
+    return null
+  }
+  const maxTime = minutes.length > 0 ? minutes[minutes.length - 1] : 0
+  return (
+    <>
+      <Typography variant="h6">{playerName}</Typography>
+      <ResponsiveContainer width="100%" height={260}>
+        <AreaChart
+          data={data}
+          margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
+        >
+          <XAxis
+            type="number"
+            dataKey="atMinute"
+            domain={[0, maxTime]}
+            tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
+            name="minutes"
+          />
+          <YAxis domain={[0, yMax]} />
+          <Tooltip labelFormatter={(t) => `${Number(t).toFixed(1)}m`} />
+          <Legend />
+          {sources.map((s) => (
+            <Area
+              key={s.key}
+              type="monotone"
+              dataKey={s.label}
+              stackId="income"
+              stroke={s.color}
+              fill={s.color}
+            />
+          ))}
+          {otherKeys.length > 0 && (
+            <Area
+              type="monotone"
+              dataKey={INCOME_OTHER_LABEL}
+              stackId="income"
+              stroke={INCOME_OTHER_COLOR}
+              fill={INCOME_OTHER_COLOR}
+            />
+          )}
+          <ReferenceLine
+            y={yMax}
+            label={{ value: "highest $ collected", position: "insideTopRight" }}
+            stroke={BRAND_COLOR}
+            strokeDasharray="3 3"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </>
+  )
+}
+
+function IncomeBySourceTab(props: { details: MatchDetails }) {
+  const income = props.details.incomeBySource ?? {}
+  const minutes = React.useMemo(() => incomeMinutes(income), [income])
+  if (!hasIncomeBySourceData(props.details)) {
+    return <Typography>No income-by-source data for this replay</Typography>
+  }
+  // Common y-axis ceiling: the highest "$ Collected" of any player - the
+  // final cumulative money_earned the API already ships per player (same
+  // figure as the GameDetailsTable column) - so every chart is on the same
+  // scale and directly comparable.
+  const yMax = Math.max(
+    0,
+    ...Object.values(props.details.playerMoneyCollected ?? {}),
+  )
+  return (
+    <>
+      {props.details.playerSummary.map((ps) => (
+        <PlayerIncomeChart
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          key={`${ps.name}-${ps.color}`}
+          playerName={ps.name}
+          income={income}
+          minutes={minutes}
+          yMax={yMax}
+        />
+      ))}
+    </>
+  )
+}
+
+// Three broad economy categories from the same income_by_source breakdown,
+// using only the final (last snapshot) cumulative value per player - a
+// simple totals comparison rather than the time-series detail of the
+// "Income by Source" tab. Supplies/Oil colors are looked up from
+// KNOWN_INCOME_SOURCES (not re-declared) so the two tabs can't drift apart.
+const SUPPLY_INCOME_KEYS = ["supply", "crate"]
+const OIL_INCOME_KEY = "oil_derrick"
+const SECONDARY_ECONOMY_LABEL = "Secondary Economy"
+const SECONDARY_ECONOMY_COLOR = "#eda100" // yellow - a composite bucket, not a single known source
+
+function econCategories(
+  secondaryKeys: string[],
+): { label: string; keys: string[]; color: string }[] {
+  return [
+    {
+      label: "Supplies",
+      keys: SUPPLY_INCOME_KEYS,
+      color: incomeSourceColor("supply"),
+    },
+    {
+      label: "Oil Derricks",
+      keys: [OIL_INCOME_KEY],
+      color: incomeSourceColor("oil_derrick"),
+    },
+    {
+      label: SECONDARY_ECONOMY_LABEL,
+      keys: secondaryKeys,
+      color: SECONDARY_ECONOMY_COLOR,
+    },
+  ]
+}
+
+// Final cumulative value for one player, summed across `keys`, carrying each
+// key's last-known value forward over the shared minute grid - matching
+// PlayerIncomeChart's decode, and correct even for a player whose series
+// ends early (e.g. left/disconnected before the match's final snapshot).
+function finalValueForPlayer(
+  income: IncomeBySource,
+  keys: string[],
+  playerName: string,
+  minutes: number[],
+): number {
+  const last: Record<string, number> = {}
+  for (const m of minutes) {
+    for (const k of keys) {
+      const v = income[k]?.[m]?.[playerName]
+      if (v !== undefined) last[k] = v
+    }
+  }
+  return keys.reduce((sum, k) => sum + (last[k] ?? 0), 0)
+}
+
+// Bar height is the actual $ value collected; each bar is additionally
+// labeled with that player's share of what these players collected between
+// them this match - not (yet) the map's total available resource, which
+// cncstats doesn't expose per-map today. Once a per-map high-water mark is
+// available, swap the percent denominator for that instead of the sum below.
+function PercentOfTotalChart(props: {
+  title: string
+  rows: { name: string; [key: string]: string | number }[]
+  field: string
+  colors: Record<string, string>
+}) {
+  const total = props.rows.reduce((sum, r) => sum + Number(r[props.field]), 0)
+  const data = props.rows
+    .map((r) => {
+      const value = Number(r[props.field])
+      return {
+        name: r.name,
+        value,
+        percentLabel:
+          total > 0 ? `${((100 * value) / total).toFixed(1)}%` : "-",
+      }
+    })
+    .sort((a, b) => b.value - a.value)
+  return (
+    <>
+      <Typography variant="h6">{props.title}</Typography>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart
+          data={data}
+          layout="horizontal"
+          margin={{ top: 20, right: 10, left: 15, bottom: 5 }}
+        >
+          <Bar dataKey="value">
+            <LabelList dataKey="percentLabel" position="top" />
+            {data.map((d) => (
+              <Cell key={d.name} fill={props.colors[d.name]} />
+            ))}
+          </Bar>
+          <XAxis dataKey="name" />
+          <YAxis
+            label={{
+              value: "$ collected",
+              position: "insideLeft",
+              offset: -5,
+              angle: -90,
+            }}
+          />
+          <Tooltip
+            formatter={(v, _name, item) => [
+              `${v} (${item.payload.percentLabel} of collected this match)`,
+              "$ collected",
+            ]}
+            cursor={false}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </>
+  )
+}
+
+function EconTab(props: { details: MatchDetails }) {
+  const income = props.details.incomeBySource ?? {}
+  const minutes = React.useMemo(() => incomeMinutes(income), [income])
+  const secondaryKeys = React.useMemo(
+    () =>
+      Object.keys(income).filter(
+        (k) => !SUPPLY_INCOME_KEYS.includes(k) && k !== OIL_INCOME_KEY,
+      ),
+    [income],
+  )
+  const categories = econCategories(secondaryKeys)
+  const colors = buildPlayerColorMap(props.details.playerSummary, getColorHex)
+  const data = React.useMemo(
+    () =>
+      props.details.playerSummary.map((ps) => {
+        const row: { name: string; [key: string]: string | number } = {
+          name: ps.name,
+        }
+        for (const c of categories) {
+          row[c.label] = finalValueForPlayer(income, c.keys, ps.name, minutes)
+        }
+        return row
+      }),
+    // categories is derived deterministically from secondaryKeys (already a
+    // dep) each render, so it doesn't need to be a dep itself.
+    [props.details.playerSummary, income, minutes, secondaryKeys],
+  )
+  if (!hasIncomeBySourceData(props.details)) {
+    return <Typography>No econ data for this replay</Typography>
+  }
+  return (
+    <>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart
+          data={data}
+          layout="horizontal"
+          margin={{ top: 5, right: 10, left: 15, bottom: 5 }}
+        >
+          {categories.map((c) => (
+            <Bar
+              key={c.label}
+              dataKey={c.label}
+              stackId="econ"
+              fill={c.color}
+            />
+          ))}
+          <XAxis dataKey="name" />
+          <YAxis
+            label={{
+              value: "$ collected",
+              position: "insideLeft",
+              offset: -5,
+              angle: -90,
+            }}
+          />
+          <Tooltip />
+          <Legend />
+        </BarChart>
+      </ResponsiveContainer>
+      <Divider />
+      {categories.map((c) => (
+        <PercentOfTotalChart
+          key={c.label}
+          title={`${c.label} - % of collected this match`}
+          rows={data}
+          field={c.label}
+          colors={colors}
+        />
+      ))}
+    </>
+  )
+}
+
 type Displays =
   | "Player Unit and spending breakdown"
   | "Event Chart"
   | "Detailed Graphs"
+  | "Income by Source"
+  | "Econ"
   | "Kill Map"
+  | "Replay"
+  | "AI"
   | "Academy"
   | "Build Order"
+
+// Decorated tab labels. The ToggleButton `value` stays the plain Displays string
+// (used by the switch); only the rendered label gets an icon/emoji.
+const DISPLAY_LABELS: Partial<Record<Displays, React.ReactNode>> = {
+  AI: "🤖 AI",
+  Replay: (
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      <MovieIcon fontSize="small" />
+      <span>Replay</span>
+    </Stack>
+  ),
+}
 
 function DetailViewSelector(props: {
   selectedDisplay: Displays | null
@@ -1194,7 +1603,7 @@ function DetailViewSelector(props: {
       >
         {props.choices.map((v) => (
           <ToggleButton key={v} value={v}>
-            {v}
+            {DISPLAY_LABELS[v] ?? v}
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
@@ -1215,12 +1624,27 @@ function DetailViewSelector(props: {
       {props.selectedDisplay === "Detailed Graphs" && (
         <DetailedGraphs details={props.details} />
       )}
+      {props.selectedDisplay === "Income by Source" && (
+        <IncomeBySourceTab details={props.details} />
+      )}
+      {props.selectedDisplay === "Econ" && <EconTab details={props.details} />}
       {props.selectedDisplay === "Kill Map" && (
         <KillMap
           killEvents={props.details.killEvents ?? []}
           playerSummaries={props.details.playerSummary}
           mapName={props.details.mapName ?? ""}
         />
+      )}
+      {props.selectedDisplay === "Replay" && (
+        <ReplayPlayback
+          mapName={props.details.mapName ?? ""}
+          mapEvents={props.details.mapEvents ?? []}
+          killEvents={props.details.killEvents ?? []}
+          playerSummaries={props.details.playerSummary}
+        />
+      )}
+      {props.selectedDisplay === "AI" && (
+        <AIPredictions matchId={props.details.matchId} />
       )}
       {props.selectedDisplay === "Academy" && (
         <AcademyTable playerSummaries={props.details.playerSummary} />
@@ -1256,7 +1680,12 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Player Unit and spending breakdown",
     "Event Chart",
     "Detailed Graphs",
+    ...(hasIncomeBySourceData(details)
+      ? (["Income by Source", "Econ"] as const)
+      : []),
     "Kill Map",
+    "Replay",
+    "AI",
     "Academy",
     "Build Order",
   ]

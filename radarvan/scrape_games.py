@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urljoin
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import structlog
 from . import player_ids
 from functools import cache
@@ -60,7 +60,7 @@ def generate_directories(n_days: int, base_path: str = ".") -> Any:
         base_path (str): Base directory path where to create the structure
     """
     # Get current date
-    current_date = datetime.now()
+    current_date = datetime.now(UTC)
 
     # Create base path if it doesn't exist
     base = Path(base_path)
@@ -146,8 +146,7 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
 
 async def get_player_dirs(root: str) -> list[str]:
     user_ids = list(player_ids.PLAYERS.values())
-    player_dirs = await matching_links(root, user_ids)
-    return player_dirs
+    return await matching_links(root, user_ids)
 
 
 async def search_dates(days: int, base: str) -> list[list[str]]:
@@ -157,8 +156,7 @@ async def search_dates(days: int, base: str) -> list[list[str]]:
         logger.debug("searching", date_path=date_path)
         dir_list_coro.append(get_player_dirs(date_path))
 
-    dir_lists = await asyncio.gather(*dir_list_coro)
-    return dir_lists
+    return await asyncio.gather(*dir_list_coro)
 
 
 async def search_replays(urls_to_list: list[str]) -> list[list[str]]:
@@ -167,8 +165,7 @@ async def search_replays(urls_to_list: list[str]) -> list[list[str]]:
         logger.debug("searching", url=url)
         dir_list_coro.append(matching_links(url, [".rep"]))
 
-    dir_lists = await asyncio.gather(*dir_list_coro)
-    return dir_lists
+    return await asyncio.gather(*dir_list_coro)
 
 
 async def get_replay_urls(
@@ -185,7 +182,11 @@ async def get_replay_urls(
         for paths in replay_paths:
             for p in paths:
                 if p not in existing_paths:
-                    replay_files.parse_replay(p, replay_manager)
+                    # parse_replay is blocking (S3 + cncstats HTTP); keep it off
+                    # the event loop. Sequential, so the shared session is safe.
+                    await asyncio.to_thread(
+                        replay_files.parse_replay, p, replay_manager
+                    )
     return all_replay_paths
 
 
@@ -201,7 +202,7 @@ if __name__ == "__main__":
 
         all_paths = asyncio.run(get_replay_urls(0, BASE, replay_manager))
         logger.debug("all paths", all_paths=all_paths)
-        with open("replay_paths.txt", "w") as f:
+        with Path("replay_paths.txt").open("w") as f:
             for paths in all_paths:
                 for p in paths:
                     for i in p:

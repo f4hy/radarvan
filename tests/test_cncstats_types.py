@@ -30,11 +30,6 @@ def v2_replay(new_format_data: dict) -> EnhancedReplayV2:
 
 
 @pytest.fixture
-def v2_replay_old_format(parsed_data: dict) -> EnhancedReplayV2:
-    return EnhancedReplayV2.model_validate(parsed_data)
-
-
-@pytest.fixture
 def new_output_data() -> dict:
     return json.loads((TESTS_DIR / "new_cncstats_output.json").read_text())
 
@@ -116,10 +111,6 @@ def test_v2_parses_money_time_series(v2_replay: EnhancedReplayV2) -> None:
     assert skip_money[1] == 10000
 
 
-def test_v2_stats_absent_for_old_format(v2_replay_old_format: EnhancedReplayV2) -> None:
-    assert v2_replay_old_format.stats is None
-
-
 def test_new_output_parses_header(new_output_replay: EnhancedReplayV2) -> None:
     assert new_output_replay.header is not None
     assert new_output_replay.header.version == "Version 1.04"
@@ -127,7 +118,7 @@ def test_new_output_parses_header(new_output_replay: EnhancedReplayV2) -> None:
     assert new_output_replay.header.desync is False
     assert new_output_replay.header.quit_early is False
     assert new_output_replay.header.metadata is not None
-    assert new_output_replay.header.metadata.seed == "49429937"
+    assert new_output_replay.header.metadata.seed == 49429937
     assert new_output_replay.header.metadata.map_path == "userdata/maps/fata morgana"
 
 

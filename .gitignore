@@ -59,7 +59,10 @@ yarn-error.log*
 /cncstats_schema.json
 /openapitools.json
 /keys/
-/references/
+# Track the canonical cncstats fixture (used by the test suite + documented in
+# CLAUDE.md); keep the raw .rep binary and other large reference blobs ignored.
+/references/*
+!/references/example_cncstats_output.json
 /auth.md
 /.claude/
 /analysis/

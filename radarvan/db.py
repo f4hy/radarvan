@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models — the database schema (``Match``, ``MatchPlayer``,
+"""SQLAlchemy ORM models - the database schema (``Match``, ``MatchPlayer``,
 ``ReplayFile``, ``ParsedReplayJson``, ``MatchDetailsCache``, ``User``, ``MapData``, …)
 and the ``Base`` declarative class shared across the backend."""
 
@@ -29,7 +29,7 @@ def _utcnow() -> datetime:
 
     Returns an aware UTC datetime. SQLAlchemy will store it as-is on tz-aware
     columns and silently strip the tzinfo on naive columns (preserving the
-    existing-stored-value semantics — i.e. wall-clock UTC).
+    existing-stored-value semantics - i.e. wall-clock UTC).
     """
     return datetime.now(UTC)
 
@@ -325,6 +325,30 @@ class MatchDetailsCache(Base):
         return f"<MatchDetailsCache(match_id={self.match_id}, version={self.version})>"
 
 
+class PlayerProfileCache(Base):
+    """Durable, versioned per-player profile deep stats.
+
+    One JSONB row per profiled player holding the serialized
+    PlayerProfileComputed (by_alias). `version` is the
+    `player_profile.PROFILE_VERSION` that produced the row; a read only trusts
+    a matching version, so bumping the derivation invalidates every row.
+    Profiles are always recomputed as a whole batch (percentiles are relative
+    to the profiled population), never per player.
+    """
+
+    __tablename__ = "player_profiles"
+
+    player: Mapped[str] = mapped_column(String, primary_key=True)
+    version: Mapped[str] = mapped_column(String(64), index=True)
+    data: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<PlayerProfileCache(player={self.player}, version={self.version})>"
+
+
 class User(Base):
     """A community member authenticated via Discord OAuth2.
 
@@ -362,7 +386,7 @@ class MapVote(Base):
 
     Votes and vetoes are per (user, player_count): a user may cast up to a
     fixed number of each (enforced in the repository, not the schema). A map can
-    be voted OR vetoed but not both — one row per (user, player_count, map_name),
+    be voted OR vetoed but not both - one row per (user, player_count, map_name),
     with `choice` flipping between 'vote' and 'veto'.
     """
 
@@ -416,3 +440,75 @@ class MapData(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class BracketTournament(Base):
+    """Singleton row for the current 1v1 double-elimination bracket.
+
+    Only one row exists at a time - creating/resetting a bracket deletes the
+    existing row (BracketPlayer/BracketMatchState cascade with it) and
+    inserts a fresh one. See radarvan/bracket.py for the 9-16 entrant
+    topology (a fixed 16-slot bracket with byes for smaller fields); this
+    table (plus BracketPlayer/BracketMatchState) only stores the seeding and
+    per-match results, not the bracket shape itself.
+    """
+
+    __tablename__ = "bracket_tournaments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    players: Mapped[list["BracketPlayer"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan"
+    )
+    match_states: Mapped[list["BracketMatchState"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan"
+    )
+
+
+class BracketPlayer(Base):
+    """One seeded entrant in the current bracket tournament."""
+
+    __tablename__ = "bracket_players"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("bracket_tournaments.id", ondelete="CASCADE"), index=True
+    )
+    seed: Mapped[int] = mapped_column(SmallInteger)
+    player_name: Mapped[str] = mapped_column(String(100))
+
+    __table_args__ = (
+        Index(
+            "uq_bracket_players_tournament_seed",
+            "tournament_id",
+            "seed",
+            unique=True,
+        ),
+    )
+
+    tournament: Mapped[BracketTournament] = relationship(back_populates="players")
+
+
+class BracketMatchState(Base):
+    """Mutable per-match state (date/best-of/score) for a bracket match.
+
+    ``match_id`` is one of the static ids from radarvan/bracket.py's
+    TOPOLOGY (e.g. "WB1-1", "LB2a-1", "GF-2") - the bracket shape/routing
+    lives in code; this table only stores what an admin entered.
+    """
+
+    __tablename__ = "bracket_match_state"
+
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("bracket_tournaments.id", ondelete="CASCADE"), primary_key=True
+    )
+    match_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    scheduled_date: Mapped[date | None] = mapped_column(nullable=True)
+    best_of: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    score_a: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    score_b: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+
+    tournament: Mapped[BracketTournament] = relationship(back_populates="match_states")

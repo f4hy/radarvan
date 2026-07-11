@@ -36,7 +36,10 @@ def restore_jsons() -> None:
                 json_s3_uri=r["json_s3_uri"],
                 replay_id=r["match_id"],
                 original_replay_file_url=r["replay_file_url"],
-                game_timestamp=datetime.strptime(r["game_timestamp"], date_format),
+                # game_timestamp is a naive `DateTime` column by design (db.py); keep it naive.
+                game_timestamp=datetime.strptime(  # noqa: DTZ007
+                    r["game_timestamp"], date_format
+                ),
             )
         session.flush()
         session.commit()

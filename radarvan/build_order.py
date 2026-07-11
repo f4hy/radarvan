@@ -26,7 +26,7 @@ _MAX_ROWS = 10
 _ECONOMY_UNIT_KEYWORDS = ("worker", "dozer", "supplytruck", "chinook")
 
 
-def _is_economy_unit(cleaned_name: str) -> bool:
+def is_economy_unit(cleaned_name: str) -> bool:
     low = cleaned_name.lower()
     return any(keyword in low for keyword in _ECONOMY_UNIT_KEYWORDS)
 
@@ -64,7 +64,7 @@ def build_order_from_replay(
     """First ``_MAX_ROWS`` collapsed buildings, units, and upgrades per player.
 
     Buildings vs units come straight from cncstats's ``objectType`` on each
-    build event — ``structure`` is a building, everything else (infantry,
+    build event - ``structure`` is a building, everything else (infantry,
     vehicle, missing) is treated as a unit. Consecutive identical builds are
     collapsed into runs *before* capping, and economy units are flagged.
     """
@@ -91,7 +91,7 @@ def build_order_from_replay(
                         at_minute=bev.frame * scale,
                         name=cleaned,
                         cost=bev.cost,
-                        is_economy=_is_economy_unit(cleaned),
+                        is_economy=is_economy_unit(cleaned),
                     )
                 )
 

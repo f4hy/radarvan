@@ -20,7 +20,7 @@ from .api_types import (
     Player,
     Team,
 )
-from . import replay_files
+from . import game_composition
 from .replay_files import map_basename
 from . import general_stats as general_stats_module
 from .player_ids import resolve_player_name
@@ -50,7 +50,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
     for game in games:
         if game.incomplete:
             continue
-        if not replay_files.path_filter(game.filename):
+        if not game_composition.competitive_game_filter(game.composition):
             continue
         if game.winning_team < 1:
             continue
@@ -181,10 +181,8 @@ def map_summary(
                 player_results_desc[name].append(p.won)
         d = g.duration_minutes
         total_min += d
-        if d < min_min:
-            min_min = d
-        if d > max_min:
-            max_min = d
+        min_min = min(min_min, d)
+        max_min = max(max_min, d)
 
     best_general = None
     if gen_wl:
@@ -205,7 +203,7 @@ def map_summary(
             wins=pg_wl[(resolved, p.general)][0],
             losses=pg_wl[(resolved, p.general)][1],
         )
-        for p, resolved in zip(players, request_resolved)
+        for p, resolved in zip(players, request_resolved, strict=True)
     ]
 
     duration = MapSummaryDuration(
@@ -267,7 +265,9 @@ def _player_general_records(
     players: list[MapSummaryPlayer],
     request_resolved: list[str],
 ) -> list[MapSummaryPlayerGeneralRecord]:
-    wanted = {(name, p.general) for p, name in zip(players, request_resolved)}
+    wanted = {
+        (name, p.general) for p, name in zip(players, request_resolved, strict=True)
+    }
     wl: dict[tuple[str, General], list[int]] = defaultdict(lambda: [0, 0])
     for g in games:
         if g.incomplete or g.winning_team < 1:
@@ -285,7 +285,7 @@ def _player_general_records(
             wins=wl[(name, p.general)][0],
             losses=wl[(name, p.general)][1],
         )
-        for p, name in zip(players, request_resolved)
+        for p, name in zip(players, request_resolved, strict=True)
     ]
 
 
@@ -345,7 +345,7 @@ def _team_h2h(
 def _format_prediction(p: MatchPrediction) -> str:
     fav = "A" if p.favored_team == p.team_a else "B"
     line = (
-        f"AI Predicted winner: Team {fav} ({p.favored_win_prob:.0%}) — "
+        f"AI Predicted winner: Team {fav} ({p.favored_win_prob:.0%}) : "
         f"A:[{','.join(p.team_a_players)}] vs B:[{','.join(p.team_b_players)}]"
     )
     if p.unknown_players:

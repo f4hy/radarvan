@@ -6,7 +6,7 @@ verify_api_key dependency on the FastAPI app.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import asyncio
 import structlog
 from typing import Any, NamedTuple
@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from .. import matches, replay_files, schedule
 from ..api_types import MatchInfo, Team, WinnerOverride
 from ..cache import details_from_id, invalidate_match_caches
-from ..db import Match, ParsedReplayJson
+from ..db import Match
 from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import IS_DEV, db_manager, get_replay_manager
 from ..game_composition import GameComposition
@@ -50,10 +50,11 @@ def _debug_data_to_dict(data: MatchDebugData) -> dict[str, Any]:
 def scrape(
     background_tasks: BackgroundTasks,
     days: int = 1,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, str]:
+    # The background task runs after this request's session is torn down, so it
+    # gets the db_manager and opens its own session.
     invalidate_match_caches()
-    background_tasks.add_task(schedule.update_games, replay_manager, days=days)
+    background_tasks.add_task(schedule.update_games, db_manager, days)
     return {"scheduled": "ok"}
 
 
@@ -122,13 +123,28 @@ def reparse(
     return replay
 
 
+@router.post("/api/clear_details_cache/", include_in_schema=IS_DEV)
+def clear_details_cache(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Drop every row of the durable MatchDetails cache and the in-process LRU
+    fronting it. A debugging hatch - normal invalidation is per-match
+    (reparse) or implicit via DETAILS_VERSION, and derivation changes should
+    bump the version rather than lean on this.
+    """
+    deleted = replay_manager.delete_all_cached_details()
+    details_from_id.cache_clear()
+    logger.info("cleared details cache", deleted=deleted)
+    return {"deleted": deleted}
+
+
 @router.post("/api/reparse_recent/", include_in_schema=IS_DEV)
 def reparse_recent(
     days: int = 3,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on all matches whose game_date is within the last `days` days."""
-    since = date.today() - timedelta(days=days)
+    since = datetime.now(UTC).date() - timedelta(days=days)
     candidates = replay_manager.list_jsons_since_date(since)
     logger.info("reparse_recent", candidates=len(candidates), since=since)
     updated_ids: set[int] = set()
@@ -154,7 +170,7 @@ def reparse_before_date(
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
 
-    Calls cncstats for each match — slower than refresh_matches_from_json but picks
+    Calls cncstats for each match - slower than refresh_matches_from_json but picks
     up new fields added to the parser output.
     """
     candidates = replay_manager.list_jsons_parsed_before(before, limit=max_to_update)
@@ -185,27 +201,31 @@ async def reparse_non_v2(
 ) -> dict[str, int | list[int]]:
     """Re-run cncstats on matches whose parsed JSON was last updated before `before`.
 
-    Calls cncstats for each match — slower than refresh_matches_from_json but picks
+    Calls cncstats for each match - slower than refresh_matches_from_json but picks
     up new fields added to the parser output.
     """
     candidates = replay_manager.list_jsons_non_v2(limit=max_to_update)
     logger.info("reparse_non_v2", candidates=len(candidates))
+    # Extract plain values here, on the request's session: ORM objects must not
+    # cross into the worker threads (sessions aren't thread-safe, and attribute
+    # access can lazy-load through the session they're bound to).
+    work_items = [matches.ReparseInputs.from_row(p) for p in candidates]
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def _reparse_one(parsed: ParsedReplayJson) -> int | None:
+    async def _reparse_one(item: matches.ReparseInputs) -> int | None:
         async with semaphore:
 
             def _work() -> int | None:
                 with db_manager.get_replay_manager() as rm:
                     try:
-                        updated = matches.reparse_existing(parsed, rm)
+                        updated = matches.reparse_existing(item, rm)
                     except Exception as e:
                         logger.exception(
-                            "error reparsing match", match_id=parsed.match_id
+                            "error reparsing match", match_id=item.match_id
                         )
                         raise RuntimeError(
-                            f"Error reparseing match {parsed.match_id}"
+                            f"Error reparseing match {item.match_id}"
                         ) from e
                     if updated:
                         rm.compute_and_save_composition(updated.id)
@@ -214,7 +234,7 @@ async def reparse_non_v2(
 
             return await asyncio.to_thread(_work)
 
-    results = await asyncio.gather(*[_reparse_one(r) for r in candidates])
+    results = await asyncio.gather(*[_reparse_one(w) for w in work_items])
     updated_ids = [r for r in results if r is not None]
     if updated_ids:
         invalidate_match_caches()
@@ -290,42 +310,19 @@ def delete_override(
     return {"status": "deleted", "match_id": str(match_id)}
 
 
-@router.post("/api/update_matches_missing_data/", include_in_schema=IS_DEV)
-def update_matches_missing_data(
-    max_to_update: int = 1,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, int]:
-    missing_game_version = replay_manager.list_matches_without_game_version(
-        max_to_update
-    )
-    logger.info("missing game version", count=len(missing_game_version))
-    updated_count = 0
-    for missing in missing_game_version:
-        replay = replay_files.parse_json(missing.json_s3_uri)
-        missing.game_version = (
-            replay.header.version.lower().replace("version", "").strip()
-        )
-        result = replay_manager.update_match(missing)
-        logger.info("updated", match_id=missing.match_id, success=result)
-        if result:
-            updated_count += 1
-        if updated_count >= max_to_update:
-            break
-    return {"updated": updated_count}
-
-
 class MatchPair(NamedTuple):
     db_match: Match
     new_match: Match
 
 
-def _fetch_and_parse(match_id: int, json_record: ParsedReplayJson) -> Match:
-    """Fetch JSON from S3 and convert to a Match — no DB access, safe to run in threads."""
+def _fetch_and_parse(json_s3_uri: str, replay_file_url: str) -> Match:
+    """Fetch JSON from S3 and convert to a Match - takes plain strings (no ORM
+    objects), so it's safe to run in worker threads."""
     replay = replay_files.with_filename(
-        replay_files.parse_json(json_record.json_s3_uri),
-        json_record.replay_file_url,
+        replay_files.parse_json(json_s3_uri),
+        replay_file_url,
     )
-    return matches.replay_to_db_match(replay, json_record.json_s3_uri)
+    return matches.replay_to_db_match(replay, json_s3_uri)
 
 
 @router.post("/api/refresh_matches_from_json/", include_in_schema=IS_DEV)
@@ -335,13 +332,20 @@ def refresh_matches_from_json(
 ) -> dict[str, int]:
     """Re-parse existing JSON files from S3 and update DB matches if they differ.
 
-    Does NOT re-run cncstats — only reloads the already-parsed JSON from S3.
+    Does NOT re-run cncstats - only reloads the already-parsed JSON from S3.
     Phase 1 (S3 fetches) runs in parallel; Phase 2 (DB writes) runs serially.
     Fetches up to max_to_update * 4 candidates to account for non-differing matches.
     """
     all_matches = replay_manager.list_matches(0.0)
+    # Extract plain strings here, on the request's session: ORM objects must not
+    # cross into the worker threads (sessions aren't thread-safe, and attribute
+    # access can lazy-load through the session they're bound to).
     candidates = [
-        (db_match, db_match.replay_json)
+        (
+            db_match,
+            db_match.replay_json.json_s3_uri,
+            db_match.replay_json.replay_file_url,
+        )
         for db_match in all_matches
         if db_match.replay_json is not None
     ][: max_to_update * 4]
@@ -350,8 +354,8 @@ def refresh_matches_from_json(
     parsed: list[MatchPair] = []
     with ThreadPoolExecutor(max_workers=20) as executor:
         future_to_match = {
-            executor.submit(_fetch_and_parse, db_match.match_id, json_record): db_match
-            for db_match, json_record in candidates
+            executor.submit(_fetch_and_parse, json_uri, file_url): db_match
+            for db_match, json_uri, file_url in candidates
         }
         for future in as_completed(future_to_match):
             db_match = future_to_match[future]
@@ -366,15 +370,17 @@ def refresh_matches_from_json(
     # Phase 2: compare and write in a single transaction
     updated_count = 0
     replay_manager.auto_commit = False
-    for db_match, new_match in parsed:
-        if updated_count >= max_to_update:
-            break
-        if matches.matches_differ(db_match, new_match):
-            replay_manager.update_match(new_match)
-            updated_count += 1
-    if updated_count:
-        replay_manager.session.commit()
-    replay_manager.auto_commit = True
+    try:
+        for db_match, new_match in parsed:
+            if updated_count >= max_to_update:
+                break
+            if matches.matches_differ(db_match, new_match):
+                replay_manager.update_match(new_match)
+                updated_count += 1
+        if updated_count:
+            replay_manager.session.commit()
+    finally:
+        replay_manager.auto_commit = True
     return {"updated": updated_count, "checked": len(parsed)}
 
 

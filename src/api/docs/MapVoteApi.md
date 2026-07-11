@@ -287,7 +287,7 @@ No authorization required
 
 Voting Players
 
-In-game names with an account — the selectable participants for a draw.
+In-game names with an account - the selectable participants for a draw.
 
 ### Example
 
