@@ -18,7 +18,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 
 **Frontend**: `npm start` (Vite dev server; only `/api` is proxied to localhost:8000 via `vite.config.ts`), `npm run build`, `npm test` (vitest).
 
-**Backend**: `fastapi run radarvan/main.py` (matches `Procfile`). Python ≥3.13, deps locked in `uv.lock`. `alembic upgrade head` for migrations (config in `alembic.ini`).
+**Backend**: `fastapi run radarvan/main.py` (matches `Procfile`). Python ≥3.14, deps locked in `uv.lock`. `alembic upgrade head` for migrations (config in `alembic.ini`).
 
 **Client codegen**: `./gen_client.sh` regenerates the TypeScript client in `src/api/` from the running server's OpenAPI spec — the FastAPI server must already be running and serving your changed code. Always use this script (not `npm run openapi-ts` or a manual generator invocation). Never hand-edit `src/api/` (auto-generated). `PlayerEnum.ts` reorders on every regen (Python set iteration) — that churn is normal.
 

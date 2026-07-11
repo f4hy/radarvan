@@ -272,7 +272,7 @@ class ReparseInputs:
     replay_path: str
 
     @classmethod
-    def from_row(cls, row: db.ParsedReplayJson) -> "ReparseInputs":
+    def from_row(cls, row: db.ParsedReplayJson) -> ReparseInputs:
         return cls(
             match_id=row.match_id,
             json_path=row.json_s3_uri,
