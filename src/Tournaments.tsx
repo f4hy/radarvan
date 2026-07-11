@@ -119,7 +119,12 @@ function DisplayTournamentInfo(props: { tournament: Tournament }) {
 function DisplayOverrideBanner(props: { override: string | undefined | null }) {
   if (props.override) {
     return (
-      <Typography color="warning.main" sx={{ fontWeight: "bold" }}>
+      <Typography
+        sx={{
+          color: "warning.main",
+          fontWeight: "bold",
+        }}
+      >
         {props.override}
       </Typography>
     )
@@ -130,7 +135,12 @@ function DisplayOverrideBanner(props: { override: string | undefined | null }) {
 function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
   if (props.matches.length === 0) {
     return (
-      <Typography color="warning.main" sx={{ fontWeight: "bold" }}>
+      <Typography
+        sx={{
+          color: "warning.main",
+          fontWeight: "bold",
+        }}
+      >
         No recorded matches to show
       </Typography>
     )
@@ -338,7 +348,13 @@ function TeamProgressChart(props: {
       const data = payload[0].payload
       return (
         <Paper elevation={3} sx={{ p: 1.5, lineHeight: 1.5 }}>
-          <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              mb: 0.5,
+            }}
+          >
             {data.team}
           </Typography>
           <Typography variant="body2">Current Wins: {data.wins}</Typography>
@@ -349,7 +365,12 @@ function TeamProgressChart(props: {
           <Typography variant="body2">
             Outstanding: {data.gamesOutstanding}
           </Typography>
-          <Typography variant="body2" color="primary.main">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "primary.main",
+            }}
+          >
             Max Possible: {data.maxPossibleWins}
           </Typography>
         </Paper>

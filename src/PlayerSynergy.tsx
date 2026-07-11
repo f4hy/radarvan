@@ -48,7 +48,12 @@ function RegSlider(props: {
   return (
     <Box sx={{ minWidth: 170 }}>
       <MuiTooltip title={props.tooltip}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {props.label}: {props.draft}
         </Typography>
       </MuiTooltip>
@@ -82,11 +87,18 @@ function PairCell(props: { a: string; b: string }) {
       <Stack
         direction="row"
         spacing={1}
-        alignItems="center"
-        sx={{ flexWrap: "wrap" }}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
       >
         <PlayerLabel name={props.a} />
-        <Typography component="span" color="text.secondary">
+        <Typography
+          component="span"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           +
         </Typography>
         <PlayerLabel name={props.b} />
@@ -132,7 +144,12 @@ export default function DisplayPlayerSynergy() {
         <Typography variant="h5" gutterBottom>
           Player Synergy
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Do two players win more (or less) often as teammates than their
           individual ratings predict? <b>Synergy</b> is the shift in win
           probability attributable to the pair, on top of what the rating model
@@ -142,11 +159,12 @@ export default function DisplayPlayerSynergy() {
           game count.
         </Typography>
       </Box>
-
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
-        alignItems={{ xs: "flex-start", sm: "center" }}
+        sx={{
+          alignItems: { xs: "flex-start", sm: "center" },
+        }}
       >
         <ToggleButtonGroup
           size="small"
@@ -161,8 +179,19 @@ export default function DisplayPlayerSynergy() {
           ))}
         </ToggleButtonGroup>
 
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="body2" color="text.secondary">
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             Min games together
           </Typography>
           <ToggleButtonGroup
@@ -209,11 +238,15 @@ export default function DisplayPlayerSynergy() {
           onCommit={setMainReg}
         />
       </Stack>
-
       {!pairs ? (
         <Loading />
       ) : visible.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           No pairs match the current filters.
         </Typography>
       ) : (
@@ -246,7 +279,12 @@ export function SimplePlayerSynergy() {
   const strong = pairs.filter((p) => Math.abs(p.zScore) > SIMPLE_MIN_Z)
   if (strong.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         No pairs yet have enough shared games to show a confident synergy.
       </Typography>
     )
@@ -254,7 +292,13 @@ export function SimplePlayerSynergy() {
 
   return (
     <>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 1,
+        }}
+      >
         Pairs who win more (green) or less (red) together than their individual
         ratings predict, with enough shared games to be confident.
       </Typography>
@@ -385,7 +429,12 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                   sx={{ fontVariantNumeric: "tabular-nums" }}
                 >
                   {pct(actualRate)}{" "}
-                  <Typography component="span" color="text.secondary">
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: "text.secondary",
+                    }}
+                  >
                     / {pct(expectedRate)}
                   </Typography>
                 </TableCell>

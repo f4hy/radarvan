@@ -172,9 +172,11 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
             <DisplayGeneral general={p.general} />
             <Typography
               variant="h6"
-              fontWeight={700}
               noWrap
-              sx={{ color: getColorHex(p.color) }}
+              sx={{
+                fontWeight: 700,
+                color: getColorHex(p.color),
+              }}
             >
               {normalizePlayerName(p.name)}
             </Typography>
@@ -195,13 +197,21 @@ function FfaPlayerCard(props: { player: Player }) {
         label={player.won ? "Winner" : "Lost"}
         center
       />
-      <Stack spacing={1} alignItems="center" sx={{ p: 1.5 }}>
+      <Stack
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          p: 1.5,
+        }}
+      >
         <DisplayGeneral general={player.general} />
         <Typography
           variant="subtitle1"
-          fontWeight={700}
           noWrap
-          sx={{ color: getColorHex(player.color) }}
+          sx={{
+            fontWeight: 700,
+            color: getColorHex(player.color),
+          }}
         >
           {normalizePlayerName(player.name)}
         </Typography>
@@ -240,23 +250,37 @@ function MatchHeader(props: {
   return (
     <Stack
       direction="row"
-      justifyContent="space-between"
-      alignItems="flex-start"
       spacing={1}
-      sx={{ width: "100%" }}
+      sx={{
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        width: "100%",
+      }}
     >
       <Stack
         direction="row"
         spacing={1}
-        alignItems="center"
-        flexWrap="wrap"
-        sx={{ minWidth: 0 }}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+          minWidth: 0,
+        }}
       >
         <Chip label={props.formatLabel} size="small" variant="outlined" />
-        <Typography variant="body2" fontWeight={600}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+          }}
+        >
           {mapName}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {match.durationMinutes.toFixed(1)} min · {date} · v{match.gameVersion}{" "}
           · ID {match.id}
         </Typography>
@@ -332,7 +356,14 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
           <DownloadReplayButton matchId={match.id} filename={match.filename} />
         }
       />
-      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+      <Stack
+        direction="row"
+        sx={{
+          flexWrap: "wrap",
+          gap: 1,
+          mt: 1,
+        }}
+      >
         {match.players.map((p) => (
           // Color is unique per player in a match; names aren't (twin CPUs).
           <FfaPlayerCard key={`${p.name}-${p.color}`} player={p} />
@@ -405,20 +436,34 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
         }
       />
       {props.match?.notes?.length ? (
-        <Typography color="warning.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+        <Typography
+          sx={{
+            color: "warning.main",
+            fontWeight: "bold",
+            mt: 0.5,
+          }}
+        >
           {props.match.notes}
         </Typography>
       ) : null}
       {incomplete ? (
-        <Typography color="error.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+        <Typography
+          sx={{
+            color: "error.main",
+            fontWeight: "bold",
+            mt: 0.5,
+          }}
+        >
           {props.match.incomplete}
         </Typography>
       ) : null}
       <Stack
         direction="row"
-        justifyContent="flex-start"
-        flexWrap={{ xs: "wrap", md: "nowrap" }}
-        sx={{ mt: 1 }}
+        sx={{
+          justifyContent: "flex-start",
+          flexWrap: { xs: "wrap", md: "nowrap" },
+          mt: 1,
+        }}
       >
         {Object.values(teams).map((team) => (
           <TeamCard
@@ -450,7 +495,13 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
           expandIcon={<ArrowDownwardIcon />}
           sx={{ bgcolor: "action.hover" }}
         >
-          <Typography color="error.main">Mismatch: </Typography>
+          <Typography
+            sx={{
+              color: "error.main",
+            }}
+          >
+            Mismatch:{" "}
+          </Typography>
           {header}
         </AccordionSummary>
         <AccordionDetails>{matchDisplay}</AccordionDetails>
@@ -527,8 +578,19 @@ function MatchDateSummary(props: {
 
   return (
     <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
-      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-        <Typography fontWeight="bold">
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <Typography
+          sx={{
+            fontWeight: "bold",
+          }}
+        >
           {date.toLocaleString("en-US", {
             weekday: "short",
             year: "numeric",
@@ -536,11 +598,21 @@ function MatchDateSummary(props: {
             day: "2-digit",
           })}
         </Typography>
-        <Typography color="text.secondary">
+        <Typography
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {props.count} {props.count === 1 ? "game" : "games"}
         </Typography>
         {categoryChips.length > 0 && (
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              flexWrap: "wrap",
+            }}
+          >
             {categoryChips}
           </Stack>
         )}
@@ -549,8 +621,11 @@ function MatchDateSummary(props: {
         <Stack
           direction="row"
           spacing={1}
-          flexWrap="wrap"
-          sx={{ mt: 0.5, display: { xs: "none", sm: "flex" } }}
+          sx={{
+            flexWrap: "wrap",
+            mt: 0.5,
+            display: { xs: "none", sm: "flex" },
+          }}
         >
           {wlChips}
           {ratingItems}
@@ -783,7 +858,12 @@ export default function DisplayMatches() {
           expandIcon={<ArrowDownwardIcon />}
           sx={{ bgcolor: "action.hover" }}
         >
-          <Typography fontWeight={600} color="text.secondary">
+          <Typography
+            sx={{
+              fontWeight: 600,
+              color: "text.secondary",
+            }}
+          >
             Activity Calendar (click to expand)
           </Typography>
         </AccordionSummary>

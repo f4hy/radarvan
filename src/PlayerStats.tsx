@@ -116,8 +116,19 @@ function GameCountsTable(props: { playerStats: PlayerStats }) {
         }}
       >
         <Typography variant="h6">Game Counts</Typography>
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Typography variant="caption" color="text.secondary">
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            alignItems: "center",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {open ? "collapse" : "expand"}
           </Typography>
           <IconButton size="small" tabIndex={-1}>
@@ -196,11 +207,22 @@ function PlayerBanner(props: {
         {props.name}
       </Typography>
       {props.debug && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {props.totalWins}/{props.totalGames} ({winRate}%)
         </Typography>
       )}
-      <Stack direction="row" spacing={1} flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          flexWrap: "wrap",
+        }}
+      >
         {entries.map(([format, count]) => (
           <Chip
             key={format}
@@ -332,30 +354,64 @@ function ConsistencyCard(props: {
       >
         {props.emoji} {props.label}
       </Typography>
-      <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: "bold",
+          mb: 0.5,
+        }}
+      >
         {props.player.playerName}
       </Typography>
       <Typography
         variant="caption"
-        color="text.secondary"
-        display="block"
-        sx={{ mb: 1.5 }}
+        sx={{
+          color: "text.secondary",
+          display: "block",
+          mb: 1.5,
+        }}
       >
         {props.player.spread * 100 < 1
           ? "<1"
           : (props.player.spread * 100).toFixed(0)}
         % spread across {props.player.qualifyingCount} generals
       </Typography>
-      <Stack direction="row" justifyContent="center" spacing={3}>
-        <Stack alignItems="center" spacing={0.5}>
+      <Stack
+        direction="row"
+        spacing={3}
+        sx={{
+          justifyContent: "center",
+        }}
+      >
+        <Stack
+          spacing={0.5}
+          sx={{
+            alignItems: "center",
+          }}
+        >
           <DisplayGeneral general={props.player.bestGeneral} />
-          <Typography variant="caption" color="success.main">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "success.main",
+            }}
+          >
             ▲ {toGeneralName(props.player.bestGeneral)}
           </Typography>
         </Stack>
-        <Stack alignItems="center" spacing={0.5}>
+        <Stack
+          spacing={0.5}
+          sx={{
+            alignItems: "center",
+          }}
+        >
           <DisplayGeneral general={props.player.worstGeneral} />
-          <Typography variant="caption" color="error.main">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "error.main",
+            }}
+          >
             ▼ {toGeneralName(props.player.worstGeneral)}
           </Typography>
         </Stack>
@@ -377,8 +433,11 @@ function RankedPlayerCard(props: {
         <DisplayGeneral general={props.general} />
         <Typography
           variant="subtitle2"
-          display="block"
-          sx={{ mt: 0.5, mb: 0.5 }}
+          sx={{
+            display: "block",
+            mt: 0.5,
+            mb: 0.5,
+          }}
         >
           {toGeneralName(props.general)}
         </Typography>
@@ -438,7 +497,14 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
         <Typography variant="h5">Best Player Per General</Typography>
         <Tooltip
           title={`Only players with at least ${MIN_GAMES_FOR_BEST} games on a general are shown, ranked by the lower bound of the 95% Wilson confidence interval (so a well-sampled win rate beats a lucky small one)`}
@@ -458,11 +524,18 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
                 <Box key={player.playerName} sx={{ mt: 0.5 }}>
                   <Typography
                     variant="body2"
-                    fontWeight={rank === 0 ? "bold" : "normal"}
+                    sx={{
+                      fontWeight: rank === 0 ? "bold" : "normal",
+                    }}
                   >
                     {RANK_MEDALS[rank]} {player.playerName}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                    }}
+                  >
                     {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
                     {player.losses}L)
                   </Typography>
@@ -538,7 +611,14 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
         <Typography variant="h5">
           Best Relative Performance Per General
         </Typography>
@@ -565,21 +645,30 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
                     >
                       <Typography
                         variant="body2"
-                        fontWeight={rank === 0 ? "bold" : "normal"}
+                        sx={{
+                          fontWeight: rank === 0 ? "bold" : "normal",
+                        }}
                       >
                         {RANK_MEDALS[rank]} {player.playerName}
                       </Typography>
                     </Tooltip>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                      }}
+                    >
                       {(player.winRate * 100).toFixed(0)}% ({player.wins}W-
                       {player.losses}L)
                     </Typography>
                     <Typography
                       variant="caption"
-                      display="block"
                       color={
                         player.relativeDiff >= 0 ? "success.main" : "error.main"
                       }
+                      sx={{
+                        display: "block",
+                      }}
                     >
                       {diffSign}
                       {(player.relativeDiff * 100).toFixed(0)}% vs their avg
@@ -636,7 +725,14 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
         <Typography variant="h5">General Consistency</Typography>
         <Tooltip
           title={`Spread between a player's best and worst general win rate. Only generals with at least ${MIN_GAMES_FOR_BEST} games qualify. Players need at least 2 qualifying generals.`}
@@ -695,7 +791,14 @@ export default function DisplayPlayerStats() {
   }
   return (
     <Paper sx={{ p: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup
           value={format}

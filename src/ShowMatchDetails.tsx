@@ -291,7 +291,12 @@ function EventChart(props: {
                 bottom: 0,
               }}
             >
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                }}
+              >
                 {t}m
               </Typography>
             </Box>
@@ -306,8 +311,10 @@ function EventChart(props: {
               <Stack
                 direction="row"
                 spacing={0.75}
-                alignItems="center"
-                mb={0.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 0.5,
+                }}
               >
                 <Box
                   sx={{
@@ -330,7 +337,12 @@ function EventChart(props: {
                     }}
                   >
                     <Box sx={{ width: LABEL_WIDTH, flexShrink: 0, pr: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.secondary",
+                        }}
+                      >
                         {row}
                       </Typography>
                     </Box>
@@ -387,12 +399,22 @@ function EventChart(props: {
       <Stack
         direction="row"
         spacing={2}
-        sx={{ mt: 1.5, flexWrap: "wrap" }}
-        alignItems="center"
+        sx={{
+          alignItems: "center",
+          mt: 1.5,
+          flexWrap: "wrap",
+        }}
       >
         {EVENT_TYPES.map(({ type, label, icon: Icon }) => {
           return (
-            <Stack key={type} direction="row" spacing={0.5} alignItems="center">
+            <Stack
+              key={type}
+              direction="row"
+              spacing={0.5}
+              sx={{
+                alignItems: "center",
+              }}
+            >
               <Box
                 sx={{
                   width: 18,
@@ -964,7 +986,9 @@ function KillMap(props: {
             key={`${ps.name}-${ps.color}`}
             direction="row"
             spacing={0.5}
-            alignItems="center"
+            sx={{
+              alignItems: "center",
+            }}
           >
             <Box
               sx={{
@@ -1028,8 +1052,10 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
                 <Stack
                   direction="row"
                   spacing={0.5}
-                  alignItems="center"
-                  justifyContent="flex-end"
+                  sx={{
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                  }}
                 >
                   <Box
                     sx={{
@@ -1159,8 +1185,10 @@ function BuildOrderTab(props: {
             <Stack
               direction="row"
               spacing={1}
-              alignItems="center"
-              sx={{ mb: 1 }}
+              sx={{
+                alignItems: "center",
+                mb: 1,
+              }}
             >
               <Box
                 sx={{
@@ -1572,7 +1600,13 @@ type Displays =
 const DISPLAY_LABELS: Partial<Record<Displays, React.ReactNode>> = {
   AI: "🤖 AI",
   Replay: (
-    <Stack direction="row" spacing={0.5} alignItems="center">
+    <Stack
+      direction="row"
+      spacing={0.5}
+      sx={{
+        alignItems: "center",
+      }}
+    >
       <MovieIcon fontSize="small" />
       <span>Replay</span>
     </Stack>
@@ -1591,7 +1625,13 @@ function DetailViewSelector(props: {
   )
   return (
     <>
-      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{
+          color: "text.secondary",
+          mb: 1,
+        }}
+      >
         Select which detailed charts to show
       </Typography>
       <ToggleButtonGroup

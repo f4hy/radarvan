@@ -130,7 +130,14 @@ export default function ReplayPlayback(props: {
   return (
     <Box sx={{ maxWidth: "60%" }}>
       <GameMap mapname={props.mapName} eventDots={dots} />
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          mt: 1,
+        }}
+      >
         <IconButton
           aria-label={playing ? "Pause" : "Play"}
           onClick={() => {
@@ -190,7 +197,9 @@ export default function ReplayPlayback(props: {
             key={ps.name}
             direction="row"
             spacing={0.5}
-            alignItems="center"
+            sx={{
+              alignItems: "center",
+            }}
           >
             <Box
               sx={{
@@ -205,7 +214,12 @@ export default function ReplayPlayback(props: {
           </Stack>
         ))}
       </Stack>
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         ■ structures (persist) · ✕ kills (sized by value destroyed) · gold
         border = captured — {structuresShown} structures, {killsShown} kills so
         far

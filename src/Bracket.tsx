@@ -204,7 +204,13 @@ function PlayerRow({
 }) {
   const color = isWinner ? WIN_COLOR : isLoser ? LOSS_COLOR : "text.primary"
   return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
+    <Stack
+      direction="row"
+      sx={{
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
       <Typography
         variant="body2"
         sx={{ fontWeight: isWinner ? 700 : 400, color }}
@@ -241,7 +247,12 @@ function SliderField({
 }) {
   return (
     <Box sx={{ px: 1 }}>
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         {label}
       </Typography>
       {children}
@@ -431,8 +442,19 @@ function MatchBox({
           : undefined,
       }}
     >
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="caption" color="text.secondary">
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {match.round_name}
         </Typography>
         {editable && <EditIcon fontSize="inherit" color="disabled" />}
@@ -450,12 +472,22 @@ function MatchBox({
         isLoser={match.winner !== null && match.winner !== match.player_b}
       />
       {match.scheduled_date && (
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {match.scheduled_date}
         </Typography>
       )}
       {notApplicable && (
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Not needed
         </Typography>
       )}
@@ -515,8 +547,10 @@ function LeafBox({
     >
       <Typography
         variant="caption"
-        color="text.secondary"
-        sx={{ display: "block" }}
+        sx={{
+          color: "text.secondary",
+          display: "block",
+        }}
       >
         {node.label}
       </Typography>
@@ -766,11 +800,22 @@ export default function DisplayBracket() {
   if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
     return (
       <Paper sx={{ p: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            mb: 1,
+          }}
+        >
           <EmojiEventsIcon color="primary" />
           <Typography variant="h4">1v1 Tournament Bracket</Typography>
         </Stack>
-        <Typography color="text.secondary">
+        <Typography
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           This page isn&apos;t open yet — check back soon.
         </Typography>
       </Paper>
@@ -792,17 +837,26 @@ export default function DisplayBracket() {
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <EmojiEventsIcon color="primary" />
         <Typography variant="h4">1v1 Tournament Bracket</Typography>
       </Stack>
-
       {!bracketData && !isTournamentAdmin && (
-        <Typography color="text.secondary">
+        <Typography
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           No tournament has been created yet.
         </Typography>
       )}
-
       {isTournamentAdmin && (
         <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -810,7 +864,14 @@ export default function DisplayBracket() {
           </Typography>
           <Stack spacing={1}>
             {seedNames.map((name, idx) => (
-              <Stack key={idx} direction="row" spacing={1} alignItems="center">
+              <Stack
+                key={idx}
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                }}
+              >
                 <Chip
                   label={`Seed ${idx + 1}`}
                   size="small"
@@ -861,7 +922,6 @@ export default function DisplayBracket() {
           </Stack>
         </Paper>
       )}
-
       {bracketData && winnersTree && losersTree && (
         <>
           {bracketData.champion && (
@@ -873,7 +933,12 @@ export default function DisplayBracket() {
                 Champion: {bracketData.champion}
               </Typography>
               {bracketData.runner_up && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                  }}
+                >
                   Runner-up: {bracketData.runner_up}
                 </Typography>
               )}
@@ -900,7 +965,6 @@ export default function DisplayBracket() {
           />
         </>
       )}
-
       <Dialog
         open={editingMatch !== null}
         onClose={() => setEditingMatchId(null)}
@@ -911,7 +975,12 @@ export default function DisplayBracket() {
           <>
             <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "text.secondary",
+                  }}
+                >
                   {editingMatch.round_name}
                 </Typography>
                 <Typography variant="h6">
@@ -932,7 +1001,6 @@ export default function DisplayBracket() {
           </>
         )}
       </Dialog>
-
       {errorSnackbar}
     </Paper>
   )

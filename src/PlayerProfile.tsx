@@ -112,7 +112,14 @@ function SectionHeader(props: {
   subtitle?: React.ReactNode
 }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        alignItems: "center",
+        mb: 1.5,
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -124,7 +131,12 @@ function SectionHeader(props: {
       </Box>
       <Typography variant="subtitle1">{props.title}</Typography>
       {props.subtitle && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {props.subtitle}
         </Typography>
       )}
@@ -140,14 +152,25 @@ function StatTile(props: {
   return (
     <Card variant="outlined" sx={{ minWidth: 140, flex: 1 }}>
       <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-        <Typography variant="overline" color="text.secondary" display="block">
+        <Typography
+          variant="overline"
+          sx={{
+            color: "text.secondary",
+            display: "block",
+          }}
+        >
           {props.label}
         </Typography>
         <Typography variant="h6" component="div">
           {props.value}
         </Typography>
         {props.detail && (
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {props.detail}
           </Typography>
         )}
@@ -182,14 +205,18 @@ function FavoriteCard(props: {
         <Stack
           direction="row"
           spacing={0.75}
-          alignItems="center"
-          sx={{ mb: 0.25 }}
+          sx={{
+            alignItems: "center",
+            mb: 0.25,
+          }}
         >
           <Icon sx={{ fontSize: 16, color: "text.secondary" }} />
           <Typography
             variant="overline"
-            color="text.secondary"
-            sx={{ lineHeight: 1 }}
+            sx={{
+              color: "text.secondary",
+              lineHeight: 1,
+            }}
           >
             {props.label}
           </Typography>
@@ -202,8 +229,10 @@ function FavoriteCard(props: {
             <Stack
               direction="row"
               spacing={1}
-              alignItems="center"
-              sx={{ mb: 0.5 }}
+              sx={{
+                alignItems: "center",
+                mb: 0.5,
+              }}
             >
               <Chip
                 size="small"
@@ -228,7 +257,12 @@ function FavoriteCard(props: {
                 />
               </Tooltip>
             </Stack>
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+              }}
+            >
               {fav.perGame}/game
               {fav.peerPerGame === 0
                 ? " — peers never build it"
@@ -237,7 +271,12 @@ function FavoriteCard(props: {
             </Typography>
           </>
         ) : (
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             Nothing stands out (or not enough games)
           </Typography>
         )}
@@ -316,7 +355,12 @@ function BadgeGrid(props: { badges: ProfileBadge[] }) {
               >
                 {b.label}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                }}
+              >
                 #{b.rank} of {b.totalPlayers}
               </Typography>
             </Box>
@@ -377,12 +421,20 @@ function PeopleCard(props: {
       sx={{ flex: 1, minWidth: 180, borderLeft: `3px solid ${color}` }}
     >
       <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-        <Stack direction="row" spacing={0.75} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+          }}
+        >
           <Icon sx={{ fontSize: 16, color }} />
           <Typography
             variant="overline"
-            color="text.secondary"
-            sx={{ lineHeight: 1 }}
+            sx={{
+              color: "text.secondary",
+              lineHeight: 1,
+            }}
           >
             {props.label}
           </Typography>
@@ -390,7 +442,13 @@ function PeopleCard(props: {
         <Box sx={{ mt: 0.5 }}>
           <PlayerChip name={props.name} size="medium" />
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 0.5,
+          }}
+        >
           {props.record}
           {props.extra ? ` · ${props.extra}` : ""}
         </Typography>
@@ -421,8 +479,18 @@ function TempoBars(props: {
         (row) =>
           row.value !== null && (
             <Box key={row.label}>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                  }}
+                >
                   {row.label}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -619,8 +687,8 @@ function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
          * separate text elsewhere in the row */}
         <Typography
           variant="caption"
-          fontWeight={700}
           sx={{
+            fontWeight: 700,
             position: "absolute",
             top: 0,
             left: `${markerPercent}%`,
@@ -681,8 +749,8 @@ function ObjectUsageBar(props: { stat: ObjectUsageStat; markerColor: string }) {
         />
         <Typography
           variant="caption"
-          color="text.secondary"
           sx={{
+            color: "text.secondary",
             position: "absolute",
             top: 30,
             left: `${medianPercent}%`,
@@ -715,8 +783,12 @@ function ObjectUsageRow(props: { stat: ObjectUsageStat; markerColor: string }) {
       <Stack
         direction="row"
         spacing={0.5}
-        alignItems="center"
-        sx={{ flexBasis: "20%", minWidth: 140, flexShrink: 0 }}
+        sx={{
+          alignItems: "center",
+          flexBasis: "20%",
+          minWidth: 140,
+          flexShrink: 0,
+        }}
       >
         <DisplayGeneral general={stat.general} />
         <Typography variant="body2" noWrap>
@@ -747,7 +819,13 @@ function ObjectUsageList(props: {
 
   if (rows.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          py: 1,
+        }}
+      >
         Not enough games to compare yet.
       </Typography>
     )
@@ -787,12 +865,21 @@ function ObjectUsageSection(props: {
     upgrades: props.objectUsage.filter((s) => s.category === "upgrades"),
   }
   return (
-    <Accordion disableGutters TransitionProps={{ unmountOnExit: true }}>
+    <Accordion
+      disableGutters
+      slotProps={{ transition: { unmountOnExit: true } }}
+    >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography variant="h6">Unit / Building / Upgrade Usage</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5,
+          }}
+        >
           Every object with enough games to compare. The shaded band is the peer
           average ±1 standard deviation; the dot is where this player falls.
         </Typography>
@@ -848,27 +935,32 @@ function ProfileBody(props: { profile: PlayerProfile }) {
         <Stack
           direction="row"
           spacing={2}
-          alignItems="center"
-          sx={{ flexWrap: "wrap" }}
+          sx={{
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
         >
           <PlayerChip name={p.player} size="medium" />
           <Typography variant="h6">
             {p.wins}W – {p.losses}L
           </Typography>
           <WinRateChip wins={p.wins} losses={p.losses} />
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {p.games} competitive games
           </Typography>
         </Stack>
       </Box>
-
       {c === null && (
         <Alert severity="info">
           Deep stats (signature units, badges) haven&apos;t been computed yet
           for this data version — they refresh nightly.
         </Alert>
       )}
-
       {c !== null && (
         <Box>
           <SectionHeader
@@ -894,18 +986,27 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           </Stack>
         </Box>
       )}
-
       {c !== null && <AversionChips aversions={c.aversions ?? []} />}
       {c !== null && <BadgeGrid badges={c.badges ?? []} />}
-
       <Box>
         <SectionHeader icon={<MilitaryTechIcon />} title="Generals" />
-        <Grid container spacing={2} alignItems="center">
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            alignItems: "center",
+          }}
+        >
           <Grid size={{ xs: 12, md: 5 }}>
             {radarData.length >= 3 ? (
               <WinRateRadar data={radarData} />
             ) : (
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                }}
+              >
                 Not enough games per general for a radar
               </Typography>
             )}
@@ -936,7 +1037,6 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           />
         </Box>
       </Box>
-
       {hasMaps && (
         <Box>
           <SectionHeader icon={<MapIcon />} title="Maps" />
@@ -958,7 +1058,6 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           </Stack>
         </Box>
       )}
-
       <Box>
         <SectionHeader icon={<GroupsIcon />} title="People" />
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
@@ -993,7 +1092,6 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           )}
         </Stack>
       </Box>
-
       {hasTempo && (
         <Box>
           <SectionHeader icon={<SpeedIcon />} title="Tempo" />
@@ -1003,7 +1101,6 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           />
         </Box>
       )}
-
       {c !== null && (
         <Box>
           <SectionHeader icon={<InsightsIcon />} title="Tendencies" />
@@ -1046,7 +1143,6 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           </Stack>
         </Box>
       )}
-
       {c !== null && (
         <ObjectUsageSection
           objectUsage={c.objectUsage ?? []}
@@ -1112,7 +1208,13 @@ export default function DisplayPlayerProfile() {
       {loading && <Loading />}
       {!loading && profile && <ProfileBody profile={profile} />}
       {!loading && !profile && !player && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 2,
+          }}
+        >
           Pick a player to see what they&apos;re known for.
         </Typography>
       )}

@@ -162,19 +162,28 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                   <Box key={i} sx={{ textAlign: "center" }}>
                     <Typography
                       variant="caption"
-                      color="text.secondary"
-                      display="block"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block",
+                      }}
                     >
                       {"" + entry.atdate}
                     </Typography>
-                    <Typography variant="body2" fontWeight="bold">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: "bold",
+                      }}
+                    >
                       {entry.mu?.toFixed(1)}±{entry.sigma?.toFixed(1)}
                     </Typography>
                     {entry.delta != null && (
                       <Typography
                         variant="caption"
                         color={isPositive ? "success.main" : "error.main"}
-                        display="block"
+                        sx={{
+                          display: "block",
+                        }}
                       >
                         {isPositive ? "+" : ""}
                         {entry.delta.toFixed(1)}
@@ -314,7 +323,13 @@ function DeltaCell(props: { delta: number | null | undefined }) {
 
 function FormDots(props: { results: boolean[] }) {
   return (
-    <Stack direction="row" spacing={0.5} alignItems="center">
+    <Stack
+      direction="row"
+      spacing={0.5}
+      sx={{
+        alignItems: "center",
+      }}
+    >
       {props.results.map((won, i) => (
         <Box
           key={i}
@@ -407,7 +422,14 @@ function pct(p: number): string {
 
 function TeamPlayers(props: { names: string[] }) {
   return (
-    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+    <Stack
+      direction="row"
+      spacing={0.5}
+      useFlexGap
+      sx={{
+        flexWrap: "wrap",
+      }}
+    >
       {props.names.map((n) => (
         <PlayerLabel key={n} name={n} />
       ))}
@@ -511,7 +533,12 @@ function RecentUpsets(props: { format: GameFormat }) {
   if (!upsets) return <Loading />
   if (upsets.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         No upsets above {RECENT_UPSET_MIN_PCT}% in the last {RECENT_UPSET_DAYS}{" "}
         days.
       </Typography>
@@ -520,7 +547,13 @@ function RecentUpsets(props: { format: GameFormat }) {
 
   return (
     <>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 1,
+        }}
+      >
         Games in the last {RECENT_UPSET_DAYS} days where the favored team had at
         least a {RECENT_UPSET_MIN_PCT}% pre-game edge and still lost.
       </Typography>
@@ -547,7 +580,12 @@ function BiggestUpsets(props: { format: GameFormat }) {
   if (!upsets) return <Loading />
   if (upsets.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         No upsets — the favored team won every rated game.
       </Typography>
     )
@@ -555,7 +593,13 @@ function BiggestUpsets(props: { format: GameFormat }) {
 
   return (
     <>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 1,
+        }}
+      >
         Games where the favored team (by pre-game rating) lost, biggest shock
         first. The chance shown is the model&apos;s pre-game win probability.
       </Typography>
@@ -685,7 +729,15 @@ function FormatSelector(props: {
   onChange: (f: GameFormat) => void
 }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        alignItems: "center",
+        mb: 2,
+        p: 1,
+      }}
+    >
       <Typography variant="h6">Game Format:</Typography>
       <ToggleButtonGroup
         value={props.format}
@@ -710,7 +762,15 @@ function MonthsBackSelector(props: {
   onChange: (m: MonthsBack) => void
 }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, p: 1 }}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        alignItems: "center",
+        mb: 2,
+        p: 1,
+      }}
+    >
       <Typography variant="h6">Time Range:</Typography>
       <ToggleButtonGroup
         value={props.monthsBack ?? MONTHS_BACK_ALL}
@@ -867,7 +927,12 @@ function WhrTable() {
   return (
     <Stack spacing={1} sx={{ mb: 2 }}>
       <Typography variant="h5">Whole-History Rating</Typography>
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         Skill in log-odds units (Coulom 2008). Higher = stronger; difference of
         1.0 ≈ 73% win probability.
       </Typography>
@@ -932,7 +997,13 @@ export function DisplayPlayerRatingTrend() {
       <Typography variant="h5" sx={{ mb: 0.5 }}>
         Rating Trend
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 2,
+        }}
+      >
         Recent form and rating change over 7 / 14 / 30 days.
       </Typography>
       <FormatSelector format={format} onChange={setFormat} />
@@ -1012,7 +1083,13 @@ export default function DisplayPlayerRatings() {
       <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
         <MonthsBackSelector monthsBack={monthsBack} onChange={setMonthsBack} />
         <FormatSelector format={format} onChange={setFormat} />
-        <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            p: 2,
+          }}
+        >
           No rated players for this format / time range — ratings need a minimum
           number of games.
         </Typography>
@@ -1027,7 +1104,7 @@ export default function DisplayPlayerRatings() {
       <Accordion
         disableGutters
         defaultExpanded={false}
-        TransitionProps={{ unmountOnExit: true }}
+        slotProps={{ transition: { unmountOnExit: true } }}
       >
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="h6">Whole-History Rating</Typography>

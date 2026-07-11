@@ -16,18 +16,31 @@ export default function PlayerCountPicker({
   onPick: (count: number) => void
 }) {
   return (
-    <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
+    <Stack
+      spacing={2}
+      sx={{
+        alignItems: "center",
+        mt: 4,
+      }}
+    >
       <Typography variant="h6">{title}</Typography>
       {subtitle && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           {subtitle}
         </Typography>
       )}
       <Stack
         direction="row"
         spacing={1}
-        flexWrap="wrap"
-        justifyContent="center"
+        sx={{
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
       >
         {counts.map((c) => (
           <Button key={c} variant="outlined" onClick={() => onPick(c)}>

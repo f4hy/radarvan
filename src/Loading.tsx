@@ -16,7 +16,14 @@ export default function Loading() {
         <Skeleton variant="text" width="32%" height={36} animation="wave" />
         <Skeleton variant="text" width="52%" animation="wave" />
       </Box>
-      <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+        }}
+      >
         {[...Array(4)].map((_, i) => (
           <Skeleton
             key={i}

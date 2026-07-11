@@ -70,12 +70,22 @@ function PredictionDisplay(props: { prediction: MatchPrediction }) {
   return (
     <Paper sx={{ p: 2, my: 1 }} variant="outlined">
       <Typography variant="h6">🔮 Win prediction</Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         {p.mapName}
       </Typography>
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", my: 1 }}>
         <Box sx={{ fontWeight: favoredA ? "bold" : "normal" }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             Team {p.teamA}
           </Typography>
           <Typography variant="body2">{p.teamAPlayers.join(", ")}</Typography>
@@ -83,11 +93,21 @@ function PredictionDisplay(props: { prediction: MatchPrediction }) {
             {(p.probTeamAWins * 100).toFixed(1)}%
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           vs
         </Typography>
         <Box sx={{ fontWeight: favoredA ? "normal" : "bold" }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             Team {p.teamB}
           </Typography>
           <Typography variant="body2">{p.teamBPlayers.join(", ")}</Typography>
@@ -100,7 +120,12 @@ function PredictionDisplay(props: { prediction: MatchPrediction }) {
         Favored: Team {p.favoredTeam} ({(p.favoredWinProb * 100).toFixed(1)}%)
       </Typography>
       {p.unknownPlayers && p.unknownPlayers.length > 0 && (
-        <Typography variant="caption" color="warning.main">
+        <Typography
+          variant="caption"
+          sx={{
+            color: "warning.main",
+          }}
+        >
           Unknown to model: {p.unknownPlayers.join(", ")}
         </Typography>
       )}
@@ -230,7 +255,13 @@ function DisplayDataTable(props: { data: GameRecord[] }) {
 function JsonArray({ data }: { data: unknown[] }) {
   if (data.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" component="span">
+      <Typography
+        variant="body2"
+        component="span"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         []
       </Typography>
     )
@@ -244,8 +275,12 @@ function JsonArray({ data }: { data: unknown[] }) {
         >
           <Typography
             variant="caption"
-            color="text.secondary"
-            sx={{ minWidth: 30, flexShrink: 0, pt: 0.3 }}
+            sx={{
+              color: "text.secondary",
+              minWidth: 30,
+              flexShrink: 0,
+              pt: 0.3,
+            }}
           >
             [{i}]
           </Typography>
@@ -262,7 +297,13 @@ function JsonObject({ data }: { data: Record<string, unknown> }) {
   const entries = Object.entries(data)
   if (entries.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" component="span">
+      <Typography
+        variant="body2"
+        component="span"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         {"{}"}
       </Typography>
     )
@@ -276,8 +317,11 @@ function JsonObject({ data }: { data: Record<string, unknown> }) {
         >
           <Typography
             variant="body2"
-            fontWeight="bold"
-            sx={{ minWidth: 180, flexShrink: 0 }}
+            sx={{
+              fontWeight: "bold",
+              minWidth: 180,
+              flexShrink: 0,
+            }}
           >
             {key}:
           </Typography>
@@ -301,7 +345,13 @@ function JsonObject({ data }: { data: Record<string, unknown> }) {
 function JsonDisplay({ data }: { data: unknown }) {
   if (data === null || data === undefined) {
     return (
-      <Typography variant="body2" color="text.secondary" component="span">
+      <Typography
+        variant="body2"
+        component="span"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         null
       </Typography>
     )
@@ -331,10 +381,12 @@ function MatchIdInput(props: {
         value={props.value}
         onChange={props.onChange}
         type="text"
-        inputProps={{
-          inputMode: "numeric",
-          pattern: "[0-9]*",
-          maxLength: 20,
+        slotProps={{
+          htmlInput: {
+            inputMode: "numeric",
+            pattern: "[0-9]*",
+            maxLength: 20,
+          },
         }}
       />
       <Button onClick={props.onSubmit} variant="contained">

@@ -50,15 +50,22 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
     <Box sx={{ mb: 3 }}>
       <Stack
         direction="row"
-        alignItems="center"
-        justifyContent="space-between"
         spacing={2}
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
       >
         <Box sx={{ flex: 1, textAlign: "left" }}>
           <Typography variant="h5" sx={{ color: c1, fontWeight: "bold" }}>
             {player1}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {formatPercent(share1)} of decided games
           </Typography>
         </Box>
@@ -80,7 +87,12 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
           <Typography variant="h5" sx={{ color: c2, fontWeight: "bold" }}>
             {player2}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {formatPercent(1 - share1)} of decided games
           </Typography>
         </Box>
@@ -95,8 +107,11 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
       </Box>
       <Typography
         variant="body2"
-        color="text.secondary"
-        sx={{ mt: 0.5, textAlign: "center" }}
+        sx={{
+          color: "text.secondary",
+          mt: 0.5,
+          textAlign: "center",
+        }}
       >
         {total} head-to-head game{total === 1 ? "" : "s"}
       </Typography>
@@ -123,8 +138,10 @@ function GeneralBreakdown(props: {
           <Stack
             key={r.general}
             direction="row"
-            alignItems="center"
             spacing={1}
+            sx={{
+              alignItems: "center",
+            }}
           >
             <DisplayGeneral general={r.general} />
             <Typography variant="body2" sx={{ flex: 1 }}>
@@ -210,7 +227,13 @@ function GameRow(props: {
           />
         </TableCell>
         <TableCell align="center">
-          <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{
+              alignItems: "center",
+            }}
+          >
             <DisplayGeneral general={game.player1General} />
             <Box component="span" sx={{ color: "text.secondary" }}>
               vs
@@ -337,8 +360,10 @@ export default function HeadToHead() {
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
-        alignItems="center"
-        sx={{ mb: 2 }}
+        sx={{
+          alignItems: "center",
+          mb: 2,
+        }}
       >
         <Autocomplete
           options={players}
@@ -349,7 +374,12 @@ export default function HeadToHead() {
             <TextField {...params} label="Player 1" size="small" />
           )}
         />
-        <Typography variant="h6" color="text.secondary">
+        <Typography
+          variant="h6"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           vs
         </Typography>
         <Autocomplete
@@ -374,22 +404,26 @@ export default function HeadToHead() {
           ))}
         </ToggleButtonGroup>
       </Stack>
-
       {player1 && player2 && player1 === player2 && (
-        <Typography color="text.secondary">
+        <Typography
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Pick two different players.
         </Typography>
       )}
-
       {loading && <Loading />}
-
       {!loading && data && data.games.length === 0 && (
-        <Typography color="text.secondary">
+        <Typography
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           No head-to-head games found for {data.player1} vs {data.player2}
           {format === "All" ? "" : ` in ${format}`}.
         </Typography>
       )}
-
       {!loading && data && data.games.length > 0 && (
         <>
           <Scoreboard data={data} />

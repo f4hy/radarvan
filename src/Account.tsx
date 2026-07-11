@@ -28,9 +28,20 @@ function AccountCard({ children }: { children: React.ReactNode }) {
 function LoginPrompt() {
   return (
     <AccountCard>
-      <Stack spacing={2} alignItems="center">
+      <Stack
+        spacing={2}
+        sx={{
+          alignItems: "center",
+        }}
+      >
         <Typography variant="h6">Sign in</Typography>
-        <Typography variant="body2" color="text.secondary" textAlign="center">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            textAlign: "center",
+          }}
+        >
           Log in with Discord to vote for and veto maps.
         </Typography>
         <Button
@@ -69,7 +80,12 @@ function PlayerSelection({ players }: { players: string[] }) {
     <AccountCard>
       <Stack spacing={2}>
         <Typography variant="h6">Which player are you?</Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Pick your in-game name so we can tie your votes to your stats. This is
           a one-time choice.
         </Typography>
