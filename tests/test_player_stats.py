@@ -207,7 +207,7 @@ def test_format_filter_restricts_win_loss() -> None:
     assert total_games(alice_all) == 14
 
 
-def test_incomplete_and_unfiltered_filenames_are_skipped() -> None:
+def test_incomplete_and_non_team_games_are_skipped() -> None:
     games = _alice_wins(5, 4)  # 9 valid games
     # An incomplete game that would otherwise be a win.
     games.append(
@@ -219,14 +219,14 @@ def test_incomplete_and_unfiltered_filenames_are_skipped() -> None:
             incomplete="crash",
         )
     )
-    # A game whose filename does not match the path_filter (no _NvN_ token).
+    # An FFA composition (not a team game) shouldn't count toward totals either.
     games.append(
         _match(
             501,
             winner="Alice",
             p1=("Alice", General.USA),
             p2=("Bob", General.GLA),
-            filename="game_501_observer_map.rep",
+            comp=_comp(category="FFA", is_ffa=True, is_team_game=False),
         )
     )
     result = get_player_stats(games)

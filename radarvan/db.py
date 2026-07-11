@@ -325,6 +325,30 @@ class MatchDetailsCache(Base):
         return f"<MatchDetailsCache(match_id={self.match_id}, version={self.version})>"
 
 
+class PlayerProfileCache(Base):
+    """Durable, versioned per-player profile deep stats.
+
+    One JSONB row per profiled player holding the serialized
+    PlayerProfileComputed (by_alias). `version` is the
+    `player_profile.PROFILE_VERSION` that produced the row; a read only trusts
+    a matching version, so bumping the derivation invalidates every row.
+    Profiles are always recomputed as a whole batch (percentiles are relative
+    to the profiled population), never per player.
+    """
+
+    __tablename__ = "player_profiles"
+
+    player: Mapped[str] = mapped_column(String, primary_key=True)
+    version: Mapped[str] = mapped_column(String(64), index=True)
+    data: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<PlayerProfileCache(player={self.player}, version={self.version})>"
+
+
 class User(Base):
     """A community member authenticated via Discord OAuth2.
 

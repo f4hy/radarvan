@@ -159,7 +159,8 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
       <Stack divider={<Divider />}>
         {props.players.map((p) => (
           <Box
-            key={p.name + "-" + p.general}
+            // Color is unique per player in a match; names aren't (twin CPUs).
+            key={`${p.name}-${p.color}`}
             sx={{
               display: "flex",
               alignItems: "center",
@@ -333,7 +334,8 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
       />
       <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
         {match.players.map((p) => (
-          <FfaPlayerCard key={p.name} player={p} />
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          <FfaPlayerCard key={`${p.name}-${p.color}`} player={p} />
         ))}
         <GameMap mapname={match.map} playerPositions={playerPositions} />
       </Stack>
@@ -466,8 +468,12 @@ function MatchDateSummary(props: {
   matches: MatchInfo[]
   ratingChanges?: PlayerRatingDailyChange[]
 }) {
-  const date = new Date(props.date)
-  date.setDate(date.getDate() + 2)
+  // props.date is the backend's game-night date key ("YYYY-MM-DD"). Construct
+  // it in local time so it renders as that exact calendar day in every
+  // timezone — new Date("YYYY-MM-DD") parses as UTC midnight, which displays
+  // as the previous evening anywhere west of UTC.
+  const [year, month, day] = props.date.split("-").map(Number)
+  const date = new Date(year, month - 1, day)
   const categoryChips =
     props.matches.length > 0
       ? Object.entries(
@@ -488,6 +494,7 @@ function MatchDateSummary(props: {
     if (props.matches.length === 0) return []
     const wl: Record<string, { w: number; l: number }> = {}
     for (const m of props.matches) {
+      if (m.incomplete) continue
       for (const p of m.players) {
         if (p.team === Team.NUMBER_MINUS_1) continue
         if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
@@ -554,7 +561,7 @@ function MatchDateSummary(props: {
 }
 
 function DisplayMatchesForDate(props: {
-  date: Date
+  dateStr: string // backend game-night date key, "YYYY-MM-DD"
   count: number
   idx: number
   selected: boolean
@@ -566,16 +573,20 @@ function DisplayMatchesForDate(props: {
   >([])
   const { showError, errorSnackbar } = useErrorSnackbar()
   const isAdmin = useIsAdmin()
+  // The generated client serializes Date params via toISOString() (UTC), so
+  // the API param must be UTC midnight of the backend's date key — which is
+  // exactly what new Date("YYYY-MM-DD") produces. Display uses the raw string.
+  const apiDate = React.useMemo(() => new Date(props.dateStr), [props.dateStr])
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
-      getMatches(props.date, setMatchList, !isAdmin, showError)
+      getMatches(apiDate, setMatchList, !isAdmin, showError)
       Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
-        forDate: props.date,
+        forDate: apiDate,
       })
         .then(setRatingChanges)
         .catch(showError)
     }
-  }, [expanded, matchList.matches.length, props.date, showError, isAdmin])
+  }, [expanded, matchList.matches.length, apiDate, showError, isAdmin])
 
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -583,9 +594,6 @@ function DisplayMatchesForDate(props: {
     },
     [],
   )
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-  const date = fmt(props.date)
   const borderProps = props.selected
     ? { borderColor: "primary.main", borderWidth: 2, borderStyle: "solid" }
     : {}
@@ -598,7 +606,7 @@ function DisplayMatchesForDate(props: {
       >
         <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
           <MatchDateSummary
-            date={date}
+            date={props.dateStr}
             count={props.count}
             matches={matchList.matches}
             ratingChanges={ratingChanges}
@@ -633,10 +641,10 @@ function groupByYear(
 
 function getEndDate(date: Date): Date {
   const now = new Date()
-  if (date.getFullYear() === now.getFullYear()) {
+  if (date.getUTCFullYear() === now.getUTCFullYear()) {
     return now
   }
-  return new Date(date.getFullYear(), 11, 31)
+  return new Date(Date.UTC(date.getUTCFullYear(), 11, 31))
 }
 
 function toActivityData(dateCounts: Record<string, number>) {
@@ -648,7 +656,14 @@ function toActivityData(dateCounts: Record<string, number>) {
   const maxCount = Math.max(...Object.values(dateCounts))
 
   const data = []
-  for (let d = new Date(yearStart); d <= end; d.setDate(d.getDate() + 1)) {
+  // Step in UTC: the date keys come from toISOString() (UTC), and yearStart is
+  // UTC midnight, so advancing by local days would let a DST shift knock every
+  // subsequent key off by one in some timezones.
+  for (
+    let d = new Date(yearStart);
+    d <= end;
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
     const dateStr = d.toISOString().split("T")[0]
     const count = dateCounts[dateStr] ?? 0
     const level =
@@ -789,7 +804,7 @@ export default function DisplayMatches() {
           }}
         >
           <DisplayMatchesForDate
-            date={new Date(date)}
+            dateStr={date}
             count={count}
             idx={idx}
             selected={date === selectedDate}

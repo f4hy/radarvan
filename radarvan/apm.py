@@ -122,7 +122,7 @@ def _build_apm_records(
 
 def _apms_from_body(replay: EnhancedReplayV2) -> list[APM]:
     players = replay.header.metadata.players
-    counts = {p.name: 0 for p in players if int(p.team) >= 0 and p.type != "C"}
+    counts = {p.name: 0 for p in players if int(p.team or "-1") >= 0 and p.type != "C"}
     first_frame: dict[str, int] = {}
     last_frame: dict[str, int] = {}
     for chunk in replay.body:
@@ -221,7 +221,9 @@ def apm_over_time(replay: EnhancedReplayV2) -> dict[float, dict[str, float]]:
     minutes_per = minutes_per_step(replay)
     if replay.body:
         players = replay.header.metadata.players
-        tracked = {p.name for p in players if int(p.team) >= 0 and p.type != "C"}
+        tracked = {
+            p.name for p in players if int(p.team or "-1") >= 0 and p.type != "C"
+        }
         if not tracked:
             return {}
         actions = (

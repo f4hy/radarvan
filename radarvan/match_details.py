@@ -57,7 +57,10 @@ logger = structlog.get_logger(__name__)
 # v3: apm_over_time now uses 10s windows (was 1-min) scaled to an APM rate.
 # v4: body-path APM no longer counts periodic "Checksum" engine heartbeats as
 # player actions (the _NON_ACTIONS exclusion had a typo, "Chunksum").
-_DETAILS_LOGIC_VERSION = 4
+# v5: money/money_earned/money_spent time series drop rows identical to the
+# previous kept row (stats_extraction._drop_redundant_consecutive) - same
+# data, fewer wire entries.
+_DETAILS_LOGIC_VERSION = 5
 
 
 def _compute_details_version() -> str:

@@ -251,6 +251,17 @@ def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition
     return categorize_game_type(adapters)
 
 
+def is_recognized_team_game(comp: GameComposition | None) -> bool:
+    """True for any parsed team-format game (not FFA), regardless of balance,
+    CPU count, or comp-stomp status.
+
+    Looser than ``competitive_game_filter`` on purpose: some callers (e.g. a
+    "games played" tally) want to count comp-stomps and lopsided team games
+    as real games without counting them as *competitive* results.
+    """
+    return comp is not None and comp.is_team_game
+
+
 def competitive_game_filter(comp: GameComposition | None) -> bool:
     if comp is None:
         return False
