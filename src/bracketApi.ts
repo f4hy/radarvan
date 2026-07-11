@@ -5,10 +5,7 @@
 
 export type BracketSide = "W" | "L" | "GF"
 export type BracketMatchStatus =
-  | "pending"
-  | "ready"
-  | "completed"
-  | "not_applicable"
+  "pending" | "ready" | "completed" | "not_applicable"
 
 export interface BracketPlayerEntry {
   seed: number
