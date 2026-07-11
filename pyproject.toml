@@ -32,7 +32,6 @@ dependencies = [
 [dependency-groups]
 dev = [
   "alembic>=1.18.5",
-  "beautifulsoup4>=4.15.0",
   "boto3-stubs[s3]>=1.43.46",
   "click>=8.4.2",
   "mypy>=2.2.0",
@@ -44,7 +43,6 @@ dev = [
   "s3cmd>=2.4.0",
   "sqlalchemy[mypy]>=2.0.51",
   "tqdm>=4.68.4",
-  "boto3-stubs[s3]>=1.42.0",
   "types-cachetools>=7.0.0.20260518",
   "types-tqdm>=4.68.0.20260608",
   "datamodel-code-generator>=0.68.1",

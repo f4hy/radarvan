@@ -2641,7 +2641,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "alembic" },
-    { name = "beautifulsoup4" },
     { name = "boto3-stubs", extra = ["s3"] },
     { name = "click" },
     { name = "datamodel-code-generator" },
@@ -2699,8 +2698,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "alembic", specifier = ">=1.18.5" },
-    { name = "beautifulsoup4", specifier = ">=4.15.0" },
-    { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.42.0" },
     { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.43.46" },
     { name = "click", specifier = ">=8.4.2" },
     { name = "datamodel-code-generator", specifier = ">=0.68.1" },
