@@ -223,7 +223,7 @@ def register_matches(replay_manager: ReplayManager) -> None:
         is_dev = j.replay_file.is_dev if j.replay_file is not None else False
         db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri, is_dev=is_dev)
         try:
-            replay_manager.register_match(db_match)
+            _, created = replay_manager.register_match(db_match)
             seen.add(db_match.match_id)
             replay_manager.compute_and_save_composition(db_match.match_id)
         except Exception as e:
@@ -231,6 +231,8 @@ def register_matches(replay_manager: ReplayManager) -> None:
             # A failed flush/commit leaves the session in an aborted
             # transaction; roll back so the remaining replays can proceed.
             replay_manager.session.rollback()
+            continue
+        if not created:
             continue
         # Best-effort win prediction for the newly registered match (notifies
         # predicted vs actual). Never lets a prediction error affect ingestion.

@@ -41,6 +41,8 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 | `CNCSTATS_API_KEY` | X-API-Key for the cncstats **map registry** (`/add_map`) — distinct from the above, do not conflate |
 | `ML_MODEL_PATH`/`ML_VOCAB_PATH`, `WINPROB_MODEL_PATH`/`WINPROB_STATS_PATH` | ONNX model files; endpoints 503 when absent |
 | `RATE_LIMIT_PER_MINUTE` | Per-client sliding window on `/api` (0 disables) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP collector URL; tracing (`tracing.py`) is a no-op unless set |
+| `OTEL_EXPORTER_OTLP_HEADERS` / `OTEL_SERVICE_NAME` | Optional auth headers for the OTLP backend / span service name (default `radarvan`) |
 
 ## Architecture
 
@@ -58,7 +60,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 - Tournaments: **`tournament.py`** (hard-coded round-robin team tournaments + reports) vs **`bracket.py`** (1v1 double-elim: pure topology generation + resolution for 9–16 entrants; DB stores only seeds + per-match scores, everything else is derived each call).
 - Maps: **`missing_maps.py`** (fetch from cncstats, CRC, S3 assets, push registry), **`map_upload.py`** (user uploads), **`map_render.py`** (Pillow overlay PNG), **`map_choice.py`** + **`draft.py`** (weighted draw, position/general randomization).
 - ML: **`ml_inference.py`** (pre-game win prediction; encoder in `ml/`) and **`winprob_inference.py`** (win-prob-over-time; encoder in `ml_win_prediction_over_time/`) — ONNX Runtime only, no torch in prod.
-- Infra: **`cache.py`** (process-global caches + warming, see invariants), **`schedule.py`** (APScheduler jobs), **`cncstats_client.py`** (single httpx client for cncstats), **`middleware.py`**/`rate_limit.py` (request-id, rate limit), **`notify.py`** (best-effort Discord webhook; never raises), **`player_ids.py`** (identity tables, admin sets), **`utils.py`** (replay helpers, `game_night_date`, `locked_cached`).
+- Infra: **`cache.py`** (process-global caches + warming, see invariants), **`schedule.py`** (APScheduler jobs), **`cncstats_client.py`** (single httpx client for cncstats), **`middleware.py`**/`rate_limit.py` (request-id, rate limit), **`notify.py`** (best-effort Discord webhook; never raises), **`player_ids.py`** (identity tables, admin sets), **`utils.py`** (replay helpers, `game_night_date`, `locked_cached`), **`tracing.py`** (OpenTelemetry: OTLP HTTP export + FastAPI/httpx auto-instrumentation, no-op without `OTEL_EXPORTER_OTLP_ENDPOINT`).
 
 ### Auth model (three tiers)
 

@@ -65,6 +65,16 @@ def get_player_stats(
     )
 
 
+@router.get("/api/player_colors/", dependencies=[Depends(cache_short)])
+def get_player_colors(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Each player's most common actual in-game color, keyed by player name -
+    used as their primary identity color in the UI (see PlayerChip)."""
+    all_games = sorted_deduped_matches(replay_manager)
+    return player_stats.most_common_colors(list(all_games.values()))
+
+
 @router.get("/api/player_game_counts/team/", dependencies=[Depends(cache_short)])
 def get_player_team_game_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),

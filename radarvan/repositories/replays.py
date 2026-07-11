@@ -44,6 +44,16 @@ class FileListing(BaseModel):
     match_id: int
 
 
+def canonical_replay_sort_key(row: ParsedReplayJson) -> tuple[bool, int]:
+    """Preference order for picking the canonical row when a match_id has more
+    than one ParsedReplayJson (e.g. the same game captured independently by
+    several players' clients): prefer an uploaded replay, then the one with
+    the most timestamps. Mirrors ``get_replay_json_by_match_id``'s SQL
+    ordering below - keep the two in sync.
+    """
+    return ("upload" in row.json_s3_uri, row.num_time_stamps or 0)
+
+
 class ReplayRepo(BaseRepo):
     """Operations on ReplayFile and ParsedReplayJson."""
 
@@ -65,6 +75,9 @@ class ReplayRepo(BaseRepo):
         return AllFilesForId(replay_files=replay_files, parsed_files=parsed_files)
 
     def get_replay_json_by_match_id(self, match_id: int) -> ParsedReplayJson | None:
+        """Same preference order as ``canonical_replay_sort_key`` above,
+        expressed in SQL so a single match_id's rows don't need to be pulled
+        into Python."""
         statement = (
             select(ParsedReplayJson)
             .where(ParsedReplayJson.match_id == match_id)

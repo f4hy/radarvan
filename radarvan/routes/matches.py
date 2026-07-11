@@ -39,20 +39,6 @@ def get_dates(
     return dict(sorted(dates.items(), reverse=True))
 
 
-@router.get("/api/matches/", dependencies=[Depends(cache_short)])
-def get_matches(
-    exclude_dev: bool = False,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> Matches:
-    """Get the full match listing.
-
-    When exclude_dev is set, matches sourced from a "dev-" zulu build are omitted.
-    """
-    replays = sorted_deduped_matches(replay_manager)
-    values = [m for m in replays.values() if not (exclude_dev and m.is_dev)]
-    return Matches(matches=values)
-
-
 @router.get("/api/matches/by_date/{date}", dependencies=[Depends(cache_short)])
 def get_matches_by_date(
     date: date,

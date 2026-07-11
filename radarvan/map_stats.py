@@ -20,7 +20,7 @@ from .api_types import (
     Player,
     Team,
 )
-from . import replay_files
+from . import game_composition
 from .replay_files import map_basename
 from . import general_stats as general_stats_module
 from .player_ids import resolve_player_name
@@ -50,7 +50,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
     for game in games:
         if game.incomplete:
             continue
-        if not replay_files.path_filter(game.filename):
+        if not game_composition.competitive_game_filter(game.composition):
             continue
         if game.winning_team < 1:
             continue

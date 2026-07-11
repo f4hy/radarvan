@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from .. import matches, replay_files, schedule
 from ..api_types import MatchInfo, Team, WinnerOverride
 from ..cache import details_from_id, invalidate_match_caches
-from ..db import Match, ParsedReplayJson
+from ..db import Match
 from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import IS_DEV, db_manager, get_replay_manager
 from ..game_composition import GameComposition
@@ -128,10 +128,9 @@ def clear_details_cache(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int]:
     """Drop every row of the durable MatchDetails cache and the in-process LRU
-    fronting it. Normal invalidation is per-match (reparse) or implicit via
-    DETAILS_VERSION; this is for a full manual bust - e.g. debugging a stale
-    row that shouldn't exist, or a derivation change that should have bumped
-    the version but didn't.
+    fronting it. A debugging hatch - normal invalidation is per-match
+    (reparse) or implicit via DETAILS_VERSION, and derivation changes should
+    bump the version rather than lean on this.
     """
     deleted = replay_manager.delete_all_cached_details()
     details_from_id.cache_clear()
@@ -316,13 +315,14 @@ class MatchPair(NamedTuple):
     new_match: Match
 
 
-def _fetch_and_parse(match_id: int, json_record: ParsedReplayJson) -> Match:
-    """Fetch JSON from S3 and convert to a Match - no DB access, safe to run in threads."""
+def _fetch_and_parse(json_s3_uri: str, replay_file_url: str) -> Match:
+    """Fetch JSON from S3 and convert to a Match - takes plain strings (no ORM
+    objects), so it's safe to run in worker threads."""
     replay = replay_files.with_filename(
-        replay_files.parse_json(json_record.json_s3_uri),
-        json_record.replay_file_url,
+        replay_files.parse_json(json_s3_uri),
+        replay_file_url,
     )
-    return matches.replay_to_db_match(replay, json_record.json_s3_uri)
+    return matches.replay_to_db_match(replay, json_s3_uri)
 
 
 @router.post("/api/refresh_matches_from_json/", include_in_schema=IS_DEV)
@@ -337,8 +337,15 @@ def refresh_matches_from_json(
     Fetches up to max_to_update * 4 candidates to account for non-differing matches.
     """
     all_matches = replay_manager.list_matches(0.0)
+    # Extract plain strings here, on the request's session: ORM objects must not
+    # cross into the worker threads (sessions aren't thread-safe, and attribute
+    # access can lazy-load through the session they're bound to).
     candidates = [
-        (db_match, db_match.replay_json)
+        (
+            db_match,
+            db_match.replay_json.json_s3_uri,
+            db_match.replay_json.replay_file_url,
+        )
         for db_match in all_matches
         if db_match.replay_json is not None
     ][: max_to_update * 4]
@@ -347,8 +354,8 @@ def refresh_matches_from_json(
     parsed: list[MatchPair] = []
     with ThreadPoolExecutor(max_workers=20) as executor:
         future_to_match = {
-            executor.submit(_fetch_and_parse, db_match.match_id, json_record): db_match
-            for db_match, json_record in candidates
+            executor.submit(_fetch_and_parse, json_uri, file_url): db_match
+            for db_match, json_uri, file_url in candidates
         }
         for future in as_completed(future_to_match):
             db_match = future_to_match[future]
@@ -363,15 +370,17 @@ def refresh_matches_from_json(
     # Phase 2: compare and write in a single transaction
     updated_count = 0
     replay_manager.auto_commit = False
-    for db_match, new_match in parsed:
-        if updated_count >= max_to_update:
-            break
-        if matches.matches_differ(db_match, new_match):
-            replay_manager.update_match(new_match)
-            updated_count += 1
-    if updated_count:
-        replay_manager.session.commit()
-    replay_manager.auto_commit = True
+    try:
+        for db_match, new_match in parsed:
+            if updated_count >= max_to_update:
+                break
+            if matches.matches_differ(db_match, new_match):
+                replay_manager.update_match(new_match)
+                updated_count += 1
+        if updated_count:
+            replay_manager.session.commit()
+    finally:
+        replay_manager.auto_commit = True
     return {"updated": updated_count, "checked": len(parsed)}
 
 

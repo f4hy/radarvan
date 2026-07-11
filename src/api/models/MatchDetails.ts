@@ -121,6 +121,12 @@ export interface MatchDetails {
     statsData: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
     /**
      * 
+     * @type {{ [key: string]: { [key: string]: { [key: string]: number; }; }; }}
+     * @memberof MatchDetails
+     */
+    incomeBySource?: { [key: string]: { [key: string]: { [key: string]: number; }; }; };
+    /**
+     * 
      * @type {string}
      * @memberof MatchDetails
      */
@@ -228,6 +234,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'apms': ((json['apms'] as Array<any>).map(APMFromJSON)),
         'upgradeEvents': (mapValues(json['upgradeEvents'], UpgradesFromJSON)),
         'statsData': json['stats_data'],
+        'incomeBySource': json['incomeBySource'] == null ? undefined : json['incomeBySource'],
         'mapName': json['mapName'] == null ? undefined : json['mapName'],
         'firstBlood': json['first_blood'] == null ? undefined : FirstBloodFromJSON(json['first_blood']),
         'buildingFirstBlood': json['building_first_blood'] == null ? undefined : FirstBloodFromJSON(json['building_first_blood']),
@@ -261,6 +268,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'apms': ((value['apms'] as Array<any>).map(APMToJSON)),
         'upgradeEvents': (mapValues(value['upgradeEvents'], UpgradesToJSON)),
         'stats_data': value['statsData'],
+        'incomeBySource': value['incomeBySource'],
         'mapName': value['mapName'],
         'first_blood': FirstBloodToJSON(value['firstBlood']),
         'building_first_blood': FirstBloodToJSON(value['buildingFirstBlood']),

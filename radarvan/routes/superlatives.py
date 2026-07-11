@@ -10,7 +10,7 @@ from .. import player_rating, superlatives
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, db_manager, get_replay_manager
-from ..notify import notify
+from ..notify import notify_async
 
 logger = structlog.get_logger(__name__)
 
@@ -38,27 +38,34 @@ def get_superlatives(
 async def _do_recompute(
     replay_manager: ReplayManager,
 ) -> superlatives.Superlatives:
-    games = competitive_matches(replay_manager)
+    # competitive_matches already excludes incomplete/mismatch games.
     game_list = [
-        g
-        for g in games.values()
-        if g.winning_team > 0 and "mismatch" not in g.incomplete.lower()
+        g for g in competitive_matches(replay_manager).values() if g.winning_team > 0
     ]
     stale = replay_manager.computed_stats_are_stale(days=3)
     details = await superlatives.load_many_superlative_data(
         [g.id for g in game_list], db_manager
     )
     if stale:
-        notify(f"Loaded {len(details)} match details for superlatives recompute")
-    ratings_and_counts = player_rating.compute_player_ratings(game_list)
-    result = superlatives.get_superlatives(
-        game_list, details, ratings_and_counts.daily_changes
+        await notify_async(
+            f"Loaded {len(details)} match details for superlatives recompute"
+        )
+    # Pure computation, but heavy - run off the event loop (mirrors
+    # schedule.compute_and_save_superlatives).
+    ratings_and_counts = await asyncio.to_thread(
+        player_rating.compute_player_ratings, game_list
+    )
+    result = await asyncio.to_thread(
+        superlatives.get_superlatives,
+        game_list,
+        details,
+        ratings_and_counts.daily_changes,
     )
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info("saved computed statistics", count=len(result.stats))
     if stale:
-        notify("Recomputed superlatives")
+        await notify_async("Recomputed superlatives")
 
     return result
 
