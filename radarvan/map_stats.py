@@ -9,15 +9,13 @@ from .api_types import (
     MapStatsResponse,
     MapSummaryDuration,
     MapSummaryPlayer,
+    MapSummaryPlayerForm,
     MapSummaryPlayerGeneralRecord,
     MapSummaryRanking,
-    MapSummaryRecentResult,
     MapSummaryResponse,
-    MapSummaryStreak,
     MapSummaryTeamH2H,
     MatchInfo,
     MatchPrediction,
-    Player,
     Team,
 )
 from . import game_composition
@@ -109,31 +107,10 @@ def _win_rate(wins: int, losses: int) -> float:
     return wins / total if total > 0 else 0.0
 
 
-def _fmt_player(p: Player) -> str:
-    return f"{resolve_player_name(p.name, p.color)}[{p.general.name}]"
-
-
-def _winners_losers(g: MatchInfo) -> tuple[list[str], list[str]]:
-    winners: list[str] = []
-    losers: list[str] = []
-    for p in g.players:
-        if p.team == Team.OBSERVER:
-            continue
-        (winners if p.team == g.winning_team else losers).append(_fmt_player(p))
-    return winners, losers
-
-
-def _streak_from_results(results_desc: list[bool]) -> int:
-    streak = 0
-    direction = 0
-    for won in results_desc:
-        cur = 1 if won else -1
-        if direction == 0:
-            direction = cur
-        elif cur != direction:
-            break
-        streak += cur
-    return streak
+def _form_str(results_desc: list[bool]) -> str:
+    """Render up to RECENT_RESULTS_LIMIT results as W/L, oldest first (most recent last)."""
+    recent = results_desc[:RECENT_RESULTS_LIMIT][::-1]
+    return "".join("W" if won else "L" for won in recent)
 
 
 def _normalize_map_name(name: str) -> str:
@@ -212,25 +189,29 @@ def map_summary(
         longest_minutes=max_min,
     )
 
-    recent_results = []
-    for g in on_map_sorted[:RECENT_RESULTS_LIMIT]:
-        winners, losers = _winners_losers(g)
-        recent_results.append(
-            MapSummaryRecentResult(
-                date=g.date,
-                winners=winners,
-                losers=losers,
-                duration_minutes=g.duration_minutes,
-            )
-        )
+    # "Recent results with the general they're playing this match" - any map.
+    games_sorted_desc = sorted(games, key=lambda g: g.timestamp, reverse=True)
+    player_general = dict(
+        zip(request_resolved, (p.general for p in players), strict=True)
+    )
+    general_results_desc: dict[str, list[bool]] = defaultdict(list)
+    for g in games_sorted_desc:
+        if g.incomplete or g.winning_team < 1:
+            continue
+        for p in g.players:
+            if p.team == Team.OBSERVER:
+                continue
+            name = resolve_player_name(p.name, p.color)
+            if name in request_names and p.general == player_general[name]:
+                general_results_desc[name].append(p.won)
 
-    streaks = [
-        MapSummaryStreak(name=name, streak=streak)
-        for name, streak in (
-            (resolved, _streak_from_results(player_results_desc[resolved]))
-            for resolved in request_resolved
+    recent_form = [
+        MapSummaryPlayerForm(
+            name=resolved,
+            map_form=_form_str(player_results_desc[resolved]),
+            general_form=_form_str(general_results_desc[resolved]),
         )
-        if streak != 0
+        for resolved in request_resolved
     ]
 
     has_two_teams = len({p.team for p in players if p.team >= Team.ONE}) == 2
@@ -255,8 +236,7 @@ def map_summary(
         player_general_records=player_general_records,
         player_general_overall=player_general_overall,
         duration=duration,
-        recent_results=recent_results,
-        streaks=streaks,
+        recent_form=recent_form,
     )
 
 
@@ -374,17 +354,12 @@ def format_map_summary(
             for r in s.player_general_records
         )
         lines.append(f"player records here: {recs}")
-    if s.streaks:
-        streak_strs = [
-            f"{st.name} {'W' if st.streak > 0 else 'L'}{abs(st.streak)}"
-            for st in s.streaks
-        ]
-        lines.append(f"streaks: {', '.join(streak_strs)}")
-    if s.recent_results:
-        recent = "; ".join(
-            f"{r.date.strftime('%m-%d')} {','.join(r.winners)} beat "
-            f"{','.join(r.losers)}"
-            for r in s.recent_results[:3]
-        )
-        lines.append(f"recent: {recent}")
+    form_lines = [
+        f"{f.name}: {f.map_form or '-'} - {f.general_form or '-'}"
+        for f in s.recent_form
+        if f.map_form or f.general_form
+    ]
+    if form_lines:
+        lines.append("recent results on map - recent results on selected general:")
+        lines.extend(form_lines)
     return "\n".join(lines)

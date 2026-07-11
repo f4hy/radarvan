@@ -14,7 +14,7 @@ import {
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
-import { GameRecord, MatchInfo, MatchPrediction } from "./api"
+import { GameRecord, MatchInfo, MatchPrediction, Team } from "./api"
 import { Client } from "./Client"
 import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
@@ -60,6 +60,23 @@ function getPrediction(
   onError = console.error,
 ) {
   Client.predictMatchApiPredictMatchMatchIdGet({ matchId: matchId })
+    .then(callback)
+    .catch(onError)
+}
+
+function getMapSummary(
+  match: MatchInfo,
+  callback: (s: string) => void,
+  onError = console.error,
+) {
+  Client.getMapSummaryApiMapSummaryPost({
+    mapSummaryRequest: {
+      mapName: match.map.split("/").pop() ?? match.map,
+      players: match.players
+        .filter((p) => p.team !== Team.NUMBER_0)
+        .map((p) => ({ name: p.name, general: p.general, team: p.team })),
+    },
+  })
     .then(callback)
     .catch(onError)
 }
@@ -409,6 +426,7 @@ export default function DisplayDebugData() {
   const [prediction, setPrediction] = React.useState<MatchPrediction | null>(
     null,
   )
+  const [mapSummary, setMapSummary] = React.useState<string | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -429,6 +447,13 @@ export default function DisplayDebugData() {
     }
   }
 
+  const runMapSummary = () => {
+    if (matchInfo !== null) {
+      setMapSummary(null)
+      getMapSummary(matchInfo, setMapSummary, showError)
+    }
+  }
+
   const submit = () => {
     if (matchId !== null) {
       const num = Number(matchId)
@@ -437,6 +462,7 @@ export default function DisplayDebugData() {
         getDebugData(num, setMatchDebugData, showError)
         setMatchInfo(null)
         setPrediction(null)
+        setMapSummary(null)
         Client.getMatchByIdApiMatchMatchIdGet({ matchId: num })
           .then(setMatchInfo)
           .catch(showError)
@@ -472,6 +498,21 @@ export default function DisplayDebugData() {
         </Box>
       )}
       {prediction && <PredictionDisplay prediction={prediction} />}
+      {matchInfo && (
+        <Box sx={{ p: 1 }}>
+          <Button variant="contained" onClick={runMapSummary}>
+            Map summary
+          </Button>
+        </Box>
+      )}
+      {mapSummary && (
+        <Paper sx={{ p: 2, my: 1 }} variant="outlined">
+          <Typography variant="h6">🗺️ Map summary</Typography>
+          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+            {mapSummary}
+          </Typography>
+        </Paper>
+      )}
       <DisplayDataTable data={debugData} />
       {Object.entries(matchDebugData).map(([name, data]) => (
         <Stack key={name}>

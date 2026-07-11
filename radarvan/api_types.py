@@ -1418,20 +1418,12 @@ class MapSummaryDuration(BaseModel):
     longest_minutes: float
 
 
-class MapSummaryRecentResult(BaseModel):
-    model_config = _SLOTS
-
-    date: date
-    winners: list[str]
-    losers: list[str]
-    duration_minutes: float
-
-
-class MapSummaryStreak(BaseModel):
+class MapSummaryPlayerForm(BaseModel):
     model_config = _SLOTS
 
     name: str
-    streak: int
+    map_form: str
+    general_form: str
 
 
 class MapSummaryResponse(BaseModel):
@@ -1452,8 +1444,7 @@ class MapSummaryResponse(BaseModel):
         default_factory=list
     )
     duration: MapSummaryDuration | None = None
-    recent_results: list[MapSummaryRecentResult] = Field(default_factory=list)
-    streaks: list[MapSummaryStreak] = Field(default_factory=list)
+    recent_form: list[MapSummaryPlayerForm] = Field(default_factory=list)
 
 
 class DraftAssignment(BaseModel):
