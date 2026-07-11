@@ -41,7 +41,7 @@ class NamedRating:
     def ordinal(self) -> float:
         return self.mu - 3 * self.sigma
 
-    def with_min_sigma(self, min_sigma: float) -> "NamedRating":
+    def with_min_sigma(self, min_sigma: float) -> NamedRating:
         return NamedRating(
             name=self.name,
             mu=self.mu,

@@ -3,7 +3,7 @@ name = "radarvan"
 version = "0.1.0"
 description = "Tracking generals stats"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "apscheduler>=3.11.3",
     "beautifulsoup4>=4.15.0",
@@ -58,9 +58,13 @@ ml = [
   # which run on the local Quadro P4000 (CC 6.1) — verified with a live matmul.
   # Newer torch wheels (cu130) start at sm_75 and crash on Pascal. Sourced from
   # the pytorch-cu124 index below (see [tool.uv.sources]).
-  "torch==2.6.0",
-  "lightning>=2.4.0",
-  "torchmetrics>=1.5.0",
+  # python_version markers on torch and its direct dependents: torch==2.6.0+cu124
+  # has no cp314 wheel yet, which would otherwise make `uv lock` unsolvable
+  # now that the main app targets 3.14. Run ML training in a separate 3.13
+  # venv (`uv sync --group ml --python 3.13`) until upstream ships one.
+  "torch==2.6.0; python_version < '3.14'",
+  "lightning>=2.4.0; python_version < '3.14'",
+  "torchmetrics>=1.5.0; python_version < '3.14'",
   "scikit-learn>=1.5.0",
   "pandas>=2.2.0",
   "pyarrow>=18.0.0",
@@ -111,7 +115,7 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-target-version = "py313"
+target-version = "py314"
 fix = true
 
 [tool.ruff.lint]
@@ -207,7 +211,7 @@ testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 
 

@@ -120,10 +120,6 @@ class Player(BaseModel):
             return "C"
         return "H"
 
-    @property
-    def Team(self) -> Team:
-        return self.team
-
     def __repr__(self) -> str:
         return f"{self.name}[{self.general.name} {'W' if self.won else 'L'}]"
 
@@ -788,7 +784,7 @@ class CreateBracketRequest(BaseModel):
     players: list[BracketPlayerEntry]
 
     @model_validator(mode="after")
-    def _validate_seeds(self) -> "CreateBracketRequest":
+    def _validate_seeds(self) -> CreateBracketRequest:
         seeds = sorted(p.seed for p in self.players)
         n = len(seeds)
         if not (_bracket.MIN_PLAYERS <= n <= _bracket.MAX_PLAYERS):

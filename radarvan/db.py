@@ -99,7 +99,7 @@ class ReplayFile(Base):
     source_date: Mapped[date] = mapped_column(index=True)
 
     # Relationships
-    parsed_replay_json: Mapped["ParsedReplayJson | None"] = relationship(
+    parsed_replay_json: Mapped[ParsedReplayJson | None] = relationship(
         back_populates="replay_file"
     )
 
@@ -133,7 +133,7 @@ class ParsedReplayJson(Base):
 
     # Relationships
     replay_file: Mapped[ReplayFile] = relationship(back_populates="parsed_replay_json")
-    match: Mapped["Match | None"] = relationship(
+    match: Mapped[Match | None] = relationship(
         back_populates="replay_json", lazy="joined"
     )
 
@@ -177,15 +177,15 @@ class Match(Base):
     )
 
     # Relationships
-    replay_json: Mapped["ParsedReplayJson | None"] = relationship(
+    replay_json: Mapped[ParsedReplayJson | None] = relationship(
         back_populates="match"
     )
-    players: Mapped[list["MatchPlayer"]] = relationship(
+    players: Mapped[list[MatchPlayer]] = relationship(
         back_populates="match",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    composition: Mapped["MatchCompostion | None"] = relationship(back_populates="match")
+    composition: Mapped[MatchCompostion | None] = relationship(back_populates="match")
 
     def __repr__(self) -> str:
         return (
@@ -234,7 +234,7 @@ class TournamentReport(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String)
 
-    stats: Mapped[list["TournamentStat"]] = relationship(
+    stats: Mapped[list[TournamentStat]] = relationship(
         back_populates="tournament_report", cascade="all, delete-orphan"
     )
 
@@ -460,10 +460,10 @@ class BracketTournament(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    players: Mapped[list["BracketPlayer"]] = relationship(
+    players: Mapped[list[BracketPlayer]] = relationship(
         back_populates="tournament", cascade="all, delete-orphan"
     )
-    match_states: Mapped[list["BracketMatchState"]] = relationship(
+    match_states: Mapped[list[BracketMatchState]] = relationship(
         back_populates="tournament", cascade="all, delete-orphan"
     )
 

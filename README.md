@@ -19,7 +19,7 @@ predictor — to a React single-page app.
   (`s3://generals-stats/radarvan/dev/`), accessed via `fsspec` / `s3fs`.
 - **Win prediction:** an exported ONNX model (`ml_model.onnx`) served with
   `onnxruntime`; player ratings use OpenSkill.
-- **Tooling:** Python ≥3.13 managed with `uv`, linted/formatted with `ruff` and
+- **Tooling:** Python ≥3.14 managed with `uv`, linted/formatted with `ruff` and
   type-checked with `mypy` (strict); TypeScript in strict mode, formatted with
   `prettier` and linted with `eslint`.
 

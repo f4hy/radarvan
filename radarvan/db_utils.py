@@ -70,7 +70,7 @@ class DatabaseManager:
             session.close()
 
     @contextmanager
-    def get_replay_manager(self, notify: bool = False) -> Generator["ReplayManager"]:
+    def get_replay_manager(self, notify: bool = False) -> Generator[ReplayManager]:
         with self.get_session() as session:
             yield ReplayManager(session, notify=notify)
 
