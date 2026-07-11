@@ -48,12 +48,22 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
       <Typography variant="subtitle1" gutterBottom>
         Pre-game prediction
       </Typography>
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         From the outcome model — players, generals, factions and map only (no
         in-game events).
       </Typography>
       <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-        <Stack direction="row" justifyContent="space-between">
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+          }}
+        >
           <Typography sx={{ color: teamA, fontWeight: "bold" }}>
             Team A: {pred.teamAPlayers.join(", ")}
           </Typography>
@@ -61,7 +71,12 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
         </Stack>
         {/* Probability bar: filled portion = P(Team A wins). */}
         <WinShareBar fraction={probA} leftColor={teamA} rightColor={teamB} />
-        <Stack direction="row" justifyContent="space-between">
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+          }}
+        >
           <Typography sx={{ color: teamB, fontWeight: "bold" }}>
             Team B: {pred.teamBPlayers.join(", ")}
           </Typography>
@@ -77,7 +92,12 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
           ({formatPercent(pred.favoredWinProb)})
         </Typography>
         {pred.unknownPlayers && pred.unknownPlayers.length > 0 && (
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             Unknown to the model (weak signal): {pred.unknownPlayers.join(", ")}
           </Typography>
         )}
@@ -111,7 +131,12 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
       <Typography variant="subtitle1" gutterBottom>
         Win probability over time
       </Typography>
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         From the sequence model — updates as the match unfolds (builds, kills,
         captures, economy). Shows P(Team A wins) at each point in the game.
       </Typography>
@@ -167,8 +192,20 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
           </AreaChart>
         </ResponsiveContainer>
       </Box>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-        <Typography variant="caption" color="text.secondary">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mt: 1,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Line above 50% favors <span style={{ color: teamA }}>Team A</span>;
           below favors <span style={{ color: teamB }}>Team B</span>.
         </Typography>

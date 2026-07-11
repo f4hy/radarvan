@@ -274,7 +274,6 @@ export default function DisplayDraft() {
       <Typography variant="h5" gutterBottom>
         Map Draft
       </Typography>
-
       {mapsByCount.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <ToggleButtonGroup
@@ -293,7 +292,6 @@ export default function DisplayDraft() {
           </ToggleButtonGroup>
         </Box>
       )}
-
       {selectedPlayerCount && (
         <>
           <Paper sx={{ p: 2, mb: 2 }}>
@@ -383,7 +381,14 @@ export default function DisplayDraft() {
             </Box>
           )}
 
-          <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
             <Tooltip
               title={
                 !teamsBalanced
@@ -413,7 +418,12 @@ export default function DisplayDraft() {
               Randomize
             </Button>
             {randomizedAt && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                }}
+              >
                 Locked at {randomizedAt}
               </Typography>
             )}

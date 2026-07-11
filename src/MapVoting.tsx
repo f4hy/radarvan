@@ -68,7 +68,14 @@ function MapCard({
       >
         {displayMapName(option.map_name)}
       </Typography>
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <Chip size="small" label={`${option.game_count} games`} />
         <Chip
           size="small"
@@ -208,9 +215,11 @@ export default function MapVoting() {
       <Stack
         direction="row"
         spacing={1}
-        alignItems="center"
-        flexWrap="wrap"
         useFlexGap
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
       >
         <Button
           size="small"
@@ -235,7 +244,6 @@ export default function MapVoting() {
           label={`Vetoes ${page.vetoes_used}/${page.veto_limit}`}
         />
       </Stack>
-
       {!page.logged_in && (
         <Alert
           severity="info"
@@ -253,7 +261,6 @@ export default function MapVoting() {
           Log in with Discord to vote for and veto maps.
         </Alert>
       )}
-
       <TextField
         fullWidth
         size="small"
@@ -273,7 +280,6 @@ export default function MapVoting() {
           },
         }}
       />
-
       <Box
         sx={{
           display: "grid",

@@ -113,8 +113,10 @@ export function ScoreBar(props: {
         />
         <Typography
           variant="body2"
-          color="text.secondary"
-          sx={{ whiteSpace: "nowrap" }}
+          sx={{
+            color: "text.secondary",
+            whiteSpace: "nowrap",
+          }}
         >
           {`${Math.round(props.score)}% Balanced`}
         </Typography>

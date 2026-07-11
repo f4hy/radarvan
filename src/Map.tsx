@@ -186,7 +186,13 @@ export default function GameMap(props: {
             }}
           >
             <Typography variant="h6">🗺️</Typography>
-            <Typography variant="body2" textAlign="center" sx={{ px: 1 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                textAlign: "center",
+                px: 1,
+              }}
+            >
               {mapname || "Unknown Map"}
             </Typography>
           </Box>

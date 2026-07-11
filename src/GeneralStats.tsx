@@ -128,9 +128,21 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 0.5,
+        }}
+      >
         <DisplayGeneral general={props.stat.general} />
-        <Typography variant="subtitle1" fontWeight="bold">
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: "bold",
+          }}
+        >
           {toGeneralName(props.stat.general)}
         </Typography>
         <WinRateChip wins={overallWins} losses={overallLosses} />
@@ -177,7 +189,14 @@ export default function DisplayGeneralStats() {
 
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h6">Game Format:</Typography>
         <ToggleButtonGroup
           value={format}
@@ -194,7 +213,13 @@ export default function DisplayGeneralStats() {
       </Stack>
       <DisplayOverallGeneralStat stats={generalStats} />
       <Divider sx={{ mt: 4, mb: 2 }} />
-      <Grid container spacing={2} alignItems="flex-start">
+      <Grid
+        container
+        spacing={2}
+        sx={{
+          alignItems: "flex-start",
+        }}
+      >
         <Grid size={{ xs: 12, md: 4 }}>
           <MuiTooltip title="Ranked by the lower bound of the 95% Wilson confidence interval, so a well-sampled win rate outranks a lucky small sample. Chips turn green/red only when the interval is confidently above/below 50%; grey means the sample is inconclusive.">
             <Typography

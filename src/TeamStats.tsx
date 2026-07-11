@@ -58,7 +58,13 @@ function TeamRow(props: { team: TeamRecord }) {
           >
             {(rate * 100).toFixed(0)}%
           </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              ml: 1,
+            }}
+          >
             {team.wins}W–{team.losses}L · {total}g
           </Typography>
         </Box>
@@ -115,7 +121,12 @@ export default function DisplayTeamStats() {
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
       <Typography variant="h4">Team Stats</Typography>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        sx={{
+          color: "text.secondary",
+          mb: 2,
+        }}
+      >
         Win rates for teams with more than 3 games together. Sorted by win rate.
       </Typography>
       <Divider sx={{ mb: 1 }} />

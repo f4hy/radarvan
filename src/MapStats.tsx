@@ -67,8 +67,10 @@ function WinRateRow(props: {
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <Typography
             variant="caption"
-            color="text.secondary"
-            sx={{ whiteSpace: "nowrap" }}
+            sx={{
+              color: "text.secondary",
+              whiteSpace: "nowrap",
+            }}
           >
             {(rate * 100).toFixed(0)}% ({props.wins}W–{props.losses}L)
             {deltaStr && (
@@ -76,7 +78,9 @@ function WinRateRow(props: {
                 <Typography
                   variant="caption"
                   color={deltaColor}
-                  fontWeight="bold"
+                  sx={{
+                    fontWeight: "bold",
+                  }}
                 >
                   {deltaStr}
                 </Typography>
@@ -102,7 +106,12 @@ function PlayerWinRates(props: { players: MapData["playerStats"] }) {
 
   if (sorted.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         Not enough data
       </Typography>
     )
@@ -295,7 +304,13 @@ function GeneralBestWorstSummary(props: {
   if (rows.length === 0) return null
   return (
     <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
-      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+      <Typography
+        variant="subtitle1"
+        sx={{
+          fontWeight: "bold",
+          mb: 1,
+        }}
+      >
         General Best / Worst Maps
       </Typography>
       <Stack spacing={0.75}>
@@ -334,7 +349,13 @@ function PlayerBestWorstSummary(props: {
   if (rows.length === 0) return null
   return (
     <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
-      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+      <Typography
+        variant="subtitle1"
+        sx={{
+          fontWeight: "bold",
+          mb: 1,
+        }}
+      >
         Player Best / Worst Maps
       </Typography>
       <Stack spacing={0.75}>
@@ -372,15 +393,27 @@ const MapCard = React.memo(function MapCard(props: {
       id={mapId(map.mapName)}
       expanded={props.expanded}
       onChange={(_, isExpanded) => props.onToggle(map.mapName, isExpanded)}
-      TransitionProps={{
-        unmountOnExit: false,
-        onEnter: () => React.startTransition(() => setEverExpanded(true)),
-        onExit: () => setTab("generals"),
+      slotProps={{
+        transition: {
+          unmountOnExit: false,
+          onEnter: () => React.startTransition(() => setEverExpanded(true)),
+          onExit: () => setTab("generals"),
+        },
       }}
     >
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography fontWeight="bold">
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              fontWeight: "bold",
+            }}
+          >
             {map.mapName.replace(/\.[^.]+$/, "")}
           </Typography>
           <Chip
@@ -391,7 +424,13 @@ const MapCard = React.memo(function MapCard(props: {
         </Stack>
       </AccordionSummary>
       <AccordionDetails>
-        <Stack direction="row" spacing={2} alignItems="flex-start">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: "flex-start",
+          }}
+        >
           {everExpanded && <GameMap mapname={map.mapName} />}
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
@@ -464,15 +503,22 @@ export default function DisplayMapStats() {
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
       <Typography variant="h4">Map Stats</Typography>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        sx={{
+          color: "text.secondary",
+          mb: 2,
+        }}
+      >
         Win rates from competitive games. Players shown with ≥3 games on map.
         Maps sorted by total games played.
       </Typography>
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={2}
-        alignItems="flex-start"
-        sx={{ mb: 2 }}
+        sx={{
+          alignItems: "flex-start",
+          mb: 2,
+        }}
       >
         <GeneralBestWorstSummary
           rows={generalBestWorst}

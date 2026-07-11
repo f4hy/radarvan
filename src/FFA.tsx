@@ -65,14 +65,30 @@ function StatCard(props: { label: string; value: string; hint?: string }) {
       variant="outlined"
       sx={{ p: 2, textAlign: "center", height: "100%" }}
     >
-      <Typography variant="h4" fontWeight="bold">
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: "bold",
+        }}
+      >
         {props.value}
       </Typography>
-      <Typography variant="subtitle2" color="text.secondary">
+      <Typography
+        variant="subtitle2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         {props.label}
       </Typography>
       {props.hint && (
-        <Typography variant="caption" color="text.disabled" display="block">
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.disabled",
+            display: "block",
+          }}
+        >
           {props.hint}
         </Typography>
       )}
@@ -141,7 +157,14 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
         <Typography variant="h5">Player Leaderboard</Typography>
         <InfoTip title="Free-for-all record per player (min 3 FFA games). Dominance compares actual wins to the wins you'd expect if every player in each game were equally likely to win (1/N): 1.0 is exactly average, above 1 means you win more FFAs than your share of the field." />
       </Stack>
@@ -175,7 +198,12 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
               <TableRow key={p.name} hover>
                 <TableCell>{i + 1}</TableCell>
                 <TableCell>
-                  <Typography variant="body2" fontWeight={i < 3 ? 700 : 400}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: i < 3 ? 700 : 400,
+                    }}
+                  >
                     {p.name}
                   </Typography>
                 </TableCell>
@@ -188,8 +216,10 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
                   <Tooltip title={`Expected ${p.expectedWins.toFixed(1)} wins`}>
                     <Typography
                       variant="body2"
-                      fontWeight={600}
-                      sx={{ color: dominanceColor(p.dominance) }}
+                      sx={{
+                        fontWeight: 600,
+                        color: dominanceColor(p.dominance),
+                      }}
                     >
                       {p.dominance.toFixed(2)}×
                     </Typography>
@@ -239,11 +269,24 @@ function GeneralWinRates(props: { stats: FFAStats }) {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
         <Typography variant="h5">General Win Rates in FFA</Typography>
         <InfoTip title="Win rate of each general across FFA games. Note the expected rate is roughly 1 / (players per game), so a general above the field average is genuinely strong in the chaos of a free-for-all." />
       </Stack>
-      <Grid container spacing={2} alignItems="center">
+      <Grid
+        container
+        spacing={2}
+        sx={{
+          alignItems: "center",
+        }}
+      >
         <Grid size={{ xs: 12, md: 7 }}>
           <ResponsiveContainer width="99%" height={isMobile ? 320 : 400}>
             <BarChart
@@ -301,8 +344,10 @@ function GeneralWinRates(props: { stats: FFAStats }) {
               <WinRateChip wins={g.wins} losses={g.games - g.wins} />
               <Typography
                 variant="caption"
-                color="text.secondary"
-                display="block"
+                sx={{
+                  color: "text.secondary",
+                  display: "block",
+                }}
               >
                 {g.games} games
               </Typography>
@@ -325,7 +370,14 @@ function MapBreakdown(props: { stats: FFAStats }) {
   if (props.stats.mapStats.length === 0) return null
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
         <Typography variant="h5">Most Played FFA Maps</Typography>
       </Stack>
       <TableContainer component={Paper} variant="outlined">
@@ -381,7 +433,12 @@ export default function DisplayFFAStats() {
     return (
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6">No FFA games found yet.</Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Free-for-all games (3+ human players, every player for themselves)
           will show up here once they've been played.
         </Typography>
@@ -394,7 +451,13 @@ export default function DisplayFFAStats() {
       <Typography variant="h4" sx={{ mb: 0.5 }}>
         Free-For-All
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 2,
+        }}
+      >
         Every player for themselves. Stats below cover human FFA games only.
       </Typography>
       <SummaryCards stats={stats} />

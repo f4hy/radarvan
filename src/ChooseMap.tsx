@@ -251,7 +251,14 @@ export default function ChooseMap() {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <Button
           size="small"
           startIcon={<ArrowBackIcon />}
@@ -283,7 +290,6 @@ export default function ChooseMap() {
           </Button>
         )}
       </Stack>
-
       {phase === "ready" && (
         <Stack spacing={1.5}>
           <Alert severity="info">
@@ -294,9 +300,11 @@ export default function ChooseMap() {
           <Stack
             direction="row"
             spacing={1}
-            alignItems="center"
-            flexWrap="wrap"
             useFlexGap
+            sx={{
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
           >
             <Typography variant="subtitle2" sx={{ mr: 1 }}>
               Players ({participants.size}/{players.length})
@@ -334,9 +342,7 @@ export default function ChooseMap() {
           )}
         </Stack>
       )}
-
       {error && <Alert severity="error">{error}</Alert>}
-
       {(spinning || phase === "done") && spotlightName && (
         <Paper
           variant="outlined"
@@ -347,7 +353,12 @@ export default function ChooseMap() {
             borderWidth: 2,
           }}
         >
-          <Typography variant="overline" color="text.secondary">
+          <Typography
+            variant="overline"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {phase === "done" ? "Winner" : "Drawing…"}
           </Typography>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
@@ -362,17 +373,20 @@ export default function ChooseMap() {
           )}
         </Paper>
       )}
-
       {phase === "done" && eligible.length === 0 && (
         <Alert severity="warning">
           No maps were eligible — every voted map was vetoed, or nobody has
           voted yet for {selected} players.
         </Alert>
       )}
-
       {revealed.length > 0 && (
         <Stack spacing={1}>
-          <Typography variant="subtitle2" color="text.secondary">
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: "text.secondary",
+            }}
+          >
             {phase === "reveal" ? "Revealing votes…" : "Votes & vetoes"}
           </Typography>
           {revealed.map((c) => (

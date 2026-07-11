@@ -81,13 +81,21 @@ const StatCard = React.memo(function StatCard({
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography
           variant="caption"
-          color="text.secondary"
-          display="block"
           gutterBottom
+          sx={{
+            color: "text.secondary",
+            display: "block",
+          }}
         >
           {stat.statName}
         </Typography>
-        <Typography variant="h4" fontWeight="bold" sx={{ my: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: "bold",
+            my: 1,
+          }}
+        >
           {displayValue}
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
@@ -178,7 +186,11 @@ export default function DisplaySuperlatives() {
         <Typography variant="h6" gutterBottom>
           No records yet
         </Typography>
-        <Typography color="text.secondary">
+        <Typography
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Statistics are computed nightly. Use the recompute endpoint to
           generate them now.
         </Typography>
@@ -189,10 +201,20 @@ export default function DisplaySuperlatives() {
   return (
     <Paper sx={{ flexGrow: 1, p: 2, maxWidth: 1400 }}>
       <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" fontWeight="bold">
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: "bold",
+          }}
+        >
           Records
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+          }}
+        >
           Computed {data.computedAt.toLocaleDateString()}. From 2v2, 3v3 and 4v4
           team matches
         </Typography>

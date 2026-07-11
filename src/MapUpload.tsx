@@ -82,7 +82,12 @@ function PreviewGrid({
                   borderRadius: 1,
                 }}
               >
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                  }}
+                >
                   saved ✓
                 </Typography>
               </Box>
@@ -90,7 +95,13 @@ function PreviewGrid({
             <Typography variant="subtitle2" noWrap title={m.base_name}>
               {m.base_name}
             </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                flexWrap: "wrap",
+              }}
+            >
               {m.player_count != null && (
                 <Chip size="small" label={`${m.player_count} players`} />
               )}
@@ -180,13 +191,17 @@ export default function MapUpload() {
   return (
     <Stack spacing={2}>
       <Typography variant="h6">Upload a map</Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+        }}
+      >
         Upload a <strong>.tga</strong> + <strong>.map</strong> pair, or a{" "}
         <strong>.zip</strong> of folders that each contain a .map and a .tga
         (other files ignored). You&apos;ll see a preview before anything is
         saved.
       </Typography>
-
       <ToggleButtonGroup
         exclusive
         size="small"
@@ -198,8 +213,14 @@ export default function MapUpload() {
         <ToggleButton value="files">.tga + .map</ToggleButton>
         <ToggleButton value="zip">.zip of folders</ToggleButton>
       </ToggleButtonGroup>
-
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Stack
+        direction="row"
+        spacing={1}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+        }}
+      >
         {mode === "files" ? (
           <>
             <FilePicker
@@ -224,7 +245,6 @@ export default function MapUpload() {
           />
         )}
       </Stack>
-
       <Stack direction="row" spacing={1}>
         <Button
           variant="contained"
@@ -247,25 +267,20 @@ export default function MapUpload() {
           </Button>
         )}
       </Stack>
-
       {error && <Alert severity="error">{error}</Alert>}
-
       {result?.committed && (
         <Alert severity={savedCount > 0 ? "success" : "warning"}>
           Saved {savedCount} map{savedCount === 1 ? "" : "s"}.
         </Alert>
       )}
-
       {result?.errors.map((e, i) => (
         <Alert key={i} severity="warning">
           {e}
         </Alert>
       ))}
-
       {result && result.maps.length === 0 && !result.errors.length && (
         <Alert severity="warning">No valid maps found in the upload.</Alert>
       )}
-
       {result && result.maps.length > 0 && (
         <PreviewGrid result={result} isAdmin={isAdmin} />
       )}

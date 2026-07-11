@@ -424,8 +424,10 @@ function MenuItem(props: MenuItemProps) {
         primary={props.text}
         slotProps={{
           primary: {
-            fontWeight: props.selected ? 700 : 500,
-            color: props.selected ? "primary.main" : "text.primary",
+            sx: {
+              fontWeight: props.selected ? 700 : 500,
+              color: props.selected ? "primary.main" : "text.primary",
+            },
           },
         }}
       />
