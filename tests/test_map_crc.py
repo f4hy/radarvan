@@ -173,3 +173,108 @@ def test_upload_pushes_to_cncstats_when_enabled(
     assert items[0].pushed_to_cncstats is True
     assert pushed[0][0] == b"\x01\x01"
     assert pushed[0][1] == {"tga": b"t", "map_name": "Brand New"}
+
+
+class _FakeSyncClient:
+    """Blocking cncstats stand-in: records add_map calls, canned map_exists."""
+
+    def __init__(self, exists: bool = False, push_enabled: bool = True) -> None:
+        self.calls: list[tuple[int, str, bytes, str | None]] = []
+        self.exists = exists
+        self.exists_checks: list[int] = []
+        self.map_push_enabled = push_enabled
+
+    def map_exists(self, crc_decimal: int) -> bool:
+        self.exists_checks.append(crc_decimal)
+        return self.exists
+
+    def add_map(
+        self,
+        crc_decimal: int,
+        file_type: str,
+        data: bytes,
+        *,
+        map_name: str | None = None,
+    ) -> None:
+        self.calls.append((crc_decimal, file_type, data, map_name))
+
+
+class _FakeManager:
+    """Records CRC write-backs; stands in for ReplayManager."""
+
+    def __init__(self) -> None:
+        self.written: list[tuple[str, str]] = []
+
+    def set_map_crc(self, map_name: str, crc: str) -> bool:
+        self.written.append((map_name, crc))
+        return True
+
+
+def test_resolve_map_crc_falls_back_to_the_map_we_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Never played, no stored CRC: the .map bytes in S3 are the only source.
+    monkeypatch.setattr(missing_maps, "crc_for_map", lambda name, rm: None)
+    fs = _FakeFS({missing_maps.s3_uri_for("Brand New", "map"): b"\x01\x01"})
+    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: fs)
+
+    manager = _FakeManager()
+    crc = missing_maps.resolve_map_crc("Brand New", manager)  # type: ignore[arg-type]
+    assert crc == missing_maps.compute_map_crc_hex(b"\x01\x01")
+    assert manager.written == [("Brand New", crc)]  # written back to MapData
+
+
+def test_resolve_map_crc_is_none_when_we_cannot_supply_the_map(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(missing_maps, "crc_for_map", lambda name, rm: None)
+    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: _FakeFS({}))
+    manager = _FakeManager()
+    assert missing_maps.resolve_map_crc("Nowhere", manager) is None  # type: ignore[arg-type]
+    assert manager.written == []
+
+
+def test_blocking_sync_skips_push_when_cncstats_has_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = _FakeSyncClient(exists=True)
+    monkeypatch.setattr(missing_maps.cncstats_client, "cncstats_client", lambda: fake)
+
+    def _boom() -> object:
+        raise AssertionError("should not read S3 when CRC is known and present")
+
+    monkeypatch.setattr(missing_maps.replay_files, "get_fs", _boom)
+
+    synced = missing_maps.sync_stored_map_to_cncstats_blocking("X", "DEADBEEF")
+    assert synced is not None
+    assert (synced.crc_hex, synced.pushed) == ("DEADBEEF", False)
+    assert fake.calls == []
+
+
+def test_blocking_sync_pushes_map_and_preview(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake = _FakeSyncClient(exists=False)
+    monkeypatch.setattr(missing_maps.cncstats_client, "cncstats_client", lambda: fake)
+    fs = _FakeFS(
+        {
+            missing_maps.s3_uri_for("X", "map"): b"\x01\x01",
+            missing_maps.s3_uri_for("X", "tga"): b"tga",
+        }
+    )
+    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: fs)
+
+    synced = missing_maps.sync_stored_map_to_cncstats_blocking("X")
+    assert synced is not None
+    assert synced.pushed is True
+    assert synced.pushed_preview is True
+    assert synced.crc_hex == missing_maps.compute_map_crc_hex(b"\x01\x01")
+    assert {c[1] for c in fake.calls} == {"map", "preview"}
+
+
+def test_blocking_sync_returns_none_when_map_not_hosted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = _FakeSyncClient(exists=False)
+    monkeypatch.setattr(missing_maps.cncstats_client, "cncstats_client", lambda: fake)
+    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: _FakeFS({}))
+    assert missing_maps.sync_stored_map_to_cncstats_blocking("X", "DEADBEEF") is None
+    assert fake.calls == []

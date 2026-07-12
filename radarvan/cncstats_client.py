@@ -88,6 +88,18 @@ class CncstatsClient:
         """True if a map-registry API key is configured (``/add_map`` usable)."""
         return bool(self._map_api_key)
 
+    def map_exists(self, crc_decimal: int) -> bool:
+        """GET /map_exists - True if cncstats already stores this map's CRC.
+
+        Blocking variant of `map_exists_async`, for the sync request handlers
+        that already run in uvicorn's threadpool.
+        """
+        resp = self._client.get(
+            f"{self._base_url}/map_exists", params={"crc": crc_decimal}
+        )
+        resp.raise_for_status()
+        return resp.text.strip().lower() == "true"
+
     async def map_exists_async(self, crc_decimal: int) -> bool:
         """GET /map_exists - True if cncstats already stores this map's CRC.
 

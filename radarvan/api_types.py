@@ -1581,8 +1581,19 @@ class ChooseMapResult(BaseModel):
     player_count: int
     # The backend's authoritative weighted-random pick (None if no eligible map).
     chosen_map: str | None = None
-    # The chosen map's CRC (uppercase hex), if we have it stored; None otherwise.
+    # The chosen map's CRC (uppercase hex). Always set when chosen_map is: the
+    # draw only picks maps we can produce a CRC for, because the CRC is the key
+    # the game client fetches the map by. None only when nothing was picked.
     chosen_map_crc: str | None = None
+    # Which map assets the CDN holds for this CRC, as the engine's
+    # MapContentsMask bitfield (1 = .map, 2 = .tga preview, 4 = map.ini,
+    # 8 = map.str, 16 = solo.ini, 32 = assetusage.txt, 64 = readme.txt).
+    # Only set when we know the answer, i.e. when we populated the CDN entry
+    # ourselves on this call; left None when cncstats already had the map and
+    # its asset list is therefore not ours to describe. The client asks for
+    # every kind when this is absent, which costs a few 404s but never misses a
+    # sidecar the map needs.
+    map_contents_mask: int | None = None
     # Every map with at least one vote or veto, for the reveal animation,
     # ordered by votes desc then name.
     candidates: list[ChooseMapCandidate] = Field(default_factory=list)

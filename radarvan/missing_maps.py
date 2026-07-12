@@ -33,7 +33,7 @@ from PIL import Image
 from sqlalchemy import func, select
 
 from . import cncstats_client
-from .api_types import MapDataPayload
+from .api_types import MapDataPayload, PushMapResult
 from .cache import latest_match_ts
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db import MapData, Match, ParsedReplayJson
@@ -338,6 +338,116 @@ async def sync_stored_map_to_cncstats(
     return crc_hex, True
 
 
+@dataclass(frozen=True)
+class CncstatsSync:
+    """Outcome of making sure cncstats has one of the maps we host."""
+
+    crc_hex: str
+    pushed: bool  # we POSTed the .map on this call
+    pushed_preview: bool  # ...and its .tga preview along with it
+
+
+def sync_stored_map_to_cncstats_blocking(
+    map_name: str, crc_hint: str | None = None
+) -> CncstatsSync | None:
+    """Blocking `sync_stored_map_to_cncstats`, for sync request handlers.
+
+    Same contract, minus the concurrency: sync handlers run in uvicorn's
+    threadpool, where blocking S3/HTTP is fine, and the async cncstats client is
+    bound to the main event loop so it cannot be reused from here. Takes any
+    spelling of the map name (not just the S3 base name) and resolves it, but
+    only after the cheap "cncstats already has this CRC" check has failed.
+
+    Returns None when we do not host the map's `.map` file (nothing to push), or
+    when pushing is not configured and cncstats does not already have it.
+    """
+    client = cncstats_client.cncstats_client()
+    # Fast path: known CRC already on cncstats -> no S3 lookup, no push.
+    if crc_hint and client.map_exists(hex_crc_to_decimal(crc_hint)):
+        return CncstatsSync(crc_hex=crc_hint, pushed=False, pushed_preview=False)
+
+    map_uri = find_s3_asset(map_name, "map")
+    if map_uri is None:
+        return None
+    base_name = map_uri[len(S3_MAPS_PREFIX) :].removesuffix(".map")
+
+    fs = replay_files.get_fs()
+    map_bytes: bytes = fs.read_bytes(map_uri)
+    crc_hex = crc_hint or compute_map_crc_hex(map_bytes)
+    if not crc_hint and client.map_exists(hex_crc_to_decimal(crc_hex)):
+        return CncstatsSync(crc_hex=crc_hex, pushed=False, pushed_preview=False)
+    if not client.map_push_enabled:
+        return None
+
+    tga: bytes | None = None
+    tga_uri = s3_uri_for(base_name, "tga")
+    if fs.exists(tga_uri):
+        tga = fs.read_bytes(tga_uri)
+
+    crc_dec = hex_crc_to_decimal(crc_hex)
+    client.add_map(
+        crc_dec, cncstats_client.ADD_MAP_FILE_MAP, map_bytes, map_name=base_name
+    )
+    if tga is not None:
+        client.add_map(
+            crc_dec, cncstats_client.ADD_MAP_FILE_PREVIEW, tga, map_name=base_name
+        )
+    logger.info("pushed map to cncstats", base_name=base_name, crc=crc_hex)
+    return CncstatsSync(crc_hex=crc_hex, pushed=True, pushed_preview=tga is not None)
+
+
+# Bound the in-flight pushes so we don't open an unbounded number of S3 reads /
+# cncstats connections at once.
+PUSH_CONCURRENCY = 8
+
+
+async def push_unsynced_maps(
+    replay_manager: ReplayManager, limit: int = 10
+) -> list[PushMapResult]:
+    """Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.
+
+    Only considers maps not already marked synced, and checks cncstats
+    /map_exists before pushing - so a map is never sent twice. Pushes run
+    concurrently (bounded by `PUSH_CONCURRENCY`); the CRC + synced mark are then
+    written back serially, since the DB session is not safe for concurrent use.
+
+    Shared by the admin route and the scheduled job: without the scheduled run
+    the CDN drifts stale and a map the game client is told to fetch isn't there.
+    """
+    pending = replay_manager.unsynced_maps(limit=limit)
+    sem = asyncio.Semaphore(PUSH_CONCURRENCY)
+
+    async def sync_one(
+        name: str, crc: str | None
+    ) -> tuple[str, str | None, bool, str | None]:
+        async with sem:
+            try:
+                resolved, pushed = await sync_stored_map_to_cncstats(name, crc)
+                return name, resolved, pushed, None
+            except Exception as e:
+                return name, None, False, str(e)
+
+    rows = await asyncio.gather(*(sync_one(name, crc) for name, crc in pending))
+
+    results: list[PushMapResult] = []
+    for name, crc, was_pushed, error in rows:
+        if error is not None:
+            results.append(PushMapResult(map_name=name, error=error))
+            continue
+        if crc:
+            # Record CRC + synced mark in one update (single DB session, serialized).
+            replay_manager.record_cncstats_sync(name, crc)
+        results.append(
+            PushMapResult(
+                map_name=name,
+                crc=crc,
+                pushed=was_pushed,
+                already_present=not was_pushed,
+            )
+        )
+    return results
+
+
 def fetch_map_zip(hex_crc: str) -> bytes:
     """Download the cncstats map zip for the given hex CRC. Raises on HTTP error."""
     decimal = hex_crc_to_decimal(hex_crc)
@@ -532,8 +642,13 @@ def s3_webp_exists(base_name: str) -> bool:
     return bool(fs.exists(s3_uri_for(base_name, "webp")))
 
 
-def find_s3_webp(map_name: str) -> str | None:
-    """Look up the S3 webp path for a map name (case-/whitespace-insensitive, w/ or w/o .map)."""
+def find_s3_asset(map_name: str, ext: str) -> str | None:
+    """Look up an S3 map asset by name (case-/whitespace-insensitive, w/ or w/o .map).
+
+    Map names reach us from several places (match paths, MapData rows, votes),
+    and the S3 base name is whatever cncstats or the uploader called it, so try
+    the usual spelling variants before giving up.
+    """
     fs = replay_files.get_fs()
     no_ws = "".join(map_name.split())
     candidates = [
@@ -551,7 +666,7 @@ def find_s3_webp(map_name: str) -> str | None:
         if c in seen:
             continue
         seen.add(c)
-        uri = s3_uri_for(c, "webp")
+        uri = s3_uri_for(c, ext)
         try:
             if fs.exists(uri):
                 return uri
@@ -559,3 +674,45 @@ def find_s3_webp(map_name: str) -> str | None:
             logger.debug("fs.exists failed", uri=uri, error=repr(e))
             continue
     return None
+
+
+def find_s3_webp(map_name: str) -> str | None:
+    """Look up the S3 webp path for a map name (case-/whitespace-insensitive, w/ or w/o .map)."""
+    return find_s3_asset(map_name, "webp")
+
+
+def crc_from_hosted_map(map_name: str) -> str | None:
+    """CRC computed from the `.map` bytes we host in S3, or None if we don't host it.
+
+    The last resort of `resolve_map_crc`: it works for a map that has never been
+    played (so no replay carries its CRC) and whose MapData row predates the crc
+    column. Never raises - a failed S3 read degrades to None.
+    """
+    uri = find_s3_asset(map_name, "map")
+    if uri is None:
+        return None
+    try:
+        return compute_map_crc_hex(replay_files.get_fs().read_bytes(uri))
+    except Exception as e:
+        logger.warning("could not read hosted map", uri=uri, error=repr(e))
+        return None
+
+
+def resolve_map_crc(map_name: str, replay_manager: ReplayManager) -> str | None:
+    """CRC (hex) for a map from any source we have, writing it back to MapData.
+
+    Chains `crc_for_map` (stored CRC, else a replay of a match played on the
+    map) with the raw `.map` bytes we host in S3. That last step is what lets us
+    hand out a CRC for a map nobody has played yet - without it the game client
+    has no key to fetch the map by and the pick simply fails.
+
+    Returns None only when we truly cannot produce a CRC, i.e. when we cannot
+    supply the map at all.
+    """
+    crc = crc_for_map(map_name, replay_manager)
+    if crc:
+        return crc
+    crc = crc_from_hosted_map(map_name)
+    if crc:
+        replay_manager.set_map_crc(map_name, crc)  # no-op if no MapData row
+    return crc

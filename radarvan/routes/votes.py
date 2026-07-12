@@ -213,6 +213,43 @@ def set_vote(
     return _build_page(player_count, replay_manager, vote_repo, user)
 
 
+# Engine MapContentsMask bits for the two assets we host (see
+# GameInfo::getMapContentsMask): the .map file itself and its .tga preview.
+_MAP_CONTENTS_MAP = 1
+_MAP_CONTENTS_PREVIEW = 2
+
+
+def _ensure_on_cncstats(map_name: str, crc: str) -> int | None:
+    """Make sure the CDN can serve this map, and report what it holds for it.
+
+    The game client fetches the map from cncstats by CRC, not from us, so a pick
+    whose map the CDN has never seen is a pick nobody can download. Pushing here
+    (rather than only in the scheduled pass) closes the window where a map is
+    votable before it has been synced.
+
+    Returns the contents mask when we populated the CDN entry on this call - the
+    only case where we know which assets it holds. Otherwise None, which tells
+    the client to ask for every asset kind. Best-effort: a failure still hands
+    out the CRC, because the host may have the map locally and uploads it to the
+    CDN itself when it applies the pick.
+    """
+    try:
+        synced = missing_maps.sync_stored_map_to_cncstats_blocking(map_name, crc)
+    except Exception as e:
+        logger.warning(
+            "cncstats sync failed for picked map", map_name=map_name, error=repr(e)
+        )
+        return None
+    if synced is None or not synced.pushed:
+        # Either cncstats already had it (its asset list is not ours to
+        # describe) or we don't host the .map and couldn't push one.
+        return None
+    mask = _MAP_CONTENTS_MAP
+    if synced.pushed_preview:
+        mask |= _MAP_CONTENTS_PREVIEW
+    return mask
+
+
 @router.post("/{player_count}/choose", response_model=ChooseMapResult)
 def choose_map(
     player_count: int,
@@ -225,16 +262,34 @@ def choose_map(
 
     Only the votes of the players in ``req.players`` are counted, so the draw
     reflects who's actually playing. Returns the chosen map (with its CRC, when
-    stored) plus every voted/vetoed map (with tallies) for the reveal + spin.
+    we can resolve one) plus every voted/vetoed map (with tallies) for the
+    reveal + spin.
+
+    The CRC is what a client without the map fetches it by, so we try every
+    source we have (`resolve_map_crc`) and, when we find one, make sure the CDN
+    can serve it. A map whose CRC we cannot resolve is still a legal pick: the
+    draw stays over the full pool and `chosen_map_crc` is simply null, which the
+    game client tolerates - it falls back to the launch-time P2P transfer from
+    the host. Dropping such maps from the draw instead would let a transient S3
+    or credentials failure silently shrink the pool.
     """
     # req.players are alias-resolved at validation (PlayerName annotated type).
     user_ids = user_repo.ids_for_player_names(req.players)
     tally = vote_repo.tally(player_count, user_ids)
     recent = _recently_played_maps(replay_manager)
+
     result = map_choice.choose_map(player_count, tally, recent_maps=recent)
-    if result.chosen_map is not None:
-        # Stored CRC if we have it, else derive from a match played on this map.
-        crc = missing_maps.crc_for_map(result.chosen_map, replay_manager)
-        if crc is not None:
-            result = result.model_copy(update={"chosen_map_crc": crc})
-    return result
+    if result.chosen_map is None:
+        return result
+
+    crc = missing_maps.resolve_map_crc(result.chosen_map, replay_manager)
+    if crc is None:
+        logger.warning(
+            "no CRC for picked map; the client will need the host's P2P transfer",
+            map_name=result.chosen_map,
+            player_count=player_count,
+        )
+        return result
+
+    mask = _ensure_on_cncstats(result.chosen_map, crc)
+    return result.model_copy(update={"chosen_map_crc": crc, "map_contents_mask": mask})

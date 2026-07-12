@@ -12,6 +12,7 @@ from .matches import register_matches
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
 import asyncio
+from . import missing_maps as missing_maps_module
 from . import scrape_games
 from . import player_profile as player_profile_module
 from . import superlatives as superlatives_module
@@ -122,6 +123,38 @@ async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
         await notify_async(f"Saved {len(profiles)} player profiles, took {duration}.")
 
 
+async def sync_maps_to_cncstats(
+    db_manager: DatabaseManager, max_to_update: int = 25
+) -> None:
+    """Push maps we host to the cncstats CDN so game clients can fetch them.
+
+    The lobby's "Radarvan Pick" hands the client a map CRC and expects the CDN
+    to serve the bytes for it. Without this pass the CDN only ever gets maps
+    that some player's client happened to upload, so a map we picked can be one
+    nobody can download. Skips maps already marked synced, and checks
+    /map_exists before pushing, so a steady state costs one HEAD-ish call per
+    new map and nothing at all afterwards.
+    """
+    if not missing_maps_module.cncstats_push_enabled():
+        logger.info("cncstats push not configured; skipping map sync")
+        return
+    with db_manager.get_replay_manager() as replay_manager:
+        results = await missing_maps_module.push_unsynced_maps(
+            replay_manager, limit=max_to_update
+        )
+    pushed = sum(1 for r in results if r.pushed)
+    errors = [r.map_name for r in results if r.error is not None]
+    logger.info(
+        "synced maps to cncstats",
+        considered=len(results),
+        pushed=pushed,
+        already_present=sum(1 for r in results if r.already_present),
+        errors=errors,
+    )
+    if pushed:
+        await notify_async(f"Pushed {pushed} map(s) to the cncstats CDN.")
+
+
 def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
     """Get the scheduler with the tasks on it."""
 
@@ -157,6 +190,16 @@ def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
         minute=30,
         args=[db_manager],
         id="compute_player_profiles",
+    )
+    # Keep the map CDN in step with the maps we host: the lobby map pick sends
+    # clients to cncstats by CRC, so a map that never got pushed is a pick
+    # nobody can download.
+    scheduler.add_job(
+        sync_maps_to_cncstats,
+        "interval",
+        minutes=60 * 6,
+        args=[db_manager],
+        id="sync_maps_to_cncstats",
     )
     logger.info("Setup scheduler.")
     return scheduler
