@@ -233,7 +233,7 @@ def choose_map(
     recent = _recently_played_maps(replay_manager)
     result = map_choice.choose_map(player_count, tally, recent_maps=recent)
     if result.chosen_map is not None:
-        # Stored CRC if we have it, else derive from a match played on this map.
+        # Stored CRC if we have it, else derive from a replay or the hosted map file.
         crc = missing_maps.crc_for_map(result.chosen_map, replay_manager)
         if crc is not None:
             result = result.model_copy(update={"chosen_map_crc": crc})

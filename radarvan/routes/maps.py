@@ -218,11 +218,12 @@ def backfill_map_crcs(
     max_to_update: int = 50,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> BackfillMapCrcsResponse:
-    """Fill in MapData.crc from a sample match's replay (header mapCrc).
+    """Fill in MapData.crc from a sample match's replay, or the hosted `.map` bytes.
 
     For each MapData row missing a CRC, finds a match played on that map and
-    reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are
-    touched). Processes up to `max_to_update` rows.
+    reads the CRC from its parsed replay JSON; for a map nobody has played,
+    computes it from the `.map` bytes we host in S3 instead. Resumable
+    (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
     """
     results = missing_maps_module.backfill_map_crcs(replay_manager, limit=max_to_update)
     resolved = sum(1 for _, crc in results if crc is not None)

@@ -160,12 +160,15 @@ def _sample_match_by_map_key(replay_manager: ReplayManager) -> dict[str, int]:
 
 
 def crc_for_map(map_name: str, replay_manager: ReplayManager) -> str | None:
-    """Best-effort CRC (hex) for a map: stored value, else a match's replay.
+    """Best-effort CRC (hex) for a map: stored value, a match's replay, or the
+    hosted `.map` bytes.
 
     Prefers the CRC stored on MapData; otherwise derives it from a match played
-    on this map (the replay JSON's mapCrc - the authoritative game value) and
-    writes it back to MapData when a row exists. Returns None if neither source
-    has it. Never raises: a failed lookup degrades to None.
+    on this map (the replay JSON's mapCrc - the authoritative game value); if
+    the map has never been played, falls back to computing it from the raw
+    `.map` bytes we host in S3. Any source found is written back to MapData
+    when a row exists. Returns None only when none of these can supply it.
+    Never raises: a failed lookup degrades to None.
     """
     stored = replay_manager.get_map_crc(map_name)
     if stored:
@@ -174,9 +177,12 @@ def crc_for_map(map_name: str, replay_manager: ReplayManager) -> str | None:
         match_id = _sample_match_by_map_key(replay_manager).get(
             replay_files.map_key(map_name)
         )
-        if match_id is None:
-            return None
-        crc = get_map_crc_from_match(match_id, replay_manager)
+        crc = (
+            get_map_crc_from_match(match_id, replay_manager)
+            if match_id is not None
+            else None
+        )
+        crc = crc or crc_from_hosted_map(map_name)
         if crc:
             replay_manager.set_map_crc(map_name, crc)  # no-op if no MapData row
         return crc
@@ -188,10 +194,11 @@ def crc_for_map(map_name: str, replay_manager: ReplayManager) -> str | None:
 def backfill_map_crcs(
     replay_manager: ReplayManager, limit: int | None = None
 ) -> list[tuple[str, str | None]]:
-    """Populate MapData.crc for rows missing it, from a sample match's replay.
+    """Populate MapData.crc for rows missing it, via `crc_for_map` (a sample
+    match's replay, or the hosted `.map` bytes for a never-played map).
 
-    Returns (map_name, crc) for each row processed (crc is None if no match on
-    that map could supply one). Resumable: only rows with a NULL crc are touched.
+    Returns (map_name, crc) for each row processed (crc is None if no source
+    could supply one). Resumable: only rows with a NULL crc are touched.
     Delegates to `crc_for_map` per row (the sample-match index is cached, so it
     is built once across the loop).
     """
@@ -532,8 +539,8 @@ def s3_webp_exists(base_name: str) -> bool:
     return bool(fs.exists(s3_uri_for(base_name, "webp")))
 
 
-def find_s3_webp(map_name: str) -> str | None:
-    """Look up the S3 webp path for a map name (case-/whitespace-insensitive, w/ or w/o .map)."""
+def find_s3_asset(map_name: str, ext: str) -> str | None:
+    """Look up an S3 map asset by name (case-/whitespace-insensitive, w/ or w/o .map)."""
     fs = replay_files.get_fs()
     no_ws = "".join(map_name.split())
     candidates = [
@@ -551,7 +558,7 @@ def find_s3_webp(map_name: str) -> str | None:
         if c in seen:
             continue
         seen.add(c)
-        uri = s3_uri_for(c, "webp")
+        uri = s3_uri_for(c, ext)
         try:
             if fs.exists(uri):
                 return uri
@@ -559,3 +566,25 @@ def find_s3_webp(map_name: str) -> str | None:
             logger.debug("fs.exists failed", uri=uri, error=repr(e))
             continue
     return None
+
+
+def find_s3_webp(map_name: str) -> str | None:
+    """Look up the S3 webp path for a map name (case-/whitespace-insensitive, w/ or w/o .map)."""
+    return find_s3_asset(map_name, "webp")
+
+
+def crc_from_hosted_map(map_name: str) -> str | None:
+    """CRC computed from the `.map` bytes we host in S3, or None if we don't host it.
+
+    Last-resort source for `crc_for_map`: covers a map that has never been
+    played (so no replay carries its CRC) and whose MapData row predates the
+    crc column. Never raises - a failed S3 read degrades to None.
+    """
+    uri = find_s3_asset(map_name, "map")
+    if uri is None:
+        return None
+    try:
+        return compute_map_crc_hex(replay_files.get_fs().read_bytes(uri))
+    except Exception as e:
+        logger.warning("could not read hosted map", uri=uri, error=repr(e))
+        return None

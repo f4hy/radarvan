@@ -1568,7 +1568,8 @@ class ChooseMapResult(BaseModel):
     player_count: int
     # The backend's authoritative weighted-random pick (None if no eligible map).
     chosen_map: str | None = None
-    # The chosen map's CRC (uppercase hex), if we have it stored; None otherwise.
+    # The chosen map's CRC (uppercase hex), if we can resolve one (stored,
+    # from a replay, or computed from the hosted .map bytes); None otherwise.
     chosen_map_crc: str | None = None
     # Every map with at least one vote or veto, for the reveal animation,
     # ordered by votes desc then name.
