@@ -51,7 +51,7 @@
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.63.0",
-    "@typescript-eslint/parser": "^8.63.0",
+    "@typescript-eslint/parser": "^8.65.0",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
