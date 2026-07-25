@@ -148,7 +148,7 @@ function MoneyChart(props: {
       </>
     )
   } else {
-    return <div>{props.title} data unavailible for this replay</div>
+    return <div>{props.title} data unavailable for this replay</div>
   }
 }
 
@@ -552,7 +552,7 @@ function DisplayFirstBlood(props: {
   ]
   if (props.building_first_blood) {
     msgs.push(
-      `${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)}minutes`,
+      `${props.building_first_blood.attacker} drew first building blood on ${props.building_first_blood.victim} at ${props.building_first_blood.atMinute.toFixed(2)} minutes`,
     )
   }
   return (

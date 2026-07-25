@@ -47,7 +47,7 @@ class TournamentRepo(BaseRepo):
                     db_stat.value_str = str(pydantic_stat.value)
 
         self.session.add(db_report)
-        self.session.commit()
+        self._commit_if_auto()
 
     def get_tournament_report_by_name(
         self, name: str

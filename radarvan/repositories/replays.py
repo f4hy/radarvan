@@ -100,6 +100,9 @@ class ReplayRepo(BaseRepo):
         logger.info("registering replay", from_url=from_url, s3_uri=s3_uri)
         prefix2 = "https://generals-public.s3.us-east-2.amazonaws.com/reps/"
         if prefix2 in from_url:
+            # One-off import of bill's replays from the generals-public bucket
+            # (no per-file date/player in the key). NOTE: strptime's %B wins
+            # over %m, so this literal parses to 2025-12-01, not October.
             date_str = "2025_10_December"
             player_id = "5211058E5C33"
         else:
@@ -222,7 +225,7 @@ class ReplayRepo(BaseRepo):
         )
 
         result = self.session.execute(statement)
-        self.session.commit()
+        self._commit_if_auto()
 
         # SQLAlchemy stubs type Session.execute() as Result[Any], but DML
         # statements always return CursorResult which has rowcount.

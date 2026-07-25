@@ -160,7 +160,7 @@ def determine_team(
     return Team(team_num + 1)
 
 
-def determin_general(
+def determine_general(
     player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> General:
     if player_summary:
@@ -181,11 +181,11 @@ def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
         color = (p.color or "").lower().replace("color", "")
         summary = summaries_by_name.get(p.name) or summaries_by_index.get(i)
         team = determine_team(p, player_summary=summary)
-        faction = determin_general(p, player_summary=summary)
+        faction = determine_general(p, player_summary=summary)
         try:
             # indexed from 0 in the replay
             starting_position = int(p.starting_position or "") + 1
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             starting_position = None
         players.append(
             Player(

@@ -96,18 +96,25 @@ def compute_match_composition(
     return result
 
 
-@router.post("/api/backfill/composition")
+@router.post("/api/backfill/composition", include_in_schema=IS_DEV)
 def backfill_match_composition(
+    max_to_update: int = 100,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> int:
-    """Backfill and persist the composition for a match."""
-    count = 0
+) -> dict[str, int]:
+    """Backfill and persist the composition for matches missing it."""
+    updated = 0
+    missing = 0
     for match_id in replay_manager.list_matches_without_composition():
-        count += 1
+        if updated >= max_to_update:
+            break
         result = replay_manager.compute_and_save_composition(match_id)
         if result is None:
-            raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
-    return count
+            # Match vanished between the listing and the recompute; skip it
+            # rather than aborting the whole backfill.
+            missing += 1
+            continue
+        updated += 1
+    return {"updated": updated, "missing": missing}
 
 
 @router.post("/api/reparse/{match_id}")
@@ -411,6 +418,7 @@ def fix_incomplete(
             has_stats=has_stats,
         )
         matches.reparse_replay(need_fix.match_id, replay_manager)
+        replay_manager.compute_and_save_composition(need_fix.match_id)
         logger.info("updated", match=need_fix)
         updated_count += 1
         if updated_count >= max_to_update:
@@ -432,6 +440,7 @@ def fix_unk_players(
         updated = matches.reparse_replay(match_id, replay_manager)
         logger.info("updated", match=updated)
         if updated:
+            replay_manager.compute_and_save_composition(match_id)
             updated_count += 1
         if updated_count >= max_to_update:
             break

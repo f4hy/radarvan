@@ -4,7 +4,7 @@ import hashlib
 import structlog
 import fsspec
 from datetime import UTC, datetime
-from typing import NamedTuple
+from typing import Any, NamedTuple
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from functools import cache
 from .parse_replay import parse_replay_data
@@ -35,19 +35,24 @@ def get_fs() -> fsspec.AbstractFileSystem:
     return fsspec.filesystem("s3")
 
 
+@cache
+def _s3_client() -> Any:
+    # Client construction (credential/endpoint resolution) is expensive and the
+    # client is thread-safe; build it once. Callers like routes/files.py sign
+    # multiple URLs per request. Typed Any because the precise S3Client type
+    # lives in boto3-stubs (dev-only) and TYPE_CHECKING imports are banned here.
+    return boto3.client(
+        "s3", region_name="us-east-2", config=Config(signature_version="s3v4")
+    )
+
+
 def presigned_url(s3_path: str, expires_in: int = 3600) -> str:
     """preSign a s3_path. expires_in is the URL validity in seconds (S3 caps at 7 days)."""
     parsed = urlparse(s3_path)
     bucket = parsed.netloc
     key = parsed.path.lstrip("/")
 
-    # Create S3 client
-    s3_client = boto3.client(
-        "s3", region_name="us-east-2", config=Config(signature_version="s3v4")
-    )
-
-    # Generate presigned URL
-    url = s3_client.generate_presigned_url(
+    url = _s3_client().generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket, "Key": key},
         ExpiresIn=expires_in,

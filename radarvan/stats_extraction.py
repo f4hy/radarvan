@@ -144,7 +144,9 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     scale = minutes_per_step(replay)
     name_by_idx: dict[int, str] = {p.index: p.name for p in replay.summary}
     all_players: set[str] = set(name_by_idx.values())
-    header_team_by_name = {p.name: int(p.team) for p in replay.header.metadata.players}
+    header_team_by_name = {
+        p.name: int(p.team or "-1") for p in replay.header.metadata.players
+    }
     team_by_idx = {
         idx: header_team_by_name.get(name, -1) for idx, name in name_by_idx.items()
     }

@@ -177,9 +177,7 @@ class Match(Base):
     )
 
     # Relationships
-    replay_json: Mapped[ParsedReplayJson | None] = relationship(
-        back_populates="match"
-    )
+    replay_json: Mapped[ParsedReplayJson | None] = relationship(back_populates="match")
     players: Mapped[list[MatchPlayer]] = relationship(
         back_populates="match",
         cascade="all, delete-orphan",

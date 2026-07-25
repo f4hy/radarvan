@@ -142,7 +142,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
         ))}
       </ToggleButtonGroup>
       {data.map(([name, d]) => {
-        const last5 = d.slice(-20)
+        const recentEntries = d.slice(-20)
         const chartData = d
           .map((x) => ({
             mu: x.mu,
@@ -155,8 +155,8 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
         return (
           <Stack key={name}>
             <Typography>{name}</Typography>
-            <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-              {last5.map((entry, i) => {
+            <Stack direction="row" spacing={2} sx={{ mb: 1, flexWrap: "wrap" }}>
+              {recentEntries.map((entry, i) => {
                 const isPositive = (entry.delta ?? 0) >= 0
                 return (
                   <Box key={i} sx={{ textAlign: "center" }}>
@@ -167,7 +167,9 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                         display: "block",
                       }}
                     >
-                      {"" + entry.atdate}
+                      {entry.atdate
+                        ? formatDate(new Date(entry.atdate).getTime(), true)
+                        : "—"}
                     </Typography>
                     <Typography
                       variant="body2"

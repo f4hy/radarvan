@@ -163,7 +163,7 @@ def replay_to_db_match(
         duration_minutes=utils.duration_minutes(replay),
         filename=replay_name,
         incomplete=incomplete or "",
-        notes=incomplete,
+        notes=incomplete or "",
         game_version=game_version,
         is_dev=is_dev,
     )
@@ -336,19 +336,14 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
     return existing_players != new_players
 
 
-def filter_match(db_match: db.Match) -> bool:
-    return True
-
-
 def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):
         listing = replay_manager.list_matches(2.0)
     overrides = replay_manager.get_overrides()
-    filtered = [x for x in listing if filter_match(x)]
 
     with log_time("convert"):
-        return [match_to_matchinfo(m, overrides.get(m.match_id)) for m in filtered]
+        return [match_to_matchinfo(m, overrides.get(m.match_id)) for m in listing]
 
 
 if __name__ == "__main__":

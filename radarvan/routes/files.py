@@ -32,6 +32,8 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
+MAX_REPLAY_UPLOAD_BYTES = 5 * 1024 * 1024
+
 
 class ReplayFilters(BaseModel):
     match_id: int | None = None
@@ -128,7 +130,14 @@ def upload_replay(
     The optional X-Zulu-Build request header is captured on the ReplayFile; when
     it starts with "dev-" the replay and its match are flagged is_dev.
     """
-    data = file.file.read()
+    # Replays are tens of KB; refuse oversized bodies before buffering them in
+    # memory (this endpoint is reachable without auth when ENFORCE_AUTH is unset).
+    data = file.file.read(MAX_REPLAY_UPLOAD_BYTES + 1)
+    if len(data) > MAX_REPLAY_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Replay too large (limit {MAX_REPLAY_UPLOAD_BYTES // (1024 * 1024)} MB)",
+        )
     file_hash = replay_files.compute_hash(data)
 
     if replay_manager.get_replay_by_hash(file_hash) is not None:
