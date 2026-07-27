@@ -119,6 +119,12 @@ export interface MatchInfo {
      * @memberof MatchInfo
      */
     isDev?: boolean;
+    /**
+     * True if any player is a CPU/AI opponent (see player_ids.CPU_NAME_MAPPING).
+     * @type {boolean}
+     * @memberof MatchInfo
+     */
+    readonly hasAi: boolean;
 }
 
 
@@ -135,6 +141,7 @@ export function instanceOfMatchInfo(value: object): value is MatchInfo {
     if (!('players' in value) || value['players'] === undefined) return false;
     if (!('durationMinutes' in value) || value['durationMinutes'] === undefined) return false;
     if (!('filename' in value) || value['filename'] === undefined) return false;
+    if (!('hasAi' in value) || value['hasAi'] === undefined) return false;
     return true;
 }
 
@@ -161,6 +168,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
         'composition': json['composition'] == null ? undefined : GameCompositionFromJSON(json['composition']),
         'isDev': json['is_dev'] == null ? undefined : json['is_dev'],
+        'hasAi': json['has_ai'],
     };
 }
 
@@ -168,7 +176,7 @@ export function MatchInfoToJSON(json: any): MatchInfo {
     return MatchInfoToJSONTyped(json, false);
 }
 
-export function MatchInfoToJSONTyped(value?: MatchInfo | null, ignoreDiscriminator: boolean = false): any {
+export function MatchInfoToJSONTyped(value?: Omit<MatchInfo, 'has_ai'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

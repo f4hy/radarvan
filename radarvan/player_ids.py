@@ -122,6 +122,11 @@ def resolve_player_name(name: str, color: str = "") -> str:
     return NAME_MAPPING.get(name.lower(), name)
 
 
+def is_cpu_name(name: str, color: str = "") -> bool:
+    """True if the resolved name is a known CPU/AI opponent (any CPU_NAME_MAPPING side)."""
+    return resolve_player_name(name, color) in set(CPU_NAME_MAPPING.values())
+
+
 class _Player(Protocol):
     @property
     def team(self) -> int: ...

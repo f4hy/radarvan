@@ -19,6 +19,7 @@ Name | Type
 `gameVersion` | string
 `composition` | [GameComposition](GameComposition.md)
 `isDev` | boolean
+`hasAi` | boolean
 
 ## Example
 
@@ -40,6 +41,7 @@ const example = {
   "gameVersion": null,
   "composition": null,
   "isDev": null,
+  "hasAi": null,
 } satisfies MatchInfo
 
 console.log(example)

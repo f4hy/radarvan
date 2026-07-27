@@ -26,7 +26,7 @@ ITERATIONS = 3
 # When a game has any CPU player, scale down how far each player's rating moves
 # (both mu and sigma). 1.0 = full movement, 0.0 = no movement. CPU games still
 # count, just with diminished weight.
-CPU_GAME_RATING_SCALE = 0.5
+CPU_GAME_RATING_SCALE = 0.1
 
 
 @dataclass(slots=True)

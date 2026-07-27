@@ -18,6 +18,7 @@ from . import bracket as _bracket
 from .game_composition import GameComposition
 from .player_ids import (
     is_admin as _is_admin_player,
+    is_cpu_name as _is_cpu_name,
     is_tournament_admin as _is_tournament_admin_player,
     resolve_player_name,
 )
@@ -140,6 +141,12 @@ class MatchInfo(BaseModel):
     game_version: str | None = None
     composition: GameComposition | None = None
     is_dev: bool = False
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def has_ai(self) -> bool:
+        """True if any player is a CPU/AI opponent (see player_ids.CPU_NAME_MAPPING)."""
+        return any(_is_cpu_name(p.name, p.color) for p in self.players)
 
 
 class Matches(BaseModel):

@@ -90,7 +90,7 @@ All URIs are relative to *http://localhost*
 
 Backfill Map Crcs
 
-Fill in MapData.crc from a sample match\&#39;s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to &#x60;max_to_update&#x60; rows.
+Fill in MapData.crc from a sample match\&#39;s replay, or the hosted &#x60;.map&#x60; bytes.  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON; for a map nobody has played, computes it from the &#x60;.map&#x60; bytes we host in S3 instead. Resumable (only NULL-CRC rows are touched). Processes up to &#x60;max_to_update&#x60; rows.
 
 ### Example
 
@@ -158,11 +158,11 @@ example().catch(console.error);
 
 ## backfillMatchCompositionApiBackfillCompositionPost
 
-> number backfillMatchCompositionApiBackfillCompositionPost()
+> { [key: string]: number | null; } backfillMatchCompositionApiBackfillCompositionPost(maxToUpdate)
 
 Backfill Match Composition
 
-Backfill and persist the composition for a match.
+Backfill and persist the composition for matches missing it.
 
 ### Example
 
@@ -181,8 +181,13 @@ async function example() {
   });
   const api = new DefaultApi(config);
 
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies BackfillMatchCompositionApiBackfillCompositionPostRequest;
+
   try {
-    const data = await api.backfillMatchCompositionApiBackfillCompositionPost();
+    const data = await api.backfillMatchCompositionApiBackfillCompositionPost(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -195,11 +200,14 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `100`] |
 
 ### Return type
 
-**number**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -215,6 +223,7 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

@@ -164,6 +164,10 @@ export interface BackfillMapCrcsApiBackfillMapCrcsPostRequest {
     maxToUpdate?: number;
 }
 
+export interface BackfillMatchCompositionApiBackfillCompositionPostRequest {
+    maxToUpdate?: number;
+}
+
 export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<string>;
 }
@@ -442,7 +446,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Fill in MapData.crc from a sample match\'s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
+     * Fill in MapData.crc from a sample match\'s replay, or the hosted `.map` bytes.  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON; for a map nobody has played, computes it from the `.map` bytes we host in S3 instead. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
      * Backfill Map Crcs
      */
     async backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BackfillMapCrcsResponse>> {
@@ -453,7 +457,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Fill in MapData.crc from a sample match\'s replay (header mapCrc).  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
+     * Fill in MapData.crc from a sample match\'s replay, or the hosted `.map` bytes.  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON; for a map nobody has played, computes it from the `.map` bytes we host in S3 instead. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
      * Backfill Map Crcs
      */
     async backfillMapCrcsApiBackfillMapCrcsPost(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BackfillMapCrcsResponse> {
@@ -464,8 +468,12 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Creates request options for backfillMatchCompositionApiBackfillCompositionPost without sending the request
      */
-    async backfillMatchCompositionApiBackfillCompositionPostRequestOpts(): Promise<runtime.RequestOpts> {
+    async backfillMatchCompositionApiBackfillCompositionPostRequestOpts(requestParameters: BackfillMatchCompositionApiBackfillCompositionPostRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -485,26 +493,22 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Backfill and persist the composition for a match.
+     * Backfill and persist the composition for matches missing it.
      * Backfill Match Composition
      */
-    async backfillMatchCompositionApiBackfillCompositionPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<number>> {
-        const requestOptions = await this.backfillMatchCompositionApiBackfillCompositionPostRequestOpts();
+    async backfillMatchCompositionApiBackfillCompositionPostRaw(requestParameters: BackfillMatchCompositionApiBackfillCompositionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+        const requestOptions = await this.backfillMatchCompositionApiBackfillCompositionPostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<number>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
-     * Backfill and persist the composition for a match.
+     * Backfill and persist the composition for matches missing it.
      * Backfill Match Composition
      */
-    async backfillMatchCompositionApiBackfillCompositionPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<number> {
-        const response = await this.backfillMatchCompositionApiBackfillCompositionPostRaw(initOverrides);
+    async backfillMatchCompositionApiBackfillCompositionPost(requestParameters: BackfillMatchCompositionApiBackfillCompositionPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+        const response = await this.backfillMatchCompositionApiBackfillCompositionPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

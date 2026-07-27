@@ -3,6 +3,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ErrorIcon from "@mui/icons-material/Error"
+import SmartToyIcon from "@mui/icons-material/SmartToy"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -275,6 +276,14 @@ function MatchHeader(props: {
         >
           {mapName}
         </Typography>
+        {match.hasAi && (
+          <Tooltip title="AI player present — ratings for this game are only minorly impacted">
+            <SmartToyIcon
+              fontSize="small"
+              sx={{ color: "text.secondary" }}
+            />
+          </Tooltip>
+        )}
         <Typography
           variant="caption"
           sx={{
