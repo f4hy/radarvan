@@ -26,6 +26,8 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 
 - The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones (confirm with `curl`/`ss -ltnp` if unsure). Never run broad `pkill -f vite` / `pkill -f fastapi`; if a stray process must be killed, target the exact PID.
 - Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree — the user manages commits.
+- **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.** The service is always running; it's the intended read path and matches what the frontend actually sees. Reserve direct `DatabaseManager`/`replay_files` scripting for cases the API genuinely can't express.
+- **When exploring code, read the source file directly (`Read` tool) rather than chaining several `grep`/`sed`/`awk` shell commands.** Use `grep`/`Bash` only for repo-wide searches (finding *where* something is defined/used across many files) — once you know the file, read it.
 
 ### Environment variables
 

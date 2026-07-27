@@ -3,6 +3,7 @@
 from .log_time import log_time
 import structlog
 import os
+from collections import Counter
 from datetime import date, datetime, timedelta, UTC
 
 from . import db
@@ -10,6 +11,7 @@ from . import ml_inference
 from . import replay_files
 from . import utils
 from .api_types import MatchInfo, Player, Team
+from .cncstats_model.header import GeneralsHeader
 from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
@@ -57,6 +59,30 @@ def win_estimation_str(win_estimation: WinEstimation) -> str:
     return "|".join(team_scores)
 
 
+def _every_multi_member_team_has_a_survivor(head: GeneralsHeader) -> bool:
+    """True unless some team of 2+ players had every member disconnect.
+
+    A lone disconnect on an otherwise-live team (or a size-1 "team", as in a
+    1v1 or FFA slot) doesn't invalidate the match - the remaining teammates
+    (or the winner-determination logic for solo slots) can still carry the
+    game to a real result. Only a team wiped out purely by disconnection
+    should count as a match-ending disconnect.
+    """
+    header_players = head.metadata.players if head.metadata else []
+    discons = head.player_discons or []
+    team_total: Counter[str] = Counter()
+    team_survivors: Counter[str] = Counter()
+    for i, p in enumerate(header_players):
+        if p.type not in ("H", "C"):
+            continue
+        team_total[p.team] += 1
+        if i >= len(discons) or not discons[i]:
+            team_survivors[p.team] += 1
+    return all(
+        team_survivors[team] > 0 for team, total in team_total.items() if total > 1
+    )
+
+
 def is_incomplete(replay: EnhancedReplayV2) -> str | None:
     head = replay.header
     if head is not None:
@@ -66,7 +92,9 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
             return "Replay header Mismatch"
         if head.quit_early:
             return "Quit Early"
-        if any(head.player_discons or []):
+        if any(head.player_discons or []) and not _every_multi_member_team_has_a_survivor(
+            head
+        ):
             return "Disconnect"
 
     duration_minutes = utils.duration_minutes(replay)

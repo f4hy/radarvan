@@ -10,7 +10,71 @@ from types import SimpleNamespace
 
 import pytest
 
-from radarvan.matches import filter_by_months_back, matches_differ
+from radarvan.cncstats_model import header
+from radarvan.cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
+from radarvan.matches import filter_by_months_back, is_incomplete, matches_differ
+
+
+def _header_player(name: str, team: str) -> header.Player:
+    return header.Player.model_construct(
+        name=name, team=team, type="H", starting_position="0"
+    )
+
+
+def _summary_player(index: int, name: str, win: bool) -> PlayerSummaryV2:
+    return PlayerSummaryV2.model_construct(index=index, name=name, win=win)
+
+
+def _replay(
+    teams: list[str], player_discons: list[bool], wins: list[bool]
+) -> EnhancedReplayV2:
+    names = [f"P{i}" for i in range(len(teams))]
+    metadata = header.Metadata.model_construct(
+        players=[_header_player(n, t) for n, t in zip(names, teams)]
+    )
+    head = header.GeneralsHeader.model_construct(
+        desync=False,
+        quit_early=False,
+        player_discons=player_discons,
+        metadata=metadata,
+        time_stamp_begin=0,
+        time_stamp_end=600,
+    )
+    summary = [
+        _summary_player(i + 1, n, w) for i, (n, w) in enumerate(zip(names, wins))
+    ]
+    return EnhancedReplayV2.model_construct(header=head, stats=None, summary=summary)
+
+
+def test_disconnect_with_a_surviving_teammate_is_not_flagged() -> None:
+    # 3v3: one member of team "0" disconnects, but two teammates remain and
+    # the team still won - should not read as "Disconnect".
+    replay = _replay(
+        teams=["0", "0", "0", "1", "1", "1"],
+        player_discons=[True, False, False, False, False, False],
+        wins=[True, True, True, False, False, False],
+    )
+    assert is_incomplete(replay) == ""
+
+
+def test_disconnect_of_a_solo_slot_with_a_winner_is_not_flagged() -> None:
+    # 1v1 (each side is a "team" of one) - a disconnect on a slot with no
+    # teammate doesn't invalidate the match as long as a winner was decided.
+    replay = _replay(
+        teams=["0", "1"], player_discons=[True, False], wins=[True, False]
+    )
+    assert is_incomplete(replay) == ""
+
+
+def test_whole_team_disconnecting_is_still_flagged() -> None:
+    # Both members of team "0" disconnect - the team was wiped out purely by
+    # disconnection, so this still counts as a match-ending "Disconnect".
+    replay = _replay(
+        teams=["0", "0", "1", "1"],
+        player_discons=[True, True, False, False],
+        wins=[False, False, True, True],
+    )
+    assert is_incomplete(replay) == "Disconnect"
 
 
 def _player(**overrides: object) -> SimpleNamespace:
