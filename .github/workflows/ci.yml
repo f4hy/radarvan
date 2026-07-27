@@ -48,8 +48,8 @@ jobs:
       - name: Python checks (ruff + mypy)
         run: make check
 
-      # Mirrors `make ts-check` (prettier --check + eslint + tsc).
-      - name: TypeScript checks (prettier + eslint + tsc)
+      # Mirrors `make ts-check` (biome format check + biome lint + tsc).
+      - name: TypeScript checks (biome + tsc)
         run: make ts-check
 
       # `uv run pytest`. The whole suite runs against a clean checkout: the

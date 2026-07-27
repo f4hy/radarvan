@@ -1,7 +1,0 @@
-build
-coverage
-.git
-public
-jsons
-src/generated_client
-src/api

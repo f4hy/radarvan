@@ -34,16 +34,16 @@ check: lint typecheck ## Run all Python checks (no formatting)
 
 # ── TypeScript / React ────────────────────────────────────────────────────────
 
-ts-format: ## Format TypeScript/React code with prettier
+ts-format: ## Format TypeScript/React code with biome
 	npm run format
 
 ts-format-check: ## Check TypeScript/React formatting (no write)
 	npm run format:check
 
-ts-lint: ## Lint TypeScript/React code with ESLint
+ts-lint: ## Lint TypeScript/React code with biome
 	npm run lint
 
-ts-lint-fix: ## Lint and auto-fix TypeScript/React issues with ESLint
+ts-lint-fix: ## Lint and auto-fix TypeScript/React issues with biome
 	npm run lint:fix
 
 ts-typecheck: ## Type-check TypeScript code with tsc

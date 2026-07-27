@@ -11,7 +11,7 @@ Radarvan is a statistics tracker for Command & Conquer: Generals Zero Hour. A Fa
 The `Makefile` is the canonical entry point; `make help` lists every target.
 
 - `make all` — format + auto-fix lint + type-check **both** Python and TypeScript (run before pushing)
-- `make check` — Python ruff + mypy (no formatting) · `make ts-check` — TS format-check + ESLint + tsc
+- `make check` — Python ruff + mypy (no formatting) · `make ts-check` — TS format-check + Biome lint + tsc
 - `make test` — `uv run pytest` (tests in `tests/`, fixture JSONs live there too)
 - `make install` — `uv sync` + `npm install` · `make ci` — `clean install all build`
 - Python-only: `format`, `lint`, `lint-fix`, `typecheck` · TS-only: `ts-format`, `ts-lint`, `ts-lint-fix`, `ts-typecheck`
