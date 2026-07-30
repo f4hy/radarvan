@@ -671,6 +671,70 @@ function BracketTreeSection({
   )
 }
 
+// The Losers bracket isn't a clean power-of-two tree like the Winners
+// bracket — reconciliation rounds (`_reduce_to`/`_merge_wave` in bracket.py)
+// mean recursion depth from the final doesn't line up with actual round
+// number, so the mirrored-tree layout used for Winners/Grand Final puts
+// same-round matches at different horizontal positions. Instead, lay the
+// Losers bracket out as one column per `round_number` (round 1 leftmost),
+// each column stacking that round's matches top to bottom — less compact
+// (no connector lines) but the rounds line up left-to-right as expected.
+function LosersBracketColumns({
+  matches,
+  isAdmin,
+  onEdit,
+}: {
+  matches: BracketMatchOutput[]
+  isAdmin: boolean
+  onEdit: (match: BracketMatchOutput) => void
+}) {
+  const rounds = React.useMemo(() => {
+    const byRound = new Map<number, BracketMatchOutput[]>()
+    for (const m of matches) {
+      const list = byRound.get(m.round_number) ?? []
+      list.push(m)
+      byRound.set(m.round_number, list)
+    }
+    return [...byRound.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([roundNumber, roundMatches]) => ({
+        roundNumber,
+        matches: [...roundMatches].sort((a, b) =>
+          a.match_id.localeCompare(b.match_id, undefined, { numeric: true }),
+        ),
+      }))
+  }, [matches])
+
+  return (
+    <Box sx={{ overflowX: "auto", pb: 1 }}>
+      <Stack
+        direction="row"
+        spacing={4}
+        sx={{ width: "fit-content", alignItems: "flex-start" }}
+      >
+        {rounds.map(({ roundNumber, matches: roundMatches }) => (
+          <Stack key={roundNumber} spacing={3}>
+            <Typography
+              variant="subtitle2"
+              sx={{ color: "text.secondary", textAlign: "center" }}
+            >
+              {roundMatches[0]?.round_name ?? `Losers Round ${roundNumber}`}
+            </Typography>
+            {roundMatches.map((m) => (
+              <MatchBox
+                key={m.match_id}
+                match={m}
+                isAdmin={isAdmin}
+                onEdit={onEdit}
+              />
+            ))}
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
 export default function DisplayBracket() {
   const [bracketData, setBracketData] =
     React.useState<BracketTournamentOutput | null>(null)
@@ -756,10 +820,12 @@ export default function DisplayBracket() {
     [],
   )
 
-  // The recursive tree-building (two full descents plus the grand-final
+  // The recursive tree-building (Winners descent plus the grand-final
   // leaves) only ever depends on bracketData — memoized so it doesn't redo
   // that work on every unrelated re-render (e.g. typing in the seed form).
-  const { matchesById, winnersTree, losersTree, grandFinalNodes } =
+  // The Losers bracket is laid out separately (see LosersBracketColumns) so
+  // it doesn't need a tree at all — just its matches, grouped by round.
+  const { matchesById, winnersTree, losersMatches, grandFinalNodes } =
     React.useMemo(() => {
       const matchesById = new Map(
         (bracketData?.matches ?? []).map((m) => [m.match_id, m]),
@@ -767,34 +833,23 @@ export default function DisplayBracket() {
       const seedToName = new Map(
         (bracketData?.players ?? []).map((p) => [p.seed, p.player_name]),
       )
-      // WB4-1/GF-1/GF-2 are safe to hardcode (unlike the losers-bracket final
-      // below): the bracket is always a fixed 16-slot shape, so the winners
-      // bracket always has exactly 4 rounds and the grand final always has
-      // exactly these two match ids, regardless of player count or bye count.
+      // WB4-1/GF-1/GF-2 are safe to hardcode: the bracket is always a fixed
+      // 16-slot shape, so the winners bracket always has exactly 4 rounds
+      // and the grand final always has exactly these two match ids,
+      // regardless of player count or bye count.
       const winnersTree = bracketData
         ? buildNode("WB4-1", matchesById, seedToName, "W")
         : null
-      // The losers bracket's final match id varies by player count (more
-      // byes means more/fewer reconciliation rounds) — find it dynamically
-      // as the highest-round_number match in the losers bracket, rather
-      // than assuming a fixed id.
-      const lbFinalMatch = (bracketData?.matches ?? [])
-        .filter((m) => m.bracket === "L")
-        .reduce<BracketMatchOutput | null>(
-          (best, m) =>
-            best === null || m.round_number > best.round_number ? m : best,
-          null,
-        )
-      const losersTree = lbFinalMatch
-        ? buildNode(lbFinalMatch.match_id, matchesById, seedToName, "L")
-        : null
+      const losersMatches = (bracketData?.matches ?? []).filter(
+        (m) => m.bracket === "L",
+      )
       const grandFinalNodes = bracketData
         ? [
             buildNode("GF-1", matchesById, seedToName, "GF"),
             buildNode("GF-2", matchesById, seedToName, "GF"),
           ]
         : []
-      return { matchesById, winnersTree, losersTree, grandFinalNodes }
+      return { matchesById, winnersTree, losersMatches, grandFinalNodes }
     }, [bracketData])
 
   if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
@@ -922,7 +977,7 @@ export default function DisplayBracket() {
           </Stack>
         </Paper>
       )}
-      {bracketData && winnersTree && losersTree && (
+      {bracketData && winnersTree && losersMatches.length > 0 && (
         <>
           {bracketData.champion && (
             <Paper
@@ -951,12 +1006,16 @@ export default function DisplayBracket() {
             isAdmin={isTournamentAdmin}
             onEdit={handleEdit}
           />
-          <BracketTreeSection
-            title="Losers Bracket"
-            nodes={[losersTree]}
-            isAdmin={isTournamentAdmin}
-            onEdit={handleEdit}
-          />
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ mb: 1.5 }}>
+              Losers Bracket
+            </Typography>
+            <LosersBracketColumns
+              matches={losersMatches}
+              isAdmin={isTournamentAdmin}
+              onEdit={handleEdit}
+            />
+          </Box>
           <BracketTreeSection
             title="Grand Final"
             nodes={grandFinalNodes}
