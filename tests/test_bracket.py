@@ -18,9 +18,7 @@ def _seed_names(num_players: int) -> dict[int, str]:
     return {i: f"P{i}" for i in range(1, num_players + 1)}
 
 
-def _play_all(
-    num_players: int, force_reset: bool = False
-) -> bracket.BracketResult:
+def _play_all(num_players: int, force_reset: bool = False) -> bracket.BracketResult:
     seed_to_name = _seed_names(num_players)
     states: dict[str, bracket.MatchState] = {}
     result = bracket.resolve_bracket(seed_to_name, states)
@@ -112,6 +110,45 @@ def test_losers_round1_pairs_mirror_not_adjacent() -> None:
         ("WB1-3", "WB1-6"),
         ("WB1-4", "WB1-5"),
     ]
+
+
+@pytest.mark.parametrize(
+    "num_players,expected_lb1_games",
+    # WB1 byes cascade into the losers bracket the same way they do in the
+    # winners bracket: a real WB1 loser whose mirror counterpart was a bye
+    # gets a solo bye-through (no game) rather than an early forced match
+    # against another real WB1 loser. For 9-12 players every real WB1
+    # dropper's mirror counterpart happens to be a bye, so "Losers Round 1"
+    # is really the round that merges those bye-throughs against WB2's
+    # droppers (always real) - hence 1-4 games instead of ceil(real WB1
+    # matches / 2). Only from 13 players on does the WB1-self-pairing wave
+    # itself produce any real games (see the module docstring's mirror
+    # table: n=13/14/15/16 -> 1/2/3/4 immediate WB1-vs-WB1 games).
+    [(9, 1), (10, 2), (11, 3), (12, 4), (13, 1), (14, 2), (15, 3), (16, 4)],
+)
+def test_losers_round1_game_count(num_players: int, expected_lb1_games: int) -> None:
+    topology = bracket.build_topology(num_players)
+    lb1 = [m for m in topology.matches if m.bracket == "L" and m.round_number == 1]
+    assert len(lb1) == expected_lb1_games
+
+
+def test_losers_bracket_byes_cascade_past_round1() -> None:
+    """With only 2 real WB1 matches (10 players, 6 byes), the two real WB1
+    droppers must NOT be forced to play each other in Losers Round 1 just
+    because they're the only two real droppers around - each should instead
+    bye through round 1 and face a real WB2 dropper for the first time."""
+    topology = bracket.build_topology(10)
+    lb1 = {
+        m.match_id: m
+        for m in topology.matches
+        if m.bracket == "L" and m.round_number == 1
+    }
+    assert len(lb1) == 2
+    for m in lb1.values():
+        sources = {m.slot_a.match_id, m.slot_b.match_id}  # type: ignore[union-attr]
+        assert sources == {"WB1-1", "WB2-2"} or sources == {"WB1-2", "WB2-3"}, (
+            f"{m.match_id} pairs {sources} - the two WB1 droppers must not meet directly"
+        )
 
 
 def test_n12_matches_previously_hand_verified_shape() -> None:

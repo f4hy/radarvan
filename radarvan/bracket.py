@@ -7,22 +7,25 @@ assigns byes to whichever seeds' round-1 opponent would exceed the actual
 entrant count; every round after round 1 is a clean power-of-two single
 elimination (8→4→2→1), regardless of how many byes there were.
 
-The losers bracket is the genuinely tricky part: round 1's bye count shrinks
-the population of first-round losers relative to a full 16-bracket, so the
-survivor count arriving at each subsequent "meet the newly-dropped losers"
-stage doesn't line up 1:1 without reconciliation. ``build_topology`` handles
-this generically via two primitives - ``_reduce_to`` (repeated self-pairing
-to shrink a population down to a target size, tolerating an odd population
-by carrying one entrant through untested each round) and ``_merge_wave``
-(levels two populations to the same size via ``_reduce_to`` before pairing
-them 1:1) - verified by hand for every bye count 0-7 (equivalently 16-9
-entrants) via loss-accounting: every match produces exactly one loss, and a
-double-elim bracket for N entrants needs exactly 2*(N-1) losses (or
-2*(N-1)+1 with a grand-final reset) to reach a champion. The old fixed-12
-topology (byes=4) is a special case of this and collapses onto exactly the
-same match structure.
+The losers bracket is the genuinely tricky part. WB1 byes don't just shrink
+round 1's dropper count - they must cascade into the losers bracket the same
+way a bye cascades in the winners bracket: a WB1 loser whose "mirror" pair
+was itself a bye gets a solo bye-through in losers round 1 (no game) rather
+than being forced into an early match against some unrelated real dropper
+just because the real-droppers-only list happened to make them adjacent.
+``_pair_with_byes`` handles this for the two waves where byes can still be
+in play (WB1 droppers self-pairing, then merging against WB2's droppers -
+by round 2 every survivor has already faced a real WB2 dropper, so no bye
+ever reaches wave 3 or later). From wave 3 onward every population is fully
+real and byes are impossible, so ``_reduce_to``/``_merge_wave`` (repeated
+self-pairing to a target size, then leveling two populations before pairing
+them 1:1) resume unchanged - verified by hand for every bye count 0-7
+(equivalently 16-9 entrants) via loss-accounting: every match produces
+exactly one loss, and a double-elim bracket for N entrants needs exactly
+2*(N-1) losses (or 2*(N-1)+1 with a grand-final reset) to reach a champion.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Literal
@@ -127,6 +130,49 @@ def _reduce_to(
     return pool, all_matches
 
 
+def _pair_with_byes(
+    pool_a: Sequence[Source | None],
+    pool_b: Sequence[Source | None],
+    round_counter: list[int],
+) -> tuple[list[Source | None], list[MatchDef]]:
+    """Pair ``pool_a[i]`` against ``pool_b[i]`` for every position. ``None``
+    on either side means "nobody there" (that branch was a bye all the way
+    down) - a real source paired against ``None`` passes straight through
+    with no match (a bye-through, mirroring how a winners-bracket bye
+    works), and two ``None``s produce ``None`` (nobody survives that
+    branch). A real match is created only where both sides are populated.
+
+    Allocates a round number only if this wave produced at least one real
+    match - a wave that's entirely byes/nothing shouldn't consume a round
+    label that never appears in the UI (the next wave becomes that round
+    instead).
+    """
+    survivors: list[Source | None] = []
+    needs_match: list[tuple[int, Source, Source]] = []
+    for i, (a, b) in enumerate(zip(pool_a, pool_b, strict=True)):
+        if a is None and b is None:
+            survivors.append(None)
+        elif a is None:
+            survivors.append(b)
+        elif b is None:
+            survivors.append(a)
+        else:
+            survivors.append(None)  # placeholder; filled in below
+            needs_match.append((i, a, b))
+    if not needs_match:
+        return survivors, []
+    round_counter[0] += 1
+    rnum = round_counter[0]
+    name = f"Losers Round {rnum}"
+    matches = [
+        MatchDef(f"LB{rnum}-{j + 1}", "L", rnum, name, a, b)
+        for j, (_, a, b) in enumerate(needs_match)
+    ]
+    for (i, _, _), m in zip(needs_match, matches, strict=True):
+        survivors[i] = WinnerOf(m.match_id)
+    return survivors, matches
+
+
 def _pair_round(
     sources: list[Source], round_number: int, round_name: str, id_prefix: str
 ) -> tuple[list[Source], list[MatchDef]]:
@@ -190,10 +236,17 @@ def build_topology(num_players: int) -> Topology:
     pairs = list(zip(_SEED_ORDER_16[0::2], _SEED_ORDER_16[1::2], strict=True))
     round1_sources: list[Source] = []
     wb1_ids: list[str] = []
+    # Round-1 droppers, addressed by their conceptual WB1 pair position (0-7,
+    # seed_order-pair order) rather than only the real ones - None marks a
+    # bye pair, so a real loser whose mirror counterpart never played can
+    # bye through in the losers bracket instead of being forced into an
+    # early match with an unrelated real dropper (see _pair_with_byes).
+    d1_full: list[Source | None] = []
     for x, y in pairs:
         if y > num_players:
             bye_seeds.append(x)
             round1_sources.append(Seed(x))
+            d1_full.append(None)
         else:
             match_id = f"WB1-{len(wb1_ids) + 1}"
             matches.append(
@@ -201,6 +254,7 @@ def build_topology(num_players: int) -> Topology:
             )
             wb1_ids.append(match_id)
             round1_sources.append(WinnerOf(match_id))
+            d1_full.append(LoserOf(match_id))
 
     # Winners bracket round 2 (always a clean 8 -> 4, no more byes ever),
     # semifinals (4 -> 2), and final (2 -> 1) - three rounds of the same
@@ -218,18 +272,29 @@ def build_topology(num_players: int) -> Topology:
     wb_final_id = wb4_matches[0].match_id
 
     # Losers bracket: process each winners-bracket round's droppers as a wave.
-    d1: list[Source] = [LoserOf(mid) for mid in wb1_ids]
     d2: list[Source] = [LoserOf(m.match_id) for m in wb2_matches]
     d3: list[Source] = [LoserOf(m.match_id) for m in wb3_matches]
     d4: list[Source] = [LoserOf(wb_final_id)]
 
     round_counter = [0]
-    # Wave 1 is `_reduce_to`'s single-round case (target = ceil(len/2)): pure
-    # self-pairing with no incoming wave to level against yet.
-    survivors, m1 = _reduce_to(d1, -(-len(d1) // 2), round_counter)
+    # Wave 1: mirror WB1's 8 conceptual pairs into 4 (index i vs 7-i) - the
+    # same "top half vs. reversed bottom half" pairing as a bye-free bracket,
+    # just with a bye contributing None instead of a real dropper.
+    survivors_opt, m1 = _pair_with_byes(
+        d1_full[:4], list(reversed(d1_full[4:])), round_counter
+    )
     matches += m1
-    survivors, m2 = _merge_wave(survivors, d2, round_counter)
+    # Wave 2: merge against WB2's droppers (always exactly 4 real - round 2
+    # never has byes) at the SAME index. These are two different waves, not
+    # one population self-pairing, so there's no immediate-rematch risk to
+    # mirror away here. Every survivor is real from this point on: any slot
+    # that byed through wave 1 now faces a real WB2 dropper for the first time.
+    survivors_opt, m2 = _pair_with_byes(survivors_opt, d2, round_counter)
     matches += m2
+    # d2 is never None, so every position resolved to a real source above -
+    # the filter here is just narrowing the type back to list[Source].
+    survivors: list[Source] = [s for s in survivors_opt if s is not None]
+
     survivors, m3 = _merge_wave(survivors, d3, round_counter)
     matches += m3
     survivors, m4 = _merge_wave(
