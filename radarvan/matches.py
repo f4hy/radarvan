@@ -92,9 +92,9 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
             return "Replay header Mismatch"
         if head.quit_early:
             return "Quit Early"
-        if any(head.player_discons or []) and not _every_multi_member_team_has_a_survivor(
-            head
-        ):
+        if any(
+            head.player_discons or []
+        ) and not _every_multi_member_team_has_a_survivor(head):
             return "Disconnect"
 
     duration_minutes = utils.duration_minutes(replay)
