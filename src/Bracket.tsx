@@ -21,6 +21,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import Loading from "./Loading"
+import { usePlayerAccentColor } from "./PlayerColorsContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { useIsTournamentAdmin } from "./AuthContext"
 import {
@@ -191,13 +192,36 @@ function playerLabel(match: BracketMatchOutput, side: "a" | "b"): string {
   return match.status === "not_applicable" ? "—" : "TBD"
 }
 
+// The player's most-played in-game color (via usePlayerAccentColor, backed
+// by /api/player_colors/) as a small identity dot — same data PlayerChip
+// uses for its avatar fill, just without the avatar's initial-letter chrome
+// (too cramped for a dense bracket row).
+function ColorDot({ name }: { name: string }) {
+  const color = usePlayerAccentColor(name)
+  return (
+    <Box
+      sx={{
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        bgcolor: color,
+        flexShrink: 0,
+      }}
+    />
+  )
+}
+
 function PlayerRow({
   name,
+  realName,
   score,
   isWinner,
   isLoser,
 }: {
   name: string
+  // The underlying resolved player name (null for "TBD"/"—" placeholders) -
+  // only a real name gets a color dot.
+  realName: string | null
   score: number | null
   isWinner: boolean
   isLoser: boolean
@@ -211,16 +235,24 @@ function PlayerRow({
         alignItems: "center",
       }}
     >
-      <Typography
-        variant="body2"
-        sx={{ fontWeight: isWinner ? 700 : 400, color }}
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{ alignItems: "center", minWidth: 0 }}
       >
-        {name}
-      </Typography>
+        {realName && <ColorDot name={realName} />}
+        <Typography
+          variant="body2"
+          noWrap
+          sx={{ fontWeight: isWinner ? 700 : 400, color }}
+        >
+          {name}
+        </Typography>
+      </Stack>
       {score !== null && (
         <Typography
           variant="body2"
-          sx={{ fontWeight: isWinner ? 700 : 400, color, ml: 1 }}
+          sx={{ fontWeight: isWinner ? 700 : 400, color, ml: 1, flexShrink: 0 }}
         >
           {score}
         </Typography>
@@ -464,12 +496,14 @@ function MatchBox({
       </Stack>
       <PlayerRow
         name={playerLabel(match, "a")}
+        realName={match.player_a}
         score={match.score_a}
         isWinner={match.winner !== null && match.winner === match.player_a}
         isLoser={match.winner !== null && match.winner !== match.player_a}
       />
       <PlayerRow
         name={playerLabel(match, "b")}
+        realName={match.player_b}
         score={match.score_b}
         isWinner={match.winner !== null && match.winner === match.player_b}
         isLoser={match.winner !== null && match.winner !== match.player_b}
@@ -528,9 +562,15 @@ function LeafBox({
         >
           Seed {node.seed}
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: BYE_COLOR }}>
-          {node.name}
-        </Typography>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          {node.name && <ColorDot name={node.name} />}
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, color: BYE_COLOR }}
+          >
+            {node.name}
+          </Typography>
+        </Stack>
         <Typography variant="body2" sx={{ color: BYE_COLOR }}>
           Bye
         </Typography>
@@ -557,7 +597,10 @@ function LeafBox({
       >
         {node.label}
       </Typography>
-      <Typography variant="body2">{node.playerName ?? "TBD"}</Typography>
+      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+        {node.playerName && <ColorDot name={node.playerName} />}
+        <Typography variant="body2">{node.playerName ?? "TBD"}</Typography>
+      </Stack>
     </Paper>
   )
 }
@@ -1137,19 +1180,25 @@ export default function DisplayBracket() {
                   pointerEvents: "none",
                 }}
               >
-                {connectorLines.map((line) => (
-                  <line
-                    key={line.id}
-                    x1={line.x1}
-                    y1={line.y1}
-                    x2={line.x2}
-                    y2={line.y2}
-                    stroke={line.color}
-                    strokeWidth={1.5}
-                    strokeDasharray="5 4"
-                    opacity={0.6}
-                  />
-                ))}
+                {connectorLines.map((line) => {
+                  // Elbow route (horizontal - vertical - horizontal) instead
+                  // of a straight diagonal — reads more like a bracket line
+                  // and keeps segments axis-aligned even though the two ends
+                  // rarely share a row.
+                  const midX = (line.x1 + line.x2) / 2
+                  const d = `M ${line.x1} ${line.y1} H ${midX} V ${line.y2} H ${line.x2}`
+                  return (
+                    <path
+                      key={line.id}
+                      d={d}
+                      fill="none"
+                      stroke={line.color}
+                      strokeWidth={1.5}
+                      strokeDasharray="5 4"
+                      opacity={0.3}
+                    />
+                  )
+                })}
               </Box>
               <Box sx={{ position: "relative" }}>
                 <BracketTreeSection
