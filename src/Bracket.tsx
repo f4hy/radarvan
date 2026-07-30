@@ -412,16 +412,19 @@ function MatchBox({
   match,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   match: BracketMatchOutput
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   const notApplicable = match.status === "not_applicable"
   const editable = isAdmin && !notApplicable
   const accent = statusAccent(match.status)
   return (
     <Paper
+      ref={(el: HTMLElement | null) => registerBox?.(match.match_id, el)}
       variant="outlined"
       onClick={editable ? () => onEdit(match) : undefined}
       sx={{
@@ -574,16 +577,25 @@ function BracketNodeView({
   node,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   node: BracketNode
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   if (node.kind !== "match") {
     return <LeafBox node={node} />
   }
   if (node.children === null) {
-    return <MatchBox match={node.match} isAdmin={isAdmin} onEdit={onEdit} />
+    return (
+      <MatchBox
+        match={node.match}
+        isAdmin={isAdmin}
+        onEdit={onEdit}
+        registerBox={registerBox}
+      />
+    )
   }
   const childSlotSx = {
     flex: 1,
@@ -611,6 +623,7 @@ function BracketNodeView({
             node={node.children[0]}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            registerBox={registerBox}
           />
         </Box>
         <Box sx={childSlotSx}>
@@ -618,6 +631,7 @@ function BracketNodeView({
             node={node.children[1]}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            registerBox={registerBox}
           />
         </Box>
         <Box
@@ -633,9 +647,37 @@ function BracketNodeView({
       </Box>
       <Box sx={{ width: `${CONNECTOR_GAP}px` }} />
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <MatchBox match={node.match} isAdmin={isAdmin} onEdit={onEdit} />
+        <MatchBox
+          match={node.match}
+          isAdmin={isAdmin}
+          onEdit={onEdit}
+          registerBox={registerBox}
+        />
       </Box>
     </Box>
+  )
+}
+
+// A section title pinned to the left edge while its bracket area scrolls
+// horizontally underneath — the whole bracket (Winners + Losers + Grand
+// Final) shares one scroll container so drop/advance connector lines can be
+// drawn across sections, so each title needs its own sticky offset rather
+// than relying on sitting outside a per-section scrollbox.
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      variant="h6"
+      sx={{
+        mb: 1.5,
+        position: "sticky",
+        left: 0,
+        width: "fit-content",
+        bgcolor: "background.paper",
+        pr: 2,
+      }}
+    >
+      {children}
+    </Typography>
   )
 }
 
@@ -644,29 +686,28 @@ function BracketTreeSection({
   nodes,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   title: string
   nodes: BracketNode[]
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" sx={{ mb: 1.5 }}>
-        {title}
-      </Typography>
-      <Box sx={{ overflowX: "auto", pb: 1 }}>
-        <Stack spacing={3} sx={{ width: "fit-content" }}>
-          {nodes.map((node, idx) => (
-            <BracketNodeView
-              key={idx}
-              node={node}
-              isAdmin={isAdmin}
-              onEdit={onEdit}
-            />
-          ))}
-        </Stack>
-      </Box>
+      <SectionTitle>{title}</SectionTitle>
+      <Stack spacing={3} sx={{ width: "fit-content" }}>
+        {nodes.map((node, idx) => (
+          <BracketNodeView
+            key={idx}
+            node={node}
+            isAdmin={isAdmin}
+            onEdit={onEdit}
+            registerBox={registerBox}
+          />
+        ))}
+      </Stack>
     </Box>
   )
 }
@@ -683,10 +724,12 @@ function LosersBracketColumns({
   matches,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   matches: BracketMatchOutput[]
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   const rounds = React.useMemo(() => {
     const byRound = new Map<number, BracketMatchOutput[]>()
@@ -706,32 +749,31 @@ function LosersBracketColumns({
   }, [matches])
 
   return (
-    <Box sx={{ overflowX: "auto", pb: 1 }}>
-      <Stack
-        direction="row"
-        spacing={4}
-        sx={{ width: "fit-content", alignItems: "flex-start" }}
-      >
-        {rounds.map(({ roundNumber, matches: roundMatches }) => (
-          <Stack key={roundNumber} spacing={3}>
-            <Typography
-              variant="subtitle2"
-              sx={{ color: "text.secondary", textAlign: "center" }}
-            >
-              {roundMatches[0]?.round_name ?? `Losers Round ${roundNumber}`}
-            </Typography>
-            {roundMatches.map((m) => (
-              <MatchBox
-                key={m.match_id}
-                match={m}
-                isAdmin={isAdmin}
-                onEdit={onEdit}
-              />
-            ))}
-          </Stack>
-        ))}
-      </Stack>
-    </Box>
+    <Stack
+      direction="row"
+      spacing={4}
+      sx={{ width: "fit-content", alignItems: "flex-start" }}
+    >
+      {rounds.map(({ roundNumber, matches: roundMatches }) => (
+        <Stack key={roundNumber} spacing={3}>
+          <Typography
+            variant="subtitle2"
+            sx={{ color: "text.secondary", textAlign: "center" }}
+          >
+            {roundMatches[0]?.round_name ?? `Losers Round ${roundNumber}`}
+          </Typography>
+          {roundMatches.map((m) => (
+            <MatchBox
+              key={m.match_id}
+              match={m}
+              isAdmin={isAdmin}
+              onEdit={onEdit}
+              registerBox={registerBox}
+            />
+          ))}
+        </Stack>
+      ))}
+    </Stack>
   )
 }
 
@@ -851,6 +893,85 @@ export default function DisplayBracket() {
         : []
       return { matchesById, winnersTree, losersMatches, grandFinalNodes }
     }, [bracketData])
+
+  // Dashed connector lines drawn across sections for edges the tree/column
+  // layouts above can't show themselves: a loser dropping out of the Winners
+  // bracket into the Losers bracket (LOSS_COLOR), and a winner advancing
+  // round-to-round within the flat Losers-bracket columns or on into the
+  // Grand Final (BRAND_COLOR). Winners-bracket-internal advancement already
+  // has its own connector via BracketNodeView's recursion, so this only
+  // covers edges where either end touches the Losers bracket.
+  const dropConnections = React.useMemo(() => {
+    const conns: { id: string; from: string; to: string; color: string }[] = []
+    for (const m of bracketData?.matches ?? []) {
+      if (m.status === "not_applicable") continue
+      for (const source of [m.source_a, m.source_b]) {
+        if (source.kind === "seed") continue
+        const src = matchesById.get(source.match_id)
+        if (!src || (m.bracket !== "L" && src.bracket !== "L")) continue
+        conns.push({
+          id: `${source.match_id}->${m.match_id}`,
+          from: source.match_id,
+          to: m.match_id,
+          color: source.kind === "loser" ? LOSS_COLOR : BRAND_COLOR,
+        })
+      }
+    }
+    return conns
+  }, [bracketData, matchesById])
+
+  const boxRefs = React.useRef(new Map<string, HTMLElement>())
+  const registerBox = React.useCallback(
+    (matchId: string, el: HTMLElement | null) => {
+      if (el) boxRefs.current.set(matchId, el)
+      else boxRefs.current.delete(matchId)
+    },
+    [],
+  )
+  const bracketAreaRef = React.useRef<HTMLDivElement>(null)
+  const [connectorLines, setConnectorLines] = React.useState<
+    {
+      id: string
+      x1: number
+      y1: number
+      x2: number
+      y2: number
+      color: string
+    }[]
+  >([])
+
+  // Recompute connector pixel coordinates whenever the bracket's DOM layout
+  // changes. ResizeObserver delivers an initial callback as soon as observe()
+  // is called (even if size is unchanged), so re-subscribing on every
+  // bracketData change also covers "same size, different matches" edits —
+  // not just actual resizes.
+  React.useEffect(() => {
+    const container = bracketAreaRef.current
+    if (!container) return
+    const recompute = () => {
+      const containerRect = container.getBoundingClientRect()
+      const next: typeof connectorLines = []
+      for (const conn of dropConnections) {
+        const fromEl = boxRefs.current.get(conn.from)
+        const toEl = boxRefs.current.get(conn.to)
+        if (!fromEl || !toEl) continue
+        const fromRect = fromEl.getBoundingClientRect()
+        const toRect = toEl.getBoundingClientRect()
+        next.push({
+          id: conn.id,
+          x1: fromRect.right - containerRect.left,
+          y1: fromRect.top + fromRect.height / 2 - containerRect.top,
+          x2: toRect.left - containerRect.left,
+          y2: toRect.top + toRect.height / 2 - containerRect.top,
+          color: conn.color,
+        })
+      }
+      setConnectorLines(next)
+    }
+    const observer = new ResizeObserver(recompute)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [dropConnections])
 
   if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
     return (
@@ -1000,28 +1121,63 @@ export default function DisplayBracket() {
             </Paper>
           )}
 
-          <BracketTreeSection
-            title="Winners Bracket"
-            nodes={[winnersTree]}
-            isAdmin={isTournamentAdmin}
-            onEdit={handleEdit}
-          />
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ mb: 1.5 }}>
-              Losers Bracket
-            </Typography>
-            <LosersBracketColumns
-              matches={losersMatches}
-              isAdmin={isTournamentAdmin}
-              onEdit={handleEdit}
-            />
+          <Box sx={{ overflowX: "auto", pb: 1 }}>
+            <Box
+              ref={bracketAreaRef}
+              sx={{ position: "relative", width: "fit-content" }}
+            >
+              <Box
+                component="svg"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  overflow: "visible",
+                  pointerEvents: "none",
+                }}
+              >
+                {connectorLines.map((line) => (
+                  <line
+                    key={line.id}
+                    x1={line.x1}
+                    y1={line.y1}
+                    x2={line.x2}
+                    y2={line.y2}
+                    stroke={line.color}
+                    strokeWidth={1.5}
+                    strokeDasharray="5 4"
+                    opacity={0.6}
+                  />
+                ))}
+              </Box>
+              <Box sx={{ position: "relative" }}>
+                <BracketTreeSection
+                  title="Winners Bracket"
+                  nodes={[winnersTree]}
+                  isAdmin={isTournamentAdmin}
+                  onEdit={handleEdit}
+                  registerBox={registerBox}
+                />
+                <Box sx={{ mb: 4 }}>
+                  <SectionTitle>Losers Bracket</SectionTitle>
+                  <LosersBracketColumns
+                    matches={losersMatches}
+                    isAdmin={isTournamentAdmin}
+                    onEdit={handleEdit}
+                    registerBox={registerBox}
+                  />
+                </Box>
+                <BracketTreeSection
+                  title="Grand Final"
+                  nodes={grandFinalNodes}
+                  isAdmin={isTournamentAdmin}
+                  onEdit={handleEdit}
+                  registerBox={registerBox}
+                />
+              </Box>
+            </Box>
           </Box>
-          <BracketTreeSection
-            title="Grand Final"
-            nodes={grandFinalNodes}
-            isAdmin={isTournamentAdmin}
-            onEdit={handleEdit}
-          />
         </>
       )}
       <Dialog
