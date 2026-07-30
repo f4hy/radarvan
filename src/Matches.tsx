@@ -278,10 +278,7 @@ function MatchHeader(props: {
         </Typography>
         {match.hasAi && (
           <Tooltip title="AI player present — ratings for this game are only minorly impacted">
-            <SmartToyIcon
-              fontSize="small"
-              sx={{ color: "text.secondary" }}
-            />
+            <SmartToyIcon fontSize="small" sx={{ color: "text.secondary" }} />
           </Tooltip>
         )}
         <Typography
