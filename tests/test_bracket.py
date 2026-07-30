@@ -91,6 +91,29 @@ def test_full_run_with_bracket_reset(num_players: int) -> None:
     assert gf1.winner == gf1.player_b
 
 
+def test_losers_round1_pairs_mirror_not_adjacent() -> None:
+    """LB round 1 must pair the first WB1 dropper against the last (and so on
+    inward), not adjacent droppers - otherwise two players who just met in
+    the same WB1 "half" would immediately rematch in the losers bracket.
+    Matches the pairing shape of standard double-elim bracket generators
+    (e.g. for 16 players: LB1 pairs WB1 losers (1,8), (2,7), (3,6), (4,5))."""
+    topology = bracket.build_topology(16)
+    lb1 = sorted(
+        (m for m in topology.matches if m.bracket == "L" and m.round_number == 1),
+        key=lambda m: m.match_id,
+    )
+    pairs = [
+        (m.slot_a.match_id, m.slot_b.match_id)  # type: ignore[union-attr]
+        for m in lb1
+    ]
+    assert pairs == [
+        ("WB1-1", "WB1-8"),
+        ("WB1-2", "WB1-7"),
+        ("WB1-3", "WB1-6"),
+        ("WB1-4", "WB1-5"),
+    ]
+
+
 def test_n12_matches_previously_hand_verified_shape() -> None:
     """Regression check: the old fixed-12 topology (byes=4) is a special
     case of the general algorithm and must produce the same shape."""
