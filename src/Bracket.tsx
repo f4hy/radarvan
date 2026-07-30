@@ -1002,14 +1002,10 @@ export default function DisplayBracket() {
         const toRect = toEl.getBoundingClientRect()
         next.push({
           id: conn.id,
-          // Bottom-center of the source box to top-center of the
-          // destination box — sections stack vertically (Winners above
-          // Losers above Grand Final), so "drops down" reads more naturally
-          // than a left-right connection.
-          x1: fromRect.left + fromRect.width / 2 - containerRect.left,
-          y1: fromRect.bottom - containerRect.top,
-          x2: toRect.left + toRect.width / 2 - containerRect.left,
-          y2: toRect.top - containerRect.top,
+          x1: fromRect.right - containerRect.left,
+          y1: fromRect.top + fromRect.height / 2 - containerRect.top,
+          x2: toRect.left - containerRect.left,
+          y2: toRect.top + toRect.height / 2 - containerRect.top,
           color: conn.color,
         })
       }
@@ -1187,12 +1183,10 @@ export default function DisplayBracket() {
                 {connectorLines.map((line) => {
                   // Smooth S-curve (cubic Bezier) instead of a straight
                   // diagonal or an elbow — both control points sit on the
-                  // vertical midline so the curve leaves the source box
-                  // heading straight down and arrives at the destination
-                  // heading straight down into it, regardless of how far
-                  // apart the two columns are horizontally.
-                  const midY = (line.y1 + line.y2) / 2
-                  const d = `M ${line.x1} ${line.y1} C ${line.x1} ${midY}, ${line.x2} ${midY}, ${line.x2} ${line.y2}`
+                  // horizontal midline so the curve leaves/arrives roughly
+                  // level at each end regardless of how far apart the rows are.
+                  const midX = (line.x1 + line.x2) / 2
+                  const d = `M ${line.x1} ${line.y1} C ${midX} ${line.y1}, ${midX} ${line.y2}, ${line.x2} ${line.y2}`
                   return (
                     <path
                       key={line.id}
