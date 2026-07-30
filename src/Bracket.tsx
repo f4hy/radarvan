@@ -412,16 +412,19 @@ function MatchBox({
   match,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   match: BracketMatchOutput
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   const notApplicable = match.status === "not_applicable"
   const editable = isAdmin && !notApplicable
   const accent = statusAccent(match.status)
   return (
     <Paper
+      ref={(el: HTMLElement | null) => registerBox?.(match.match_id, el)}
       variant="outlined"
       onClick={editable ? () => onEdit(match) : undefined}
       sx={{
@@ -574,16 +577,25 @@ function BracketNodeView({
   node,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   node: BracketNode
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   if (node.kind !== "match") {
     return <LeafBox node={node} />
   }
   if (node.children === null) {
-    return <MatchBox match={node.match} isAdmin={isAdmin} onEdit={onEdit} />
+    return (
+      <MatchBox
+        match={node.match}
+        isAdmin={isAdmin}
+        onEdit={onEdit}
+        registerBox={registerBox}
+      />
+    )
   }
   const childSlotSx = {
     flex: 1,
@@ -611,6 +623,7 @@ function BracketNodeView({
             node={node.children[0]}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            registerBox={registerBox}
           />
         </Box>
         <Box sx={childSlotSx}>
@@ -618,6 +631,7 @@ function BracketNodeView({
             node={node.children[1]}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            registerBox={registerBox}
           />
         </Box>
         <Box
@@ -633,9 +647,37 @@ function BracketNodeView({
       </Box>
       <Box sx={{ width: `${CONNECTOR_GAP}px` }} />
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <MatchBox match={node.match} isAdmin={isAdmin} onEdit={onEdit} />
+        <MatchBox
+          match={node.match}
+          isAdmin={isAdmin}
+          onEdit={onEdit}
+          registerBox={registerBox}
+        />
       </Box>
     </Box>
+  )
+}
+
+// A section title pinned to the left edge while its bracket area scrolls
+// horizontally underneath — the whole bracket (Winners + Losers + Grand
+// Final) shares one scroll container so drop/advance connector lines can be
+// drawn across sections, so each title needs its own sticky offset rather
+// than relying on sitting outside a per-section scrollbox.
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      variant="h6"
+      sx={{
+        mb: 1.5,
+        position: "sticky",
+        left: 0,
+        width: "fit-content",
+        bgcolor: "background.paper",
+        pr: 2,
+      }}
+    >
+      {children}
+    </Typography>
   )
 }
 
@@ -644,30 +686,94 @@ function BracketTreeSection({
   nodes,
   isAdmin,
   onEdit,
+  registerBox,
 }: {
   title: string
   nodes: BracketNode[]
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" sx={{ mb: 1.5 }}>
-        {title}
-      </Typography>
-      <Box sx={{ overflowX: "auto", pb: 1 }}>
-        <Stack spacing={3} sx={{ width: "fit-content" }}>
-          {nodes.map((node, idx) => (
-            <BracketNodeView
-              key={idx}
-              node={node}
+      <SectionTitle>{title}</SectionTitle>
+      <Stack spacing={3} sx={{ width: "fit-content" }}>
+        {nodes.map((node, idx) => (
+          <BracketNodeView
+            key={idx}
+            node={node}
+            isAdmin={isAdmin}
+            onEdit={onEdit}
+            registerBox={registerBox}
+          />
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
+// The Losers bracket isn't a clean power-of-two tree like the Winners
+// bracket — reconciliation rounds (`_reduce_to`/`_merge_wave` in bracket.py)
+// mean recursion depth from the final doesn't line up with actual round
+// number, so the mirrored-tree layout used for Winners/Grand Final puts
+// same-round matches at different horizontal positions. Instead, lay the
+// Losers bracket out as one column per `round_number` (round 1 leftmost),
+// each column stacking that round's matches top to bottom — less compact
+// (no connector lines) but the rounds line up left-to-right as expected.
+function LosersBracketColumns({
+  matches,
+  isAdmin,
+  onEdit,
+  registerBox,
+}: {
+  matches: BracketMatchOutput[]
+  isAdmin: boolean
+  onEdit: (match: BracketMatchOutput) => void
+  registerBox?: (matchId: string, el: HTMLElement | null) => void
+}) {
+  const rounds = React.useMemo(() => {
+    const byRound = new Map<number, BracketMatchOutput[]>()
+    for (const m of matches) {
+      const list = byRound.get(m.round_number) ?? []
+      list.push(m)
+      byRound.set(m.round_number, list)
+    }
+    return [...byRound.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([roundNumber, roundMatches]) => ({
+        roundNumber,
+        matches: [...roundMatches].sort((a, b) =>
+          a.match_id.localeCompare(b.match_id, undefined, { numeric: true }),
+        ),
+      }))
+  }, [matches])
+
+  return (
+    <Stack
+      direction="row"
+      spacing={4}
+      sx={{ width: "fit-content", alignItems: "flex-start" }}
+    >
+      {rounds.map(({ roundNumber, matches: roundMatches }) => (
+        <Stack key={roundNumber} spacing={3}>
+          <Typography
+            variant="subtitle2"
+            sx={{ color: "text.secondary", textAlign: "center" }}
+          >
+            {roundMatches[0]?.round_name ?? `Losers Round ${roundNumber}`}
+          </Typography>
+          {roundMatches.map((m) => (
+            <MatchBox
+              key={m.match_id}
+              match={m}
               isAdmin={isAdmin}
               onEdit={onEdit}
+              registerBox={registerBox}
             />
           ))}
         </Stack>
-      </Box>
-    </Box>
+      ))}
+    </Stack>
   )
 }
 
@@ -756,10 +862,12 @@ export default function DisplayBracket() {
     [],
   )
 
-  // The recursive tree-building (two full descents plus the grand-final
+  // The recursive tree-building (Winners descent plus the grand-final
   // leaves) only ever depends on bracketData — memoized so it doesn't redo
   // that work on every unrelated re-render (e.g. typing in the seed form).
-  const { matchesById, winnersTree, losersTree, grandFinalNodes } =
+  // The Losers bracket is laid out separately (see LosersBracketColumns) so
+  // it doesn't need a tree at all — just its matches, grouped by round.
+  const { matchesById, winnersTree, losersMatches, grandFinalNodes } =
     React.useMemo(() => {
       const matchesById = new Map(
         (bracketData?.matches ?? []).map((m) => [m.match_id, m]),
@@ -767,35 +875,103 @@ export default function DisplayBracket() {
       const seedToName = new Map(
         (bracketData?.players ?? []).map((p) => [p.seed, p.player_name]),
       )
-      // WB4-1/GF-1/GF-2 are safe to hardcode (unlike the losers-bracket final
-      // below): the bracket is always a fixed 16-slot shape, so the winners
-      // bracket always has exactly 4 rounds and the grand final always has
-      // exactly these two match ids, regardless of player count or bye count.
+      // WB4-1/GF-1/GF-2 are safe to hardcode: the bracket is always a fixed
+      // 16-slot shape, so the winners bracket always has exactly 4 rounds
+      // and the grand final always has exactly these two match ids,
+      // regardless of player count or bye count.
       const winnersTree = bracketData
         ? buildNode("WB4-1", matchesById, seedToName, "W")
         : null
-      // The losers bracket's final match id varies by player count (more
-      // byes means more/fewer reconciliation rounds) — find it dynamically
-      // as the highest-round_number match in the losers bracket, rather
-      // than assuming a fixed id.
-      const lbFinalMatch = (bracketData?.matches ?? [])
-        .filter((m) => m.bracket === "L")
-        .reduce<BracketMatchOutput | null>(
-          (best, m) =>
-            best === null || m.round_number > best.round_number ? m : best,
-          null,
-        )
-      const losersTree = lbFinalMatch
-        ? buildNode(lbFinalMatch.match_id, matchesById, seedToName, "L")
-        : null
+      const losersMatches = (bracketData?.matches ?? []).filter(
+        (m) => m.bracket === "L",
+      )
       const grandFinalNodes = bracketData
         ? [
             buildNode("GF-1", matchesById, seedToName, "GF"),
             buildNode("GF-2", matchesById, seedToName, "GF"),
           ]
         : []
-      return { matchesById, winnersTree, losersTree, grandFinalNodes }
+      return { matchesById, winnersTree, losersMatches, grandFinalNodes }
     }, [bracketData])
+
+  // Dashed connector lines drawn across sections for edges the tree/column
+  // layouts above can't show themselves: a loser dropping out of the Winners
+  // bracket into the Losers bracket (LOSS_COLOR), and a winner advancing
+  // round-to-round within the flat Losers-bracket columns or on into the
+  // Grand Final (BRAND_COLOR). Winners-bracket-internal advancement already
+  // has its own connector via BracketNodeView's recursion, so this only
+  // covers edges where either end touches the Losers bracket.
+  const dropConnections = React.useMemo(() => {
+    const conns: { id: string; from: string; to: string; color: string }[] = []
+    for (const m of bracketData?.matches ?? []) {
+      if (m.status === "not_applicable") continue
+      for (const source of [m.source_a, m.source_b]) {
+        if (source.kind === "seed") continue
+        const src = matchesById.get(source.match_id)
+        if (!src || (m.bracket !== "L" && src.bracket !== "L")) continue
+        conns.push({
+          id: `${source.match_id}->${m.match_id}`,
+          from: source.match_id,
+          to: m.match_id,
+          color: source.kind === "loser" ? LOSS_COLOR : BRAND_COLOR,
+        })
+      }
+    }
+    return conns
+  }, [bracketData, matchesById])
+
+  const boxRefs = React.useRef(new Map<string, HTMLElement>())
+  const registerBox = React.useCallback(
+    (matchId: string, el: HTMLElement | null) => {
+      if (el) boxRefs.current.set(matchId, el)
+      else boxRefs.current.delete(matchId)
+    },
+    [],
+  )
+  const bracketAreaRef = React.useRef<HTMLDivElement>(null)
+  const [connectorLines, setConnectorLines] = React.useState<
+    {
+      id: string
+      x1: number
+      y1: number
+      x2: number
+      y2: number
+      color: string
+    }[]
+  >([])
+
+  // Recompute connector pixel coordinates whenever the bracket's DOM layout
+  // changes. ResizeObserver delivers an initial callback as soon as observe()
+  // is called (even if size is unchanged), so re-subscribing on every
+  // bracketData change also covers "same size, different matches" edits —
+  // not just actual resizes.
+  React.useEffect(() => {
+    const container = bracketAreaRef.current
+    if (!container) return
+    const recompute = () => {
+      const containerRect = container.getBoundingClientRect()
+      const next: typeof connectorLines = []
+      for (const conn of dropConnections) {
+        const fromEl = boxRefs.current.get(conn.from)
+        const toEl = boxRefs.current.get(conn.to)
+        if (!fromEl || !toEl) continue
+        const fromRect = fromEl.getBoundingClientRect()
+        const toRect = toEl.getBoundingClientRect()
+        next.push({
+          id: conn.id,
+          x1: fromRect.right - containerRect.left,
+          y1: fromRect.top + fromRect.height / 2 - containerRect.top,
+          x2: toRect.left - containerRect.left,
+          y2: toRect.top + toRect.height / 2 - containerRect.top,
+          color: conn.color,
+        })
+      }
+      setConnectorLines(next)
+    }
+    const observer = new ResizeObserver(recompute)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [dropConnections])
 
   if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
     return (
@@ -922,7 +1098,7 @@ export default function DisplayBracket() {
           </Stack>
         </Paper>
       )}
-      {bracketData && winnersTree && losersTree && (
+      {bracketData && winnersTree && losersMatches.length > 0 && (
         <>
           {bracketData.champion && (
             <Paper
@@ -945,24 +1121,63 @@ export default function DisplayBracket() {
             </Paper>
           )}
 
-          <BracketTreeSection
-            title="Winners Bracket"
-            nodes={[winnersTree]}
-            isAdmin={isTournamentAdmin}
-            onEdit={handleEdit}
-          />
-          <BracketTreeSection
-            title="Losers Bracket"
-            nodes={[losersTree]}
-            isAdmin={isTournamentAdmin}
-            onEdit={handleEdit}
-          />
-          <BracketTreeSection
-            title="Grand Final"
-            nodes={grandFinalNodes}
-            isAdmin={isTournamentAdmin}
-            onEdit={handleEdit}
-          />
+          <Box sx={{ overflowX: "auto", pb: 1 }}>
+            <Box
+              ref={bracketAreaRef}
+              sx={{ position: "relative", width: "fit-content" }}
+            >
+              <Box
+                component="svg"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  overflow: "visible",
+                  pointerEvents: "none",
+                }}
+              >
+                {connectorLines.map((line) => (
+                  <line
+                    key={line.id}
+                    x1={line.x1}
+                    y1={line.y1}
+                    x2={line.x2}
+                    y2={line.y2}
+                    stroke={line.color}
+                    strokeWidth={1.5}
+                    strokeDasharray="5 4"
+                    opacity={0.6}
+                  />
+                ))}
+              </Box>
+              <Box sx={{ position: "relative" }}>
+                <BracketTreeSection
+                  title="Winners Bracket"
+                  nodes={[winnersTree]}
+                  isAdmin={isTournamentAdmin}
+                  onEdit={handleEdit}
+                  registerBox={registerBox}
+                />
+                <Box sx={{ mb: 4 }}>
+                  <SectionTitle>Losers Bracket</SectionTitle>
+                  <LosersBracketColumns
+                    matches={losersMatches}
+                    isAdmin={isTournamentAdmin}
+                    onEdit={handleEdit}
+                    registerBox={registerBox}
+                  />
+                </Box>
+                <BracketTreeSection
+                  title="Grand Final"
+                  nodes={grandFinalNodes}
+                  isAdmin={isTournamentAdmin}
+                  onEdit={handleEdit}
+                  registerBox={registerBox}
+                />
+              </Box>
+            </Box>
+          </Box>
         </>
       )}
       <Dialog
