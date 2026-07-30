@@ -95,6 +95,13 @@ def _reduce_to(
     Each round pairs off just enough entrants to reach `target` in one more
     round (``ceil(len/2)``, clamped at ``target``), leaving the rest to carry
     through untouched - so an odd `pool` never gets stuck.
+
+    Pairing mirrors the pool's two ends inward (index ``i`` against
+    ``length-1-i``) rather than adjacent neighbors, leaving any untouched
+    middle slice as leftover. `pool` preserves seed_order's traversal order,
+    so this is the standard "first half vs. reversed second half" losers-
+    bracket pairing (e.g. WB1 losers 1-4: LB1 pairs (1,4) and (2,3), not
+    (1,2) and (3,4)) that avoids an immediate same-half rematch.
     """
     all_matches: list[MatchDef] = []
     while len(pool) > target:
@@ -109,12 +116,12 @@ def _reduce_to(
                 "L",
                 rnum,
                 f"Losers Round {rnum}",
-                pool[2 * i],
-                pool[2 * i + 1],
+                pool[i],
+                pool[length - 1 - i],
             )
             for i in range(k)
         ]
-        leftover = pool[2 * k :]
+        leftover = pool[k : length - k]
         pool = [WinnerOf(m.match_id) for m in matches] + leftover
         all_matches += matches
     return pool, all_matches
