@@ -6,10 +6,12 @@ import Chip from "@mui/material/Chip"
 import Dialog from "@mui/material/Dialog"
 import DialogContent from "@mui/material/DialogContent"
 import DialogTitle from "@mui/material/DialogTitle"
+import FormControlLabel from "@mui/material/FormControlLabel"
 import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
 import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
+import Switch from "@mui/material/Switch"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
@@ -831,6 +833,9 @@ export default function DisplayBracket() {
   const [editingMatchId, setEditingMatchId] = React.useState<string | null>(
     null,
   )
+  // Off by default - the dashed drop/advance lines are a lot of visual
+  // noise on a full bracket; most people just want the plain tree.
+  const [showConnectorLines, setShowConnectorLines] = React.useState(false)
   const isTournamentAdmin = useIsTournamentAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
 
@@ -1164,6 +1169,18 @@ export default function DisplayBracket() {
             </Paper>
           )}
 
+          <FormControlLabel
+            sx={{ mb: 1 }}
+            control={
+              <Switch
+                size="small"
+                checked={showConnectorLines}
+                onChange={(e) => setShowConnectorLines(e.target.checked)}
+              />
+            }
+            label="Show drop/advance lines"
+          />
+
           <Box sx={{ overflowX: "auto", pb: 1 }}>
             <Box
               ref={bracketAreaRef}
@@ -1180,25 +1197,26 @@ export default function DisplayBracket() {
                   pointerEvents: "none",
                 }}
               >
-                {connectorLines.map((line) => {
-                  // Smooth S-curve (cubic Bezier) instead of a straight
-                  // diagonal or an elbow — both control points sit on the
-                  // horizontal midline so the curve leaves/arrives roughly
-                  // level at each end regardless of how far apart the rows are.
-                  const midX = (line.x1 + line.x2) / 2
-                  const d = `M ${line.x1} ${line.y1} C ${midX} ${line.y1}, ${midX} ${line.y2}, ${line.x2} ${line.y2}`
-                  return (
-                    <path
-                      key={line.id}
-                      d={d}
-                      fill="none"
-                      stroke={line.color}
-                      strokeWidth={1.5}
-                      strokeDasharray="5 4"
-                      opacity={0.3}
-                    />
-                  )
-                })}
+                {showConnectorLines &&
+                  connectorLines.map((line) => {
+                    // Smooth S-curve (cubic Bezier) instead of a straight
+                    // diagonal or an elbow — both control points sit on the
+                    // horizontal midline so the curve leaves/arrives roughly
+                    // level at each end regardless of how far apart the rows are.
+                    const midX = (line.x1 + line.x2) / 2
+                    const d = `M ${line.x1} ${line.y1} C ${midX} ${line.y1}, ${midX} ${line.y2}, ${line.x2} ${line.y2}`
+                    return (
+                      <path
+                        key={line.id}
+                        d={d}
+                        fill="none"
+                        stroke={line.color}
+                        strokeWidth={1.5}
+                        strokeDasharray="5 4"
+                        opacity={0.3}
+                      />
+                    )
+                  })}
               </Box>
               <Box sx={{ position: "relative" }}>
                 <BracketTreeSection
