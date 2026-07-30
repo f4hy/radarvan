@@ -1181,12 +1181,12 @@ export default function DisplayBracket() {
                 }}
               >
                 {connectorLines.map((line) => {
-                  // Elbow route (horizontal - vertical - horizontal) instead
-                  // of a straight diagonal — reads more like a bracket line
-                  // and keeps segments axis-aligned even though the two ends
-                  // rarely share a row.
+                  // Smooth S-curve (cubic Bezier) instead of a straight
+                  // diagonal or an elbow — both control points sit on the
+                  // horizontal midline so the curve leaves/arrives roughly
+                  // level at each end regardless of how far apart the rows are.
                   const midX = (line.x1 + line.x2) / 2
-                  const d = `M ${line.x1} ${line.y1} H ${midX} V ${line.y2} H ${line.x2}`
+                  const d = `M ${line.x1} ${line.y1} C ${midX} ${line.y1}, ${midX} ${line.y2}, ${line.x2} ${line.y2}`
                   return (
                     <path
                       key={line.id}
