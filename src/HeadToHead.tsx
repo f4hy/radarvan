@@ -1,4 +1,5 @@
-import * as React from "react"
+import ExpandLessIcon from "@mui/icons-material/ExpandLess"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -16,9 +17,7 @@ import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import ExpandLessIcon from "@mui/icons-material/ExpandLess"
-import { Client } from "./Client"
+import * as React from "react"
 import {
   HeadToHeadDetail,
   HeadToHeadGame,
@@ -26,21 +25,29 @@ import {
   HeadToHeadMapRecord,
   PlayerGameCount,
 } from "./api"
+import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
+import { toGeneralName } from "./general_utils"
+import Loading from "./Loading"
 import ShowMatchDetails from "./ShowMatchDetails"
+import { useErrorSnackbar } from "./useErrorSnackbar"
+import { displayMapName, formatPercent, playerColor } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinShareBar from "./WinShareBar"
-import { toGeneralName } from "./general_utils"
-import { displayMapName, formatPercent, playerColor } from "./utils"
-import Loading from "./Loading"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
 // The big "12 — 7" scoreboard with a win-share bar colored per player.
 function Scoreboard(props: { data: HeadToHeadDetail }) {
-  const { player1, player2, player1Wins, player2Wins } = props.data
+  const {
+    player1,
+    player2,
+    player1Wins,
+    player2Wins,
+    teammateGames,
+    teammateWins,
+  } = props.data
   const total = player1Wins + player2Wins
   const share1 = total > 0 ? player1Wins / total : 0.5
   const c1 = playerColor(player1)
@@ -115,6 +122,18 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
       >
         {total} head-to-head game{total === 1 ? "" : "s"}
       </Typography>
+      {teammateGames > 0 && (
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            textAlign: "center",
+          }}
+        >
+          Also teammates in {teammateGames} game{teammateGames === 1 ? "" : "s"}{" "}
+          ({teammateWins}-{teammateGames - teammateWins} together)
+        </Typography>
+      )}
     </Box>
   )
 }
@@ -266,7 +285,15 @@ function GameRow(props: {
   )
 }
 
-function GamesTable(props: { data: HeadToHeadDetail }) {
+// Decoupled from HeadToHeadDetail (only ever needs the game list plus the
+// two names GameRow uses to label who won) so other pages - e.g. the
+// bracket's per-matchup popup - can reuse this table for a games list they
+// assembled themselves, without carrying the full aggregate record along.
+export function GamesTable(props: {
+  games: HeadToHeadGame[]
+  player1: string
+  player2: string
+}) {
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -295,12 +322,12 @@ function GamesTable(props: { data: HeadToHeadDetail }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {props.data.games.map((g) => (
+            {props.games.map((g) => (
               <GameRow
                 key={g.matchId}
                 game={g}
-                player1={props.data.player1}
-                player2={props.data.player2}
+                player1={props.player1}
+                player2={props.player2}
               />
             ))}
           </TableBody>
@@ -310,10 +337,22 @@ function GamesTable(props: { data: HeadToHeadDetail }) {
   )
 }
 
+// Mirrors PlayerProfile.tsx's playerFromUrl() - read once at mount (Menu
+// unmounts/remounts this page fresh on every navigation, so that's the only
+// time it needs to matter) so a link can deep-link straight to a matchup.
+function playersFromUrl(): { player1: string | null; player2: string | null } {
+  const params = new URLSearchParams(window.location.search)
+  return { player1: params.get("player1"), player2: params.get("player2") }
+}
+
 export default function HeadToHead() {
   const [players, setPlayers] = React.useState<string[]>([])
-  const [player1, setPlayer1] = React.useState<string | null>(null)
-  const [player2, setPlayer2] = React.useState<string | null>(null)
+  const [player1, setPlayer1] = React.useState<string | null>(
+    () => playersFromUrl().player1,
+  )
+  const [player2, setPlayer2] = React.useState<string | null>(
+    () => playersFromUrl().player2,
+  )
   const [format, setFormat] = React.useState<GameFormat>("All")
   const [data, setData] = React.useState<HeadToHeadDetail | null>(null)
   const [loading, setLoading] = React.useState(false)
@@ -448,7 +487,11 @@ export default function HeadToHead() {
               />
             </Grid>
           </Grid>
-          <GamesTable data={data} />
+          <GamesTable
+            games={data.games}
+            player1={data.player1}
+            player2={data.player2}
+          />
         </>
       )}
       {errorSnackbar}

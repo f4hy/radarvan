@@ -36,7 +36,8 @@ import {
 } from './HeadToHeadMapRecord';
 
 /**
- * Detailed head-to-head record between two players in opposite-team games.
+ * Detailed head-to-head record between two players in opposite-team games,
+ * plus how often they've been teammates instead.
  * @export
  * @interface HeadToHeadDetail
  */
@@ -89,6 +90,18 @@ export interface HeadToHeadDetail {
      * @memberof HeadToHeadDetail
      */
     byMap: Array<HeadToHeadMapRecord>;
+    /**
+     * 
+     * @type {number}
+     * @memberof HeadToHeadDetail
+     */
+    teammateGames: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HeadToHeadDetail
+     */
+    teammateWins: number;
 }
 
 /**
@@ -103,6 +116,8 @@ export function instanceOfHeadToHeadDetail(value: object): value is HeadToHeadDe
     if (!('player1ByGeneral' in value) || value['player1ByGeneral'] === undefined) return false;
     if (!('player2ByGeneral' in value) || value['player2ByGeneral'] === undefined) return false;
     if (!('byMap' in value) || value['byMap'] === undefined) return false;
+    if (!('teammateGames' in value) || value['teammateGames'] === undefined) return false;
+    if (!('teammateWins' in value) || value['teammateWins'] === undefined) return false;
     return true;
 }
 
@@ -124,6 +139,8 @@ export function HeadToHeadDetailFromJSONTyped(json: any, ignoreDiscriminator: bo
         'player1ByGeneral': ((json['player1ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordFromJSON)),
         'player2ByGeneral': ((json['player2ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordFromJSON)),
         'byMap': ((json['byMap'] as Array<any>).map(HeadToHeadMapRecordFromJSON)),
+        'teammateGames': json['teammateGames'],
+        'teammateWins': json['teammateWins'],
     };
 }
 
@@ -146,6 +163,8 @@ export function HeadToHeadDetailToJSONTyped(value?: HeadToHeadDetail | null, ign
         'player1ByGeneral': ((value['player1ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordToJSON)),
         'player2ByGeneral': ((value['player2ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordToJSON)),
         'byMap': ((value['byMap'] as Array<any>).map(HeadToHeadMapRecordToJSON)),
+        'teammateGames': value['teammateGames'],
+        'teammateWins': value['teammateWins'],
     };
 }
 

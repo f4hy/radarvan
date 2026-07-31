@@ -36,9 +36,12 @@ def compute_head_to_head(
 ) -> HeadToHeadDetail:
     """Head-to-head detail for ``player1`` vs ``player2`` over ``games``.
 
-    Counts games where both played on *different* teams; the winner is the side
-    whose team won. ``games`` may be in any order - the returned game list is
-    sorted most-recent-first. ``player1``/``player2`` are expected to be already
+    The by-general/by-map breakdowns and game list only cover games where both
+    played on *different* teams (the winner is the side whose team won); games
+    where they were teammates instead are tallied separately into
+    ``teammate_games``/``teammate_wins`` rather than mixed into the opposite-team
+    stats. ``games`` may be in any order - the returned game list is sorted
+    most-recent-first. ``player1``/``player2`` are expected to be already
     alias-resolved (equal names yield an empty record).
     """
     h2h_games: list[HeadToHeadGame] = []
@@ -48,6 +51,8 @@ def compute_head_to_head(
     by_map: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     p1_wins = 0
     p2_wins = 0
+    teammate_games = 0
+    teammate_wins = 0
 
     for game in games:
         # Resolve every roster name once, then reuse for lookup and team lists.
@@ -58,7 +63,12 @@ def compute_head_to_head(
         ]
         p1p = next((p for p, name in roster if name == player1), None)
         p2p = next((p for p, name in roster if name == player2), None)
-        if p1p is None or p2p is None or p1p.team == p2p.team:
+        if p1p is None or p2p is None:
+            continue
+        if p1p.team == p2p.team:
+            teammate_games += 1
+            if p1p.won:
+                teammate_wins += 1
             continue
         if p1p.won == p2p.won:
             continue  # no decisive opposite-team result
@@ -101,4 +111,6 @@ def compute_head_to_head(
             HeadToHeadMapRecord(map=m, player1_wins=wl[0], player2_wins=wl[1])
             for m, wl in sorted(by_map.items(), key=lambda kv: sum(kv[1]), reverse=True)
         ],
+        teammate_games=teammate_games,
+        teammate_wins=teammate_wins,
     )

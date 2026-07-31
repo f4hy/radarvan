@@ -1245,7 +1245,8 @@ class HeadToHeadMapRecord(BaseModel):
 
 
 class HeadToHeadDetail(BaseModel):
-    """Detailed head-to-head record between two players in opposite-team games."""
+    """Detailed head-to-head record between two players in opposite-team games,
+    plus how often they've been teammates instead."""
 
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -1257,6 +1258,12 @@ class HeadToHeadDetail(BaseModel):
     player1_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player1ByGeneral")
     player2_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player2ByGeneral")
     by_map: list[HeadToHeadMapRecord] = Field(alias="byMap")
+    # Same-team games between these two, over the same `games` pool - a
+    # symmetric, always-available count unlike PlayerProfile.favorite_teammate
+    # (which is synergy-ranked and one-directional: it only surfaces a pair
+    # when one player happens to be the *other's* top-synergy partner).
+    teammate_games: int = Field(alias="teammateGames")
+    teammate_wins: int = Field(alias="teammateWins")
 
 
 class PlayerRatingDailyChange(BaseModel):

@@ -1,8 +1,10 @@
 import AddIcon from "@mui/icons-material/Add"
 import CloseIcon from "@mui/icons-material/Close"
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import PersonIcon from "@mui/icons-material/Person"
 import SettingsIcon from "@mui/icons-material/Settings"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import Autocomplete from "@mui/material/Autocomplete"
@@ -24,6 +26,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { useIsTournamentAdmin } from "./AuthContext"
+import { HeadToHeadGame, MatchInfo } from "./api"
 import {
   BracketMatchOutput,
   BracketMatchStatus,
@@ -37,6 +40,8 @@ import {
   setBracketMatch,
   setBracketRevealAt,
 } from "./bracketApi"
+import { Client } from "./Client"
+import { GamesTable } from "./HeadToHead"
 import Loading from "./Loading"
 import { PlayerChip } from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
@@ -371,6 +376,190 @@ function SliderField({
   )
 }
 
+// Today as a local YYYY-MM-DD string, in the same zero-padded shape as
+// scheduled_date and toDatetimeLocalValue's date component below - lets
+// MatchupPopup compare the two with plain string comparison.
+function todayIso(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+// Reshapes a raw MatchInfo into the HeadToHeadGame shape GamesTable/GameRow
+// (from HeadToHead.tsx) already know how to render, so the popup gets the
+// same polished row (general icons, winner chip, expandable full match
+// details) for free instead of a bespoke listing. player1Team/player2Team
+// aren't read by GameRow - filled in for type-shape completeness only.
+function toHeadToHeadGame(
+  m: MatchInfo,
+  playerA: string,
+  playerB: string,
+): HeadToHeadGame | null {
+  const pa = m.players.find((p) => p.name === playerA)
+  const pb = m.players.find((p) => p.name === playerB)
+  if (!pa || !pb) return null
+  return {
+    matchId: m.id,
+    timestamp: m.timestamp,
+    date: m.date,
+    map: m.map,
+    durationMinutes: m.durationMinutes,
+    gameFormat: m.composition?.category ?? null,
+    player1General: pa.general,
+    player2General: pb.general,
+    player1Won: pa.won ?? false,
+    player1Team: [playerA],
+    player2Team: [playerB],
+  }
+}
+
+// The everyone-gets-this popup a match card click opens (admins reach the
+// score editor via the edit icon instead - see MatchBox). Links to each
+// player's profile and their head-to-head record, plus whatever 1v1 games
+// were actually played between them on the match's scheduled date.
+function MatchupPopup({
+  match,
+  onClose,
+  goToPlayerProfile,
+  goToHeadToHead,
+}: {
+  match: BracketMatchOutput
+  onClose: () => void
+  goToPlayerProfile: (playerName: string) => void
+  goToHeadToHead: (player1: string, player2: string) => void
+}) {
+  const playerA = match.player_a
+  const playerB = match.player_b
+  const scheduledDate = match.scheduled_date
+  // Only worth asking the backend once there's a date that's actually
+  // arrived - a future or unset date can't have games yet by definition.
+  const datePlayable = scheduledDate != null && scheduledDate <= todayIso()
+
+  const [games, setGames] = React.useState<MatchInfo[]>([])
+  const [loading, setLoading] = React.useState(false)
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    if (!datePlayable || !scheduledDate || !playerA || !playerB) {
+      setGames([])
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    Client.getMatchesByDateApiMatchesByDateDateGet({
+      date: new Date(scheduledDate),
+    })
+      .then((res) => {
+        if (cancelled) return
+        setGames(
+          res.matches.filter(
+            (m) =>
+              m.composition?.category === "1v1" &&
+              m.players.some((p) => p.name === playerA) &&
+              m.players.some((p) => p.name === playerB),
+          ),
+        )
+      })
+      .catch((e) => !cancelled && showError(e))
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [datePlayable, scheduledDate, playerA, playerB, showError])
+
+  const headToHeadGames = React.useMemo(
+    () =>
+      playerA && playerB
+        ? games
+            .map((m) => toHeadToHeadGame(m, playerA, playerB))
+            .filter((g): g is HeadToHeadGame => g !== null)
+        : [],
+    [games, playerA, playerB],
+  )
+
+  const handleGoToPlayer = (playerName: string) => {
+    onClose()
+    goToPlayerProfile(playerName)
+  }
+  const handleGoToHeadToHead = () => {
+    if (!playerA || !playerB) return
+    onClose()
+    goToHeadToHead(playerA, playerB)
+  }
+
+  return (
+    <>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="subtitle2" sx={{ color: "text.secondary" }}>
+            {match.round_name}
+          </Typography>
+          <Typography variant="h6">
+            {playerLabel(match, "a")} vs {playerLabel(match, "b")}
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
+          {playerA && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PersonIcon />}
+              onClick={() => handleGoToPlayer(playerA)}
+            >
+              {playerA}&apos;s profile
+            </Button>
+          )}
+          {playerB && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PersonIcon />}
+              onClick={() => handleGoToPlayer(playerB)}
+            >
+              {playerB}&apos;s profile
+            </Button>
+          )}
+          {playerA && playerB && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<CompareArrowsIcon />}
+              onClick={handleGoToHeadToHead}
+            >
+              Head to Head
+            </Button>
+          )}
+        </Stack>
+        {loading && <Loading />}
+        {!loading && !datePlayable && (
+          <Typography sx={{ color: "text.secondary" }}>
+            No games played yet.
+          </Typography>
+        )}
+        {!loading && datePlayable && headToHeadGames.length === 0 && (
+          <Typography sx={{ color: "text.secondary" }}>
+            No 1v1 games found between {playerLabel(match, "a")} and{" "}
+            {playerLabel(match, "b")} on {scheduledDate}.
+          </Typography>
+        )}
+        {!loading && headToHeadGames.length > 0 && playerA && playerB && (
+          <GamesTable
+            games={headToHeadGames}
+            player1={playerA}
+            player2={playerB}
+          />
+        )}
+        {errorSnackbar}
+      </DialogContent>
+    </>
+  )
+}
+
 function MatchEditor({
   match,
   onSave,
@@ -533,6 +722,7 @@ const CONNECTOR_GAP = 24
 type BracketDataValue = {
   matchesById: Map<string, BracketMatchOutput>
   onHoverMatch: (matchId: string | null) => void
+  onShowDetails: (match: BracketMatchOutput) => void
 }
 const BracketDataContext = React.createContext<BracketDataValue | null>(null)
 function useBracketData(): BracketDataValue {
@@ -560,7 +750,7 @@ const MatchBox = React.memo(function MatchBox({
   onEdit: (match: BracketMatchOutput) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
-  const { matchesById, onHoverMatch } = useBracketData()
+  const { matchesById, onHoverMatch, onShowDetails } = useBracketData()
   // "not_applicable" is only ever produced for GF-2 (Grand Final Reset) —
   // resolve_bracket in bracket.py marks it that way whenever GF-1's winner
   // wasn't the Losers Bracket finalist, i.e. no reset is required.
@@ -571,21 +761,21 @@ const MatchBox = React.memo(function MatchBox({
     <Paper
       ref={(el: HTMLElement | null) => registerBox?.(match.match_id, el)}
       variant="outlined"
-      onClick={editable ? () => onEdit(match) : undefined}
+      onClick={notApplicable ? undefined : () => onShowDetails(match)}
       onMouseEnter={() => onHoverMatch(match.match_id)}
       onMouseLeave={() => onHoverMatch(null)}
       sx={{
         p: 1.5,
         minWidth: MATCH_BOX_WIDTH,
         opacity: notApplicable ? 0.5 : 1,
-        cursor: editable ? "pointer" : "default",
+        cursor: notApplicable ? "default" : "pointer",
         position: "relative",
         borderLeft: 4,
         borderLeftColor: accent.border,
         bgcolor: accent.bg,
         "&:hover": {
           boxShadow: 1,
-          ...(editable && {
+          ...(!notApplicable && {
             borderColor: "primary.main",
             borderLeftColor: accent.border,
           }),
@@ -612,7 +802,19 @@ const MatchBox = React.memo(function MatchBox({
           </Box>
           {match.scheduled_date && ` [${match.scheduled_date}]`}
         </Typography>
-        {editable && <EditIcon fontSize="inherit" color="disabled" />}
+        {editable && (
+          <IconButton
+            size="small"
+            aria-label="Edit match"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(match)
+            }}
+            sx={{ p: 0.25, ml: 0.5 }}
+          >
+            <EditIcon fontSize="inherit" />
+          </IconButton>
+        )}
       </Stack>
       <PlayerRow
         name={playerLabel(match, "a", matchesById)}
@@ -1064,8 +1266,10 @@ function RevealCountdown({ revealAt }: { revealAt: string }) {
 
 export default function DisplayBracket({
   goToPlayerProfile,
+  goToHeadToHead,
 }: {
   goToPlayerProfile: (playerName: string) => void
+  goToHeadToHead: (player1: string, player2: string) => void
 }) {
   const [bracketData, setBracketData] =
     React.useState<BracketTournamentOutput | null>(null)
@@ -1075,6 +1279,9 @@ export default function DisplayBracket({
     React.useState<(string | null)[]>(DEFAULT_SEEDS)
   const [creating, setCreating] = React.useState(false)
   const [editingMatchId, setEditingMatchId] = React.useState<string | null>(
+    null,
+  )
+  const [detailsMatchId, setDetailsMatchId] = React.useState<string | null>(
     null,
   )
   // Drop/advance lines are only ever drawn for the match currently hovered
@@ -1240,6 +1447,14 @@ export default function DisplayBracket({
     [],
   )
 
+  // Opens the per-matchup popup (player profile / head-to-head links + that
+  // day's games) - this is what a card click does for everyone, admin or
+  // not; only the edit icon itself opens the score editor.
+  const handleShowDetails = React.useCallback(
+    (match: BracketMatchOutput) => setDetailsMatchId(match.match_id),
+    [],
+  )
+
   // The recursive tree-building (Winners descent plus the grand-final
   // leaves) only ever depends on bracketData — memoized so it doesn't redo
   // that work on every unrelated re-render (e.g. typing in the seed form).
@@ -1273,10 +1488,15 @@ export default function DisplayBracket({
     }, [bracketData])
 
   // Memoized so BracketDataContext's value stays referentially stable across
-  // hover-only re-renders (both matchesById and handleHoverMatch already are).
+  // hover-only re-renders (matchesById/handleHoverMatch/handleShowDetails
+  // are all already stable themselves).
   const bracketDataValue = React.useMemo(
-    () => ({ matchesById, onHoverMatch: handleHoverMatch }),
-    [matchesById, handleHoverMatch],
+    () => ({
+      matchesById,
+      onHoverMatch: handleHoverMatch,
+      onShowDetails: handleShowDetails,
+    }),
+    [matchesById, handleHoverMatch, handleShowDetails],
   )
 
   // Dashed connector lines drawn across sections for edges the tree/column
@@ -1407,6 +1627,9 @@ export default function DisplayBracket({
 
   const editingMatch = editingMatchId
     ? (matchesById.get(editingMatchId) ?? null)
+    : null
+  const detailsMatch = detailsMatchId
+    ? (matchesById.get(detailsMatchId) ?? null)
     : null
 
   const bracketAdminView = isTournamentAdmin && (bracketData?.revealed ?? false)
@@ -1699,6 +1922,21 @@ export default function DisplayBracket({
               />
             </DialogContent>
           </>
+        )}
+      </Dialog>
+      <Dialog
+        open={detailsMatch !== null}
+        onClose={() => setDetailsMatchId(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        {detailsMatch && (
+          <MatchupPopup
+            match={detailsMatch}
+            onClose={() => setDetailsMatchId(null)}
+            goToPlayerProfile={goToPlayerProfile}
+            goToHeadToHead={goToHeadToHead}
+          />
         )}
       </Dialog>
       {errorSnackbar}

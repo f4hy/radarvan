@@ -1,7 +1,7 @@
 
 # HeadToHeadDetail
 
-Detailed head-to-head record between two players in opposite-team games.
+Detailed head-to-head record between two players in opposite-team games, plus how often they\'ve been teammates instead.
 
 ## Properties
 
@@ -15,6 +15,8 @@ Name | Type
 `player1ByGeneral` | [Array&lt;HeadToHeadGeneralRecord&gt;](HeadToHeadGeneralRecord.md)
 `player2ByGeneral` | [Array&lt;HeadToHeadGeneralRecord&gt;](HeadToHeadGeneralRecord.md)
 `byMap` | [Array&lt;HeadToHeadMapRecord&gt;](HeadToHeadMapRecord.md)
+`teammateGames` | number
+`teammateWins` | number
 
 ## Example
 
@@ -31,6 +33,8 @@ const example = {
   "player1ByGeneral": null,
   "player2ByGeneral": null,
   "byMap": null,
+  "teammateGames": null,
+  "teammateWins": null,
 } satisfies HeadToHeadDetail
 
 console.log(example)

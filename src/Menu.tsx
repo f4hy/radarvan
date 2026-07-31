@@ -133,6 +133,15 @@ export default function Menu() {
     pushPage("PlayerProfile", { player: playerName })
   }, [])
 
+  // Same idea for jumping straight to two players' head-to-head record.
+  const goToHeadToHead = React.useCallback(
+    (player1: string, player2: string) => {
+      setSelection("HeadToHead")
+      pushPage("HeadToHead", { player1, player2 })
+    },
+    [],
+  )
+
   // Keep in sync with browser back/forward.
   React.useEffect(() => {
     const onPop = () => setSelection(selectionFromUrl())
@@ -344,7 +353,11 @@ export default function Menu() {
       >
         <Toolbar />
         <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
-          <Main selection={selection} goToPlayerProfile={goToPlayerProfile} />
+          <Main
+            selection={selection}
+            goToPlayerProfile={goToPlayerProfile}
+            goToHeadToHead={goToHeadToHead}
+          />
         </Box>
       </Box>
     </Box>
@@ -363,6 +376,7 @@ interface MenuItemProps {
 function Main(props: {
   selection: Selection
   goToPlayerProfile: (playerName: string) => void
+  goToHeadToHead: (player1: string, player2: string) => void
 }) {
   switch (props.selection) {
     case "Matches":
@@ -380,7 +394,12 @@ function Main(props: {
     case "Tournaments":
       return <DisplayTournamentResults />
     case "Bracket":
-      return <DisplayBracket goToPlayerProfile={props.goToPlayerProfile} />
+      return (
+        <DisplayBracket
+          goToPlayerProfile={props.goToPlayerProfile}
+          goToHeadToHead={props.goToHeadToHead}
+        />
+      )
     case "BalanceTeams":
       return <DisplayBalanceTeams />
     case "MapStats":
