@@ -146,6 +146,8 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 ### Bracket (1v1 double elimination)
 
 - `bracket.py` is pure and hand-verified (loss accounting); the DB stores only seeds + per-match date/best-of/scores; players/winners/status are re-derived every call via `resolve_bracket`. Keep new bracket logic in `bracket.py` where it's unit-testable, not in the route.
+- **Losers-bracket construction is organized by dependency *depth*, not winners-bracket round number** (see the module docstring and `_match_depths`) — depth is how many rounds of real (non-bye) competition had to finish before a match was playable; a Round-2 match between two bye seeds is depth 1 (as immediately available as Round 1), a Round-2 match against a Round-1 winner is depth 2. `build_topology` groups WB losers by depth and merges one depth-group at a time — never assume "WB round N's losers all enter the losers bracket in the same round." This shape was checked against a real Challonge-generated bracket, not derived from first principles alone.
+- Every pairing decision (`_reduce_to`'s self-pairing, `_merge_droppers`' cross-merge) goes through `_pair_safely`, which searches for a collision-free ordering (mirror → rotations → full permutation) via `_would_rematch` rather than a hand-derived rotation offset. If you touch either function, don't reintroduce a fixed same-index pairing — `test_no_immediate_rematch` (parametrized across all 8 player counts) will catch a regression.
 - `POST /api/bracket/{match_id}` has **PATCH semantics** via `model_fields_set` — omitted fields keep stored values, explicit null clears. Edits that would re-route players through an already-scored downstream match are rejected with 409 (`bracket.rerouted_scored_matches`); the admin must clear the downstream result first.
 
 ### Caching / scheduling specifics
@@ -162,6 +164,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 - Use `getColorHex`/`buildPlayerColorMap` from `src/utils.ts` for player-color maps; `WinRateRadar` is the shared radar chart (`data: {name, winRate}[]`).
 - Format toggles: `FORMAT_OPTIONS` arrays drive ToggleButtonGroups; selected format goes up as the `gameFormat` query param; reset dependent state on format change.
 - Static serving: `serve_index()` returns `index.html` with `Cache-Control: no-cache` (so deploys revalidate), then a `StaticFiles` mount.
+- `Bracket.tsx`'s `shortMatchLabel`/`ROUND_CODE` maps backend `round_name` strings (e.g. `"Winners Semifinal"`) to short card labels (`WSF-a`) — adding or renaming a round name in `bracket.py` (or a new `bracket_type`) needs a matching `ROUND_CODE` entry or it silently falls back to the raw name. `matchesById` and the hover-to-show-connector-lines callback are read via `useBracketData()` (`BracketDataContext`, mirroring `PlayerColorsContext`'s pattern) rather than threaded as props through `BracketNodeView`/`BracketTreeSection`/`LosersBracketColumns` — read from context in `MatchBox`, don't re-add prop drilling for a new cross-cutting concern there.
 
 ## Reference fixtures (`references/`)
 
