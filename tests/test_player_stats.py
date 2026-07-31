@@ -1,6 +1,6 @@
 """Player win/loss stats: total_games helper and get_player_stats aggregation."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from radarvan.api_types import (
     General,
@@ -11,7 +11,12 @@ from radarvan.api_types import (
     WinLoss,
 )
 from radarvan.game_composition import GameComposition
-from radarvan.player_stats import get_player_stats, total_games
+from radarvan.player_stats import (
+    RECENT_COLOR_MONTHS,
+    get_player_stats,
+    most_common_colors,
+    total_games,
+)
 
 
 def _comp(category: str = "1v1", **overrides: object) -> GameComposition:
@@ -254,3 +259,49 @@ def test_player_name_aliases_are_resolved() -> None:
     names = {s.player_name for s in result.player_stats}
     assert "Skip" in names
     assert "skp" not in names
+
+
+def _color_match(match_id: int, played: date, name: str, color: str) -> MatchInfo:
+    """A single-player-of-interest match: a real roster player in `color`
+    against an arbitrary opponent, `played` days/months ago - only the
+    player-of-interest's color matters for most_common_colors tests."""
+    players = [
+        Player(name=name, general=General.USA, team=Team.ONE, color=color, won=True),
+        Player(
+            name="Bob", general=General.GLA, team=Team.TWO, color="purple", won=False
+        ),
+    ]
+    return MatchInfo(
+        id=match_id,
+        timestamp=datetime(played.year, played.month, played.day, 12, 0, 0),
+        date=played,
+        map="some_map",
+        winning_team=Team.ONE,
+        players=players,
+        duration_minutes=10.0,
+        filename=f"game_{match_id}.rep",
+        incomplete="",
+        composition=_comp(),
+    )
+
+
+def test_most_common_colors_prefers_recent_over_alltime() -> None:
+    # "Modus" is a real roster name (radarvan.player_ids.PLAYER_NAMES) -
+    # most_common_colors drops anything not on the roster.
+    today = date.today()
+    old = today - timedelta(days=(RECENT_COLOR_MONTHS + 1) * 30)
+    recent = today - timedelta(days=1)
+    games = [_color_match(i, old, "Modus", "red") for i in range(10)]
+    games += [_color_match(100 + i, recent, "Modus", "blue") for i in range(2)]
+    # Red dominates all-time (10 vs 2) but blue is Modus's current color.
+    assert most_common_colors(games) == {"Modus": "blue"}
+
+
+def test_most_common_colors_falls_back_to_alltime_when_no_recent_games() -> None:
+    # "Skip" has no games within the recent window at all - the current-
+    # favorite computation must fall back to their full history rather than
+    # silently dropping their color.
+    today = date.today()
+    old = today - timedelta(days=(RECENT_COLOR_MONTHS + 1) * 30)
+    games = [_color_match(i, old, "Skip", "yellow") for i in range(3)]
+    assert most_common_colors(games) == {"Skip": "yellow"}

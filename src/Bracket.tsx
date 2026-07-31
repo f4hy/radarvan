@@ -1381,7 +1381,7 @@ export default function DisplayBracket() {
                   />
                 </Box>
                 <BracketTreeSection
-                  title="Grand Final"
+                  title="👑 Grand Final"
                   nodes={grandFinalNodes}
                   matchesById={matchesById}
                   isAdmin={isTournamentAdmin}

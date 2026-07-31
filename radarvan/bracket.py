@@ -298,9 +298,7 @@ def build_topology(num_players: int) -> Topology:
     # collision-free pairing. Every survivor is real from this point on: any
     # slot that byed through wave 1 now faces a real WB2 dropper for the
     # first time.
-    survivors_opt, m2 = _pair_with_byes(
-        survivors_opt, d2[1:] + d2[:1], round_counter
-    )
+    survivors_opt, m2 = _pair_with_byes(survivors_opt, d2[1:] + d2[:1], round_counter)
     matches += m2
     # d2 is never None, so every position resolved to a real source above -
     # the filter here is just narrowing the type back to list[Source].

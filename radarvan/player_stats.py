@@ -11,6 +11,7 @@ from .api_types import (
 )
 from . import game_composition
 from .general_stats import CPU_NAMES
+from .matches import filter_by_months_back
 import structlog
 from .player_ids import PLAYER_NAMES, resolve_player_name
 
@@ -18,15 +19,13 @@ logger = structlog.get_logger(__name__)
 
 NEEDED_GAMES = 8
 
+# How far back "most common color" looks to reflect a player's *current*
+# favorite rather than an average over their entire history - a player who
+# switched colors a year ago shouldn't still show their old one.
+RECENT_COLOR_MONTHS = 6
 
-def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
-    """Each player's most common raw in-game color across every game they've
-    played (e.g. "Red", "Blue") - this community's players rarely contest the
-    same color, so it doubles as a data-driven identity color for the UI
-    (PlayerChip) instead of an arbitrary hash. Restricted to known roster
-    names (PLAYER_NAMES minus the CPU labels folded into it) - unresolved/
-    CPU/junk names aren't real identities worth a color.
-    """
+
+def _color_counts(games: list[MatchInfo]) -> defaultdict[str, Counter[str]]:
     counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for game in games:
         for p in game.players:
@@ -36,8 +35,27 @@ def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
             if name not in PLAYER_NAMES or name in CPU_NAMES:
                 continue
             counts[name][p.color] += 1
+    return counts
+
+
+def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
+    """Each player's most common raw in-game color over their last
+    RECENT_COLOR_MONTHS months (e.g. "Red", "Blue") - this community's
+    players rarely contest the same color, so it doubles as a data-driven
+    identity color for the UI (PlayerChip) instead of an arbitrary hash.
+    Restricted to known roster names (PLAYER_NAMES minus the CPU labels
+    folded into it) - unresolved/CPU/junk names aren't real identities worth
+    a color. Players with no games in the recent window (inactive, or new
+    and not yet resolved into it) fall back to their full history instead of
+    losing a color entirely.
+    """
+    recent_counts = _color_counts(filter_by_months_back(games, RECENT_COLOR_MONTHS))
+    all_time_counts = _color_counts(games)
+    for name, color_counts in all_time_counts.items():
+        recent_counts.setdefault(name, color_counts)
     return {
-        name: color_counts.most_common(1)[0][0] for name, color_counts in counts.items()
+        name: color_counts.most_common(1)[0][0]
+        for name, color_counts in recent_counts.items()
     }
 
 
