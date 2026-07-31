@@ -15,7 +15,7 @@ dependencies = [
     "httpx>=0.28.1",
     "itsdangerous>=2.2.0",
     "numpy>=2.5.1",
-    "onnxruntime>=1.27.0",
+    "onnxruntime>=1.28.0",
     "openskill>=6.2.0",
     "opentelemetry-api>=1.43.0",
     "opentelemetry-exporter-otlp-proto-http>=1.43.0",
@@ -70,7 +70,7 @@ ml = [
   "pyarrow>=18.0.0",
   # ONNX export + a torch-free CPU runtime for serving the exported model.
   "onnx>=1.17.0",
-  "onnxruntime>=1.20.0",
+  "onnxruntime>=1.28.0",
 ]
 
 [tool.black]
