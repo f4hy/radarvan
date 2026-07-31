@@ -1,4 +1,8 @@
-import * as React from "react"
+import AddIcon from "@mui/icons-material/Add"
+import CloseIcon from "@mui/icons-material/Close"
+import DeleteIcon from "@mui/icons-material/Delete"
+import EditIcon from "@mui/icons-material/Edit"
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -6,26 +10,31 @@ import Chip from "@mui/material/Chip"
 import Dialog from "@mui/material/Dialog"
 import DialogContent from "@mui/material/DialogContent"
 import DialogTitle from "@mui/material/DialogTitle"
-import FormControlLabel from "@mui/material/FormControlLabel"
 import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
 import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
-import Switch from "@mui/material/Switch"
+import { alpha } from "@mui/material/styles"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
-import { alpha } from "@mui/material/styles"
-import AddIcon from "@mui/icons-material/Add"
-import CloseIcon from "@mui/icons-material/Close"
-import DeleteIcon from "@mui/icons-material/Delete"
-import EditIcon from "@mui/icons-material/Edit"
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import * as React from "react"
+import { useIsTournamentAdmin } from "./AuthContext"
+import {
+  BracketMatchOutput,
+  BracketMatchStatus,
+  BracketPlayerEntry,
+  BracketTournamentOutput,
+  createBracket,
+  fetchBracket,
+  fetchEligiblePlayers,
+  MatchSource,
+  SetBracketMatchRequest,
+  setBracketMatch,
+} from "./bracketApi"
 import Loading from "./Loading"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
-import { useErrorSnackbar } from "./useErrorSnackbar"
-import { useIsTournamentAdmin } from "./AuthContext"
 import {
   BRAND_COLOR,
   CHART_PALETTE,
@@ -33,24 +42,19 @@ import {
   NEUTRAL_COLOR,
   WIN_COLOR,
 } from "./theme"
-import {
-  BracketMatchOutput,
-  BracketMatchStatus,
-  BracketPlayerEntry,
-  BracketTournamentOutput,
-  MatchSource,
-  SetBracketMatchRequest,
-  createBracket,
-  fetchBracket,
-  fetchEligiblePlayers,
-  setBracketMatch,
-} from "./bracketApi"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
 // While the tournament is being set up, only tournament admins (Modus/Gorn)
 // can see this page at all — everyone else gets a "not open yet" message and
-// the nav item is hidden (see Menu.tsx). Flip this to true to open the
-// read-only bracket view up to everyone once it's ready to announce.
-export const BRACKET_VISIBLE_TO_ALL = false
+// the nav item is hidden (see Menu.tsx). Flip PRODUCTION_BRACKET_VISIBLE_TO_ALL
+// to true to open the read-only bracket view up to everyone once it's ready
+// to announce. For local testing without logging in as a tournament admin,
+// set VITE_BRACKET_VISIBLE_TO_ALL=true in a local (gitignored) .env.local
+// instead — it never affects a real build.
+const PRODUCTION_BRACKET_VISIBLE_TO_ALL = false
+export const BRACKET_VISIBLE_TO_ALL =
+  PRODUCTION_BRACKET_VISIBLE_TO_ALL ||
+  import.meta.env.VITE_BRACKET_VISIBLE_TO_ALL === "true"
 
 const DEFAULT_SEEDS = [
   "Modus",
@@ -126,6 +130,45 @@ function loserOf(match: BracketMatchOutput): string | null {
   return match.winner === match.player_a ? match.player_b : match.player_a
 }
 
+// Maps a match's full round_name (as produced by radarvan/bracket.py) to a
+// short prefix for card captions / "Winner of ..." references. Losers Round
+// N isn't listed here since N is dynamic — see roundCode's fallback.
+const ROUND_CODE: Record<string, string> = {
+  "Winners Round 1": "WR1",
+  "Winners Round 2": "WR2",
+  "Winners Semifinal": "WSF",
+  "Winners Final": "WF",
+  "Losers Final": "LF",
+  "Grand Final": "GF",
+  "Grand Final Reset": "GFR",
+}
+
+// Rounds that are always exactly one match under the fixed 16-slot bracket
+// shape (see bracket.py's build_topology) — no "-a"/"-b" suffix needed.
+const SINGLETON_ROUND_CODES = new Set(["WF", "LF", "GF", "GFR"])
+
+function roundCode(match: BracketMatchOutput): string {
+  return (
+    ROUND_CODE[match.round_name] ??
+    (match.bracket === "L" ? `LR${match.round_number}` : match.round_name)
+  )
+}
+
+// match_id's trailing "-N" is already the match's 1-based position within
+// its round (WB1-1, WB1-2, ..., LB2-1, ...) — reuse it rather than deriving
+// position independently, so the letter always agrees with the match_id.
+function indexToLetter(idx: number): string {
+  return String.fromCharCode("a".charCodeAt(0) + idx - 1)
+}
+
+function shortMatchLabel(match: BracketMatchOutput): string {
+  const code = roundCode(match)
+  if (SINGLETON_ROUND_CODES.has(code)) return code
+  const suffix = match.match_id.match(/-(\d+)$/)
+  const idx = suffix ? Number(suffix[1]) : 1
+  return `${code}-${indexToLetter(idx)}`
+}
+
 function buildChild(
   source: MatchSource,
   matchesById: Map<string, BracketMatchOutput>,
@@ -150,7 +193,7 @@ function buildChild(
     : null
   return {
     kind: "ref",
-    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${refMatch?.round_name ?? source.match_id}`,
+    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${refMatch ? shortMatchLabel(refMatch) : source.match_id}`,
     playerName,
   }
 }
@@ -188,10 +231,26 @@ function buildNode(
   }
 }
 
-function playerLabel(match: BracketMatchOutput, side: "a" | "b"): string {
+// `matchesById` is optional: passing it turns an unresolved slot's fallback
+// from a bare "TBD" into "Winner of WR1-a" / "Loser of WR1-a" — resolvable
+// immediately from source_a/source_b, no games need to have been played.
+// Omitted by the few callers (MatchEditor, dialog title) that only need a
+// short label and don't have matchesById in scope.
+function playerLabel(
+  match: BracketMatchOutput,
+  side: "a" | "b",
+  matchesById?: Map<string, BracketMatchOutput>,
+): string {
   const name = side === "a" ? match.player_a : match.player_b
   if (name) return name
-  return match.status === "not_applicable" ? "—" : "TBD"
+  if (match.status === "not_applicable") return "—"
+  const source = side === "a" ? match.source_a : match.source_b
+  if (matchesById && source.kind !== "seed") {
+    const refMatch = matchesById.get(source.match_id)
+    const refLabel = refMatch ? shortMatchLabel(refMatch) : source.match_id
+    return `${source.kind === "winner" ? "Winner" : "Loser"} of ${refLabel}`
+  }
+  return "TBD"
 }
 
 // The player's most-played in-game color (via usePlayerAccentColor, backed
@@ -442,17 +501,30 @@ function MatchEditor({
   )
 }
 
+// Shared by MatchBox/LeafBox (so every card in the tree has the same
+// footprint, keeping row heights aligned) and by TreeColumnHeaders, which
+// derives its per-round pixel offsets from these same two constants.
+const MATCH_BOX_WIDTH = 210
+const CONNECTOR_GAP = 24
+
 function MatchBox({
   match,
+  matchesById,
   isAdmin,
   onEdit,
+  onHoverMatch,
   registerBox,
 }: {
   match: BracketMatchOutput
+  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
+  // "not_applicable" is only ever produced for GF-2 (Grand Final Reset) —
+  // resolve_bracket in bracket.py marks it that way whenever GF-1's winner
+  // wasn't the Losers Bracket finalist, i.e. no reset is required.
   const notApplicable = match.status === "not_applicable"
   const editable = isAdmin && !notApplicable
   const accent = statusAccent(match.status)
@@ -461,22 +533,24 @@ function MatchBox({
       ref={(el: HTMLElement | null) => registerBox?.(match.match_id, el)}
       variant="outlined"
       onClick={editable ? () => onEdit(match) : undefined}
+      onMouseEnter={() => onHoverMatch(match.match_id)}
+      onMouseLeave={() => onHoverMatch(null)}
       sx={{
         p: 1.5,
-        minWidth: 210,
+        minWidth: MATCH_BOX_WIDTH,
         opacity: notApplicable ? 0.5 : 1,
         cursor: editable ? "pointer" : "default",
         position: "relative",
         borderLeft: 4,
         borderLeftColor: accent.border,
         bgcolor: accent.bg,
-        "&:hover": editable
-          ? {
-              borderColor: "primary.main",
-              borderLeftColor: accent.border,
-              boxShadow: 1,
-            }
-          : undefined,
+        "&:hover": {
+          boxShadow: 1,
+          ...(editable && {
+            borderColor: "primary.main",
+            borderLeftColor: accent.border,
+          }),
+        },
       }}
     >
       <Stack
@@ -488,38 +562,33 @@ function MatchBox({
       >
         <Typography
           variant="caption"
+          noWrap
           sx={{
             color: "text.secondary",
+            minWidth: 0,
           }}
         >
-          {match.round_name}
+          <Box component="span" sx={{ fontWeight: 700 }}>
+            {shortMatchLabel(match)}
+          </Box>
+          {match.scheduled_date && ` [${match.scheduled_date}]`}
         </Typography>
         {editable && <EditIcon fontSize="inherit" color="disabled" />}
       </Stack>
       <PlayerRow
-        name={playerLabel(match, "a")}
+        name={playerLabel(match, "a", matchesById)}
         realName={match.player_a}
         score={match.score_a}
         isWinner={match.winner !== null && match.winner === match.player_a}
         isLoser={match.winner !== null && match.winner !== match.player_a}
       />
       <PlayerRow
-        name={playerLabel(match, "b")}
+        name={playerLabel(match, "b", matchesById)}
         realName={match.player_b}
         score={match.score_b}
         isWinner={match.winner !== null && match.winner === match.player_b}
         isLoser={match.winner !== null && match.winner !== match.player_b}
       />
-      {match.scheduled_date && (
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          {match.scheduled_date}
-        </Typography>
-      )}
       {notApplicable && (
         <Typography
           variant="caption"
@@ -527,7 +596,7 @@ function MatchBox({
             color: "text.secondary",
           }}
         >
-          Not needed
+          Only needed if the Losers Bracket finalist wins the Grand Final
         </Typography>
       )}
     </Paper>
@@ -552,7 +621,7 @@ function LeafBox({
         variant="outlined"
         sx={{
           p: 1.5,
-          minWidth: 210,
+          minWidth: MATCH_BOX_WIDTH,
           borderLeft: 4,
           borderLeftColor: BYE_COLOR,
           bgcolor: alpha(BYE_COLOR, 0.08),
@@ -584,7 +653,7 @@ function LeafBox({
       variant="outlined"
       sx={{
         p: 1,
-        minWidth: 210,
+        minWidth: MATCH_BOX_WIDTH,
         opacity: 0.6,
         borderLeft: 4,
         borderLeftColor: NEUTRAL_COLOR,
@@ -607,8 +676,6 @@ function LeafBox({
   )
 }
 
-const CONNECTOR_GAP = 24
-
 // Renders one bracket node. A "match" node draws its two children stacked in
 // a column (each taking half the column's height) to its left, a connector
 // line joining their midpoints to its own midpoint, and its own MatchBox to
@@ -620,13 +687,17 @@ const CONNECTOR_GAP = 24
 // matches mix same-bracket subtrees with single-leaf cross-bracket refs).
 function BracketNodeView({
   node,
+  matchesById,
   isAdmin,
   onEdit,
+  onHoverMatch,
   registerBox,
 }: {
   node: BracketNode
+  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   if (node.kind !== "match") {
@@ -636,8 +707,10 @@ function BracketNodeView({
     return (
       <MatchBox
         match={node.match}
+        matchesById={matchesById}
         isAdmin={isAdmin}
         onEdit={onEdit}
+        onHoverMatch={onHoverMatch}
         registerBox={registerBox}
       />
     )
@@ -666,16 +739,20 @@ function BracketNodeView({
         <Box sx={childSlotSx}>
           <BracketNodeView
             node={node.children[0]}
+            matchesById={matchesById}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            onHoverMatch={onHoverMatch}
             registerBox={registerBox}
           />
         </Box>
         <Box sx={childSlotSx}>
           <BracketNodeView
             node={node.children[1]}
+            matchesById={matchesById}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            onHoverMatch={onHoverMatch}
             registerBox={registerBox}
           />
         </Box>
@@ -694,8 +771,10 @@ function BracketNodeView({
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <MatchBox
           match={node.match}
+          matchesById={matchesById}
           isAdmin={isAdmin}
           onEdit={onEdit}
+          onHoverMatch={onHoverMatch}
           registerBox={registerBox}
         />
       </Box>
@@ -726,29 +805,74 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   )
 }
 
+// One label per round, left (earliest) to right (latest), positioned above
+// a BracketNodeView tree at the same x-offsets the tree itself produces.
+// BracketNodeView always nests a match's two children one MATCH_BOX_WIDTH +
+// 2*CONNECTOR_GAP to the left of the match's own box (see its width algebra:
+// each recursion level adds exactly that stride) — as long as every leaf of
+// the tree sits at the same depth (true for the Winners bracket: every
+// Winners Round 1 slot, whether a real match or a bye, is a depth-0 leaf),
+// that stride is constant across the whole tree, so plain absolute
+// positioning lines headers up without measuring the rendered DOM.
+const TREE_COLUMN_STRIDE = MATCH_BOX_WIDTH + 2 * CONNECTOR_GAP
+
+function TreeColumnHeaders({ titles }: { titles: string[] }) {
+  return (
+    <Box sx={{ position: "relative", height: 28, mb: 1 }}>
+      {titles.map((title, i) => (
+        <Typography
+          key={title}
+          variant="subtitle2"
+          sx={{
+            position: "absolute",
+            left: i * TREE_COLUMN_STRIDE,
+            width: MATCH_BOX_WIDTH,
+            color: "text.secondary",
+            textAlign: "center",
+          }}
+        >
+          {title}
+        </Typography>
+      ))}
+    </Box>
+  )
+}
+
 function BracketTreeSection({
   title,
   nodes,
+  columnTitles,
+  matchesById,
   isAdmin,
   onEdit,
+  onHoverMatch,
   registerBox,
 }: {
   title: string
   nodes: BracketNode[]
+  // Rendered as a header row above the tree, earliest round first — only
+  // meaningful when every node's leaves share one depth (see
+  // TREE_COLUMN_STRIDE); omit for trees that mix depths (Grand Final).
+  columnTitles?: string[]
+  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   return (
     <Box sx={{ mb: 4 }}>
       <SectionTitle>{title}</SectionTitle>
+      {columnTitles && <TreeColumnHeaders titles={columnTitles} />}
       <Stack spacing={3} sx={{ width: "fit-content" }}>
         {nodes.map((node, idx) => (
           <BracketNodeView
             key={idx}
             node={node}
+            matchesById={matchesById}
             isAdmin={isAdmin}
             onEdit={onEdit}
+            onHoverMatch={onHoverMatch}
             registerBox={registerBox}
           />
         ))}
@@ -767,13 +891,17 @@ function BracketTreeSection({
 // (no connector lines) but the rounds line up left-to-right as expected.
 function LosersBracketColumns({
   matches,
+  matchesById,
   isAdmin,
   onEdit,
+  onHoverMatch,
   registerBox,
 }: {
   matches: BracketMatchOutput[]
+  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
+  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   const rounds = React.useMemo(() => {
@@ -811,8 +939,10 @@ function LosersBracketColumns({
             <MatchBox
               key={m.match_id}
               match={m}
+              matchesById={matchesById}
               isAdmin={isAdmin}
               onEdit={onEdit}
+              onHoverMatch={onHoverMatch}
               registerBox={registerBox}
             />
           ))}
@@ -833,9 +963,12 @@ export default function DisplayBracket() {
   const [editingMatchId, setEditingMatchId] = React.useState<string | null>(
     null,
   )
-  // Off by default - the dashed drop/advance lines are a lot of visual
-  // noise on a full bracket; most people just want the plain tree.
-  const [showConnectorLines, setShowConnectorLines] = React.useState(false)
+  // Drop/advance lines are only ever drawn for the match currently hovered
+  // (both its incoming sources and where its result feeds forward) — showing
+  // every line at once was a lot of visual noise on a full bracket.
+  const [hoveredMatchId, setHoveredMatchId] = React.useState<string | null>(
+    null,
+  )
   const isTournamentAdmin = useIsTournamentAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
 
@@ -910,6 +1043,11 @@ export default function DisplayBracket() {
     [],
   )
 
+  const handleHoverMatch = React.useCallback(
+    (matchId: string | null) => setHoveredMatchId(matchId),
+    [],
+  )
+
   // The recursive tree-building (Winners descent plus the grand-final
   // leaves) only ever depends on bracketData — memoized so it doesn't redo
   // that work on every unrelated re-render (e.g. typing in the seed form).
@@ -980,6 +1118,8 @@ export default function DisplayBracket() {
   const [connectorLines, setConnectorLines] = React.useState<
     {
       id: string
+      from: string
+      to: string
       x1: number
       y1: number
       x2: number
@@ -1007,6 +1147,8 @@ export default function DisplayBracket() {
         const toRect = toEl.getBoundingClientRect()
         next.push({
           id: conn.id,
+          from: conn.from,
+          to: conn.to,
           x1: fromRect.right - containerRect.left,
           y1: fromRect.top + fromRect.height / 2 - containerRect.top,
           x2: toRect.left - containerRect.left,
@@ -1169,18 +1311,6 @@ export default function DisplayBracket() {
             </Paper>
           )}
 
-          <FormControlLabel
-            sx={{ mb: 1 }}
-            control={
-              <Switch
-                size="small"
-                checked={showConnectorLines}
-                onChange={(e) => setShowConnectorLines(e.target.checked)}
-              />
-            }
-            label="Show drop/advance lines"
-          />
-
           <Box sx={{ overflowX: "auto", pb: 1 }}>
             <Box
               ref={bracketAreaRef}
@@ -1197,8 +1327,13 @@ export default function DisplayBracket() {
                   pointerEvents: "none",
                 }}
               >
-                {showConnectorLines &&
-                  connectorLines.map((line) => {
+                {connectorLines
+                  .filter(
+                    (line) =>
+                      line.from === hoveredMatchId ||
+                      line.to === hoveredMatchId,
+                  )
+                  .map((line) => {
                     // Smooth S-curve (cubic Bezier) instead of a straight
                     // diagonal or an elbow — both control points sit on the
                     // horizontal midline so the curve leaves/arrives roughly
@@ -1213,7 +1348,7 @@ export default function DisplayBracket() {
                         stroke={line.color}
                         strokeWidth={1.5}
                         strokeDasharray="5 4"
-                        opacity={0.3}
+                        opacity={0.7}
                       />
                     )
                   })}
@@ -1222,24 +1357,36 @@ export default function DisplayBracket() {
                 <BracketTreeSection
                   title="Winners Bracket"
                   nodes={[winnersTree]}
+                  columnTitles={[
+                    "Winners Round 1",
+                    "Winners Round 2",
+                    "Winners Semifinal",
+                    "Winners Final",
+                  ]}
+                  matchesById={matchesById}
                   isAdmin={isTournamentAdmin}
                   onEdit={handleEdit}
+                  onHoverMatch={handleHoverMatch}
                   registerBox={registerBox}
                 />
                 <Box sx={{ mb: 4 }}>
                   <SectionTitle>Losers Bracket</SectionTitle>
                   <LosersBracketColumns
                     matches={losersMatches}
+                    matchesById={matchesById}
                     isAdmin={isTournamentAdmin}
                     onEdit={handleEdit}
+                    onHoverMatch={handleHoverMatch}
                     registerBox={registerBox}
                   />
                 </Box>
                 <BracketTreeSection
                   title="Grand Final"
                   nodes={grandFinalNodes}
+                  matchesById={matchesById}
                   isAdmin={isTournamentAdmin}
                   onEdit={handleEdit}
+                  onHoverMatch={handleHoverMatch}
                   registerBox={registerBox}
                 />
               </Box>

@@ -285,11 +285,22 @@ def build_topology(num_players: int) -> Topology:
     )
     matches += m1
     # Wave 2: merge against WB2's droppers (always exactly 4 real - round 2
-    # never has byes) at the SAME index. These are two different waves, not
-    # one population self-pairing, so there's no immediate-rematch risk to
-    # mirror away here. Every survivor is real from this point on: any slot
-    # that byed through wave 1 now faces a real WB2 dropper for the first time.
-    survivors_opt, m2 = _pair_with_byes(survivors_opt, d2, round_counter)
+    # never has byes). survivors_opt[i] can only be occupied by a player who
+    # played in WB1 pair-position i or 7-i (wave 1 mirrored those together);
+    # d2[j] can only be occupied by a player who played in WB1 pair-position
+    # 2j or 2j+1 (WB2-(j+1) pairs consecutive round-1 sources). Pairing at
+    # the SAME index j=i would let e.g. survivors_opt[2] (from position 2 or
+    # 5) face d2[2] (from position 4 or 5) - both can be occupied by the
+    # loser and the winner of the very same WB1 match (position 5), an
+    # immediate rematch. Every {i,7-i} vs {2j,2j+1} pairing collides except
+    # a cyclic shift by one (verified for all four i by brute force), so
+    # rotate d2 by one position before merging - still an arbitrary but now
+    # collision-free pairing. Every survivor is real from this point on: any
+    # slot that byed through wave 1 now faces a real WB2 dropper for the
+    # first time.
+    survivors_opt, m2 = _pair_with_byes(
+        survivors_opt, d2[1:] + d2[:1], round_counter
+    )
     matches += m2
     # d2 is never None, so every position resolved to a real source above -
     # the filter here is just narrowing the type back to list[Source].

@@ -66,3 +66,11 @@ yarn-error.log*
 /auth.md
 /.claude/
 /analysis/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

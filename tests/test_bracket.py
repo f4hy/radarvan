@@ -112,6 +112,59 @@ def test_losers_round1_pairs_mirror_not_adjacent() -> None:
     ]
 
 
+def _source_key(src: bracket.Source) -> tuple[str, str] | tuple[str, int]:
+    if isinstance(src, bracket.Seed):
+        return ("seed", src.seed)
+    if isinstance(src, bracket.WinnerOf):
+        return ("winner", src.match_id)
+    return ("loser", src.match_id)
+
+
+@pytest.mark.parametrize("num_players", ALL_PLAYER_COUNTS)
+def test_no_immediate_rematch(num_players: int) -> None:
+    """No match's two slots may both be reachable from the same earlier
+    match one hop apart - i.e. a player who just won or lost match X must
+    not be able to face the other player from X again in their very next
+    match. This is a purely structural (topology-only) check: for slot P
+    directly sourced from X (winner or loser of X) and slot Q sourced from
+    some match Z, Q risks an immediate rematch with P if Z's own two slots
+    include the complementary role of X (X's winner if P is X's loser, or
+    vice versa) - meaning Z could literally be "X's other finisher vs.
+    someone else", and if that someone else loses/wins Z, they land right
+    back across from P. The Grand Final is exempt: the WB champion facing
+    whoever climbs out of the entire losers bracket (even the person they
+    already beat in the WB final) is the intended design, not a bug - it's
+    exactly why the Grand Final Reset (GF-2) exists."""
+    topology = bracket.build_topology(num_players)
+    by_id = {m.match_id: m for m in topology.matches}
+
+    for m in topology.matches:
+        if m.bracket == "GF":
+            continue
+        for near, far in ((m.slot_a, m.slot_b), (m.slot_b, m.slot_a)):
+            near_kind, near_key = _source_key(near)
+            if near_kind not in ("winner", "loser"):
+                continue
+            x_match_id = near_key
+            far_kind, far_key = _source_key(far)
+            if far_kind not in ("winner", "loser"):
+                continue
+            assert far_key != x_match_id, (
+                f"{m.match_id} pairs both slots directly off {x_match_id} "
+                f"(n={num_players})"
+            )
+            z = by_id.get(far_key)
+            if z is None or z.bracket == "GF":
+                continue
+            complement = "winner" if near_kind == "loser" else "loser"
+            z_slot_keys = {_source_key(z.slot_a), _source_key(z.slot_b)}
+            assert (complement, x_match_id) not in z_slot_keys, (
+                f"{m.match_id} risks an immediate rematch: one slot is off "
+                f"{x_match_id}, the other is off {z.match_id} which itself "
+                f"consumes the {complement} of {x_match_id} (n={num_players})"
+            )
+
+
 @pytest.mark.parametrize(
     "num_players,expected_lb1_games",
     # WB1 byes cascade into the losers bracket the same way they do in the
@@ -146,7 +199,7 @@ def test_losers_bracket_byes_cascade_past_round1() -> None:
     assert len(lb1) == 2
     for m in lb1.values():
         sources = {m.slot_a.match_id, m.slot_b.match_id}  # type: ignore[union-attr]
-        assert sources == {"WB1-1", "WB2-2"} or sources == {"WB1-2", "WB2-3"}, (
+        assert sources == {"WB1-1", "WB2-3"} or sources == {"WB1-2", "WB2-4"}, (
             f"{m.match_id} pairs {sources} - the two WB1 droppers must not meet directly"
         )
 
