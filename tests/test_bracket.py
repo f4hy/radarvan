@@ -167,17 +167,14 @@ def test_no_immediate_rematch(num_players: int) -> None:
 
 @pytest.mark.parametrize(
     "num_players,expected_lb1_games",
-    # WB1 byes cascade into the losers bracket the same way they do in the
-    # winners bracket: a real WB1 loser whose mirror counterpart was a bye
-    # gets a solo bye-through (no game) rather than an early forced match
-    # against another real WB1 loser. For 9-12 players every real WB1
-    # dropper's mirror counterpart happens to be a bye, so "Losers Round 1"
-    # is really the round that merges those bye-throughs against WB2's
-    # droppers (always real) - hence 1-4 games instead of ceil(real WB1
-    # matches / 2). Only from 13 players on does the WB1-self-pairing wave
-    # itself produce any real games (see the module docstring's mirror
-    # table: n=13/14/15/16 -> 1/2/3/4 immediate WB1-vs-WB1 games).
-    [(9, 1), (10, 2), (11, 3), (12, 4), (13, 1), (14, 2), (15, 3), (16, 4)],
+    # Losers Round 1 pairs up every depth-1 dropper (see the module
+    # docstring): the real WB1 losers, plus any WB Round 2 match that was
+    # itself bye-vs-bye (both slots raw seeds, no WB1 dependency - equally
+    # "immediately available" as WB1). A WB2 match against a WB1 winner is
+    # depth 2 and doesn't arrive until Losers Round 2. Round 1's game count
+    # is floor(depth-1 dropper count / 2) - one dropper carries through
+    # unplayed if that count is odd.
+    [(9, 2), (10, 2), (11, 2), (12, 2), (13, 2), (14, 3), (15, 3), (16, 4)],
 )
 def test_losers_round1_game_count(num_players: int, expected_lb1_games: int) -> None:
     topology = bracket.build_topology(num_players)
@@ -185,11 +182,15 @@ def test_losers_round1_game_count(num_players: int, expected_lb1_games: int) -> 
     assert len(lb1) == expected_lb1_games
 
 
-def test_losers_bracket_byes_cascade_past_round1() -> None:
+def test_losers_round1_pairs_wb1_against_bye_only_wb2() -> None:
     """With only 2 real WB1 matches (10 players, 6 byes), the two real WB1
     droppers must NOT be forced to play each other in Losers Round 1 just
-    because they're the only two real droppers around - each should instead
-    bye through round 1 and face a real WB2 dropper for the first time."""
+    because they're the only two real droppers around. Nor should they wait
+    for a WB2 match that depends on a WB1 winner (seed1 vs Winner(WB1-1),
+    seed2 vs Winner(WB1-2)) - those can't even be played yet. Each WB1 loser
+    should instead face the loser of a same-depth, bye-vs-bye WB2 match
+    (seed4 v seed5, seed3 v seed6) - the shape confirmed against a real
+    Challonge-generated 10-player bracket."""
     topology = bracket.build_topology(10)
     lb1 = {
         m.match_id: m
@@ -199,8 +200,10 @@ def test_losers_bracket_byes_cascade_past_round1() -> None:
     assert len(lb1) == 2
     for m in lb1.values():
         sources = {m.slot_a.match_id, m.slot_b.match_id}  # type: ignore[union-attr]
-        assert sources == {"WB1-1", "WB2-3"} or sources == {"WB1-2", "WB2-4"}, (
-            f"{m.match_id} pairs {sources} - the two WB1 droppers must not meet directly"
+        assert sources == {"WB1-1", "WB2-4"} or sources == {"WB1-2", "WB2-2"}, (
+            f"{m.match_id} pairs {sources} - each WB1 loser must face a "
+            "bye-vs-bye WB2 loser (WB2-2 or WB2-4), not the other WB1 "
+            "loser or a WB1-dependent WB2 match (WB2-1, WB2-3)"
         )
 
 

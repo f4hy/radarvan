@@ -7,25 +7,40 @@ assigns byes to whichever seeds' round-1 opponent would exceed the actual
 entrant count; every round after round 1 is a clean power-of-two single
 elimination (8→4→2→1), regardless of how many byes there were.
 
-The losers bracket is the genuinely tricky part. WB1 byes don't just shrink
-round 1's dropper count - they must cascade into the losers bracket the same
-way a bye cascades in the winners bracket: a WB1 loser whose "mirror" pair
-was itself a bye gets a solo bye-through in losers round 1 (no game) rather
-than being forced into an early match against some unrelated real dropper
-just because the real-droppers-only list happened to make them adjacent.
-``_pair_with_byes`` handles this for the two waves where byes can still be
-in play (WB1 droppers self-pairing, then merging against WB2's droppers -
-by round 2 every survivor has already faced a real WB2 dropper, so no bye
-ever reaches wave 3 or later). From wave 3 onward every population is fully
-real and byes are impossible, so ``_reduce_to``/``_merge_wave`` (repeated
-self-pairing to a target size, then leveling two populations before pairing
-them 1:1) resume unchanged - verified by hand for every bye count 0-7
-(equivalently 16-9 entrants) via loss-accounting: every match produces
+The losers bracket is the genuinely tricky part, and the key realization is
+that it must be organized by *dependency depth*, not by winners-bracket round
+number. Depth is "how many rounds of real (non-bye) competition had to finish
+before this match could even be played": a raw seed is depth 0, and a
+match's depth is one more than the deeper of its two inputs. A Round-2 match
+between two bye seeds is depth 1 - exactly as immediately playable as a
+Round-1 match - while a Round-2 match against a Round-1 winner is depth 2,
+since it can't happen until Round 1 has. Two matches nominally in "the same
+winners round" can therefore have different depths once byes are involved,
+and it's depth - not round number - that determines when a loser is actually
+*available* to drop into the losers bracket. ``_match_depths`` computes it;
+``build_topology`` groups every winners-bracket loser by depth and feeds the
+losers bracket one depth-group at a time (self-pairing the first group via
+``_reduce_to``, then merging each subsequent group against the losers
+bracket's current survivors via ``_merge_droppers``). This shape was checked
+against a real Challonge-generated bracket, not derived from first
+principles alone.
+
+Every pairing decision (self-pairing within a depth group, or merging two
+groups together) risks an immediate rematch - putting two people who just
+played each other back on opposite sides of the very next match - if done
+naively at the wrong offset. Rather than hand-deriving and verifying a
+specific rotation for each merge point (brittle, and doesn't generalize to a
+new merge point), ``_pair_safely`` mechanically searches for *some* ordering
+with no such collision (checked via ``_would_rematch``, which only needs
+each source's immediate match ancestry), falling back from the default
+mirror order to rotations to a full permutation search. This is verified
+for every bye count 0-7 (equivalently 16-9 entrants) both by
+``test_no_immediate_rematch`` and by loss-accounting: every match produces
 exactly one loss, and a double-elim bracket for N entrants needs exactly
 2*(N-1) losses (or 2*(N-1)+1 with a grand-final reset) to reach a champion.
 """
 
-from collections.abc import Sequence
+import itertools
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Literal
@@ -90,8 +105,75 @@ def seed_order(n: int) -> list[int]:
 _SEED_ORDER_16 = seed_order(16)
 
 
+def _match_origin(src: Source) -> str | None:
+    """The match ``src`` was produced by, or None for a raw seed."""
+    return None if isinstance(src, Seed) else src.match_id
+
+
+def _would_rematch(a: Source, b: Source, matches_by_id: dict[str, MatchDef]) -> bool:
+    """True if pairing ``a`` against ``b`` risks putting two people who just
+    played each other back on opposite sides of the very next match: either
+    they're literally the winner/loser of the same match, or one of them
+    (say ``a``, produced by match X) is paired against someone (``b``,
+    produced by match Z) whose own match Z had X's *other* outcome as one of
+    its two inputs - meaning b could actually be the person a already played
+    in X. Checked in both directions since the risk is symmetric.
+    """
+
+    def risk(near: Source, far: Source) -> bool:
+        x = _match_origin(near)
+        z_id = _match_origin(far)
+        if x is None or z_id is None:
+            return False
+        if z_id == x:
+            return True
+        complement: Source = LoserOf(x) if isinstance(near, WinnerOf) else WinnerOf(x)
+        z = matches_by_id.get(z_id)
+        return z is not None and complement in (z.slot_a, z.slot_b)
+
+    return risk(a, b) or risk(b, a)
+
+
+def _pair_safely(
+    pool_a: list[Source],
+    pool_b: list[Source],
+    matches_by_id: dict[str, MatchDef],
+) -> list[Source]:
+    """A reordering of ``pool_b`` (same elements) such that zipping it
+    against ``pool_a`` never triggers ``_would_rematch``.
+
+    Tries the given order first (already safe whenever pool_a and pool_b
+    share no match ancestry at all, which covers the common case), then
+    every rotation, then falls back to a full permutation search - this
+    makes every merge point correct *by construction* instead of relying on
+    a rotation offset hand-derived and verified for one specific merge, the
+    way this module used to.
+    """
+    n = len(pool_b)
+    for shift in range(n):
+        candidate = pool_b[shift:] + pool_b[:shift]
+        if all(
+            not _would_rematch(a, b, matches_by_id)
+            for a, b in zip(pool_a, candidate, strict=True)
+        ):
+            return candidate
+    for perm in itertools.permutations(pool_b):
+        if all(
+            not _would_rematch(a, b, matches_by_id)
+            for a, b in zip(pool_a, perm, strict=True)
+        ):
+            return list(perm)
+    # No collision-free ordering exists at all - a genuine structural
+    # impossibility rather than a missed rotation; pair as given so the
+    # bracket still completes instead of erroring out mid-construction.
+    return pool_b
+
+
 def _reduce_to(
-    pool: list[Source], target: int, round_counter: list[int]
+    pool: list[Source],
+    target: int,
+    round_counter: list[int],
+    matches_by_id: dict[str, MatchDef],
 ) -> tuple[list[Source], list[MatchDef]]:
     """Repeatedly self-pair ``pool`` down to exactly ``target`` (0+ rounds).
 
@@ -100,11 +182,12 @@ def _reduce_to(
     through untouched - so an odd `pool` never gets stuck.
 
     Pairing mirrors the pool's two ends inward (index ``i`` against
-    ``length-1-i``) rather than adjacent neighbors, leaving any untouched
-    middle slice as leftover. `pool` preserves seed_order's traversal order,
-    so this is the standard "first half vs. reversed second half" losers-
-    bracket pairing (e.g. WB1 losers 1-4: LB1 pairs (1,4) and (2,3), not
-    (1,2) and (3,4)) that avoids an immediate same-half rematch.
+    ``length-1-i``) by default - the standard "first half vs. reversed
+    second half" losers-bracket pairing - but ``_pair_safely`` may pick a
+    different order if the mirror itself risks an immediate rematch.
+    ``matches_by_id`` must include every match created so far (both
+    winners- and losers-bracket) for that check to see the full picture; new
+    matches are added to it as they're created.
     """
     all_matches: list[MatchDef] = []
     while len(pool) > target:
@@ -113,64 +196,82 @@ def _reduce_to(
         k = length - new_len
         round_counter[0] += 1
         rnum = round_counter[0]
+        pool_a = pool[:k]
+        mirror = [pool[length - 1 - i] for i in range(k)]
+        pool_b = _pair_safely(pool_a, mirror, matches_by_id)
         matches = [
-            MatchDef(
-                f"LB{rnum}-{i + 1}",
-                "L",
-                rnum,
-                f"Losers Round {rnum}",
-                pool[i],
-                pool[length - 1 - i],
-            )
-            for i in range(k)
+            MatchDef(f"LB{rnum}-{i + 1}", "L", rnum, f"Losers Round {rnum}", a, b)
+            for i, (a, b) in enumerate(zip(pool_a, pool_b, strict=True))
         ]
+        matches_by_id.update({m.match_id: m for m in matches})
         leftover = pool[k : length - k]
         pool = [WinnerOf(m.match_id) for m in matches] + leftover
         all_matches += matches
     return pool, all_matches
 
 
-def _pair_with_byes(
-    pool_a: Sequence[Source | None],
-    pool_b: Sequence[Source | None],
+def _merge_droppers(
+    survivors: list[Source],
+    incoming: list[Source],
     round_counter: list[int],
-) -> tuple[list[Source | None], list[MatchDef]]:
-    """Pair ``pool_a[i]`` against ``pool_b[i]`` for every position. ``None``
-    on either side means "nobody there" (that branch was a bye all the way
-    down) - a real source paired against ``None`` passes straight through
-    with no match (a bye-through, mirroring how a winners-bracket bye
-    works), and two ``None``s produce ``None`` (nobody survives that
-    branch). A real match is created only where both sides are populated.
-
-    Allocates a round number only if this wave produced at least one real
-    match - a wave that's entirely byes/nothing shouldn't consume a round
-    label that never appears in the UI (the next wave becomes that round
-    instead).
-    """
-    survivors: list[Source | None] = []
-    needs_match: list[tuple[int, Source, Source]] = []
-    for i, (a, b) in enumerate(zip(pool_a, pool_b, strict=True)):
-        if a is None and b is None:
-            survivors.append(None)
-        elif a is None:
-            survivors.append(b)
-        elif b is None:
-            survivors.append(a)
-        else:
-            survivors.append(None)  # placeholder; filled in below
-            needs_match.append((i, a, b))
-    if not needs_match:
-        return survivors, []
+    matches_by_id: dict[str, MatchDef],
+    final_round_name: str | None = None,
+) -> tuple[list[Source], list[MatchDef]]:
+    """Level ``survivors`` (the losers bracket's current survivors) and
+    ``incoming`` (droppers newly available at this depth) to the same size
+    via ``_reduce_to``, then pair them 1:1 (order chosen by
+    ``_pair_safely``)."""
+    matches: list[MatchDef] = []
+    if len(survivors) > len(incoming):
+        survivors, ms = _reduce_to(
+            survivors, len(incoming), round_counter, matches_by_id
+        )
+        matches += ms
+    elif len(incoming) > len(survivors):
+        incoming, ms = _reduce_to(
+            incoming, len(survivors), round_counter, matches_by_id
+        )
+        matches += ms
     round_counter[0] += 1
     rnum = round_counter[0]
-    name = f"Losers Round {rnum}"
-    matches = [
-        MatchDef(f"LB{rnum}-{j + 1}", "L", rnum, name, a, b)
-        for j, (_, a, b) in enumerate(needs_match)
+    name = final_round_name or f"Losers Round {rnum}"
+    ordered_incoming = _pair_safely(survivors, incoming, matches_by_id)
+    merge_matches = [
+        MatchDef(f"LB{rnum}-{i + 1}", "L", rnum, name, a, b)
+        for i, (a, b) in enumerate(zip(survivors, ordered_incoming, strict=True))
     ]
-    for (i, _, _), m in zip(needs_match, matches, strict=True):
-        survivors[i] = WinnerOf(m.match_id)
-    return survivors, matches
+    matches_by_id.update({m.match_id: m for m in merge_matches})
+    matches += merge_matches
+    return [WinnerOf(m.match_id) for m in merge_matches], matches
+
+
+def _match_depths(wb_matches: list[MatchDef]) -> dict[str, int]:
+    """How many rounds of *real* competition (non-bye, already-completed
+    matches) must finish before each match can be played - a raw seed has
+    depth 0, and a match's depth is one more than the deeper of its two
+    inputs. Two matches nominally in "the same winners round" can have
+    different depths once byes are involved (e.g. a Round-2 match between
+    two bye seeds is depth 1, same as Round 1; a Round-2 match against a
+    Round-1 winner is depth 2) - this is what actually determines when a
+    dropper is *available* to enter the losers bracket.
+    """
+    by_id = {m.match_id: m for m in wb_matches}
+    depths: dict[str, int] = {}
+
+    def depth_of_source(src: Source) -> int:
+        return 0 if isinstance(src, Seed) else depth_of_match(src.match_id)
+
+    def depth_of_match(match_id: str) -> int:
+        if match_id not in depths:
+            m = by_id[match_id]
+            depths[match_id] = 1 + max(
+                depth_of_source(m.slot_a), depth_of_source(m.slot_b)
+            )
+        return depths[match_id]
+
+    for m in wb_matches:
+        depth_of_match(m.match_id)
+    return depths
 
 
 def _pair_round(
@@ -186,33 +287,6 @@ def _pair_round(
         )
     ]
     return [WinnerOf(m.match_id) for m in matches], matches
-
-
-def _merge_wave(
-    existing: list[Source],
-    incoming: list[Source],
-    round_counter: list[int],
-    final_round_name: str | None = None,
-) -> tuple[list[Source], list[MatchDef]]:
-    """Level ``existing`` (current LB survivors) and ``incoming`` (a fresh
-    wave of winners-bracket droppers) to the same size via ``_reduce_to``,
-    then pair them 1:1."""
-    matches: list[MatchDef] = []
-    if len(existing) > len(incoming):
-        existing, ms = _reduce_to(existing, len(incoming), round_counter)
-        matches += ms
-    elif len(incoming) > len(existing):
-        incoming, ms = _reduce_to(incoming, len(existing), round_counter)
-        matches += ms
-    round_counter[0] += 1
-    rnum = round_counter[0]
-    name = final_round_name or f"Losers Round {rnum}"
-    merge_matches = [
-        MatchDef(f"LB{rnum}-{i + 1}", "L", rnum, name, a, b)
-        for i, (a, b) in enumerate(zip(existing, incoming, strict=True))
-    ]
-    matches += merge_matches
-    return [WinnerOf(m.match_id) for m in merge_matches], matches
 
 
 @lru_cache(maxsize=8)
@@ -235,26 +309,18 @@ def build_topology(num_players: int) -> Topology:
     # any pair is always <= 8 <= MIN_PLAYERS <= num_players).
     pairs = list(zip(_SEED_ORDER_16[0::2], _SEED_ORDER_16[1::2], strict=True))
     round1_sources: list[Source] = []
-    wb1_ids: list[str] = []
-    # Round-1 droppers, addressed by their conceptual WB1 pair position (0-7,
-    # seed_order-pair order) rather than only the real ones - None marks a
-    # bye pair, so a real loser whose mirror counterpart never played can
-    # bye through in the losers bracket instead of being forced into an
-    # early match with an unrelated real dropper (see _pair_with_byes).
-    d1_full: list[Source | None] = []
+    wb1_count = 0
     for x, y in pairs:
         if y > num_players:
             bye_seeds.append(x)
             round1_sources.append(Seed(x))
-            d1_full.append(None)
         else:
-            match_id = f"WB1-{len(wb1_ids) + 1}"
+            wb1_count += 1
+            match_id = f"WB1-{wb1_count}"
             matches.append(
                 MatchDef(match_id, "W", 1, "Winners Round 1", Seed(x), Seed(y))
             )
-            wb1_ids.append(match_id)
             round1_sources.append(WinnerOf(match_id))
-            d1_full.append(LoserOf(match_id))
 
     # Winners bracket round 2 (always a clean 8 -> 4, no more byes ever),
     # semifinals (4 -> 2), and final (2 -> 1) - three rounds of the same
@@ -271,47 +337,38 @@ def build_topology(num_players: int) -> Topology:
     matches += wb4_matches
     wb_final_id = wb4_matches[0].match_id
 
-    # Losers bracket: process each winners-bracket round's droppers as a wave.
-    d2: list[Source] = [LoserOf(m.match_id) for m in wb2_matches]
-    d3: list[Source] = [LoserOf(m.match_id) for m in wb3_matches]
-    d4: list[Source] = [LoserOf(wb_final_id)]
+    # Losers bracket: group every winners-bracket match's loser by depth
+    # (see _match_depths and the module docstring) and feed the losers
+    # bracket one depth-group at a time - the first group self-pairs (there's
+    # nothing to merge against yet); every later group merges against the
+    # losers bracket's current survivors.
+    depths = _match_depths(matches)
+    droppers_by_depth: dict[int, list[Source]] = {}
+    for m in matches:
+        droppers_by_depth.setdefault(depths[m.match_id], []).append(
+            LoserOf(m.match_id)
+        )
 
+    matches_by_id = {m.match_id: m for m in matches}
     round_counter = [0]
-    # Wave 1: mirror WB1's 8 conceptual pairs into 4 (index i vs 7-i) - the
-    # same "top half vs. reversed bottom half" pairing as a bye-free bracket,
-    # just with a bye contributing None instead of a real dropper.
-    survivors_opt, m1 = _pair_with_byes(
-        d1_full[:4], list(reversed(d1_full[4:])), round_counter
-    )
-    matches += m1
-    # Wave 2: merge against WB2's droppers (always exactly 4 real - round 2
-    # never has byes). survivors_opt[i] can only be occupied by a player who
-    # played in WB1 pair-position i or 7-i (wave 1 mirrored those together);
-    # d2[j] can only be occupied by a player who played in WB1 pair-position
-    # 2j or 2j+1 (WB2-(j+1) pairs consecutive round-1 sources). Pairing at
-    # the SAME index j=i would let e.g. survivors_opt[2] (from position 2 or
-    # 5) face d2[2] (from position 4 or 5) - both can be occupied by the
-    # loser and the winner of the very same WB1 match (position 5), an
-    # immediate rematch. Every {i,7-i} vs {2j,2j+1} pairing collides except
-    # a cyclic shift by one (verified for all four i by brute force), so
-    # rotate d2 by one position before merging - still an arbitrary but now
-    # collision-free pairing. Every survivor is real from this point on: any
-    # slot that byed through wave 1 now faces a real WB2 dropper for the
-    # first time.
-    survivors_opt, m2 = _pair_with_byes(survivors_opt, d2[1:] + d2[:1], round_counter)
-    matches += m2
-    # d2 is never None, so every position resolved to a real source above -
-    # the filter here is just narrowing the type back to list[Source].
-    survivors: list[Source] = [s for s in survivors_opt if s is not None]
-
-    survivors, m3 = _merge_wave(survivors, d3, round_counter)
-    matches += m3
-    survivors, m4 = _merge_wave(
-        survivors, d4, round_counter, final_round_name="Losers Final"
-    )
-    matches += m4
-    # The final merge_wave always reduces to exactly one survivor: the
-    # losers-bracket champion.
+    survivors: list[Source] = []
+    max_depth = max(droppers_by_depth)
+    for d in sorted(droppers_by_depth):
+        incoming = droppers_by_depth[d]
+        if not incoming:
+            continue
+        if not survivors:
+            target = -(-len(incoming) // 2)  # ceil(len / 2)
+            survivors, ms = _reduce_to(incoming, target, round_counter, matches_by_id)
+            matches += ms
+            continue
+        final_round_name = "Losers Final" if d == max_depth else None
+        survivors, ms = _merge_droppers(
+            survivors, incoming, round_counter, matches_by_id, final_round_name
+        )
+        matches += ms
+    # The final merge always reduces to exactly one survivor: the losers-
+    # bracket champion.
     lb_champion_source = survivors[0]
 
     # Grand final; GF-2 (bracket reset) only applies if the losers-bracket
