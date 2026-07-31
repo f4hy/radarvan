@@ -1,6 +1,7 @@
 """Compute player stats."""
 
 from collections import Counter, defaultdict
+from datetime import date
 
 from .api_types import (
     MatchInfo,
@@ -11,7 +12,7 @@ from .api_types import (
 )
 from . import game_composition
 from .general_stats import CPU_NAMES
-from .matches import filter_by_months_back
+from .matches import months_back_cutoff
 import structlog
 from .player_ids import PLAYER_NAMES, resolve_player_name
 
@@ -25,8 +26,13 @@ NEEDED_GAMES = 8
 RECENT_COLOR_MONTHS = 6
 
 
-def _color_counts(games: list[MatchInfo]) -> defaultdict[str, Counter[str]]:
-    counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
+def _color_counts(
+    games: list[MatchInfo], recent_cutoff: date
+) -> tuple[defaultdict[str, Counter[str]], defaultdict[str, Counter[str]]]:
+    """All-time and recent-only (``date >= recent_cutoff``) color counts, in
+    one pass over ``games`` rather than filtering-then-counting twice."""
+    all_time: defaultdict[str, Counter[str]] = defaultdict(Counter)
+    recent: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for game in games:
         for p in game.players:
             if not p.is_real() or p.Type == "C":
@@ -34,8 +40,10 @@ def _color_counts(games: list[MatchInfo]) -> defaultdict[str, Counter[str]]:
             name = resolve_player_name(p.name, p.color)
             if name not in PLAYER_NAMES or name in CPU_NAMES:
                 continue
-            counts[name][p.color] += 1
-    return counts
+            all_time[name][p.color] += 1
+            if game.date >= recent_cutoff:
+                recent[name][p.color] += 1
+    return all_time, recent
 
 
 def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
@@ -49,8 +57,9 @@ def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
     and not yet resolved into it) fall back to their full history instead of
     losing a color entirely.
     """
-    recent_counts = _color_counts(filter_by_months_back(games, RECENT_COLOR_MONTHS))
-    all_time_counts = _color_counts(games)
+    all_time_counts, recent_counts = _color_counts(
+        games, months_back_cutoff(RECENT_COLOR_MONTHS)
+    )
     for name, color_counts in all_time_counts.items():
         recent_counts.setdefault(name, color_counts)
     return {

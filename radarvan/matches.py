@@ -424,6 +424,14 @@ def filter_since[T](
     return [i for i in items if key(i) >= cutoff]
 
 
+def months_back_cutoff(months_back: int, today: date | None = None) -> date:
+    """The cutoff date ``filter_by_months_back`` would apply, exposed on its
+    own for callers that need the cutoff itself (e.g. to bucket items into
+    recent/older in a single pass) rather than a pre-filtered list.
+    """
+    return (today or datetime.now(UTC).date()) - timedelta(days=months_back * 30)
+
+
 def filter_by_months_back(
     games: list[MatchInfo], months_back: int | None, today: date | None = None
 ) -> list[MatchInfo]:
@@ -432,5 +440,7 @@ def filter_by_months_back(
     Months are approximated as 30 days each, consistent with this codebase's
     other relative-date filters.
     """
-    days_back = None if months_back is None else months_back * 30
-    return filter_since(games, days_back, key=lambda g: g.date, today=today)
+    if months_back is None:
+        return games
+    cutoff = months_back_cutoff(months_back, today)
+    return [g for g in games if g.date >= cutoff]

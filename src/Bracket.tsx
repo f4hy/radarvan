@@ -131,26 +131,29 @@ function loserOf(match: BracketMatchOutput): string | null {
 }
 
 // Maps a match's full round_name (as produced by radarvan/bracket.py) to a
-// short prefix for card captions / "Winner of ..." references. Losers Round
-// N isn't listed here since N is dynamic — see roundCode's fallback.
-const ROUND_CODE: Record<string, string> = {
-  "Winners Round 1": "WR1",
-  "Winners Round 2": "WR2",
-  "Winners Semifinal": "WSF",
-  "Winners Final": "WF",
-  "Losers Final": "LF",
-  "Grand Final": "GF",
-  "Grand Final Reset": "GFR",
+// short prefix for card captions / "Winner of ..." references, plus whether
+// that round is always exactly one match under the fixed 16-slot bracket
+// shape (see bracket.py's build_topology) - those skip the "-a"/"-b" suffix.
+// Losers Round N isn't listed here since N is dynamic — see roundCode's fallback.
+const ROUND_CODE: Record<string, { code: string; singleton: boolean }> = {
+  "Winners Round 1": { code: "WR1", singleton: false },
+  "Winners Round 2": { code: "WR2", singleton: false },
+  "Winners Semifinal": { code: "WSF", singleton: false },
+  "Winners Final": { code: "WF", singleton: true },
+  "Losers Final": { code: "LF", singleton: true },
+  "Grand Final": { code: "GF", singleton: true },
+  "Grand Final Reset": { code: "GFR", singleton: true },
 }
 
-// Rounds that are always exactly one match under the fixed 16-slot bracket
-// shape (see bracket.py's build_topology) — no "-a"/"-b" suffix needed.
-const SINGLETON_ROUND_CODES = new Set(["WF", "LF", "GF", "GFR"])
-
-function roundCode(match: BracketMatchOutput): string {
+function roundCode(match: BracketMatchOutput): {
+  code: string
+  singleton: boolean
+} {
   return (
     ROUND_CODE[match.round_name] ??
-    (match.bracket === "L" ? `LR${match.round_number}` : match.round_name)
+    (match.bracket === "L"
+      ? { code: `LR${match.round_number}`, singleton: false }
+      : { code: match.round_name, singleton: false })
   )
 }
 
@@ -162,11 +165,23 @@ function indexToLetter(idx: number): string {
 }
 
 function shortMatchLabel(match: BracketMatchOutput): string {
-  const code = roundCode(match)
-  if (SINGLETON_ROUND_CODES.has(code)) return code
+  const { code, singleton } = roundCode(match)
+  if (singleton) return code
   const suffix = match.match_id.match(/-(\d+)$/)
   const idx = suffix ? Number(suffix[1]) : 1
   return `${code}-${indexToLetter(idx)}`
+}
+
+// Shared by buildChild's leaf-ref label and playerLabel's TBD fallback: both
+// describe an unresolved slot the same way ("Winner of WR1-a"), resolvable
+// immediately from a match's source_a/source_b - no games need to have been
+// played yet.
+function sourceMatchLabel(
+  matchId: string,
+  matchesById: Map<string, BracketMatchOutput>,
+): string {
+  const refMatch = matchesById.get(matchId)
+  return refMatch ? shortMatchLabel(refMatch) : matchId
 }
 
 function buildChild(
@@ -193,7 +208,7 @@ function buildChild(
     : null
   return {
     kind: "ref",
-    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${refMatch ? shortMatchLabel(refMatch) : source.match_id}`,
+    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${sourceMatchLabel(source.match_id, matchesById)}`,
     playerName,
   }
 }
@@ -246,8 +261,7 @@ function playerLabel(
   if (match.status === "not_applicable") return "—"
   const source = side === "a" ? match.source_a : match.source_b
   if (matchesById && source.kind !== "seed") {
-    const refMatch = matchesById.get(source.match_id)
-    const refLabel = refMatch ? shortMatchLabel(refMatch) : source.match_id
+    const refLabel = sourceMatchLabel(source.match_id, matchesById)
     return `${source.kind === "winner" ? "Winner" : "Loser"} of ${refLabel}`
   }
   return "TBD"
@@ -507,21 +521,42 @@ function MatchEditor({
 const MATCH_BOX_WIDTH = 210
 const CONNECTOR_GAP = 24
 
-function MatchBox({
+// Read-only, rarely-changing data every MatchBox needs regardless of its
+// depth in the tree - carried via context (like usePlayerAccentColor's
+// PlayerColorsContext elsewhere in this file) instead of threaded as props
+// through BracketNodeView/BracketTreeSection/LosersBracketColumns, none of
+// which otherwise have a reason to know about either field.
+type BracketDataValue = {
+  matchesById: Map<string, BracketMatchOutput>
+  onHoverMatch: (matchId: string | null) => void
+}
+const BracketDataContext = React.createContext<BracketDataValue | null>(null)
+function useBracketData(): BracketDataValue {
+  const ctx = React.useContext(BracketDataContext)
+  if (!ctx) {
+    throw new Error(
+      "useBracketData must be used within BracketDataContext.Provider",
+    )
+  }
+  return ctx
+}
+
+// Memoized because every hover anywhere in the tree re-renders DisplayBracket
+// (hoveredMatchId state) - matchesById/onEdit/onHoverMatch/registerBox are
+// all referentially stable across a hover-only update, so without this every
+// one of the ~30 match cards would re-render on every mouse movement.
+const MatchBox = React.memo(function MatchBox({
   match,
-  matchesById,
   isAdmin,
   onEdit,
-  onHoverMatch,
   registerBox,
 }: {
   match: BracketMatchOutput
-  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
-  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
+  const { matchesById, onHoverMatch } = useBracketData()
   // "not_applicable" is only ever produced for GF-2 (Grand Final Reset) —
   // resolve_bracket in bracket.py marks it that way whenever GF-1's winner
   // wasn't the Losers Bracket finalist, i.e. no reset is required.
@@ -601,7 +636,7 @@ function MatchBox({
       )}
     </Paper>
   )
-}
+})
 
 // A leaf that isn't a live match — either a bye seed (Winners Round 1) or a
 // cross-bracket reference to a match rendered elsewhere (a Losers-bracket
@@ -685,19 +720,15 @@ function LeafBox({
 // layout naturally centers a parent between its two children with no pixel
 // math, even when the two subtrees have different depths (Losers-bracket
 // matches mix same-bracket subtrees with single-leaf cross-bracket refs).
-function BracketNodeView({
+const BracketNodeView = React.memo(function BracketNodeView({
   node,
-  matchesById,
   isAdmin,
   onEdit,
-  onHoverMatch,
   registerBox,
 }: {
   node: BracketNode
-  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
-  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   if (node.kind !== "match") {
@@ -707,10 +738,8 @@ function BracketNodeView({
     return (
       <MatchBox
         match={node.match}
-        matchesById={matchesById}
         isAdmin={isAdmin}
         onEdit={onEdit}
-        onHoverMatch={onHoverMatch}
         registerBox={registerBox}
       />
     )
@@ -739,20 +768,16 @@ function BracketNodeView({
         <Box sx={childSlotSx}>
           <BracketNodeView
             node={node.children[0]}
-            matchesById={matchesById}
             isAdmin={isAdmin}
             onEdit={onEdit}
-            onHoverMatch={onHoverMatch}
             registerBox={registerBox}
           />
         </Box>
         <Box sx={childSlotSx}>
           <BracketNodeView
             node={node.children[1]}
-            matchesById={matchesById}
             isAdmin={isAdmin}
             onEdit={onEdit}
-            onHoverMatch={onHoverMatch}
             registerBox={registerBox}
           />
         </Box>
@@ -771,16 +796,14 @@ function BracketNodeView({
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <MatchBox
           match={node.match}
-          matchesById={matchesById}
           isAdmin={isAdmin}
           onEdit={onEdit}
-          onHoverMatch={onHoverMatch}
           registerBox={registerBox}
         />
       </Box>
     </Box>
   )
-}
+})
 
 // A section title pinned to the left edge while its bracket area scrolls
 // horizontally underneath — the whole bracket (Winners + Losers + Grand
@@ -842,10 +865,8 @@ function BracketTreeSection({
   title,
   nodes,
   columnTitles,
-  matchesById,
   isAdmin,
   onEdit,
-  onHoverMatch,
   registerBox,
 }: {
   title: string
@@ -854,10 +875,8 @@ function BracketTreeSection({
   // meaningful when every node's leaves share one depth (see
   // TREE_COLUMN_STRIDE); omit for trees that mix depths (Grand Final).
   columnTitles?: string[]
-  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
-  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   return (
@@ -869,10 +888,8 @@ function BracketTreeSection({
           <BracketNodeView
             key={idx}
             node={node}
-            matchesById={matchesById}
             isAdmin={isAdmin}
             onEdit={onEdit}
-            onHoverMatch={onHoverMatch}
             registerBox={registerBox}
           />
         ))}
@@ -891,17 +908,13 @@ function BracketTreeSection({
 // (no connector lines) but the rounds line up left-to-right as expected.
 function LosersBracketColumns({
   matches,
-  matchesById,
   isAdmin,
   onEdit,
-  onHoverMatch,
   registerBox,
 }: {
   matches: BracketMatchOutput[]
-  matchesById: Map<string, BracketMatchOutput>
   isAdmin: boolean
   onEdit: (match: BracketMatchOutput) => void
-  onHoverMatch: (matchId: string | null) => void
   registerBox?: (matchId: string, el: HTMLElement | null) => void
 }) {
   const rounds = React.useMemo(() => {
@@ -939,10 +952,8 @@ function LosersBracketColumns({
             <MatchBox
               key={m.match_id}
               match={m}
-              matchesById={matchesById}
               isAdmin={isAdmin}
               onEdit={onEdit}
-              onHoverMatch={onHoverMatch}
               registerBox={registerBox}
             />
           ))}
@@ -1080,6 +1091,13 @@ export default function DisplayBracket() {
       return { matchesById, winnersTree, losersMatches, grandFinalNodes }
     }, [bracketData])
 
+  // Memoized so BracketDataContext's value stays referentially stable across
+  // hover-only re-renders (both matchesById and handleHoverMatch already are).
+  const bracketDataValue = React.useMemo(
+    () => ({ matchesById, onHoverMatch: handleHoverMatch }),
+    [matchesById, handleHoverMatch],
+  )
+
   // Dashed connector lines drawn across sections for edges the tree/column
   // layouts above can't show themselves: a loser dropping out of the Winners
   // bracket into the Losers bracket (LOSS_COLOR), and a winner advancing
@@ -1106,6 +1124,19 @@ export default function DisplayBracket() {
     return conns
   }, [bracketData, matchesById])
 
+  // ids of the dropConnections touching the currently-hovered match (in
+  // either direction) - connectorLines below reuses dropConnections' ids
+  // rather than duplicating from/to onto its own geometry entries.
+  const hoveredConnectionIds = React.useMemo(
+    () =>
+      new Set(
+        dropConnections
+          .filter((c) => c.from === hoveredMatchId || c.to === hoveredMatchId)
+          .map((c) => c.id),
+      ),
+    [dropConnections, hoveredMatchId],
+  )
+
   const boxRefs = React.useRef(new Map<string, HTMLElement>())
   const registerBox = React.useCallback(
     (matchId: string, el: HTMLElement | null) => {
@@ -1118,8 +1149,6 @@ export default function DisplayBracket() {
   const [connectorLines, setConnectorLines] = React.useState<
     {
       id: string
-      from: string
-      to: string
       x1: number
       y1: number
       x2: number
@@ -1147,8 +1176,6 @@ export default function DisplayBracket() {
         const toRect = toEl.getBoundingClientRect()
         next.push({
           id: conn.id,
-          from: conn.from,
-          to: conn.to,
           x1: fromRect.right - containerRect.left,
           y1: fromRect.top + fromRect.height / 2 - containerRect.top,
           x2: toRect.left - containerRect.left,
@@ -1328,11 +1355,7 @@ export default function DisplayBracket() {
                 }}
               >
                 {connectorLines
-                  .filter(
-                    (line) =>
-                      line.from === hoveredMatchId ||
-                      line.to === hoveredMatchId,
-                  )
+                  .filter((line) => hoveredConnectionIds.has(line.id))
                   .map((line) => {
                     // Smooth S-curve (cubic Bezier) instead of a straight
                     // diagonal or an elbow — both control points sit on the
@@ -1354,41 +1377,37 @@ export default function DisplayBracket() {
                   })}
               </Box>
               <Box sx={{ position: "relative" }}>
-                <BracketTreeSection
-                  title="Winners Bracket"
-                  nodes={[winnersTree]}
-                  columnTitles={[
-                    "Winners Round 1",
-                    "Winners Round 2",
-                    "Winners Semifinal",
-                    "Winners Final",
-                  ]}
-                  matchesById={matchesById}
-                  isAdmin={isTournamentAdmin}
-                  onEdit={handleEdit}
-                  onHoverMatch={handleHoverMatch}
-                  registerBox={registerBox}
-                />
-                <Box sx={{ mb: 4 }}>
-                  <SectionTitle>Losers Bracket</SectionTitle>
-                  <LosersBracketColumns
-                    matches={losersMatches}
-                    matchesById={matchesById}
+                <BracketDataContext.Provider value={bracketDataValue}>
+                  <BracketTreeSection
+                    title="Winners Bracket"
+                    nodes={[winnersTree]}
+                    columnTitles={[
+                      "Winners Round 1",
+                      "Winners Round 2",
+                      "Winners Semifinal",
+                      "Winners Final",
+                    ]}
                     isAdmin={isTournamentAdmin}
                     onEdit={handleEdit}
-                    onHoverMatch={handleHoverMatch}
                     registerBox={registerBox}
                   />
-                </Box>
-                <BracketTreeSection
-                  title="👑 Grand Final"
-                  nodes={grandFinalNodes}
-                  matchesById={matchesById}
-                  isAdmin={isTournamentAdmin}
-                  onEdit={handleEdit}
-                  onHoverMatch={handleHoverMatch}
-                  registerBox={registerBox}
-                />
+                  <Box sx={{ mb: 4 }}>
+                    <SectionTitle>Losers Bracket</SectionTitle>
+                    <LosersBracketColumns
+                      matches={losersMatches}
+                      isAdmin={isTournamentAdmin}
+                      onEdit={handleEdit}
+                      registerBox={registerBox}
+                    />
+                  </Box>
+                  <BracketTreeSection
+                    title="👑 Grand Final"
+                    nodes={grandFinalNodes}
+                    isAdmin={isTournamentAdmin}
+                    onEdit={handleEdit}
+                    registerBox={registerBox}
+                  />
+                </BracketDataContext.Provider>
               </Box>
             </Box>
           </Box>
