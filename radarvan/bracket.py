@@ -345,9 +345,7 @@ def build_topology(num_players: int) -> Topology:
     depths = _match_depths(matches)
     droppers_by_depth: dict[int, list[Source]] = {}
     for m in matches:
-        droppers_by_depth.setdefault(depths[m.match_id], []).append(
-            LoserOf(m.match_id)
-        )
+        droppers_by_depth.setdefault(depths[m.match_id], []).append(LoserOf(m.match_id))
 
     matches_by_id = {m.match_id: m for m in matches}
     round_counter = [0]

@@ -146,7 +146,12 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
 
 async def get_player_dirs(root: str) -> list[str]:
     user_ids = list(player_ids.PLAYERS.values())
-    return await matching_links(root, user_ids)
+    dirs = await matching_links(root, user_ids)
+    return [
+        d
+        for d in dirs
+        if not any(blocked in d for blocked in player_ids.BLOCKED_SCRAPE_DIRS)
+    ]
 
 
 async def search_dates(days: int, base: str) -> list[list[str]]:

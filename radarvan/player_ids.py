@@ -100,6 +100,14 @@ def is_admin(player_name: str | None) -> bool:
     return player_name is not None and player_name in ADMIN_PLAYERS
 
 
+# Directory names on gentool.net to skip during scraping even though they
+# match a known player ID substring - e.g. some other player's client happens
+# to share Skip's ID (7E00462DFB0F), so scraping by ID alone would also pull
+# in their unrelated games. Match against the full directory name, not just
+# the player name, since we can't rely on name/alias matching here.
+BLOCKED_SCRAPE_DIRS: set[str] = {"akram_7E00462DFB0F", "DESKTOP-CQM9_7E00462DFB0F"}
+
+
 # Admins for the 1v1 double-elimination bracket feature specifically - a
 # separate, narrower set from ADMIN_PLAYERS so granting bracket admin doesn't
 # also grant access to unrelated admin features (debug page, backfills, …).
