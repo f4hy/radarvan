@@ -113,8 +113,9 @@ export default function Menu() {
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
-  // The bracket tab is only shown to its two admins while the tournament is
-  // being set up — flip BRACKET_VISIBLE_TO_ALL in Bracket.tsx to open it up.
+  // BRACKET_VISIBLE_TO_ALL (Bracket.tsx) controls whether the tab is public;
+  // it also stays visible for tournament admins even if that's ever flipped
+  // back off, since they need to manage the bracket regardless.
   const isTournamentAdmin = useIsTournamentAdmin()
   const showBracketTab = BRACKET_VISIBLE_TO_ALL || isTournamentAdmin
 
