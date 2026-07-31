@@ -49,14 +49,13 @@ import {
 } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
-// While the tournament is being set up, only tournament admins (Modus/Gorn)
-// can see this page at all — everyone else gets a "not open yet" message and
-// the nav item is hidden (see Menu.tsx). Flip PRODUCTION_BRACKET_VISIBLE_TO_ALL
-// to true to open the read-only bracket view up to everyone once it's ready
-// to announce. For local testing without logging in as a tournament admin,
-// set VITE_BRACKET_VISIBLE_TO_ALL=true in a local (gitignored) .env.local
-// instead — it never affects a real build.
-const PRODUCTION_BRACKET_VISIBLE_TO_ALL = false
+// The bracket page (and its nav tab, see Menu.tsx) is open to everyone,
+// including logged-out visitors — the reveal_at gate on individual
+// placements (see routes/bracket.py) is what keeps the tournament a secret
+// pre-reveal, not this flag. Flip PRODUCTION_BRACKET_VISIBLE_TO_ALL back to
+// false to lock the whole page down to tournament admins again (e.g. before
+// a future tournament is ready to announce at all).
+const PRODUCTION_BRACKET_VISIBLE_TO_ALL = true
 export const BRACKET_VISIBLE_TO_ALL =
   PRODUCTION_BRACKET_VISIBLE_TO_ALL ||
   import.meta.env.VITE_BRACKET_VISIBLE_TO_ALL === "true"

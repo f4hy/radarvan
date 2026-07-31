@@ -28,6 +28,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 - Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree — the user manages commits.
 - **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.** The service is always running; it's the intended read path and matches what the frontend actually sees. Reserve direct `DatabaseManager`/`replay_files` scripting for cases the API genuinely can't express.
 - **When exploring code, read the source file directly (`Read` tool) rather than chaining several `grep`/`sed`/`awk` shell commands.** Use `grep`/`Bash` only for repo-wide searches (finding *where* something is defined/used across many files) — once you know the file, read it.
+- **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium.** Pass the Firefox browser/channel explicitly wherever the driver defaults to Chromium.
 
 ### Environment variables
 
