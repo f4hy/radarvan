@@ -19,6 +19,7 @@ import type {
   CreateBracketRequest,
   HTTPValidationError,
   SetBracketMatchRequest,
+  SetBracketRevealAtRequest,
 } from '../models/index';
 import {
     BracketTournamentOutputFromJSON,
@@ -29,15 +30,25 @@ import {
     HTTPValidationErrorToJSON,
     SetBracketMatchRequestFromJSON,
     SetBracketMatchRequestToJSON,
+    SetBracketRevealAtRequestFromJSON,
+    SetBracketRevealAtRequestToJSON,
 } from '../models/index';
 
 export interface CreateBracketApiBracketPostRequest {
     createBracketRequest: CreateBracketRequest;
 }
 
+export interface GetBracketApiBracketGetRequest {
+    preview?: boolean;
+}
+
 export interface SetBracketMatchApiBracketMatchIdPostRequest {
     matchId: string;
     setBracketMatchRequest: SetBracketMatchRequest;
+}
+
+export interface SetBracketRevealAtApiBracketRevealAtPostRequest {
+    setBracketRevealAtRequest: SetBracketRevealAtRequest;
 }
 
 /**
@@ -136,8 +147,12 @@ export class BracketApi extends runtime.BaseAPI {
     /**
      * Creates request options for getBracketApiBracketGet without sending the request
      */
-    async getBracketApiBracketGetRequestOpts(): Promise<runtime.RequestOpts> {
+    async getBracketApiBracketGetRequestOpts(requestParameters: GetBracketApiBracketGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
+
+        if (requestParameters['preview'] != null) {
+            queryParameters['preview'] = requestParameters['preview'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -153,22 +168,22 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * The current bracket tournament, or None if none has been created yet.
+     * The current bracket tournament, or None if none has been created yet.  Before ``reveal_at``, player placements are withheld from the response (see ``_build_output_from_states``) - only the roster and blank bracket shape are visible. ``preview=true`` bypasses that gate, but only for a logged-in tournament admin; it\'s a per-request opt-in (an admin\'s own \"peek early\" button), not a way to reveal the bracket for everyone.
      * Get Bracket
      */
-    async getBracketApiBracketGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketTournamentOutput>> {
-        const requestOptions = await this.getBracketApiBracketGetRequestOpts();
+    async getBracketApiBracketGetRaw(requestParameters: GetBracketApiBracketGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketTournamentOutput>> {
+        const requestOptions = await this.getBracketApiBracketGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => BracketTournamentOutputFromJSON(jsonValue));
     }
 
     /**
-     * The current bracket tournament, or None if none has been created yet.
+     * The current bracket tournament, or None if none has been created yet.  Before ``reveal_at``, player placements are withheld from the response (see ``_build_output_from_states``) - only the roster and blank bracket shape are visible. ``preview=true`` bypasses that gate, but only for a logged-in tournament admin; it\'s a per-request opt-in (an admin\'s own \"peek early\" button), not a way to reveal the bracket for everyone.
      * Get Bracket
      */
-    async getBracketApiBracketGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
-        const response = await this.getBracketApiBracketGetRaw(initOverrides);
+    async getBracketApiBracketGet(requestParameters: GetBracketApiBracketGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
+        const response = await this.getBracketApiBracketGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -226,6 +241,55 @@ export class BracketApi extends runtime.BaseAPI {
      */
     async setBracketMatchApiBracketMatchIdPost(requestParameters: SetBracketMatchApiBracketMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
         const response = await this.setBracketMatchApiBracketMatchIdPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setBracketRevealAtApiBracketRevealAtPost without sending the request
+     */
+    async setBracketRevealAtApiBracketRevealAtPostRequestOpts(requestParameters: SetBracketRevealAtApiBracketRevealAtPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['setBracketRevealAtRequest'] == null) {
+            throw new runtime.RequiredError(
+                'setBracketRevealAtRequest',
+                'Required parameter "setBracketRevealAtRequest" was null or undefined when calling setBracketRevealAtApiBracketRevealAtPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/bracket/reveal_at`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SetBracketRevealAtRequestToJSON(requestParameters['setBracketRevealAtRequest']),
+        };
+    }
+
+    /**
+     * Set (or clear, with null) when the bracket becomes publicly visible.
+     * Set Bracket Reveal At
+     */
+    async setBracketRevealAtApiBracketRevealAtPostRaw(requestParameters: SetBracketRevealAtApiBracketRevealAtPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketTournamentOutput>> {
+        const requestOptions = await this.setBracketRevealAtApiBracketRevealAtPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BracketTournamentOutputFromJSON(jsonValue));
+    }
+
+    /**
+     * Set (or clear, with null) when the bracket becomes publicly visible.
+     * Set Bracket Reveal At
+     */
+    async setBracketRevealAtApiBracketRevealAtPost(requestParameters: SetBracketRevealAtApiBracketRevealAtPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
+        const response = await this.setBracketRevealAtApiBracketRevealAtPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

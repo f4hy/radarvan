@@ -813,6 +813,14 @@ class SetBracketMatchRequest(BaseModel):
     score_b: int | None = None
 
 
+class SetBracketRevealAtRequest(BaseModel):
+    model_config = _SLOTS
+
+    # When the bracket becomes publicly visible. None clears the gate (the
+    # bracket is visible immediately, regardless of the server clock).
+    reveal_at: datetime | None = None
+
+
 class SeedSource(BaseModel):
     model_config = _SLOTS
 
@@ -861,12 +869,22 @@ class BracketMatchOutput(BaseModel):
 class BracketTournamentOutput(BaseModel):
     model_config = _SLOTS
 
+    # Alphabetical roster (names only, no seeding) - always populated,
+    # regardless of `revealed`. Knowing who's *in* the tournament isn't a
+    # spoiler; the bracket placement (`players`, `matches[*].player_a/b`,
+    # `bye_advances`, `champion`/`runner_up`) is, so those are withheld
+    # (empty list / null) until `revealed` is true.
+    participant_names: list[str]
     players: list[BracketPlayerEntry]
     matches: list[BracketMatchOutput]
     bye_advances: list[BracketPlayerEntry]
     champion: str | None = None
     runner_up: str | None = None
     needs_reset: bool
+    # Server-computed (never trust a client clock for this): true once
+    # `reveal_at` has passed, or immediately if `reveal_at` is unset.
+    revealed: bool
+    reveal_at: datetime | None = None
 
 
 class TournamentReport(BaseModel):

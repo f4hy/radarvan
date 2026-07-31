@@ -3,11 +3,14 @@ import CloseIcon from "@mui/icons-material/Close"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import SettingsIcon from "@mui/icons-material/Settings"
+import VisibilityIcon from "@mui/icons-material/Visibility"
 import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Dialog from "@mui/material/Dialog"
+import DialogActions from "@mui/material/DialogActions"
 import DialogContent from "@mui/material/DialogContent"
 import DialogTitle from "@mui/material/DialogTitle"
 import IconButton from "@mui/material/IconButton"
@@ -32,8 +35,10 @@ import {
   MatchSource,
   SetBracketMatchRequest,
   setBracketMatch,
+  setBracketRevealAt,
 } from "./bracketApi"
 import Loading from "./Loading"
+import { PlayerChip } from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import {
   BRAND_COLOR,
@@ -963,7 +968,106 @@ function LosersBracketColumns({
   )
 }
 
-export default function DisplayBracket() {
+// Alphabetical roster (name + the player's usual in-game color, via
+// PlayerChip) - replaces the old admin-only seed-picking panel as the thing
+// everyone sees on this page. Who's *in* the tournament isn't a spoiler;
+// where they land in the bracket is (that's gated by reveal_at instead).
+function TournamentRoster({
+  names,
+  onSelectPlayer,
+}: {
+  names: string[]
+  onSelectPlayer: (playerName: string) => void
+}) {
+  const sorted = React.useMemo(
+    () => [...names].sort((a, b) => a.localeCompare(b)),
+    [names],
+  )
+  return (
+    <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+      <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
+        Tournament Players
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+        {sorted.map((name) => (
+          <PlayerChip
+            key={name}
+            name={name}
+            onClick={() => onSelectPlayer(name)}
+          />
+        ))}
+      </Stack>
+    </Paper>
+  )
+}
+
+// HH:MM:SS, with a "Nd " day prefix once the remaining time crosses a day -
+// the tournament reveal is set days out, and nobody needs second-precision
+// digits for a multi-day wait.
+function formatCountdown(remainingMs: number): string {
+  const totalSeconds = Math.max(Math.floor(remainingMs / 1000), 0)
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const clock = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+  return days > 0 ? `${days}d ${clock}` : clock
+}
+
+// `datetime-local` inputs read/write local-time strings with no timezone -
+// this pair converts an ISO instant to that local string for display, and
+// back via `new Date(local).toISOString()` at save time (handled inline
+// where it's used, since that direction doesn't need a named helper).
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// Ticks its own display every second - kept self-contained (own state +
+// interval) rather than the parent re-rendering on a `nowMs` prop, so the
+// once-a-second tick only re-renders this small Paper, not the whole
+// bracket tree above it. The actual reveal transition is driven by the
+// backend's `revealed` flag on the next poll; this is purely the visible
+// countdown text.
+function RevealCountdown({ revealAt }: { revealAt: string }) {
+  const [nowMs, setNowMs] = React.useState(() => Date.now())
+  React.useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const remaining = new Date(revealAt).getTime() - nowMs
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        mb: 3,
+        textAlign: "center",
+        borderColor: BRAND_COLOR,
+      }}
+    >
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        Bracket placements reveal in
+      </Typography>
+      <Typography
+        variant="h4"
+        sx={{ fontFamily: "monospace", color: BRAND_COLOR }}
+      >
+        {remaining > 0 ? formatCountdown(remaining) : "any moment now…"}
+      </Typography>
+    </Paper>
+  )
+}
+
+export default function DisplayBracket({
+  goToPlayerProfile,
+}: {
+  goToPlayerProfile: (playerName: string) => void
+}) {
   const [bracketData, setBracketData] =
     React.useState<BracketTournamentOutput | null>(null)
   const [eligiblePlayers, setEligiblePlayers] = React.useState<string[]>([])
@@ -983,6 +1087,16 @@ export default function DisplayBracket() {
   const isTournamentAdmin = useIsTournamentAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
 
+  // Admin-only "peek early" toggle (see RevealCountdown / the button below).
+  // Purely a per-session request flag: it re-fetches /api/bracket with
+  // preview=true, which the backend only honors for an authenticated
+  // tournament admin — it doesn't move the real reveal_at, so everyone
+  // else's view is unaffected.
+  const [previewActive, setPreviewActive] = React.useState(false)
+  const [adminDialogOpen, setAdminDialogOpen] = React.useState(false)
+  const [revealAtInput, setRevealAtInput] = React.useState("")
+  const [savingRevealAt, setSavingRevealAt] = React.useState(false)
+
   React.useEffect(() => {
     setLoading(true)
     fetchBracket()
@@ -990,6 +1104,30 @@ export default function DisplayBracket() {
       .catch(showError)
       .finally(() => setLoading(false))
   }, [showError])
+
+  // Single source of truth for "there's an unrevealed countdown in play" -
+  // both the poll effect below and the render gate at the bottom key off
+  // this instead of each re-deriving the same condition independently.
+  const revealPending =
+    bracketData != null &&
+    !bracketData.revealed &&
+    bracketData.reveal_at != null
+
+  // Once placements are revealed, everyone (not just admins editing scores)
+  // needs `bracketData.revealed` to flip from false to true without a manual
+  // refresh — the backend is the only clock that matters here, so this
+  // schedules a re-fetch at the target time (plus a little slack). If the
+  // server still disagrees afterward (clock skew), it falls back to a slow
+  // 5s poll rather than retrying every second indefinitely.
+  React.useEffect(() => {
+    if (!revealPending || !bracketData?.reveal_at) return
+    const msUntilTarget = new Date(bracketData.reveal_at).getTime() - Date.now()
+    const delay = msUntilTarget > 0 ? msUntilTarget + 1000 : 5000
+    const timer = setTimeout(() => {
+      fetchBracket(previewActive).then(setBracketData).catch(showError)
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [revealPending, bracketData, previewActive, showError])
 
   // Keep the create/reset form in sync with whichever tournament is
   // actually active — otherwise editing (e.g. removing a player) operates on
@@ -1005,6 +1143,11 @@ export default function DisplayBracket() {
     }
   }, [bracketData])
 
+  // Same idea for the reveal-time field, from whatever's actually stored.
+  React.useEffect(() => {
+    setRevealAtInput(toDatetimeLocalValue(bracketData?.reveal_at ?? null))
+  }, [bracketData?.reveal_at])
+
   React.useEffect(() => {
     if (isTournamentAdmin) {
       fetchEligiblePlayers()
@@ -1012,6 +1155,44 @@ export default function DisplayBracket() {
         .catch(() => {})
     }
   }, [isTournamentAdmin])
+
+  // Opening the admin tools implies wanting to see/edit the real roster and
+  // seeding, even before the public reveal - so it also switches on preview
+  // (same request the "Preview bracket" button makes).
+  const handleOpenAdminTools = async () => {
+    setAdminDialogOpen(true)
+    if (!previewActive) {
+      try {
+        setBracketData(await fetchBracket(true))
+        setPreviewActive(true)
+      } catch (e) {
+        showError(e)
+      }
+    }
+  }
+
+  const handleTogglePreview = async () => {
+    const next = !previewActive
+    try {
+      setBracketData(await fetchBracket(next))
+      setPreviewActive(next)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
+  const handleSaveRevealAt = async () => {
+    setSavingRevealAt(true)
+    try {
+      const iso = revealAtInput ? new Date(revealAtInput).toISOString() : null
+      setBracketData(await setBracketRevealAt({ reveal_at: iso }))
+      setPreviewActive(true)
+    } catch (e) {
+      showError(e)
+    } finally {
+      setSavingRevealAt(false)
+    }
+  }
 
   const seedNamesValid =
     seedNames.length >= MIN_PLAYERS &&
@@ -1028,6 +1209,7 @@ export default function DisplayBracket() {
         player_name: name as string,
       }))
       setBracketData(await createBracket(players))
+      setPreviewActive(true)
     } catch (e) {
       showError(e)
     } finally {
@@ -1228,6 +1410,8 @@ export default function DisplayBracket() {
     ? (matchesById.get(editingMatchId) ?? null)
     : null
 
+  const bracketAdminView = isTournamentAdmin && (bracketData?.revealed ?? false)
+
   return (
     <Paper sx={{ p: 2 }}>
       <Stack
@@ -1239,20 +1423,88 @@ export default function DisplayBracket() {
         }}
       >
         <EmojiEventsIcon color="primary" />
-        <Typography variant="h4">1v1 Tournament Bracket</Typography>
+        <Typography variant="h4" sx={{ flexGrow: 1 }}>
+          1v1 Tournament Bracket
+        </Typography>
+        {isTournamentAdmin && bracketData && !bracketData.revealed && (
+          <Button
+            size="small"
+            variant={previewActive ? "contained" : "outlined"}
+            startIcon={<VisibilityIcon />}
+            onClick={handleTogglePreview}
+          >
+            {previewActive
+              ? "Previewing (admin only)"
+              : "Preview bracket (admin only)"}
+          </Button>
+        )}
+        {isTournamentAdmin && (
+          <IconButton
+            size="small"
+            aria-label="Tournament admin tools"
+            onClick={handleOpenAdminTools}
+          >
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        )}
       </Stack>
-      {!bracketData && !isTournamentAdmin && (
+      {!bracketData && (
         <Typography
           sx={{
             color: "text.secondary",
           }}
         >
           No tournament has been created yet.
+          {isTournamentAdmin && " Use the settings icon above to create one."}
         </Typography>
       )}
-      {isTournamentAdmin && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+      {bracketData && (
+        <TournamentRoster
+          names={bracketData.participant_names}
+          onSelectPlayer={goToPlayerProfile}
+        />
+      )}
+      {revealPending && bracketData && bracketData.reveal_at && (
+        <RevealCountdown revealAt={bracketData.reveal_at} />
+      )}
+      <Dialog
+        open={adminDialogOpen}
+        onClose={() => setAdminDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ flexGrow: 1 }}>Tournament admin</Box>
+          <IconButton onClick={() => setAdminDialogOpen(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={1}>
+            <Typography variant="subtitle2">Reveal time</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Player placements stay hidden from everyone until this time
+              (server clock). Leave blank to show the bracket immediately.
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <TextField
+                type="datetime-local"
+                size="small"
+                value={revealAtInput}
+                onChange={(e) => setRevealAtInput(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <Button
+                size="small"
+                variant="contained"
+                disabled={savingRevealAt}
+                onClick={handleSaveRevealAt}
+              >
+                Save
+              </Button>
+            </Stack>
+          </Stack>
+          <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
             {bracketData ? "Reset Tournament" : "Create Tournament"}
           </Typography>
           <Stack spacing={1}>
@@ -1304,17 +1556,18 @@ export default function DisplayBracket() {
             >
               Add player
             </Button>
-            <Button
-              variant="contained"
-              disabled={creating || !seedNamesValid}
-              onClick={handleCreate}
-              sx={{ alignSelf: "flex-start" }}
-            >
-              {bracketData ? "Reset Bracket" : "Create Bracket"}
-            </Button>
           </Stack>
-        </Paper>
-      )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="contained"
+            disabled={creating || !seedNamesValid}
+            onClick={handleCreate}
+          >
+            {bracketData ? "Reset Bracket" : "Create Bracket"}
+          </Button>
+        </DialogActions>
+      </Dialog>
       {bracketData && winnersTree && losersMatches.length > 0 && (
         <>
           {bracketData.champion && (
@@ -1387,7 +1640,7 @@ export default function DisplayBracket() {
                       "Winners Semifinal",
                       "Winners Final",
                     ]}
-                    isAdmin={isTournamentAdmin}
+                    isAdmin={bracketAdminView}
                     onEdit={handleEdit}
                     registerBox={registerBox}
                   />
@@ -1395,7 +1648,7 @@ export default function DisplayBracket() {
                     <SectionTitle>Losers Bracket</SectionTitle>
                     <LosersBracketColumns
                       matches={losersMatches}
-                      isAdmin={isTournamentAdmin}
+                      isAdmin={bracketAdminView}
                       onEdit={handleEdit}
                       registerBox={registerBox}
                     />
@@ -1403,7 +1656,7 @@ export default function DisplayBracket() {
                   <BracketTreeSection
                     title="👑 Grand Final"
                     nodes={grandFinalNodes}
-                    isAdmin={isTournamentAdmin}
+                    isAdmin={bracketAdminView}
                     onEdit={handleEdit}
                     registerBox={registerBox}
                   />

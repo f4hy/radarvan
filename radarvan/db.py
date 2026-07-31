@@ -457,6 +457,13 @@ class BracketTournament(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # When the bracket becomes visible to non-admins (players/matchups shown;
+    # before this only the roster and blank bracket structure are visible).
+    # NULL = already revealed (no gate). Compared against the server clock in
+    # routes/bracket.py, never trusted from the client.
+    reveal_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     players: Mapped[list[BracketPlayer]] = relationship(
         back_populates="tournament", cascade="all, delete-orphan"

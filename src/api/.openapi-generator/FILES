@@ -120,6 +120,7 @@ docs/ResponseReparseRecentApiReparseRecentPostValue.md
 docs/SeedSource.md
 docs/SelectPlayerRequest.md
 docs/SetBracketMatchRequest.md
+docs/SetBracketRevealAtRequest.md
 docs/SetMapVoteRequest.md
 docs/ShortPlayerRating.md
 docs/SourceA.md
@@ -256,6 +257,7 @@ models/ResponseReparseRecentApiReparseRecentPostValue.ts
 models/SeedSource.ts
 models/SelectPlayerRequest.ts
 models/SetBracketMatchRequest.ts
+models/SetBracketRevealAtRequest.ts
 models/SetMapVoteRequest.ts
 models/ShortPlayerRating.ts
 models/SourceA.ts

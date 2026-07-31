@@ -1,17 +1,26 @@
-import ListIcon from "@mui/icons-material/List"
+import AccountCircleIcon from "@mui/icons-material/AccountCircle"
+import AccountTreeIcon from "@mui/icons-material/AccountTree"
+import BadgeIcon from "@mui/icons-material/Badge"
 import BalanceIcon from "@mui/icons-material/Balance"
-import TableView from "@mui/icons-material/TableView"
+import CasinoIcon from "@mui/icons-material/Casino"
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import GroupsIcon from "@mui/icons-material/Groups"
+import HowToVoteIcon from "@mui/icons-material/HowToVote"
+import LeaderboardIcon from "@mui/icons-material/Leaderboard"
+import ListIcon from "@mui/icons-material/List"
+import LoginIcon from "@mui/icons-material/Login"
+import MapIcon from "@mui/icons-material/Map"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
-import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import PersonIcon from "@mui/icons-material/Person"
-import BadgeIcon from "@mui/icons-material/Badge"
-import AccountCircleIcon from "@mui/icons-material/AccountCircle"
-import LoginIcon from "@mui/icons-material/Login"
+import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
+import TableView from "@mui/icons-material/TableView"
+import UploadFileIcon from "@mui/icons-material/UploadFile"
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import AppBar from "@mui/material/AppBar"
-import Button from "@mui/material/Button"
 import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
 import CssBaseline from "@mui/material/CssBaseline"
 import Divider from "@mui/material/Divider"
 import Drawer from "@mui/material/Drawer"
@@ -23,38 +32,30 @@ import ListItemText from "@mui/material/ListItemText"
 import Toolbar from "@mui/material/Toolbar"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
-import DisplayGeneralStats from "./GeneralStats"
-import DisplayBalanceTeams from "./BalanceTeams"
-import DisplayMatches from "./Matches"
-import DisplayPlayerStats from "./PlayerStats"
-import DisplayPlayerProfile from "./PlayerProfile"
-import DisplayFFAStats from "./FFA"
-import HeadToHead from "./HeadToHead"
-import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
-import DisplayDebugData from "./DebugData"
-import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
-import DisplayPlayerSynergy from "./PlayerSynergy"
-import LeaderboardIcon from "@mui/icons-material/Leaderboard"
-import GroupsIcon from "@mui/icons-material/Groups"
-import MapIcon from "@mui/icons-material/Map"
-import DisplayTournamentResults from "./Tournaments"
-import DisplayBracket, { BRACKET_VISIBLE_TO_ALL } from "./Bracket"
-import AccountTreeIcon from "@mui/icons-material/AccountTree"
-import DisplayMapStats from "./MapStats"
-import DisplayTeamStats from "./TeamStats"
-import DisplaySuperlatives from "./Superlatives"
-import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
-import CasinoIcon from "@mui/icons-material/Casino"
-import HowToVoteIcon from "@mui/icons-material/HowToVote"
-import DisplayDraft from "./Draft"
-import MapVoting from "./MapVoting"
-import ChooseMap from "./ChooseMap"
-import MapUpload from "./MapUpload"
 import Account from "./Account"
-import UploadFileIcon from "@mui/icons-material/UploadFile"
 import { useAuth, useIsTournamentAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
+import DisplayBalanceTeams from "./BalanceTeams"
+import DisplayBracket, { BRACKET_VISIBLE_TO_ALL } from "./Bracket"
+import ChooseMap from "./ChooseMap"
+import DisplayDebugData from "./DebugData"
+import DisplayDraft from "./Draft"
+import DisplayFFAStats from "./FFA"
+import DisplayGeneralStats from "./GeneralStats"
+import HeadToHead from "./HeadToHead"
 import radarvanLogo from "./img/radarvan_logo.webp"
+import DisplayMapStats from "./MapStats"
+import MapUpload from "./MapUpload"
+import MapVoting from "./MapVoting"
+import DisplayMatches from "./Matches"
+import DisplayPlayerProfile from "./PlayerProfile"
+import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
+import DisplayPlayerStats from "./PlayerStats"
+import DisplayPlayerSynergy from "./PlayerSynergy"
+import DisplaySuperlatives from "./Superlatives"
+import DisplayTeamStats from "./TeamStats"
+import DisplayTournamentResults from "./Tournaments"
+
 const drawerWidth = 190
 
 const ALL_SELECTIONS = [
@@ -98,9 +99,12 @@ function selectionFromUrl(): Selection {
   return (slug ? SLUG_TO_SELECTION[slug] : undefined) ?? "Matches"
 }
 
-function pushPage(s: Selection): void {
+function pushPage(s: Selection, extraParams?: Record<string, string>): void {
   const params = new URLSearchParams(window.location.search)
   params.set("page", toSlug(s))
+  for (const [key, value] of Object.entries(extraParams ?? {})) {
+    params.set(key, value)
+  }
   window.history.pushState(null, "", `?${params.toString()}`)
 }
 
@@ -118,6 +122,14 @@ export default function Menu() {
   const navigate = React.useCallback((s: Selection) => {
     setSelection(s)
     pushPage(s)
+  }, [])
+
+  // Jump straight to a specific player's profile (e.g. from a clickable
+  // PlayerChip elsewhere) - sets both URL params PlayerProfile reads
+  // (`page` and `player`) in one history entry, then switches the page.
+  const goToPlayerProfile = React.useCallback((playerName: string) => {
+    setSelection("PlayerProfile")
+    pushPage("PlayerProfile", { player: playerName })
   }, [])
 
   // Keep in sync with browser back/forward.
@@ -331,7 +343,7 @@ export default function Menu() {
       >
         <Toolbar />
         <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
-          <Main selection={selection} />
+          <Main selection={selection} goToPlayerProfile={goToPlayerProfile} />
         </Box>
       </Box>
     </Box>
@@ -347,7 +359,10 @@ interface MenuItemProps {
   disabled?: boolean
 }
 
-function Main(props: { selection: Selection }) {
+function Main(props: {
+  selection: Selection
+  goToPlayerProfile: (playerName: string) => void
+}) {
   switch (props.selection) {
     case "Matches":
       return <DisplayMatches />
@@ -364,7 +379,7 @@ function Main(props: { selection: Selection }) {
     case "Tournaments":
       return <DisplayTournamentResults />
     case "Bracket":
-      return <DisplayBracket />
+      return <DisplayBracket goToPlayerProfile={props.goToPlayerProfile} />
     case "BalanceTeams":
       return <DisplayBalanceTeams />
     case "MapStats":

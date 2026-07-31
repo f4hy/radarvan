@@ -6,12 +6,15 @@
 
 Name | Type
 ------------ | -------------
+`participantNames` | Array&lt;string&gt;
 `players` | [Array&lt;BracketPlayerEntry&gt;](BracketPlayerEntry.md)
 `matches` | [Array&lt;BracketMatchOutput&gt;](BracketMatchOutput.md)
 `byeAdvances` | [Array&lt;BracketPlayerEntry&gt;](BracketPlayerEntry.md)
 `champion` | string
 `runnerUp` | string
 `needsReset` | boolean
+`revealed` | boolean
+`revealAt` | Date
 
 ## Example
 
@@ -20,12 +23,15 @@ import type { BracketTournamentOutput } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "participantNames": null,
   "players": null,
   "matches": null,
   "byeAdvances": null,
   "champion": null,
   "runnerUp": null,
   "needsReset": null,
+  "revealed": null,
+  "revealAt": null,
 } satisfies BracketTournamentOutput
 
 console.log(example)

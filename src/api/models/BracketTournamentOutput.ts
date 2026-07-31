@@ -36,6 +36,12 @@ import {
 export interface BracketTournamentOutput {
     /**
      * 
+     * @type {Array<string>}
+     * @memberof BracketTournamentOutput
+     */
+    participantNames: Array<string>;
+    /**
+     * 
      * @type {Array<BracketPlayerEntry>}
      * @memberof BracketTournamentOutput
      */
@@ -70,16 +76,30 @@ export interface BracketTournamentOutput {
      * @memberof BracketTournamentOutput
      */
     needsReset: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof BracketTournamentOutput
+     */
+    revealed: boolean;
+    /**
+     * 
+     * @type {Date}
+     * @memberof BracketTournamentOutput
+     */
+    revealAt?: Date | null;
 }
 
 /**
  * Check if a given object implements the BracketTournamentOutput interface.
  */
 export function instanceOfBracketTournamentOutput(value: object): value is BracketTournamentOutput {
+    if (!('participantNames' in value) || value['participantNames'] === undefined) return false;
     if (!('players' in value) || value['players'] === undefined) return false;
     if (!('matches' in value) || value['matches'] === undefined) return false;
     if (!('byeAdvances' in value) || value['byeAdvances'] === undefined) return false;
     if (!('needsReset' in value) || value['needsReset'] === undefined) return false;
+    if (!('revealed' in value) || value['revealed'] === undefined) return false;
     return true;
 }
 
@@ -93,12 +113,15 @@ export function BracketTournamentOutputFromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
+        'participantNames': json['participant_names'],
         'players': ((json['players'] as Array<any>).map(BracketPlayerEntryFromJSON)),
         'matches': ((json['matches'] as Array<any>).map(BracketMatchOutputFromJSON)),
         'byeAdvances': ((json['bye_advances'] as Array<any>).map(BracketPlayerEntryFromJSON)),
         'champion': json['champion'] == null ? undefined : json['champion'],
         'runnerUp': json['runner_up'] == null ? undefined : json['runner_up'],
         'needsReset': json['needs_reset'],
+        'revealed': json['revealed'],
+        'revealAt': json['reveal_at'] == null ? undefined : (new Date(json['reveal_at'])),
     };
 }
 
@@ -113,12 +136,15 @@ export function BracketTournamentOutputToJSONTyped(value?: BracketTournamentOutp
 
     return {
         
+        'participant_names': value['participantNames'],
         'players': ((value['players'] as Array<any>).map(BracketPlayerEntryToJSON)),
         'matches': ((value['matches'] as Array<any>).map(BracketMatchOutputToJSON)),
         'bye_advances': ((value['byeAdvances'] as Array<any>).map(BracketPlayerEntryToJSON)),
         'champion': value['champion'],
         'runner_up': value['runnerUp'],
         'needs_reset': value['needsReset'],
+        'revealed': value['revealed'],
+        'reveal_at': value['revealAt'] == null ? value['revealAt'] : value['revealAt'].toISOString(),
     };
 }
 

@@ -5,7 +5,7 @@ Match topology/routing lives in ``radarvan.bracket`` - this repo only
 persists the seeded entrant list and per-match date/best-of/score.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import select
 
@@ -21,7 +21,9 @@ class BracketRepo(BaseRepo):
         stmt = select(BracketTournament).order_by(BracketTournament.id.desc())
         return self.session.scalars(stmt).first()
 
-    def create(self, players: list[tuple[int, str]]) -> BracketTournament:
+    def create(
+        self, players: list[tuple[int, str]], reveal_at: datetime | None = None
+    ) -> BracketTournament:
         """Replace any existing bracket with a fresh one for these seeded entrants.
 
         ``players`` is a list of (seed, player_name) pairs.
@@ -32,10 +34,22 @@ class BracketRepo(BaseRepo):
             self.session.flush()
 
         tournament = BracketTournament()
+        tournament.reveal_at = reveal_at
         tournament.players = [
             BracketPlayer(seed=seed, player_name=name) for seed, name in players
         ]
         self.session.add(tournament)
+        self.session.flush()
+        self._commit_if_auto()
+        return tournament
+
+    def set_reveal_at(
+        self, tournament_id: int, reveal_at: datetime | None
+    ) -> BracketTournament:
+        tournament = self.session.get(BracketTournament, tournament_id)
+        if tournament is None:
+            raise ValueError(f"No bracket tournament with id {tournament_id}")
+        tournament.reveal_at = reveal_at
         self.session.flush()
         self._commit_if_auto()
         return tournament

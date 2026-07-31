@@ -12,6 +12,8 @@ prefix (see CLAUDE.md gotcha re: ``/api/map_data/by_player_count`` vs.
 ``/api/map_data/{map_name}``).
 """
 
+from datetime import UTC, datetime
+
 import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -26,10 +28,11 @@ from ..api_types import (
     MatchSource,
     SeedSource,
     SetBracketMatchRequest,
+    SetBracketRevealAtRequest,
     WinnerOfSource,
 )
 from ..db import BracketMatchState, BracketTournament, User
-from ..dependencies import get_bracket_repo, require_current_user
+from ..dependencies import get_bracket_repo, get_current_user, require_current_user
 from ..repositories import BracketRepo
 
 logger = structlog.get_logger(__name__)
@@ -73,8 +76,46 @@ def _resolve_from_states(
     )
 
 
+def _is_revealed(tournament: BracketTournament, *, allow_preview: bool) -> bool:
+    """True once the bracket's placements/matchups may be shown.
+
+    ``reveal_at`` is compared against the server clock only - a client can
+    never push this true early except via an authenticated admin preview
+    (see ``get_bracket``'s ``preview`` param).
+    """
+    if allow_preview:
+        return True
+    return tournament.reveal_at is None or datetime.now(UTC) >= tournament.reveal_at
+
+
+def _redact(output: BracketTournamentOutput) -> BracketTournamentOutput:
+    """Strip player placements before reveal_at.
+
+    Only ``participant_names`` (the always-visible roster), the bracket
+    shape (match ids/sources/status), and scores stay visible - everything
+    that would reveal *who* is in *which* slot is nulled out.
+    """
+    return output.model_copy(
+        update={
+            "players": [],
+            "matches": [
+                m.model_copy(
+                    update={"player_a": None, "player_b": None, "winner": None}
+                )
+                for m in output.matches
+            ],
+            "bye_advances": [],
+            "champion": None,
+            "runner_up": None,
+        }
+    )
+
+
 def _build_output_from_states(
-    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
+    tournament: BracketTournament,
+    raw_states: dict[str, BracketMatchState],
+    *,
+    allow_preview: bool = False,
 ) -> BracketTournamentOutput:
     result = _resolve_from_states(tournament, raw_states)
 
@@ -100,7 +141,8 @@ def _build_output_from_states(
             )
         )
 
-    return BracketTournamentOutput(
+    output = BracketTournamentOutput(
+        participant_names=sorted(p.player_name for p in tournament.players),
         players=[
             BracketPlayerEntry(seed=p.seed, player_name=p.player_name)
             for p in sorted(tournament.players, key=lambda p: p.seed)
@@ -113,24 +155,43 @@ def _build_output_from_states(
         champion=result.champion,
         runner_up=result.runner_up,
         needs_reset=result.needs_reset,
+        revealed=_is_revealed(tournament, allow_preview=allow_preview),
+        reveal_at=tournament.reveal_at,
     )
+    return output if output.revealed else _redact(output)
 
 
 def _build_output(
-    tournament: BracketTournament, repo: BracketRepo
+    tournament: BracketTournament, repo: BracketRepo, *, allow_preview: bool = False
 ) -> BracketTournamentOutput:
-    return _build_output_from_states(tournament, repo.get_match_states(tournament.id))
+    return _build_output_from_states(
+        tournament, repo.get_match_states(tournament.id), allow_preview=allow_preview
+    )
 
 
 @router.get("/api/bracket")
 def get_bracket(
+    preview: bool = False,
+    user: User | None = Depends(get_current_user),
     repo: BracketRepo = Depends(get_bracket_repo),
 ) -> BracketTournamentOutput | None:
-    """The current bracket tournament, or None if none has been created yet."""
+    """The current bracket tournament, or None if none has been created yet.
+
+    Before ``reveal_at``, player placements are withheld from the response
+    (see ``_build_output_from_states``) - only the roster and blank bracket
+    shape are visible. ``preview=true`` bypasses that gate, but only for a
+    logged-in tournament admin; it's a per-request opt-in (an admin's own
+    "peek early" button), not a way to reveal the bracket for everyone.
+    """
     tournament = repo.get_active()
     if tournament is None:
         return None
-    return _build_output(tournament, repo)
+    allow_preview = (
+        preview
+        and user is not None
+        and player_ids.is_tournament_admin(user.player_name)
+    )
+    return _build_output(tournament, repo, allow_preview=allow_preview)
 
 
 @router.get("/api/bracket_eligible_players")
@@ -151,7 +212,23 @@ def create_bracket(
     logger.info(
         "bracket created", user_id=user.id, players=[p.player_name for p in req.players]
     )
-    return _build_output(tournament, repo)
+    return _build_output(tournament, repo, allow_preview=True)
+
+
+@router.post("/api/bracket/reveal_at")
+def set_bracket_reveal_at(
+    req: SetBracketRevealAtRequest,
+    user: User = Depends(require_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+) -> BracketTournamentOutput:
+    """Set (or clear, with null) when the bracket becomes publicly visible."""
+    _require_tournament_admin(user)
+    tournament = repo.get_active()
+    if tournament is None:
+        raise HTTPException(status_code=404, detail="No active bracket tournament")
+    tournament = repo.set_reveal_at(tournament.id, req.reveal_at)
+    logger.info("bracket reveal_at set", user_id=user.id, reveal_at=req.reveal_at)
+    return _build_output(tournament, repo, allow_preview=True)
 
 
 @router.post("/api/bracket/{match_id}")
@@ -238,4 +315,4 @@ def set_bracket_match(
         score_a,
         score_b,
     )
-    return _build_output_from_states(tournament, raw_states)
+    return _build_output_from_states(tournament, raw_states, allow_preview=True)

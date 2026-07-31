@@ -42,12 +42,19 @@ export interface BracketMatchOutput {
 }
 
 export interface BracketTournamentOutput {
+  // Alphabetical roster (names only) - always populated regardless of
+  // `revealed`, unlike `players`/`matches[*].player_a/b`/`bye_advances`/
+  // `champion`/`runner_up`, which the backend withholds pre-reveal.
+  participant_names: string[]
   players: BracketPlayerEntry[]
   matches: BracketMatchOutput[]
   bye_advances: BracketPlayerEntry[]
   champion: string | null
   runner_up: string | null
   needs_reset: boolean
+  // Server-computed - true once reveal_at has passed (or it's unset).
+  revealed: boolean
+  reveal_at: string | null
 }
 
 export interface SetBracketMatchRequest {
@@ -55,6 +62,10 @@ export interface SetBracketMatchRequest {
   best_of: 3 | 5 | 7 | 9 | null
   score_a: number | null
   score_b: number | null
+}
+
+export interface SetBracketRevealAtRequest {
+  reveal_at: string | null
 }
 
 async function handle<T>(resp: Response, action: string): Promise<T> {
@@ -71,8 +82,12 @@ async function handle<T>(resp: Response, action: string): Promise<T> {
   return (await resp.json()) as T
 }
 
-export async function fetchBracket(): Promise<BracketTournamentOutput | null> {
-  const resp = await fetch("/api/bracket", { credentials: "same-origin" })
+export async function fetchBracket(
+  preview = false,
+): Promise<BracketTournamentOutput | null> {
+  const resp = await fetch(`/api/bracket${preview ? "?preview=true" : ""}`, {
+    credentials: "same-origin",
+  })
   return handle<BracketTournamentOutput | null>(resp, "get bracket")
 }
 
@@ -93,6 +108,18 @@ export async function createBracket(
     body: JSON.stringify({ players }),
   })
   return handle<BracketTournamentOutput>(resp, "create bracket")
+}
+
+export async function setBracketRevealAt(
+  req: SetBracketRevealAtRequest,
+): Promise<BracketTournamentOutput> {
+  const resp = await fetch("/api/bracket/reveal_at", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  })
+  return handle<BracketTournamentOutput>(resp, "set reveal time")
 }
 
 export async function setBracketMatch(

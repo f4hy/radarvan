@@ -111,6 +111,7 @@ export * from './ResponseReparseRecentApiReparseRecentPostValue';
 export * from './SeedSource';
 export * from './SelectPlayerRequest';
 export * from './SetBracketMatchRequest';
+export * from './SetBracketRevealAtRequest';
 export * from './SetMapVoteRequest';
 export * from './ShortPlayerRating';
 export * from './SourceA';

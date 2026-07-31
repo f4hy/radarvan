@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost*
 | [**eligiblePlayersApiBracketEligiblePlayersGet**](BracketApi.md#eligibleplayersapibracketeligibleplayersget) | **GET** /api/bracket_eligible_players | Eligible Players |
 | [**getBracketApiBracketGet**](BracketApi.md#getbracketapibracketget) | **GET** /api/bracket | Get Bracket |
 | [**setBracketMatchApiBracketMatchIdPost**](BracketApi.md#setbracketmatchapibracketmatchidpost) | **POST** /api/bracket/{match_id} | Set Bracket Match |
+| [**setBracketRevealAtApiBracketRevealAtPost**](BracketApi.md#setbracketrevealatapibracketrevealatpost) | **POST** /api/bracket/reveal_at | Set Bracket Reveal At |
 
 
 
@@ -140,11 +141,11 @@ No authorization required
 
 ## getBracketApiBracketGet
 
-> BracketTournamentOutput getBracketApiBracketGet()
+> BracketTournamentOutput getBracketApiBracketGet(preview)
 
 Get Bracket
 
-The current bracket tournament, or None if none has been created yet.
+The current bracket tournament, or None if none has been created yet.  Before &#x60;&#x60;reveal_at&#x60;&#x60;, player placements are withheld from the response (see &#x60;&#x60;_build_output_from_states&#x60;&#x60;) - only the roster and blank bracket shape are visible. &#x60;&#x60;preview&#x3D;true&#x60;&#x60; bypasses that gate, but only for a logged-in tournament admin; it\&#39;s a per-request opt-in (an admin\&#39;s own \&quot;peek early\&quot; button), not a way to reveal the bracket for everyone.
 
 ### Example
 
@@ -159,8 +160,13 @@ async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new BracketApi();
 
+  const body = {
+    // boolean (optional)
+    preview: true,
+  } satisfies GetBracketApiBracketGetRequest;
+
   try {
-    const data = await api.getBracketApiBracketGet();
+    const data = await api.getBracketApiBracketGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -173,7 +179,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **preview** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 
@@ -193,6 +202,7 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -244,6 +254,74 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **matchId** | `string` |  | [Defaults to `undefined`] |
 | **setBracketMatchRequest** | [SetBracketMatchRequest](SetBracketMatchRequest.md) |  | |
+
+### Return type
+
+[**BracketTournamentOutput**](BracketTournamentOutput.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setBracketRevealAtApiBracketRevealAtPost
+
+> BracketTournamentOutput setBracketRevealAtApiBracketRevealAtPost(setBracketRevealAtRequest)
+
+Set Bracket Reveal At
+
+Set (or clear, with null) when the bracket becomes publicly visible.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { SetBracketRevealAtApiBracketRevealAtPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  const body = {
+    // SetBracketRevealAtRequest
+    setBracketRevealAtRequest: ...,
+  } satisfies SetBracketRevealAtApiBracketRevealAtPostRequest;
+
+  try {
+    const data = await api.setBracketRevealAtApiBracketRevealAtPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **setBracketRevealAtRequest** | [SetBracketRevealAtRequest](SetBracketRevealAtRequest.md) |  | |
 
 ### Return type
 
