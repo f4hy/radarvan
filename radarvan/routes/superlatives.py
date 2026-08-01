@@ -6,7 +6,8 @@ import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import player_rating, superlatives
+from .. import general_stats, player_rating, superlatives
+from ..api_types import Statistic
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, db_manager, get_replay_manager
@@ -25,7 +26,11 @@ def get_superlatives(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> superlatives.Superlatives:
     """Serve superlatives from the DB if available, otherwise compute on the fly."""
-    saved_stats = replay_manager.get_computed_stats()
+    saved_stats = [
+        s
+        for s in replay_manager.get_computed_stats()
+        if not s.stat_name.startswith(general_stats.GENERAL_VALUE_STAT_PREFIX)
+    ]
     if saved_stats:
         return superlatives.Superlatives(
             stats=saved_stats,
@@ -61,9 +66,28 @@ async def _do_recompute(
         details,
         ratings_and_counts.daily_changes,
     )
+    value_stats = await asyncio.to_thread(
+        general_stats.general_value_stats, game_list, details
+    )
+    computed_at = datetime.now(UTC).date()
+    value_stat_rows = [
+        Statistic(
+            stat_name=f"{general_stats.GENERAL_VALUE_STAT_PREFIX}{kind}",
+            date_computed=computed_at,
+            value=float(total),
+            player=str(int(general)),
+        )
+        for general, (destroyed, lost) in value_stats.items()
+        for kind, total in (("destroyed", destroyed), ("lost", lost))
+    ]
+    result.stats = result.stats + value_stat_rows
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
-    logger.info("saved computed statistics", count=len(result.stats))
+    logger.info(
+        "saved computed statistics",
+        count=len(result.stats),
+        general_value_rows=len(value_stat_rows),
+    )
     if stale:
         await notify_async("Recomputed superlatives")
 

@@ -2369,7 +2369,7 @@ This endpoint does not need any parameter.
 
 Get Player Head To Head
 
-Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads MatchDetails for the (small) subset of games featuring both players to compute value destroyed between them - unlike general_stats, this scan is cheap enough to do live since it\&#39;s scoped to one matchup.
 
 ### Example
 
