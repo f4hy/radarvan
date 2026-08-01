@@ -59,6 +59,18 @@ export interface GeneralStat {
      * @memberof GeneralStat
      */
     total: WinLoss;
+    /**
+     * 
+     * @type {number}
+     * @memberof GeneralStat
+     */
+    valueDestroyed?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof GeneralStat
+     */
+    valueLost?: number;
 }
 
 
@@ -86,6 +98,8 @@ export function GeneralStatFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'general': GeneralFromJSON(json['general']),
         'stats': ((json['stats'] as Array<any>).map(GeneralStatPlayerWLFromJSON)),
         'total': WinLossFromJSON(json['total']),
+        'valueDestroyed': json['value_destroyed'] == null ? undefined : json['value_destroyed'],
+        'valueLost': json['value_lost'] == null ? undefined : json['value_lost'],
     };
 }
 
@@ -103,6 +117,8 @@ export function GeneralStatToJSONTyped(value?: GeneralStat | null, ignoreDiscrim
         'general': GeneralToJSON(value['general']),
         'stats': ((value['stats'] as Array<any>).map(GeneralStatPlayerWLToJSON)),
         'total': WinLossToJSON(value['total']),
+        'value_destroyed': value['valueDestroyed'],
+        'value_lost': value['valueLost'],
     };
 }
 

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query
 from .. import (
     create_teams,
     head_to_head,
+    match_details,
     matches,
     player_ids,
     player_rating,
@@ -34,12 +35,16 @@ from ..api_types import (
 )
 from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, get_replay_manager
+from ..dependencies import cache_short, db_manager, get_replay_manager
 
 router = APIRouter()
 
 
 _TEAM_FORMATS = {"2v2", "3v3", "4v4"}
+
+# Cap on how many (most recent) shared games get scanned for head-to-head
+# value destroyed - see get_player_head_to_head's docstring.
+_H2H_VALUE_WINDOW = 150
 
 
 PlayerEnum = Enum(  # type: ignore[misc]
@@ -363,7 +368,7 @@ def get_head_to_head(
 
 
 @router.get("/api/player_head_to_head/", dependencies=[Depends(cache_short)])
-def get_player_head_to_head(
+async def get_player_head_to_head(
     player1: PlayerName,
     player2: PlayerName,
     game_format: str | None = Query(
@@ -377,10 +382,34 @@ def get_player_head_to_head(
     the winner of each game is the side whose team won. Aggregates the overall
     record, each player's record by the general they piloted, and the record by
     map, plus the full game list (most recent first).
+
+    Also loads kill data for the most recent `_H2H_VALUE_WINDOW` games
+    featuring both players to compute value destroyed between them. Windowed
+    (not the full history) because for the handful of extremely long-running
+    pairs (600+ shared games), even a single batched query transfers enough
+    kill-event JSON over the (remote) DB connection to take several seconds -
+    every other pair has few enough games this never matters.
     """
     games = list(competitive_matches(replay_manager).values())
     game_list = matches.filter_by_format(games, game_format)
-    return head_to_head.compute_head_to_head(game_list, player1, player2)
+
+    candidate_games = [
+        g
+        for g in game_list
+        if {player1, player2}
+        <= {player_ids.resolve_player_name(p.name, p.color) for p in g.players}
+    ]
+    candidate_games.sort(key=lambda g: g.timestamp, reverse=True)
+    candidate_ids = [g.id for g in candidate_games[:_H2H_VALUE_WINDOW]]
+    kill_data_by_match = await match_details.load_many_kill_data(
+        candidate_ids, db_manager
+    )
+    value_by_match = head_to_head.value_destroyed_by_match(
+        kill_data_by_match, player1, player2
+    )
+    return head_to_head.compute_head_to_head(
+        game_list, player1, player2, value_by_match
+    )
 
 
 @router.get("/api/balance_teams/")

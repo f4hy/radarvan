@@ -27,6 +27,7 @@ import statistics
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from dataclasses import field as dataclass_field
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Literal, NamedTuple
@@ -43,12 +44,14 @@ from .api_types import (
     MapProfileStat,
     MatchDetails,
     MatchInfo,
+    ObjectSummary,
     ObjectUsageStat,
     OpponentProfileStat,
     PlayerProfile,
     PlayerProfileComputed,
     ProfileBadge,
     TeammateProfileStat,
+    UnitDamageStat,
 )
 from .build_order import is_economy_unit
 from .db_utils import DatabaseManager
@@ -118,7 +121,16 @@ logger = structlog.get_logger(__name__)
 # v16: object_usage also reports the peer median per-game rate, labeled
 # directly on the usage chart (the mean/stddev band alone doesn't give
 # readers a concrete number to anchor on).
-_PROFILE_LOGIC_VERSION = 16
+# v17: added damage-dealt stats, sourced from MatchDetails.kill_events (value
+# = build cost of what was killed - the damage-dealt proxy, since replays
+# don't carry raw HP). top_damage_dealer is the player's own highest per-game
+# value-destroyed rate for one unit (not peer-normalized); signature_damage_
+# dealer is the peer-normalized pick, scored the same way as favorite_unit
+# etc. (see compute_damage_favorites); damage_by_unit is the full per-unit
+# total across every game, not scoped to a single general. Kill events carry
+# raw (not general-flavor-canonicalized) killer names, so
+# _merge_general_flavor_variants now also merges unit_kills/unit_damage_dealt.
+_PROFILE_LOGIC_VERSION = 17
 
 
 def _compute_profile_version() -> str:
@@ -265,6 +277,13 @@ class PlayerMatchProjection:
     time_to_rank_5: float | None
     academy: AcademyStats | None
     superweapons_built: int
+    # Kills and value destroyed (build cost of the victim - the damage-dealt
+    # proxy) per raw killer object name, from MatchDetails.kill_events. Paired
+    # dicts, same keying convention as units/unit_spent above. Defaulted
+    # (unlike the other dicts above) so existing test/call-site construction
+    # that predates this data doesn't need updating for an unrelated field.
+    unit_kills: dict[str, int] = dataclass_field(default_factory=dict)
+    unit_damage_dealt: dict[str, int] = dataclass_field(default_factory=dict)
 
     def category_counts(self, category: ObjectCategory) -> dict[str, int]:
         return {
@@ -312,6 +331,14 @@ def profile_data_from_details(
             sw_built[ev.player_name] += 1
     first_blood_attacker = details.first_blood.attacker if details.first_blood else None
 
+    # kill_events carry raw (not alias-resolved) killer/victim names, same
+    # raw-name space as player_summary - see match_details.py's name_by_idx.
+    kills_by_raw: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    damage_by_raw: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for k in details.kill_events:
+        kills_by_raw[k.killer_player][k.killer] += 1
+        damage_by_raw[k.killer_player][k.killer] += k.value
+
     projections: list[PlayerMatchProjection] = []
     for ps in details.player_summary:
         resolved_info = by_raw_name.get(ps.Name)
@@ -335,6 +362,8 @@ def profile_data_from_details(
                 time_to_rank_5=details.time_to_rank_5.get(ps.Name),
                 academy=ps.Academy,
                 superweapons_built=sw_built.get(ps.Name, 0),
+                unit_kills=dict(kills_by_raw.get(ps.Name, {})),
+                unit_damage_dealt=dict(damage_by_raw.get(ps.Name, {})),
             )
         )
     return ProfileMatchData(match_id=details.match_id, players=projections)
@@ -661,6 +690,176 @@ def compute_favorites(
     return best
 
 
+# ---------------------------------------------------------------------------
+# Damage dealt (value destroyed by unit) - not an ObjectCategory: kill-event
+# killer names span both units and structures, and "damage per game" isn't a
+# "thing built" count, so this gets its own aggregate/scoring pair rather than
+# being routed through the build-count machinery above. The low-level helpers
+# (_smoothed_rates, _object_faction, _is_foreign_faction, _usage_faction_map)
+# are reused as-is since they're generic over any raw-object-name counts.
+# ---------------------------------------------------------------------------
+
+
+class DamageTotals(NamedTuple):
+    value: int
+    kills: int
+
+
+@dataclass(frozen=True, slots=True)
+class DamageAggregate:
+    """Cross-match value-destroyed totals, mirroring CategoryAggregate.
+
+    totals: (player, general, raw killer object) -> (value destroyed, kills)
+    games: (player, general) -> matches played
+    """
+
+    totals: dict[tuple[str, General, str], DamageTotals]
+    games: dict[tuple[str, General], int]
+
+
+def aggregate_damage(data: list[ProfileMatchData]) -> DamageAggregate:
+    value: dict[tuple[str, General, str], int] = defaultdict(int)
+    kills: dict[tuple[str, General, str], int] = defaultdict(int)
+    games: dict[tuple[str, General], int] = defaultdict(int)
+    for match in data:
+        for proj in match.players:
+            games[(proj.name, proj.general)] += 1
+            for obj, v in proj.unit_damage_dealt.items():
+                value[(proj.name, proj.general, obj)] += v
+            for obj, k in proj.unit_kills.items():
+                kills[(proj.name, proj.general, obj)] += k
+    totals = {
+        key: DamageTotals(value=v, kills=kills.get(key, 0)) for key, v in value.items()
+    }
+    return DamageAggregate(totals=totals, games=dict(games))
+
+
+# Same spirit as _MIN_FAVORITE_RATE: a floor so a unit used a handful of
+# times with one lucky big kill doesn't win on ratio/rate alone. Expressed in
+# total dollars (not a per-game rate like the build-count favorites) since
+# "value destroyed" has no natural per-object unit-count scale to floor - a
+# couple of average-cost vehicle kills is enough evidence to be a real signal.
+_MIN_DAMAGE_VALUE = 2000
+_MIN_DAMAGE_GAMES = 10
+_MIN_DAMAGE_PEER_GAMES = 20
+
+
+def compute_top_damage_dealer(
+    agg: DamageAggregate,
+    *,
+    min_games: int = _MIN_DAMAGE_GAMES,
+    min_value: int = _MIN_DAMAGE_VALUE,
+) -> dict[str, UnitDamageStat]:
+    """Each player's own highest per-game value-destroyed rate for one unit -
+    their own best, not compared to peers (see compute_damage_favorites for
+    the peer-relative pick)."""
+    best: dict[str, UnitDamageStat] = {}
+    best_rate: dict[str, float] = {}
+    for (player, general, obj), totals in agg.totals.items():
+        if totals.value < min_value:
+            continue
+        n = agg.games[(player, general)]
+        if n < min_games:
+            continue
+        rate = totals.value / n
+        if player in best_rate and rate <= best_rate[player]:
+            continue
+        best_rate[player] = rate
+        best[player] = UnitDamageStat(
+            name=clean_object_name(obj),
+            general=general,
+            per_game=rate,
+            total_value_destroyed=totals.value,
+            kill_count=totals.kills,
+            games_on_general=n,
+        )
+    return best
+
+
+def compute_damage_favorites(
+    agg: DamageAggregate,
+    *,
+    min_games: int = _MIN_DAMAGE_GAMES,
+    min_value: int = _MIN_DAMAGE_VALUE,
+    min_peer_games: int = _MIN_DAMAGE_PEER_GAMES,
+    pseudo_games: float = _DEFAULT_PSEUDO_GAMES,
+    min_score: float = 1.25,
+) -> dict[str, ScoredObject]:
+    """Each player's signature damage dealer: highest peer-normalized
+    value-destroyed-per-game rate for one unit. Same Bayesian-shrunk-ratio
+    algorithm as compute_favorites, scored on value destroyed instead of
+    build count.
+    """
+    # Killer object names are raw unit/structure names, same space as UNITS/
+    # BUILDINGS - ObjectCategory.UNITS here only selects the name-based
+    # faction check in _is_foreign_faction (category != POWERS), not "this is
+    # a unit" in any other sense. Reuses the existing build-count helpers via
+    # a CategoryAggregate view onto the value totals (same shape: counts +
+    # games), rather than re-deriving peer totals/faction dominance by hand.
+    value_by_key = {key: t.value for key, t in agg.totals.items()}
+    category_view = CategoryAggregate(counts=value_by_key, games=agg.games)
+    count_by_go, games_by_general = _peer_totals(category_view)
+    usage_factions = _usage_faction_map(category_view)
+    best: dict[str, ScoredObject] = {}
+    for (player, general, obj), totals in agg.totals.items():
+        c_p = totals.value
+        if c_p < min_value:
+            continue
+        n_p = agg.games[(player, general)]
+        if n_p < min_games:
+            continue
+        n_q = games_by_general[general] - n_p
+        if n_q < min_peer_games:
+            continue
+        if _is_foreign_faction(obj, general, ObjectCategory.UNITS, usage_factions):
+            continue
+        c_q = count_by_go[(general, obj)] - c_p
+        player_s, peer_s = _smoothed_rates(c_p, n_p, c_q, n_q, pseudo_games)
+        score = min(player_s / peer_s, _MAX_SCORE)
+        if score < min_score:
+            continue
+        candidate = ScoredObject(
+            object_name=clean_object_name(obj),
+            general=general,
+            score=score,
+            player_rate=c_p / n_p,
+            peer_rate=c_q / n_q,
+            player_games=n_p,
+            peer_games=n_q,
+            total_count=c_p,
+        )
+        current = best.get(player)
+        if current is None or (score, c_p) > (current.score, current.total_count):
+            best[player] = candidate
+    return best
+
+
+def _damage_by_unit_totals(agg: DamageAggregate) -> dict[str, dict[str, ObjectSummary]]:
+    """Flat per-player, per-unit totals across every general played - the
+    full browsable "damage by unit" table, unlike the two picks above which
+    are scoped to a single (player, general) pair.
+    """
+    # Keyed by cleaned name (not raw), since cleaning can merge two raw names
+    # onto the same display name across generals - accumulate rather than
+    # build the per-player dict directly.
+    merged: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    for (player, _general, obj), totals in agg.totals.items():
+        if totals.value <= 0:
+            continue
+        entry = merged[player][clean_object_name(obj)]
+        entry[0] += totals.kills
+        entry[1] += totals.value
+    return {
+        player: {
+            name: ObjectSummary(Count=kill_count, TotalSpent=value)
+            for name, (kill_count, value) in by_obj.items()
+        }
+        for player, by_obj in merged.items()
+    }
+
+
 def _objects_by_general(
     agg: CategoryAggregate,
     category: ObjectCategory,
@@ -915,11 +1114,15 @@ def _merge_general_flavor_variants(
         buildings = _merge_by_canonical_name(proj.buildings)
         upgrades = _merge_by_canonical_name(proj.upgrades)
         powers = _merge_by_canonical_name(proj.powers)
+        unit_kills = _merge_by_canonical_name(proj.unit_kills)
+        unit_damage_dealt = _merge_by_canonical_name(proj.unit_damage_dealt)
         if (
             units is proj.units
             and buildings is proj.buildings
             and upgrades is proj.upgrades
             and powers is proj.powers
+            and unit_kills is proj.unit_kills
+            and unit_damage_dealt is proj.unit_damage_dealt
         ):
             return proj
         return replace(
@@ -931,6 +1134,8 @@ def _merge_general_flavor_variants(
             upgrades=upgrades,
             upgrade_spent=_merge_by_canonical_name(proj.upgrade_spent),
             powers=powers,
+            unit_kills=unit_kills,
+            unit_damage_dealt=unit_damage_dealt,
         )
 
     return _map_projections(data, fix)
@@ -1164,6 +1369,11 @@ def compute_all_profiles(
         if category != ObjectCategory.POWERS:
             usage_rates[category] = _object_usage_rates(agg, category, usage_factions)
 
+    damage_agg = aggregate_damage(active_data)
+    top_damage_dealers = compute_top_damage_dealer(damage_agg)
+    damage_favorites = compute_damage_favorites(damage_agg)
+    damage_by_unit = _damage_by_unit_totals(damage_agg)
+
     # Per-player means for every percentile-ranked signal.
     apm_means: dict[str, float] = {}
     fb_rates: dict[str, float] = {}
@@ -1241,6 +1451,9 @@ def compute_all_profiles(
             object_usage=_player_object_usage(
                 name, usage_rates, games_by_player_general
             ),
+            top_damage_dealer=top_damage_dealers.get(name),
+            signature_damage_dealer=_wire_or_none(damage_favorites.get(name)),
+            damage_by_unit=damage_by_unit.get(name, {}),
             games_analyzed=len(projections_by_player[name]),
             computed_at=computed_at,
         )

@@ -224,6 +224,49 @@ async def load_many_match_details(
     return [r for r in results if r is not None]
 
 
+def load_kill_data_batch_threadsafe(
+    match_ids: list[int], db_manager: DatabaseManager
+) -> dict[int, tuple[list[KillEventOutput], list[APIPlayerSummary]]]:
+    """Load kill_events + player_summary for many matches in one DB round trip.
+
+    Far cheaper than load_many_match_details when a caller only needs those
+    two fields across many matches (e.g. head_to_head's
+    value_destroyed_by_match, which can span hundreds of matches for a
+    long-running matchup): skips validating build_orders/apm_over_time/
+    timeline_events/stats_data/etc., and - more importantly, since the DB here
+    is a remote RDS instance - batches into a single query instead of one
+    round trip per match. Matches with no cached details row are silently
+    omitted rather than falling back to a full per-match recompute.
+    """
+    from .db_utils import ReplayManager as _ReplayManager
+
+    try:
+        with db_manager.get_session() as session:
+            rm = _ReplayManager(session)
+            rows = rm.get_cached_kill_data_rows(match_ids, DETAILS_VERSION)
+    except Exception:
+        logger.exception("failed to load kill data batch", match_count=len(match_ids))
+        return {}
+
+    result: dict[int, tuple[list[KillEventOutput], list[APIPlayerSummary]]] = {}
+    for match_id, (raw_kill_events, raw_player_summary) in rows.items():
+        result[match_id] = (
+            [KillEventOutput.model_validate(k) for k in raw_kill_events],
+            [APIPlayerSummary.model_validate(p) for p in raw_player_summary],
+        )
+    return result
+
+
+async def load_many_kill_data(
+    match_ids: list[int], db_manager: DatabaseManager
+) -> dict[int, tuple[list[KillEventOutput], list[APIPlayerSummary]]]:
+    """Async wrapper around load_kill_data_batch_threadsafe (one query, run
+    off the event loop)."""
+    return await asyncio.to_thread(
+        load_kill_data_batch_threadsafe, match_ids, db_manager
+    )
+
+
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)

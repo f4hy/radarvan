@@ -81,6 +81,14 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
             money_spent=d.player_money_spent.get(ps.Name, 0),
             units_created_count=sum(v.Count for v in ps.UnitsCreated.values()),
             buildings_built_count=sum(v.Count for v in ps.BuildingsBuilt.values()),
+            value_destroyed=(
+                sum(v.TotalSpent for v in ps.UnitsDestroyed.values())
+                + sum(v.TotalSpent for v in ps.BuildingsDestroyed.values())
+            ),
+            value_lost=(
+                sum(v.TotalSpent for v in ps.UnitsLost.values())
+                + sum(v.TotalSpent for v in ps.BuildingsLost.values())
+            ),
         )
         for ps in d.player_summary
     ]

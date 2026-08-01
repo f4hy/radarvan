@@ -9,10 +9,10 @@ import {
   Bar,
   BarChart,
   ResponsiveContainer,
+  Sankey,
   Tooltip,
   XAxis,
   YAxis,
-  Sankey,
 } from "recharts"
 import { KillEventOutput, ObjectSummary, PlayerSummary } from "./api"
 
@@ -120,6 +120,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Buildings Destroyed": "#bcbd22",
   "Units Lost": "#d62728",
   "Buildings Lost": "#8c564b",
+  "Destroyed From": "#59a14f",
+  "Lost To": "#e15759",
 }
 
 type SankeyLinkProps = {
@@ -324,6 +326,86 @@ function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
   )
 }
 
+// killEvents carry killerPlayer/victimPlayer for every kill in the match, but
+// nothing upstream groups them by *opponent* - match_details.py only buckets
+// by unit type. Build that grouping here so FFA/team games can show who a
+// player actually traded value with, reusing the existing Sankey plumbing.
+function opponentValueMap(
+  playerName: string,
+  killEvents: KillEventOutput[],
+  direction: "destroyed" | "lost",
+): Record<string, ObjectSummary> {
+  const result: Record<string, ObjectSummary> = {}
+  for (const k of killEvents) {
+    const self = direction === "destroyed" ? k.killerPlayer : k.victimPlayer
+    const opponent = direction === "destroyed" ? k.victimPlayer : k.killerPlayer
+    if (self !== playerName || opponent === "unk" || opponent === playerName) {
+      continue
+    }
+    const entry = result[opponent] ?? { count: 0, totalSpent: 0 }
+    entry.count += 1
+    entry.totalSpent += k.value ?? 0
+    result[opponent] = entry
+  }
+  return result
+}
+
+// Two separate charts, not one combined "destroyed + lost" diagram: a Sankey
+// node's displayed value is the sum of every link touching it, so with only
+// one category each, a shared opponent node (e.g. the sole opponent in a 1v1)
+// would sum two unrelated numbers into a meaningless total. Splitting keeps
+// each node's value meaningful, same as the existing Value Destroyed/Losses
+// split above.
+function PlayerDestroyedFromOpponentSankey(props: {
+  playerName: string
+  killEvents: KillEventOutput[]
+}) {
+  const data = React.useMemo(
+    () =>
+      buildCategorySankeyData(props.playerName, [
+        {
+          label: "Destroyed From",
+          items: opponentValueMap(
+            props.playerName,
+            props.killEvents,
+            "destroyed",
+          ),
+        },
+      ]),
+    [props.playerName, props.killEvents],
+  )
+  return (
+    <PlayerSankeyChart
+      data={data}
+      emptyMessage="No kill events recorded against a specific opponent"
+      formatter={cashFormatter}
+    />
+  )
+}
+
+function PlayerLostToOpponentSankey(props: {
+  playerName: string
+  killEvents: KillEventOutput[]
+}) {
+  const data = React.useMemo(
+    () =>
+      buildCategorySankeyData(props.playerName, [
+        {
+          label: "Lost To",
+          items: opponentValueMap(props.playerName, props.killEvents, "lost"),
+        },
+      ]),
+    [props.playerName, props.killEvents],
+  )
+  return (
+    <PlayerSankeyChart
+      data={data}
+      emptyMessage="No kill events recorded against a specific opponent"
+      formatter={cashFormatter}
+    />
+  )
+}
+
 function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
   const data = React.useMemo(() => {
     const nodeNames: string[] = []
@@ -376,6 +458,20 @@ function ShowPlayerSummary(props: {
         <Box>
           <Typography variant="h6">Losses</Typography>
           <PlayerLossesSankey playerSummary={sum} />
+        </Box>
+        <Box>
+          <Typography variant="h6">Value Destroyed By Opponent</Typography>
+          <PlayerDestroyedFromOpponentSankey
+            playerName={sum.name}
+            killEvents={props.killEvents}
+          />
+        </Box>
+        <Box>
+          <Typography variant="h6">Value Lost To Opponent</Typography>
+          <PlayerLostToOpponentSankey
+            playerName={sum.name}
+            killEvents={props.killEvents}
+          />
         </Box>
         <Box>
           <Typography variant="h6">Powers Used</Typography>

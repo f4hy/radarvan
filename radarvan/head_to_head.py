@@ -18,7 +18,9 @@ from .api_types import (
     HeadToHeadGame,
     HeadToHeadGeneralRecord,
     HeadToHeadMapRecord,
+    KillEventOutput,
     MatchInfo,
+    PlayerSummary,
 )
 
 
@@ -31,8 +33,50 @@ def _general_records(
     ]
 
 
+def value_destroyed_by_match(
+    kill_data_by_match: dict[int, tuple[list[KillEventOutput], list[PlayerSummary]]],
+    player1: str,
+    player2: str,
+) -> dict[int, tuple[int, int]]:
+    """For each match, the value `player1` destroyed of `player2`'s stuff and
+    vice versa (build cost of kills - the damage-dealt proxy, since replays
+    don't carry raw HP).
+
+    Kill events carry each match's *raw* in-game names (not alias-resolved -
+    see match_details.py's name_by_idx), so each match is resolved
+    independently via its own player_summary color map, same as
+    superlatives.py does. Takes the (kill_events, player_summary) pairs from
+    match_details.load_many_kill_data rather than full MatchDetails - across
+    a whole head-to-head history that can be hundreds of matches, and full
+    MatchDetails validation (build_orders/apm_over_time/etc.) is far more than
+    this needs.
+    """
+    result: dict[int, tuple[int, int]] = {}
+    for match_id, (kill_events, player_summary) in kill_data_by_match.items():
+        color_map = {ps.Name: ps.Color for ps in player_summary}
+        p1_destroyed = 0
+        p2_destroyed = 0
+        for k in kill_events:
+            killer = player_ids.resolve_player_name(
+                k.killer_player, color_map.get(k.killer_player, "")
+            )
+            victim = player_ids.resolve_player_name(
+                k.victim_player, color_map.get(k.victim_player, "")
+            )
+            if killer == player1 and victim == player2:
+                p1_destroyed += k.value
+            elif killer == player2 and victim == player1:
+                p2_destroyed += k.value
+        if p1_destroyed or p2_destroyed:
+            result[match_id] = (p1_destroyed, p2_destroyed)
+    return result
+
+
 def compute_head_to_head(
-    games: list[MatchInfo], player1: str, player2: str
+    games: list[MatchInfo],
+    player1: str,
+    player2: str,
+    value_by_match: dict[int, tuple[int, int]] | None = None,
 ) -> HeadToHeadDetail:
     """Head-to-head detail for ``player1`` vs ``player2`` over ``games``.
 
@@ -43,7 +87,12 @@ def compute_head_to_head(
     stats. ``games`` may be in any order - the returned game list is sorted
     most-recent-first. ``player1``/``player2`` are expected to be already
     alias-resolved (equal names yield an empty record).
+
+    ``value_by_match`` (from ``value_destroyed_by_match``) is optional so this
+    stays testable on plain ``MatchInfo`` alone; omitted entries default to
+    (0, 0).
     """
+    value_by_match = value_by_match or {}
     h2h_games: list[HeadToHeadGame] = []
     # [wins, losses] from each player's own perspective, keyed by their general.
     p1_by_general: dict[General, list[int]] = defaultdict(lambda: [0, 0])
@@ -51,6 +100,8 @@ def compute_head_to_head(
     by_map: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     p1_wins = 0
     p2_wins = 0
+    p1_value_destroyed = 0
+    p2_value_destroyed = 0
     teammate_games = 0
     teammate_wins = 0
 
@@ -81,6 +132,9 @@ def compute_head_to_head(
         p1_by_general[p1p.general][0 if p1_won else 1] += 1
         p2_by_general[p2p.general][1 if p1_won else 0] += 1
         by_map[game.map][0 if p1_won else 1] += 1
+        p1d, p2d = value_by_match.get(game.id, (0, 0))
+        p1_value_destroyed += p1d
+        p2_value_destroyed += p2d
 
         h2h_games.append(
             HeadToHeadGame(
@@ -95,6 +149,8 @@ def compute_head_to_head(
                 player1_won=p1_won,
                 player1_team=[name for p, name in roster if p.team == p1p.team],
                 player2_team=[name for p, name in roster if p.team == p2p.team],
+                player1_value_destroyed=p1d,
+                player2_value_destroyed=p2d,
             )
         )
 
@@ -113,4 +169,6 @@ def compute_head_to_head(
         ],
         teammate_games=teammate_games,
         teammate_wins=teammate_wins,
+        player1_value_destroyed=p1_value_destroyed,
+        player2_value_destroyed=p2_value_destroyed,
     )
