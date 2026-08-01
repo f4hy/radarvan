@@ -68,7 +68,7 @@ ml = [
   "lightning>=2.4.0; python_version < '3.14'",
   "torchmetrics>=1.5.0; python_version < '3.14'",
   "scikit-learn>=1.5.0",
-  "pandas>=2.2.0",
+  "pandas>=3.0.5",
   "pyarrow>=18.0.0",
   # ONNX export + a torch-free CPU runtime for serving the exported model.
   "onnx>=1.17.0",
