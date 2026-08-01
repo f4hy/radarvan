@@ -31,7 +31,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { useIsTournamentAdmin } from "./AuthContext"
-import { HeadToHeadGame, MatchInfo } from "./api"
+import { MatchInfo } from "./api"
 import {
   BracketMatchOutput,
   BracketMatchStatus,
@@ -46,9 +46,9 @@ import {
   setBracketRevealAt,
 } from "./bracketApi"
 import { Client, CommentaryClient } from "./Client"
-import { GamesTable } from "./HeadToHead"
 import Loading from "./Loading"
 import GameMap from "./Map"
+import { DisplayMatchInfo } from "./Matches"
 import { PlayerChip } from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import {
@@ -498,34 +498,6 @@ function todayIso(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-// Reshapes a raw MatchInfo into the HeadToHeadGame shape GamesTable/GameRow
-// (from HeadToHead.tsx) already know how to render, so the popup gets the
-// same polished row (general icons, winner chip, expandable full match
-// details) for free instead of a bespoke listing. player1Team/player2Team
-// aren't read by GameRow - filled in for type-shape completeness only.
-function toHeadToHeadGame(
-  m: MatchInfo,
-  playerA: string,
-  playerB: string,
-): HeadToHeadGame | null {
-  const pa = m.players.find((p) => p.name === playerA)
-  const pb = m.players.find((p) => p.name === playerB)
-  if (!pa || !pb) return null
-  return {
-    matchId: m.id,
-    timestamp: m.timestamp,
-    date: m.date,
-    map: m.map,
-    durationMinutes: m.durationMinutes,
-    gameFormat: m.composition?.category ?? null,
-    player1General: pa.general,
-    player2General: pb.general,
-    player1Won: pa.won ?? false,
-    player1Team: [playerA],
-    player2Team: [playerB],
-  }
-}
-
 // Splits on **bold** markers (a lightweight markdown subset) into <strong>
 // spans - shared by renderHypeText (AI commentary) and the tournament rules
 // list, neither of which need a full markdown parser, just inline emphasis.
@@ -643,16 +615,6 @@ function MatchupPopup({
     }
   }, [datePlayable, scheduledDate, playerA, playerB, showError])
 
-  const headToHeadGames = React.useMemo(
-    () =>
-      playerA && playerB
-        ? games
-            .map((m) => toHeadToHeadGame(m, playerA, playerB))
-            .filter((g): g is HeadToHeadGame => g !== null)
-        : [],
-    [games, playerA, playerB],
-  )
-
   const handleGoToPlayer = (playerName: string) => {
     onClose()
     goToPlayerProfile(playerName)
@@ -746,18 +708,18 @@ function MatchupPopup({
             No games played yet.
           </Typography>
         )}
-        {!loading && datePlayable && headToHeadGames.length === 0 && (
+        {!loading && datePlayable && games.length === 0 && (
           <Typography sx={{ color: "text.secondary" }}>
             No 1v1 games found between {playerLabel(match, "a")} and{" "}
             {playerLabel(match, "b")} on {scheduledDate}.
           </Typography>
         )}
-        {!loading && headToHeadGames.length > 0 && playerA && playerB && (
-          <GamesTable
-            games={headToHeadGames}
-            player1={playerA}
-            player2={playerB}
-          />
+        {!loading && games.length > 0 && (
+          <Stack>
+            {games.map((g, idx) => (
+              <DisplayMatchInfo key={g.id} match={g} idx={idx} />
+            ))}
+          </Stack>
         )}
         {errorSnackbar}
       </DialogContent>
@@ -2148,7 +2110,7 @@ export default function DisplayBracket({
       <Dialog
         open={detailsMatch !== null}
         onClose={() => setDetailsMatchId(null)}
-        maxWidth="sm"
+        maxWidth="lg"
         fullWidth
       >
         {detailsMatch && (
