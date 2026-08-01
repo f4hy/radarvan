@@ -2056,7 +2056,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads MatchDetails for the (small) subset of games featuring both players to compute value destroyed between them - unlike general_stats, this scan is cheap enough to do live since it\'s scoped to one matchup.
      * Get Player Head To Head
      */
     async getPlayerHeadToHeadApiPlayerHeadToHeadGetRaw(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeadToHeadDetail>> {
@@ -2067,7 +2067,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads MatchDetails for the (small) subset of games featuring both players to compute value destroyed between them - unlike general_stats, this scan is cheap enough to do live since it\'s scoped to one matchup.
      * Get Player Head To Head
      */
     async getPlayerHeadToHeadApiPlayerHeadToHeadGet(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeadToHeadDetail> {

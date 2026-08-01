@@ -95,6 +95,18 @@ export interface HeadToHeadDetail {
      * @type {number}
      * @memberof HeadToHeadDetail
      */
+    player1ValueDestroyed?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HeadToHeadDetail
+     */
+    player2ValueDestroyed?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HeadToHeadDetail
+     */
     teammateGames: number;
     /**
      * 
@@ -139,6 +151,8 @@ export function HeadToHeadDetailFromJSONTyped(json: any, ignoreDiscriminator: bo
         'player1ByGeneral': ((json['player1ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordFromJSON)),
         'player2ByGeneral': ((json['player2ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordFromJSON)),
         'byMap': ((json['byMap'] as Array<any>).map(HeadToHeadMapRecordFromJSON)),
+        'player1ValueDestroyed': json['player1ValueDestroyed'] == null ? undefined : json['player1ValueDestroyed'],
+        'player2ValueDestroyed': json['player2ValueDestroyed'] == null ? undefined : json['player2ValueDestroyed'],
         'teammateGames': json['teammateGames'],
         'teammateWins': json['teammateWins'],
     };
@@ -163,6 +177,8 @@ export function HeadToHeadDetailToJSONTyped(value?: HeadToHeadDetail | null, ign
         'player1ByGeneral': ((value['player1ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordToJSON)),
         'player2ByGeneral': ((value['player2ByGeneral'] as Array<any>).map(HeadToHeadGeneralRecordToJSON)),
         'byMap': ((value['byMap'] as Array<any>).map(HeadToHeadMapRecordToJSON)),
+        'player1ValueDestroyed': value['player1ValueDestroyed'],
+        'player2ValueDestroyed': value['player2ValueDestroyed'],
         'teammateGames': value['teammateGames'],
         'teammateWins': value['teammateWins'],
     };

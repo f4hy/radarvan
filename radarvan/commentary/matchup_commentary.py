@@ -29,6 +29,7 @@ callers stay unaware caching exists.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import time
 from typing import NamedTuple
@@ -135,17 +136,25 @@ def build_prompt(
     profile2 = profile_routes.get_player_profile(
         player=player2, replay_manager=replay_manager
     )
-    h2h_1v1 = players_routes.get_player_head_to_head(
-        player1=player1,
-        player2=player2,
-        game_format="1v1",
-        replay_manager=replay_manager,
+    # get_player_head_to_head is async (it loads kill data for value
+    # destroyed) but build_prompt is always called from a sync context (a
+    # sync FastAPI route runs in starlette's threadpool, with no event loop
+    # of its own) - asyncio.run() bridges that safely here.
+    h2h_1v1 = asyncio.run(
+        players_routes.get_player_head_to_head(
+            player1=player1,
+            player2=player2,
+            game_format="1v1",
+            replay_manager=replay_manager,
+        )
     )
-    h2h_all = players_routes.get_player_head_to_head(
-        player1=player1,
-        player2=player2,
-        game_format=None,
-        replay_manager=replay_manager,
+    h2h_all = asyncio.run(
+        players_routes.get_player_head_to_head(
+            player1=player1,
+            player2=player2,
+            game_format=None,
+            replay_manager=replay_manager,
+        )
     )
     user_message = build_user_message(
         round_name,

@@ -26,4 +26,7 @@ def get_generals_stats(
     games = competitive_matches(replay_manager)
     game_list = matches.filter_by_format(list(games.values()), game_format)
     logger.info("getting generals stats")
-    return general_stats.get_generals_stats(game_list)
+    value_stats = general_stats.value_stats_from_computed(
+        replay_manager.get_computed_stats()
+    )
+    return general_stats.get_generals_stats(game_list, value_stats)
