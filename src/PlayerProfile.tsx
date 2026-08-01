@@ -1,4 +1,20 @@
-import * as React from "react"
+import ApartmentIcon from "@mui/icons-material/Apartment"
+import BlockIcon from "@mui/icons-material/Block"
+import BoltIcon from "@mui/icons-material/Bolt"
+import DirectionsRunIcon from "@mui/icons-material/DirectionsRun"
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import GroupsIcon from "@mui/icons-material/Groups"
+import HandshakeIcon from "@mui/icons-material/Handshake"
+import InsightsIcon from "@mui/icons-material/Insights"
+import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment"
+import MapIcon from "@mui/icons-material/Map"
+import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
+import SpeedIcon from "@mui/icons-material/Speed"
+import SportsMmaIcon from "@mui/icons-material/SportsMma"
+import StarIcon from "@mui/icons-material/Star"
+import UpgradeIcon from "@mui/icons-material/Upgrade"
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -11,59 +27,50 @@ import Chip from "@mui/material/Chip"
 import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import { alpha } from "@mui/material/styles"
 import Tab from "@mui/material/Tab"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import Tabs from "@mui/material/Tabs"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
-import { alpha } from "@mui/material/styles"
-import ApartmentIcon from "@mui/icons-material/Apartment"
-import BlockIcon from "@mui/icons-material/Block"
-import BoltIcon from "@mui/icons-material/Bolt"
-import DirectionsRunIcon from "@mui/icons-material/DirectionsRun"
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import GroupsIcon from "@mui/icons-material/Groups"
-import HandshakeIcon from "@mui/icons-material/Handshake"
-import InsightsIcon from "@mui/icons-material/Insights"
-import MapIcon from "@mui/icons-material/Map"
-import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
-import SpeedIcon from "@mui/icons-material/Speed"
-import SportsMmaIcon from "@mui/icons-material/SportsMma"
-import StarIcon from "@mui/icons-material/Star"
-import UpgradeIcon from "@mui/icons-material/Upgrade"
-import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium"
+import * as React from "react"
 import {
   Area,
   CartesianGrid,
+  Tooltip as ChartTooltip,
   ComposedChart,
   Line,
   ResponsiveContainer,
-  Tooltip as ChartTooltip,
   XAxis,
   YAxis,
 } from "recharts"
-import { Client } from "./Client"
 import {
   FavoriteObject,
   GeneralWinRateSeries,
+  ObjectSummary,
   ObjectUsageStat,
   ObjectUsageStatCategoryEnum,
   PlayerProfile,
   ProfileBadge,
 } from "./api"
+import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
+import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import PlayerChip from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
+import { useErrorSnackbar } from "./useErrorSnackbar"
+import { displayMapName, formatPercent, wilsonInterval } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
-import { toGeneralName } from "./general_utils"
-import { displayMapName, formatPercent, wilsonInterval } from "./utils"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 // A general needs at least this many games in its running series before it's
 // worth a tab - a handful of points reads as noise, not a trend.
@@ -184,6 +191,7 @@ const FAVORITE_ICON: Record<string, React.ElementType> = {
   "Favorite Building": ApartmentIcon,
   "Favorite Upgrade": UpgradeIcon,
   "Favorite Power": BoltIcon,
+  "Signature Damage Dealer": LocalFireDepartmentIcon,
 }
 
 function FavoriteCard(props: {
@@ -907,6 +915,67 @@ function ObjectUsageSection(props: {
   )
 }
 
+/** Every unit this player has ever killed with, summed across every game and
+ * general analyzed - a plain browsable table, unlike the peer-normalized
+ * signature/top-rate picks above it. "Value destroyed" is build cost of the
+ * kills (the damage-dealt proxy, since replays don't carry raw HP). */
+function DamageByUnitSection(props: {
+  damageByUnit: Record<string, ObjectSummary>
+}) {
+  const rows = React.useMemo(
+    () =>
+      Object.entries(props.damageByUnit)
+        .map(([name, obj]) => ({ name, ...obj }))
+        .sort((a, b) => b.totalSpent - a.totalSpent),
+    [props.damageByUnit],
+  )
+  if (rows.length === 0) {
+    return null
+  }
+  return (
+    <Accordion
+      disableGutters
+      slotProps={{ transition: { unmountOnExit: true } }}
+    >
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography variant="h6">Damage By Unit</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5,
+          }}
+        >
+          Value destroyed (build cost of kills) with each unit, across every
+          game analyzed.
+        </Typography>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Unit</TableCell>
+              <TableCell align="right">Kills</TableCell>
+              <TableCell align="right">Value Destroyed</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((r) => (
+              <TableRow key={r.name} hover>
+                <TableCell>{prettyObjectName(r.name)}</TableCell>
+                <TableCell align="right">{r.count}</TableCell>
+                <TableCell align="right">
+                  ${r.totalSpent.toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </AccordionDetails>
+    </Accordion>
+  )
+}
+
 function ProfileBody(props: { profile: PlayerProfile }) {
   const p = props.profile
   const c = p.computed ?? null
@@ -920,6 +989,7 @@ function ProfileBody(props: { profile: PlayerProfile }) {
   const hasMaps = p.favoriteMap != null || p.bestMap != null
   const hasTempo =
     p.avgWinDurationMinutes != null || p.avgLossDurationMinutes != null
+  const hasDamageByUnit = Object.keys(c?.damageByUnit ?? {}).length > 0
 
   return (
     <Stack spacing={3} sx={{ mt: 2 }}>
@@ -1143,6 +1213,36 @@ function ProfileBody(props: { profile: PlayerProfile }) {
           </Stack>
         </Box>
       )}
+      {c !== null &&
+        (c.topDamageDealer || c.signatureDamageDealer || hasDamageByUnit) && (
+          <Box>
+            <SectionHeader
+              icon={<LocalFireDepartmentIcon />}
+              title="Damage Dealt"
+              subtitle="value destroyed (build cost of kills) - replays don't record raw HP"
+            />
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              sx={{ mb: hasDamageByUnit ? 2 : 0 }}
+            >
+              {c.topDamageDealer && (
+                <StatTile
+                  label="Most Damage / Game"
+                  value={prettyObjectName(c.topDamageDealer.name)}
+                  detail={`$${c.topDamageDealer.perGame.toLocaleString()}/game over ${c.topDamageDealer.gamesOnGeneral} games`}
+                />
+              )}
+              {c.signatureDamageDealer && (
+                <FavoriteCard
+                  label="Signature Damage Dealer"
+                  favorite={c.signatureDamageDealer}
+                />
+              )}
+            </Stack>
+            <DamageByUnitSection damageByUnit={c.damageByUnit ?? {}} />
+          </Box>
+        )}
       {c !== null && (
         <ObjectUsageSection
           objectUsage={c.objectUsage ?? []}
