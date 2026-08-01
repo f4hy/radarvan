@@ -37,6 +37,7 @@ import structlog
 from anthropic.types import TextBlock
 
 from ..db_utils import ReplayManager
+from ..notify import notify
 from ..routes import players as players_routes
 from ..routes import profile as profile_routes
 from . import anthropic_client, gemini_client, hype_data
@@ -158,6 +159,28 @@ def build_prompt(
     return MatchupPrompt(system=SYSTEM_PROMPT, user_message=user_message)
 
 
+def _notify_generated(
+    provider: str,
+    player1: str,
+    player2: str,
+    input_tokens: int | None,
+    output_tokens: int | None,
+    text: str,
+) -> None:
+    """Fired on every real LLM call (i.e. every cache miss - see
+    routes/commentary.py, which only reaches generate_commentary when
+    nothing was already saved for this matchup)."""
+    notify(
+        "\n".join(
+            [
+                f"🎙️ Matchup commentary generated for {player1} vs {player2} ({provider})",
+                f"Tokens: input={input_tokens}, output={output_tokens}",
+                text,
+            ]
+        )
+    )
+
+
 def _generate_with_anthropic(prompt: MatchupPrompt, player1: str, player2: str) -> str:
     start = time.monotonic()
     try:
@@ -204,6 +227,9 @@ def _generate_with_anthropic(prompt: MatchupPrompt, player1: str, player2: str) 
             f"model returned no text content (stop_reason={response.stop_reason!r}, "
             f"output_tokens={usage.output_tokens})"
         )
+    _notify_generated(
+        "anthropic", player1, player2, usage.input_tokens, usage.output_tokens, text
+    )
     return text
 
 
@@ -250,6 +276,7 @@ def _generate_with_gemini(prompt: MatchupPrompt, player1: str, player2: str) -> 
             f"model returned no text content (status={interaction.status!r}, "
             f"output_tokens={output_tokens})"
         )
+    _notify_generated("gemini", player1, player2, input_tokens, output_tokens, text)
     return text
 
 
