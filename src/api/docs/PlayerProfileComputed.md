@@ -22,6 +22,9 @@ Name | Type
 `superweaponPercentile` | number
 `badges` | [Array&lt;ProfileBadge&gt;](ProfileBadge.md)
 `objectUsage` | [Array&lt;ObjectUsageStat&gt;](ObjectUsageStat.md)
+`topDamageDealer` | [UnitDamageStat](UnitDamageStat.md)
+`signatureDamageDealer` | [FavoriteObject](FavoriteObject.md)
+`damageByUnit` | [{ [key: string]: ObjectSummary; }](ObjectSummary.md)
 `gamesAnalyzed` | number
 `computedAt` | Date
 
@@ -47,6 +50,9 @@ const example = {
   "superweaponPercentile": null,
   "badges": null,
   "objectUsage": null,
+  "topDamageDealer": null,
+  "signatureDamageDealer": null,
+  "damageByUnit": null,
   "gamesAnalyzed": null,
   "computedAt": null,
 } satisfies PlayerProfileComputed

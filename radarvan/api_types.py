@@ -1005,6 +1005,24 @@ class ObjectUsageStat(BaseModel):
     peer_count: int = Field(alias="peerCount")
 
 
+class UnitDamageStat(BaseModel):
+    """A player's own highest per-game value-destroyed rate for one unit on
+    one general - their own best, not peer-normalized (see FavoriteObject /
+    PlayerProfileComputed.signature_damage_dealer for the peer-relative
+    pick). "Value destroyed" is build cost of everything killed with this
+    unit - the damage-dealt proxy, since replays don't carry raw HP.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    general: General
+    per_game: TwoDecimal = Field(alias="perGame")
+    total_value_destroyed: int = Field(alias="totalValueDestroyed")
+    kill_count: int = Field(alias="killCount")
+    games_on_general: int = Field(alias="gamesOnGeneral")
+
+
 class ProfileBadge(BaseModel):
     """A top-3 behavioral standout among profiled players for one stat."""
 
@@ -1113,6 +1131,20 @@ class PlayerProfileComputed(BaseModel):
     # ObjectUsageStat; a browsable reference, not just the favorites above.
     object_usage: list[ObjectUsageStat] = Field(
         default_factory=list, alias="objectUsage"
+    )
+    # The unit this player has dealt the most value-destroyed with, per game
+    # (their own top rate - not peer-normalized; see UnitDamageStat).
+    top_damage_dealer: UnitDamageStat | None = Field(None, alias="topDamageDealer")
+    # The unit this player deals more damage with than peers of the same
+    # general, peer-normalized like favorite_unit/etc above.
+    signature_damage_dealer: FavoriteObject | None = Field(
+        None, alias="signatureDamageDealer"
+    )
+    # Every unit this player has ever killed with, summed across all games and
+    # generals (Count = kills, TotalSpent = value destroyed) - a browsable
+    # reference, not filtered to a signature/outlier like the two picks above.
+    damage_by_unit: dict[str, ObjectSummary] = Field(
+        default_factory=dict, alias="damageByUnit"
     )
     games_analyzed: int = Field(alias="gamesAnalyzed")
     computed_at: date = Field(alias="computedAt")
