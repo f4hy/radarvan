@@ -9,6 +9,8 @@ Name | Type
 `general` | [General](General.md)
 `stats` | [Array&lt;GeneralStatPlayerWL&gt;](GeneralStatPlayerWL.md)
 `total` | [WinLoss](WinLoss.md)
+`valueDestroyed` | number
+`valueLost` | number
 
 ## Example
 
@@ -20,6 +22,8 @@ const example = {
   "general": null,
   "stats": null,
   "total": null,
+  "valueDestroyed": null,
+  "valueLost": null,
 } satisfies GeneralStat
 
 console.log(example)

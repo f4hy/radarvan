@@ -15,6 +15,8 @@ Name | Type
 `player1ByGeneral` | [Array&lt;HeadToHeadGeneralRecord&gt;](HeadToHeadGeneralRecord.md)
 `player2ByGeneral` | [Array&lt;HeadToHeadGeneralRecord&gt;](HeadToHeadGeneralRecord.md)
 `byMap` | [Array&lt;HeadToHeadMapRecord&gt;](HeadToHeadMapRecord.md)
+`player1ValueDestroyed` | number
+`player2ValueDestroyed` | number
 `teammateGames` | number
 `teammateWins` | number
 
@@ -33,6 +35,8 @@ const example = {
   "player1ByGeneral": null,
   "player2ByGeneral": null,
   "byMap": null,
+  "player1ValueDestroyed": null,
+  "player2ValueDestroyed": null,
   "teammateGames": null,
   "teammateWins": null,
 } satisfies HeadToHeadDetail

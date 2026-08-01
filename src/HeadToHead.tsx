@@ -38,6 +38,12 @@ import WinShareBar from "./WinShareBar"
 const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
+const compactCash = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+const formatValue = (n: number) => `$${compactCash.format(n)}`
+
 // The big "12 — 7" scoreboard with a win-share bar colored per player.
 function Scoreboard(props: { data: HeadToHeadDetail }) {
   const {
@@ -47,11 +53,17 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
     player2Wins,
     teammateGames,
     teammateWins,
+    player1ValueDestroyed,
+    player2ValueDestroyed,
   } = props.data
   const total = player1Wins + player2Wins
   const share1 = total > 0 ? player1Wins / total : 0.5
   const c1 = playerColor(player1)
   const c2 = playerColor(player2)
+  const v1 = player1ValueDestroyed ?? 0
+  const v2 = player2ValueDestroyed ?? 0
+  const valueTotal = v1 + v2
+  const valueShare1 = valueTotal > 0 ? v1 / valueTotal : 0.5
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -133,6 +145,41 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
           Also teammates in {teammateGames} game{teammateGames === 1 ? "" : "s"}{" "}
           ({teammateWins}-{teammateGames - teammateWins} together)
         </Typography>
+      )}
+      {valueTotal > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Typography variant="body2" sx={{ color: c1, fontWeight: "bold" }}>
+              {formatValue(v1)} destroyed
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+              }}
+            >
+              Value destroyed (recent games)
+            </Typography>
+            <Typography variant="body2" sx={{ color: c2, fontWeight: "bold" }}>
+              {formatValue(v2)} destroyed
+            </Typography>
+          </Stack>
+          <Box sx={{ mt: 0.5 }}>
+            <WinShareBar
+              fraction={valueShare1}
+              leftColor={c1}
+              rightColor={c2}
+              height={8}
+            />
+          </Box>
+        </Box>
       )}
     </Box>
   )

@@ -220,6 +220,11 @@ class GeneralStat(BaseModel):
     general: General
     stats: list[GeneralStatPlayerWL]
     total: WinLoss
+    # Precomputed nightly (see routes/superlatives._do_recompute) since it
+    # requires scanning every competitive match's kill events - too slow to
+    # derive live in this otherwise-cheap route. 0 until the first recompute.
+    value_destroyed: int = 0
+    value_lost: int = 0
 
 
 class GeneralStats(BaseModel):
@@ -542,6 +547,11 @@ class SuperlativePlayerSummary(BaseModel):
     money_spent: int
     units_created_count: int
     buildings_built_count: int
+    # Sum of build cost of everything this player destroyed/lost (units +
+    # buildings) in the match - the value-destroyed proxy since replays don't
+    # carry raw HP damage. See match_details.py's ud_by_player/bd_by_player.
+    value_destroyed: int = 0
+    value_lost: int = 0
 
 
 class SuperlativeData(BaseModel):
@@ -995,6 +1005,24 @@ class ObjectUsageStat(BaseModel):
     peer_count: int = Field(alias="peerCount")
 
 
+class UnitDamageStat(BaseModel):
+    """A player's own highest per-game value-destroyed rate for one unit on
+    one general - their own best, not peer-normalized (see FavoriteObject /
+    PlayerProfileComputed.signature_damage_dealer for the peer-relative
+    pick). "Value destroyed" is build cost of everything killed with this
+    unit - the damage-dealt proxy, since replays don't carry raw HP.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    general: General
+    per_game: TwoDecimal = Field(alias="perGame")
+    total_value_destroyed: int = Field(alias="totalValueDestroyed")
+    kill_count: int = Field(alias="killCount")
+    games_on_general: int = Field(alias="gamesOnGeneral")
+
+
 class ProfileBadge(BaseModel):
     """A top-3 behavioral standout among profiled players for one stat."""
 
@@ -1103,6 +1131,20 @@ class PlayerProfileComputed(BaseModel):
     # ObjectUsageStat; a browsable reference, not just the favorites above.
     object_usage: list[ObjectUsageStat] = Field(
         default_factory=list, alias="objectUsage"
+    )
+    # The unit this player has dealt the most value-destroyed with, per game
+    # (their own top rate - not peer-normalized; see UnitDamageStat).
+    top_damage_dealer: UnitDamageStat | None = Field(None, alias="topDamageDealer")
+    # The unit this player deals more damage with than peers of the same
+    # general, peer-normalized like favorite_unit/etc above.
+    signature_damage_dealer: FavoriteObject | None = Field(
+        None, alias="signatureDamageDealer"
+    )
+    # Every unit this player has ever killed with, summed across all games and
+    # generals (Count = kills, TotalSpent = value destroyed) - a browsable
+    # reference, not filtered to a signature/outlier like the two picks above.
+    damage_by_unit: dict[str, ObjectSummary] = Field(
+        default_factory=dict, alias="damageByUnit"
     )
     games_analyzed: int = Field(alias="gamesAnalyzed")
     computed_at: date = Field(alias="computedAt")
@@ -1226,6 +1268,11 @@ class HeadToHeadGame(BaseModel):
     player1_won: bool = Field(alias="player1Won")
     player1_team: list[str] = Field(alias="player1Team")
     player2_team: list[str] = Field(alias="player2Team")
+    # Value (build cost) of each other's stuff destroyed in this game - the
+    # damage-dealt proxy, since replays don't carry raw HP. 0 when neither
+    # killed anything of the other's (or MatchDetails wasn't available).
+    player1_value_destroyed: int = Field(default=0, alias="player1ValueDestroyed")
+    player2_value_destroyed: int = Field(default=0, alias="player2ValueDestroyed")
 
 
 class HeadToHeadGeneralRecord(BaseModel):
@@ -1258,6 +1305,8 @@ class HeadToHeadDetail(BaseModel):
     player1_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player1ByGeneral")
     player2_by_general: list[HeadToHeadGeneralRecord] = Field(alias="player2ByGeneral")
     by_map: list[HeadToHeadMapRecord] = Field(alias="byMap")
+    player1_value_destroyed: int = Field(default=0, alias="player1ValueDestroyed")
+    player2_value_destroyed: int = Field(default=0, alias="player2ValueDestroyed")
     # Same-team games between these two, over the same `games` pool - a
     # symmetric, always-available count unlike PlayerProfile.favorite_teammate
     # (which is synergy-ranked and one-directional: it only surfaces a pair

@@ -1,12 +1,13 @@
+import { Typography, useTheme } from "@mui/material"
 import Box from "@mui/material/Box"
-import MuiTooltip from "@mui/material/Tooltip"
-import Loading from "./Loading"
 import Divider from "@mui/material/Divider"
-import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
+import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import MuiTooltip from "@mui/material/Tooltip"
+import useMediaQuery from "@mui/material/useMediaQuery"
 import * as React from "react"
 import {
   Bar,
@@ -18,20 +19,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import WinRateRadar from "./WinRateRadar"
-import WinRateChip from "./WinRateChip"
-import DisplayGeneral from "./Generals"
 import { GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
+import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
-import { Typography, useTheme } from "@mui/material"
-import useMediaQuery from "@mui/material/useMediaQuery"
-import { winRate, wilsonLowerBound } from "./utils"
-import { CHART_WIN, CHART_LOSS } from "./theme"
+import Loading from "./Loading"
+import { CHART_LOSS, CHART_WIN } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+import { wilsonLowerBound, winRate } from "./utils"
+import WinRateChip from "./WinRateChip"
+import WinRateRadar from "./WinRateRadar"
 
 const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
+
+const compactCash = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+const formatValue = (n: number) => `$${compactCash.format(n)}`
 
 function getGeneralStats(
   gameFormat: GameFormat,
@@ -125,6 +131,9 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
   const overall = props.stat.total
   const overallWins = overall?.wins ?? 0
   const overallLosses = overall?.losses ?? 0
+  const valueDestroyed = props.stat.valueDestroyed ?? 0
+  const valueLost = props.stat.valueLost ?? 0
+  const tradeRatio = valueLost > 0 ? valueDestroyed / valueLost : undefined
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -147,6 +156,13 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
         </Typography>
         <WinRateChip wins={overallWins} losses={overallLosses} />
       </Stack>
+      {(valueDestroyed > 0 || valueLost > 0) && (
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {formatValue(valueDestroyed)} destroyed · {formatValue(valueLost)}{" "}
+          lost
+          {tradeRatio !== undefined && ` · ${tradeRatio.toFixed(2)}x trade`}
+        </Typography>
+      )}
     </Box>
   )
 }
