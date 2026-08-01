@@ -347,6 +347,36 @@ class PlayerProfileCache(Base):
         return f"<PlayerProfileCache(player={self.player}, version={self.version})>"
 
 
+class MatchupCommentaryCache(Base):
+    """Durable cache of AI-generated pre-game matchup commentary.
+
+    Keyed on (player1, player2, round_name) - the exact identifiers a
+    matchup commentary request carries (see MatchupCommentaryRequest).
+    Generation is a real, billed LLM call (radarvan.commentary), so once a
+    row exists for a triple it's served on every later request instead of
+    regenerating. No version/invalidation scheme here unlike
+    MatchDetailsCache/PlayerProfileCache - if the prompt changes and old
+    commentary should be regenerated, delete the affected rows by hand.
+    """
+
+    __tablename__ = "matchup_commentary_cache"
+
+    player1: Mapped[str] = mapped_column(String, primary_key=True)
+    player2: Mapped[str] = mapped_column(String, primary_key=True)
+    round_name: Mapped[str] = mapped_column(String, primary_key=True)
+    commentary: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<MatchupCommentaryCache(player1={self.player1!r}, "
+            f"player2={self.player2!r}, round_name={self.round_name!r})>"
+        )
+
+
 class User(Base):
     """A community member authenticated via Discord OAuth2.
 

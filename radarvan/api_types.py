@@ -1266,6 +1266,36 @@ class HeadToHeadDetail(BaseModel):
     teammate_wins: int = Field(alias="teammateWins")
 
 
+class MatchupCommentaryRequest(BaseModel):
+    model_config = _SLOTS
+
+    player1: PlayerName
+    player2: PlayerName
+    # Freeform, e.g. "Winners Round 1" - not tied to bracket.py's round_name
+    # values, so this endpoint isn't coupled to the 1v1 bracket specifically.
+    round_name: str
+
+
+class MatchupCommentaryResponse(BaseModel):
+    model_config = _SLOTS
+
+    commentary: str
+
+
+class MatchupCommentaryPromptPreview(BaseModel):
+    """The exact system + user content that would be sent to Anthropic for a
+    matchup, plus character counts - for inspecting/trimming payload size
+    without spending a real API call. Dev-only, see routes/commentary.py.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    system: str
+    user_message: str = Field(alias="userMessage")
+    system_chars: int = Field(alias="systemChars")
+    user_message_chars: int = Field(alias="userMessageChars")
+
+
 class PlayerRatingDailyChange(BaseModel):
     model_config = _SLOTS_FA
 

@@ -40,7 +40,7 @@ import {
   setBracketMatch,
   setBracketRevealAt,
 } from "./bracketApi"
-import { Client } from "./Client"
+import { Client, CommentaryClient } from "./Client"
 import { GamesTable } from "./HeadToHead"
 import Loading from "./Loading"
 import { PlayerChip } from "./PlayerChip"
@@ -413,10 +413,35 @@ function toHeadToHeadGame(
   }
 }
 
+// The commentary guidelines produce plain paragraphs (blank-line separated)
+// with a single **bolded** hook line - not general markdown - so a tiny
+// hand-rolled renderer covers it without pulling in a markdown dependency.
+function renderHypeText(text: string): React.ReactNode {
+  const paragraphs = text.split("\n\n").filter((p) => p.trim().length > 0)
+  return paragraphs.map((paragraph, pIdx) => (
+    <Typography
+      key={pIdx}
+      variant="body2"
+      sx={{ mb: pIdx === paragraphs.length - 1 ? 0 : 1 }}
+    >
+      {paragraph
+        .split(/(\*\*[^*]+\*\*)/g)
+        .map((chunk, cIdx) =>
+          chunk.startsWith("**") && chunk.endsWith("**") ? (
+            <strong key={cIdx}>{chunk.slice(2, -2)}</strong>
+          ) : (
+            <React.Fragment key={cIdx}>{chunk}</React.Fragment>
+          ),
+        )}
+    </Typography>
+  ))
+}
+
 // The everyone-gets-this popup a match card click opens (admins reach the
 // score editor via the edit icon instead - see MatchBox). Links to each
-// player's profile and their head-to-head record, plus whatever 1v1 games
-// were actually played between them on the match's scheduled date.
+// player's profile and their head-to-head record, an AI-generated pre-game
+// hype blurb (see radarvan/commentary/), plus whatever 1v1 games were
+// actually played between them on the match's scheduled date.
 function MatchupPopup({
   match,
   onClose,
@@ -437,7 +462,38 @@ function MatchupPopup({
 
   const [games, setGames] = React.useState<MatchInfo[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [commentary, setCommentary] = React.useState<string | null>(null)
+  const [commentaryLoading, setCommentaryLoading] = React.useState(false)
   const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    if (!playerA || !playerB) {
+      setCommentary(null)
+      return
+    }
+    let cancelled = false
+    setCommentaryLoading(true)
+    CommentaryClient.getMatchupCommentaryApiMatchupCommentaryPost({
+      matchupCommentaryRequest: {
+        player1: playerA,
+        player2: playerB,
+        roundName: match.round_name,
+      },
+    })
+      .then((res) => {
+        if (!cancelled) setCommentary(res.commentary)
+      })
+      .catch(() => {
+        // Best-effort flavor text: a disabled provider (503) or a
+        // generation failure (502) shouldn't break the rest of the popup -
+        // just skip showing this section rather than surfacing an error.
+        if (!cancelled) setCommentary(null)
+      })
+      .finally(() => !cancelled && setCommentaryLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [playerA, playerB, match.round_name])
 
   React.useEffect(() => {
     if (!datePlayable || !scheduledDate || !playerA || !playerB) {
@@ -535,6 +591,35 @@ function MatchupPopup({
             </Button>
           )}
         </Stack>
+        {commentaryLoading && (
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", display: "block", mb: 2 }}
+          >
+            ✨ Generating hype…
+          </Typography>
+        )}
+        {!commentaryLoading && commentary && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              backgroundColor: (theme) =>
+                alpha(theme.palette.secondary.main, 0.08),
+              border: "1px solid",
+              borderColor: (theme) => alpha(theme.palette.secondary.main, 0.3),
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
+            >
+              ✨ AI-generated hype
+            </Typography>
+            {renderHypeText(commentary)}
+          </Box>
+        )}
         {loading && <Loading />}
         {!loading && !datePlayable && (
           <Typography sx={{ color: "text.secondary" }}>

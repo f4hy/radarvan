@@ -25,6 +25,7 @@ from .routes import (
     admin,
     auth,
     bracket,
+    commentary,
     draft,
     ffa,
     files,
@@ -134,6 +135,7 @@ app.include_router(superlatives.router, dependencies=PROTECTED)
 app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)
 app.include_router(predict.router, dependencies=PROTECTED)
+app.include_router(commentary.router, dependencies=PROTECTED)
 
 # Public asset routes - reachable without an API key (browser <img> loads).
 app.include_router(maps.public_router)

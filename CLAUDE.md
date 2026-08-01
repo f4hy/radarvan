@@ -29,6 +29,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 - **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.** The service is always running; it's the intended read path and matches what the frontend actually sees. Reserve direct `DatabaseManager`/`replay_files` scripting for cases the API genuinely can't express.
 - **When exploring code, read the source file directly (`Read` tool) rather than chaining several `grep`/`sed`/`awk` shell commands.** Use `grep`/`Bash` only for repo-wide searches (finding *where* something is defined/used across many files) — once you know the file, read it.
 - **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium.** Pass the Firefox browser/channel explicitly wherever the driver defaults to Chromium.
+- **Never call `POST /api/matchup_commentary/` (or anything that reaches `matchup_commentary.generate_commentary`) without asking first — it spends real tokens/money on every call, against whichever provider `COMMENTARY_PROVIDER` currently selects (Anthropic or Gemini).** Each individual call needs its own explicit confirmation from the user; a prior "yes" doesn't cover the next one. Use the free `GET /api/matchup_commentary/prompt_preview` instead for anything about prompt content/size/structure — it builds the exact same payload without calling either provider.
 
 ### Environment variables
 
@@ -44,6 +45,8 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 | `CNCSTATS_API_KEY` | X-API-Key for the cncstats **map registry** (`/add_map`) — distinct from the above, do not conflate |
 | `ML_MODEL_PATH`/`ML_VOCAB_PATH`, `WINPROB_MODEL_PATH`/`WINPROB_STATS_PATH` | ONNX model files; endpoints 503 when absent |
 | `RATE_LIMIT_PER_MINUTE` | Per-client sliding window on `/api` (0 disables) |
+| `CLAUDE_API_KEY` / `GEMINI_API_KEY` | Matchup commentary LLM providers (`commentary/anthropic_client.py` / `commentary/gemini_client.py`); `commentary_available()` 503s when the active one's key is absent |
+| `COMMENTARY_PROVIDER` | `"anthropic"` or `"gemini"` — which provider generates commentary; defaults to `"gemini"` (see `matchup_commentary.py`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP collector URL; tracing (`tracing.py`) is a no-op unless set |
 | `OTEL_EXPORTER_OTLP_HEADERS` / `OTEL_SERVICE_NAME` | Optional auth headers for the OTLP backend / span service name (default `radarvan`) |
 

@@ -22,6 +22,7 @@ from .repositories import (
     MatchDebugData,
     MatchDetailsRepo,
     MatchRepo,
+    MatchupCommentaryRepo,
     ProfileRepo,
     ReplayRepo,
     ReplayToProcess,
@@ -83,6 +84,7 @@ class ReplayManager(
     TournamentRepo,
     MatchDetailsRepo,
     ProfileRepo,
+    MatchupCommentaryRepo,
 ):
     """Facade over every per-entity repository.
 
