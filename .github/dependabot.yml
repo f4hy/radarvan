@@ -1,19 +1,59 @@
 version: 2
 updates:
-  # GitHub Actions used in .github/workflows/.
+  # GitHub Actions used in .github/workflows/. Version bumps here are
+  # low-risk (just tag references), so group everything into one PR.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   # Frontend dependencies (package.json / package-lock.json at repo root).
+  # Dev tooling (linter, test framework, build tool, types, ...) is grouped
+  # into one low-risk PR for minor/patch bumps. Production deps and major
+  # dev-tool bumps stay as individual PRs since they need real review.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      npm-dev-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
 
-  # Python dependencies managed by uv (pyproject.toml / uv.lock).
+  # Python dependencies managed by uv (pyproject.toml / uv.lock). The uv
+  # ecosystem doesn't distinguish dependency-groups for dependency-type
+  # (https://github.com/dependabot/dependabot-core/issues/13202), so the
+  # dev-tooling group below is matched explicitly by package name to mirror
+  # [dependency-groups.dev] in pyproject.toml. Production deps and major
+  # dev-tool bumps stay as individual PRs.
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      python-dev-dependencies:
+        patterns:
+          - "alembic"
+          - "boto3-stubs"
+          - "click"
+          - "datamodel-code-generator"
+          - "mypy"
+          - "pg-activity"
+          - "pylsp-mypy"
+          - "pytest"
+          - "python-lsp-ruff"
+          - "python-lsp-server"
+          - "ruff"
+          - "s3cmd"
+          - "tqdm"
+          - "types-cachetools"
+          - "types-tqdm"
+        update-types:
+          - "minor"
+          - "patch"
