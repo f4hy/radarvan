@@ -350,7 +350,13 @@ function opponentValueMap(
   return result
 }
 
-function PlayerOpponentSankey(props: {
+// Two separate charts, not one combined "destroyed + lost" diagram: a Sankey
+// node's displayed value is the sum of every link touching it, so with only
+// one category each, a shared opponent node (e.g. the sole opponent in a 1v1)
+// would sum two unrelated numbers into a meaningless total. Splitting keeps
+// each node's value meaningful, same as the existing Value Destroyed/Losses
+// split above.
+function PlayerDestroyedFromOpponentSankey(props: {
   playerName: string
   killEvents: KillEventOutput[]
 }) {
@@ -365,6 +371,25 @@ function PlayerOpponentSankey(props: {
             "destroyed",
           ),
         },
+      ]),
+    [props.playerName, props.killEvents],
+  )
+  return (
+    <PlayerSankeyChart
+      data={data}
+      emptyMessage="No kill events recorded against a specific opponent"
+      formatter={cashFormatter}
+    />
+  )
+}
+
+function PlayerLostToOpponentSankey(props: {
+  playerName: string
+  killEvents: KillEventOutput[]
+}) {
+  const data = React.useMemo(
+    () =>
+      buildCategorySankeyData(props.playerName, [
         {
           label: "Lost To",
           items: opponentValueMap(props.playerName, props.killEvents, "lost"),
@@ -435,8 +460,15 @@ function ShowPlayerSummary(props: {
           <PlayerLossesSankey playerSummary={sum} />
         </Box>
         <Box>
-          <Typography variant="h6">Damage by Opponent</Typography>
-          <PlayerOpponentSankey
+          <Typography variant="h6">Value Destroyed By Opponent</Typography>
+          <PlayerDestroyedFromOpponentSankey
+            playerName={sum.name}
+            killEvents={props.killEvents}
+          />
+        </Box>
+        <Box>
+          <Typography variant="h6">Value Lost To Opponent</Typography>
+          <PlayerLostToOpponentSankey
             playerName={sum.name}
             killEvents={props.killEvents}
           />
