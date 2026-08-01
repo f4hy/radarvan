@@ -17,6 +17,8 @@ Name | Type
 `player1Won` | boolean
 `player1Team` | Array&lt;string&gt;
 `player2Team` | Array&lt;string&gt;
+`player1ValueDestroyed` | number
+`player2ValueDestroyed` | number
 
 ## Example
 
@@ -36,6 +38,8 @@ const example = {
   "player1Won": null,
   "player1Team": null,
   "player2Team": null,
+  "player1ValueDestroyed": null,
+  "player2ValueDestroyed": null,
 } satisfies HeadToHeadGame
 
 console.log(example)

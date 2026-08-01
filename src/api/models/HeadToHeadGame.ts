@@ -93,6 +93,18 @@ export interface HeadToHeadGame {
      * @memberof HeadToHeadGame
      */
     player2Team: Array<string>;
+    /**
+     * 
+     * @type {number}
+     * @memberof HeadToHeadGame
+     */
+    player1ValueDestroyed?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HeadToHeadGame
+     */
+    player2ValueDestroyed?: number;
 }
 
 
@@ -135,6 +147,8 @@ export function HeadToHeadGameFromJSONTyped(json: any, ignoreDiscriminator: bool
         'player1Won': json['player1Won'],
         'player1Team': json['player1Team'],
         'player2Team': json['player2Team'],
+        'player1ValueDestroyed': json['player1ValueDestroyed'] == null ? undefined : json['player1ValueDestroyed'],
+        'player2ValueDestroyed': json['player2ValueDestroyed'] == null ? undefined : json['player2ValueDestroyed'],
     };
 }
 
@@ -160,6 +174,8 @@ export function HeadToHeadGameToJSONTyped(value?: HeadToHeadGame | null, ignoreD
         'player1Won': value['player1Won'],
         'player1Team': value['player1Team'],
         'player2Team': value['player2Team'],
+        'player1ValueDestroyed': value['player1ValueDestroyed'],
+        'player2ValueDestroyed': value['player2ValueDestroyed'],
     };
 }
 
