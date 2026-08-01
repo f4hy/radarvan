@@ -16,10 +16,15 @@ import DialogActions from "@mui/material/DialogActions"
 import DialogContent from "@mui/material/DialogContent"
 import DialogTitle from "@mui/material/DialogTitle"
 import IconButton from "@mui/material/IconButton"
+import List from "@mui/material/List"
+import ListItem from "@mui/material/ListItem"
+import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
 import { alpha } from "@mui/material/styles"
+import Tab from "@mui/material/Tab"
+import Tabs from "@mui/material/Tabs"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
@@ -43,6 +48,7 @@ import {
 import { Client, CommentaryClient } from "./Client"
 import { GamesTable } from "./HeadToHead"
 import Loading from "./Loading"
+import GameMap from "./Map"
 import { PlayerChip } from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import {
@@ -86,6 +92,113 @@ const MIN_PLAYERS = 9
 const MAX_PLAYERS = 16
 
 const BEST_OF_OPTIONS = [3, 5, 7, 9] as const
+
+// Banner title for the Rules tab — distinct from the (also from
+// 1v1_tournament_rules.txt) rule text below it, which is the actual content.
+const TOURNAMENT_BANNER_TITLE = "The Third Gamerz Rule 1v1 Tournament"
+
+// Copied verbatim from 1v1_tournament_rules.txt, with **bold** markers added
+// around each rule's key point (see renderBoldSegments) so the emphasis
+// matches what actually matters when skimming, not just reading top-to-bottom.
+const TOURNAMENT_RULES: string[] = [
+  "**Random reverse for armies.** Coin flip for who picks map first. Whoever loses the flip **bans one map** from the map pool, map is chosen from remaining options.",
+  "**No map may be played on twice in one set.**",
+  "**No limit on superweapons.**",
+  "**Best of 5**, then **best of 7** for winners semis, winners finals, losers semis, losers finals, then **best of 9** for grand finals.",
+  "**Double elimination.**",
+  "If set count is even going into final match of the set, the redo coin flip for final map pick, mirror faction based on the person who is higher up in the lobby screen. **Whatever general they get is the one both players will play as for the final game.** The person higher up in the lobby is also the one who calls the coin flip in the air.",
+  "Tournament admin: **Scottagorn**. Any disputes or rule clarifications go to him.",
+]
+
+// Approved map pool for the tournament (also from 1v1_tournament_rules.txt).
+const TOURNAMENT_MAP_LIST: string[] = [
+  "Dust Devil",
+  "[RANK] Barren Badlands Balanced ZH v2",
+  "[RANK] TD NoBugsCars ZH v1",
+  "[RANK] Arctic Lagoon ZH v2",
+  "[RANK] Liquid Gold ZH v2",
+  "[RANK] Snowy Drought ZH v5",
+  "[RANK] Natural Threats ZH v4",
+  "[RANK] Vendetta ZH v1",
+  "[RANK] Egyptian Oasis ZH v1",
+  "[RANK] Canyon of the Dead ZH v2",
+  "Oxygen 1",
+]
+
+// A distinct title banner for the Rules tab, separate from the rule content
+// below it — was previously just the organizer's plain announcement text.
+function TournamentBanner() {
+  return (
+    <Box
+      sx={{
+        textAlign: "center",
+        py: 2.5,
+        mb: 2,
+        borderRadius: 1,
+        bgcolor: alpha(BRAND_COLOR, 0.08),
+        border: "1px solid",
+        borderColor: alpha(BRAND_COLOR, 0.3),
+      }}
+    >
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "center", justifyContent: "center" }}
+      >
+        <EmojiEventsIcon sx={{ color: BRAND_COLOR }} />
+        <Typography variant="h5" sx={{ fontWeight: 700, color: BRAND_COLOR }}>
+          {TOURNAMENT_BANNER_TITLE}
+        </Typography>
+      </Stack>
+    </Box>
+  )
+}
+
+// The Rules tab content — a title banner plus the numbered rule set, laid
+// out as a proper list rather than the plain-text block it started as.
+function TournamentRulesPanel() {
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <TournamentBanner />
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        Rules
+      </Typography>
+      <List sx={{ listStyleType: "decimal", pl: 3 }}>
+        {TOURNAMENT_RULES.map((rule, idx) => (
+          <ListItem
+            key={idx}
+            sx={{ display: "list-item", py: 0.5, pl: 0.5 }}
+            disableGutters
+          >
+            <ListItemText primary={renderBoldSegments(rule)} />
+          </ListItem>
+        ))}
+      </List>
+    </Paper>
+  )
+}
+
+// The Map List tab content — one GameMap card per map in the approved pool.
+function TournamentMapListPanel() {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+        gap: 2,
+      }}
+    >
+      {TOURNAMENT_MAP_LIST.map((mapName) => (
+        <Stack key={mapName} spacing={1}>
+          <GameMap mapname={mapName} />
+          <Typography variant="subtitle1" noWrap title={mapName}>
+            {mapName}
+          </Typography>
+        </Stack>
+      ))}
+    </Box>
+  )
+}
 
 // Amber accent reserved for bye slots specifically, so they read as visually
 // distinct from both "TBD" reference leaves and played/pending real matches.
@@ -413,6 +526,21 @@ function toHeadToHeadGame(
   }
 }
 
+// Splits on **bold** markers (a lightweight markdown subset) into <strong>
+// spans - shared by renderHypeText (AI commentary) and the tournament rules
+// list, neither of which need a full markdown parser, just inline emphasis.
+function renderBoldSegments(text: string): React.ReactNode {
+  return text
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((chunk, i) =>
+      chunk.startsWith("**") && chunk.endsWith("**") ? (
+        <strong key={i}>{chunk.slice(2, -2)}</strong>
+      ) : (
+        <React.Fragment key={i}>{chunk}</React.Fragment>
+      ),
+    )
+}
+
 // The commentary guidelines produce plain paragraphs (blank-line separated)
 // with a single **bolded** hook line - not general markdown - so a tiny
 // hand-rolled renderer covers it without pulling in a markdown dependency.
@@ -424,15 +552,7 @@ function renderHypeText(text: string): React.ReactNode {
       variant="body2"
       sx={{ mb: pIdx === paragraphs.length - 1 ? 0 : 1 }}
     >
-      {paragraph
-        .split(/(\*\*[^*]+\*\*)/g)
-        .map((chunk, cIdx) =>
-          chunk.startsWith("**") && chunk.endsWith("**") ? (
-            <strong key={cIdx}>{chunk.slice(2, -2)}</strong>
-          ) : (
-            <React.Fragment key={cIdx}>{chunk}</React.Fragment>
-          ),
-        )}
+      {renderBoldSegments(paragraph)}
     </Typography>
   ))
 }
@@ -1377,6 +1497,9 @@ export default function DisplayBracket({
   )
   const isTournamentAdmin = useIsTournamentAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
+  const [pageTab, setPageTab] = React.useState<"bracket" | "rules" | "maps">(
+    "bracket",
+  )
 
   // Admin-only "peek early" toggle (see RevealCountdown / the button below).
   // Purely a per-session request flag: it re-fetches /api/bracket with
@@ -1755,7 +1878,14 @@ export default function DisplayBracket({
           </IconButton>
         )}
       </Stack>
-      {!bracketData && (
+      <Tabs value={pageTab} onChange={(_e, v) => setPageTab(v)} sx={{ mb: 2 }}>
+        <Tab value="bracket" label="Bracket" />
+        <Tab value="rules" label="Rules" />
+        <Tab value="maps" label="Map List" />
+      </Tabs>
+      {pageTab === "rules" && <TournamentRulesPanel />}
+      {pageTab === "maps" && <TournamentMapListPanel />}
+      {pageTab === "bracket" && !bracketData && (
         <Typography
           sx={{
             color: "text.secondary",
@@ -1765,15 +1895,18 @@ export default function DisplayBracket({
           {isTournamentAdmin && " Use the settings icon above to create one."}
         </Typography>
       )}
-      {bracketData && (
+      {pageTab === "bracket" && bracketData && (
         <TournamentRoster
           names={bracketData.participant_names}
           onSelectPlayer={goToPlayerProfile}
         />
       )}
-      {revealPending && bracketData && bracketData.reveal_at && (
-        <RevealCountdown revealAt={bracketData.reveal_at} />
-      )}
+      {pageTab === "bracket" &&
+        revealPending &&
+        bracketData &&
+        bracketData.reveal_at && (
+          <RevealCountdown revealAt={bracketData.reveal_at} />
+        )}
       <Dialog
         open={adminDialogOpen}
         onClose={() => setAdminDialogOpen(false)}
@@ -1875,104 +2008,107 @@ export default function DisplayBracket({
           </Button>
         </DialogActions>
       </Dialog>
-      {bracketData && winnersTree && losersMatches.length > 0 && (
-        <>
-          {bracketData.champion && (
-            <Paper
-              variant="outlined"
-              sx={{ p: 2, mb: 3, borderColor: WIN_COLOR }}
-            >
-              <Typography variant="h6" sx={{ color: WIN_COLOR }}>
-                Champion: {bracketData.champion}
-              </Typography>
-              {bracketData.runner_up && (
-                <Typography
-                  variant="body2"
+      {pageTab === "bracket" &&
+        bracketData &&
+        winnersTree &&
+        losersMatches.length > 0 && (
+          <>
+            {bracketData.champion && (
+              <Paper
+                variant="outlined"
+                sx={{ p: 2, mb: 3, borderColor: WIN_COLOR }}
+              >
+                <Typography variant="h6" sx={{ color: WIN_COLOR }}>
+                  Champion: {bracketData.champion}
+                </Typography>
+                {bracketData.runner_up && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                    }}
+                  >
+                    Runner-up: {bracketData.runner_up}
+                  </Typography>
+                )}
+              </Paper>
+            )}
+
+            <Box sx={{ overflowX: "auto", pb: 1 }}>
+              <Box
+                ref={bracketAreaRef}
+                sx={{ position: "relative", width: "fit-content" }}
+              >
+                <Box
+                  component="svg"
                   sx={{
-                    color: "text.secondary",
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    overflow: "visible",
+                    pointerEvents: "none",
                   }}
                 >
-                  Runner-up: {bracketData.runner_up}
-                </Typography>
-              )}
-            </Paper>
-          )}
-
-          <Box sx={{ overflowX: "auto", pb: 1 }}>
-            <Box
-              ref={bracketAreaRef}
-              sx={{ position: "relative", width: "fit-content" }}
-            >
-              <Box
-                component="svg"
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  overflow: "visible",
-                  pointerEvents: "none",
-                }}
-              >
-                {connectorLines
-                  .filter((line) => hoveredConnectionIds.has(line.id))
-                  .map((line) => {
-                    // Smooth S-curve (cubic Bezier) instead of a straight
-                    // diagonal or an elbow — both control points sit on the
-                    // horizontal midline so the curve leaves/arrives roughly
-                    // level at each end regardless of how far apart the rows are.
-                    const midX = (line.x1 + line.x2) / 2
-                    const d = `M ${line.x1} ${line.y1} C ${midX} ${line.y1}, ${midX} ${line.y2}, ${line.x2} ${line.y2}`
-                    return (
-                      <path
-                        key={line.id}
-                        d={d}
-                        fill="none"
-                        stroke={line.color}
-                        strokeWidth={1.5}
-                        strokeDasharray="5 4"
-                        opacity={0.7}
-                      />
-                    )
-                  })}
-              </Box>
-              <Box sx={{ position: "relative" }}>
-                <BracketDataContext.Provider value={bracketDataValue}>
-                  <BracketTreeSection
-                    title="Winners Bracket"
-                    nodes={[winnersTree]}
-                    columnTitles={[
-                      "Winners Round 1",
-                      "Winners Round 2",
-                      "Winners Semifinal",
-                      "Winners Final",
-                    ]}
-                    isAdmin={bracketAdminView}
-                    onEdit={handleEdit}
-                    registerBox={registerBox}
-                  />
-                  <Box sx={{ mb: 4 }}>
-                    <SectionTitle>Losers Bracket</SectionTitle>
-                    <LosersBracketColumns
-                      matches={losersMatches}
+                  {connectorLines
+                    .filter((line) => hoveredConnectionIds.has(line.id))
+                    .map((line) => {
+                      // Smooth S-curve (cubic Bezier) instead of a straight
+                      // diagonal or an elbow — both control points sit on the
+                      // horizontal midline so the curve leaves/arrives roughly
+                      // level at each end regardless of how far apart the rows are.
+                      const midX = (line.x1 + line.x2) / 2
+                      const d = `M ${line.x1} ${line.y1} C ${midX} ${line.y1}, ${midX} ${line.y2}, ${line.x2} ${line.y2}`
+                      return (
+                        <path
+                          key={line.id}
+                          d={d}
+                          fill="none"
+                          stroke={line.color}
+                          strokeWidth={1.5}
+                          strokeDasharray="5 4"
+                          opacity={0.7}
+                        />
+                      )
+                    })}
+                </Box>
+                <Box sx={{ position: "relative" }}>
+                  <BracketDataContext.Provider value={bracketDataValue}>
+                    <BracketTreeSection
+                      title="Winners Bracket"
+                      nodes={[winnersTree]}
+                      columnTitles={[
+                        "Winners Round 1",
+                        "Winners Round 2",
+                        "Winners Semifinal",
+                        "Winners Final",
+                      ]}
                       isAdmin={bracketAdminView}
                       onEdit={handleEdit}
                       registerBox={registerBox}
                     />
-                  </Box>
-                  <BracketTreeSection
-                    title="👑 Grand Final"
-                    nodes={grandFinalNodes}
-                    isAdmin={bracketAdminView}
-                    onEdit={handleEdit}
-                    registerBox={registerBox}
-                  />
-                </BracketDataContext.Provider>
+                    <Box sx={{ mb: 4 }}>
+                      <SectionTitle>Losers Bracket</SectionTitle>
+                      <LosersBracketColumns
+                        matches={losersMatches}
+                        isAdmin={bracketAdminView}
+                        onEdit={handleEdit}
+                        registerBox={registerBox}
+                      />
+                    </Box>
+                    <BracketTreeSection
+                      title="👑 Grand Final"
+                      nodes={grandFinalNodes}
+                      isAdmin={bracketAdminView}
+                      onEdit={handleEdit}
+                      registerBox={registerBox}
+                    />
+                  </BracketDataContext.Provider>
+                </Box>
               </Box>
             </Box>
-          </Box>
-        </>
-      )}
+          </>
+        )}
       <Dialog
         open={editingMatch !== null}
         onClose={() => setEditingMatchId(null)}
