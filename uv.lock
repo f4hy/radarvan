@@ -2417,7 +2417,7 @@ dev = [
     { name = "pylsp-mypy", specifier = ">=0.8.0" },
     { name = "pytest", specifier = ">=9.1.1,<10" },
     { name = "python-lsp-ruff", specifier = ">=2.3.1" },
-    { name = "python-lsp-server", extras = ["all", "mypy"], specifier = ">=1.14.0" },
+    { name = "python-lsp-server", extras = ["all"], specifier = ">=1.15.0" },
     { name = "ruff", specifier = ">=0.16.0" },
     { name = "s3cmd", specifier = ">=2.4.0" },
     { name = "sqlalchemy", extras = ["mypy"], specifier = ">=2.0.51" },
