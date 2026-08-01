@@ -91,7 +91,7 @@ const DEFAULT_SEEDS = [
 const MIN_PLAYERS = 9
 const MAX_PLAYERS = 16
 
-const BEST_OF_OPTIONS = [3, 5, 7, 9] as const
+const BEST_OF_OPTIONS = [5, 7, 9] as const
 
 // Banner title for the Rules tab — distinct from the (also from
 // 1v1_tournament_rules.txt) rule text below it, which is the actual content.
@@ -465,6 +465,32 @@ function winThreshold(bestOf: number): number {
   return Math.floor(bestOf / 2) + 1
 }
 
+// Best-of is fixed by the tournament rules per round, not an admin's free
+// choice: Bo5 by default, Bo7 for the semis/finals, Bo9 for the grand final.
+// The Winners bracket always has exactly these 4 round names (fixed 16-slot
+// shape, see bracketApi's DEFAULT_SEEDS comment), so those can be matched by
+// name directly. The Losers bracket's round *count* varies with entrant/bye
+// count though (5-7 rounds - see bracket.py's build_topology), so "losers
+// semis" is derived as whichever round comes immediately before "Losers
+// Final" in THIS bracket, not a hardcoded round number.
+function expectedBestOf(
+  match: BracketMatchOutput,
+  allMatches: BracketMatchOutput[],
+): 5 | 7 | 9 {
+  if (match.bracket === "GF") return 9
+  if (match.bracket === "W") {
+    return match.round_name === "Winners Semifinal" ||
+      match.round_name === "Winners Final"
+      ? 7
+      : 5
+  }
+  if (match.round_name === "Losers Final") return 7
+  const maxLosersRound = Math.max(
+    ...allMatches.filter((m) => m.bracket === "L").map((m) => m.round_number),
+  )
+  return match.round_number === maxLosersRound - 1 ? 7 : 5
+}
+
 type Side = "a" | "b"
 
 function SliderField({
@@ -729,13 +755,16 @@ function MatchupPopup({
 
 function MatchEditor({
   match,
+  allMatches,
   onSave,
 }: {
   match: BracketMatchOutput
+  allMatches: BracketMatchOutput[]
   onSave: (req: SetBracketMatchRequest) => Promise<void>
 }) {
   const [date, setDate] = React.useState(match.scheduled_date ?? "")
-  const [bestOf, setBestOf] = React.useState<number | null>(match.best_of)
+  // Locked, not admin-editable - see expectedBestOf.
+  const bestOf = expectedBestOf(match, allMatches)
   const [gamesPlayed, setGamesPlayed] = React.useState<number | null>(
     match.score_a !== null && match.score_b !== null
       ? match.score_a + match.score_b
@@ -746,28 +775,25 @@ function MatchEditor({
   )
   const [saving, setSaving] = React.useState(false)
 
-  const threshold = bestOf !== null ? winThreshold(bestOf) : null
+  const threshold = winThreshold(bestOf)
 
   // The winner always needs exactly `threshold` wins, so games played can
-  // never be below that (a sweep) or above `bestOf` (every map played) —
-  // reclamp whenever the best-of changes (e.g. Bo7 -> Bo3).
+  // never be below that (a sweep) or above `bestOf` (every map played).
   React.useEffect(() => {
-    if (threshold === null || bestOf === null) return
     setGamesPlayed((prev) =>
       prev === null ? prev : Math.min(Math.max(prev, threshold), bestOf),
     )
   }, [threshold, bestOf])
 
-  const loserScore =
-    threshold !== null && gamesPlayed !== null ? gamesPlayed - threshold : null
+  const loserScore = gamesPlayed !== null ? gamesPlayed - threshold : null
   const scoreA =
-    threshold === null || winnerSide === null || loserScore === null
+    winnerSide === null || loserScore === null
       ? null
       : winnerSide === "a"
         ? threshold
         : loserScore
   const scoreB =
-    threshold === null || winnerSide === null || loserScore === null
+    winnerSide === null || loserScore === null
       ? null
       : winnerSide === "b"
         ? threshold
@@ -779,7 +805,7 @@ function MatchEditor({
     try {
       await onSave({
         scheduled_date: date || null,
-        best_of: (bestOf as 3 | 5 | 7 | 9 | null) ?? null,
+        best_of: bestOf,
         score_a: scoreA,
         score_b: scoreB,
       })
@@ -798,35 +824,28 @@ function MatchEditor({
         value={date}
         onChange={(e) => setDate(e.target.value)}
       />
-      <ToggleButtonGroup
-        size="small"
-        exclusive
-        value={bestOf}
-        onChange={(_e, val: number | null) => {
-          if (val !== null) setBestOf(val)
-        }}
-      >
-        {BEST_OF_OPTIONS.map((bo) => (
-          <ToggleButton key={bo} value={bo}>
-            Bo{bo}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
-      {threshold !== null && bestOf !== null && (
-        <SliderField label="Games played">
-          <Slider
-            min={threshold}
-            max={bestOf}
-            step={1}
-            marks
-            valueLabelDisplay="on"
-            value={gamesPlayed ?? threshold}
-            onChange={(_e, val) => setGamesPlayed(val as number)}
-            sx={sliderSx(BRAND_COLOR)}
-          />
-        </SliderField>
-      )}
-      {threshold !== null && gamesPlayed !== null && (
+      <SliderField label="Best of (fixed by tournament rules for this round)">
+        <ToggleButtonGroup size="small" exclusive value={bestOf} disabled>
+          {BEST_OF_OPTIONS.map((bo) => (
+            <ToggleButton key={bo} value={bo}>
+              Bo{bo}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </SliderField>
+      <SliderField label="Games played">
+        <Slider
+          min={threshold}
+          max={bestOf}
+          step={1}
+          marks
+          valueLabelDisplay="on"
+          value={gamesPlayed ?? threshold}
+          onChange={(_e, val) => setGamesPlayed(val as number)}
+          sx={sliderSx(BRAND_COLOR)}
+        />
+      </SliderField>
+      {gamesPlayed !== null && (
         <SliderField label="Winner">
           <Slider
             min={0}
@@ -1320,6 +1339,8 @@ function LosersBracketColumns({
             sx={{ color: "text.secondary", textAlign: "center" }}
           >
             {roundMatches[0]?.round_name ?? `Losers Round ${roundNumber}`}
+            {roundMatches[0] &&
+              ` (Bo${expectedBestOf(roundMatches[0], matches)})`}
           </Typography>
           {roundMatches.map((m) => (
             <MatchBox
@@ -2040,10 +2061,10 @@ export default function DisplayBracket({
                       title="Winners Bracket"
                       nodes={[winnersTree]}
                       columnTitles={[
-                        "Winners Round 1",
-                        "Winners Round 2",
-                        "Winners Semifinal",
-                        "Winners Final",
+                        "Winners Round 1 (Bo5)",
+                        "Winners Round 2 (Bo5)",
+                        "Winners Semifinal (Bo7)",
+                        "Winners Final (Bo7)",
                       ]}
                       isAdmin={bracketAdminView}
                       onEdit={handleEdit}
@@ -2059,7 +2080,7 @@ export default function DisplayBracket({
                       />
                     </Box>
                     <BracketTreeSection
-                      title="👑 Grand Final"
+                      title="👑 Grand Final (Bo9)"
                       nodes={grandFinalNodes}
                       isAdmin={bracketAdminView}
                       onEdit={handleEdit}
@@ -2101,6 +2122,7 @@ export default function DisplayBracket({
             <DialogContent>
               <MatchEditor
                 match={editingMatch}
+                allMatches={bracketData?.matches ?? []}
                 onSave={(req) => handleSaveMatch(editingMatch.match_id, req)}
               />
             </DialogContent>
