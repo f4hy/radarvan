@@ -44,10 +44,10 @@ dev = [
   "ruff>=0.16.0",
   "s3cmd>=2.4.0",
   "sqlalchemy[mypy]>=2.0.51",
-  "tqdm>=4.68.4",
+  "tqdm>=4.70.0",
   "types-cachetools>=7.0.0.20260713",
-  "types-tqdm>=4.68.0.20260608",
-  "datamodel-code-generator>=0.68.1",
+  "types-tqdm>=4.69.0.20260728",
+  "datamodel-code-generator>=0.71.0",
   "pg-activity>=3.6.2",
 ]
 
