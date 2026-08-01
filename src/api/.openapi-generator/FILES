@@ -141,6 +141,7 @@ docs/TimelineEvent.md
 docs/Tournament.md
 docs/TournamentReport.md
 docs/TournamentResult.md
+docs/UnitDamageStat.md
 docs/UpgradeEvent.md
 docs/Upgrades.md
 docs/ValidationError.md
@@ -281,6 +282,7 @@ models/TimelineEvent.ts
 models/Tournament.ts
 models/TournamentReport.ts
 models/TournamentResult.ts
+models/UnitDamageStat.ts
 models/UpgradeEvent.ts
 models/Upgrades.ts
 models/ValidationError.ts

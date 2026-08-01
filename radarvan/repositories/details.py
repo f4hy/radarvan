@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 
 import structlog
 
-from sqlalchemy import delete as sa_delete
+from sqlalchemy import delete as sa_delete, select
 
 from ..api_types import MatchDetails
 from ..db import MatchDetailsCache
@@ -35,6 +35,40 @@ class MatchDetailsRepo(BaseRepo):
         if row is None or row.version != version:
             return None
         return MatchDetails.model_validate(row.data)
+
+    def get_cached_kill_data_rows(
+        self, match_ids: list[int], version: str
+    ) -> dict[int, tuple[list[object], list[object]]]:
+        """Return (killEvents, playerSummary) - as raw JSON, unvalidated - for
+        whichever of `match_ids` have a cached row at `version`, in one query.
+
+        Pulls those two JSONB paths server-side (`data['killEvents']` /
+        `data['playerSummary']`) rather than selecting the whole `data`
+        column: `data` is the *full* MatchDetails payload (build_orders,
+        apm_over_time, timeline_events, stats_data, ...), and for a caller
+        that only wants these two fields across many matches (e.g.
+        head_to_head's value_destroyed_by_match, which can span hundreds of
+        matches for a long-running matchup) transferring the whole blob per
+        row is the dominant cost against a remote DB - degrees more than
+        either per-match model validation or even one-round-trip-vs-many.
+        Never falls back to S3 - a match missing from the result is simply
+        omitted rather than paying for a full recompute.
+        """
+        if not match_ids:
+            return {}
+        stmt = select(
+            MatchDetailsCache.match_id,
+            MatchDetailsCache.data["killEvents"],
+            MatchDetailsCache.data["playerSummary"],
+        ).where(
+            MatchDetailsCache.match_id.in_(match_ids),
+            MatchDetailsCache.version == version,
+        )
+        rows = self.session.execute(stmt).all()
+        return {
+            match_id: (kill_events or [], player_summary or [])
+            for match_id, kill_events, player_summary in rows
+        }
 
     def save_cached_details(
         self, match_id: int, details: MatchDetails, version: str
