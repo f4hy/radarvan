@@ -1274,6 +1274,11 @@ class MatchupCommentaryRequest(BaseModel):
     # Freeform, e.g. "Winners Round 1" - not tied to bracket.py's round_name
     # values, so this endpoint isn't coupled to the 1v1 bracket specifically.
     round_name: str
+    # Both flags below skip the cache *read* and always trigger a fresh
+    # (billed) LLM call - they differ only in whether the result is
+    # persisted afterward. bypass_cache wins if both are set.
+    bypass_cache: bool = False  # regenerate, do not overwrite the cached row
+    force_refresh: bool = False  # regenerate and overwrite the cached row
 
 
 class MatchupCommentaryResponse(BaseModel):

@@ -5,6 +5,10 @@ Persisted via ``repositories.commentary.MatchupCommentaryRepo``, keyed on
 LLM call; a miss calls ``matchup_commentary.generate_commentary`` and writes
 the result before returning it. ``matchup_commentary`` itself stays unaware
 caching exists - it always regenerates when called.
+
+``MatchupCommentaryRequest.bypass_cache``/``force_refresh`` skip the cache
+read and force a fresh LLM call; ``force_refresh`` then overwrites the
+cached row, ``bypass_cache`` leaves it untouched.
 """
 
 import structlog
@@ -36,9 +40,21 @@ def get_matchup_commentary(
     POST (not GET) and gated behind the write-tier API key deliberately -
     a cache miss triggers a real LLM call, not just a read. A cache hit is
     free and instant; see the module docstring for the caching scheme.
+
+    ``req.bypass_cache`` and ``req.force_refresh`` both skip the cache read
+    and always call the LLM (still real, billed calls - not free just
+    because caching is being bypassed). They differ in whether the result
+    is then persisted: ``force_refresh`` overwrites the cached row,
+    ``bypass_cache`` does not touch it. If both are set, ``bypass_cache``
+    wins (no write).
     """
-    cached = replay_manager.get_cached_commentary(
-        req.player1, req.player2, req.round_name
+    skip_cache_read = req.bypass_cache or req.force_refresh
+    cached = (
+        None
+        if skip_cache_read
+        else replay_manager.get_cached_commentary(
+            req.player1, req.player2, req.round_name
+        )
     )
     if cached is not None:
         return MatchupCommentaryResponse(commentary=cached)
@@ -57,13 +73,14 @@ def get_matchup_commentary(
         raise HTTPException(
             status_code=502, detail="commentary generation failed"
         ) from e
-    replay_manager.save_commentary(
-        req.player1,
-        req.player2,
-        req.round_name,
-        text,
-        matchup_commentary.active_provider(),
-    )
+    if not req.bypass_cache:
+        replay_manager.save_commentary(
+            req.player1,
+            req.player2,
+            req.round_name,
+            text,
+            matchup_commentary.active_provider(),
+        )
     return MatchupCommentaryResponse(commentary=text)
 
 

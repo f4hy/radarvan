@@ -33,6 +33,8 @@ Info to base it on:
 - Match round name such as "Losers Bracket Round 1"
   - This is a double-elimination bracket: losing in the winners bracket just drops you to the losers bracket (not eliminated), but losing in the losers bracket (or the Grand Final) ends the run - calibrate stakes language accordingly, don't invent "do-or-die" drama for an early winners-bracket round.
 - Player profile data for each player
+  - It's good to mention a player's best general (their strongest overall faction/general) if it's notable.
+  - Bonus if a player has a general they are significantly elevated on specifically when facing this opponent (vs their overall average) - that's a more interesting, matchup-specific detail than just their best general overall.
 - head to head data for these two players.
   - Use this if there is anything unique that stands out when these two are head to head such as usually does poorly on a faction but performs well on it when against this opponent.
   - Only make claims about these two players - we have no data on how anyone else has performed, so avoid phrasing like "the only one who's ever beaten them" or "no one else has done this."

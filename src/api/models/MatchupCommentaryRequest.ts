@@ -37,6 +37,18 @@ export interface MatchupCommentaryRequest {
      * @memberof MatchupCommentaryRequest
      */
     roundName: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MatchupCommentaryRequest
+     */
+    bypassCache?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MatchupCommentaryRequest
+     */
+    forceRefresh?: boolean;
 }
 
 /**
@@ -62,6 +74,8 @@ export function MatchupCommentaryRequestFromJSONTyped(json: any, ignoreDiscrimin
         'player1': json['player1'],
         'player2': json['player2'],
         'roundName': json['round_name'],
+        'bypassCache': json['bypass_cache'] == null ? undefined : json['bypass_cache'],
+        'forceRefresh': json['force_refresh'] == null ? undefined : json['force_refresh'],
     };
 }
 
@@ -79,6 +93,8 @@ export function MatchupCommentaryRequestToJSONTyped(value?: MatchupCommentaryReq
         'player1': value['player1'],
         'player2': value['player2'],
         'round_name': value['roundName'],
+        'bypass_cache': value['bypassCache'],
+        'force_refresh': value['forceRefresh'],
     };
 }
 

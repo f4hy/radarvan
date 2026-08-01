@@ -9,6 +9,8 @@ Name | Type
 `player1` | string
 `player2` | string
 `roundName` | string
+`bypassCache` | boolean
+`forceRefresh` | boolean
 
 ## Example
 
@@ -20,6 +22,8 @@ const example = {
   "player1": null,
   "player2": null,
   "roundName": null,
+  "bypassCache": null,
+  "forceRefresh": null,
 } satisfies MatchupCommentaryRequest
 
 console.log(example)

@@ -80,7 +80,7 @@ export class CommentaryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.
+     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.  ``req.bypass_cache`` and ``req.force_refresh`` both skip the cache read and always call the LLM (still real, billed calls - not free just because caching is being bypassed). They differ in whether the result is then persisted: ``force_refresh`` overwrites the cached row, ``bypass_cache`` does not touch it. If both are set, ``bypass_cache`` wins (no write).
      * Get Matchup Commentary
      */
     async getMatchupCommentaryApiMatchupCommentaryPostRaw(requestParameters: GetMatchupCommentaryApiMatchupCommentaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchupCommentaryResponse>> {
@@ -91,7 +91,7 @@ export class CommentaryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.
+     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.  ``req.bypass_cache`` and ``req.force_refresh`` both skip the cache read and always call the LLM (still real, billed calls - not free just because caching is being bypassed). They differ in whether the result is then persisted: ``force_refresh`` overwrites the cached row, ``bypass_cache`` does not touch it. If both are set, ``bypass_cache`` wins (no write).
      * Get Matchup Commentary
      */
     async getMatchupCommentaryApiMatchupCommentaryPost(requestParameters: GetMatchupCommentaryApiMatchupCommentaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchupCommentaryResponse> {

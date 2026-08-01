@@ -15,7 +15,7 @@ All URIs are relative to *http://localhost*
 
 Get Matchup Commentary
 
-Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.
+Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.  &#x60;&#x60;req.bypass_cache&#x60;&#x60; and &#x60;&#x60;req.force_refresh&#x60;&#x60; both skip the cache read and always call the LLM (still real, billed calls - not free just because caching is being bypassed). They differ in whether the result is then persisted: &#x60;&#x60;force_refresh&#x60;&#x60; overwrites the cached row, &#x60;&#x60;bypass_cache&#x60;&#x60; does not touch it. If both are set, &#x60;&#x60;bypass_cache&#x60;&#x60; wins (no write).
 
 ### Example
 
