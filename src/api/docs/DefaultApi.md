@@ -2369,7 +2369,7 @@ This endpoint does not need any parameter.
 
 Get Player Head To Head
 
-Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first).
+Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads kill data for the most recent &#x60;_H2H_VALUE_WINDOW&#x60; games featuring both players to compute value destroyed between them. Windowed (not the full history) because for the handful of extremely long-running pairs (600+ shared games), even a single batched query transfers enough kill-event JSON over the (remote) DB connection to take several seconds - every other pair has few enough games this never matters.
 
 ### Example
 

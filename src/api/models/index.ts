@@ -130,6 +130,7 @@ export * from './TimelineEvent';
 export * from './Tournament';
 export * from './TournamentReport';
 export * from './TournamentResult';
+export * from './UnitDamageStat';
 export * from './UpgradeEvent';
 export * from './Upgrades';
 export * from './ValidationError';
