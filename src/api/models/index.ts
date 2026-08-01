@@ -27,6 +27,8 @@ export * from './FFAPlayerStat';
 export * from './FFARecentMatch';
 export * from './FFAStats';
 export * from './Faction';
+export * from './FactionMatchupOption';
+export * from './FactionMatchupPrediction';
 export * from './FavoriteObject';
 export * from './FetchMissingMapResult';
 export * from './FetchMissingMapsResponse';

@@ -1,10 +1,20 @@
 """Match-outcome prediction endpoints (ONNX model)."""
 
+import time
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import ml_inference, replay_files, winprob_inference
-from ..api_types import MatchPrediction, PredictRequest, WinProbOverTime
+from ..api_types import (
+    FactionMatchupOption,
+    FactionMatchupPrediction,
+    General,
+    MatchPrediction,
+    PlayerName,
+    PredictRequest,
+    WinProbOverTime,
+)
 from ..cache import sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
@@ -12,6 +22,15 @@ from ..dependencies import get_replay_manager
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Recognised generals only (skip UNRECOGNIZED = -1), mirroring ml/features.py's
+# closed vocab so every value here is one the model actually has an embedding for.
+_RECOGNIZED_GENERALS = [g for g in General if g.value >= 0]
+
+# No real map has this name, so map_idx()/map_feature_vector() both fall through
+# to their UNK/train-mean fallback (see ml/features.py) - a legitimate "we don't
+# know the map yet" input, not a degenerate one.
+_UNKNOWN_MAP_PLACEHOLDER = "Unknown Map"
 
 
 def _require_model() -> None:
@@ -80,3 +99,58 @@ def predict_from_features(
         return ml_inference.predict_features(map_name, features)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.get("/api/predict/faction_matchup")
+def predict_faction_matchup(
+    player1: PlayerName,
+    player2: PlayerName,
+    map_name: str | None = None,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> FactionMatchupPrediction:
+    """Rank every general-vs-general draw for a hypothetical 1v1 between
+    player1 and player2, by running the win-prediction model once per
+    (player1_general, player2_general) combination - 12x12 = 144 calls.
+
+    Experimental/exploratory: this exists to inspect output shape and timing,
+    not (yet) to back a UI. No map is known before the draw; omit map_name
+    to use a placeholder the model treats as "unknown" (see
+    ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+    """
+    _require_model()
+    resolved_map = (
+        (replay_manager.resolve_map_name(map_name) or map_name)
+        if map_name
+        else _UNKNOWN_MAP_PLACEHOLDER
+    )
+    start = time.monotonic()
+    options = []
+    for gen1 in _RECOGNIZED_GENERALS:
+        for gen2 in _RECOGNIZED_GENERALS:
+            pred = ml_inference.predict_features(
+                resolved_map, [(player1, gen1, 1), (player2, gen2, 2)]
+            )
+            options.append(
+                FactionMatchupOption(
+                    player1_general=gen1,
+                    player2_general=gen2,
+                    prob_player1_wins=pred.prob_team_a_wins,
+                )
+            )
+    options.sort(key=lambda o: o.prob_player1_wins, reverse=True)
+    compute_ms = (time.monotonic() - start) * 1000
+    logger.info(
+        "faction matchup grid computed",
+        player1=player1,
+        player2=player2,
+        map_name=resolved_map,
+        n_options=len(options),
+        compute_ms=round(compute_ms, 1),
+    )
+    return FactionMatchupPrediction(
+        player1=player1,
+        player2=player2,
+        map_name=resolved_map,
+        options=options,
+        compute_ms=compute_ms,
+    )
