@@ -6,6 +6,7 @@ from datetime import date, datetime
 from radarvan.api_types import (
     AcademyStats,
     General,
+    KillEventOutput,
     MatchDetails,
     MatchInfo,
     ObjectSummary,
@@ -22,14 +23,18 @@ from radarvan.player_profile import (
     PlayerMatchProjection,
     ProfileMatchData,
     aggregate_category,
+    aggregate_damage,
     compute_all_profiles,
     compute_aversions,
+    compute_damage_favorites,
     compute_favorites,
     compute_live_profile,
+    compute_top_damage_dealer,
     profile_data_from_details,
 )
 from radarvan.player_profile import (
     _compute_academy_badges,
+    _damage_by_unit_totals,
     _drop_zero_cost_objects,
     _merge_general_flavor_variants,
     _reconcile_unit_building_split,
@@ -66,6 +71,8 @@ def _proj(
     time_to_rank_5: float | None = None,
     academy: AcademyStats | None = None,
     superweapons_built: int = 0,
+    unit_kills: dict[str, int] | None = None,
+    unit_damage_dealt: dict[str, int] | None = None,
 ) -> PlayerMatchProjection:
     units = units or {}
     buildings = buildings or {}
@@ -94,10 +101,14 @@ def _proj(
         time_to_rank_5=time_to_rank_5,
         academy=academy,
         superweapons_built=superweapons_built,
+        unit_kills=unit_kills or {},
+        unit_damage_dealt=unit_damage_dealt or {},
     )
 
 
-def _matches(per_match_players: list[list[PlayerMatchProjection]]) -> list[ProfileMatchData]:
+def _matches(
+    per_match_players: list[list[PlayerMatchProjection]],
+) -> list[ProfileMatchData]:
     return [
         ProfileMatchData(match_id=i, players=players)
         for i, players in enumerate(per_match_players)
@@ -147,9 +158,7 @@ class TestFavoriteScoring:
 
     def test_common_object_scores_neutral(self) -> None:
         agg = aggregate_category(self._three_player_data(), ObjectCategory.UNITS)
-        count_by_player_obj = {
-            (p, o): c for (p, g, o), c in agg.counts.items()
-        }
+        count_by_player_obj = {(p, o): c for (p, g, o), c in agg.counts.items()}
         assert count_by_player_obj[("A", "AmericaTankCrusader")] == 120
         favorites = compute_favorites(agg, ObjectCategory.UNITS, min_score=0.0)
         # Even with the score gate removed, the Quad outranks the Tank for A.
@@ -205,11 +214,23 @@ class TestFavoriteScoring:
         games = []
         for _ in range(24):
             games.append(
-                [_proj("Usa", general=General.AIR, upgrades={"Upgrade_StealthComanche": 1})]
+                [
+                    _proj(
+                        "Usa",
+                        general=General.AIR,
+                        upgrades={"Upgrade_StealthComanche": 1},
+                    )
+                ]
             )
         for _ in range(12):
             games.append(
-                [_proj("A", general=General.CHINA, upgrades={"Upgrade_StealthComanche": 1})]
+                [
+                    _proj(
+                        "A",
+                        general=General.CHINA,
+                        upgrades={"Upgrade_StealthComanche": 1},
+                    )
+                ]
             )
         for _ in range(12):
             games.append([_proj("A", general=General.CHINA, upgrades={})])
@@ -265,6 +286,130 @@ class TestFavoriteScoring:
         agg = aggregate_category(_matches(games), ObjectCategory.POWERS)
         favorites = compute_favorites(agg, ObjectCategory.POWERS, min_count=3)
         assert favorites["A"].object_name == "CarpetBomb"
+
+
+class TestDamageDealt:
+    """aggregate_damage / compute_top_damage_dealer / compute_damage_favorites
+    / _damage_by_unit_totals - the kill_events-sourced counterpart to
+    TestFavoriteScoring's build-count favorites."""
+
+    def _three_player_data(self) -> list[ProfileMatchData]:
+        """12 games, all USA. A deals $2000/game with the Quad (peers deal
+        $500/game); everyone deals $1000/game with the common Crusader."""
+        games = []
+        for _ in range(12):
+            games.append(
+                [
+                    _proj(
+                        "A",
+                        unit_kills={"AmericaTankQuad": 4, "AmericaTankCrusader": 5},
+                        unit_damage_dealt={
+                            "AmericaTankQuad": 2000,
+                            "AmericaTankCrusader": 1000,
+                        },
+                    ),
+                    _proj(
+                        "B",
+                        unit_kills={"AmericaTankQuad": 1, "AmericaTankCrusader": 5},
+                        unit_damage_dealt={
+                            "AmericaTankQuad": 500,
+                            "AmericaTankCrusader": 1000,
+                        },
+                    ),
+                    _proj(
+                        "C",
+                        unit_kills={"AmericaTankQuad": 1, "AmericaTankCrusader": 5},
+                        unit_damage_dealt={
+                            "AmericaTankQuad": 500,
+                            "AmericaTankCrusader": 1000,
+                        },
+                    ),
+                ]
+            )
+        return _matches(games)
+
+    def test_aggregate_damage_sums_value_kills_and_games(self) -> None:
+        agg = aggregate_damage(self._three_player_data())
+        totals = agg.totals[("A", General.USA, "AmericaTankQuad")]
+        assert totals.value == 24000
+        assert totals.kills == 48
+        assert agg.games[("A", General.USA)] == 12
+
+    def test_top_damage_dealer_picks_own_highest_rate(self) -> None:
+        agg = aggregate_damage(self._three_player_data())
+        top = compute_top_damage_dealer(agg)
+        assert top["A"].name == "TankQuad"
+        assert top["A"].per_game == 2000.0
+        assert top["A"].kill_count == 48
+        # B deals $500/game with the Quad but $1000/game with the Crusader -
+        # their own top is the Crusader, unlike A whose Quad rate is highest.
+        assert top["B"].name == "TankCrusader"
+        assert top["B"].per_game == 1000.0
+
+    def test_top_damage_dealer_respects_min_value_and_games(self) -> None:
+        # A single big kill in one game shouldn't win on "rate" alone.
+        games = _matches(
+            [
+                [_proj("A", unit_kills={"X": 1}, unit_damage_dealt={"X": 50000})],
+            ]
+        )
+        agg = aggregate_damage(games)
+        assert "A" not in compute_top_damage_dealer(agg, min_games=10)
+
+    def test_damage_favorite_is_peer_normalized(self) -> None:
+        agg = aggregate_damage(self._three_player_data())
+        favorites = compute_damage_favorites(agg)
+        assert favorites["A"].object_name == "TankQuad"
+        assert favorites["A"].player_rate == 2000.0
+        assert favorites["A"].peer_rate == 500.0
+        assert favorites["A"].score > 1.25
+        # B and C deal no more damage than peers with anything: no favorite.
+        assert "B" not in favorites
+        assert "C" not in favorites
+
+    def test_damage_favorite_excludes_foreign_faction(self) -> None:
+        # A (playing China) regularly deals damage with a GLA unit via a
+        # captured Arms Dealer - must never be the signature damage dealer.
+        games = _matches(
+            [
+                [
+                    _proj(
+                        "A",
+                        general=General.CHINA,
+                        unit_kills={"GLATankScorpion": 3},
+                        unit_damage_dealt={"GLATankScorpion": 3000},
+                    ),
+                    _proj("B", general=General.CHINA),
+                    _proj("C", general=General.CHINA),
+                ]
+            ]
+            * 12
+        )
+        agg = aggregate_damage(games)
+        assert "A" not in compute_damage_favorites(agg)
+
+    def test_damage_by_unit_totals_flat_across_generals(self) -> None:
+        games = _matches(
+            [
+                [_proj("A", unit_kills={"X": 1}, unit_damage_dealt={"X": 100})],
+                [
+                    _proj(
+                        "A",
+                        general=General.LASER,
+                        unit_kills={"X": 2},
+                        unit_damage_dealt={"X": 200},
+                    )
+                ],
+            ]
+        )
+        totals = _damage_by_unit_totals(aggregate_damage(games))
+        assert totals["A"]["X"].Count == 3
+        assert totals["A"]["X"].TotalSpent == 300
+
+    def test_damage_by_unit_totals_omits_zero_value(self) -> None:
+        games = _matches([[_proj("A", unit_kills={}, unit_damage_dealt={})]])
+        totals = _damage_by_unit_totals(aggregate_damage(games))
+        assert totals.get("A", {}) == {}
 
 
 class TestAversions:
@@ -326,7 +471,8 @@ class TestAversions:
             games.append(
                 [
                     _proj(
-                        "Usa", general=General.AIR,
+                        "Usa",
+                        general=General.AIR,
                         upgrades={"Upgrade_StealthComanche": 1},
                     )
                 ]
@@ -335,7 +481,8 @@ class TestAversions:
             games.append(
                 [
                     _proj(
-                        "ChinaGifted", general=General.CHINA,
+                        "ChinaGifted",
+                        general=General.CHINA,
                         upgrades={"Upgrade_StealthComanche": 1},
                     )
                 ]
@@ -355,9 +502,11 @@ class TestAversions:
         for _ in range(40):
             games.append(
                 [
-                    _proj("UsaMain", general=General.SUPER, powers={
-                        "SpecialAbilityMissileDefenderLaserGuidedMissiles": 10
-                    }),
+                    _proj(
+                        "UsaMain",
+                        general=General.SUPER,
+                        powers={"SpecialAbilityMissileDefenderLaserGuidedMissiles": 10},
+                    ),
                     _proj("ChinaGifted", general=General.CHINA, powers=power),
                 ]
             )
@@ -377,10 +526,16 @@ class TestAversions:
         for _ in range(40):
             games.append(
                 [
-                    _proj("ChinaHabit", general=General.CHINA,
-                          powers={"SuperweaponGPSScrambler": 2}),
-                    _proj("GlaHabit", general=General.GLA,
-                          powers={"SuperweaponGPSScrambler": 2}),
+                    _proj(
+                        "ChinaHabit",
+                        general=General.CHINA,
+                        powers={"SuperweaponGPSScrambler": 2},
+                    ),
+                    _proj(
+                        "GlaHabit",
+                        general=General.GLA,
+                        powers={"SuperweaponGPSScrambler": 2},
+                    ),
                 ]
             )
         for _ in range(12):
@@ -711,6 +866,26 @@ class TestMergeGeneralFlavorVariants:
         assert proj.units == {"Foo": 3}
         assert proj.unit_spent == {"Foo": 300}
 
+    def test_merges_damage_dealt_alongside_counts(self) -> None:
+        games = _matches(
+            [
+                [
+                    _proj(
+                        "A",
+                        unit_kills={"AmericaTankQuad": 3, "Lazr_AmericaTankQuad": 1},
+                        unit_damage_dealt={
+                            "AmericaTankQuad": 1500,
+                            "Lazr_AmericaTankQuad": 500,
+                        },
+                    )
+                ],
+            ]
+        )
+        fixed = _merge_general_flavor_variants(games)
+        proj = fixed[0].players[0]
+        assert proj.unit_kills == {"AmericaTankQuad": 4}
+        assert proj.unit_damage_dealt == {"AmericaTankQuad": 2000}
+
     def test_applies_to_buildings_upgrades_and_powers(self) -> None:
         games = _matches(
             [
@@ -804,9 +979,7 @@ class TestReconcileUnitBuildingSplit:
         assert by_name["A"].buildings["Weird"] == 9
 
     def test_unambiguous_objects_untouched(self) -> None:
-        games = _matches(
-            [[_proj("A", units={"Tank": 3}, buildings={"WarFactory": 1})]]
-        )
+        games = _matches([[_proj("A", units={"Tank": 3}, buildings={"WarFactory": 1})]])
         fixed = _reconcile_unit_building_split(games)
         proj = fixed[0].players[0]
         assert proj.units == {"Tank": 3}
@@ -918,7 +1091,11 @@ class TestDropZeroCostObjects:
                         buildings={"HoleTunnelNetwork": 10, "SupplyStash": 1},
                         building_spent={"HoleTunnelNetwork": 0, "SupplyStash": 500},
                     ),
-                    _proj("B", buildings={"SupplyStash": 1}, building_spent={"SupplyStash": 500}),
+                    _proj(
+                        "B",
+                        buildings={"SupplyStash": 1},
+                        building_spent={"SupplyStash": 500},
+                    ),
                 ]
             )
         profiles = compute_all_profiles(_matches(games), min_profile_games=20)
@@ -961,9 +1138,7 @@ class TestProjection:
         for ps in details.player_summary:
             proj = by_name[resolve_player_name(ps.Name, ps.Color)]
             assert proj.units == {k: v.Count for k, v in ps.UnitsCreated.items()}
-            assert proj.buildings == {
-                k: v.Count for k, v in ps.BuildingsBuilt.items()
-            }
+            assert proj.buildings == {k: v.Count for k, v in ps.BuildingsBuilt.items()}
             assert proj.powers == ps.PowersUsed
 
     def test_cpu_and_observer_excluded(self) -> None:
@@ -1010,6 +1185,84 @@ class TestProjection:
         )
         data = profile_data_from_details(details, info)
         assert [p.name for p in data.players] == ["Human"]
+
+    def test_kill_events_produce_damage_projection(self) -> None:
+        def summary(name: str) -> PlayerSummary:
+            return PlayerSummary(
+                Name=name,
+                Side="USA",
+                Team=1,
+                Win=False,
+                Color="red",
+                UnitsCreated={},
+                BuildingsBuilt={},
+                UpgradesBuilt={},
+                PowersUsed={},
+            )
+
+        details = MatchDetails(
+            match_id=1,
+            costs=[],
+            apms=[],
+            upgrade_events={},
+            stats_data={},
+            player_summary=[summary("Human"), summary("Foe")],
+            kill_events=[
+                KillEventOutput(
+                    at_minute=1.0,
+                    killer_player="Human",
+                    victim_player="Foe",
+                    x=0,
+                    y=0,
+                    killer="AmericaTankQuad",
+                    victim="GLAInfantryWorker",
+                    damage_type="EXPLOSION",
+                    value=500,
+                ),
+                KillEventOutput(
+                    at_minute=2.0,
+                    killer_player="Human",
+                    victim_player="Foe",
+                    x=0,
+                    y=0,
+                    killer="AmericaTankQuad",
+                    victim="GLAInfantryRebel",
+                    damage_type="EXPLOSION",
+                    value=300,
+                ),
+                KillEventOutput(
+                    at_minute=3.0,
+                    killer_player="Foe",
+                    victim_player="Human",
+                    x=0,
+                    y=0,
+                    killer="GLAVehicleTechnical",
+                    victim="AmericaInfantryRanger",
+                    damage_type="SMALL_ARMS",
+                    value=100,
+                ),
+            ],
+        )
+        players = [
+            Player(name="Human", general=General.USA, team=Team.ONE, color="red"),
+            Player(name="Foe", general=General.USA, team=Team.TWO, color="blue"),
+        ]
+        info = MatchInfo(
+            id=1,
+            timestamp=datetime(2026, 1, 1),
+            date=date(2026, 1, 1),
+            map="maps/test",
+            winning_team=Team.ONE,
+            players=players,
+            duration_minutes=5.0,
+            filename="x.rep",
+        )
+        data = profile_data_from_details(details, info)
+        by_name = {p.name: p for p in data.players}
+        assert by_name["Human"].unit_kills == {"AmericaTankQuad": 2}
+        assert by_name["Human"].unit_damage_dealt == {"AmericaTankQuad": 800}
+        assert by_name["Foe"].unit_kills == {"GLAVehicleTechnical": 1}
+        assert by_name["Foe"].unit_damage_dealt == {"GLAVehicleTechnical": 100}
 
 
 def test_profile_version_format() -> None:

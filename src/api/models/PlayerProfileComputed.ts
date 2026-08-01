@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { UnitDamageStat } from './UnitDamageStat';
+import {
+    UnitDamageStatFromJSON,
+    UnitDamageStatFromJSONTyped,
+    UnitDamageStatToJSON,
+    UnitDamageStatToJSONTyped,
+} from './UnitDamageStat';
 import type { FavoriteObject } from './FavoriteObject';
 import {
     FavoriteObjectFromJSON,
@@ -34,6 +41,13 @@ import {
     ProfileBadgeToJSON,
     ProfileBadgeToJSONTyped,
 } from './ProfileBadge';
+import type { ObjectSummary } from './ObjectSummary';
+import {
+    ObjectSummaryFromJSON,
+    ObjectSummaryFromJSONTyped,
+    ObjectSummaryToJSON,
+    ObjectSummaryToJSONTyped,
+} from './ObjectSummary';
 
 /**
  * MatchDetails-derived deep stats for one player.
@@ -136,6 +150,24 @@ export interface PlayerProfileComputed {
     objectUsage?: Array<ObjectUsageStat>;
     /**
      * 
+     * @type {UnitDamageStat}
+     * @memberof PlayerProfileComputed
+     */
+    topDamageDealer?: UnitDamageStat | null;
+    /**
+     * 
+     * @type {FavoriteObject}
+     * @memberof PlayerProfileComputed
+     */
+    signatureDamageDealer?: FavoriteObject | null;
+    /**
+     * 
+     * @type {{ [key: string]: ObjectSummary; }}
+     * @memberof PlayerProfileComputed
+     */
+    damageByUnit?: { [key: string]: ObjectSummary; };
+    /**
+     * 
      * @type {number}
      * @memberof PlayerProfileComputed
      */
@@ -182,6 +214,9 @@ export function PlayerProfileComputedFromJSONTyped(json: any, ignoreDiscriminato
         'superweaponPercentile': json['superweaponPercentile'] == null ? undefined : json['superweaponPercentile'],
         'badges': json['badges'] == null ? undefined : ((json['badges'] as Array<any>).map(ProfileBadgeFromJSON)),
         'objectUsage': json['objectUsage'] == null ? undefined : ((json['objectUsage'] as Array<any>).map(ObjectUsageStatFromJSON)),
+        'topDamageDealer': json['topDamageDealer'] == null ? undefined : UnitDamageStatFromJSON(json['topDamageDealer']),
+        'signatureDamageDealer': json['signatureDamageDealer'] == null ? undefined : FavoriteObjectFromJSON(json['signatureDamageDealer']),
+        'damageByUnit': json['damageByUnit'] == null ? undefined : (mapValues(json['damageByUnit'], ObjectSummaryFromJSON)),
         'gamesAnalyzed': json['gamesAnalyzed'],
         'computedAt': (new Date(json['computedAt'])),
     };
@@ -213,6 +248,9 @@ export function PlayerProfileComputedToJSONTyped(value?: PlayerProfileComputed |
         'superweaponPercentile': value['superweaponPercentile'],
         'badges': value['badges'] == null ? undefined : ((value['badges'] as Array<any>).map(ProfileBadgeToJSON)),
         'objectUsage': value['objectUsage'] == null ? undefined : ((value['objectUsage'] as Array<any>).map(ObjectUsageStatToJSON)),
+        'topDamageDealer': UnitDamageStatToJSON(value['topDamageDealer']),
+        'signatureDamageDealer': FavoriteObjectToJSON(value['signatureDamageDealer']),
+        'damageByUnit': value['damageByUnit'] == null ? undefined : (mapValues(value['damageByUnit'], ObjectSummaryToJSON)),
         'gamesAnalyzed': value['gamesAnalyzed'],
         'computedAt': value['computedAt'].toISOString().substring(0,10),
     };

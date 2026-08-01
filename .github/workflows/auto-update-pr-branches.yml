@@ -1,0 +1,38 @@
+name: Auto-update PR branches
+
+# When a PR merges into main, bring every other open PR up to date with
+# main so they don't drift and fail the "up to date" merge requirement.
+# Uses the GitHub "update branch" API, which merges main into the PR head
+# and simply errors out (caught and skipped below) if there's a conflict.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-branches:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: 'main',
+              state: 'open',
+            });
+            for (const pr of prs) {
+              try {
+                await github.rest.pulls.updateBranch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                });
+                core.info(`Updated #${pr.number}`);
+              } catch (err) {
+                core.info(`Skipping #${pr.number}: ${err.message}`);
+              }
+            }
