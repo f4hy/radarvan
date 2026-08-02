@@ -490,9 +490,7 @@ function renderChartForPlayer(
     case "unitsCreated":
       return <BuiltChart title="Units Created" built={sum.unitsCreated} />
     case "buildingsCreated":
-      return (
-        <BuiltChart title="Buildings Created" built={sum.buildingsBuilt} />
-      )
+      return <BuiltChart title="Buildings Created" built={sum.buildingsBuilt} />
     case "upgrades":
       return <BuiltChart title="Upgrades" built={sum.upgradesBuilt} />
   }
