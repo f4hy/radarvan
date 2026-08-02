@@ -24,6 +24,11 @@ import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
 import { alpha } from "@mui/material/styles"
 import Tab from "@mui/material/Tab"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import Tabs from "@mui/material/Tabs"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
@@ -542,27 +547,34 @@ function BestDrawsList(props: {
 }) {
   if (props.draws.length === 0) return null
   return (
-    <Stack spacing={0.5}>
-      {props.draws.map((d, i) => {
-        const favoredPlayer = d.favors === "a" ? props.playerA : props.playerB
-        return (
-          <Typography key={i} variant="body2">
-            {props.playerA}: {toGeneralName(d.playerAGeneral)} vs{" "}
-            {props.playerB}: {toGeneralName(d.playerBGeneral)}
-            {" → "}
-            <Box
-              component="span"
-              sx={{ color: "success.main", fontWeight: 600 }}
-            >
-              favors {favoredPlayer} +{(d.deltaAboveMedian * 100).toFixed(1)}pp
-            </Box>{" "}
-            <Box component="span" sx={{ color: "text.secondary" }}>
-              (±{(d.std * 100).toFixed(1)}pp)
-            </Box>
-          </Typography>
-        )
-      })}
-    </Stack>
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>{props.playerA} general</TableCell>
+          <TableCell>{props.playerB} general</TableCell>
+          <TableCell>Favors</TableCell>
+          <TableCell>Confidence</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {props.draws.map((d, i) => {
+          const favoredPlayer = d.favors === "a" ? props.playerA : props.playerB
+          return (
+            <TableRow key={i}>
+              <TableCell>{toGeneralName(d.playerAGeneral)}</TableCell>
+              <TableCell>{toGeneralName(d.playerBGeneral)}</TableCell>
+              <TableCell sx={{ color: "success.main", fontWeight: 600 }}>
+                favors {favoredPlayer} +{(d.deltaAboveMedian * 100).toFixed(1)}
+                pp
+              </TableCell>
+              <TableCell sx={{ color: "text.secondary" }}>
+                ±{(d.std * 100).toFixed(1)}pp
+              </TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
   )
 }
 
