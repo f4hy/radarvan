@@ -287,7 +287,7 @@ function indexToLetter(idx: number): string {
   return String.fromCharCode("a".charCodeAt(0) + idx - 1)
 }
 
-function shortMatchLabel(match: BracketMatchOutput): string {
+export function shortMatchLabel(match: BracketMatchOutput): string {
   const { code, singleton } = roundCode(match)
   if (singleton) return code
   const suffix = match.match_id.match(/-(\d+)$/)
@@ -374,7 +374,7 @@ function buildNode(
 // immediately from source_a/source_b, no games need to have been played.
 // Omitted by the few callers (MatchEditor, dialog title) that only need a
 // short label and don't have matchesById in scope.
-function playerLabel(
+export function playerLabel(
   match: BracketMatchOutput,
   side: "a" | "b",
   matchesById?: Map<string, BracketMatchOutput>,
@@ -459,6 +459,18 @@ function PlayerRow({
   )
 }
 
+// Compact "Aug 5, 3:00 PM" rendering for a match card's caption / the
+// Agenda list - full date + time, in the viewer's local timezone, without
+// the verbosity of a full toLocaleString() (no year, no seconds).
+export function formatScheduledAt(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
 // Wins needed to take a best-of-N match — mirrors radarvan/bracket.py's
 // win_threshold(). Under standard "stop at clinch" scoring the winner's
 // score is always exactly this; only the loser's game count varies.
@@ -514,15 +526,6 @@ function SliderField({
       {children}
     </Box>
   )
-}
-
-// Today as a local YYYY-MM-DD string, in the same zero-padded shape as
-// scheduled_date and toDatetimeLocalValue's date component below - lets
-// MatchupPopup compare the two with plain string comparison.
-function todayIso(): string {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 // Splits on **bold** markers (a lightweight markdown subset) into <strong>
@@ -647,10 +650,11 @@ function MatchupPopup({
 }) {
   const playerA = match.player_a
   const playerB = match.player_b
-  const scheduledDate = match.scheduled_date
-  // Only worth asking the backend once there's a date that's actually
-  // arrived - a future or unset date can't have games yet by definition.
-  const datePlayable = scheduledDate != null && scheduledDate <= todayIso()
+  const scheduledAt = match.scheduled_at
+  // Only worth asking the backend once the scheduled time has actually
+  // arrived - a future or unset time can't have games yet by definition.
+  const datePlayable =
+    scheduledAt != null && new Date(scheduledAt).getTime() <= Date.now()
 
   const [games, setGames] = React.useState<MatchInfo[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -722,14 +726,14 @@ function MatchupPopup({
   }, [playerA, playerB, match.round_name])
 
   React.useEffect(() => {
-    if (!datePlayable || !scheduledDate || !playerA || !playerB) {
+    if (!datePlayable || !scheduledAt || !playerA || !playerB) {
       setGames([])
       return
     }
     let cancelled = false
     setLoading(true)
     Client.getMatchesByDateApiMatchesByDateDateGet({
-      date: new Date(scheduledDate),
+      date: new Date(scheduledAt),
     })
       .then((res) => {
         if (cancelled) return
@@ -747,7 +751,7 @@ function MatchupPopup({
     return () => {
       cancelled = true
     }
-  }, [datePlayable, scheduledDate, playerA, playerB, showError])
+  }, [datePlayable, scheduledAt, playerA, playerB, showError])
 
   const handleGoToPlayer = (playerName: string) => {
     onClose()
@@ -858,10 +862,11 @@ function MatchupPopup({
             No games played yet.
           </Typography>
         )}
-        {!loading && datePlayable && games.length === 0 && (
+        {!loading && datePlayable && games.length === 0 && scheduledAt && (
           <Typography sx={{ color: "text.secondary" }}>
             No 1v1 games found between {playerLabel(match, "a")} and{" "}
-            {playerLabel(match, "b")} on {scheduledDate}.
+            {playerLabel(match, "b")} on{" "}
+            {new Date(scheduledAt).toLocaleDateString()}.
           </Typography>
         )}
         {!loading && games.length > 0 && (
@@ -886,7 +891,9 @@ function MatchEditor({
   allMatches: BracketMatchOutput[]
   onSave: (req: SetBracketMatchRequest) => Promise<void>
 }) {
-  const [date, setDate] = React.useState(match.scheduled_date ?? "")
+  const [scheduledAtInput, setScheduledAtInput] = React.useState(
+    toDatetimeLocalValue(match.scheduled_at),
+  )
   // Locked, not admin-editable - see expectedBestOf.
   const bestOf = expectedBestOf(match, allMatches)
   const [gamesPlayed, setGamesPlayed] = React.useState<number | null>(
@@ -922,13 +929,21 @@ function MatchEditor({
       : winnerSide === "b"
         ? threshold
         : loserScore
-  const disabled = saving || scoreA === null || scoreB === null
+  // A score only blocks saving once it's been started but not finished
+  // (winner picked with no games-played count yet, or vice versa) - an
+  // admin scheduling a match ahead of time, with no score entered at all,
+  // can still save just the date/time.
+  const scoreStarted = winnerSide !== null || gamesPlayed !== null
+  const scoreComplete = scoreA !== null && scoreB !== null
+  const disabled = saving || (scoreStarted && !scoreComplete)
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await onSave({
-        scheduled_date: date || null,
+        scheduled_at: scheduledAtInput
+          ? new Date(scheduledAtInput).toISOString()
+          : null,
         best_of: bestOf,
         score_a: scoreA,
         score_b: scoreB,
@@ -941,12 +956,12 @@ function MatchEditor({
   return (
     <Stack spacing={2} sx={{ mt: 1.5 }}>
       <TextField
-        type="date"
+        type="datetime-local"
         size="small"
-        label="Date"
+        label="Scheduled date/time"
         slotProps={{ inputLabel: { shrink: true } }}
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
+        value={scheduledAtInput}
+        onChange={(e) => setScheduledAtInput(e.target.value)}
       />
       <SliderField label="Best of (fixed by tournament rules for this round)">
         <ToggleButtonGroup size="small" exclusive value={bestOf} disabled>
@@ -1110,7 +1125,7 @@ const MatchBox = React.memo(function MatchBox({
           <Box component="span" sx={{ fontWeight: 700 }}>
             {shortMatchLabel(match)}
           </Box>
-          {match.scheduled_date && ` [${match.scheduled_date}]`}
+          {match.scheduled_at && ` [${formatScheduledAt(match.scheduled_at)}]`}
         </Typography>
         {editable && (
           <IconButton
@@ -1517,7 +1532,7 @@ function TournamentRoster({
 // HH:MM:SS, with a "Nd " day prefix once the remaining time crosses a day -
 // the tournament reveal is set days out, and nobody needs second-precision
 // digits for a multi-day wait.
-function formatCountdown(remainingMs: number): string {
+export function formatCountdown(remainingMs: number): string {
   const totalSeconds = Math.max(Math.floor(remainingMs / 1000), 0)
   const days = Math.floor(totalSeconds / 86400)
   const hours = Math.floor((totalSeconds % 86400) / 3600)

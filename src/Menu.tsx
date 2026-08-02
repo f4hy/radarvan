@@ -5,6 +5,7 @@ import BalanceIcon from "@mui/icons-material/Balance"
 import CasinoIcon from "@mui/icons-material/Casino"
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import EventIcon from "@mui/icons-material/Event"
 import GroupsIcon from "@mui/icons-material/Groups"
 import HowToVoteIcon from "@mui/icons-material/HowToVote"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
@@ -33,6 +34,7 @@ import Toolbar from "@mui/material/Toolbar"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import Account from "./Account"
+import DisplayAgenda from "./Agenda"
 import { useAuth, useIsTournamentAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
 import DisplayBalanceTeams from "./BalanceTeams"
@@ -70,6 +72,7 @@ const ALL_SELECTIONS = [
   "TeamStats",
   "Tournaments",
   "Bracket",
+  "Agenda",
   "BalanceTeams",
   "PlayerRating",
   "PlayerRatingTrend",
@@ -189,6 +192,11 @@ export default function Menu() {
               value: "Bracket" as const,
               text: "1v1 Bracket",
               icon: <AccountTreeIcon />,
+            },
+            {
+              value: "Agenda" as const,
+              text: "Agenda",
+              icon: <EventIcon />,
             },
           ]
         : []),
@@ -400,6 +408,8 @@ function Main(props: {
           goToHeadToHead={props.goToHeadToHead}
         />
       )
+    case "Agenda":
+      return <DisplayAgenda />
     case "BalanceTeams":
       return <DisplayBalanceTeams />
     case "MapStats":

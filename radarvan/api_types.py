@@ -817,7 +817,7 @@ class CreateBracketRequest(BaseModel):
 class SetBracketMatchRequest(BaseModel):
     model_config = _SLOTS
 
-    scheduled_date: date | None = None
+    scheduled_at: datetime | None = None
     best_of: Literal[3, 5, 7, 9] | None = None
     score_a: int | None = None
     score_b: int | None = None
@@ -866,7 +866,7 @@ class BracketMatchOutput(BaseModel):
     round_name: str
     player_a: str | None = None
     player_b: str | None = None
-    scheduled_date: date | None = None
+    scheduled_at: datetime | None = None
     best_of: int | None = None
     score_a: int | None = None
     score_b: int | None = None

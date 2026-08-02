@@ -541,7 +541,12 @@ class BracketMatchState(Base):
         ForeignKey("bracket_tournaments.id", ondelete="CASCADE"), primary_key=True
     )
     match_id: Mapped[str] = mapped_column(String(16), primary_key=True)
-    scheduled_date: Mapped[date | None] = mapped_column(nullable=True)
+    # An admin-set instant the match is expected to be played, independent of
+    # whether it's actually been played yet (see best_of/score_a/score_b
+    # below) - same idiom as BracketTournament.reveal_at.
+    scheduled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     best_of: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     score_a: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     score_b: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)

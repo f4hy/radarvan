@@ -31,7 +31,7 @@ export interface BracketMatchOutput {
   round_name: string
   player_a: string | null
   player_b: string | null
-  scheduled_date: string | null
+  scheduled_at: string | null
   best_of: number | null
   score_a: number | null
   score_b: number | null
@@ -58,7 +58,7 @@ export interface BracketTournamentOutput {
 }
 
 export interface SetBracketMatchRequest {
-  scheduled_date: string | null
+  scheduled_at: string | null
   best_of: 3 | 5 | 7 | 9 | null
   score_a: number | null
   score_b: number | null
