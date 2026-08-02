@@ -1,14 +1,22 @@
-"""Serve win predictions from the exported ONNX model - torch-free.
+"""Serve win predictions from an N-model ONNX ensemble - torch-free.
 
 The production app has no torch; ONNX Runtime + numpy is all we need at serving
 time. Feature encoding reuses ``ml.features`` (the same torch-free encoder used
-for training) so there is no train/serve skew. The model + its vocab are loaded
-once and cached. See ``ml/model_design.md`` and ``ml/export.py``.
+for training) so there is no train/serve skew. Every prediction runs through
+all N replicates in ``ML_ENSEMBLE_DIR`` and reports the mean plus the spread
+across replicates (``*_std``) - with ~1,000 training matches a single model's
+point estimate isn't trustworthy on its own (see ``ml.bootstrap_matrix``: most
+individual general-matchup effects turned out to be within noise). The
+replicates share one vocab (frozen from the same split each was resampled
+from - see ``ml.bootstrap_matrix``), so one encoding feeds every session.
+Sessions are loaded once and cached. See ``ml/model_design.md``,
+``ml/export.py`` and ``ml/bootstrap_matrix.py``.
 """
 
 from __future__ import annotations
 
 import os
+import statistics
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
@@ -31,8 +39,7 @@ from .notify import notify
 
 logger = structlog.get_logger(__name__)
 
-MODEL_PATH = Path(os.getenv("ML_MODEL_PATH", "ml_model.onnx"))
-VOCAB_PATH = Path(os.getenv("ML_VOCAB_PATH", "ml_model_vocab.json"))
+ENSEMBLE_DIR = Path(os.getenv("ML_ENSEMBLE_DIR", "ml_ensemble"))
 
 # Must match ml.export.INPUT_NAMES (order is the ONNX graph input order).
 _TEAM_A = ["a_player", "a_general", "a_faction", "a_start", "a_mask"]
@@ -40,30 +47,37 @@ _TEAM_B = ["b_player", "b_general", "b_faction", "b_start", "b_mask"]
 
 
 class ModelUnavailable(RuntimeError):
-    """Raised when the ONNX model / vocab files are missing."""
+    """Raised when the ONNX ensemble / vocab files are missing."""
 
 
 @lru_cache(maxsize=1)
-def _session() -> ort.InferenceSession:
-    if not MODEL_PATH.exists():
-        raise ModelUnavailable(f"ONNX model not found at {MODEL_PATH}")
-    return ort.InferenceSession(str(MODEL_PATH), providers=["CPUExecutionProvider"])
+def _ensemble_sessions() -> list[ort.InferenceSession]:
+    paths = sorted(ENSEMBLE_DIR.glob("model-*.onnx"))
+    if not paths:
+        raise ModelUnavailable(f"no ensemble models found under {ENSEMBLE_DIR}")
+    return [
+        ort.InferenceSession(str(p), providers=["CPUExecutionProvider"])
+        for p in paths
+    ]
 
 
 @lru_cache(maxsize=1)
 def _input_names() -> frozenset[str]:
-    return frozenset(i.name for i in _session().get_inputs())
+    return frozenset(i.name for i in _ensemble_sessions()[0].get_inputs())
 
 
 @lru_cache(maxsize=1)
 def _vocab() -> Vocab:
-    if not VOCAB_PATH.exists():
-        raise ModelUnavailable(f"model vocab not found at {VOCAB_PATH}")
-    return Vocab.load(VOCAB_PATH)
+    vocab_path = ENSEMBLE_DIR / "vocab.json"
+    if not vocab_path.exists():
+        raise ModelUnavailable(f"ensemble vocab not found at {vocab_path}")
+    return Vocab.load(vocab_path)
 
 
 def model_available() -> bool:
-    return MODEL_PATH.exists() and VOCAB_PATH.exists()
+    return (ENSEMBLE_DIR / "vocab.json").exists() and any(
+        ENSEMBLE_DIR.glob("model-*.onnx")
+    )
 
 
 def _feed(enc: EncodedMatch) -> dict[str, np.ndarray]:
@@ -108,14 +122,52 @@ def _feed(enc: EncodedMatch) -> dict[str, np.ndarray]:
     return feed
 
 
+def _ensemble_probs(feed: dict[str, np.ndarray]) -> list[float]:
+    """P(team A wins) from every replicate in the ensemble, same feed each time."""
+    return [
+        float(sess.run(["prob_team_a"], feed)[0][0]) for sess in _ensemble_sessions()
+    ]
+
+
+def predict_features_raw(
+    map_name: str, players: list[tuple[str, General, int]]
+) -> list[float]:
+    """Raw per-replicate P(team A wins), one value per ensemble model.
+
+    For callers that need the actual distribution (e.g. an empirical
+    percentile interval) rather than just the mean/std summary
+    ``predict_features``/``MatchPrediction`` carry - see
+    ``ml.bootstrap_matrix``, whose percentile-based significance test this
+    mirrors. A normal approximation from mean+std alone under-detects here:
+    the per-cell distributions are visibly non-normal at n=30.
+    """
+    vocab = _vocab()
+    built = [
+        Player(name=name, general=general, team=team, color="")
+        for name, general, team in players
+    ]
+    match = build_match_info(map_name, built)
+    enc = encode_match(match, vocab)
+    if enc is None:
+        raise ValueError("match is not a usable 2-team game (cannot predict)")
+    return _ensemble_probs(_feed(enc))
+
+
 def predict_match_info(match: MatchInfo) -> MatchPrediction:
-    """Predict the winner of a (2-team) match. Raises ValueError if not encodable."""
+    """Predict the winner of a (2-team) match. Raises ValueError if not encodable.
+
+    ``prob_team_a_wins`` is the mean across the ensemble; ``prob_team_a_wins_std``
+    is the spread across replicates - a large std means the ensemble disagrees
+    with itself, i.e. this particular prediction shouldn't be trusted much.
+    """
     vocab = _vocab()
     enc = encode_match(match, vocab)
     if enc is None:
         raise ValueError("match is not a usable 2-team game (cannot predict)")
 
-    prob_a = float(_session().run(["prob_team_a"], _feed(enc))[0][0])
+    probs = _ensemble_probs(_feed(enc))
+    prob_a = statistics.mean(probs)
+    prob_a_std = statistics.stdev(probs) if len(probs) > 1 else 0.0
 
     # Re-derive teams from the MatchInfo for the response. encode_match uses the
     # same canonical ordering (team A == lower team id), so these align.
@@ -134,6 +186,8 @@ def predict_match_info(match: MatchInfo) -> MatchPrediction:
         team_a_players=[n for n, _ in teams[a_id]],
         team_b_players=[n for n, _ in teams[b_id]],
         prob_team_a_wins=prob_a,
+        prob_team_a_wins_std=prob_a_std,
+        ensemble_size=len(probs),
         favored_team=favored,
         favored_win_prob=fav_prob,
         unknown_players=unknown,

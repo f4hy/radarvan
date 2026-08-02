@@ -2,6 +2,12 @@
 ``ReplayFile``, ``ParsedReplayJson``, ``MatchDetailsCache``, ``User``, ``MapData``, …)
 and the ``Base`` declarative class shared across the backend."""
 
+# Needed so forward references (e.g. ReplayFile.parsed_replay_json -> ParsedReplayJson,
+# defined later in this file) resolve under Python < 3.14, which evaluates annotations
+# eagerly unless deferred like this. 3.14+ defers by default (PEP 649) so this is a
+# no-op there - required for the ml/ 3.13 training venv (see pyproject.toml's ml group).
+from __future__ import annotations
+
 from datetime import UTC, datetime, date
 import enum
 from enum import IntEnum

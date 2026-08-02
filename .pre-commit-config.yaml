@@ -28,7 +28,7 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         # Generous limit so the intentional runtime artifacts that are committed
-        # (mapparse ~3.2MB, ml_model.onnx) are not flagged.
+        # (mapparse ~3.2MB, ml_ensemble/*.onnx ~44KB each) are not flagged.
         args: [--maxkb=5000]
 
   # Python: lint + format via ruff. Pinned to match `ruff>=0.14.0` in pyproject.

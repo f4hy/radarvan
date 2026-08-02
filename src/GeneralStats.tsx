@@ -192,9 +192,18 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
     return order
   }, [cells])
 
-  const probByPair = React.useMemo(() => {
-    const m = new Map<string, number>()
-    for (const c of cells) m.set(`${c.generalA}:${c.generalB}`, c.probAWins)
+  const statsByPair = React.useMemo(() => {
+    const m = new Map<
+      string,
+      { prob: number; std: number; significant: boolean }
+    >()
+    for (const c of cells) {
+      m.set(`${c.generalA}:${c.generalB}`, {
+        prob: c.probAWins,
+        std: c.probAWinsStd ?? 0,
+        significant: c.significant ?? false,
+      })
+    }
     return m
   }, [cells])
 
@@ -203,6 +212,9 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
       Math.max(...cells.map((c) => Math.abs(c.probAWins - medianProbAWins))),
     [cells, medianProbAWins],
   )
+
+  const ensembleSize = props.matrix.ensembleSize ?? 1
+  const nSignificant = cells.filter((c) => c.significant).length
 
   return (
     <Box>
@@ -214,6 +226,9 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
         with both players and the map unknown - the faction matchup in
         isolation. Each cell is percentage points above/below the grid's median
         draw ({(medianProbAWins * 100).toFixed(0)}%), not an absolute win rate.
+        Faded cells ({cells.length - nSignificant} of {cells.length}) aren't
+        distinguishable from a coin flip across an {ensembleSize}-model ensemble
+        trained on this much data - only the {nSignificant} solid cells hold up.
       </Typography>
       <TableContainer sx={{ overflowX: "auto" }}>
         <Table size="small">
@@ -234,9 +249,10 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
                   {toGeneralName(rowGeneral)}
                 </TableCell>
                 {generals.map((colGeneral) => {
-                  const prob =
-                    probByPair.get(`${rowGeneral}:${colGeneral}`) ??
-                    medianProbAWins
+                  const stats = statsByPair.get(`${rowGeneral}:${colGeneral}`)
+                  const prob = stats?.prob ?? medianProbAWins
+                  const std = stats?.std ?? 0
+                  const significant = stats?.significant ?? false
                   const delta = prob - medianProbAWins
                   const intensity =
                     maxAbsDelta > 0
@@ -247,8 +263,13 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
                     <TableCell
                       key={colGeneral}
                       align="center"
+                      title={`${(prob * 100).toFixed(1)}% ± ${(std * 100).toFixed(1)}pp across ${ensembleSize} models${significant ? "" : " - not significant"}`}
                       sx={{
-                        bgcolor: alpha(color, intensity * 0.7),
+                        bgcolor: alpha(
+                          color,
+                          intensity * (significant ? 0.7 : 0.12),
+                        ),
+                        color: significant ? "text.primary" : "text.disabled",
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >

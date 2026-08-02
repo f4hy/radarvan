@@ -8,6 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+# 3.13 venv run_ml.sh creates for training (torch has no 3.14 wheel yet)
+.venv-ml
 
 # dependencies
 /node_modules

@@ -561,6 +561,7 @@ type RankedDraw = {
   playerBGeneral: number
   favors: "a" | "b"
   deltaAboveMedian: number
+  std: number
 }
 
 // The top `count` draws (by probPlayer1Wins) favoring player A, plus the top
@@ -588,6 +589,7 @@ function topDraws(
       playerBGeneral: o.player2General,
       favors: "a" as const,
       deltaAboveMedian: o.probPlayer1Wins - median,
+      std: o.probPlayer1WinsStd ?? 0,
     }))
   const favorsB = [...options]
     .sort((a, b) => a.probPlayer1Wins - b.probPlayer1Wins)
@@ -597,6 +599,7 @@ function topDraws(
       playerBGeneral: o.player2General,
       favors: "b" as const,
       deltaAboveMedian: median - o.probPlayer1Wins,
+      std: o.probPlayer1WinsStd ?? 0,
     }))
   return [...favorsA, ...favorsB]
 }
@@ -621,6 +624,9 @@ function BestDrawsList(props: {
               sx={{ color: "success.main", fontWeight: 600 }}
             >
               favors {favoredPlayer} +{(d.deltaAboveMedian * 100).toFixed(1)}pp
+            </Box>{" "}
+            <Box component="span" sx={{ color: "text.secondary" }}>
+              (±{(d.std * 100).toFixed(1)}pp)
             </Box>
           </Typography>
         )

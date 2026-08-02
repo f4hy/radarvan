@@ -1,5 +1,6 @@
 """Match-outcome prediction endpoints (ONNX model)."""
 
+import statistics
 import time
 
 import structlog
@@ -43,22 +44,38 @@ _UNKNOWN_PLAYER_A = "Unknown Player A"
 _UNKNOWN_PLAYER_B = "Unknown Player B"
 
 
+def _percentile_stats(vals: list[float]) -> tuple[float, float, bool]:
+    """mean, std, significant (90% empirical CI across the ensemble excludes
+    0.5) - the same percentile method ``ml.bootstrap_matrix`` validated. A
+    normal approximation from mean+std alone under-detects here: per-cell
+    distributions are visibly non-normal at n=30 (see the conversation that
+    led here - a 1.645*std cutoff found 0/144 significant vs. 8/144 by this
+    exact percentile method on the same ensemble)."""
+    vals = sorted(vals)
+    n = len(vals)
+    mean = statistics.mean(vals)
+    std = statistics.stdev(vals) if n > 1 else 0.0
+    lo = vals[max(0, int(n * 0.05))]
+    hi = vals[min(n - 1, int(n * 0.95))]
+    return mean, std, (lo > 0.5 or hi < 0.5)
+
+
 def _faction_grid(
     map_name: str, player1: str, player2: str
-) -> list[tuple[General, General, float]]:
-    """(general1, general2, prob_player1_wins) for every general combination -
-    the 144-call loop shared by faction_matchup and faction_matrix."""
-    return [
-        (
-            gen1,
-            gen2,
-            ml_inference.predict_features(
+) -> list[tuple[General, General, float, float, bool, int]]:
+    """(general1, general2, prob_player1_wins, std, significant, ensemble_size)
+    for every general combination - the 144-call loop shared by
+    faction_matchup and faction_matrix. Each cell runs the full N-model
+    ensemble (see ``ml_inference.predict_features_raw``)."""
+    results = []
+    for gen1 in _RECOGNIZED_GENERALS:
+        for gen2 in _RECOGNIZED_GENERALS:
+            probs = ml_inference.predict_features_raw(
                 map_name, [(player1, gen1, 1), (player2, gen2, 2)]
-            ).prob_team_a_wins,
-        )
-        for gen1 in _RECOGNIZED_GENERALS
-        for gen2 in _RECOGNIZED_GENERALS
-    ]
+            )
+            mean, std, significant = _percentile_stats(probs)
+            results.append((gen1, gen2, mean, std, significant, len(probs)))
+    return results
 
 
 def _require_model() -> None:
@@ -155,18 +172,23 @@ def predict_faction_matchup(
     grid = _faction_grid(resolved_map, player1, player2)
     options = [
         FactionMatchupOption(
-            player1_general=gen1, player2_general=gen2, prob_player1_wins=prob
+            player1_general=gen1,
+            player2_general=gen2,
+            prob_player1_wins=prob,
+            prob_player1_wins_std=std,
         )
-        for gen1, gen2, prob in grid
+        for gen1, gen2, prob, std, _significant, _n in grid
     ]
     options.sort(key=lambda o: o.prob_player1_wins, reverse=True)
     compute_ms = (time.monotonic() - start) * 1000
+    ensemble_size = grid[0][5] if grid else 1
     logger.info(
         "faction matchup grid computed",
         player1=player1,
         player2=player2,
         map_name=resolved_map,
         n_options=len(options),
+        ensemble_size=ensemble_size,
         compute_ms=round(compute_ms, 1),
     )
     return FactionMatchupPrediction(
@@ -174,6 +196,7 @@ def predict_faction_matchup(
         player2=player2,
         map_name=resolved_map,
         options=options,
+        ensemble_size=ensemble_size,
         compute_ms=compute_ms,
     )
 
@@ -190,22 +213,32 @@ def predict_faction_matrix() -> FactionMatrix:
     start = time.monotonic()
     grid = _faction_grid(_UNKNOWN_MAP_PLACEHOLDER, _UNKNOWN_PLAYER_A, _UNKNOWN_PLAYER_B)
     cells = [
-        FactionMatrixCell(general_a=gen1, general_b=gen2, prob_a_wins=prob)
-        for gen1, gen2, prob in grid
+        FactionMatrixCell(
+            general_a=gen1,
+            general_b=gen2,
+            prob_a_wins=prob,
+            prob_a_wins_std=std,
+            significant=significant,
+        )
+        for gen1, gen2, prob, std, significant, _n in grid
     ]
     probs = sorted(c.prob_a_wins for c in cells)
     mid = len(probs) // 2
     median = (probs[mid - 1] + probs[mid]) / 2 if len(probs) % 2 == 0 else probs[mid]
     compute_ms = (time.monotonic() - start) * 1000
+    ensemble_size = grid[0][5] if grid else 1
     logger.info(
         "faction matrix computed",
         n_cells=len(cells),
+        n_significant=sum(1 for c in cells if c.significant),
         median_prob_a_wins=round(median, 4),
+        ensemble_size=ensemble_size,
         compute_ms=round(compute_ms, 1),
     )
     return FactionMatrix(
         map_name=_UNKNOWN_MAP_PLACEHOLDER,
         median_prob_a_wins=median,
         cells=cells,
+        ensemble_size=ensemble_size,
         compute_ms=compute_ms,
     )

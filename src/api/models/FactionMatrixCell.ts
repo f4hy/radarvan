@@ -23,6 +23,12 @@ import {
 
 /**
  * One (general_a, general_b) cell of the player-agnostic faction matrix.
+ * 
+ * ``prob_a_wins`` is the ensemble mean; ``prob_a_wins_std`` is the spread
+ * across replicates. ``significant`` is True when the cell's ~90% empirical
+ * interval across the ensemble excludes 0.5 - i.e. this general pairing
+ * looks real rather than indistinguishable from a coin flip given how
+ * little training data there is (see ``ml.bootstrap_matrix``).
  * @export
  * @interface FactionMatrixCell
  */
@@ -45,6 +51,18 @@ export interface FactionMatrixCell {
      * @memberof FactionMatrixCell
      */
     probAWins: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FactionMatrixCell
+     */
+    probAWinsStd?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof FactionMatrixCell
+     */
+    significant?: boolean;
 }
 
 
@@ -72,6 +90,8 @@ export function FactionMatrixCellFromJSONTyped(json: any, ignoreDiscriminator: b
         'generalA': GeneralFromJSON(json['general_a']),
         'generalB': GeneralFromJSON(json['general_b']),
         'probAWins': json['prob_a_wins'],
+        'probAWinsStd': json['prob_a_wins_std'] == null ? undefined : json['prob_a_wins_std'],
+        'significant': json['significant'] == null ? undefined : json['significant'],
     };
 }
 
@@ -89,6 +109,8 @@ export function FactionMatrixCellToJSONTyped(value?: FactionMatrixCell | null, i
         'general_a': GeneralToJSON(value['generalA']),
         'general_b': GeneralToJSON(value['generalB']),
         'prob_a_wins': value['probAWins'],
+        'prob_a_wins_std': value['probAWinsStd'],
+        'significant': value['significant'],
     };
 }
 

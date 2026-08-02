@@ -1,7 +1,7 @@
 
 # FactionMatrixCell
 
-One (general_a, general_b) cell of the player-agnostic faction matrix.
+One (general_a, general_b) cell of the player-agnostic faction matrix.  ``prob_a_wins`` is the ensemble mean; ``prob_a_wins_std`` is the spread across replicates. ``significant`` is True when the cell\'s ~90% empirical interval across the ensemble excludes 0.5 - i.e. this general pairing looks real rather than indistinguishable from a coin flip given how little training data there is (see ``ml.bootstrap_matrix``).
 
 ## Properties
 
@@ -10,6 +10,8 @@ Name | Type
 `generalA` | [General](General.md)
 `generalB` | [General](General.md)
 `probAWins` | number
+`probAWinsStd` | number
+`significant` | boolean
 
 ## Example
 
@@ -21,6 +23,8 @@ const example = {
   "generalA": null,
   "generalB": null,
   "probAWins": null,
+  "probAWinsStd": null,
+  "significant": null,
 } satisfies FactionMatrixCell
 
 console.log(example)

@@ -221,7 +221,7 @@ def test_generate_with_anthropic_logs_usage_and_duration(
     )
 
     class _StubStream:
-        def __enter__(self) -> "_StubStream":
+        def __enter__(self) -> _StubStream:
             return self
 
         def __exit__(self, *exc_info: object) -> None:

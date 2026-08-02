@@ -17,8 +17,9 @@ predictor — to a React single-page app.
   OpenAPI spec (do not edit it by hand).
 - **Storage:** Replay `.rep` files and their parsed JSON live in S3
   (`s3://generals-stats/radarvan/dev/`), accessed via `fsspec` / `s3fs`.
-- **Win prediction:** an exported ONNX model (`ml_model.onnx`) served with
-  `onnxruntime`; player ratings use OpenSkill.
+- **Win prediction:** an N-model ONNX ensemble (`ml_ensemble/`) served with
+  `onnxruntime` - every prediction runs all N replicates and reports the mean
+  plus the spread across them; player ratings use OpenSkill.
 - **Tooling:** Python ≥3.14 managed with `uv`, linted/formatted with `ruff` and
   type-checked with `mypy` (strict); TypeScript in strict mode, formatted with
   `prettier` and linted with `eslint`.
@@ -99,9 +100,10 @@ store wired up:
 - `mapparse` — a map-geometry parser binary that `radarvan/missing_maps.py` and
   `radarvan/map_upload.py` shell out to. Override its location with the
   `MAPPARSE_BIN` env var.
-- `ml_model.onnx` / `ml_model_vocab.json` — the exported win-prediction model and
-  its vocabulary, read from the repo root by `radarvan/ml_inference.py`. Override
-  with the `ML_MODEL_PATH` / `ML_VOCAB_PATH` env vars.
+- `ml_ensemble/` — the N-model win-prediction ensemble (`model-*.onnx`) and
+  their shared vocabulary (`vocab.json`), read from the repo root by
+  `radarvan/ml_inference.py`. Override the directory with `ML_ENSEMBLE_DIR`.
+  See `ml/bootstrap_matrix.py` for how the replicates are produced.
 
 Model-training code and its heavier dependencies live under `ml/` and are
 installed only on demand (`uv sync --group ml`), never in the production app.

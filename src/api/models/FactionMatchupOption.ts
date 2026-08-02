@@ -23,6 +23,10 @@ import {
 
 /**
  * One (player1_general, player2_general) draw and its predicted outcome.
+ * 
+ * ``prob_player1_wins_std`` is the spread across the N-model ensemble for
+ * this cell (see ``ml.bootstrap_matrix``) - how much replicates disagree,
+ * not how far the mean is from 50%.
  * @export
  * @interface FactionMatchupOption
  */
@@ -45,6 +49,12 @@ export interface FactionMatchupOption {
      * @memberof FactionMatchupOption
      */
     probPlayer1Wins: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FactionMatchupOption
+     */
+    probPlayer1WinsStd?: number;
 }
 
 
@@ -72,6 +82,7 @@ export function FactionMatchupOptionFromJSONTyped(json: any, ignoreDiscriminator
         'player1General': GeneralFromJSON(json['player1_general']),
         'player2General': GeneralFromJSON(json['player2_general']),
         'probPlayer1Wins': json['prob_player1_wins'],
+        'probPlayer1WinsStd': json['prob_player1_wins_std'] == null ? undefined : json['prob_player1_wins_std'],
     };
 }
 
@@ -89,6 +100,7 @@ export function FactionMatchupOptionToJSONTyped(value?: FactionMatchupOption | n
         'player1_general': GeneralToJSON(value['player1General']),
         'player2_general': GeneralToJSON(value['player2General']),
         'prob_player1_wins': value['probPlayer1Wins'],
+        'prob_player1_wins_std': value['probPlayer1WinsStd'],
     };
 }
 

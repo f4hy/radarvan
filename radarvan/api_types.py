@@ -2,6 +2,12 @@
 schema (``MatchInfo``, ``PlayerStat``, ``MatchDetails``, the ``General``/``Team``/
 ``Faction`` enums, …) from which the TypeScript API client is generated."""
 
+# Needed so forward/self references (e.g. CreateBracketRequest's own validator
+# return type) resolve under Python < 3.14, which evaluates annotations eagerly
+# unless deferred like this. 3.14+ defers by default (PEP 649) so this is a no-op
+# there - required for the ml/ 3.13 training venv (see pyproject.toml's ml group).
+from __future__ import annotations
+
 from pydantic import (
     AfterValidator,
     BaseModel,
@@ -1770,10 +1776,14 @@ class PredictRequest(BaseModel):
 
 
 class MatchPrediction(BaseModel):
-    """Win prediction from the exported ONNX model.
+    """Win prediction from the N-model ONNX ensemble.
 
     Teams are labelled A/B by ascending team id (the model's canonical ordering);
-    ``prob_team_a_wins`` is the calibrated probability that team A wins.
+    ``prob_team_a_wins`` is the mean calibrated probability that team A wins
+    across the ensemble. ``prob_team_a_wins_std`` is the spread across
+    replicates (see ``ml.bootstrap_matrix``) - a large value means the
+    ensemble disagrees with itself and this prediction shouldn't be trusted
+    much, which matters given how little training data there is.
     """
 
     model_config = _SLOTS
@@ -1785,6 +1795,8 @@ class MatchPrediction(BaseModel):
     team_a_players: list[str]
     team_b_players: list[str]
     prob_team_a_wins: float
+    prob_team_a_wins_std: float = 0.0
+    ensemble_size: int = 1
     favored_team: int
     favored_win_prob: float
     # Players not in the model's training vocab - their contribution falls back
@@ -1793,13 +1805,18 @@ class MatchPrediction(BaseModel):
 
 
 class FactionMatchupOption(BaseModel):
-    """One (player1_general, player2_general) draw and its predicted outcome."""
+    """One (player1_general, player2_general) draw and its predicted outcome.
+
+    ``prob_player1_wins_std`` is the spread across the N-model ensemble for
+    this cell (see ``ml.bootstrap_matrix``) - how much replicates disagree,
+    not how far the mean is from 50%."""
 
     model_config = _SLOTS
 
     player1_general: General
     player2_general: General
     prob_player1_wins: float
+    prob_player1_wins_std: float = 0.0
 
 
 class FactionMatchupPrediction(BaseModel):
@@ -1812,17 +1829,26 @@ class FactionMatchupPrediction(BaseModel):
     player2: str
     map_name: str
     options: list[FactionMatchupOption]
+    ensemble_size: int = 1
     compute_ms: float
 
 
 class FactionMatrixCell(BaseModel):
-    """One (general_a, general_b) cell of the player-agnostic faction matrix."""
+    """One (general_a, general_b) cell of the player-agnostic faction matrix.
+
+    ``prob_a_wins`` is the ensemble mean; ``prob_a_wins_std`` is the spread
+    across replicates. ``significant`` is True when the cell's ~90% empirical
+    interval across the ensemble excludes 0.5 - i.e. this general pairing
+    looks real rather than indistinguishable from a coin flip given how
+    little training data there is (see ``ml.bootstrap_matrix``)."""
 
     model_config = _SLOTS
 
     general_a: General
     general_b: General
     prob_a_wins: float
+    prob_a_wins_std: float = 0.0
+    significant: bool = False
 
 
 class FactionMatrix(BaseModel):
@@ -1837,6 +1863,7 @@ class FactionMatrix(BaseModel):
     map_name: str
     median_prob_a_wins: float
     cells: list[FactionMatrixCell]
+    ensemble_size: int = 1
     compute_ms: float
 
 
