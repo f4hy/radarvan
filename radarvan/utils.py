@@ -185,7 +185,7 @@ def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
         try:
             # indexed from 0 in the replay
             starting_position = int(p.starting_position or "") + 1
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             starting_position = None
         players.append(
             Player(

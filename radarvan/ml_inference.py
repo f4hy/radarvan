@@ -56,8 +56,7 @@ def _ensemble_sessions() -> list[ort.InferenceSession]:
     if not paths:
         raise ModelUnavailable(f"no ensemble models found under {ENSEMBLE_DIR}")
     return [
-        ort.InferenceSession(str(p), providers=["CPUExecutionProvider"])
-        for p in paths
+        ort.InferenceSession(str(p), providers=["CPUExecutionProvider"]) for p in paths
     ]
 
 
