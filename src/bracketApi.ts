@@ -31,7 +31,7 @@ export interface BracketMatchOutput {
   round_name: string
   player_a: string | null
   player_b: string | null
-  scheduled_date: string | null
+  scheduled_at: string | null
   best_of: number | null
   score_a: number | null
   score_b: number | null
@@ -57,11 +57,15 @@ export interface BracketTournamentOutput {
   reveal_at: string | null
 }
 
+// All fields optional: the backend applies PATCH semantics (only keys
+// present in the JSON body change - see set_bracket_match) so a caller that
+// only wants to touch e.g. scheduled_at can omit best_of/score_a/score_b
+// entirely rather than resending their current values.
 export interface SetBracketMatchRequest {
-  scheduled_date: string | null
-  best_of: 3 | 5 | 7 | 9 | null
-  score_a: number | null
-  score_b: number | null
+  scheduled_at?: string | null
+  best_of?: 3 | 5 | 7 | 9 | null
+  score_a?: number | null
+  score_b?: number | null
 }
 
 export interface SetBracketRevealAtRequest {

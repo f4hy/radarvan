@@ -29,7 +29,10 @@ import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
+import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
+import AgendaPanel from "./Agenda"
 import { useIsTournamentAdmin } from "./AuthContext"
 import { FactionMatchupOption, MatchInfo } from "./api"
 import {
@@ -45,6 +48,14 @@ import {
   setBracketMatch,
   setBracketRevealAt,
 } from "./bracketApi"
+import {
+  formatCountdown,
+  formatScheduledAt,
+  playerLabel,
+  shortMatchLabel,
+  sourceMatchLabel,
+  useCountdownMs,
+} from "./bracketFormat"
 import { Client, CommentaryClient } from "./Client"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
@@ -257,56 +268,6 @@ function loserOf(match: BracketMatchOutput): string | null {
 // short prefix for card captions / "Winner of ..." references, plus whether
 // that round is always exactly one match under the fixed 16-slot bracket
 // shape (see bracket.py's build_topology) - those skip the "-a"/"-b" suffix.
-// Losers Round N isn't listed here since N is dynamic — see roundCode's fallback.
-const ROUND_CODE: Record<string, { code: string; singleton: boolean }> = {
-  "Winners Round 1": { code: "WR1", singleton: false },
-  "Winners Round 2": { code: "WR2", singleton: false },
-  "Winners Semifinal": { code: "WSF", singleton: false },
-  "Winners Final": { code: "WF", singleton: true },
-  "Losers Final": { code: "LF", singleton: true },
-  "Grand Final": { code: "GF", singleton: true },
-  "Grand Final Reset": { code: "GFR", singleton: true },
-}
-
-function roundCode(match: BracketMatchOutput): {
-  code: string
-  singleton: boolean
-} {
-  return (
-    ROUND_CODE[match.round_name] ??
-    (match.bracket === "L"
-      ? { code: `LR${match.round_number}`, singleton: false }
-      : { code: match.round_name, singleton: false })
-  )
-}
-
-// match_id's trailing "-N" is already the match's 1-based position within
-// its round (WB1-1, WB1-2, ..., LB2-1, ...) — reuse it rather than deriving
-// position independently, so the letter always agrees with the match_id.
-function indexToLetter(idx: number): string {
-  return String.fromCharCode("a".charCodeAt(0) + idx - 1)
-}
-
-function shortMatchLabel(match: BracketMatchOutput): string {
-  const { code, singleton } = roundCode(match)
-  if (singleton) return code
-  const suffix = match.match_id.match(/-(\d+)$/)
-  const idx = suffix ? Number(suffix[1]) : 1
-  return `${code}-${indexToLetter(idx)}`
-}
-
-// Shared by buildChild's leaf-ref label and playerLabel's TBD fallback: both
-// describe an unresolved slot the same way ("Winner of WR1-a"), resolvable
-// immediately from a match's source_a/source_b - no games need to have been
-// played yet.
-function sourceMatchLabel(
-  matchId: string,
-  matchesById: Map<string, BracketMatchOutput>,
-): string {
-  const refMatch = matchesById.get(matchId)
-  return refMatch ? shortMatchLabel(refMatch) : matchId
-}
-
 function buildChild(
   source: MatchSource,
   matchesById: Map<string, BracketMatchOutput>,
@@ -367,27 +328,6 @@ function buildNode(
       buildChild(sourceB, matchesById, seedToName, ownBracket),
     ],
   }
-}
-
-// `matchesById` is optional: passing it turns an unresolved slot's fallback
-// from a bare "TBD" into "Winner of WR1-a" / "Loser of WR1-a" — resolvable
-// immediately from source_a/source_b, no games need to have been played.
-// Omitted by the few callers (MatchEditor, dialog title) that only need a
-// short label and don't have matchesById in scope.
-function playerLabel(
-  match: BracketMatchOutput,
-  side: "a" | "b",
-  matchesById?: Map<string, BracketMatchOutput>,
-): string {
-  const name = side === "a" ? match.player_a : match.player_b
-  if (name) return name
-  if (match.status === "not_applicable") return "—"
-  const source = side === "a" ? match.source_a : match.source_b
-  if (matchesById && source.kind !== "seed") {
-    const refLabel = sourceMatchLabel(source.match_id, matchesById)
-    return `${source.kind === "winner" ? "Winner" : "Loser"} of ${refLabel}`
-  }
-  return "TBD"
 }
 
 // The player's most-played in-game color (via usePlayerAccentColor, backed
@@ -514,15 +454,6 @@ function SliderField({
       {children}
     </Box>
   )
-}
-
-// Today as a local YYYY-MM-DD string, in the same zero-padded shape as
-// scheduled_date and toDatetimeLocalValue's date component below - lets
-// MatchupPopup compare the two with plain string comparison.
-function todayIso(): string {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 // Splits on **bold** markers (a lightweight markdown subset) into <strong>
@@ -653,10 +584,11 @@ function MatchupPopup({
 }) {
   const playerA = match.player_a
   const playerB = match.player_b
-  const scheduledDate = match.scheduled_date
-  // Only worth asking the backend once there's a date that's actually
-  // arrived - a future or unset date can't have games yet by definition.
-  const datePlayable = scheduledDate != null && scheduledDate <= todayIso()
+  const scheduledAt = match.scheduled_at
+  // Only worth asking the backend once the scheduled time has actually
+  // arrived - a future or unset time can't have games yet by definition.
+  const datePlayable =
+    scheduledAt != null && new Date(scheduledAt).getTime() <= Date.now()
 
   const [games, setGames] = React.useState<MatchInfo[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -728,14 +660,14 @@ function MatchupPopup({
   }, [playerA, playerB, match.round_name])
 
   React.useEffect(() => {
-    if (!datePlayable || !scheduledDate || !playerA || !playerB) {
+    if (!datePlayable || !scheduledAt || !playerA || !playerB) {
       setGames([])
       return
     }
     let cancelled = false
     setLoading(true)
     Client.getMatchesByDateApiMatchesByDateDateGet({
-      date: new Date(scheduledDate),
+      date: new Date(scheduledAt),
     })
       .then((res) => {
         if (cancelled) return
@@ -753,7 +685,7 @@ function MatchupPopup({
     return () => {
       cancelled = true
     }
-  }, [datePlayable, scheduledDate, playerA, playerB, showError])
+  }, [datePlayable, scheduledAt, playerA, playerB, showError])
 
   const handleGoToPlayer = (playerName: string) => {
     onClose()
@@ -864,10 +796,11 @@ function MatchupPopup({
             No games played yet.
           </Typography>
         )}
-        {!loading && datePlayable && games.length === 0 && (
+        {!loading && datePlayable && games.length === 0 && scheduledAt && (
           <Typography sx={{ color: "text.secondary" }}>
             No 1v1 games found between {playerLabel(match, "a")} and{" "}
-            {playerLabel(match, "b")} on {scheduledDate}.
+            {playerLabel(match, "b")} on{" "}
+            {new Date(scheduledAt).toLocaleDateString()}.
           </Typography>
         )}
         {!loading && games.length > 0 && (
@@ -892,7 +825,6 @@ function MatchEditor({
   allMatches: BracketMatchOutput[]
   onSave: (req: SetBracketMatchRequest) => Promise<void>
 }) {
-  const [date, setDate] = React.useState(match.scheduled_date ?? "")
   // Locked, not admin-editable - see expectedBestOf.
   const bestOf = expectedBestOf(match, allMatches)
   const [gamesPlayed, setGamesPlayed] = React.useState<number | null>(
@@ -928,13 +860,18 @@ function MatchEditor({
       : winnerSide === "b"
         ? threshold
         : loserScore
-  const disabled = saving || scoreA === null || scoreB === null
+  // A score only blocks saving once it's been started but not finished
+  // (winner picked with no games-played count yet, or vice versa) - an
+  // incomplete score can't be saved, but nothing here forces a score to be
+  // entered at all (scheduling now lives on the Agenda tab instead).
+  const scoreStarted = winnerSide !== null || gamesPlayed !== null
+  const scoreComplete = scoreA !== null && scoreB !== null
+  const disabled = saving || (scoreStarted && !scoreComplete)
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await onSave({
-        scheduled_date: date || null,
         best_of: bestOf,
         score_a: scoreA,
         score_b: scoreB,
@@ -946,14 +883,6 @@ function MatchEditor({
 
   return (
     <Stack spacing={2} sx={{ mt: 1.5 }}>
-      <TextField
-        type="date"
-        size="small"
-        label="Date"
-        slotProps={{ inputLabel: { shrink: true } }}
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-      />
       <SliderField label="Best of (fixed by tournament rules for this round)">
         <ToggleButtonGroup size="small" exclusive value={bestOf} disabled>
           {BEST_OF_OPTIONS.map((bo) => (
@@ -1116,7 +1045,7 @@ const MatchBox = React.memo(function MatchBox({
           <Box component="span" sx={{ fontWeight: 700 }}>
             {shortMatchLabel(match)}
           </Box>
-          {match.scheduled_date && ` [${match.scheduled_date}]`}
+          {match.scheduled_at && ` [${formatScheduledAt(match.scheduled_at)}]`}
         </Typography>
         {editable && (
           <IconButton
@@ -1520,45 +1449,12 @@ function TournamentRoster({
   )
 }
 
-// HH:MM:SS, with a "Nd " day prefix once the remaining time crosses a day -
-// the tournament reveal is set days out, and nobody needs second-precision
-// digits for a multi-day wait.
-function formatCountdown(remainingMs: number): string {
-  const totalSeconds = Math.max(Math.floor(remainingMs / 1000), 0)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  const pad = (n: number) => String(n).padStart(2, "0")
-  const clock = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
-  return days > 0 ? `${days}d ${clock}` : clock
-}
-
-// `datetime-local` inputs read/write local-time strings with no timezone -
-// this pair converts an ISO instant to that local string for display, and
-// back via `new Date(local).toISOString()` at save time (handled inline
-// where it's used, since that direction doesn't need a named helper).
-function toDatetimeLocalValue(iso: string | null): string {
-  if (!iso) return ""
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ""
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-// Ticks its own display every second - kept self-contained (own state +
-// interval) rather than the parent re-rendering on a `nowMs` prop, so the
-// once-a-second tick only re-renders this small Paper, not the whole
-// bracket tree above it. The actual reveal transition is driven by the
-// backend's `revealed` flag on the next poll; this is purely the visible
-// countdown text.
+// Uses the shared per-second countdown ticker (own interval, so this tick
+// only re-renders this small Paper, not the whole bracket tree above it).
+// The actual reveal transition is driven by the backend's `revealed` flag on
+// the next poll; this is purely the visible countdown text.
 function RevealCountdown({ revealAt }: { revealAt: string }) {
-  const [nowMs, setNowMs] = React.useState(() => Date.now())
-  React.useEffect(() => {
-    const id = setInterval(() => setNowMs(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const remaining = new Date(revealAt).getTime() - nowMs
+  const remaining = useCountdownMs(revealAt)
   return (
     <Paper
       variant="outlined"
@@ -1610,9 +1506,9 @@ export default function DisplayBracket({
   )
   const isTournamentAdmin = useIsTournamentAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
-  const [pageTab, setPageTab] = React.useState<"bracket" | "rules" | "maps">(
-    "bracket",
-  )
+  const [pageTab, setPageTab] = React.useState<
+    "bracket" | "rules" | "maps" | "agenda"
+  >("bracket")
 
   // Admin-only "peek early" toggle (see RevealCountdown / the button below).
   // Purely a per-session request flag: it re-fetches /api/bracket with
@@ -1621,7 +1517,7 @@ export default function DisplayBracket({
   // else's view is unaffected.
   const [previewActive, setPreviewActive] = React.useState(false)
   const [adminDialogOpen, setAdminDialogOpen] = React.useState(false)
-  const [revealAtInput, setRevealAtInput] = React.useState("")
+  const [revealAtInput, setRevealAtInput] = React.useState<Dayjs | null>(null)
   const [savingRevealAt, setSavingRevealAt] = React.useState(false)
 
   React.useEffect(() => {
@@ -1672,7 +1568,9 @@ export default function DisplayBracket({
 
   // Same idea for the reveal-time field, from whatever's actually stored.
   React.useEffect(() => {
-    setRevealAtInput(toDatetimeLocalValue(bracketData?.reveal_at ?? null))
+    setRevealAtInput(
+      bracketData?.reveal_at ? dayjs(bracketData.reveal_at) : null,
+    )
   }, [bracketData?.reveal_at])
 
   React.useEffect(() => {
@@ -1711,7 +1609,7 @@ export default function DisplayBracket({
   const handleSaveRevealAt = async () => {
     setSavingRevealAt(true)
     try {
-      const iso = revealAtInput ? new Date(revealAtInput).toISOString() : null
+      const iso = revealAtInput ? revealAtInput.toISOString() : null
       setBracketData(await setBracketRevealAt({ reveal_at: iso }))
       setPreviewActive(true)
     } catch (e) {
@@ -1993,11 +1891,20 @@ export default function DisplayBracket({
       </Stack>
       <Tabs value={pageTab} onChange={(_e, v) => setPageTab(v)} sx={{ mb: 2 }}>
         <Tab value="bracket" label="Bracket" />
+        <Tab value="agenda" label="Agenda" />
         <Tab value="rules" label="Rules" />
         <Tab value="maps" label="Map List" />
       </Tabs>
       {pageTab === "rules" && <TournamentRulesPanel />}
       {pageTab === "maps" && <TournamentMapListPanel />}
+      {pageTab === "agenda" && (
+        <AgendaPanel
+          bracketData={bracketData}
+          onSchedule={(matchId, scheduledAt) =>
+            handleSaveMatch(matchId, { scheduled_at: scheduledAt })
+          }
+        />
+      )}
       {pageTab === "bracket" && !bracketData && (
         <Typography
           sx={{
@@ -2040,12 +1947,10 @@ export default function DisplayBracket({
               (server clock). Leave blank to show the bracket immediately.
             </Typography>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <TextField
-                type="datetime-local"
-                size="small"
+              <DateTimePicker
                 value={revealAtInput}
-                onChange={(e) => setRevealAtInput(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
+                onChange={(newValue) => setRevealAtInput(newValue)}
+                slotProps={{ textField: { size: "small" } }}
               />
               <Button
                 size="small"

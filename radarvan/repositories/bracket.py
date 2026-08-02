@@ -5,7 +5,7 @@ Match topology/routing lives in ``radarvan.bracket`` - this repo only
 persists the seeded entrant list and per-match date/best-of/score.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -65,7 +65,7 @@ class BracketRepo(BaseRepo):
         self,
         tournament_id: int,
         match_id: str,
-        scheduled_date: date | None,
+        scheduled_at: datetime | None,
         best_of: int | None,
         score_a: int | None,
         score_b: int | None,
@@ -74,7 +74,7 @@ class BracketRepo(BaseRepo):
         if row is None:
             row = BracketMatchState(tournament_id=tournament_id, match_id=match_id)
             self.session.add(row)
-        row.scheduled_date = scheduled_date
+        row.scheduled_at = scheduled_at
         row.best_of = best_of
         row.score_a = score_a
         row.score_b = score_b

@@ -130,7 +130,7 @@ def _build_output_from_states(
                 round_name=m.round_name,
                 player_a=m.player_a,
                 player_b=m.player_b,
-                scheduled_date=raw.scheduled_date if raw else None,
+                scheduled_at=raw.scheduled_at if raw else None,
                 best_of=raw.best_of if raw else None,
                 score_a=raw.score_a if raw else None,
                 score_b=raw.score_b if raw else None,
@@ -238,10 +238,12 @@ def set_bracket_match(
     user: User = Depends(require_current_user),
     repo: BracketRepo = Depends(get_bracket_repo),
 ) -> BracketTournamentOutput:
-    """Update a match's scheduled date / best-of / score (admin only).
+    """Update a match's scheduled date/time / best-of / score (admin only).
 
     PATCH semantics: only fields present in the request body change; omitted
     fields keep their stored values, and an explicit null clears a field.
+    ``scheduled_at`` can be set (or cleared) independently of best_of/scores -
+    e.g. an admin scheduling a match ahead of time, before it's been played.
     """
     _require_tournament_admin(user)
     tournament = repo.get_active()
@@ -259,9 +261,7 @@ def set_bracket_match(
         value: T = getattr(req, field)
         return value if field in req.model_fields_set else current
 
-    scheduled_date = merged(
-        "scheduled_date", existing.scheduled_date if existing else None
-    )
+    scheduled_at = merged("scheduled_at", existing.scheduled_at if existing else None)
     best_of = merged("best_of", existing.best_of if existing else None)
     score_a = merged("score_a", existing.score_a if existing else None)
     score_b = merged("score_b", existing.score_b if existing else None)
@@ -290,27 +290,37 @@ def set_bracket_match(
     # Refuse edits that would re-route players through matches that already
     # have a recorded score - their stored result would silently be attributed
     # to different players. The admin must clear the downstream result first.
-    new_states = dict(states)
-    new_states[match_id] = bracket.MatchState(
-        best_of=best_of, score_a=score_a, score_b=score_b
+    # A pure scheduled_at edit (the Agenda tab's primary use case) can't
+    # possibly re-route anyone - best_of/score_a/score_b, the only fields
+    # that feed routing, are unchanged - so skip the second resolve_bracket
+    # and the reroute diff entirely in that case.
+    scores_unchanged = (
+        best_of == (existing.best_of if existing else None)
+        and score_a == (existing.score_a if existing else None)
+        and score_b == (existing.score_b if existing else None)
     )
-    after = bracket.resolve_bracket(seed_to_name, new_states)
-    conflicts = bracket.rerouted_scored_matches(
-        before, after, states, edited_match_id=match_id
-    )
-    if conflicts:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                f"This change would alter the players of {', '.join(conflicts)}, "
-                "which already have a recorded score. Clear those results first."
-            ),
+    if not scores_unchanged:
+        new_states = dict(states)
+        new_states[match_id] = bracket.MatchState(
+            best_of=best_of, score_a=score_a, score_b=score_b
         )
+        after = bracket.resolve_bracket(seed_to_name, new_states)
+        conflicts = bracket.rerouted_scored_matches(
+            before, after, states, edited_match_id=match_id
+        )
+        if conflicts:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"This change would alter the players of {', '.join(conflicts)}, "
+                    "which already have a recorded score. Clear those results first."
+                ),
+            )
 
     raw_states[match_id] = repo.set_match(
         tournament.id,
         match_id,
-        scheduled_date,
+        scheduled_at,
         best_of,
         score_a,
         score_b,

@@ -78,7 +78,9 @@ def value_stats_from_computed(stats: list[Statistic]) -> dict[General, tuple[int
             destroyed[general] = value
         elif s.stat_name.endswith("lost"):
             lost[general] = value
-    return {g: (destroyed.get(g, 0), lost.get(g, 0)) for g in destroyed.keys() | lost.keys()}
+    return {
+        g: (destroyed.get(g, 0), lost.get(g, 0)) for g in destroyed.keys() | lost.keys()
+    }
 
 
 def get_generals_stats(
