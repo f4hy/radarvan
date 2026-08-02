@@ -29,6 +29,8 @@ export * from './FFAStats';
 export * from './Faction';
 export * from './FactionMatchupOption';
 export * from './FactionMatchupPrediction';
+export * from './FactionMatrix';
+export * from './FactionMatrixCell';
 export * from './FavoriteObject';
 export * from './FetchMissingMapResult';
 export * from './FetchMissingMapsResponse';

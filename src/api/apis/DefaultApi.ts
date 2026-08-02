@@ -21,6 +21,7 @@ import type {
   DraftResult,
   FFAStats,
   FactionMatchupPrediction,
+  FactionMatrix,
   FetchMissingMapResult,
   FetchMissingMapsResponse,
   GameComposition,
@@ -77,6 +78,8 @@ import {
     FFAStatsToJSON,
     FactionMatchupPredictionFromJSON,
     FactionMatchupPredictionToJSON,
+    FactionMatrixFromJSON,
+    FactionMatrixToJSON,
     FetchMissingMapResultFromJSON,
     FetchMissingMapResultToJSON,
     FetchMissingMapsResponseFromJSON,
@@ -3179,6 +3182,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async predictFactionMatchupApiPredictFactionMatchupGet(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FactionMatchupPrediction> {
         const response = await this.predictFactionMatchupApiPredictFactionMatchupGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictFactionMatrixApiPredictFactionMatrixGet without sending the request
+     */
+    async predictFactionMatrixApiPredictFactionMatrixGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict/faction_matrix`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The full 12x12 general-vs-general grid with both players and the map forced to the model\'s UNK slot - a pure faction-vs-faction signal with no player identity or map mixed in. Same 144-call approach as faction_matchup, just with placeholder inputs instead of a real pair of players.
+     * Predict Faction Matrix
+     */
+    async predictFactionMatrixApiPredictFactionMatrixGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FactionMatrix>> {
+        const requestOptions = await this.predictFactionMatrixApiPredictFactionMatrixGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FactionMatrixFromJSON(jsonValue));
+    }
+
+    /**
+     * The full 12x12 general-vs-general grid with both players and the map forced to the model\'s UNK slot - a pure faction-vs-faction signal with no player identity or map mixed in. Same 144-call approach as faction_matchup, just with placeholder inputs instead of a real pair of players.
+     * Predict Faction Matrix
+     */
+    async predictFactionMatrixApiPredictFactionMatrixGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FactionMatrix> {
+        const response = await this.predictFactionMatrixApiPredictFactionMatrixGetRaw(initOverrides);
         return await response.value();
     }
 

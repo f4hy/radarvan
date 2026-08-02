@@ -4,6 +4,13 @@ import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import { alpha } from "@mui/material/styles"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import MuiTooltip from "@mui/material/Tooltip"
@@ -19,12 +26,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { GeneralStat, GeneralStats } from "./api"
+import { FactionMatrix, GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
-import { CHART_LOSS, CHART_WIN } from "./theme"
+import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { wilsonLowerBound, winRate } from "./utils"
 import WinRateChip from "./WinRateChip"
@@ -167,6 +174,124 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
   )
 }
 
+// Row general (general_a) vs column general (general_b): the model's
+// predicted advantage for the row general in that draw, with both players
+// and the map forced to the model's UNK slot - a pure faction-vs-faction
+// signal, not tied to any specific players. Delta is expressed above/below
+// the grid's own median (always ~50% by construction - see the backend's
+// antisymmetric-head note) rather than as an absolute win probability, same
+// convention as the bracket popup's "best draws" list.
+function FactionMatrixTable(props: { matrix: FactionMatrix }) {
+  const { cells, medianProbAWins } = props.matrix
+
+  const generals = React.useMemo(() => {
+    const order: number[] = []
+    for (const c of cells) {
+      if (!order.includes(c.generalA)) order.push(c.generalA)
+    }
+    return order
+  }, [cells])
+
+  const probByPair = React.useMemo(() => {
+    const m = new Map<string, number>()
+    for (const c of cells) m.set(`${c.generalA}:${c.generalB}`, c.probAWins)
+    return m
+  }, [cells])
+
+  const maxAbsDelta = React.useMemo(
+    () =>
+      Math.max(...cells.map((c) => Math.abs(c.probAWins - medianProbAWins))),
+    [cells, medianProbAWins],
+  )
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        Faction matchup matrix
+      </Typography>
+      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+        Model-predicted advantage for the row general over the column general,
+        with both players and the map unknown - the faction matchup in
+        isolation. Each cell is percentage points above/below the grid's median
+        draw ({(medianProbAWins * 100).toFixed(0)}%), not an absolute win rate.
+      </Typography>
+      <TableContainer sx={{ overflowX: "auto" }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell />
+              {generals.map((g) => (
+                <TableCell key={g} align="center" sx={{ fontWeight: 600 }}>
+                  {toGeneralName(g)}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {generals.map((rowGeneral) => (
+              <TableRow key={rowGeneral}>
+                <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+                  {toGeneralName(rowGeneral)}
+                </TableCell>
+                {generals.map((colGeneral) => {
+                  const prob =
+                    probByPair.get(`${rowGeneral}:${colGeneral}`) ??
+                    medianProbAWins
+                  const delta = prob - medianProbAWins
+                  const intensity =
+                    maxAbsDelta > 0
+                      ? Math.min(Math.abs(delta) / maxAbsDelta, 1)
+                      : 0
+                  const color = delta >= 0 ? WIN_COLOR : LOSS_COLOR
+                  return (
+                    <TableCell
+                      key={colGeneral}
+                      align="center"
+                      sx={{
+                        bgcolor: alpha(color, intensity * 0.7),
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {delta >= 0 ? "+" : ""}
+                      {(delta * 100).toFixed(1)}
+                    </TableCell>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  )
+}
+
+function FactionMatrixSection() {
+  const [matrix, setMatrix] = React.useState<FactionMatrix | null>(null)
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    let cancelled = false
+    Client.predictFactionMatrixApiPredictFactionMatrixGet()
+      .then((res) => {
+        if (!cancelled) setMatrix(res)
+      })
+      .catch(() => {
+        // Model unavailable (503) or any other failure - best-effort, just
+        // skip the section rather than erroring the whole page.
+        if (!cancelled) setMatrix(null)
+      })
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (loading) return <Loading />
+  if (!matrix) return null
+  return <FactionMatrixTable matrix={matrix} />
+}
+
 const empty = { generalStats: [] }
 
 export default function DisplayGeneralStats() {
@@ -257,6 +382,8 @@ export default function DisplayGeneralStats() {
           <WinRateRadar data={radarData} aspect={1.4} />
         </Grid>
       </Grid>
+      <Divider sx={{ mt: 4, mb: 2 }} />
+      <FactionMatrixSection />
       {errorSnackbar}
     </Paper>
   )

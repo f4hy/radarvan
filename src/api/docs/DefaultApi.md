@@ -60,6 +60,7 @@ All URIs are relative to *http://localhost*
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
 | [**predictFactionMatchupApiPredictFactionMatchupGet**](DefaultApi.md#predictfactionmatchupapipredictfactionmatchupget) | **GET** /api/predict/faction_matchup | Predict Faction Matchup |
+| [**predictFactionMatrixApiPredictFactionMatrixGet**](DefaultApi.md#predictfactionmatrixapipredictfactionmatrixget) | **GET** /api/predict/faction_matrix | Predict Faction Matrix |
 | [**predictFromFeaturesApiPredictPost**](DefaultApi.md#predictfromfeaturesapipredictpost) | **POST** /api/predict | Predict From Features |
 | [**predictMatchApiPredictMatchMatchIdGet**](DefaultApi.md#predictmatchapipredictmatchmatchidget) | **GET** /api/predict/match/{match_id} | Predict Match |
 | [**predictOverTimeApiPredictOverTimeMatchIdGet**](DefaultApi.md#predictovertimeapipredictovertimematchidget) | **GET** /api/predict/over_time/{match_id} | Predict Over Time |
@@ -3982,6 +3983,69 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictFactionMatrixApiPredictFactionMatrixGet
+
+> FactionMatrix predictFactionMatrixApiPredictFactionMatrixGet()
+
+Predict Faction Matrix
+
+The full 12x12 general-vs-general grid with both players and the map forced to the model\&#39;s UNK slot - a pure faction-vs-faction signal with no player identity or map mixed in. Same 144-call approach as faction_matchup, just with placeholder inputs instead of a real pair of players.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictFactionMatrixApiPredictFactionMatrixGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.predictFactionMatrixApiPredictFactionMatrixGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**FactionMatrix**](FactionMatrix.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
