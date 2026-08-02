@@ -10,6 +10,7 @@ Name | Type
 `mapName` | string
 `medianProbAWins` | number
 `cells` | [Array&lt;FactionMatrixCell&gt;](FactionMatrixCell.md)
+`ensembleSize` | number
 `computeMs` | number
 
 ## Example
@@ -22,6 +23,7 @@ const example = {
   "mapName": null,
   "medianProbAWins": null,
   "cells": null,
+  "ensembleSize": null,
   "computeMs": null,
 } satisfies FactionMatrix
 

@@ -57,6 +57,12 @@ export interface FactionMatchupPrediction {
      * @type {number}
      * @memberof FactionMatchupPrediction
      */
+    ensembleSize?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FactionMatchupPrediction
+     */
     computeMs: number;
 }
 
@@ -86,6 +92,7 @@ export function FactionMatchupPredictionFromJSONTyped(json: any, ignoreDiscrimin
         'player2': json['player2'],
         'mapName': json['map_name'],
         'options': ((json['options'] as Array<any>).map(FactionMatchupOptionFromJSON)),
+        'ensembleSize': json['ensemble_size'] == null ? undefined : json['ensemble_size'],
         'computeMs': json['compute_ms'],
     };
 }
@@ -105,6 +112,7 @@ export function FactionMatchupPredictionToJSONTyped(value?: FactionMatchupPredic
         'player2': value['player2'],
         'map_name': value['mapName'],
         'options': ((value['options'] as Array<any>).map(FactionMatchupOptionToJSON)),
+        'ensemble_size': value['ensembleSize'],
         'compute_ms': value['computeMs'],
     };
 }

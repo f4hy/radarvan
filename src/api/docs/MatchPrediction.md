@@ -1,7 +1,7 @@
 
 # MatchPrediction
 
-Win prediction from the exported ONNX model.  Teams are labelled A/B by ascending team id (the model\'s canonical ordering); ``prob_team_a_wins`` is the calibrated probability that team A wins.
+Win prediction from the N-model ONNX ensemble.  Teams are labelled A/B by ascending team id (the model\'s canonical ordering); ``prob_team_a_wins`` is the mean calibrated probability that team A wins across the ensemble. ``prob_team_a_wins_std`` is the spread across replicates (see ``ml.bootstrap_matrix``) - a large value means the ensemble disagrees with itself and this prediction shouldn\'t be trusted much, which matters given how little training data there is.
 
 ## Properties
 
@@ -14,6 +14,8 @@ Name | Type
 `teamAPlayers` | Array&lt;string&gt;
 `teamBPlayers` | Array&lt;string&gt;
 `probTeamAWins` | number
+`probTeamAWinsStd` | number
+`ensembleSize` | number
 `favoredTeam` | number
 `favoredWinProb` | number
 `unknownPlayers` | Array&lt;string&gt;
@@ -32,6 +34,8 @@ const example = {
   "teamAPlayers": null,
   "teamBPlayers": null,
   "probTeamAWins": null,
+  "probTeamAWinsStd": null,
+  "ensembleSize": null,
   "favoredTeam": null,
   "favoredWinProb": null,
   "unknownPlayers": null,

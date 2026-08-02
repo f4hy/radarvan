@@ -1,6 +1,12 @@
 """Player skill ratings - computes OpenSkill (Plackett-Luce) ratings from match history,
 tracking per-day/per-match rating changes and upsets."""
 
+# Needed so self-references (e.g. NamedRating.with_min_sigma's own return type)
+# resolve under Python < 3.14, which evaluates annotations eagerly unless deferred
+# like this. 3.14+ defers by default (PEP 649) so this is a no-op there - required
+# for the ml/ 3.13 training venv (see pyproject.toml's ml group).
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import NamedTuple
 from cachetools import cached, LRUCache

@@ -14,10 +14,14 @@
 
 import { mapValues } from '../runtime';
 /**
- * Win prediction from the exported ONNX model.
+ * Win prediction from the N-model ONNX ensemble.
  * 
  * Teams are labelled A/B by ascending team id (the model's canonical ordering);
- * ``prob_team_a_wins`` is the calibrated probability that team A wins.
+ * ``prob_team_a_wins`` is the mean calibrated probability that team A wins
+ * across the ensemble. ``prob_team_a_wins_std`` is the spread across
+ * replicates (see ``ml.bootstrap_matrix``) - a large value means the
+ * ensemble disagrees with itself and this prediction shouldn't be trusted
+ * much, which matters given how little training data there is.
  * @export
  * @interface MatchPrediction
  */
@@ -64,6 +68,18 @@ export interface MatchPrediction {
      * @memberof MatchPrediction
      */
     probTeamAWins: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MatchPrediction
+     */
+    probTeamAWinsStd?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MatchPrediction
+     */
+    ensembleSize?: number;
     /**
      * 
      * @type {number}
@@ -116,6 +132,8 @@ export function MatchPredictionFromJSONTyped(json: any, ignoreDiscriminator: boo
         'teamAPlayers': json['team_a_players'],
         'teamBPlayers': json['team_b_players'],
         'probTeamAWins': json['prob_team_a_wins'],
+        'probTeamAWinsStd': json['prob_team_a_wins_std'] == null ? undefined : json['prob_team_a_wins_std'],
+        'ensembleSize': json['ensemble_size'] == null ? undefined : json['ensemble_size'],
         'favoredTeam': json['favored_team'],
         'favoredWinProb': json['favored_win_prob'],
         'unknownPlayers': json['unknown_players'] == null ? undefined : json['unknown_players'],
@@ -140,6 +158,8 @@ export function MatchPredictionToJSONTyped(value?: MatchPrediction | null, ignor
         'team_a_players': value['teamAPlayers'],
         'team_b_players': value['teamBPlayers'],
         'prob_team_a_wins': value['probTeamAWins'],
+        'prob_team_a_wins_std': value['probTeamAWinsStd'],
+        'ensemble_size': value['ensembleSize'],
         'favored_team': value['favoredTeam'],
         'favored_win_prob': value['favoredWinProb'],
         'unknown_players': value['unknownPlayers'],

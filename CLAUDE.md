@@ -43,7 +43,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 | `NOTIFY_WEB_HOOK` | Discord webhook for `notify()` |
 | `CNCSTATS_APIKEY` | Bearer token for cncstats **replay parsing** (`POST /replay`) |
 | `CNCSTATS_API_KEY` | X-API-Key for the cncstats **map registry** (`/add_map`) — distinct from the above, do not conflate |
-| `ML_MODEL_PATH`/`ML_VOCAB_PATH`, `WINPROB_MODEL_PATH`/`WINPROB_STATS_PATH` | ONNX model files; endpoints 503 when absent |
+| `ML_ENSEMBLE_DIR`, `WINPROB_MODEL_PATH`/`WINPROB_STATS_PATH` | ONNX model files; endpoints 503 when absent. `ML_ENSEMBLE_DIR` (default `ml_ensemble`) holds an N-model win-prediction ensemble (`model-*.onnx` + shared `vocab.json`) - every prediction runs all N and reports mean + std (`ml.bootstrap_matrix`) |
 | `RATE_LIMIT_PER_MINUTE` | Per-client sliding window on `/api` (0 disables) |
 | `CLAUDE_API_KEY` / `GEMINI_API_KEY` | Matchup commentary LLM providers (`commentary/anthropic_client.py` / `commentary/gemini_client.py`); `commentary_available()` 503s when the active one's key is absent |
 | `COMMENTARY_PROVIDER` | `"anthropic"` or `"gemini"` — which provider generates commentary; defaults to `"gemini"` (see `matchup_commentary.py`) |

@@ -54,6 +54,12 @@ export interface FactionMatrix {
      * @type {number}
      * @memberof FactionMatrix
      */
+    ensembleSize?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FactionMatrix
+     */
     computeMs: number;
 }
 
@@ -81,6 +87,7 @@ export function FactionMatrixFromJSONTyped(json: any, ignoreDiscriminator: boole
         'mapName': json['map_name'],
         'medianProbAWins': json['median_prob_a_wins'],
         'cells': ((json['cells'] as Array<any>).map(FactionMatrixCellFromJSON)),
+        'ensembleSize': json['ensemble_size'] == null ? undefined : json['ensemble_size'],
         'computeMs': json['compute_ms'],
     };
 }
@@ -99,6 +106,7 @@ export function FactionMatrixToJSONTyped(value?: FactionMatrix | null, ignoreDis
         'map_name': value['mapName'],
         'median_prob_a_wins': value['medianProbAWins'],
         'cells': ((value['cells'] as Array<any>).map(FactionMatrixCellToJSON)),
+        'ensemble_size': value['ensembleSize'],
         'compute_ms': value['computeMs'],
     };
 }

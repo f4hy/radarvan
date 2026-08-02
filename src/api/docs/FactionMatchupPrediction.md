@@ -11,6 +11,7 @@ Name | Type
 `player2` | string
 `mapName` | string
 `options` | [Array&lt;FactionMatchupOption&gt;](FactionMatchupOption.md)
+`ensembleSize` | number
 `computeMs` | number
 
 ## Example
@@ -24,6 +25,7 @@ const example = {
   "player2": null,
   "mapName": null,
   "options": null,
+  "ensembleSize": null,
   "computeMs": null,
 } satisfies FactionMatchupPrediction
 

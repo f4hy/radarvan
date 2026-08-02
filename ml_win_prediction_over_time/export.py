@@ -13,7 +13,8 @@ Usage::
 
 Writes ``<run_dir>/model.onnx`` + ``<run_dir>/onnx_meta.json`` and copies the
 deployable pair to the repo root (``ml_winprob_over_time.onnx`` +
-``ml_winprob_over_time_stats.json``), the way ``ml_model.onnx`` is deployed.
+``ml_winprob_over_time_stats.json``), similar to how the win-prediction
+ensemble in ``ml_ensemble/`` is deployed.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ from .predict import load_run
 logger = structlog.get_logger(__name__)
 
 OPSET = 17
-# Deployable artifacts at the repo root (next to ml_model.onnx).
+# Deployable artifacts at the repo root (next to ml_ensemble/).
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_MODEL = ROOT / "ml_winprob_over_time.onnx"
 ROOT_STATS = ROOT / "ml_winprob_over_time_stats.json"

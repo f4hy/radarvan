@@ -1,7 +1,7 @@
 
 # FactionMatchupOption
 
-One (player1_general, player2_general) draw and its predicted outcome.
+One (player1_general, player2_general) draw and its predicted outcome.  ``prob_player1_wins_std`` is the spread across the N-model ensemble for this cell (see ``ml.bootstrap_matrix``) - how much replicates disagree, not how far the mean is from 50%.
 
 ## Properties
 
@@ -10,6 +10,7 @@ Name | Type
 `player1General` | [General](General.md)
 `player2General` | [General](General.md)
 `probPlayer1Wins` | number
+`probPlayer1WinsStd` | number
 
 ## Example
 
@@ -21,6 +22,7 @@ const example = {
   "player1General": null,
   "player2General": null,
   "probPlayer1Wins": null,
+  "probPlayer1WinsStd": null,
 } satisfies FactionMatchupOption
 
 console.log(example)

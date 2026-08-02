@@ -7,6 +7,12 @@ ReplayManager dependency. ReplayManager remains for backwards compatibility
 with the many existing callers.
 """
 
+# Needed so forward references (e.g. DatabaseManager.get_replay_manager's own
+# return type) resolve under Python < 3.14, which evaluates annotations eagerly
+# unless deferred like this. 3.14+ defers by default (PEP 649) so this is a no-op
+# there - required for the ml/ 3.13 training venv (see pyproject.toml's ml group).
+from __future__ import annotations
+
 from collections.abc import Generator
 from contextlib import contextmanager
 import structlog
