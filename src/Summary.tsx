@@ -436,111 +436,119 @@ function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
   )
 }
 
-function ShowPlayerSummary(props: {
-  playerSummary: PlayerSummary
-  killEvents: KillEventOutput[]
-}) {
-  const sum = props.playerSummary
-  if (sum?.name === undefined) {
-    return <Typography>No player summaries</Typography>
+type ChartKind =
+  | "spending"
+  | "destroyed"
+  | "losses"
+  | "destroyedByOpponent"
+  | "lostToOpponent"
+  | "powers"
+  | "unitsCreated"
+  | "buildingsCreated"
+  | "upgrades"
+
+const CHART_KINDS: { key: ChartKind; label: string }[] = [
+  { key: "spending", label: "Spending Breakdown" },
+  { key: "destroyed", label: "Value Destroyed" },
+  { key: "losses", label: "Losses" },
+  { key: "destroyedByOpponent", label: "Value Destroyed By Opponent" },
+  { key: "lostToOpponent", label: "Value Lost To Opponent" },
+  { key: "powers", label: "Powers Used" },
+  { key: "unitsCreated", label: "Units Created" },
+  { key: "buildingsCreated", label: "Buildings Created" },
+  { key: "upgrades", label: "Upgrades" },
+]
+
+function renderChartForPlayer(
+  kind: ChartKind,
+  sum: PlayerSummary,
+  killEvents: KillEventOutput[],
+): React.ReactNode {
+  switch (kind) {
+    case "spending":
+      return <PlayerSpendingSankey playerSummary={sum} />
+    case "destroyed":
+      return <PlayerDestroyedSankey playerSummary={sum} />
+    case "losses":
+      return <PlayerLossesSankey playerSummary={sum} />
+    case "destroyedByOpponent":
+      return (
+        <PlayerDestroyedFromOpponentSankey
+          playerName={sum.name}
+          killEvents={killEvents}
+        />
+      )
+    case "lostToOpponent":
+      return (
+        <PlayerLostToOpponentSankey
+          playerName={sum.name}
+          killEvents={killEvents}
+        />
+      )
+    case "powers":
+      return <PlayerPowersSankey playerSummary={sum} />
+    case "unitsCreated":
+      return <BuiltChart title="Units Created" built={sum.unitsCreated} />
+    case "buildingsCreated":
+      return <BuiltChart title="Buildings Created" built={sum.buildingsBuilt} />
+    case "upgrades":
+      return <BuiltChart title="Upgrades" built={sum.upgradesBuilt} />
   }
-  return (
-    <Stack>
-      <Stack spacing={2}>
-        <Box>
-          <Typography variant="h6">Spending Breakdown</Typography>
-          <PlayerSpendingSankey playerSummary={sum} />
-        </Box>
-        <Box>
-          <Typography variant="h6">Value Destroyed</Typography>
-          <PlayerDestroyedSankey playerSummary={sum} />
-        </Box>
-        <Box>
-          <Typography variant="h6">Losses</Typography>
-          <PlayerLossesSankey playerSummary={sum} />
-        </Box>
-        <Box>
-          <Typography variant="h6">Value Destroyed By Opponent</Typography>
-          <PlayerDestroyedFromOpponentSankey
-            playerName={sum.name}
-            killEvents={props.killEvents}
-          />
-        </Box>
-        <Box>
-          <Typography variant="h6">Value Lost To Opponent</Typography>
-          <PlayerLostToOpponentSankey
-            playerName={sum.name}
-            killEvents={props.killEvents}
-          />
-        </Box>
-        <Box>
-          <Typography variant="h6">Powers Used</Typography>
-          <PlayerPowersSankey playerSummary={sum} />
-        </Box>
-      </Stack>
-      <Typography>
-        {sum?.name} | {sum?.side} | Team={sum?.team} | Color={sum.color}
-      </Typography>
-      <Divider />
-      <BuiltChart
-        title="Units Created"
-        built={props.playerSummary.unitsCreated}
-      />
-      <Divider />
-      <BuiltChart
-        title="Buildings Created"
-        built={props.playerSummary.buildingsBuilt}
-      />
-      <Divider />
-      <BuiltChart title="Upgrades" built={props.playerSummary.upgradesBuilt} />
-    </Stack>
-  )
 }
 
 export default function ShowPlayerSummaries(props: {
   playerSummaries: PlayerSummary[]
   killEvents: KillEventOutput[]
 }) {
-  const [selectedPlayer, setSelectedPlayer] = React.useState<number>(0)
+  const [selectedKind, setSelectedKind] = React.useState<ChartKind>(
+    CHART_KINDS[0].key,
+  )
   const handleClick = React.useCallback(
     (
       _event: React.MouseEvent<HTMLElement>,
-      newSelection: number | undefined,
+      newSelection: ChartKind | undefined,
     ) => {
-      setSelectedPlayer((prev) => newSelection ?? prev)
+      setSelectedKind((prev) => newSelection ?? prev)
     },
     [],
   )
   const buttonGroup = (
     <ToggleButtonGroup
       exclusive
-      value={selectedPlayer}
+      value={selectedKind}
       onChange={handleClick}
       color="warning"
     >
-      {props.playerSummaries.map((sum, i) => {
-        return (
-          <ToggleButton key={sum?.name ?? i} size="large" value={i}>
-            {sum?.name}
-          </ToggleButton>
-        )
-      })}
+      {CHART_KINDS.map(({ key, label }) => (
+        <ToggleButton key={key} size="large" value={key}>
+          {label}
+        </ToggleButton>
+      ))}
     </ToggleButtonGroup>
   )
-  const playerSummary =
-    selectedPlayer !== undefined ? (
-      <ShowPlayerSummary
-        playerSummary={props.playerSummaries[selectedPlayer]}
-        killEvents={props.killEvents}
-      />
-    ) : (
-      <></>
-    )
+  const validSummaries = props.playerSummaries.filter(
+    (sum): sum is PlayerSummary => sum?.name !== undefined,
+  )
+  if (validSummaries.length === 0) {
+    return <Typography>No player summaries</Typography>
+  }
   return (
     <>
-      <Typography>Select player for details</Typography>
+      <Typography>Select chart type</Typography>
       {buttonGroup}
-      {playerSummary}
+      <Stack spacing={3} sx={{ mt: 2 }}>
+        {validSummaries.map((sum, i) => (
+          <React.Fragment key={sum.name}>
+            {i > 0 && <Divider />}
+            <Box>
+              <Typography variant="h6">
+                {sum.name} | {sum.side} | Team={sum.team} | Color={sum.color}
+              </Typography>
+              {renderChartForPlayer(selectedKind, sum, props.killEvents)}
+            </Box>
+          </React.Fragment>
+        ))}
+      </Stack>
     </>
   )
 }
