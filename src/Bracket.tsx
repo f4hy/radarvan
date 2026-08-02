@@ -31,7 +31,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { useIsTournamentAdmin } from "./AuthContext"
-import { MatchInfo } from "./api"
+import { FactionMatchupOption, MatchInfo } from "./api"
 import {
   BracketMatchOutput,
   BracketMatchStatus,
@@ -46,6 +46,7 @@ import {
   setBracketRevealAt,
 } from "./bracketApi"
 import { Client, CommentaryClient } from "./Client"
+import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import GameMap from "./Map"
 import { DisplayMatchInfo } from "./Matches"
@@ -555,6 +556,79 @@ function renderHypeText(text: string): React.ReactNode {
   ))
 }
 
+type RankedDraw = {
+  playerAGeneral: number
+  playerBGeneral: number
+  favors: "a" | "b"
+  deltaAboveMedian: number
+}
+
+// The top `count` draws (by probPlayer1Wins) favoring player A, plus the top
+// `count` favoring player B (lowest probPlayer1Wins, since player B's win
+// prob is 1 - probPlayer1Wins) - four rows total, each expressed as distance
+// above the median draw rather than an absolute win probability, so a
+// stronger player's generally-higher probabilities don't just fill every
+// slot: the median is the same field of 144 draws either perspective ranks
+// against, so "above median" isolates what the draw itself is worth.
+function topDraws(
+  options: FactionMatchupOption[],
+  count: number,
+): RankedDraw[] {
+  if (options.length === 0) return []
+  const probs = options.map((o) => o.probPlayer1Wins).sort((a, b) => a - b)
+  const mid = Math.floor(probs.length / 2)
+  const median =
+    probs.length % 2 === 0 ? (probs[mid - 1] + probs[mid]) / 2 : probs[mid]
+
+  const favorsA = [...options]
+    .sort((a, b) => b.probPlayer1Wins - a.probPlayer1Wins)
+    .slice(0, count)
+    .map((o) => ({
+      playerAGeneral: o.player1General,
+      playerBGeneral: o.player2General,
+      favors: "a" as const,
+      deltaAboveMedian: o.probPlayer1Wins - median,
+    }))
+  const favorsB = [...options]
+    .sort((a, b) => a.probPlayer1Wins - b.probPlayer1Wins)
+    .slice(0, count)
+    .map((o) => ({
+      playerAGeneral: o.player1General,
+      playerBGeneral: o.player2General,
+      favors: "b" as const,
+      deltaAboveMedian: median - o.probPlayer1Wins,
+    }))
+  return [...favorsA, ...favorsB]
+}
+
+function BestDrawsList(props: {
+  playerA: string
+  playerB: string
+  draws: RankedDraw[]
+}) {
+  if (props.draws.length === 0) return null
+  return (
+    <Stack spacing={0.5}>
+      {props.draws.map((d, i) => {
+        const favoredPlayer = d.favors === "a" ? props.playerA : props.playerB
+        return (
+          <Typography key={i} variant="body2">
+            {props.playerA}: {toGeneralName(d.playerAGeneral)} vs{" "}
+            {props.playerB}: {toGeneralName(d.playerBGeneral)}
+            {" → "}
+            <Box
+              component="span"
+              sx={{ color: "success.main", fontWeight: 600 }}
+            >
+              favors {favoredPlayer} +{(d.deltaAboveMedian * 100).toFixed(1)}pp
+            </Box>
+          </Typography>
+        )
+      })}
+    </Stack>
+  )
+}
+
 // The everyone-gets-this popup a match card click opens (admins reach the
 // score editor via the edit icon instead - see MatchBox). Links to each
 // player's profile and their head-to-head record, an AI-generated pre-game
@@ -582,7 +656,41 @@ function MatchupPopup({
   const [loading, setLoading] = React.useState(false)
   const [commentary, setCommentary] = React.useState<string | null>(null)
   const [commentaryLoading, setCommentaryLoading] = React.useState(false)
+  const [factionMatchup, setFactionMatchup] = React.useState<
+    FactionMatchupOption[] | null
+  >(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
+
+  // No map is known this far ahead of the draw - the endpoint defaults to an
+  // "unknown map" placeholder the model handles gracefully - so this is a
+  // draw-only signal, not a map-aware one.
+  React.useEffect(() => {
+    if (!playerA || !playerB) {
+      setFactionMatchup(null)
+      return
+    }
+    let cancelled = false
+    Client.predictFactionMatchupApiPredictFactionMatchupGet({
+      player1: playerA,
+      player2: playerB,
+    })
+      .then((res) => {
+        if (!cancelled) setFactionMatchup(res.options)
+      })
+      .catch(() => {
+        // Best-effort like the AI hype below: model unavailable (503) or any
+        // other failure just hides the section rather than erroring the popup.
+        if (!cancelled) setFactionMatchup(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [playerA, playerB])
+
+  const bestDraws = React.useMemo(
+    () => topDraws(factionMatchup ?? [], 2),
+    [factionMatchup],
+  )
 
   React.useEffect(() => {
     if (!playerA || !playerB) {
@@ -699,6 +807,22 @@ function MatchupPopup({
             </Button>
           )}
         </Stack>
+        {playerA && playerB && bestDraws.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
+            >
+              🎲 Best possible draws (model, vs. the field of all general
+              pairings)
+            </Typography>
+            <BestDrawsList
+              playerA={playerA}
+              playerB={playerB}
+              draws={bestDraws}
+            />
+          </Box>
+        )}
         {commentaryLoading && (
           <Typography
             variant="caption"

@@ -59,6 +59,8 @@ All URIs are relative to *http://localhost*
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
+| [**predictFactionMatchupApiPredictFactionMatchupGet**](DefaultApi.md#predictfactionmatchupapipredictfactionmatchupget) | **GET** /api/predict/faction_matchup | Predict Faction Matchup |
+| [**predictFactionMatrixApiPredictFactionMatrixGet**](DefaultApi.md#predictfactionmatrixapipredictfactionmatrixget) | **GET** /api/predict/faction_matrix | Predict Faction Matrix |
 | [**predictFromFeaturesApiPredictPost**](DefaultApi.md#predictfromfeaturesapipredictpost) | **POST** /api/predict | Predict From Features |
 | [**predictMatchApiPredictMatchMatchIdGet**](DefaultApi.md#predictmatchapipredictmatchmatchidget) | **GET** /api/predict/match/{match_id} | Predict Match |
 | [**predictOverTimeApiPredictOverTimeMatchIdGet**](DefaultApi.md#predictovertimeapipredictovertimematchidget) | **GET** /api/predict/over_time/{match_id} | Predict Over Time |
@@ -3903,6 +3905,147 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictFactionMatchupApiPredictFactionMatchupGet
+
+> FactionMatchupPrediction predictFactionMatchupApiPredictFactionMatchupGet(player1, player2, mapName)
+
+Predict Faction Matchup
+
+Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 &#x3D; 144 calls.  Experimental/exploratory: this exists to inspect output shape and timing, not (yet) to back a UI. No map is known before the draw; omit map_name to use a placeholder the model treats as \&quot;unknown\&quot; (see &#x60;&#x60;_UNKNOWN_MAP_PLACEHOLDER&#x60;&#x60;), or pass a real map name to fix it.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictFactionMatchupApiPredictFactionMatchupGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string
+    player1: player1_example,
+    // string
+    player2: player2_example,
+    // string (optional)
+    mapName: mapName_example,
+  } satisfies PredictFactionMatchupApiPredictFactionMatchupGetRequest;
+
+  try {
+    const data = await api.predictFactionMatchupApiPredictFactionMatchupGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **player1** | `string` |  | [Defaults to `undefined`] |
+| **player2** | `string` |  | [Defaults to `undefined`] |
+| **mapName** | `string` |  | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**FactionMatchupPrediction**](FactionMatchupPrediction.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## predictFactionMatrixApiPredictFactionMatrixGet
+
+> FactionMatrix predictFactionMatrixApiPredictFactionMatrixGet()
+
+Predict Faction Matrix
+
+The full 12x12 general-vs-general grid with both players and the map forced to the model\&#39;s UNK slot - a pure faction-vs-faction signal with no player identity or map mixed in. Same 144-call approach as faction_matchup, just with placeholder inputs instead of a real pair of players.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { PredictFactionMatrixApiPredictFactionMatrixGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.predictFactionMatrixApiPredictFactionMatrixGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**FactionMatrix**](FactionMatrix.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

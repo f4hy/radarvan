@@ -20,6 +20,8 @@ import type {
   DraftRequest,
   DraftResult,
   FFAStats,
+  FactionMatchupPrediction,
+  FactionMatrix,
   FetchMissingMapResult,
   FetchMissingMapsResponse,
   GameComposition,
@@ -74,6 +76,10 @@ import {
     DraftResultToJSON,
     FFAStatsFromJSON,
     FFAStatsToJSON,
+    FactionMatchupPredictionFromJSON,
+    FactionMatchupPredictionToJSON,
+    FactionMatrixFromJSON,
+    FactionMatrixToJSON,
     FetchMissingMapResultFromJSON,
     FetchMissingMapResultToJSON,
     FetchMissingMapsResponseFromJSON,
@@ -324,6 +330,12 @@ export interface ListReplaysApiReplaysGetRequest {
 export interface PartitionTeamsApiPartitionTeamsTeamSizeGetRequest {
     teamSize: number;
     players?: Array<PlayerEnum>;
+}
+
+export interface PredictFactionMatchupApiPredictFactionMatchupGetRequest {
+    player1: string;
+    player2: string;
+    mapName?: string | null;
 }
 
 export interface PredictFromFeaturesApiPredictPostRequest {
@@ -3101,6 +3113,118 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async partitionTeamsApiPartitionTeamsTeamSizeGet(requestParameters: PartitionTeamsApiPartitionTeamsTeamSizeGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Array<string | null>>> {
         const response = await this.partitionTeamsApiPartitionTeamsTeamSizeGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictFactionMatchupApiPredictFactionMatchupGet without sending the request
+     */
+    async predictFactionMatchupApiPredictFactionMatchupGetRequestOpts(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['player1'] == null) {
+            throw new runtime.RequiredError(
+                'player1',
+                'Required parameter "player1" was null or undefined when calling predictFactionMatchupApiPredictFactionMatchupGet().'
+            );
+        }
+
+        if (requestParameters['player2'] == null) {
+            throw new runtime.RequiredError(
+                'player2',
+                'Required parameter "player2" was null or undefined when calling predictFactionMatchupApiPredictFactionMatchupGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['player1'] != null) {
+            queryParameters['player1'] = requestParameters['player1'];
+        }
+
+        if (requestParameters['player2'] != null) {
+            queryParameters['player2'] = requestParameters['player2'];
+        }
+
+        if (requestParameters['mapName'] != null) {
+            queryParameters['map_name'] = requestParameters['mapName'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict/faction_matchup`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Experimental/exploratory: this exists to inspect output shape and timing, not (yet) to back a UI. No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+     * Predict Faction Matchup
+     */
+    async predictFactionMatchupApiPredictFactionMatchupGetRaw(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FactionMatchupPrediction>> {
+        const requestOptions = await this.predictFactionMatchupApiPredictFactionMatchupGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FactionMatchupPredictionFromJSON(jsonValue));
+    }
+
+    /**
+     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Experimental/exploratory: this exists to inspect output shape and timing, not (yet) to back a UI. No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+     * Predict Faction Matchup
+     */
+    async predictFactionMatchupApiPredictFactionMatchupGet(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FactionMatchupPrediction> {
+        const response = await this.predictFactionMatchupApiPredictFactionMatchupGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for predictFactionMatrixApiPredictFactionMatrixGet without sending the request
+     */
+    async predictFactionMatrixApiPredictFactionMatrixGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/predict/faction_matrix`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The full 12x12 general-vs-general grid with both players and the map forced to the model\'s UNK slot - a pure faction-vs-faction signal with no player identity or map mixed in. Same 144-call approach as faction_matchup, just with placeholder inputs instead of a real pair of players.
+     * Predict Faction Matrix
+     */
+    async predictFactionMatrixApiPredictFactionMatrixGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FactionMatrix>> {
+        const requestOptions = await this.predictFactionMatrixApiPredictFactionMatrixGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FactionMatrixFromJSON(jsonValue));
+    }
+
+    /**
+     * The full 12x12 general-vs-general grid with both players and the map forced to the model\'s UNK slot - a pure faction-vs-faction signal with no player identity or map mixed in. Same 144-call approach as faction_matchup, just with placeholder inputs instead of a real pair of players.
+     * Predict Faction Matrix
+     */
+    async predictFactionMatrixApiPredictFactionMatrixGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FactionMatrix> {
+        const response = await this.predictFactionMatrixApiPredictFactionMatrixGetRaw(initOverrides);
         return await response.value();
     }
 

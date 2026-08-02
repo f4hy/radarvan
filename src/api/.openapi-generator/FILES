@@ -36,6 +36,10 @@ docs/FFAPlayerStat.md
 docs/FFARecentMatch.md
 docs/FFAStats.md
 docs/Faction.md
+docs/FactionMatchupOption.md
+docs/FactionMatchupPrediction.md
+docs/FactionMatrix.md
+docs/FactionMatrixCell.md
 docs/FavoriteObject.md
 docs/FetchMissingMapResult.md
 docs/FetchMissingMapsResponse.md
@@ -179,6 +183,10 @@ models/FFAPlayerStat.ts
 models/FFARecentMatch.ts
 models/FFAStats.ts
 models/Faction.ts
+models/FactionMatchupOption.ts
+models/FactionMatchupPrediction.ts
+models/FactionMatrix.ts
+models/FactionMatrixCell.ts
 models/FavoriteObject.ts
 models/FetchMissingMapResult.ts
 models/FetchMissingMapsResponse.ts

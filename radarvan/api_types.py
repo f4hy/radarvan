@@ -1792,6 +1792,54 @@ class MatchPrediction(BaseModel):
     unknown_players: list[str] = Field(default_factory=list)
 
 
+class FactionMatchupOption(BaseModel):
+    """One (player1_general, player2_general) draw and its predicted outcome."""
+
+    model_config = _SLOTS
+
+    player1_general: General
+    player2_general: General
+    prob_player1_wins: float
+
+
+class FactionMatchupPrediction(BaseModel):
+    """Every general-vs-general draw for a hypothetical player1 vs player2
+    matchup, ranked by how favorable it is to player1 (best first)."""
+
+    model_config = _SLOTS
+
+    player1: str
+    player2: str
+    map_name: str
+    options: list[FactionMatchupOption]
+    compute_ms: float
+
+
+class FactionMatrixCell(BaseModel):
+    """One (general_a, general_b) cell of the player-agnostic faction matrix."""
+
+    model_config = _SLOTS
+
+    general_a: General
+    general_b: General
+    prob_a_wins: float
+
+
+class FactionMatrix(BaseModel):
+    """The full general-vs-general grid with both players and the map forced
+    to the model's UNK slot - i.e. a pure faction-vs-faction signal, not tied
+    to any specific players. ``median_prob_a_wins`` is the median across all
+    cells; callers derive "above/below median" from it rather than reading
+    ``prob_a_wins`` as an absolute probability."""
+
+    model_config = _SLOTS
+
+    map_name: str
+    median_prob_a_wins: float
+    cells: list[FactionMatrixCell]
+    compute_ms: float
+
+
 class WinProbPoint(BaseModel):
     model_config = _SLOTS
 

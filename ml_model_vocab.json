@@ -32,162 +32,6990 @@
     "maps/death valley": 4,
     "maps/defcon6": 5,
     "maps/destruction station": 6,
-    "maps/floodedplains": 7,
-    "maps/fortress avalanche": 8,
-    "maps/free fire zone": 9,
-    "maps/golden oasis": 10,
-    "maps/green pastures": 11,
-    "maps/hostile dawn": 12,
-    "maps/iron dragon": 13,
-    "maps/lights out": 14,
-    "maps/lone eagle": 15,
-    "maps/overland": 16,
-    "maps/red rock": 17,
-    "maps/team tropical warfare": 18,
-    "maps/tournament island": 19,
-    "maps/tournament lake": 20,
-    "maps/tournamenta": 21,
-    "maps/tournamentb": 22,
-    "maps/twilight flame": 23,
-    "maps/victory valley": 24,
-    "userdata/maps/2v2 tournament desert": 25,
-    "userdata/maps/8p_make make": 26,
-    "userdata/maps/8p_oil rampage": 27,
-    "userdata/maps/[mod] casino 2v2 - resurrection two v2": 28,
-    "userdata/maps/[mod] ctf - armored fury v2": 29,
-    "userdata/maps/[rank] [nmc 2x2] coastline wold": 30,
-    "userdata/maps/[rank] [nmc 2x2] ghostly rocks": 31,
-    "userdata/maps/[rank] [nmc 2x2] maguso": 32,
-    "userdata/maps/[rank] aeon of excalibur zh v1": 33,
-    "userdata/maps/[rank] archaic meltdown zh v1": 34,
-    "userdata/maps/[rank] aztec empire zh v1": 35,
-    "userdata/maps/[rank] battle for reach zh v1": 36,
-    "userdata/maps/[rank] burning deadline zh v1": 37,
-    "userdata/maps/[rank] combat encounter zh v1": 38,
-    "userdata/maps/[rank] conflict zone zh v2": 39,
-    "userdata/maps/[rank] defcon balanced zh v1": 40,
-    "userdata/maps/[rank] district 10 zh v1": 41,
-    "userdata/maps/[rank] dominion zh v1": 42,
-    "userdata/maps/[rank] drowning horses zh v1": 43,
-    "userdata/maps/[rank] dusty rampage zh v1": 44,
-    "userdata/maps/[rank] epsilon 6 zh v1": 45,
-    "userdata/maps/[rank] final departure zh v1": 46,
-    "userdata/maps/[rank] forgotten factory zh v1": 47,
-    "userdata/maps/[rank] freezing bursa zh v1": 48,
-    "userdata/maps/[rank] frontier rails zh v1": 49,
-    "userdata/maps/[rank] garden of terror zh v1": 50,
-    "userdata/maps/[rank] hell on rails zh v1": 51,
-    "userdata/maps/[rank] icy frontier zh v1": 52,
-    "userdata/maps/[rank] lion heart zh v1": 53,
-    "userdata/maps/[rank] maguso zh v3": 54,
-    "userdata/maps/[rank] make make 4 zh v2": 55,
-    "userdata/maps/[rank] medieval era zh v1": 56,
-    "userdata/maps/[rank] mojave desert zh v1": 57,
-    "userdata/maps/[rank] morning dew zh v1": 58,
-    "userdata/maps/[rank] mountain path zh v4": 59,
-    "userdata/maps/[rank] naval port reyes zh v1": 60,
-    "userdata/maps/[rank] nocky mountains zh v1": 61,
-    "userdata/maps/[rank] oil carnage zh v1": 62,
-    "userdata/maps/[rank] philippine highlands zh v1": 63,
-    "userdata/maps/[rank] rubies and pearls zh v1": 64,
-    "userdata/maps/[rank] spiders island zh v1": 65,
-    "userdata/maps/[rank] subjugation zh v1": 66,
-    "userdata/maps/[rank] temperate woods zh v1": 67,
-    "userdata/maps/[rank] territorial dispute zh v1": 68,
-    "userdata/maps/[rank] tournament a zh v1": 69,
-    "userdata/maps/[rank] tournament c zh v1": 70,
-    "userdata/maps/[rank] tournament d zh v1": 71,
-    "userdata/maps/[rank] twisted treeline zh v1": 72,
-    "userdata/maps/[rank] unity a zh v2": 73,
-    "userdata/maps/[rank] volcanoe zh v1": 74,
-    "userdata/maps/[rank] whispering woods zh v1": 75,
-    "userdata/maps/[wbc winner] subjugation mk 14": 76,
-    "userdata/maps/[wbc2020] subjugation": 77,
-    "userdata/maps/beijing uprise v4": 78,
-    "userdata/maps/castle wolfenstein": 79,
-    "userdata/maps/clutha river": 80,
-    "userdata/maps/conflict zone zh v2": 81,
-    "userdata/maps/coral islands [wbc2020]": 82,
-    "userdata/maps/cp 4v4 ob32 paranoid": 83,
-    "userdata/maps/death con homefront 2": 84,
-    "userdata/maps/defcon the last storm": 85,
-    "userdata/maps/desert trap": 86,
-    "userdata/maps/district 10 v5": 87,
-    "userdata/maps/dry plague": 88,
-    "userdata/maps/exkalibur_zh": 89,
-    "userdata/maps/fata morgana": 90,
-    "userdata/maps/fertile lowlands v2": 91,
-    "userdata/maps/frozen vanguard v2": 92,
-    "userdata/maps/glacial breeze v2": 93,
-    "userdata/maps/icy frontier zh v1": 94,
-    "userdata/maps/lagoon zh ffa": 95,
-    "userdata/maps/malibu cliffs": 96,
-    "userdata/maps/massive attack": 97,
-    "userdata/maps/military encounter": 98,
-    "userdata/maps/morning dew": 99,
-    "userdata/maps/mountain aggression": 100,
-    "userdata/maps/mountain path zh v3": 101,
-    "userdata/maps/mountolympus": 102,
-    "userdata/maps/naval port reyes v2 [wbc2020]": 103,
-    "userdata/maps/no man's land v3": 104,
-    "userdata/maps/obsolete overgrown v1": 105,
-    "userdata/maps/philippine highlands zh": 106,
-    "userdata/maps/preemptive strike (zh)": 107,
-    "userdata/maps/qayyarah airport": 108,
-    "userdata/maps/raiders of the lost acropolis": 109,
-    "userdata/maps/rail replacement transport v2": 110,
-    "userdata/maps/sandy punishment": 111,
-    "userdata/maps/schneegestoeber": 112,
-    "userdata/maps/shallow grave": 113,
-    "userdata/maps/siberia": 114,
-    "userdata/maps/sin city": 115,
-    "userdata/maps/snow bound (4)": 116,
-    "userdata/maps/snow wars": 117,
-    "userdata/maps/snowy island (te)": 118,
-    "userdata/maps/snowy sea": 119,
-    "userdata/maps/spearhead": 120,
-    "userdata/maps/strongholds (4)": 121,
-    "userdata/maps/team plateaus": 122,
-    "userdata/maps/team tropical warfare": 123,
-    "userdata/maps/terra fantastica": 124,
-    "userdata/maps/the blue death war": 125,
-    "userdata/maps/the morning freeway frack": 126,
-    "userdata/maps/thedeltabridge": 127,
-    "userdata/maps/thelongestyard10k": 128,
-    "userdata/maps/thru the town": 129,
-    "userdata/maps/timberwolf": 130,
-    "userdata/maps/tournament archipelago": 131,
-    "userdata/maps/tournament c v1": 132,
-    "userdata/maps/tournament mountain": 133,
-    "userdata/maps/tournament snowy railroad": 134,
-    "userdata/maps/tournament valley 2": 135,
-    "userdata/maps/tournament wilderness": 136,
-    "userdata/maps/toxic assault": 137,
-    "userdata/maps/track race": 138,
-    "userdata/maps/transition zh v2": 139,
-    "userdata/maps/treasure island": 140,
-    "userdata/maps/tropical fortress": 141,
-    "userdata/maps/tropical thunder storm": 142,
-    "userdata/maps/tropical trance": 143,
-    "userdata/maps/tropicaldesert": 144,
-    "userdata/maps/tropico2": 145,
-    "userdata/maps/tropsko voce": 146,
-    "userdata/maps/tumbleweed tactics v1": 147,
-    "userdata/maps/twilight fire 2": 148,
-    "userdata/maps/twilight flame 2 zh": 149,
-    "userdata/maps/twilight flame half": 150,
-    "userdata/maps/twilight flame half v2": 151,
-    "userdata/maps/twilight flame revised": 152,
-    "userdata/maps/unity a": 153,
-    "userdata/maps/unity b zh v2": 154,
-    "userdata/maps/valley of war": 155,
-    "userdata/maps/vietnamese fields v4": 156,
-    "userdata/maps/village desolation": 157,
-    "userdata/maps/volcano": 158,
-    "userdata/maps/wall_of_china": 159,
-    "userdata/maps/winter assault v3": 160,
-    "userdata/maps/winter defcon  for 3vs2 by philip morris": 161
+    "maps/dogsofwar": 7,
+    "maps/floodedplains": 8,
+    "maps/fortress avalanche": 9,
+    "maps/free fire zone": 10,
+    "maps/golden oasis": 11,
+    "maps/green pastures": 12,
+    "maps/hostile dawn": 13,
+    "maps/iron dragon": 14,
+    "maps/lights out": 15,
+    "maps/lone eagle": 16,
+    "maps/overland": 17,
+    "maps/red rock": 18,
+    "maps/team tropical warfare": 19,
+    "maps/tournament island": 20,
+    "maps/tournament lake": 21,
+    "maps/tournamenta": 22,
+    "maps/tournamentb": 23,
+    "maps/twilight flame": 24,
+    "maps/victory valley": 25,
+    "userdata/maps/2v2 tournament desert": 26,
+    "userdata/maps/8p_make make": 27,
+    "userdata/maps/8p_oil rampage": 28,
+    "userdata/maps/[mod] casino 2v2 - resurrection two v2": 29,
+    "userdata/maps/[mod] ctf - armored fury v2": 30,
+    "userdata/maps/[rank] [nmc 2x2] coastline wold": 31,
+    "userdata/maps/[rank] [nmc 2x2] ghostly rocks": 32,
+    "userdata/maps/[rank] [nmc 2x2] maguso": 33,
+    "userdata/maps/[rank] aeon of excalibur zh v1": 34,
+    "userdata/maps/[rank] alterac pass zh v1": 35,
+    "userdata/maps/[rank] archaic meltdown zh v1": 36,
+    "userdata/maps/[rank] aztec empire zh v1": 37,
+    "userdata/maps/[rank] battle for reach zh v1": 38,
+    "userdata/maps/[rank] burning deadline zh v1": 39,
+    "userdata/maps/[rank] combat encounter zh v1": 40,
+    "userdata/maps/[rank] conflict zone zh v2": 41,
+    "userdata/maps/[rank] cursed hollows zh v1": 42,
+    "userdata/maps/[rank] defcon balanced zh v1": 43,
+    "userdata/maps/[rank] district 10 zh v1": 44,
+    "userdata/maps/[rank] dominion zh v1": 45,
+    "userdata/maps/[rank] drowning horses zh v1": 46,
+    "userdata/maps/[rank] dusty rampage zh v1": 47,
+    "userdata/maps/[rank] epsilon 6 zh v1": 48,
+    "userdata/maps/[rank] final departure zh v1": 49,
+    "userdata/maps/[rank] forgotten factory zh v1": 50,
+    "userdata/maps/[rank] freezing bursa zh v1": 51,
+    "userdata/maps/[rank] frontier rails zh v1": 52,
+    "userdata/maps/[rank] garden of terror zh v1": 53,
+    "userdata/maps/[rank] hell on rails zh v1": 54,
+    "userdata/maps/[rank] icy frontier zh v1": 55,
+    "userdata/maps/[rank] lion heart zh v1": 56,
+    "userdata/maps/[rank] maguso zh v3": 57,
+    "userdata/maps/[rank] make make 4 zh v2": 58,
+    "userdata/maps/[rank] medieval era zh v1": 59,
+    "userdata/maps/[rank] mojave desert zh v1": 60,
+    "userdata/maps/[rank] morning dew zh v1": 61,
+    "userdata/maps/[rank] mountain path zh v4": 62,
+    "userdata/maps/[rank] naval port reyes zh v1": 63,
+    "userdata/maps/[rank] nocky mountains zh v1": 64,
+    "userdata/maps/[rank] oil carnage zh v1": 65,
+    "userdata/maps/[rank] pagasa fortress zh v1": 66,
+    "userdata/maps/[rank] philippine highlands zh v1": 67,
+    "userdata/maps/[rank] rubies and pearls zh v1": 68,
+    "userdata/maps/[rank] spiders island zh v1": 69,
+    "userdata/maps/[rank] subjugation zh v1": 70,
+    "userdata/maps/[rank] temperate woods zh v1": 71,
+    "userdata/maps/[rank] territorial dispute zh v1": 72,
+    "userdata/maps/[rank] tournament a zh v1": 73,
+    "userdata/maps/[rank] tournament c zh v1": 74,
+    "userdata/maps/[rank] tournament d zh v1": 75,
+    "userdata/maps/[rank] twisted treeline zh v1": 76,
+    "userdata/maps/[rank] unity a zh v2": 77,
+    "userdata/maps/[rank] volcanoe zh v1": 78,
+    "userdata/maps/[rank] whispering woods zh v1": 79,
+    "userdata/maps/[wbc winner] subjugation mk 14": 80,
+    "userdata/maps/[wbc2020] subjugation": 81,
+    "userdata/maps/beijing uprise v4": 82,
+    "userdata/maps/castle wolfenstein": 83,
+    "userdata/maps/clutha river": 84,
+    "userdata/maps/conflict zone zh v2": 85,
+    "userdata/maps/coral islands [wbc2020]": 86,
+    "userdata/maps/cp 4v4 ob32 paranoid": 87,
+    "userdata/maps/death con homefront 2": 88,
+    "userdata/maps/defcon the last storm": 89,
+    "userdata/maps/desert trap": 90,
+    "userdata/maps/district 10 v5": 91,
+    "userdata/maps/dry plague": 92,
+    "userdata/maps/exkalibur_zh": 93,
+    "userdata/maps/fata morgana": 94,
+    "userdata/maps/fertile lowlands v2": 95,
+    "userdata/maps/frozen vanguard v2": 96,
+    "userdata/maps/glacial breeze v2": 97,
+    "userdata/maps/icy frontier zh v1": 98,
+    "userdata/maps/lagoon zh ffa": 99,
+    "userdata/maps/malibu cliffs": 100,
+    "userdata/maps/massive attack": 101,
+    "userdata/maps/military encounter": 102,
+    "userdata/maps/morning dew": 103,
+    "userdata/maps/mountain aggression": 104,
+    "userdata/maps/mountain path zh v3": 105,
+    "userdata/maps/mountolympus": 106,
+    "userdata/maps/mt pinatubo [wbc2022]": 107,
+    "userdata/maps/naval port reyes v2 [wbc2020]": 108,
+    "userdata/maps/no man's land v3": 109,
+    "userdata/maps/obsolete overgrown v1": 110,
+    "userdata/maps/philippine highlands zh": 111,
+    "userdata/maps/preemptive strike (zh)": 112,
+    "userdata/maps/qayyarah airport": 113,
+    "userdata/maps/raiders of the lost acropolis": 114,
+    "userdata/maps/rail replacement transport v2": 115,
+    "userdata/maps/sandy punishment": 116,
+    "userdata/maps/schneegestoeber": 117,
+    "userdata/maps/shallow grave": 118,
+    "userdata/maps/siberia": 119,
+    "userdata/maps/sin city": 120,
+    "userdata/maps/snow bound (4)": 121,
+    "userdata/maps/snow wars": 122,
+    "userdata/maps/snowy island (te)": 123,
+    "userdata/maps/snowy sea": 124,
+    "userdata/maps/spearhead": 125,
+    "userdata/maps/strongholds (4)": 126,
+    "userdata/maps/swamp matrix": 127,
+    "userdata/maps/team plateaus": 128,
+    "userdata/maps/team tropical warfare": 129,
+    "userdata/maps/terra fantastica": 130,
+    "userdata/maps/the blue death war": 131,
+    "userdata/maps/the morning freeway frack": 132,
+    "userdata/maps/thedeltabridge": 133,
+    "userdata/maps/thelongestyard10k": 134,
+    "userdata/maps/thru the town": 135,
+    "userdata/maps/timberwolf": 136,
+    "userdata/maps/tournament archipelago": 137,
+    "userdata/maps/tournament c v1": 138,
+    "userdata/maps/tournament mountain": 139,
+    "userdata/maps/tournament snowy railroad": 140,
+    "userdata/maps/tournament valley 2": 141,
+    "userdata/maps/tournament wilderness": 142,
+    "userdata/maps/toxic assault": 143,
+    "userdata/maps/track race": 144,
+    "userdata/maps/transition zh v2": 145,
+    "userdata/maps/treasure island": 146,
+    "userdata/maps/tropical fortress": 147,
+    "userdata/maps/tropical thunder storm": 148,
+    "userdata/maps/tropical trance": 149,
+    "userdata/maps/tropicaldesert": 150,
+    "userdata/maps/tropico2": 151,
+    "userdata/maps/tropsko voce": 152,
+    "userdata/maps/tumbleweed tactics v1": 153,
+    "userdata/maps/twilight fire 2": 154,
+    "userdata/maps/twilight flame 2 zh": 155,
+    "userdata/maps/twilight flame half": 156,
+    "userdata/maps/twilight flame half v2": 157,
+    "userdata/maps/twilight flame revised": 158,
+    "userdata/maps/unity a": 159,
+    "userdata/maps/unity b zh v2": 160,
+    "userdata/maps/valley of war": 161,
+    "userdata/maps/vietnamese fields v4": 162,
+    "userdata/maps/village desolation": 163,
+    "userdata/maps/volcano": 164,
+    "userdata/maps/wall_of_china": 165,
+    "userdata/maps/winter assault v3": 166,
+    "userdata/maps/winter defcon  for 3vs2 by philip morris": 167
   },
+  "map_feat_mean": [
+    16.240053335780427,
+    1.840367063426547,
+    1.1827501734961432
+  ],
+  "map_feat_raw": {
+    "(zh) da usa stronghold": [
+      15.201804919084164,
+      2.1972245773362196,
+      2.0794415416798357
+    ],
+    "00-w_thunderland-00": [
+      16.012735135300492,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "17 island battletropical": [
+      16.141812177575638,
+      1.2878542883066382,
+      0.4054651081081644
+    ],
+    "1v1 tournament paradise": [
+      15.137266397946593,
+      1.791759469228055,
+      0.9162907318741551
+    ],
+    "1v1v1v1v1 small v2": [
+      14.845129975145433,
+      0.6931471805599453,
+      0.7884573603642702
+    ],
+    "24me zh vtest2": [
+      15.720598712499333,
+      2.4849066497880004,
+      1.252762968495368
+    ],
+    "2v2 chokepoint": [
+      16.300417207752275,
+      1.6582280766035324,
+      1.3862943611198906
+    ],
+    "2v2 tournament desert": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "2v6 abadoned hope": [
+      16.588099280204055,
+      0.8109302162163288,
+      1.0560526742493137
+    ],
+    "2vs2 tournament desert": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "4vs4_cdcx": [
+      16.32103649495501,
+      0.9162907318741551,
+      1.3862943611198906
+    ],
+    "62go": [
+      16.572350923235916,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "6pl ukraine2": [
+      16.203355494909143,
+      0.7731898882334818,
+      1.8971199848858813
+    ],
+    "7 pointed star": [
+      16.68567960854292,
+      2.5649493574615367,
+      1.4213856809311607
+    ],
+    "7p_unity a": [
+      15.720598712499333,
+      1.2729656758128876,
+      0.8266785731844679
+    ],
+    "7thsonofa7thson": [
+      16.773021618698067,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "8 paths 16 islands v0,9": [
+      16.9106355753963,
+      0.6931471805599453,
+      1.4759065198095778
+    ],
+    "8 player map": [
+      16.537463664235474,
+      1.4469189829363254,
+      1.2878542883066382
+    ],
+    "8p_drallim desert": [
+      15.464169183551656,
+      2.1102132003465894,
+      0.6931471805599453
+    ],
+    "8p_maguso": [
+      15.648092021712584,
+      2.463853240590168,
+      0.3184537311185346
+    ],
+    "8p_make make": [
+      15.984564258333798,
+      2.2512917986064953,
+      1.2163953243244932
+    ],
+    "8p_oil rampage": [
+      15.319587954740548,
+      0.6931471805599453,
+      1.6582280766035324
+    ],
+    "8p_snowy drought": [
+      15.486983861317826,
+      2.3513752571634776,
+      0.6931471805599453
+    ],
+    "8p_tournament desert": [
+      15.501909511534503,
+      2.3513752571634776,
+      0.6931471805599453
+    ],
+    "8p_vendetta": [
+      15.64167145390966,
+      2.1400661634962708,
+      0.11778303565638346
+    ],
+    "8p_volcanoe": [
+      16.012735135300492,
+      2.0794415416798357,
+      0.6931471805599453
+    ],
+    "8paths16islands": [
+      16.9106355753963,
+      0.6931471805599453,
+      1.4759065198095778
+    ],
+    "8star": [
+      16.588099280204055,
+      0.9162907318741551,
+      1.4170660197866443
+    ],
+    "8star (by madtaz90)": [
+      16.588099280204055,
+      0.9162907318741551,
+      1.4170660197866443
+    ],
+    "8startpositions(skirmishonly)": [
+      16.300417207752275,
+      1.0986122886681096,
+      1.0116009116784799
+    ],
+    "9 dash line v27": [
+      16.32103649495501,
+      2.2512917986064953,
+      1.1526795099383853
+    ],
+    "[aod] air wave 2013 (china ai) (pro players) [pashacnc com]": [
+      16.08969617643662,
+      1.6094379124341003,
+      1.8870696490323797
+    ],
+    "[aod] circle 4p by vocux": [
+      15.566448032672074,
+      0.7884573603642702,
+      1.2237754316221157
+    ],
+    "[aod] city 4p (china ai) by vocux [pashacnc com]": [
+      15.856730886823913,
+      0.7884573603642702,
+      0.9555114450274365
+    ],
+    "[aod] crossfire (usa ai) v2": [
+      16.911088166487982,
+      0.9555114450274365,
+      0.9555114450274365
+    ],
+    "[aod] cute v9 by i^love^mixery": [
+      15.89495209964411,
+      0.5877866649021191,
+      0.9555114450274365
+    ],
+    "[aod] defend till the end remastered": [
+      15.648092021712584,
+      0.9555114450274365,
+      1.2237754316221157
+    ],
+    "[aod] demilitarized zone (china ai) by twinsen [pashacnc com]": [
+      15.555976732804778,
+      3.4339872044851463,
+      1.5040773967762742
+    ],
+    "[aod] extreme circle by twinsen [pashacnc com]": [
+      16.454567887579532,
+      1.2237754316221157,
+      2.0014800002101243
+    ],
+    "[aod] extreme spiral by twinsen [pashacnc com]": [
+      17.034386382832476,
+      3.1179499062782403,
+      0.8754687373538999
+    ],
+    "[aod] fifa world cup terrorist takedown v5": [
+      16.811242831518264,
+      1.1786549963416462,
+      1.7047480922384253
+    ],
+    "[aod] fort blood by rdb v2 [pashacnc com]": [
+      16.012735135300492,
+      1.2237754316221157,
+      1.33500106673234
+    ],
+    "[aod] green lands by one [pashacnc com]": [
+      16.588099280204055,
+      0.6190392084062234,
+      0.6190392084062234
+    ],
+    "[aod] hardest aod": [
+      16.611571636389197,
+      1.4350845252893227,
+      1.7578579175523736
+    ],
+    "[aod] mission black fork - gla out of control v2": [
+      16.74510302901372,
+      0.6061358035703156,
+      1.6422277352570913
+    ],
+    "[aod] no name for this map by one": [
+      15.60727002719233,
+      0.6190392084062234,
+      1.2321436812926323
+    ],
+    "[aod] pasha challenges you (4p) v2 [pashacnc com]": [
+      16.141812177575638,
+      0.9555114450274365,
+      1.2237754316221157
+    ],
+    "[aod] super v by rdb v2 [pashacnc com]": [
+      16.012735135300492,
+      0.9808292530117262,
+      1.5040773967762742
+    ],
+    "[aod] swarm by www [pashacnc com]": [
+      15.87474939232659,
+      0.4054651081081644,
+      0.4054651081081644
+    ],
+    "[aod] the moment of truth by kingnino": [
+      16.012735135300492,
+      0.5877866649021191,
+      0.5877866649021191
+    ],
+    "[aod] the persian gulf by rebel [pashacnc com]": [
+      17.39206082710429,
+      1.4350845252893227,
+      2.1041341542702074
+    ],
+    "[aod] time or die (ai gla slot 8)": [
+      16.1573163641116,
+      2.094945728215801,
+      0.7537718023763802
+    ],
+    "[aod] triangle base v2 [pashacnc com]": [
+      16.588099280204055,
+      0.9555114450274365,
+      2.0014800002101243
+    ],
+    "[aod] trinity by evanz1987 fixed by pasha v2 [pashacnc com]": [
+      15.89495209964411,
+      2.7245795030534206,
+      1.7047480922384253
+    ],
+    "[aod] u turn [pashacnc com]": [
+      16.588099280204055,
+      0.9555114450274365,
+      1.6094379124341003
+    ],
+    "[aod] ultimate overlord by twinsen v3 [pashacnc com]": [
+      16.364955728889846,
+      1.6094379124341003,
+      1.9459101490553132
+    ],
+    "[compstomp] 4vs4 massacre zh": [
+      16.11809565095832,
+      1.4759065198095778,
+      1.0986122886681096
+    ],
+    "[coop] gla vs china - call of dragon zh v0-2": [
+      16.300417207752275,
+      2.614959778036198,
+      2.120263536200091
+    ],
+    "[coop] iranian counterstrike zh": [
+      15.884901763790609,
+      2.6855773452501515,
+      1.3862943611198906
+    ],
+    "[coop] north-korea conflict": [
+      15.89495209964411,
+      2.538973871058276,
+      1.0986122886681096
+    ],
+    "[go][rank] snowy drought zh v5": [
+      15.486983861317826,
+      2.302585092994046,
+      1.7047480922384253
+    ],
+    "[mod] ctf - coral islands v2": [
+      16.823665351516823,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "[mod] ctf - defcon 51 v7": [
+      16.778719639812707,
+      1.9459101490553132,
+      1.0986122886681096
+    ],
+    "[mod] ctf - imperial palace v8": [
+      16.3773782488884,
+      2.302585092994046,
+      1.0986122886681096
+    ],
+    "[mod] ctf - tournament a v2": [
+      16.320015565820903,
+      2.3513752571634776,
+      1.252762968495368
+    ],
+    "[mod] ctf ffa - conflict in the mediterranean v5": [
+      16.20243679939207,
+      1.791759469228055,
+      1.3862943611198906
+    ],
+    "[mod] ctf ffa - coral islands v2": [
+      16.823665351516823,
+      1.8458266904983307,
+      1.0986122886681096
+    ],
+    "[mod] ctf ffa - mortal temptation v2": [
+      16.75467248002987,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "[mod] ctf ffa - purple hearts v4": [
+      16.68567960854292,
+      1.6916760106710726,
+      0.6931471805599453
+    ],
+    "[mod] ctf ffa - trinity island v2": [
+      16.14083513792781,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "[mod] dual-army - tournament a": [
+      16.320015565820903,
+      2.3513752571634776,
+      0.8109302162163288
+    ],
+    "[mod] dual-army - tournament island": [
+      16.32103649495501,
+      1.6094379124341003,
+      1.1786549963416462
+    ],
+    "[mod] mayhem - defcon 51": [
+      16.778719639812707,
+      1.9636097261547143,
+      1.0986122886681096
+    ],
+    "[mod] mayhem - defcon 6 v6": [
+      16.284668850784136,
+      2.0583881324820035,
+      1.1526795099383853
+    ],
+    "[mod] p-u-b-g v2": [
+      17.619725610758113,
+      2.1972245773362196,
+      1.6094379124341003
+    ],
+    "[nmc] snowy drought": [
+      15.486983861317826,
+      2.3978952727983707,
+      1.5040773967762742
+    ],
+    "[nomoney] blue fox + jono remix zh": [
+      16.077273656438063,
+      1.0986122886681096,
+      0.1541506798272583
+    ],
+    "[nomoney] volcano": [
+      16.10099018305538,
+      0.6931471805599453,
+      1.1786549963416462
+    ],
+    "[rank] [nmc 2x2] maguso": [
+      15.648092021712584,
+      2.0149030205422647,
+      0.5596157879354227
+    ],
+    "[rank] a new tragedy zh v1": [
+      16.286994187420134,
+      2.833213344056216,
+      1.7047480922384253
+    ],
+    "[rank] a new tragedy zh v2": [
+      16.286994187420134,
+      2.833213344056216,
+      1.6094379124341003
+    ],
+    "[rank] abandoned desert zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "[rank] abandoned farms zh v1": [
+      15.550699675703935,
+      2.5649493574615367,
+      1.3862943611198906
+    ],
+    "[rank] aeon of excalibur zh v1": [
+      16.391171571020738,
+      2.5902671654458267,
+      1.4271163556401456
+    ],
+    "[rank] akas magic zh v1": [
+      15.726533448019147,
+      2.8903717578961645,
+      1.791759469228055
+    ],
+    "[rank] alfies haven zh v1": [
+      15.761420707019587,
+      2.0149030205422647,
+      1.791759469228055
+    ],
+    "[rank] alterac pass zh v1": [
+      15.789591583986283,
+      2.803360380906535,
+      1.791759469228055
+    ],
+    "[rank] ammars sandcastles v3": [
+      15.811570490705058,
+      2.0149030205422647,
+      1.6094379124341003
+    ],
+    "[rank] animals of the generals zh v1": [
+      16.012735135300492,
+      2.8622008809294686,
+      1.3217558399823195
+    ],
+    "[rank] annihilation": [
+      15.538277155705378,
+      3.367295829986474,
+      1.8718021769015913
+    ],
+    "[rank] antarctic lagoon zh v3": [
+      15.464169183551656,
+      2.302585092994046,
+      0.9162907318741551
+    ],
+    "[rank] archaic meltdown zh v1": [
+      16.588099280204055,
+      2.1972245773362196,
+      1.1394342831883648
+    ],
+    "[rank] arctic arena zh v1": [
+      15.538277155705378,
+      2.5649493574615367,
+      2.2512917986064953
+    ],
+    "[rank] arctic lagoon zh v2": [
+      15.464169183551656,
+      2.302585092994046,
+      0.9162907318741551
+    ],
+    "[rank] area j1": [
+      15.574764052969401,
+      2.917770732084279,
+      1.8718021769015913
+    ],
+    "[rank] arizona airfield zh v1": [
+      15.501909511534503,
+      1.8718021769015913,
+      1.6094379124341003
+    ],
+    "[rank] artic lagoon": [
+      15.464169183551656,
+      2.302585092994046,
+      0.9162907318741551
+    ],
+    "[rank] aztec empire zh v1": [
+      15.761420707019587,
+      1.9095425048844383,
+      1.0986122886681096
+    ],
+    "[rank] barren badlands balanced zh v2": [
+      15.648092021712584,
+      1.3862943611198906,
+      0.6931471805599453
+    ],
+    "[rank] battle between them zh v1": [
+      16.3773782488884,
+      2.6026896854443837,
+      1.4170660197866443
+    ],
+    "[rank] battle for reach zh v1": [
+      16.588099280204055,
+      2.374905754573672,
+      1.2163953243244932
+    ],
+    "[rank] battle plan zh v1": [
+      15.512959347721088,
+      3.481240089335692,
+      1.6094379124341003
+    ],
+    "[rank] battleship bay zh v1": [
+      15.726533448019147,
+      2.5257286443082556,
+      1.252762968495368
+    ],
+    "[rank] black hell zh v1": [
+      15.566448032672074,
+      2.995732273553991,
+      1.3862943611198906
+    ],
+    "[rank] blizzard badlands reloaded": [
+      15.648092021712584,
+      1.6094379124341003,
+      0.9162907318741551
+    ],
+    "[rank] blizzard badlands zhv5": [
+      15.648092021712584,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "[rank] blossoming valley zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "[rank] blue hole zh v1": [
+      15.481328803834483,
+      3.0204248861443626,
+      2.3513752571634776
+    ],
+    "[rank] bounty v3": [
+      16.454567887579532,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "[rank] bozic destruction zh v3": [
+      15.573368475516649,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "[rank] bozic destruction zh v5": [
+      15.573368475516649,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "[rank] burning deadline zh v1": [
+      15.90242411448281,
+      2.0794415416798357,
+      0.8109302162163288
+    ],
+    "[rank] bursting asunder zh v1": [
+      16.326742632919824,
+      2.6026896854443837,
+      1.4469189829363254
+    ],
+    "[rank] canyon of the dead zh v2": [
+      15.648092021712584,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "[rank] christmas zh v3": [
+      16.588099280204055,
+      0.8109302162163288,
+      0.6931471805599453
+    ],
+    "[rank] coastal conflict zh v2": [
+      15.87474939232659,
+      2.4423470353692043,
+      1.252762968495368
+    ],
+    "[rank] cold territory zh v2": [
+      15.550699675703935,
+      2.2512917986064953,
+      0.6931471805599453
+    ],
+    "[rank] combat encounter zh v1": [
+      16.141812177575638,
+      1.6094379124341003,
+      0.8109302162163288
+    ],
+    "[rank] combat island zh v1": [
+      16.313662434502294,
+      2.2512917986064953,
+      1.0986122886681096
+    ],
+    "[rank] conflict zone zh v2": [
+      16.012735135300492,
+      1.5040773967762742,
+      0.6931471805599453
+    ],
+    "[rank] coral islands zh v1": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "[rank] coral islands zh v2": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "[rank] cursed hollows zh v1": [
+      16.485512691428955,
+      2.2335922215070942,
+      1.3862943611198906
+    ],
+    "[rank] dammed cottages zh v1": [
+      15.633587335509702,
+      2.1400661634962708,
+      1.252762968495368
+    ],
+    "[rank] dammed korhal zh v1": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "[rank] dammed scorpion zh v1": [
+      15.726533448019147,
+      3.0204248861443626,
+      1.252762968495368
+    ],
+    "[rank] danger close zh": [
+      16.078054601421137,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "[rank] defcon balanced zh v1": [
+      16.284668850784136,
+      2.120263536200091,
+      1.1526795099383853
+    ],
+    "[rank] desert combat zh v2": [
+      16.061525299469924,
+      2.0149030205422647,
+      0.6931471805599453
+    ],
+    "[rank] desert fury zh v1": [
+      15.648092021712584,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "[rank] desert quadrant zh v1": [
+      15.201804919084164,
+      0.6931471805599453,
+      1.252762968495368
+    ],
+    "[rank] desert vortex zh v1": [
+      16.537463664235474,
+      2.3513752571634776,
+      0.965080896043587
+    ],
+    "[rank] deserted village v3": [
+      15.64649074034561,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] devastated oasis zh v2": [
+      15.520258650202699,
+      2.9444389791664403,
+      1.252762968495368
+    ],
+    "[rank] diamonds edge zh v1": [
+      15.648092021712584,
+      2.639057329615259,
+      1.1786549963416462
+    ],
+    "[rank] district 10 zh v1": [
+      16.012735135300492,
+      2.70805020110221,
+      1.3862943611198906
+    ],
+    "[rank] dominion zh v1": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.252762968495368
+    ],
+    "[rank] double damination zh v1": [
+      15.633587335509702,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "[rank] down the road zh v1": [
+      15.761420707019587,
+      2.772588722239781,
+      1.252762968495368
+    ],
+    "[rank] drallim desert zh v2": [
+      15.464169183551656,
+      2.833213344056216,
+      1.0986122886681096
+    ],
+    "[rank] drowning horses zh v1": [
+      15.990262279448435,
+      2.70805020110221,
+      1.0116009116784799
+    ],
+    "[rank] dry river zh v1": [
+      15.648092021712584,
+      2.995732273553991,
+      2.302585092994046
+    ],
+    "[rank] dust devil zh v1": [
+      15.648092021712584,
+      2.0794415416798357,
+      1.3862943611198906
+    ],
+    "[rank] dusty rampage zh v1": [
+      16.641343794722868,
+      2.1102132003465894,
+      1.0560526742493137
+    ],
+    "[rank] eagle eye": [
+      15.633587335509702,
+      2.740840023925201,
+      1.6094379124341003
+    ],
+    "[rank] echo zh v1": [
+      15.501909511534503,
+      2.9444389791664403,
+      1.6094379124341003
+    ],
+    "[rank] egyptian oasis zh v1": [
+      15.550699675703935,
+      2.70805020110221,
+      1.252762968495368
+    ],
+    "[rank] embattled land v2": [
+      15.597219691338827,
+      2.302585092994046,
+      0.9162907318741551
+    ],
+    "[rank] embattled land zh v2": [
+      15.597219691338827,
+      2.302585092994046,
+      0.9162907318741551
+    ],
+    "[rank] endboss zh v1": [
+      15.747031969567487,
+      2.772588722239781,
+      1.9459101490553132
+    ],
+    "[rank] epsilon 6 zh v1": [
+      16.323889563937417,
+      2.456735772821304,
+      1.1526795099383853
+    ],
+    "[rank] evergreen lagoon": [
+      15.464169183551656,
+      2.4423470353692043,
+      0.9162907318741551
+    ],
+    "[rank] fall out zh v1": [
+      16.588099280204055,
+      2.5649493574615367,
+      0.6931471805599453
+    ],
+    "[rank] farmlands of the fallen zh v1": [
+      15.638041685859083,
+      3.044522437723423,
+      1.791759469228055
+    ],
+    "[rank] final crossroad zh v1": [
+      15.60727002719233,
+      1.9459101490553132,
+      1.252762968495368
+    ],
+    "[rank] final crusade balanced zh v1": [
+      15.424948470398375,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "[rank] final crusade fixedv2": [
+      15.424948470398375,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "[rank] final departure zh v1": [
+      15.91475472694029,
+      2.4849066497880004,
+      1.0986122886681096
+    ],
+    "[rank] flash fire balanced zh v1": [
+      15.838712381321233,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "[rank] flash fire balanced zh vb": [
+      15.838712381321233,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "[rank] forbidden takover zh v3": [
+      15.678039098080536,
+      2.4423470353692043,
+      0.9162907318741551
+    ],
+    "[rank] forest lagoon [leansifer edit]": [
+      15.464169183551656,
+      2.0794415416798357,
+      0.9162907318741551
+    ],
+    "[rank] forest of oblivion zh v1": [
+      16.263061421208505,
+      2.4423470353692043,
+      1.0986122886681096
+    ],
+    "[rank] forgotten air battle v4": [
+      15.638041685859083,
+      2.1972245773362196,
+      0.9162907318741551
+    ],
+    "[rank] forgotten air battle zh v5": [
+      15.638041685859083,
+      2.1972245773362196,
+      0.9162907318741551
+    ],
+    "[rank] forgotten factory zh v1": [
+      15.60727002719233,
+      2.463853240590168,
+      1.5040773967762742
+    ],
+    "[rank] forgotten ruins": [
+      15.58706731987481,
+      3.1780538303479458,
+      2.1972245773362196
+    ],
+    "[rank] fort payne zh v1": [
+      15.60727002719233,
+      2.1972245773362196,
+      1.6094379124341003
+    ],
+    "[rank] four victory zh v1": [
+      15.726533448019147,
+      2.4849066497880004,
+      0.8109302162163288
+    ],
+    "[rank] freezing bursa zh v1": [
+      15.786113319609958,
+      2.5649493574615367,
+      1.5040773967762742
+    ],
+    "[rank] freezing rain zh v2": [
+      15.633587335509702,
+      2.4849066497880004,
+      1.3862943611198906
+    ],
+    "[rank] frog prince zh v2": [
+      15.538277155705378,
+      2.1972245773362196,
+      1.5040773967762742
+    ],
+    "[rank] frontier rails zh v1": [
+      16.32103649495501,
+      2.639057329615259,
+      0.6931471805599453
+    ],
+    "[rank] frozen ruins": [
+      15.58706731987481,
+      3.1354942159291497,
+      2.0794415416798357
+    ],
+    "[rank] garden of terror zh v1": [
+      16.012735135300492,
+      2.662587827025453,
+      1.4663370687934272
+    ],
+    "[rank] glacial shores zh v2": [
+      15.64005985001532,
+      2.4423470353692043,
+      1.5040773967762742
+    ],
+    "[rank] glacier 6 zh v1": [
+      16.3773782488884,
+      2.3513752571634776,
+      1.1526795099383853
+    ],
+    "[rank] gold cobra": [
+      15.567853294828538,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "[rank] green goon zh v1": [
+      16.012735135300492,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "[rank] green silk zh v1": [
+      16.32103649495501,
+      2.4423470353692043,
+      1.252762968495368
+    ],
+    "[rank] hanamura temple zh v1": [
+      15.688850014184752,
+      2.772588722239781,
+      2.0149030205422647
+    ],
+    "[rank] hard winter zh v2": [
+      15.473738634567807,
+      1.791759469228055,
+      0.9162907318741551
+    ],
+    "[rank] hell on rails zh v1": [
+      16.32103649495501,
+      2.1400661634962708,
+      0.6931471805599453
+    ],
+    "[rank] hidden pearls zh v1": [
+      15.944932031949131,
+      1.9459101490553132,
+      1.5040773967762742
+    ],
+    "[rank] hidden treasures v2": [
+      15.553165768199129,
+      2.8903717578961645,
+      2.1400661634962708
+    ],
+    "[rank] highway 99 zh v2": [
+      15.747031969567487,
+      2.639057329615259,
+      1.6094379124341003
+    ],
+    "[rank] homeland rocks zh v4": [
+      15.781223334315767,
+      2.4849066497880004,
+      1.252762968495368
+    ],
+    "[rank] icy frontier zh v1": [
+      16.012735135300492,
+      1.992430164690206,
+      1.3437347467010947
+    ],
+    "[rank] imminent victory zh v2": [
+      15.501909511534503,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "[rank] irish front zh v1": [
+      15.648092021712584,
+      2.8903717578961645,
+      0.9162907318741551
+    ],
+    "[rank] jungle wolf zh v1": [
+      15.392425278692814,
+      1.3862943611198906,
+      1.791759469228055
+    ],
+    "[rank] jungle wolf zh v3": [
+      15.392425278692814,
+      1.3862943611198906,
+      1.791759469228055
+    ],
+    "[rank] lagoon zh v2": [
+      15.464169183551656,
+      2.0794415416798357,
+      0.9162907318741551
+    ],
+    "[rank] lagoon zh v5": [
+      15.464169183551656,
+      2.1400661634962708,
+      0.9162907318741551
+    ],
+    "[rank] lethal mill zh v1": [
+      16.485512691428955,
+      2.094945728215801,
+      1.0986122886681096
+    ],
+    "[rank] lion heart zh v1": [
+      16.32103649495501,
+      1.5040773967762742,
+      1.3217558399823195
+    ],
+    "[rank] lost cause zh v1": [
+      16.203355494909143,
+      1.5040773967762742,
+      1.4469189829363254
+    ],
+    "[rank] lost temple zh v1": [
+      16.141812177575638,
+      1.252762968495368,
+      1.1786549963416462
+    ],
+    "[rank] lost valley v2": [
+      15.507247093119492,
+      2.6741486494265287,
+      1.5040773967762742
+    ],
+    "[rank] maguso zh v3": [
+      15.648092021712584,
+      1.7047480922384253,
+      0.5596157879354227
+    ],
+    "[rank] make make 2 zh v4": [
+      15.984564258333798,
+      2.8903717578961645,
+      2.1400661634962708
+    ],
+    "[rank] make make 4 zh v2": [
+      15.984564258333798,
+      2.3513752571634776,
+      1.55814461804655
+    ],
+    "[rank] medieval era zh v1": [
+      16.32103649495501,
+      2.5257286443082556,
+      0.7731898882334818
+    ],
+    "[rank] melting snow zh v3": [
+      15.449641082988746,
+      2.0794415416798357,
+      0.6931471805599453
+    ],
+    "[rank] melting snow zh v4": [
+      15.449641082988746,
+      2.0794415416798357,
+      0.6931471805599453
+    ],
+    "[rank] mojave desert zh v1": [
+      16.263061421208505,
+      2.740840023925201,
+      1.4271163556401456
+    ],
+    "[rank] morning dew zh v1": [
+      15.424948470398375,
+      2.2512917986064953,
+      0.5596157879354227
+    ],
+    "[rank] mountain mayhem v2": [
+      15.394571733739658,
+      2.772588722239781,
+      1.6094379124341003
+    ],
+    "[rank] mountain oil zh v1": [
+      15.201804919084164,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "[rank] mountain path zh v4": [
+      15.648092021712584,
+      1.7047480922384253,
+      1.0116009116784799
+    ],
+    "[rank] mt pinatubo zh v1": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.1394342831883648
+    ],
+    "[rank] muddy madness zh v1": [
+      16.588099280204055,
+      2.1400661634962708,
+      0.7537718023763802
+    ],
+    "[rank] natural threats zh v3": [
+      15.501909511534503,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "[rank] natural threats zh v4": [
+      15.501909511534503,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "[rank] naval port reyes zh v1": [
+      16.562781472219765,
+      2.4849066497880004,
+      1.4271163556401456
+    ],
+    "[rank] nocky mountains zh v1": [
+      16.263061421208505,
+      2.5902671654458267,
+      0.9808292530117262
+    ],
+    "[rank] oil carnage zh v1": [
+      16.012735135300492,
+      1.791759469228055,
+      2.1972245773362196
+    ],
+    "[rank] oil oasis zh v1": [
+      15.720598712499333,
+      2.5649493574615367,
+      1.3862943611198906
+    ],
+    "[rank] oil rampage zh v1": [
+      15.319587954740548,
+      1.791759469228055,
+      2.1972245773362196
+    ],
+    "[rank] onza map v1": [
+      15.648092021712584,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "[rank] pagasa fortress zh v1": [
+      16.588099280204055,
+      2.302585092994046,
+      1.2992829841302609
+    ],
+    "[rank] persian gulf conflict zh v1": [
+      16.778719639812707,
+      2.4849066497880004,
+      1.7047480922384253
+    ],
+    "[rank] philippine highlands zh v1": [
+      16.141812177575638,
+      1.7346010553881064,
+      1.5040773967762742
+    ],
+    "[rank] planet coyon zh v1": [
+      15.501909511534503,
+      2.9444389791664403,
+      1.0986122886681096
+    ],
+    "[rank] proxy war zh v1": [
+      15.550699675703935,
+      2.772588722239781,
+      1.252762968495368
+    ],
+    "[rank] purification zh v1": [
+      15.80201410398484,
+      2.772588722239781,
+      1.1786549963416462
+    ],
+    "[rank] rainforest reservoir zh v1": [
+      15.566448032672074,
+      2.772588722239781,
+      1.0986122886681096
+    ],
+    "[rank] rubies and pearls zh v1": [
+      16.012735135300492,
+      1.9459101490553132,
+      1.0986122886681096
+    ],
+    "[rank] sacred land zh v1": [
+      15.512959347721088,
+      2.995732273553991,
+      2.0794415416798357
+    ],
+    "[rank] sakura forest ii zh v1": [
+      15.80201410398484,
+      2.995732273553991,
+      1.9459101490553132
+    ],
+    "[rank] sand scorpion": [
+      15.726533448019147,
+      2.1400661634962708,
+      1.3862943611198906
+    ],
+    "[rank] sand serpent balanced zh v1": [
+      15.726533448019147,
+      1.9459101490553132,
+      1.3862943611198906
+    ],
+    "[rank] sand serpent fixed": [
+      15.726533448019147,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "[rank] scorched earth zh v3": [
+      15.099218330309064,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "[rank] scorching heat zh v1": [
+      15.567853294828538,
+      2.0149030205422647,
+      1.6094379124341003
+    ],
+    "[rank] snow aggression v3": [
+      15.761420707019587,
+      1.8718021769015913,
+      1.3862943611198906
+    ],
+    "[rank] snow blind zh v1": [
+      15.648092021712584,
+      1.9459101490553132,
+      0.9162907318741551
+    ],
+    "[rank] snow blind zh v2": [
+      15.648092021712584,
+      1.9459101490553132,
+      0.9162907318741551
+    ],
+    "[rank] snowy drought v4": [
+      15.486983861317826,
+      2.302585092994046,
+      1.7047480922384253
+    ],
+    "[rank] snowy drought zh v5": [
+      15.486983861317826,
+      2.302585092994046,
+      1.7047480922384253
+    ],
+    "[rank] snowy roads zh v1": [
+      15.538277155705378,
+      2.3978952727983707,
+      1.5040773967762742
+    ],
+    "[rank] sovereignty zh v1": [
+      15.60727002719233,
+      2.5257286443082556,
+      2.1400661634962708
+    ],
+    "[rank] spiders island zh v1": [
+      16.141812177575638,
+      2.3978952727983707,
+      1.1786549963416462
+    ],
+    "[rank] stonehenge zh v1": [
+      15.512959347721088,
+      2.833213344056216,
+      1.5040773967762742
+    ],
+    "[rank] storm surge zh v1": [
+      15.726533448019147,
+      2.0794415416798357,
+      0.9162907318741551
+    ],
+    "[rank] storm valley": [
+      15.510593914926869,
+      1.791759469228055,
+      1.252762968495368
+    ],
+    "[rank] subjugation zh v1": [
+      16.166885815127753,
+      2.03688192726104,
+      1.1526795099383853
+    ],
+    "[rank] td classic nocars zh v1": [
+      15.424948470398375,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] td classic zh v1": [
+      15.424948470398375,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] td nobugs zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] td nobugscars zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] td openmiddle nocars zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] td openmiddle zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "[rank] td resurrection v2": [
+      15.501909511534503,
+      2.4849066497880004,
+      0.6931471805599453
+    ],
+    "[rank] td winter zh v1": [
+      15.501909511534503,
+      2.5649493574615367,
+      0.6931471805599453
+    ],
+    "[rank] td winter zh v2": [
+      15.501909511534503,
+      2.639057329615259,
+      0.6931471805599453
+    ],
+    "[rank] temperate woods zh v1": [
+      15.60727002719233,
+      2.4849066497880004,
+      0.6931471805599453
+    ],
+    "[rank] territorial dispute zh v1": [
+      16.32103649495501,
+      1.4663370687934272,
+      1.252762968495368
+    ],
+    "[rank] the first strike zh v2": [
+      15.424948470398375,
+      1.8718021769015913,
+      1.0986122886681096
+    ],
+    "[rank] the path zh v2": [
+      15.201804919084164,
+      1.7047480922384253,
+      1.0986122886681096
+    ],
+    "[rank] the survivors zh v1": [
+      15.789591583986283,
+      2.302585092994046,
+      1.7047480922384253
+    ],
+    "[rank] tiny tactics zh v1": [
+      15.767118728134225,
+      2.833213344056216,
+      1.6094379124341003
+    ],
+    "[rank] total domination no sdz zh v1": [
+      15.512959347721088,
+      3.044522437723423,
+      1.252762968495368
+    ],
+    "[rank] total domination sdz zh v1": [
+      15.512959347721088,
+      3.044522437723423,
+      1.0986122886681096
+    ],
+    "[rank] tournament a zh v1": [
+      16.320015565820903,
+      2.3513752571634776,
+      1.3217558399823195
+    ],
+    "[rank] tournament c zh v1": [
+      16.454567887579532,
+      2.538973871058276,
+      1.1526795099383853
+    ],
+    "[rank] tournament d zh v1": [
+      16.27403045257908,
+      2.740840023925201,
+      0.9162907318741551
+    ],
+    "[rank] tournament delta zh v2": [
+      15.559479363355981,
+      2.1972245773362196,
+      0.9162907318741551
+    ],
+    "[rank] tournament himalaya zh v1": [
+      15.87474939232659,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "[rank] tournament in the canyon b zh v2": [
+      15.501909511534503,
+      2.6741486494265287,
+      1.3862943611198906
+    ],
+    "[rank] tournament in the canyon va": [
+      15.501909511534503,
+      2.70805020110221,
+      1.0986122886681096
+    ],
+    "[rank] tournament in the canyon vb": [
+      15.501909511534503,
+      2.6741486494265287,
+      1.3862943611198906
+    ],
+    "[rank] toxic zh v3": [
+      16.32103649495501,
+      1.6094379124341003,
+      0.6931471805599453
+    ],
+    "[rank] twisted treeline zh v1": [
+      16.588099280204055,
+      2.665490586683414,
+      1.1786549963416462
+    ],
+    "[rank] twister land zh v1": [
+      16.485512691428955,
+      2.094945728215801,
+      1.0986122886681096
+    ],
+    "[rank] umbrella corps zh v1": [
+      16.588099280204055,
+      2.8903717578961645,
+      1.3862943611198906
+    ],
+    "[rank] uneven heights v2": [
+      15.373655176010823,
+      3.091042453358316,
+      1.8718021769015913
+    ],
+    "[rank] uneven heights v3": [
+      15.373655176010823,
+      2.995732273553991,
+      1.8718021769015913
+    ],
+    "[rank] unity a zh v2": [
+      15.720598712499333,
+      1.6094379124341003,
+      1.0116009116784799
+    ],
+    "[rank] urban downfall zh v1": [
+      16.588099280204055,
+      2.302585092994046,
+      1.2878542883066382
+    ],
+    "[rank] vendetta zh v1": [
+      15.64167145390966,
+      2.6741486494265287,
+      0.6931471805599453
+    ],
+    "[rank] volcanoe zh v1": [
+      16.012735135300492,
+      2.583997552432231,
+      1.5040773967762742
+    ],
+    "[rank] wasteland warlords balanced zh v1": [
+      15.424948470398375,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "[rank] wasteland warlords revised": [
+      15.424948470398375,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "[rank] wastelands dust zh v1": [
+      16.588099280204055,
+      1.791759469228055,
+      1.1394342831883648
+    ],
+    "[rank] whispering woods zh v1": [
+      15.990262279448435,
+      2.4423470353692043,
+      0.6931471805599453
+    ],
+    "[rank] white hell zh v1": [
+      15.559479363355981,
+      2.70805020110221,
+      1.252762968495368
+    ],
+    "[rank] white serpent": [
+      15.726533448019147,
+      1.791759469228055,
+      1.252762968495368
+    ],
+    "[rank] winding river revised zh v1": [
+      16.141812177575638,
+      2.803360380906535,
+      1.3862943611198906
+    ],
+    "[rank] winter arena": [
+      15.464169183551656,
+      2.70805020110221,
+      1.0986122886681096
+    ],
+    "[rank] winter crows zh v1": [
+      15.201804919084164,
+      2.4849066497880004,
+      1.3862943611198906
+    ],
+    "[rank] winter wolf balanced zh v1": [
+      15.392425278692814,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "[rank] yelling avalanche zh v1": [
+      15.450616217146953,
+      2.4849066497880004,
+      1.8718021769015913
+    ],
+    "[rank] zh carrier is over v2": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.9162907318741551
+    ],
+    "[wbc winner] naval port reyes": [
+      16.562781472219765,
+      2.4849066497880004,
+      1.4271163556401456
+    ],
+    "[wbc winner] subjugation mk 14": [
+      16.166885815127753,
+      2.03688192726104,
+      1.1526795099383853
+    ],
+    "[wbc-2021] ancient keep v4": [
+      16.823665351516823,
+      2.043073897508961,
+      0.9985288301111271
+    ],
+    "[wbc2020] arizona": [
+      16.3773782488884,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "[wbc2020] autumn sakura": [
+      16.588099280204055,
+      2.1041341542702074,
+      0.6931471805599453
+    ],
+    "[wbc2020] big-game hunting": [
+      16.823665351516823,
+      2.3978952727983707,
+      0.6931471805599453
+    ],
+    "[wbc2020] coral islands": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "[wbc2020] mortal temptation": [
+      16.75467248002987,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "[wbc2020] subjugation": [
+      16.166885815127753,
+      2.03688192726104,
+      1.1526795099383853
+    ],
+    "[wbc2020] volcano rush": [
+      16.32103649495501,
+      1.4816045409242156,
+      1.33500106673234
+    ],
+    "[wbc2021] conflict in the mediterranean": [
+      16.20243679939207,
+      1.791759469228055,
+      1.3862943611198906
+    ],
+    "[wbc2021] purple hearts": [
+      16.68567960854292,
+      1.6916760106710726,
+      0.7621400520468967
+    ],
+    "[wbc2021] radiation ultima": [
+      16.536805985816503,
+      1.0986122886681096,
+      1.4663370687934272
+    ],
+    "[wbc2021] storming harvest v2": [
+      16.43217619726463,
+      2.0794415416798357,
+      0.7621400520468967
+    ],
+    "[wbc2021] swamp assault": [
+      16.459022237928913,
+      1.9859154836690125,
+      0.7621400520468967
+    ],
+    "[wbc2021] twenty4seven": [
+      16.68567960854292,
+      1.0986122886681096,
+      1.4213856809311607
+    ],
+    "[wbc2022] aquatic_paradise_v4": [
+      16.588099280204055,
+      2.1400661634962708,
+      0.9162907318741551
+    ],
+    "[wbc2022] desert vortex v7": [
+      16.537463664235474,
+      2.3513752571634776,
+      0.965080896043587
+    ],
+    "[wbc2022] forgotten valley v5": [
+      16.801318750320572,
+      2.1102132003465894,
+      1.6341305250244718
+    ],
+    "[wbc2022] lost cause v4": [
+      16.203355494909143,
+      1.5040773967762742,
+      1.4469189829363254
+    ],
+    "[wbc2022] mt pinatubo philippines v4": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.1394342831883648
+    ],
+    "[wbc2022] persian gulf conflict v4": [
+      16.778719639812707,
+      2.4849066497880004,
+      1.7047480922384253
+    ],
+    "[wbc2022] poverty side v5": [
+      16.588099280204055,
+      2.302585092994046,
+      0.7537718023763802
+    ],
+    "[wbc2022] restruction station v6": [
+      16.459022237928913,
+      1.6094379124341003,
+      1.0116009116784799
+    ],
+    "[wbc2022] thy kingdom lagoon v3": [
+      16.68567960854292,
+      1.8718021769015913,
+      1.5314763709643886
+    ],
+    "[wbc2022] warcircletime": [
+      16.588099280204055,
+      2.6119063405493077,
+      1.252762968495368
+    ],
+    "[wbc2023] granitegrinder_v2": [
+      16.588099280204055,
+      2.4849066497880004,
+      1.4271163556401456
+    ],
+    "[wbc2023] unarmored calmness": [
+      16.3773782488884,
+      3.1780538303479458,
+      1.8191584434161694
+    ],
+    "[wbc2023] unarmored calmness v5": [
+      16.3773782488884,
+      2.995732273553991,
+      1.791759469228055
+    ],
+    "[wbc] at doom's gate v5": [
+      16.588099280204055,
+      2.4849066497880004,
+      1.3862943611198906
+    ],
+    "[zero hour] night shift": [
+      16.012735135300492,
+      1.6582280766035324,
+      1.6094379124341003
+    ],
+    "_vs5_fluch der karibik zh": [
+      16.079874438138123,
+      0.9162907318741551,
+      0.9162907318741551
+    ],
+    "a valley within": [
+      15.648092021712584,
+      0.6931471805599453,
+      1.9459101490553132
+    ],
+    "abandoned desert zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "abandoned territories": [
+      16.588099280204055,
+      1.041453874828161,
+      1.6422277352570913
+    ],
+    "aeon of excal v5": [
+      16.3773782488884,
+      2.908720896564361,
+      1.4271163556401456
+    ],
+    "ai island 2v5 compstomp": [
+      16.860032995687696,
+      1.2729656758128876,
+      2.4485390056171257
+    ],
+    "airfeild": [
+      17.399029496420383,
+      2.583997552432231,
+      2.409194828052304
+    ],
+    "airfield assault zh": [
+      16.012735135300492,
+      1.0986122886681096,
+      0.8109302162163288
+    ],
+    "ak fourty 7": [
+      16.3773782488884,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "al mahdi island 1v1v10": [
+      14.954944841152638,
+      2.5649493574615367,
+      1.3862943611198906
+    ],
+    "alfie's haven": [
+      15.761420707019587,
+      2.0149030205422647,
+      1.9459101490553132
+    ],
+    "alfie's haven v2": [
+      15.761420707019587,
+      2.0149030205422647,
+      1.9459101490553132
+    ],
+    "alfie's haven v3": [
+      15.761420707019587,
+      2.0149030205422647,
+      1.9459101490553132
+    ],
+    "all out aod": [
+      15.830413578506539,
+      0.5877866649021191,
+      1.6863989535702286
+    ],
+    "all out war! v1": [
+      16.823665351516823,
+      1.0986122886681096,
+      1.1786549963416462
+    ],
+    "allstars": [
+      16.32103649495501,
+      2.302585092994046,
+      0.6931471805599453
+    ],
+    "allstars v2": [
+      16.32103649495501,
+      2.302585092994046,
+      1.0986122886681096
+    ],
+    "allstars v3": [
+      16.32103649495501,
+      2.302585092994046,
+      1.0986122886681096
+    ],
+    "alpine assault": [
+      15.64649074034561,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "alpine assault v2": [
+      15.64649074034561,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "alpine delivery v1_2": [
+      16.823665351516823,
+      2.4423470353692043,
+      1.3862943611198906
+    ],
+    "alterac pass draft v5": [
+      15.789591583986283,
+      2.803360380906535,
+      1.791759469228055
+    ],
+    "amazonassault": [
+      16.929025867174648,
+      2.512305623976115,
+      1.6094379124341003
+    ],
+    "american threat": [
+      16.012735135300492,
+      1.5040773967762742,
+      1.0986122886681096
+    ],
+    "ammars sandcastles v2": [
+      16.11809565095832,
+      1.8718021769015913,
+      1.6094379124341003
+    ],
+    "ancient axon": [
+      16.32103649495501,
+      2.639057329615259,
+      1.8718021769015913
+    ],
+    "ancient keep [wbc2021]": [
+      16.823665351516823,
+      2.043073897508961,
+      0.9985288301111271
+    ],
+    "ancient keep bal [wbc2021]": [
+      16.588099280204055,
+      2.114532861491106,
+      1.0498221244986778
+    ],
+    "ancient keep v5": [
+      16.588099280204055,
+      2.114532861491106,
+      1.0498221244986778
+    ],
+    "annihilation": [
+      15.538277155705378,
+      3.367295829986474,
+      1.8718021769015913
+    ],
+    "annihilation survival (2)": [
+      15.201804919084164,
+      0.6931471805599453,
+      1.5040773967762742
+    ],
+    "antarctic assault": [
+      16.300417207752275,
+      2.277267285009756,
+      0.48550781578170077
+    ],
+    "anthrax fortress": [
+      16.3773782488884,
+      2.0794415416798357,
+      1.9095425048844383
+    ],
+    "any island": [
+      16.588099280204055,
+      1.9694406464655074,
+      1.791759469228055
+    ],
+    "aod top mix v3 zh (ai usa) [pashacnc com]": [
+      14.73180128983843,
+      2.03688192726104,
+      1.7346010553881064
+    ],
+    "aqua paradise v2": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.0986122886681096
+    ],
+    "aquatic paradise v4": [
+      16.588099280204055,
+      2.1400661634962708,
+      0.9162907318741551
+    ],
+    "arab tragedy zhv2": [
+      16.286994187420134,
+      3.1354942159291497,
+      1.3862943611198906
+    ],
+    "arabia v2": [
+      15.64167145390966,
+      2.995732273553991,
+      1.6094379124341003
+    ],
+    "arabian domination": [
+      16.012735135300492,
+      1.0986122886681096,
+      0.8109302162163288
+    ],
+    "arctic arena v5": [
+      15.538277155705378,
+      2.5649493574615367,
+      2.2512917986064953
+    ],
+    "arctic base": [
+      16.235878686614704,
+      2.1000608288825715,
+      1.2992829841302609
+    ],
+    "arctic eagle": [
+      15.424948470398375,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "arctic moon": [
+      16.588099280204055,
+      0.9808292530117262,
+      1.0986122886681096
+    ],
+    "area 82": [
+      16.811242831518264,
+      1.6094379124341003,
+      2.302585092994046
+    ],
+    "area j1 draft 3": [
+      15.574764052969401,
+      2.917770732084279,
+      1.8718021769015913
+    ],
+    "area turns red": [
+      16.823665351516823,
+      1.9459101490553132,
+      1.6582280766035324
+    ],
+    "area52": [
+      16.68340946000838,
+      1.8325814637483102,
+      2.169053700369523
+    ],
+    "arizona [wbc2020]": [
+      16.3773782488884,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "arizona airfield": [
+      15.501909511534503,
+      1.8718021769015913,
+      1.6094379124341003
+    ],
+    "armageddon": [
+      16.11809565095832,
+      1.0986122886681096,
+      0.7731898882334818
+    ],
+    "armored frenzy v1": [
+      16.459022237928913,
+      2.0794415416798357,
+      0.13353139262452263
+    ],
+    "armored fury": [
+      16.35503164769215,
+      2.0794415416798357,
+      1.4271163556401456
+    ],
+    "armored fury zh v2": [
+      16.35503164769215,
+      2.0794415416798357,
+      0.1541506798272583
+    ],
+    "armwrestling": [
+      16.077273656438063,
+      2.1400661634962708,
+      1.3862943611198906
+    ],
+    "at doom's gate [wbc2023]": [
+      16.588099280204055,
+      2.4849066497880004,
+      1.3862943611198906
+    ],
+    "at least is not vanilla destruction station v-1": [
+      16.778719639812707,
+      3.22386336637924,
+      2.0794415416798357
+    ],
+    "autumn sakura [wbc2020]": [
+      16.588099280204055,
+      2.1041341542702074,
+      0.8754687373538999
+    ],
+    "avalanche valley": [
+      16.012735135300492,
+      0.9162907318741551,
+      0.9162907318741551
+    ],
+    "aztec empire": [
+      15.761420707019587,
+      1.9095425048844383,
+      1.0986122886681096
+    ],
+    "balls at dawn": [
+      16.382918429264016,
+      3.283414346005772,
+      1.7047480922384253
+    ],
+    "bam8": [
+      15.479436655682445,
+      1.9636097261547143,
+      1.0116009116784799
+    ],
+    "barren badlands balanced zh v1": [
+      15.648092021712584,
+      1.3862943611198906,
+      0.6931471805599453
+    ],
+    "barrenbadlands": [
+      15.648092021712584,
+      1.3862943611198906,
+      0.6931471805599453
+    ],
+    "battle between them v5": [
+      16.3773782488884,
+      2.1400661634962708,
+      1.4170660197866443
+    ],
+    "battle for burgundy": [
+      15.424948470398375,
+      2.8903717578961645,
+      1.0986122886681096
+    ],
+    "battle island 2": [
+      16.454567887579532,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "battle of otis": [
+      17.034386382832476,
+      1.7227665977411035,
+      1.2237754316221157
+    ],
+    "battle of the eight armies": [
+      16.485512691428955,
+      1.4469189829363254,
+      1.1394342831883648
+    ],
+    "battle plan zh v3": [
+      15.512959347721088,
+      3.481240089335692,
+      1.6094379124341003
+    ],
+    "battle ring": [
+      16.823665351516823,
+      2.0794415416798357,
+      1.1394342831883648
+    ],
+    "battlefortress": [
+      15.648092021712584,
+      1.252762968495368,
+      1.0986122886681096
+    ],
+    "battlefortress3": [
+      16.06680235657077,
+      2.515678308454754,
+      0.48550781578170077
+    ],
+    "battleofwatercrater": [
+      17.034386382832476,
+      0.6931471805599453,
+      2.0149030205422647
+    ],
+    "battleship bay": [
+      15.726533448019147,
+      2.5257286443082556,
+      1.252762968495368
+    ],
+    "battletraxv2": [
+      15.566448032672074,
+      2.1102132003465894,
+      1.0986122886681096
+    ],
+    "bbb": [
+      15.648092021712584,
+      1.3862943611198906,
+      0.6931471805599453
+    ],
+    "beach head and hill": [
+      15.89495209964411,
+      1.3862943611198906,
+      1.3862943611198906
+    ],
+    "beachwood resort": [
+      16.06890540676755,
+      2.6855773452501515,
+      1.2039728043259361
+    ],
+    "bear town beatdown": [
+      16.166885815127753,
+      1.791759469228055,
+      0.9162907318741551
+    ],
+    "beijing uprise v4": [
+      16.141812177575638,
+      2.1400661634962708,
+      0.6931471805599453
+    ],
+    "berlin v3": [
+      15.957504274301074,
+      1.791759469228055,
+      1.3862943611198906
+    ],
+    "bermuda_8_triangle": [
+      16.249123913364723,
+      1.0986122886681096,
+      1.4469189829363254
+    ],
+    "big game hunters zh": [
+      16.588099280204055,
+      1.1786549963416462,
+      1.4759065198095778
+    ],
+    "big mess": [
+      16.823665351516823,
+      2.1546649629174235,
+      1.3217558399823195
+    ],
+    "big-game hunting - ffa 6p": [
+      16.823665351516823,
+      2.302585092994046,
+      0.6931471805599453
+    ],
+    "bitter nations": [
+      16.38045991542581,
+      1.3862943611198906,
+      1.252762968495368
+    ],
+    "black hell v3": [
+      15.566448032672074,
+      2.995732273553991,
+      1.3862943611198906
+    ],
+    "blitz choo choo (by shkai)": [
+      16.012735135300492,
+      1.6341305250244718,
+      0.6931471805599453
+    ],
+    "blitz tactics": [
+      16.665060321340185,
+      1.3217558399823195,
+      1.749199854809259
+    ],
+    "blizzrd badlands zhv1": [
+      15.648092021712584,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "blood and iron": [
+      16.823665351516823,
+      0.8266785731844679,
+      0.8873031950009028
+    ],
+    "bombardment beach": [
+      15.838712381321233,
+      2.4423470353692043,
+      0.9162907318741551
+    ],
+    "borderline (by shkai)": [
+      16.284668850784136,
+      2.03688192726104,
+      1.5040773967762742
+    ],
+    "bounty v3": [
+      16.454567887579532,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "bozic destruction zh v3": [
+      15.573368475516649,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "bozic destruction zh v6": [
+      15.573368475516649,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "bricks 2v2 zh v1": [
+      15.91475472694029,
+      2.4849066497880004,
+      1.0986122886681096
+    ],
+    "bridges to boss isle": [
+      16.588099280204055,
+      1.252762968495368,
+      1.0986122886681096
+    ],
+    "broken promise": [
+      15.648092021712584,
+      2.3978952727983707,
+      0.6931471805599453
+    ],
+    "bulls eyeland": [
+      16.3773782488884,
+      2.3826278006675823,
+      1.5404450409471488
+    ],
+    "burning deadline zh v1": [
+      15.90242411448281,
+      2.0794415416798357,
+      0.8109302162163288
+    ],
+    "bursting asunder": [
+      16.326742632919824,
+      2.6026896854443837,
+      1.4469189829363254
+    ],
+    "bursting asunder draft 11": [
+      16.326742632919824,
+      2.6026896854443837,
+      1.4469189829363254
+    ],
+    "butterbrot zh v3": [
+      16.263061421208505,
+      2.4423470353692043,
+      1.0986122886681096
+    ],
+    "cairo commandos": [
+      16.32103649495501,
+      1.0986122886681096,
+      0.9808292530117262
+    ],
+    "canyon crossings (starh)": [
+      17.399029496420383,
+      1.3862943611198906,
+      0.9162907318741551
+    ],
+    "canyon frost zh v1": [
+      15.648092021712584,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "canyon of the condemned": [
+      15.830413578506539,
+      2.995732273553991,
+      1.0986122886681096
+    ],
+    "canyoncrush v2": [
+      16.11809565095832,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "castle dead": [
+      16.572350923235916,
+      2.740840023925201,
+      2.0149030205422647
+    ],
+    "castle wolfenstein": [
+      16.931799794057373,
+      2.751535313041949,
+      1.252762968495368
+    ],
+    "center domination": [
+      16.70588231586044,
+      1.7047480922384253,
+      1.55814461804655
+    ],
+    "center force": [
+      16.012735135300492,
+      2.4423470353692043,
+      1.791759469228055
+    ],
+    "centerfold (2v6)": [
+      16.166885815127753,
+      1.6341305250244718,
+      0.8109302162163288
+    ],
+    "chaos 3": [
+      16.485512691428955,
+      2.456735772821304,
+      2.2857779746776643
+    ],
+    "chaos new version by dark bayman": [
+      16.485512691428955,
+      0.6931471805599453,
+      2.456735772821304
+    ],
+    "chaos theory": [
+      16.811242831518264,
+      1.0986122886681096,
+      2.5257286443082556
+    ],
+    "chaos2": [
+      16.485512691428955,
+      0.6931471805599453,
+      2.456735772821304
+    ],
+    "checker": [
+      16.588099280204055,
+      0.9162907318741551,
+      0.965080896043587
+    ],
+    "cheech island v2": [
+      16.3773782488884,
+      2.1972245773362196,
+      1.4350845252893227
+    ],
+    "cheyenne mountain": [
+      15.984564258333798,
+      2.4849066497880004,
+      1.6094379124341003
+    ],
+    "christmas zh v3": [
+      16.588099280204055,
+      0.8109302162163288,
+      0.6931471805599453
+    ],
+    "christmascrunch": [
+      17.034386382832476,
+      1.1394342831883648,
+      1.1786549963416462
+    ],
+    "chunk island [wbc2023]": [
+      16.3773782488884,
+      2.4849066497880004,
+      1.4350845252893227
+    ],
+    "chunk island v6": [
+      16.3773782488884,
+      2.4849066497880004,
+      1.4350845252893227
+    ],
+    "city of stadium lovers": [
+      16.012735135300492,
+      3.6888794541139363,
+      2.0794415416798357
+    ],
+    "city siege": [
+      15.761420707019587,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "city under fire v2": [
+      16.012735135300492,
+      0.9808292530117262,
+      1.2992829841302609
+    ],
+    "civil war site i": [
+      15.648092021712584,
+      2.4849066497880004,
+      2.1972245773362196
+    ],
+    "classic fortress avalanche": [
+      16.32103649495501,
+      1.0560526742493137,
+      0.6931471805599453
+    ],
+    "classic twilight flame": [
+      16.823665351516823,
+      1.791759469228055,
+      0.7537718023763802
+    ],
+    "classic whiteout": [
+      16.32103649495501,
+      0.9162907318741551,
+      0.6931471805599453
+    ],
+    "clearlakebattle": [
+      15.925723758310864,
+      1.0986122886681096,
+      2.5649493574615367
+    ],
+    "cliff assault": [
+      15.201804919084164,
+      0.6931471805599453,
+      1.3862943611198906
+    ],
+    "climate change (by shkai)": [
+      16.012735135300492,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "clutha river": [
+      16.012735135300492,
+      1.9095425048844383,
+      1.252762968495368
+    ],
+    "co-op_gc_supw_hard_v2": [
+      16.06595989653779,
+      3.817712325956905,
+      2.1400661634962708
+    ],
+    "coastal conflict zh v2": [
+      15.87474939232659,
+      2.4423470353692043,
+      1.252762968495368
+    ],
+    "coastal crush": [
+      16.637484505384798,
+      1.8971199848858813,
+      1.6094379124341003
+    ],
+    "coastal defence": [
+      16.587474084810136,
+      1.3862943611198906,
+      1.041453874828161
+    ],
+    "coastal shock": [
+      16.3773782488884,
+      1.9459101490553132,
+      1.9459101490553132
+    ],
+    "coastal shock [wbc2023]": [
+      16.3773782488884,
+      1.9459101490553132,
+      1.9459101490553132
+    ],
+    "coldzone v3": [
+      17.034386382832476,
+      2.0794415416798357,
+      1.637608789400797
+    ],
+    "combat encounter": [
+      16.141812177575638,
+      1.6094379124341003,
+      0.8109302162163288
+    ],
+    "combat-island": [
+      16.313662434502294,
+      2.2512917986064953,
+      1.0986122886681096
+    ],
+    "common area v1": [
+      16.012735135300492,
+      1.5040773967762742,
+      1.2163953243244932
+    ],
+    "conflict desert storm": [
+      16.823665351516823,
+      1.9740810260220096,
+      1.791759469228055
+    ],
+    "conflict in the mediterranean [wbc2021]": [
+      16.20243679939207,
+      1.791759469228055,
+      1.3862943611198906
+    ],
+    "conflict zone zh v2": [
+      16.012735135300492,
+      1.5040773967762742,
+      0.6931471805599453
+    ],
+    "contamination": [
+      15.648092021712584,
+      0.6931471805599453,
+      0.6931471805599453
+    ],
+    "coop - gla vs airf - iranian counterstrike zh": [
+      15.884901763790609,
+      2.6855773452501515,
+      1.3862943611198906
+    ],
+    "coral island zh": [
+      16.588099280204055,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "coral islands": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "coral islands [wbc2020]": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "coral islands wbc": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "coral islands wbc [wbc winner]": [
+      16.823665351516823,
+      1.6422277352570913,
+      1.0986122886681096
+    ],
+    "corruption": [
+      17.399029496420383,
+      1.2878542883066382,
+      0.48550781578170077
+    ],
+    "cp 2v2 tournament desert by me myself & pi": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "cp 2v6 compstomper": [
+      16.665060321340185,
+      1.9810014688665833,
+      1.791759469228055
+    ],
+    "cp 3 v 5 battlezeta": [
+      16.811242831518264,
+      2.094945728215801,
+      1.7272209480904839
+    ],
+    "cp 3v5 another deadly encounter": [
+      16.235878686614704,
+      1.1394342831883648,
+      0.6931471805599453
+    ],
+    "cp 3v5 bridgewar": [
+      16.588099280204055,
+      1.791759469228055,
+      1.749199854809259
+    ],
+    "cp 3v5 comp stomp by jrsfunfactory": [
+      16.588099280204055,
+      1.0986122886681096,
+      1.5040773967762742
+    ],
+    "cp 3v5 elite eight": [
+      16.588099280204055,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "cp 3v5 last rites": [
+      16.300417207752275,
+      1.2878542883066382,
+      0.965080896043587
+    ],
+    "cp 3v5 look out now2": [
+      16.70588231586044,
+      1.6094379124341003,
+      1.2878542883066382
+    ],
+    "cp 4v4 ob 25 sphinx rev1": [
+      16.34123920227253,
+      1.0116009116784799,
+      1.8325814637483102
+    ],
+    "cp 4v4 ob32 paranoid": [
+      16.929025867174648,
+      1.2163953243244932,
+      1.8718021769015913
+    ],
+    "crash site (c009)": [
+      17.034386382832476,
+      2.70805020110221,
+      1.3217558399823195
+    ],
+    "crazy beach": [
+      15.65606019136176,
+      2.639057329615259,
+      1.3862943611198906
+    ],
+    "cross country": [
+      16.3773782488884,
+      0.9808292530117262,
+      1.5040773967762742
+    ],
+    "crosscountry": [
+      16.3773782488884,
+      0.9808292530117262,
+      1.5040773967762742
+    ],
+    "crumbling_alliance_v2": [
+      15.761420707019587,
+      2.7880929087757464,
+      0.8109302162163288
+    ],
+    "cursed hollows draft v3": [
+      16.485512691428955,
+      2.2335922215070942,
+      1.3862943611198906
+    ],
+    "dam hole": [
+      16.588099280204055,
+      1.9459101490553132,
+      1.791759469228055
+    ],
+    "dammed cottages domi edition": [
+      15.761420707019587,
+      2.3978952727983707,
+      1.252762968495368
+    ],
+    "dammed cottages v3": [
+      15.633587335509702,
+      2.3978952727983707,
+      1.252762968495368
+    ],
+    "dammed korhal": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "dammed korhal v2": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "dammed korhal v3": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "dammed korhal v4": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "dammed korhal v5": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "dammed korhal v6": [
+      15.789591583986283,
+      2.3978952727983707,
+      1.6094379124341003
+    ],
+    "dammed scorpion v2": [
+      15.726533448019147,
+      3.0204248861443626,
+      1.252762968495368
+    ],
+    "dangerous cargo": [
+      15.201804919084164,
+      1.252762968495368,
+      1.252762968495368
+    ],
+    "dangerous cargo_mp": [
+      15.201804919084164,
+      1.252762968495368,
+      1.252762968495368
+    ],
+    "das paradies": [
+      17.034386382832476,
+      1.0986122886681096,
+      1.1526795099383853
+    ],
+    "das paradies reloaded": [
+      17.034386382832476,
+      1.0986122886681096,
+      1.1526795099383853
+    ],
+    "dasbettinflammen": [
+      16.588099280204055,
+      1.1786549963416462,
+      1.4170660197866443
+    ],
+    "death & conflict": [
+      16.284668850784136,
+      3.7803945629497098,
+      1.6094379124341003
+    ],
+    "death & conflict domi edit": [
+      16.331188866419026,
+      3.5648268054439574,
+      2.627081138568543
+    ],
+    "death con homefront 2": [
+      16.300417207752275,
+      1.6094379124341003,
+      0.6931471805599453
+    ],
+    "death island edited by at": [
+      17.296750647299966,
+      1.791759469228055,
+      2.468099531471619
+    ],
+    "death star": [
+      17.034386382832476,
+      1.3862943611198906,
+      2.5649493574615367
+    ],
+    "death star (fully operational)": [
+      17.034386382832476,
+      1.3862943611198906,
+      2.5649493574615367
+    ],
+    "death valley": [
+      16.90655301132259,
+      1.3217558399823195,
+      1.5841201044498106
+    ],
+    "deathvalley3v3": [
+      16.90655301132259,
+      1.5404450409471488,
+      1.8191584434161694
+    ],
+    "deceitful conquest": [
+      16.45955542909057,
+      1.1394342831883648,
+      0.9162907318741551
+    ],
+    "deepblue v2 by wnxwillietoo": [
+      16.012735135300492,
+      2.169053700369523,
+      1.791759469228055
+    ],
+    "defcon 51": [
+      16.778719639812707,
+      1.9636097261547143,
+      1.0986122886681096
+    ],
+    "defcon 51 (pre-release)": [
+      16.9106355753963,
+      1.9636097261547143,
+      1.0986122886681096
+    ],
+    "defcon 51 (xl)": [
+      16.9106355753963,
+      1.9636097261547143,
+      1.0986122886681096
+    ],
+    "defcon 51 v": [
+      16.778719639812707,
+      2.094945728215801,
+      1.0986122886681096
+    ],
+    "defcon 51 winter": [
+      16.778719639812707,
+      1.9636097261547143,
+      1.0986122886681096
+    ],
+    "defcon 6 desert": [
+      16.284668850784136,
+      2.03688192726104,
+      1.1526795099383853
+    ],
+    "defcon 6 fast cash": [
+      16.284668850784136,
+      2.0583881324820035,
+      1.1526795099383853
+    ],
+    "defcon 6 pro": [
+      16.284668850784136,
+      2.2335922215070942,
+      1.2039728043259361
+    ],
+    "defcon 6 rebalanced v7": [
+      16.284668850784136,
+      2.03688192726104,
+      1.8458266904983307
+    ],
+    "defcon 6 winter": [
+      16.284668850784136,
+      2.03688192726104,
+      1.1526795099383853
+    ],
+    "defcon 8 (surpriseparty) fixed": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.1394342831883648
+    ],
+    "defcon 8 by illmakeueargasm": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.1394342831883648
+    ],
+    "defcon 8 by illmakeueargasm (surpriseparty)": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.1394342831883648
+    ],
+    "defcon balanced zh v9": [
+      16.284668850784136,
+      2.120263536200091,
+      1.1526795099383853
+    ],
+    "defcon frost": [
+      16.32103649495501,
+      2.120263536200091,
+      1.1526795099383853
+    ],
+    "defcon russian roullete v1": [
+      16.284668850784136,
+      2.0583881324820035,
+      1.1526795099383853
+    ],
+    "defcon the last storm": [
+      16.284668850784136,
+      2.319114394945256,
+      1.1526795099383853
+    ],
+    "defcon6": [
+      16.284668850784136,
+      2.0583881324820035,
+      1.1526795099383853
+    ],
+    "defcon6 boss shrouded v1": [
+      16.284668850784136,
+      2.0583881324820035,
+      1.1526795099383853
+    ],
+    "defcon6 rebalanced": [
+      16.284668850784136,
+      2.1400661634962708,
+      1.1526795099383853
+    ],
+    "den christmas 2004": [
+      16.012735135300492,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "desert combat zh v2": [
+      16.061525299469924,
+      2.0149030205422647,
+      0.6931471805599453
+    ],
+    "desert eagle casino 8-player": [
+      17.034386382832476,
+      1.8718021769015913,
+      1.4759065198095778
+    ],
+    "desert fury": [
+      15.648092021712584,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "desert fury zh v2": [
+      15.648092021712584,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "desert maze": [
+      16.823665351516823,
+      1.7047480922384253,
+      1.1786549963416462
+    ],
+    "desert morning": [
+      16.811242831518264,
+      2.302585092994046,
+      1.9980959022258835
+    ],
+    "desert oasis": [
+      16.612791892794426,
+      1.9095425048844383,
+      0.4054651081081644
+    ],
+    "desert oasis v2": [
+      16.612791892794426,
+      2.327277705584417,
+      1.3862943611198906
+    ],
+    "desert pearl v3c": [
+      16.32103649495501,
+      2.70805020110221,
+      1.2809338454620645
+    ],
+    "desert quadrant zh v1": [
+      15.201804919084164,
+      0.6931471805599453,
+      1.252762968495368
+    ],
+    "desert sphinx": [
+      16.05355712982075,
+      1.2039728043259361,
+      1.041453874828161
+    ],
+    "desert tournament": [
+      16.32103649495501,
+      1.5040773967762742,
+      1.4170660197866443
+    ],
+    "desert trap": [
+      16.823665351516823,
+      2.3978952727983707,
+      1.6422277352570913
+    ],
+    "desert vortex": [
+      16.537463664235474,
+      2.3513752571634776,
+      0.965080896043587
+    ],
+    "desert vortex v7": [
+      16.537463664235474,
+      2.3513752571634776,
+      0.965080896043587
+    ],
+    "desert wars": [
+      16.43217619726463,
+      0.6931471805599453,
+      0.9808292530117262
+    ],
+    "deserted": [
+      17.034386382832476,
+      2.1972245773362196,
+      0.9162907318741551
+    ],
+    "deserted desert survival (2)": [
+      14.946138176064395,
+      0.6931471805599453,
+      1.3862943611198906
+    ],
+    "deserted desert survival (2) v3": [
+      14.946138176064395,
+      0.6931471805599453,
+      1.3862943611198906
+    ],
+    "desertsenariocompstomp": [
+      16.523560759066484,
+      1.9459101490553132,
+      1.9810014688665833
+    ],
+    "desertsiege": [
+      16.823665351516823,
+      0.8109302162163288,
+      1.0986122886681096
+    ],
+    "deserttournament": [
+      16.32103649495501,
+      1.5040773967762742,
+      1.4170660197866443
+    ],
+    "destruction fortress": [
+      16.952742393791965,
+      1.0986122886681096,
+      1.5040773967762742
+    ],
+    "destruction station": [
+      16.68567960854292,
+      1.3862943611198906,
+      0.5596157879354227
+    ],
+    "destruction station ds10k edit": [
+      16.68567960854292,
+      2.5257286443082556,
+      1.3862943611198906
+    ],
+    "devastation on its way": [
+      16.11809565095832,
+      1.6582280766035324,
+      1.252762968495368
+    ],
+    "diamond's edge": [
+      15.648092021712584,
+      2.4849066497880004,
+      1.1786549963416462
+    ],
+    "diamondridges": [
+      17.034386382832476,
+      3.392829131991639,
+      1.2163953243244932
+    ],
+    "dietetic war (ai-north)": [
+      16.36104182956871,
+      1.3862943611198906,
+      1.7346010553881064
+    ],
+    "dietetic war (ai-south)": [
+      16.36104182956871,
+      1.252762968495368,
+      2.03688192726104
+    ],
+    "dino island v3": [
+      16.588099280204055,
+      0.7884573603642702,
+      1.1631508098056809
+    ],
+    "dirt's destruction derby": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.7047480922384253
+    ],
+    "district 10 v4": [
+      16.012735135300492,
+      2.70805020110221,
+      1.3862943611198906
+    ],
+    "dock block": [
+      16.32103649495501,
+      2.70805020110221,
+      1.1786549963416462
+    ],
+    "dogsofwar": [
+      16.172820550647565,
+      0.6931471805599453,
+      1.0986122886681096
+    ],
+    "dominion draft": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.252762968495368
+    ],
+    "dooms day (by kmurda)": [
+      16.523560759066484,
+      0.9162907318741551,
+      2.1400661634962708
+    ],
+    "doomsville": [
+      15.648092021712584,
+      1.9459101490553132,
+      1.3862943611198906
+    ],
+    "double damination v2": [
+      15.633587335509702,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "double damination v3": [
+      15.633587335509702,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "double damination v4": [
+      15.633587335509702,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "down the road v2": [
+      15.761420707019587,
+      2.639057329615259,
+      1.0986122886681096
+    ],
+    "downhill onslaught": [
+      16.68567960854292,
+      1.252762968495368,
+      0.7537718023763802
+    ],
+    "downhill onslaught revised": [
+      16.485512691428955,
+      1.252762968495368,
+      0.7537718023763802
+    ],
+    "drachenfels": [
+      15.87474939232659,
+      1.5040773967762742,
+      1.0116009116784799
+    ],
+    "dragon canyon": [
+      16.11809565095832,
+      2.302585092994046,
+      0.6931471805599453
+    ],
+    "dropdown": [
+      17.034386382832476,
+      1.4469189829363254,
+      1.1786549963416462
+    ],
+    "drowning horses v1": [
+      15.990262279448435,
+      2.8903717578961645,
+      1.0116009116784799
+    ],
+    "dry plague": [
+      16.67771143889374,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "duelforce": [
+      15.424948470398375,
+      1.9459101490553132,
+      1.6094379124341003
+    ],
+    "dunes v3": [
+      15.60727002719233,
+      1.9459101490553132,
+      0.8109302162163288
+    ],
+    "dust bowl v2": [
+      15.907374619642667,
+      2.505525936990736,
+      1.0986122886681096
+    ],
+    "dust devil": [
+      15.648092021712584,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "dust devil zh v2": [
+      15.648092021712584,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "ea games godlands professional": [
+      16.588099280204055,
+      2.094945728215801,
+      0.9162907318741551
+    ],
+    "east-asia": [
+      17.034386382832476,
+      0.8109302162163288,
+      0.6931471805599453
+    ],
+    "east-asia (light)": [
+      17.034386382832476,
+      0.8109302162163288,
+      0.6931471805599453
+    ],
+    "echo isle [wbc2023]": [
+      16.32103649495501,
+      2.3978952727983707,
+      1.0986122886681096
+    ],
+    "echo zh v1": [
+      15.501909511534503,
+      2.9444389791664403,
+      1.6094379124341003
+    ],
+    "egyptian oasis zh v1 draft1": [
+      15.550699675703935,
+      2.70805020110221,
+      1.252762968495368
+    ],
+    "el alamein zh": [
+      16.787277954064432,
+      1.6094379124341003,
+      2.2512917986064953
+    ],
+    "el scorcho": [
+      16.32103649495501,
+      2.277267285009756,
+      1.3862943611198906
+    ],
+    "endboss zh v2": [
+      15.747031969567487,
+      2.772588722239781,
+      1.9459101490553132
+    ],
+    "entropy's empire": [
+      15.201804919084164,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "entropy's empire v2": [
+      15.201804919084164,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "epic oceanfront": [
+      16.588099280204055,
+      2.2512917986064953,
+      1.3217558399823195
+    ],
+    "epsilon 6": [
+      16.323889563937417,
+      2.456735772821304,
+      1.1526795099383853
+    ],
+    "europa (remix)": [
+      17.216707939626428,
+      2.4277482359480516,
+      0.9162907318741551
+    ],
+    "evening valley": [
+      16.263061421208505,
+      1.3862943611198906,
+      1.55814461804655
+    ],
+    "exkalibur_zh": [
+      16.485512691428955,
+      0.9162907318741551,
+      0.8649974374866045
+    ],
+    "eye of the inzein v1": [
+      16.588099280204055,
+      1.7578579175523736,
+      1.2237754316221157
+    ],
+    "fair survival 2vs2 v6": [
+      15.201804919084164,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "fall of meteors": [
+      16.70588231586044,
+      1.7272209480904839,
+      1.252762968495368
+    ],
+    "fata morgana": [
+      16.588099280204055,
+      1.2039728043259361,
+      1.0986122886681096
+    ],
+    "fatesridge": [
+      16.588099280204055,
+      1.1786549963416462,
+      1.252762968495368
+    ],
+    "fergi's revenge v2": [
+      17.131966711171337,
+      2.4849066497880004,
+      1.637608789400797
+    ],
+    "fertile lowlands v2": [
+      16.637484505384798,
+      2.5649493574615367,
+      1.7635885922613586
+    ],
+    "fighting gold v2": [
+      16.012735135300492,
+      2.3978952727983707,
+      1.4469189829363254
+    ],
+    "final crossroad b": [
+      15.464169183551656,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "final crossroad zh v2": [
+      15.60727002719233,
+      2.302585092994046,
+      1.7047480922384253
+    ],
+    "final crusade": [
+      15.424948470398375,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "final crusade fixed": [
+      15.424948470398375,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "finc beach attack": [
+      16.823665351516823,
+      1.791759469228055,
+      1.6739764335716716
+    ],
+    "five continents tank warz": [
+      16.012735135300492,
+      2.0794415416798357,
+      1.4469189829363254
+    ],
+    "flash effect": [
+      16.263061421208505,
+      1.0986122886681096,
+      1.6094379124341003
+    ],
+    "flash fire": [
+      15.838712381321233,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "flash fire balanced zh v1": [
+      15.838712381321233,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "flash fire balanced zh vb": [
+      15.838712381321233,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "floating platform": [
+      16.588099280204055,
+      1.7346010553881064,
+      0.9162907318741551
+    ],
+    "floating platform v2": [
+      16.588099280204055,
+      1.8458266904983307,
+      0.9162907318741551
+    ],
+    "flooded island": [
+      16.588099280204055,
+      1.9694406464655074,
+      1.6094379124341003
+    ],
+    "flooded island 2v2v2": [
+      16.588099280204055,
+      2.1972245773362196,
+      1.6739764335716716
+    ],
+    "floodedplains": [
+      16.012735135300492,
+      0.9162907318741551,
+      1.3862943611198906
+    ],
+    "flooding plains tank warz v4": [
+      15.830413578506539,
+      2.70805020110221,
+      1.791759469228055
+    ],
+    "flower oases": [
+      16.68567960854292,
+      2.9667447366807385,
+      1.5198257537444133
+    ],
+    "flower oases v2": [
+      16.68567960854292,
+      2.9667447366807385,
+      1.5198257537444133
+    ],
+    "forbidden takover zh v2": [
+      15.678039098080536,
+      2.4423470353692043,
+      0.9162907318741551
+    ],
+    "forbiddencitybattle": [
+      16.627319993357336,
+      1.791759469228055,
+      0.6931471805599453
+    ],
+    "forest lagoon - leansifer edit [v6]": [
+      15.464169183551656,
+      2.1400661634962708,
+      0.9162907318741551
+    ],
+    "forest of blood": [
+      15.648092021712584,
+      2.4423470353692043,
+      2.0794415416798357
+    ],
+    "forest of camelot": [
+      15.726533448019147,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "forest of camelot zh v4": [
+      15.726533448019147,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "forest of camelot zh v5": [
+      15.726533448019147,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "forgotten realm zh": [
+      16.823665351516823,
+      1.791759469228055,
+      0.6931471805599453
+    ],
+    "forgotten ruins": [
+      15.58706731987481,
+      3.1780538303479458,
+      2.1972245773362196
+    ],
+    "forgotten valley": [
+      16.801318750320572,
+      2.1102132003465894,
+      1.6341305250244718
+    ],
+    "forgotten valley [wbc2022]": [
+      16.801318750320572,
+      2.1102132003465894,
+      1.6341305250244718
+    ],
+    "forgottenforestzh": [
+      15.638041685859083,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "fort payne": [
+      15.60727002719233,
+      2.2512917986064953,
+      1.6094379124341003
+    ],
+    "fort thunder": [
+      15.488861796142027,
+      2.5649493574615367,
+      1.0986122886681096
+    ],
+    "fortress avalanche": [
+      16.709348523836926,
+      1.0560526742493137,
+      0.8109302162163288
+    ],
+    "fortress avalanche (3v3 version)": [
+      16.32103649495501,
+      0.9162907318741551,
+      1.0986122886681096
+    ],
+    "fortress compstomp battle": [
+      16.627319993357336,
+      1.5841201044498106,
+      1.9810014688665833
+    ],
+    "fortress guardian": [
+      16.823665351516823,
+      1.749199854809259,
+      0.5596157879354227
+    ],
+    "forward march (fatboyz)": [
+      15.65606019136176,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "free fire zone": [
+      16.012735135300492,
+      1.0986122886681096,
+      0.7731898882334818
+    ],
+    "freedom land v2": [
+      15.250595083253597,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "freezing bursa zh v1": [
+      15.761420707019587,
+      2.5649493574615367,
+      1.5040773967762742
+    ],
+    "freezing bursa zh v2": [
+      15.761420707019587,
+      2.5649493574615367,
+      1.5040773967762742
+    ],
+    "freezing rain": [
+      15.633587335509702,
+      2.4849066497880004,
+      1.3862943611198906
+    ],
+    "frogprince": [
+      15.60727002719233,
+      2.1972245773362196,
+      1.252762968495368
+    ],
+    "frontier rails v2 [wbc2022]": [
+      16.32103649495501,
+      2.639057329615259,
+      0.6931471805599453
+    ],
+    "frozen dawn zh v1 (draf02)": [
+      15.648092021712584,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "frozen fire": [
+      17.034386382832476,
+      1.7707060600302227,
+      0.965080896043587
+    ],
+    "frozen frontier": [
+      15.137266397946593,
+      1.3862943611198906,
+      0.9162907318741551
+    ],
+    "frozen ruins": [
+      15.58706731987481,
+      3.1354942159291497,
+      2.0794415416798357
+    ],
+    "frozen vanguard v2": [
+      16.588099280204055,
+      2.1832383353614793,
+      1.0986122886681096
+    ],
+    "garden of terror draft v6": [
+      16.012735135300492,
+      2.662587827025453,
+      1.4663370687934272
+    ],
+    "gc_airgeneral": [
+      15.651286912609104,
+      2.0794415416798357,
+      2.0794415416798357
+    ],
+    "gc_chemgeneral": [
+      15.789591583986283,
+      1.3862943611198906,
+      2.4849066497880004
+    ],
+    "gc_chinaboss": [
+      16.213405830762646,
+      2.1972245773362196,
+      2.995732273553991
+    ],
+    "gc_lasergeneral": [
+      16.06890540676755,
+      1.791759469228055,
+      2.5649493574615367
+    ],
+    "gc_nukegeneral": [
+      15.984564258333798,
+      3.091042453358316,
+      1.791759469228055
+    ],
+    "gc_stealth": [
+      15.702580206996654,
+      2.772588722239781,
+      2.302585092994046
+    ],
+    "gc_superweaponsgeneral": [
+      15.830413578506539,
+      1.791759469228055,
+      2.3978952727983707
+    ],
+    "gc_tankgeneral": [
+      16.300417207752275,
+      3.9318256327243257,
+      1.791759469228055
+    ],
+    "gdi vs nod - the final strike": [
+      15.60727002719233,
+      1.7346010553881064,
+      0.5108256237659907
+    ],
+    "gentools secret lab a": [
+      15.339390582036728,
+      2.4423470353692043,
+      0.9162907318741551
+    ],
+    "ghost harbor (by shkai)": [
+      16.588099280204055,
+      1.455287232606842,
+      0.9985288301111271
+    ],
+    "glacial breeze v2": [
+      16.11809565095832,
+      2.5649493574615367,
+      1.6094379124341003
+    ],
+    "glacial horses v1": [
+      15.64005985001532,
+      2.4423470353692043,
+      1.5040773967762742
+    ],
+    "glacier 6 [wbc2023]": [
+      16.3773782488884,
+      2.3513752571634776,
+      1.1526795099383853
+    ],
+    "glacier 6 v2 [wbc2023]": [
+      16.3773782488884,
+      2.3513752571634776,
+      1.1526795099383853
+    ],
+    "glacier 6 zh": [
+      16.3773782488884,
+      2.3513752571634776,
+      1.1526795099383853
+    ],
+    "godlands": [
+      16.588099280204055,
+      2.094945728215801,
+      0.9162907318741551
+    ],
+    "gold cobra draft 2": [
+      15.567853294828538,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "gold cobra hailstone": [
+      15.567853294828538,
+      2.70805020110221,
+      1.3862943611198906
+    ],
+    "goldfish arena": [
+      16.3773782488884,
+      2.3978952727983707,
+      1.4469189829363254
+    ],
+    "grass hopper": [
+      16.012735135300492,
+      2.6026896854443837,
+      1.0986122886681096
+    ],
+    "grassvalley": [
+      15.802836810736304,
+      2.4849066497880004,
+      1.791759469228055
+    ],
+    "grassybattlefield": [
+      16.81475665081806,
+      2.097141118779237,
+      1.717651497074333
+    ],
+    "gravel maze": [
+      16.823665351516823,
+      1.7047480922384253,
+      1.0986122886681096
+    ],
+    "greek shores": [
+      15.424948470398375,
+      2.0794415416798357,
+      1.3862943611198906
+    ],
+    "greek shores v2": [
+      15.424948470398375,
+      2.0794415416798357,
+      1.3862943611198906
+    ],
+    "green cross": [
+      16.588099280204055,
+      1.6094379124341003,
+      0.4054651081081644
+    ],
+    "green goon [wbc2022]": [
+      16.012735135300492,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "green goon draft v2": [
+      16.012735135300492,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "green lotus by fx $$$$$$": [
+      16.468048049136225,
+      2.4849066497880004,
+      2.9444389791664403
+    ],
+    "green pastures": [
+      15.910456286180075,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "green silk": [
+      16.32103649495501,
+      2.4423470353692043,
+      1.252762968495368
+    ],
+    "green silk draft 04": [
+      16.32103649495501,
+      1.9459101490553132,
+      1.3862943611198906
+    ],
+    "greenland": [
+      16.32103649495501,
+      0.6931471805599453,
+      1.0986122886681096
+    ],
+    "ground 0": [
+      16.68567960854292,
+      1.2729656758128876,
+      1.7676619176489945
+    ],
+    "grumpy village zh v2": [
+      15.64167145390966,
+      2.1972245773362196,
+      1.252762968495368
+    ],
+    "guadalquidir": [
+      16.8456442582356,
+      1.6094379124341003,
+      1.6094379124341003
+    ],
+    "hades island": [
+      16.588099280204055,
+      1.9459101490553132,
+      0.6931471805599453
+    ],
+    "hadithavillagebattle": [
+      16.627319993357336,
+      2.0794415416798357,
+      0.965080896043587
+    ],
+    "han dynasty v3": [
+      16.68567960854292,
+      1.8718021769015913,
+      1.252762968495368
+    ],
+    "hanamura temple draft v5": [
+      15.688850014184752,
+      2.772588722239781,
+      2.0149030205422647
+    ],
+    "harbour assault 3v3": [
+      16.34123920227253,
+      1.252762968495368,
+      0.9808292530117262
+    ],
+    "harbour assault 3v3 beta1": [
+      16.34123920227253,
+      1.1526795099383853,
+      0.9808292530117262
+    ],
+    "head-russian (8)": [
+      16.641343794722868,
+      1.9810014688665833,
+      1.749199854809259
+    ],
+    "heartland shield": [
+      15.984564258333798,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "heat of the night": [
+      16.993980968197437,
+      0.9162907318741551,
+      1.55814461804655
+    ],
+    "hedgehog": [
+      16.823665351516823,
+      1.0986122886681096,
+      1.7047480922384253
+    ],
+    "helasious battle hill": [
+      17.034386382832476,
+      1.7047480922384253,
+      1.55814461804655
+    ],
+    "hell on rails v3": [
+      16.32103649495501,
+      2.1400661634962708,
+      0.6931471805599453
+    ],
+    "hells ferry naval": [
+      16.709348523836926,
+      1.252762968495368,
+      2.995732273553991
+    ],
+    "hershey's chocolate country": [
+      15.648092021712584,
+      1.0986122886681096,
+      1.8718021769015913
+    ],
+    "hidden island": [
+      16.823665351516823,
+      2.211017899468555,
+      1.8123787564307907
+    ],
+    "hidden pearls": [
+      15.944932031949131,
+      1.9459101490553132,
+      1.5040773967762742
+    ],
+    "hidden pearls draft 7": [
+      15.944932031949131,
+      1.9459101490553132,
+      1.5040773967762742
+    ],
+    "hidden treasures": [
+      15.553165768199129,
+      3.1354942159291497,
+      2.1400661634962708
+    ],
+    "hidden treasures survival (2)": [
+      14.77102200299171,
+      0.6931471805599453,
+      1.7047480922384253
+    ],
+    "hidden treasures survival (2) v2": [
+      14.77102200299171,
+      0.6931471805599453,
+      1.7047480922384253
+    ],
+    "highland": [
+      16.523560759066484,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "highland rift v1 [scotmap]": [
+      15.38412647587812,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "highway plus": [
+      15.538277155705378,
+      2.833213344056216,
+      1.0986122886681096
+    ],
+    "hill conquest": [
+      17.081819436067107,
+      2.1102132003465894,
+      1.6582280766035324
+    ],
+    "hills calling": [
+      16.012735135300492,
+      2.169053700369523,
+      1.9095425048844383
+    ],
+    "hilltop": [
+      15.86963429165982,
+      0.8472978603872036,
+      0.8472978603872036
+    ],
+    "himalaya (tk edit)": [
+      16.68567960854292,
+      2.2587824703356527,
+      1.455287232606842
+    ],
+    "himalaya v4": [
+      16.68567960854292,
+      1.0986122886681096,
+      0.7621400520468967
+    ],
+    "hislander": [
+      16.823665351516823,
+      0.9162907318741551,
+      1.2878542883066382
+    ],
+    "homeland alliance": [
+      16.263061421208505,
+      1.0986122886681096,
+      1.0116009116784799
+    ],
+    "homeland rocks": [
+      15.781223334315767,
+      2.4849066497880004,
+      1.252762968495368
+    ],
+    "honulai isle": [
+      16.588099280204055,
+      0.6931471805599453,
+      1.1786549963416462
+    ],
+    "hostile dawn": [
+      16.32103649495501,
+      0.9808292530117262,
+      1.3437347467010947
+    ],
+    "hostile dawn 2 the war machine": [
+      16.32103649495501,
+      1.3862943611198906,
+      1.6094379124341003
+    ],
+    "hot desert": [
+      16.523560759066484,
+      0.9162907318741551,
+      1.4759065198095778
+    ],
+    "hot snow": [
+      16.711389346515336,
+      1.791759469228055,
+      0.7537718023763802
+    ],
+    "hunted valley": [
+      16.588099280204055,
+      0.965080896043587,
+      0.965080896043587
+    ],
+    "hunter hunted": [
+      16.11809565095832,
+      1.0986122886681096,
+      1.7047480922384253
+    ],
+    "ice": [
+      16.32103649495501,
+      0.7537718023763802,
+      1.1394342831883648
+    ],
+    "icecream mountain": [
+      14.991083887768513,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "icy frontier zh v1": [
+      16.012735135300492,
+      1.992430164690206,
+      1.3437347467010947
+    ],
+    "icy waters": [
+      16.012735135300492,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "icy winter": [
+      16.68567960854292,
+      2.0243817644968085,
+      1.349926716949016
+    ],
+    "icy winter (christmas mode) alpha 2": [
+      16.68567960854292,
+      0.6931471805599453,
+      0.6190392084062234
+    ],
+    "imminent victory": [
+      15.501909511534503,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "industrial arena zh v1": [
+      16.012735135300492,
+      0.9808292530117262,
+      0.7731898882334818
+    ],
+    "industrial battleground test2": [
+      15.450616217146953,
+      2.5649493574615367,
+      1.791759469228055
+    ],
+    "industrial wasteland draft 3": [
+      16.454567887579532,
+      1.9459101490553132,
+      1.1526795099383853
+    ],
+    "inferno island": [
+      16.823665351516823,
+      2.0541237336955462,
+      1.2237754316221157
+    ],
+    "instant-shock arena v2": [
+      16.71873821244534,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "interchange +by devender (zh) v1-1": [
+      16.012735135300492,
+      1.6582280766035324,
+      1.252762968495368
+    ],
+    "inthequarry(by supertim)": [
+      16.012735135300492,
+      0.6931471805599453,
+      0.4054651081081644
+    ],
+    "ireland meadows": [
+      16.823665351516823,
+      2.4423470353692043,
+      1.0116009116784799
+    ],
+    "iron dragon": [
+      16.549878067383858,
+      1.252762968495368,
+      0.9162907318741551
+    ],
+    "iron dragon [xmas special]": [
+      16.549878067383858,
+      0.9162907318741551,
+      0.9162907318741551
+    ],
+    "ishock knockout": [
+      15.424948470398375,
+      2.0794415416798357,
+      1.3862943611198906
+    ],
+    "island fortress": [
+      16.867623164954374,
+      1.5404450409471488,
+      1.6739764335716716
+    ],
+    "island hopping": [
+      16.012735135300492,
+      1.791759469228055,
+      0.8109302162163288
+    ],
+    "island hopping v2": [
+      16.012735135300492,
+      1.6094379124341003,
+      1.6094379124341003
+    ],
+    "island x": [
+      16.32103649495501,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "islandclassic 2v2 [no rush-sw]v28": [
+      15.453535927250288,
+      2.5649493574615367,
+      1.3862943611198906
+    ],
+    "islands of war (night)": [
+      16.32103649495501,
+      3.157000421150113,
+      1.6582280766035324
+    ],
+    "jungle thunder v5": [
+      16.32103649495501,
+      2.1972245773362196,
+      1.1451323043030026
+    ],
+    "killing fields balanced v5": [
+      15.566448032672074,
+      2.5649493574615367,
+      1.0986122886681096
+    ],
+    "king of the hill": [
+      17.399029496420383,
+      1.3121863889661687,
+      1.637608789400797
+    ],
+    "kingpin city": [
+      16.284668850784136,
+      2.302585092994046,
+      1.8458266904983307
+    ],
+    "kinky fields": [
+      15.566448032672074,
+      2.9444389791664403,
+      1.0986122886681096
+    ],
+    "knife_fight 8": [
+      16.38045991542581,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "koujou okawa v3": [
+      15.60727002719233,
+      2.4849066497880004,
+      1.8718021769015913
+    ],
+    "kuwait craters": [
+      16.823665351516823,
+      2.277267285009756,
+      1.0986122886681096
+    ],
+    "lab x (m 3b)": [
+      16.43217619726463,
+      0.9985288301111271,
+      1.7676619176489945
+    ],
+    "lagoon": [
+      15.464169183551656,
+      2.0794415416798357,
+      0.9162907318741551
+    ],
+    "lagoon demolition": [
+      15.464169183551656,
+      1.9459101490553132,
+      1.6094379124341003
+    ],
+    "lagoon zh ffa": [
+      15.464169183551656,
+      1.2992829841302609,
+      1.0986122886681096
+    ],
+    "land and sea": [
+      16.823665351516823,
+      2.1546649629174235,
+      0.965080896043587
+    ],
+    "landscaper 18": [
+      16.012735135300492,
+      2.627081138568543,
+      1.6094379124341003
+    ],
+    "landslide v2": [
+      16.012735135300492,
+      1.8718021769015913,
+      0.9162907318741551
+    ],
+    "last hope": [
+      15.830413578506539,
+      1.8458266904983307,
+      1.0986122886681096
+    ],
+    "last stand": [
+      15.60727002719233,
+      1.0986122886681096,
+      1.791759469228055
+    ],
+    "leafforest": [
+      16.31283972775083,
+      0.6931471805599453,
+      1.3217558399823195
+    ],
+    "leafforest no fps limit": [
+      16.31283972775083,
+      0.6931471805599453,
+      1.3217558399823195
+    ],
+    "leipzig lowlands": [
+      15.984564258333798,
+      1.0986122886681096,
+      1.6094379124341003
+    ],
+    "lethal-mill draft v2": [
+      16.485512691428955,
+      2.094945728215801,
+      1.0986122886681096
+    ],
+    "levelheaded": [
+      17.034386382832476,
+      1.3862943611198906,
+      1.7047480922384253
+    ],
+    "lights out": [
+      15.901182649394746,
+      0.9162907318741551,
+      1.0986122886681096
+    ],
+    "lights out v3": [
+      15.929353526361442,
+      0.9162907318741551,
+      1.0986122886681096
+    ],
+    "lineup": [
+      16.300417207752275,
+      0.9162907318741551,
+      0.6931471805599453
+    ],
+    "lion heart": [
+      16.32103649495501,
+      1.5040773967762742,
+      1.3217558399823195
+    ],
+    "lions foot": [
+      16.823665351516823,
+      1.7047480922384253,
+      0.965080896043587
+    ],
+    "lithium": [
+      15.648092021712584,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "lithium wars": [
+      15.648092021712584,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "living harbor (by shkai)": [
+      16.588099280204055,
+      1.455287232606842,
+      0.9985288301111271
+    ],
+    "lone eagle": [
+      16.32103649495501,
+      1.7047480922384253,
+      0.9162907318741551
+    ],
+    "lone eagle 2": [
+      15.424948470398375,
+      1.0986122886681096,
+      0.8109302162163288
+    ],
+    "lone eagle [no rush 10 min]": [
+      16.32103649495501,
+      1.7047480922384253,
+      0.9162907318741551
+    ],
+    "lone eagle v2": [
+      16.32103649495501,
+      2.0149030205422647,
+      1.0986122886681096
+    ],
+    "lone eagle v4": [
+      16.32103649495501,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "lone village [remasterd zh]": [
+      16.32103649495501,
+      2.3978952727983707,
+      1.9459101490553132
+    ],
+    "loneeagle": [
+      15.761420707019587,
+      2.3978952727983707,
+      2.302585092994046
+    ],
+    "lonely mountain": [
+      16.32103649495501,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "lonely town": [
+      16.166885815127753,
+      2.0149030205422647,
+      1.4469189829363254
+    ],
+    "long and 'ard (fatboyz)": [
+      15.830413578506539,
+      1.0986122886681096,
+      1.4663370687934272
+    ],
+    "long island nuclear winter": [
+      17.034386382832476,
+      1.7047480922384253,
+      1.8325814637483102
+    ],
+    "long march": [
+      16.11809565095832,
+      1.791759469228055,
+      1.7047480922384253
+    ],
+    "long river v3 by willietoo": [
+      16.32103649495501,
+      2.2512917986064953,
+      2.0794415416798357
+    ],
+    "loople island v8": [
+      16.55787200458396,
+      2.4849066497880004,
+      1.6422277352570913
+    ],
+    "loose sand": [
+      16.32103649495501,
+      1.3862943611198906,
+      0.33647223662121295
+    ],
+    "lost cause v4": [
+      16.203355494909143,
+      1.5040773967762742,
+      1.4469189829363254
+    ],
+    "lost highway": [
+      16.012735135300492,
+      1.7047480922384253,
+      1.6094379124341003
+    ],
+    "lost mountain (3)": [
+      15.424948470398375,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "lost temple zh preversion": [
+      16.141812177575638,
+      1.252762968495368,
+      1.1786549963416462
+    ],
+    "lost temple zh v1": [
+      16.141812177575638,
+      1.252762968495368,
+      1.1786549963416462
+    ],
+    "lost valley": [
+      15.211780002106243,
+      2.5257286443082556,
+      1.5040773967762742
+    ],
+    "lost valley battle": [
+      16.012735135300492,
+      1.992430164690206,
+      1.0986122886681096
+    ],
+    "lost world 1": [
+      16.823665351516823,
+      3.2188758248682006,
+      1.2992829841302609
+    ],
+    "loyalty and allegiance": [
+      15.943742263813542,
+      1.3862943611198906,
+      1.252762968495368
+    ],
+    "maguso zh v2": [
+      15.648092021712584,
+      1.7047480922384253,
+      0.5596157879354227
+    ],
+    "makewar": [
+      15.479436655682445,
+      1.8325814637483102,
+      1.6094379124341003
+    ],
+    "manic aggression": [
+      16.012735135300492,
+      0.6931471805599453,
+      1.6094379124341003
+    ],
+    "map 55 zh v1": [
+      15.501909511534503,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "map aku5": [
+      16.588099280204055,
+      0.9808292530117262,
+      0.9808292530117262
+    ],
+    "map aku8": [
+      16.588099280204055,
+      0.9808292530117262,
+      0.9162907318741551
+    ],
+    "market town": [
+      16.012735135300492,
+      1.6094379124341003,
+      1.8718021769015913
+    ],
+    "martian marauders": [
+      16.732740603363307,
+      1.9459101490553132,
+      1.0986122886681096
+    ],
+    "massive attack": [
+      17.034386382832476,
+      2.0794415416798357,
+      1.8971199848858813
+    ],
+    "matt's monster 1v7 mk2": [
+      16.300417207752275,
+      0.9162907318741551,
+      2.0794415416798357
+    ],
+    "max team war": [
+      16.503358051748965,
+      1.6094379124341003,
+      1.6094379124341003
+    ],
+    "maze of war": [
+      16.012735135300492,
+      0.6931471805599453,
+      1.6094379124341003
+    ],
+    "md_gla05_intro": [
+      16.9106355753963,
+      3.1780538303479458,
+      1.791759469228055
+    ],
+    "md_usa05": [
+      17.034386382832476,
+      2.833213344056216,
+      2.5649493574615367
+    ],
+    "md_usa06_intro": [
+      17.034386382832476,
+      2.70805020110221,
+      2.3978952727983707
+    ],
+    "medieval era v4": [
+      16.32103649495501,
+      2.5257286443082556,
+      0.7731898882334818
+    ],
+    "melting snow zh v2": [
+      15.449641082988746,
+      2.0794415416798357,
+      0.6931471805599453
+    ],
+    "middlehill": [
+      15.830413578506539,
+      2.5257286443082556,
+      2.0794415416798357
+    ],
+    "middleman": [
+      16.300417207752275,
+      2.3978952727983707,
+      0.5108256237659907
+    ],
+    "middleman-friendly": [
+      16.300417207752275,
+      2.0794415416798357,
+      1.2992829841302609
+    ],
+    "midnight ice": [
+      16.823665351516823,
+      1.2163953243244932,
+      1.8325814637483102
+    ],
+    "mightybattlefield": [
+      16.263061421208505,
+      1.0986122886681096,
+      1.2992829841302609
+    ],
+    "military encounter": [
+      16.588099280204055,
+      1.6341305250244718,
+      0.965080896043587
+    ],
+    "military encounter v5": [
+      16.588099280204055,
+      1.9636097261547143,
+      0.8649974374866045
+    ],
+    "mission": [
+      16.284668850784136,
+      3.7803945629497098,
+      1.6094379124341003
+    ],
+    "mission obliterate v1.2 (starh)": [
+      16.523560759066484,
+      1.1786549963416462,
+      1.6582280766035324
+    ],
+    "mission team": [
+      17.034386382832476,
+      0.9162907318741551,
+      0.6931471805599453
+    ],
+    "modern warfare zh v0": [
+      15.550699675703935,
+      2.5649493574615367,
+      1.252762968495368
+    ],
+    "mogadishu mayhem zh": [
+      16.952742393791965,
+      1.2729656758128876,
+      1.2729656758128876
+    ],
+    "monastery": [
+      15.648092021712584,
+      1.6094379124341003,
+      0.6931471805599453
+    ],
+    "money fields - final": [
+      16.588099280204055,
+      2.9444389791664403,
+      1.1526795099383853
+    ],
+    "monsoon island v4": [
+      17.225006742441124,
+      1.6422277352570913,
+      1.8191584434161694
+    ],
+    "moon mission": [
+      16.32103649495501,
+      0.7884573603642702,
+      1.6486586255873816
+    ],
+    "moose valley": [
+      16.012735135300492,
+      1.0986122886681096,
+      1.6094379124341003
+    ],
+    "morning dew v6": [
+      15.424948470398375,
+      2.2512917986064953,
+      0.5596157879354227
+    ],
+    "mortal temptation x": [
+      16.75467248002987,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "mortal temptation x [wbc winner]": [
+      16.75467248002987,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "mortal temptation zh v1": [
+      16.75467248002987,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "mount olympus (zh)": [
+      15.648092021712584,
+      0.6931471805599453,
+      0.8109302162163288
+    ],
+    "mountain aggression": [
+      15.80201410398484,
+      1.0986122886681096,
+      1.6094379124341003
+    ],
+    "mountain arena": [
+      15.201804919084164,
+      4.471638793363569,
+      0.6931471805599453
+    ],
+    "mountain borders - casino": [
+      16.43217619726463,
+      0.6931471805599453,
+      1.2878542883066382
+    ],
+    "mountain guns": [
+      16.32103649495501,
+      1.1631508098056809,
+      1.2237754316221157
+    ],
+    "mountain mayhem": [
+      15.272286681622536,
+      2.9444389791664403,
+      1.6094379124341003
+    ],
+    "mountain oil zh v1": [
+      15.201804919084164,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "mountain path": [
+      15.648092021712584,
+      1.7047480922384253,
+      1.0116009116784799
+    ],
+    "mountain path zh v3": [
+      15.648092021712584,
+      1.7047480922384253,
+      1.0116009116784799
+    ],
+    "mountain roads": [
+      16.32103649495501,
+      1.0116009116784799,
+      1.55814461804655
+    ],
+    "mountaindesertv05": [
+      16.588099280204055,
+      2.1594842493533726,
+      1.4271163556401456
+    ],
+    "mountainfox": [
+      16.32103649495501,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "mountian pass (starh)": [
+      17.14771506813948,
+      1.5040773967762742,
+      1.9694406464655074
+    ],
+    "mountian pass v1.2 (starh)": [
+      17.14771506813948,
+      1.3437347467010947,
+      1.9218125974762528
+    ],
+    "mountolympus": [
+      15.648092021712584,
+      0.6931471805599453,
+      0.8109302162163288
+    ],
+    "mt pinatubo": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.1394342831883648
+    ],
+    "mt pinatubo [wbc2022]": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.1394342831883648
+    ],
+    "mtwinsmore": [
+      15.74340220151691,
+      1.9459101490553132,
+      1.5040773967762742
+    ],
+    "muddy madness": [
+      16.588099280204055,
+      2.1400661634962708,
+      0.7537718023763802
+    ],
+    "my desert v06": [
+      16.172820550647565,
+      2.4849066497880004,
+      1.1631508098056809
+    ],
+    "natural threats zh v4": [
+      15.501909511534503,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "naval base mabuhay [wbc2022]": [
+      15.87474939232659,
+      2.4849066497880004,
+      1.1786549963416462
+    ],
+    "naval harbor": [
+      16.012735135300492,
+      1.3862943611198906,
+      1.3862943611198906
+    ],
+    "naval port reyes [wbc winner]": [
+      16.562781472219765,
+      2.4849066497880004,
+      1.4271163556401456
+    ],
+    "naval port reyes v2 [wbc2020]": [
+      16.562781472219765,
+      1.0986122886681096,
+      1.4271163556401456
+    ],
+    "naval port reyes v4 [wbc2020]": [
+      16.562781472219765,
+      1.6094379124341003,
+      1.2992829841302609
+    ],
+    "new map1": [
+      15.564710412773533,
+      2.3513752571634776,
+      1.5040773967762742
+    ],
+    "new york city": [
+      15.201804919084164,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "night shift": [
+      16.012735135300492,
+      1.6582280766035324,
+      1.6094379124341003
+    ],
+    "no man's land v3": [
+      16.012735135300492,
+      2.970414465569701,
+      1.7047480922384253
+    ],
+    "no mans land": [
+      17.216707939626428,
+      2.431417964837014,
+      1.3545456628053103
+    ],
+    "no retreat": [
+      16.588099280204055,
+      2.2512917986064953,
+      1.791759469228055
+    ],
+    "no surrender": [
+      16.588099280204055,
+      1.8718021769015913,
+      1.55814461804655
+    ],
+    "no way out 3vs3": [
+      16.079874438138123,
+      1.3862943611198906,
+      1.1526795099383853
+    ],
+    "no way out! v2": [
+      16.079874438138123,
+      2.3978952727983707,
+      1.9095425048844383
+    ],
+    "nocky mountains v2": [
+      16.263061421208505,
+      2.5902671654458267,
+      0.9808292530117262
+    ],
+    "nomads": [
+      16.823665351516823,
+      1.4469189829363254,
+      0.22314355131420976
+    ],
+    "north korea": [
+      16.588099280204055,
+      1.6094379124341003,
+      1.9459101490553132
+    ],
+    "northamerica": [
+      16.459022237928913,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "northamericaffa": [
+      16.459022237928913,
+      0.6931471805599453,
+      1.252762968495368
+    ],
+    "northern atlantic": [
+      16.823665351516823,
+      1.4170660197866443,
+      1.2878542883066382
+    ],
+    "nuke base": [
+      16.012735135300492,
+      2.740840023925201,
+      1.9459101490553132
+    ],
+    "obsolete overgrown v1": [
+      16.588099280204055,
+      2.662587827025453,
+      1.2992829841302609
+    ],
+    "ocean shores": [
+      16.588099280204055,
+      1.252762968495368,
+      1.3862943611198906
+    ],
+    "octagon roads 8 zh v2": [
+      16.141812177575638,
+      1.6582280766035324,
+      1.1394342831883648
+    ],
+    "octane winter zh v1": [
+      16.3773782488884,
+      2.094945728215801,
+      1.0986122886681096
+    ],
+    "oil carnage zh draft v5": [
+      16.012735135300492,
+      1.791759469228055,
+      2.1972245773362196
+    ],
+    "oil rampage site b": [
+      15.390357025628756,
+      1.791759469228055,
+      2.0794415416798357
+    ],
+    "oil rampage site c": [
+      15.375758226207603,
+      1.791759469228055,
+      2.1972245773362196
+    ],
+    "oil rampage v3": [
+      15.319587954740548,
+      1.791759469228055,
+      2.1972245773362196
+    ],
+    "oil rampaging zone": [
+      15.60727002719233,
+      1.791759469228055,
+      2.3978952727983707
+    ],
+    "omaha assault": [
+      16.588099280204055,
+      1.2163953243244932,
+      1.8123787564307907
+    ],
+    "onza map v1": [
+      15.648092021712584,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "onzamap": [
+      15.648092021712584,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "operation desert combat": [
+      16.823665351516823,
+      0.965080896043587,
+      1.6094379124341003
+    ],
+    "operation light wings zh": [
+      16.012735135300492,
+      2.5649493574615367,
+      2.3513752571634776
+    ],
+    "origin of elegies": [
+      16.32103649495501,
+      1.0116009116784799,
+      1.252762968495368
+    ],
+    "out there": [
+      15.944932031949131,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "over your shoulder multiplayer v_1": [
+      15.414898134544874,
+      2.6741486494265287,
+      1.6094379124341003
+    ],
+    "over your shoulder single player v_1": [
+      15.414898134544874,
+      2.6741486494265287,
+      1.6094379124341003
+    ],
+    "overland": [
+      16.263061421208505,
+      1.9459101490553132,
+      0.9162907318741551
+    ],
+    "p-u-b-g": [
+      17.974393641323946,
+      2.0794415416798357,
+      1.9459101490553132
+    ],
+    "pacific control zh": [
+      16.83695443695416,
+      2.277267285009756,
+      1.7047480922384253
+    ],
+    "pagasa fortress": [
+      16.588099280204055,
+      2.302585092994046,
+      1.2992829841302609
+    ],
+    "pagasa fortress [wbc2023]": [
+      16.588099280204055,
+      2.302585092994046,
+      1.2992829841302609
+    ],
+    "pantsonfire": [
+      17.034386382832476,
+      2.70805020110221,
+      1.7047480922384253
+    ],
+    "paradise lost": [
+      16.32103649495501,
+      2.6210388241125804,
+      1.0986122886681096
+    ],
+    "particle runway 4v4 compstomp bunny 20150422": [
+      16.012735135300492,
+      1.4170660197866443,
+      0.8109302162163288
+    ],
+    "pathfinder": [
+      17.034386382832476,
+      1.0560526742493137,
+      1.6094379124341003
+    ],
+    "pearl harbor": [
+      16.823665351516823,
+      2.5649493574615367,
+      0.8472978603872036
+    ],
+    "persian gulf conflict v5": [
+      16.778719639812707,
+      2.4849066497880004,
+      1.7047480922384253
+    ],
+    "philippine highlands": [
+      16.141812177575638,
+      1.7346010553881064,
+      1.5040773967762742
+    ],
+    "philippine highlands zh": [
+      16.141812177575638,
+      1.7346010553881064,
+      1.5040773967762742
+    ],
+    "philippines zh fl by zein": [
+      16.588099280204055,
+      1.3217558399823195,
+      1.8718021769015913
+    ],
+    "piece of cake v4": [
+      16.485512691428955,
+      1.8152899666382492,
+      1.0986122886681096
+    ],
+    "pitfall": [
+      16.32103649495501,
+      1.0986122886681096,
+      1.791759469228055
+    ],
+    "planet coyon v1": [
+      15.501909511534503,
+      2.9444389791664403,
+      1.0986122886681096
+    ],
+    "plateau battle": [
+      16.43217619726463,
+      1.0986122886681096,
+      2.4423470353692043
+    ],
+    "platform war v4": [
+      16.90655301132259,
+      1.5404450409471488,
+      1.5040773967762742
+    ],
+    "plus": [
+      17.034386382832476,
+      1.3862943611198906,
+      1.55814461804655
+    ],
+    "poseidon's lair v2": [
+      15.58706731987481,
+      1.9459101490553132,
+      2.1972245773362196
+    ],
+    "poverty side v5": [
+      16.588099280204055,
+      2.302585092994046,
+      0.7537718023763802
+    ],
+    "preemptive strike (zh)": [
+      16.32103649495501,
+      1.3862943611198906,
+      0.8472978603872036
+    ],
+    "pro skills 7000 v1": [
+      15.099218330309064,
+      1.6817585740137266,
+      0.6286086594223741
+    ],
+    "pro skills 8000 v1": [
+      15.099218330309064,
+      1.6094379124341003,
+      0.6931471805599453
+    ],
+    "pro skills 8p desert arena v1": [
+      15.201804919084164,
+      1.6094379124341003,
+      0.6931471805599453
+    ],
+    "pro skills desert maze v2": [
+      15.648092021712584,
+      0.6286086594223741,
+      1.252762968495368
+    ],
+    "promised-land": [
+      16.929025867174648,
+      2.1594842493533726,
+      0.8472978603872036
+    ],
+    "protected city [by slick]": [
+      16.588099280204055,
+      3.0081547935525483,
+      1.0560526742493137
+    ],
+    "proxy war v1": [
+      15.550699675703935,
+      2.5649493574615367,
+      1.252762968495368
+    ],
+    "purgatory": [
+      16.588099280204055,
+      1.4663370687934272,
+      1.252762968495368
+    ],
+    "purification v4": [
+      15.80201410398484,
+      2.772588722239781,
+      0.8109302162163288
+    ],
+    "purple hearts [wbc2021]": [
+      16.68567960854292,
+      1.6916760106710726,
+      0.7621400520468967
+    ],
+    "purple hearts v3": [
+      16.68567960854292,
+      1.6916760106710726,
+      0.7621400520468967
+    ],
+    "racing park": [
+      16.588099280204055,
+      0.6931471805599453,
+      1.041453874828161
+    ],
+    "radiation ultima [wbc2021]": [
+      16.536805985816503,
+      1.0986122886681096,
+      1.4663370687934272
+    ],
+    "raggedriches": [
+      15.802836810736304,
+      2.583997552432231,
+      2.1972245773362196
+    ],
+    "rail replacement transport v2": [
+      16.11809565095832,
+      2.6741486494265287,
+      1.4663370687934272
+    ],
+    "rebirth valley v1": [
+      16.454567887579532,
+      1.1786549963416462,
+      1.6341305250244718
+    ],
+    "receding peninsula (2v2) v2": [
+      16.588099280204055,
+      2.0476928433652555,
+      1.252762968495368
+    ],
+    "red cross": [
+      16.012735135300492,
+      1.6094379124341003,
+      1.252762968495368
+    ],
+    "red cross se": [
+      16.012735135300492,
+      1.791759469228055,
+      1.252762968495368
+    ],
+    "red cross te": [
+      16.012735135300492,
+      2.224623551524334,
+      1.5040773967762742
+    ],
+    "red rock": [
+      16.48273876454623,
+      0.9808292530117262,
+      0.6931471805599453
+    ],
+    "redsnows": [
+      16.012735135300492,
+      0.7731898882334818,
+      0.6931471805599453
+    ],
+    "resistance": [
+      16.32103649495501,
+      1.0560526742493137,
+      0.6286086594223741
+    ],
+    "restruction station": [
+      16.459022237928913,
+      1.6094379124341003,
+      1.0116009116784799
+    ],
+    "return to temptation island": [
+      16.012735135300492,
+      2.4423470353692043,
+      2.0476928433652555
+    ],
+    "rig ring": [
+      16.3773782488884,
+      2.1400661634962708,
+      1.1394342831883648
+    ],
+    "ring of war": [
+      15.80201410398484,
+      1.9095425048844383,
+      0.7537718023763802
+    ],
+    "rising legion": [
+      15.481328803834483,
+      1.3862943611198906,
+      1.6094379124341003
+    ],
+    "rising of the leyend v2": [
+      15.566448032672074,
+      2.1972245773362196,
+      0.9162907318741551
+    ],
+    "river clash": [
+      15.642057852677993,
+      2.6741486494265287,
+      2.0794415416798357
+    ],
+    "river clash 2": [
+      15.829025949527944,
+      3.1354942159291497,
+      1.3862943611198906
+    ],
+    "river crossing xl": [
+      16.823665351516823,
+      2.4849066497880004,
+      1.0986122886681096
+    ],
+    "river crossing xl lite": [
+      16.823665351516823,
+      2.4849066497880004,
+      1.0986122886681096
+    ],
+    "river drought v2": [
+      16.588099280204055,
+      2.5776883832389665,
+      1.4663370687934272
+    ],
+    "river stronghold": [
+      16.627920774390727,
+      1.7047480922384253,
+      1.2163953243244932
+    ],
+    "rock-bottom": [
+      16.823665351516823,
+      0.7537718023763802,
+      1.3862943611198906
+    ],
+    "rocky rampage": [
+      16.172820550647565,
+      0.6931471805599453,
+      1.252762968495368
+    ],
+    "rogersun": [
+      16.823665351516823,
+      1.1786549963416462,
+      1.5040773967762742
+    ],
+    "rogue agent": [
+      16.39002936644196,
+      1.0986122886681096,
+      0.8109302162163288
+    ],
+    "rubies and pearls": [
+      16.012735135300492,
+      1.9459101490553132,
+      1.0986122886681096
+    ],
+    "run the middle": [
+      16.811242831518264,
+      2.409194828052304,
+      1.3862943611198906
+    ],
+    "rush hour": [
+      16.012735135300492,
+      0.9162907318741551,
+      1.252762968495368
+    ],
+    "sacred land": [
+      15.512959347721088,
+      2.995732273553991,
+      2.0794415416798357
+    ],
+    "sand islands v5": [
+      16.012735135300492,
+      1.6094379124341003,
+      1.6739764335716716
+    ],
+    "sand kings zh": [
+      16.732740603363307,
+      1.252762968495368,
+      1.8325814637483102
+    ],
+    "sand lion": [
+      16.448327025275724,
+      2.70805020110221,
+      1.7346010553881064
+    ],
+    "sand serpent": [
+      15.726533448019147,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "sand serpent fixed": [
+      15.726533448019147,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "sand storm": [
+      15.424948470398375,
+      1.7047480922384253,
+      0.4054651081081644
+    ],
+    "sand, cities and canyons": [
+      16.012735135300492,
+      1.791759469228055,
+      1.6094379124341003
+    ],
+    "sandbush!": [
+      15.802836810736304,
+      2.583997552432231,
+      2.1972245773362196
+    ],
+    "sandforest domination v4": [
+      15.501909511534503,
+      2.2512917986064953,
+      1.8718021769015913
+    ],
+    "sandforest domination v5": [
+      15.501909511534503,
+      2.3513752571634776,
+      1.9459101490553132
+    ],
+    "sandy punishment": [
+      16.32103649495501,
+      1.5040773967762742,
+      1.3862943611198906
+    ],
+    "sapphire streams": [
+      16.636889444373487,
+      1.4271163556401456,
+      0.8472978603872036
+    ],
+    "savas-meydani-v1": [
+      15.726533448019147,
+      2.302585092994046,
+      1.041453874828161
+    ],
+    "savas-meydani-v2": [
+      15.726533448019147,
+      2.302585092994046,
+      1.041453874828161
+    ],
+    "save da villages": [
+      16.32103649495501,
+      1.0986122886681096,
+      1.7047480922384253
+    ],
+    "schneegestoeber": [
+      16.588099280204055,
+      1.041453874828161,
+      0.9808292530117262
+    ],
+    "scorched earth zh v2": [
+      15.099218330309064,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "scorched earth zh v3": [
+      15.099218330309064,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "scorpion's sting": [
+      16.588099280204055,
+      3.091042453358316,
+      2.0794415416798357
+    ],
+    "seaside mutiny": [
+      15.838712381321233,
+      1.9459101490553132,
+      1.791759469228055
+    ],
+    "seaside mutiny fix": [
+      15.838712381321233,
+      2.5257286443082556,
+      1.6094379124341003
+    ],
+    "seasons": [
+      16.31776584608689,
+      2.70805020110221,
+      1.8718021769015913
+    ],
+    "secret garden v2": [
+      16.778719639812707,
+      1.252762968495368,
+      1.0986122886681096
+    ],
+    "settlers of catan": [
+      15.201804919084164,
+      2.3353749158170367,
+      0.5108256237659907
+    ],
+    "seven star assault": [
+      16.931799794057373,
+      1.791759469228055,
+      1.2729656758128876
+    ],
+    "severe winter": [
+      16.012735135300492,
+      2.2512917986064953,
+      1.0116009116784799
+    ],
+    "shallow grave": [
+      16.588099280204055,
+      0.8472978603872036,
+      0.8472978603872036
+    ],
+    "shangri-la": [
+      16.012735135300492,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "shared bases": [
+      15.830413578506539,
+      1.9459101490553132,
+      2.4849066497880004
+    ],
+    "shivas paradise v4": [
+      15.86963429165982,
+      2.5649493574615367,
+      2.0149030205422647
+    ],
+    "shkai - ridgeline": [
+      16.235878686614704,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "shuriken 4": [
+      16.32103649495501,
+      1.9459101490553132,
+      1.0986122886681096
+    ],
+    "sibera wasteland": [
+      15.648092021712584,
+      0.6931471805599453,
+      1.7047480922384253
+    ],
+    "siberia": [
+      16.952742393791965,
+      1.2992829841302609,
+      1.5040773967762742
+    ],
+    "siberian ice caps": [
+      16.012735135300492,
+      1.0986122886681096,
+      1.3217558399823195
+    ],
+    "siberian winter": [
+      17.034386382832476,
+      1.3217558399823195,
+      1.9095425048844383
+    ],
+    "sidewinder": [
+      16.166885815127753,
+      0.6931471805599453,
+      0.6061358035703156
+    ],
+    "silent river": [
+      16.077273656438063,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "silent storm": [
+      16.600521800202614,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "sin city": [
+      16.823665351516823,
+      1.0986122886681096,
+      0.7537718023763802
+    ],
+    "situation selfish v1.2 (starh)": [
+      16.823665351516823,
+      1.0986122886681096,
+      2.302585092994046
+    ],
+    "six iron dragons": [
+      16.41820024340866,
+      2.3826278006675823,
+      1.3437347467010947
+    ],
+    "six-part race": [
+      16.709348523836926,
+      0.6931471805599453,
+      0.9808292530117262
+    ],
+    "six_bridge_deluxe": [
+      16.588099280204055,
+      1.0986122886681096,
+      1.3437347467010947
+    ],
+    "sixpack fight": [
+      16.823665351516823,
+      1.3437347467010947,
+      0.9808292530117262
+    ],
+    "slaughter pen": [
+      16.11809565095832,
+      1.9095425048844383,
+      2.772588722239781
+    ],
+    "small town v12": [
+      16.012735135300492,
+      0.965080896043587,
+      1.9459101490553132
+    ],
+    "smallville (4)": [
+      15.984564258333798,
+      1.7047480922384253,
+      1.8718021769015913
+    ],
+    "sniper's haven": [
+      15.89495209964411,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "snow aggression v2": [
+      15.761420707019587,
+      1.8718021769015913,
+      1.3862943611198906
+    ],
+    "snow blind zh v1": [
+      15.648092021712584,
+      1.9459101490553132,
+      0.9162907318741551
+    ],
+    "snow bound (4)": [
+      15.627889314395064,
+      1.6094379124341003,
+      1.8325814637483102
+    ],
+    "snow feud se": [
+      16.588099280204055,
+      1.5260563034950494,
+      1.4350845252893227
+    ],
+    "snow land nation v3": [
+      15.726533448019147,
+      2.3978952727983707,
+      2.0149030205422647
+    ],
+    "snow triangle": [
+      16.32103649495501,
+      1.9459101490553132,
+      1.6094379124341003
+    ],
+    "snowcanoe": [
+      16.012735135300492,
+      2.70805020110221,
+      1.3862943611198906
+    ],
+    "snowheaven": [
+      16.823665351516823,
+      1.749199854809259,
+      0.9162907318741551
+    ],
+    "snowland": [
+      15.341566861459324,
+      0.6931471805599453,
+      0.9162907318741551
+    ],
+    "snowy island (te)": [
+      16.166885815127753,
+      0.6931471805599453,
+      1.3862943611198906
+    ],
+    "snowy lands": [
+      17.399029496420383,
+      1.7047480922384253,
+      1.1786549963416462
+    ],
+    "snowy plateau v2": [
+      15.60727002719233,
+      2.0794415416798357,
+      1.8718021769015913
+    ],
+    "snowy roads v3": [
+      15.538277155705378,
+      2.3978952727983707,
+      1.5040773967762742
+    ],
+    "something to fight for": [
+      17.05428704453881,
+      2.264363880173848,
+      2.1832383353614793
+    ],
+    "souther pacific islands": [
+      17.399029496420383,
+      2.0476928433652555,
+      2.211017899468555
+    ],
+    "spiders island v1": [
+      16.141812177575638,
+      2.3978952727983707,
+      1.1786549963416462
+    ],
+    "squared": [
+      17.559114911767455,
+      2.0149030205422647,
+      1.6094379124341003
+    ],
+    "stalemate": [
+      15.319587954740548,
+      2.3978952727983707,
+      1.0986122886681096
+    ],
+    "star island": [
+      16.811242831518264,
+      0.6931471805599453,
+      1.6094379124341003
+    ],
+    "stinger v2d zh": [
+      16.68567960854292,
+      1.9459101490553132,
+      0.9162907318741551
+    ],
+    "stone ocean v3": [
+      16.32103649495501,
+      1.9459101490553132,
+      1.4271163556401456
+    ],
+    "stonehenge zh v1": [
+      15.512959347721088,
+      2.833213344056216,
+      1.5040773967762742
+    ],
+    "stoney batter": [
+      15.201804919084164,
+      2.0794415416798357,
+      1.6094379124341003
+    ],
+    "storm surge": [
+      15.726533448019147,
+      2.0794415416798357,
+      0.9162907318741551
+    ],
+    "storm valley hailstone": [
+      15.510593914926869,
+      1.8718021769015913,
+      1.252762968495368
+    ],
+    "storming harvest v2 [wbc2021]": [
+      16.43217619726463,
+      2.0794415416798357,
+      0.7621400520468967
+    ],
+    "storming harvest v5": [
+      16.43217619726463,
+      2.0794415416798357,
+      0.7621400520468967
+    ],
+    "strongholds (4)": [
+      16.235878686614704,
+      1.8718021769015913,
+      2.0149030205422647
+    ],
+    "subzero": [
+      15.35752579408094,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "sumatra": [
+      16.823665351516823,
+      2.772588722239781,
+      1.6094379124341003
+    ],
+    "summer retreat1": [
+      16.249123913364723,
+      1.9459101490553132,
+      1.041453874828161
+    ],
+    "summoners rift": [
+      16.012735135300492,
+      2.8903717578961645,
+      1.791759469228055
+    ],
+    "sunken destruction": [
+      15.566448032672074,
+      1.7047480922384253,
+      1.0116009116784799
+    ],
+    "sunken destructionv7": [
+      15.726533448019147,
+      1.7047480922384253,
+      1.0116009116784799
+    ],
+    "sunrise showdown": [
+      16.32103649495501,
+      1.2992829841302609,
+      0.7731898882334818
+    ],
+    "sunset beach": [
+      16.99356438831222,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "survival [1 oil] 6 players v1 [lichtone]": [
+      16.019390715485844,
+      0.6931471805599453,
+      0.1541506798272583
+    ],
+    "survival [1 oil] 6 players v1 [lichtonne] 3v3": [
+      16.019390715485844,
+      0.6931471805599453,
+      0.1541506798272583
+    ],
+    "swamp assault v2 [wbc2021]": [
+      16.459022237928913,
+      1.9859154836690125,
+      0.7621400520468967
+    ],
+    "swamp assault v3 [wbc2021]": [
+      16.459022237928913,
+      1.9859154836690125,
+      0.7621400520468967
+    ],
+    "swamp matrix": [
+      16.823665351516823,
+      2.1972245773362196,
+      1.5841201044498106
+    ],
+    "swampy swamp swamper swamp swimp swamp": [
+      15.648092021712584,
+      0.9162907318741551,
+      1.3862943611198906
+    ],
+    "swedish fire v2": [
+      16.11809565095832,
+      2.1972245773362196,
+      1.3862943611198906
+    ],
+    "swiss mountainside (by gowmanag)": [
+      16.588099280204055,
+      1.7272209480904839,
+      0.7537718023763802
+    ],
+    "sylt v4": [
+      16.349207371921707,
+      2.3978952727983707,
+      1.1631508098056809
+    ],
+    "sylt v5": [
+      16.349207371921707,
+      2.3978952727983707,
+      1.1631508098056809
+    ],
+    "taal lake [wbc2023]": [
+      16.263061421208505,
+      2.0794415416798357,
+      0.8754687373538999
+    ],
+    "taal lake final": [
+      16.263061421208505,
+      2.0794415416798357,
+      0.8754687373538999
+    ],
+    "taiga terror": [
+      16.141812177575638,
+      2.3978952727983707,
+      0.9808292530117262
+    ],
+    "taiga terror v5": [
+      16.141812177575638,
+      2.3978952727983707,
+      0.9808292530117262
+    ],
+    "taste the ice v2": [
+      15.943742263813542,
+      0.6931471805599453,
+      0.5596157879354227
+    ],
+    "td tactical mod v6-36": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "team plateaus": [
+      16.32103649495501,
+      1.5040773967762742,
+      2.327277705584417
+    ],
+    "team turtle": [
+      15.830413578506539,
+      2.833213344056216,
+      1.252762968495368
+    ],
+    "temperate woods v3": [
+      15.60727002719233,
+      2.4849066497880004,
+      0.6931471805599453
+    ],
+    "temptation": [
+      17.034386382832476,
+      2.3513752571634776,
+      1.6094379124341003
+    ],
+    "temptation island": [
+      16.012735135300492,
+      1.8718021769015913,
+      1.6582280766035324
+    ],
+    "terra fantastica": [
+      17.034386382832476,
+      2.4423470353692043,
+      1.7346010553881064
+    ],
+    "terra nova": [
+      16.588099280204055,
+      2.1400661634962708,
+      1.6094379124341003
+    ],
+    "terrahill": [
+      16.823665351516823,
+      0.6931471805599453,
+      1.8325814637483102
+    ],
+    "terrain arena": [
+      16.3773782488884,
+      2.5776883832389665,
+      1.0986122886681096
+    ],
+    "territorial dispute": [
+      16.32103649495501,
+      1.4663370687934272,
+      0.7731898882334818
+    ],
+    "tf domi edit": [
+      16.993980968197437,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "the beachhead": [
+      16.588099280204055,
+      0.6931471805599453,
+      1.791759469228055
+    ],
+    "the blue death war": [
+      16.823665351516823,
+      1.3862943611198906,
+      1.8718021769015913
+    ],
+    "the eagles nest": [
+      15.89495209964411,
+      1.5040773967762742,
+      1.5040773967762742
+    ],
+    "the final 6": [
+      17.01173169226767,
+      1.6094379124341003,
+      0.9808292530117262
+    ],
+    "the first strike zh v2": [
+      15.424948470398375,
+      1.8718021769015913,
+      1.0986122886681096
+    ],
+    "the forgotten castle": [
+      16.70588231586044,
+      0.965080896043587,
+      1.4759065198095778
+    ],
+    "the frozen battlefield [made by n0ttws]": [
+      16.263061421208505,
+      2.302585092994046,
+      1.2809338454620645
+    ],
+    "the grand scheme of things (starh)": [
+      17.216707939626428,
+      1.252762968495368,
+      1.1526795099383853
+    ],
+    "the high pass shockwave version": [
+      16.523560759066484,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "the high pass vanilla version": [
+      16.523560759066484,
+      1.0986122886681096,
+      1.791759469228055
+    ],
+    "the hills of glory": [
+      16.012735135300492,
+      1.3862943611198906,
+      1.3217558399823195
+    ],
+    "the hub": [
+      16.374287056318728,
+      2.5649493574615367,
+      1.0986122886681096
+    ],
+    "the joining rivers v 1.2 (starh)": [
+      17.216707939626428,
+      1.0986122886681096,
+      1.33500106673234
+    ],
+    "the king's lair v2": [
+      16.3773782488884,
+      2.0794415416798357,
+      1.6094379124341003
+    ],
+    "the last castle": [
+      16.588099280204055,
+      2.505525936990736,
+      0.8109302162163288
+    ],
+    "the middle kingdom": [
+      17.034386382832476,
+      1.791759469228055,
+      0.8472978603872036
+    ],
+    "the morning freeway frack": [
+      16.588099280204055,
+      1.5040773967762742,
+      2.0794415416798357
+    ],
+    "the rig": [
+      15.538277155705378,
+      2.1400661634962708,
+      1.0986122886681096
+    ],
+    "the rise to power": [
+      17.034386382832476,
+      1.8458266904983307,
+      2.0794415416798357
+    ],
+    "the silence of sky": [
+      16.012735135300492,
+      1.9459101490553132,
+      0.6286086594223741
+    ],
+    "the survivors draft 5": [
+      15.907374619642667,
+      2.302585092994046,
+      1.7047480922384253
+    ],
+    "the triad": [
+      15.830413578506539,
+      1.9459101490553132,
+      2.120263536200091
+    ],
+    "the_crossroads": [
+      16.18855411460688,
+      1.5404450409471488,
+      1.6739764335716716
+    ],
+    "theatreofwar": [
+      16.823665351516823,
+      1.3862943611198906,
+      0.4054651081081644
+    ],
+    "thedeltabridge": [
+      16.012735135300492,
+      1.5040773967762742,
+      1.3862943611198906
+    ],
+    "thefortifiedisland": [
+      16.588099280204055,
+      2.5257286443082556,
+      1.0986122886681096
+    ],
+    "thefrontline": [
+      16.015398252719976,
+      2.0794415416798357,
+      1.0986122886681096
+    ],
+    "thermopylae v5": [
+      15.60727002719233,
+      2.970414465569701,
+      1.0986122886681096
+    ],
+    "thesands": [
+      15.785137233636904,
+      2.70805020110221,
+      1.1786549963416462
+    ],
+    "thru the town": [
+      15.776337468307867,
+      2.995732273553991,
+      0.9162907318741551
+    ],
+    "thunder maze": [
+      17.399029496420383,
+      1.5040773967762742,
+      2.0794415416798357
+    ],
+    "thy kingdom lagoon [wbc2022]": [
+      16.68567960854292,
+      1.8718021769015913,
+      1.5314763709643886
+    ],
+    "tides of blood (by genome)": [
+      16.012735135300492,
+      1.0986122886681096,
+      1.5404450409471488
+    ],
+    "tides of war": [
+      17.034386382832476,
+      0.6931471805599453,
+      1.1394342831883648
+    ],
+    "timber valley": [
+      15.479436655682445,
+      2.1594842493533726,
+      1.2039728043259361
+    ],
+    "timberline": [
+      16.823665351516823,
+      1.8718021769015913,
+      0.9162907318741551
+    ],
+    "timberwolf": [
+      16.148197994774762,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "tiny tactics zh v2": [
+      15.767118728134225,
+      2.833213344056216,
+      1.6094379124341003
+    ],
+    "titenworld 8 player": [
+      16.993980968197437,
+      1.0986122886681096,
+      1.0116009116784799
+    ],
+    "to war or not to war (starh)": [
+      17.216707939626428,
+      1.0986122886681096,
+      2.243744592971112
+    ],
+    "to war or not to war v1.2 (starh)": [
+      17.216707939626428,
+      1.0986122886681096,
+      2.243744592971112
+    ],
+    "torra borra (by pullover-jonny) (zh)": [
+      16.32103649495501,
+      2.302585092994046,
+      1.0986122886681096
+    ],
+    "tortured waters (starh)": [
+      17.034386382832476,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "totf frozen valley": [
+      17.261043753446483,
+      1.2039728043259361,
+      1.7635885922613586
+    ],
+    "tournament blizzard [shw]": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "tournament c": [
+      16.454567887579532,
+      2.538973871058276,
+      1.1526795099383853
+    ],
+    "tournament city": [
+      16.931799794057373,
+      1.8718021769015913,
+      0.6061358035703156
+    ],
+    "tournament continent": [
+      16.459022237928913,
+      1.9810014688665833,
+      0.6931471805599453
+    ],
+    "tournament d": [
+      16.27403045257908,
+      3.2188758248682006,
+      0.9162907318741551
+    ],
+    "tournament desert": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "tournament desert 4p": [
+      16.06680235657077,
+      2.1972245773362196,
+      0.6931471805599453
+    ],
+    "tournament desert revived": [
+      15.58706731987481,
+      2.3978952727983707,
+      0.6931471805599453
+    ],
+    "tournament dominator v5": [
+      16.68567960854292,
+      2.302585092994046,
+      1.6650077635889111
+    ],
+    "tournament graveyard zh v2": [
+      16.231424336265324,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "tournament himalaya v2": [
+      15.87474939232659,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "tournament in the canyon_afternoon": [
+      15.501909511534503,
+      2.70805020110221,
+      1.0986122886681096
+    ],
+    "tournament island": [
+      16.32103649495501,
+      1.6094379124341003,
+      1.1786549963416462
+    ],
+    "tournament lake": [
+      16.078314780946474,
+      2.0794415416798357,
+      0.9162907318741551
+    ],
+    "tournament mountain": [
+      16.012735135300492,
+      2.1972245773362196,
+      1.1786549963416462
+    ],
+    "tournament plains": [
+      15.984564258333798,
+      1.0986122886681096,
+      1.5040773967762742
+    ],
+    "tournament river revisited zh": [
+      16.32103649495501,
+      1.9810014688665833,
+      1.0986122886681096
+    ],
+    "tournament snow": [
+      16.320015565820903,
+      2.4423470353692043,
+      1.3217558399823195
+    ],
+    "tournament snowy railroad": [
+      16.811242831518264,
+      2.583997552432231,
+      0.9162907318741551
+    ],
+    "tournament spaceship [wbc2022]": [
+      16.588099280204055,
+      3.258096538021482,
+      1.6582280766035324
+    ],
+    "tournament spaceship v4": [
+      16.588099280204055,
+      3.258096538021482,
+      1.6582280766035324
+    ],
+    "tournament tundra": [
+      16.3773782488884,
+      2.169053700369523,
+      1.55814461804655
+    ],
+    "tournament urban": [
+      16.110315463639356,
+      0.8109302162163288,
+      0.9162907318741551
+    ],
+    "tournament urban v2": [
+      16.110315463639356,
+      1.1786549963416462,
+      1.0986122886681096
+    ],
+    "tournament valley": [
+      16.70588231586044,
+      2.0794415416798357,
+      1.2992829841302609
+    ],
+    "tournament valley 2": [
+      16.70588231586044,
+      2.178532444324067,
+      1.4663370687934272
+    ],
+    "tournament wilderness": [
+      16.300417207752275,
+      2.0794415416798357,
+      1.4469189829363254
+    ],
+    "tournamenta": [
+      16.320015565820903,
+      2.3513752571634776,
+      0.8109302162163288
+    ],
+    "tournamenta v2": [
+      16.320015565820903,
+      2.3513752571634776,
+      1.3217558399823195
+    ],
+    "tournamentb": [
+      16.32103649495501,
+      2.3513752571634776,
+      0.6931471805599453
+    ],
+    "tournamentriver": [
+      16.32103649495501,
+      1.9810014688665833,
+      1.0986122886681096
+    ],
+    "toxic assault": [
+      16.588099280204055,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "toxic lake v4": [
+      15.60727002719233,
+      2.3978952727983707,
+      1.791759469228055
+    ],
+    "toxic nightmare": [
+      16.823665351516823,
+      1.252762968495368,
+      1.1394342831883648
+    ],
+    "train town": [
+      16.823665351516823,
+      1.9810014688665833,
+      2.1102132003465894
+    ],
+    "trained for war (starh)": [
+      17.50439001207821,
+      1.1394342831883648,
+      1.0986122886681096
+    ],
+    "trained for war 2 (5playerversion) (starh)": [
+      17.14771506813948,
+      1.0986122886681096,
+      1.4350845252893227
+    ],
+    "trains drains and valve stations": [
+      16.68567960854292,
+      1.3862943611198906,
+      1.791759469228055
+    ],
+    "transition zh v2": [
+      15.984564258333798,
+      1.3862943611198906,
+      0.5108256237659907
+    ],
+    "transmountain": [
+      16.588099280204055,
+      1.7047480922384253,
+      1.6094379124341003
+    ],
+    "tree park": [
+      15.89495209964411,
+      1.2809338454620645,
+      1.2237754316221157
+    ],
+    "tremble v2": [
+      15.64167145390966,
+      2.8622008809294686,
+      1.8718021769015913
+    ],
+    "tri axoni": [
+      16.012735135300492,
+      2.2335922215070942,
+      1.8971199848858813
+    ],
+    "triad (3)": [
+      15.830413578506539,
+      1.9459101490553132,
+      2.120263536200091
+    ],
+    "trigger island": [
+      16.70921010595311,
+      2.995732273553991,
+      2.03688192726104
+    ],
+    "trinity island x": [
+      16.14083513792781,
+      2.1972245773362196,
+      1.0986122886681096
+    ],
+    "trip time desert": [
+      15.633587335509702,
+      2.4849066497880004,
+      1.3862943611198906
+    ],
+    "triple crossing v1.2 (starh)": [
+      16.70588231586044,
+      1.0986122886681096,
+      1.55814461804655
+    ],
+    "triple_threat": [
+      15.823630626209706,
+      1.0116009116784799,
+      2.1400661634962708
+    ],
+    "triplex": [
+      16.70588231586044,
+      0.8109302162163288,
+      1.252762968495368
+    ],
+    "tropcial trigons v3": [
+      16.485512691428955,
+      1.5040773967762742,
+      1.3862943611198906
+    ],
+    "tropical forest (c009)": [
+      16.823665351516823,
+      2.1400661634962708,
+      2.0794415416798357
+    ],
+    "tropical fortress": [
+      16.67430564575891,
+      2.302585092994046,
+      1.8718021769015913
+    ],
+    "tropical thunder storm": [
+      16.012735135300492,
+      1.3217558399823195,
+      1.0986122886681096
+    ],
+    "tropical trance": [
+      15.201804919084164,
+      0.6931471805599453,
+      0.6931471805599453
+    ],
+    "tropicaldesert": [
+      16.166885815127753,
+      2.169053700369523,
+      1.3862943611198906
+    ],
+    "tropicalflame": [
+      16.993980968197437,
+      1.252762968495368,
+      1.7272209480904839
+    ],
+    "tropico2": [
+      16.108045315104818,
+      0.6931471805599453,
+      0.6931471805599453
+    ],
+    "tropsko voce": [
+      16.588099280204055,
+      2.4203681286504293,
+      1.0116009116784799
+    ],
+    "truth from defiance": [
+      16.600521800202614,
+      1.1786549963416462,
+      2.0149030205422647
+    ],
+    "tt twister": [
+      16.485512691428955,
+      2.094945728215801,
+      1.0986122886681096
+    ],
+    "tt twister v1": [
+      16.485512691428955,
+      2.495269436823547,
+      1.0986122886681096
+    ],
+    "tumbleweed tactics v1": [
+      16.48273876454623,
+      2.3978952727983707,
+      1.4271163556401456
+    ],
+    "tundra tantrums (starh)": [
+      16.823665351516823,
+      1.1631508098056809,
+      1.3862943611198906
+    ],
+    "twenty4seven [wbc2021]": [
+      16.68567960854292,
+      1.0986122886681096,
+      1.4213856809311607
+    ],
+    "twilight fire 2": [
+      16.823665351516823,
+      0.9162907318741551,
+      1.749199854809259
+    ],
+    "twilight flame": [
+      16.993980968197437,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "twilight flame 2v2[turko]v25": [
+      15.271214370456333,
+      2.691243082785829,
+      1.4469189829363254
+    ],
+    "twilight flame edit": [
+      16.993980968197437,
+      1.252762968495368,
+      0.8109302162163288
+    ],
+    "twilight flame for tourney": [
+      16.993980968197437,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "twilight flame half": [
+      16.36025720810829,
+      0.9162907318741551,
+      0.9162907318741551
+    ],
+    "twilight flame half v2": [
+      16.36025720810829,
+      0.9162907318741551,
+      0.9162907318741551
+    ],
+    "twilight flame revamped": [
+      16.801318750320572,
+      0.9162907318741551,
+      0.7537718023763802
+    ],
+    "twilight flame revealed": [
+      16.993980968197437,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "twilight flame revised": [
+      16.823665351516823,
+      2.0149030205422647,
+      0.7537718023763802
+    ],
+    "twilight flame tactical mod v4-19 final": [
+      16.823665351516823,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "twilight flame_edit by cnc and sky": [
+      16.993980968197437,
+      1.252762968495368,
+      0.8109302162163288
+    ],
+    "twilight forest": [
+      16.823665351516823,
+      1.0560526742493137,
+      0.6931471805599453
+    ],
+    "twilight forest armada": [
+      16.801318750320572,
+      2.0149030205422647,
+      1.1394342831883648
+    ],
+    "twilight frost": [
+      16.993980968197437,
+      0.9162907318741551,
+      0.8109302162163288
+    ],
+    "ultrabam": [
+      15.479436655682445,
+      2.178532444324067,
+      1.2039728043259361
+    ],
+    "umbrella corps zh v2": [
+      16.588099280204055,
+      2.8903717578961645,
+      1.3862943611198906
+    ],
+    "unarmored calmness v_1": [
+      16.35503164769215,
+      2.9444389791664403,
+      1.8191584434161694
+    ],
+    "unarmored calmness wbc 2023": [
+      16.3773782488884,
+      3.1780538303479458,
+      1.8191584434161694
+    ],
+    "unarmored calmness wbc 2023 v5": [
+      16.3773782488884,
+      2.995732273553991,
+      1.791759469228055
+    ],
+    "under siege": [
+      15.648092021712584,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "underground battle": [
+      16.012735135300492,
+      1.9459101490553132,
+      1.5040773967762742
+    ],
+    "uneven ground final": [
+      16.012735135300492,
+      1.55814461804655,
+      0.9162907318741551
+    ],
+    "unevengroundfinal": [
+      16.012735135300492,
+      1.55814461804655,
+      0.9162907318741551
+    ],
+    "unfair advantage": [
+      16.300417207752275,
+      1.0986122886681096,
+      0.9808292530117262
+    ],
+    "unitedforces": [
+      15.60727002719233,
+      3.417726683613366,
+      1.9459101490553132
+    ],
+    "unity a": [
+      15.720598712499333,
+      1.6094379124341003,
+      1.0116009116784799
+    ],
+    "unity a zh v2": [
+      15.720598712499333,
+      1.6094379124341003,
+      1.0116009116784799
+    ],
+    "unity b": [
+      15.720598712499333,
+      1.4663370687934272,
+      0.7731898882334818
+    ],
+    "unity b zh v2": [
+      15.720598712499333,
+      1.4663370687934272,
+      0.7731898882334818
+    ],
+    "unreachable heights (starh)": [
+      17.399029496420383,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "untamed lands": [
+      16.32103649495501,
+      2.4849066497880004,
+      0.9162907318741551
+    ],
+    "up close and personal (zh)": [
+      15.201804919084164,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "up north": [
+      16.823665351516823,
+      1.4469189829363254,
+      0.9162907318741551
+    ],
+    "up on the hilltop redone": [
+      16.588099280204055,
+      1.9459101490553132,
+      0.8109302162163288
+    ],
+    "up&up&up": [
+      16.32103649495501,
+      1.3862943611198906,
+      1.6739764335716716
+    ],
+    "upandover": [
+      16.012735135300492,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "upland battle": [
+      15.830413578506539,
+      1.4663370687934272,
+      1.791759469228055
+    ],
+    "urantian conflict": [
+      17.112827809139038,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "urban assault": [
+      15.89495209964411,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "urban battle": [
+      15.925723758310864,
+      1.0986122886681096,
+      1.5040773967762742
+    ],
+    "urban conquest (hawk10314)": [
+      15.319587954740548,
+      2.740840023925201,
+      0.9162907318741551
+    ],
+    "urban crush": [
+      16.012735135300492,
+      1.3862943611198906,
+      0.6931471805599453
+    ],
+    "urban downfall v2": [
+      16.588099280204055,
+      2.302585092994046,
+      1.2878542883066382
+    ],
+    "urban dread": [
+      16.012735135300492,
+      2.4423470353692043,
+      0.6931471805599453
+    ],
+    "urban gauntlet (4)": [
+      16.235878686614704,
+      2.1972245773362196,
+      2.0149030205422647
+    ],
+    "urban paradise": [
+      16.732740603363307,
+      3.4965075614664802,
+      2.0794415416798357
+    ],
+    "urban pinch": [
+      15.566448032672074,
+      2.3978952727983707,
+      1.3862943611198906
+    ],
+    "urban plateau": [
+      17.073991637424836,
+      1.4469189829363254,
+      0.7537718023763802
+    ],
+    "urban rush": [
+      16.823665351516823,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "urban savanna": [
+      16.823665351516823,
+      1.791759469228055,
+      1.3217558399823195
+    ],
+    "urban sprawl": [
+      16.012735135300492,
+      1.791759469228055,
+      1.0986122886681096
+    ],
+    "urban uproar": [
+      16.588099280204055,
+      1.1786549963416462,
+      2.224623551524334
+    ],
+    "urban warfare training": [
+      16.15346279479561,
+      2.2512917986064953,
+      1.8718021769015913
+    ],
+    "urban_warfare": [
+      15.888984327864318,
+      1.6094379124341003,
+      2.302585092994046
+    ],
+    "urumqi uprising": [
+      15.60727002719233,
+      2.833213344056216,
+      1.0986122886681096
+    ],
+    "usa coop campaign 01- north-korea conflict": [
+      15.89495209964411,
+      2.538973871058276,
+      1.0986122886681096
+    ],
+    "valley of carnage": [
+      16.11809565095832,
+      1.55814461804655,
+      1.1786549963416462
+    ],
+    "valley of terror": [
+      15.830413578506539,
+      1.8718021769015913,
+      0.6931471805599453
+    ],
+    "valley of war": [
+      15.201804919084164,
+      1.7047480922384253,
+      0.6931471805599453
+    ],
+    "vally of death": [
+      16.32103649495501,
+      2.4849066497880004,
+      1.791759469228055
+    ],
+    "vally of the the luky 3 (by madtaz90)": [
+      16.868331798502393,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "vally wars (by madtaz90)": [
+      16.823665351516823,
+      2.0149030205422647,
+      1.791759469228055
+    ],
+    "venoms oilspill": [
+      16.012735135300492,
+      1.0986122886681096,
+      2.302585092994046
+    ],
+    "venturous lanes": [
+      15.925723758310864,
+      2.2512917986064953,
+      0.9162907318741551
+    ],
+    "venturouslanes": [
+      15.925723758310864,
+      2.2512917986064953,
+      0.9162907318741551
+    ],
+    "veros beach": [
+      16.012735135300492,
+      2.5455312716044354,
+      1.4469189829363254
+    ],
+    "very bitter winter": [
+      15.854130105123854,
+      1.9459101490553132,
+      1.0986122886681096
+    ],
+    "victory valley": [
+      16.32103649495501,
+      1.0986122886681096,
+      1.252762968495368
+    ],
+    "victoryforthemountains": [
+      16.012735135300492,
+      1.6094379124341003,
+      2.3978952727983707
+    ],
+    "vietnamese fields v4": [
+      16.32103649495501,
+      2.2512917986064953,
+      0.9162907318741551
+    ],
+    "village desolation": [
+      15.761420707019587,
+      1.6094379124341003,
+      1.0986122886681096
+    ],
+    "violent tundra": [
+      15.648092021712584,
+      1.0986122886681096,
+      1.9459101490553132
+    ],
+    "volcanic mirage v3": [
+      16.68567960854292,
+      3.5347287742866778,
+      1.0986122886681096
+    ],
+    "volcano": [
+      16.588099280204055,
+      1.0986122886681096,
+      1.791759469228055
+    ],
+    "volcano revenge": [
+      16.32103649495501,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "volcano revenge v2": [
+      16.32103649495501,
+      1.791759469228055,
+      1.3862943611198906
+    ],
+    "volcano rush [wbc2020]": [
+      16.32103649495501,
+      1.4816045409242156,
+      1.33500106673234
+    ],
+    "volcano rush v2 [wbc2020]": [
+      16.32103649495501,
+      1.6094379124341003,
+      1.3862943611198906
+    ],
+    "volcano rush v3 [wbc2020]": [
+      16.32103649495501,
+      1.791759469228055,
+      1.3862943611198906
+    ],
+    "volcanoe zh v1": [
+      16.012735135300492,
+      2.583997552432231,
+      1.5040773967762742
+    ],
+    "volcanoring": [
+      17.225006742441124,
+      2.327277705584417,
+      1.0986122886681096
+    ],
+    "vs5 saddams wrath zh": [
+      16.454567887579532,
+      1.252762968495368,
+      0.8109302162163288
+    ],
+    "wake island": [
+      16.588099280204055,
+      2.833213344056216,
+      2.0794415416798357
+    ],
+    "wake up on the mountain": [
+      16.012735135300492,
+      1.6094379124341003,
+      2.3978952727983707
+    ],
+    "wall_of_china": [
+      15.80201410398484,
+      1.791759469228055,
+      1.6739764335716716
+    ],
+    "walls of water and blood": [
+      16.588099280204055,
+      1.8718021769015913,
+      2.1972245773362196
+    ],
+    "war at oil hill": [
+      16.588099280204055,
+      2.0149030205422647,
+      0.8109302162163288
+    ],
+    "war camp": [
+      16.41820024340866,
+      1.791759469228055,
+      2.1400661634962708
+    ],
+    "war in the dawn": [
+      16.199675637950744,
+      1.8325814637483102,
+      1.0986122886681096
+    ],
+    "war in the grass land": [
+      16.823665351516823,
+      1.0986122886681096,
+      1.0986122886681096
+    ],
+    "war of egypt": [
+      16.588099280204055,
+      1.0986122886681096,
+      1.55814461804655
+    ],
+    "warfrontex": [
+      16.588099280204055,
+      1.4816045409242156,
+      1.2237754316221157
+    ],
+    "warintienshan": [
+      16.32103649495501,
+      1.252762968495368,
+      1.0986122886681096
+    ],
+    "warrior's island": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.0986122886681096
+    ],
+    "warzone, by nemisis56": [
+      16.454567887579532,
+      1.1895840668738362,
+      1.0986122886681096
+    ],
+    "wasteland warlords": [
+      15.424948470398375,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "wasteland warlords balanced zh v1b": [
+      15.424948470398375,
+      1.0986122886681096,
+      0.9162907318741551
+    ],
+    "wastelands dust v4": [
+      16.588099280204055,
+      1.791759469228055,
+      1.1394342831883648
+    ],
+    "water killz tank warz v1": [
+      16.454567887579532,
+      1.6739764335716716,
+      1.992430164690206
+    ],
+    "wavefall - 1vs1 - v2": [
+      15.60727002719233,
+      2.302585092994046,
+      1.252762968495368
+    ],
+    "wbc2023_granitegrinder_v2": [
+      16.588099280204055,
+      2.4849066497880004,
+      1.4271163556401456
+    ],
+    "wbc22_desert vortex v7": [
+      16.537463664235474,
+      2.3513752571634776,
+      0.965080896043587
+    ],
+    "wbc22_forgotten valley v5": [
+      16.801318750320572,
+      2.1102132003465894,
+      1.6341305250244718
+    ],
+    "wbc22_lost cause v4": [
+      16.203355494909143,
+      1.5040773967762742,
+      1.4469189829363254
+    ],
+    "wbc22_mt pinatubo philippines v4": [
+      16.588099280204055,
+      1.3862943611198906,
+      1.1394342831883648
+    ],
+    "wbc22_poverty side v5": [
+      16.588099280204055,
+      2.302585092994046,
+      0.7537718023763802
+    ],
+    "wbc22_restruction station v6": [
+      16.459022237928913,
+      1.6094379124341003,
+      1.0116009116784799
+    ],
+    "wbc22_umbrella-corps": [
+      16.588099280204055,
+      2.8903717578961645,
+      1.3862943611198906
+    ],
+    "wbc22_warcircletime": [
+      16.588099280204055,
+      2.6119063405493077,
+      1.252762968495368
+    ],
+    "weeweeping pine zh v1": [
+      15.725053062848712,
+      1.0986122886681096,
+      0.6931471805599453
+    ],
+    "wells of chaos v4": [
+      17.034386382832476,
+      3.4011973816621555,
+      1.9661128563728327
+    ],
+    "westwood arena": [
+      16.36395522855626,
+      2.70805020110221,
+      1.3217558399823195
+    ],
+    "wheel of death v5": [
+      17.034386382832476,
+      3.230239583518516,
+      2.0794415416798357
+    ],
+    "whengeneralsmeet": [
+      16.0978929436408,
+      2.2512917986064953,
+      1.0986122886681096
+    ],
+    "whiteout": [
+      16.68567960854292,
+      0.9162907318741551,
+      0.6931471805599453
+    ],
+    "wilderness valley": [
+      16.899253708840977,
+      1.992430164690206,
+      0.2876820724517809
+    ],
+    "winding river": [
+      16.141812177575638,
+      1.791759469228055,
+      0.4054651081081644
+    ],
+    "winding river revised": [
+      16.141812177575638,
+      2.3513752571634776,
+      1.0986122886681096
+    ],
+    "wings of fury": [
+      15.464169183551656,
+      2.5649493574615367,
+      1.5040773967762742
+    ],
+    "wings of fury 2": [
+      15.464169183551656,
+      2.5649493574615367,
+      1.5040773967762742
+    ],
+    "winter assault v3": [
+      16.3773782488884,
+      2.03688192726104,
+      1.4663370687934272
+    ],
+    "winter crows zh v1": [
+      15.201804919084164,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "winter dusk": [
+      16.011623406447804,
+      1.6094379124341003,
+      0.7731898882334818
+    ],
+    "winter heptagon zh v1": [
+      16.3773782488884,
+      2.4849066497880004,
+      1.4213856809311607
+    ],
+    "winter heptagon zh v2": [
+      16.3773782488884,
+      2.4849066497880004,
+      1.4213856809311607
+    ],
+    "winter korean war": [
+      16.012735135300492,
+      3.3843902633457743,
+      2.4203681286504293
+    ],
+    "winter meadows": [
+      16.823665351516823,
+      2.4423470353692043,
+      1.6582280766035324
+    ],
+    "winter wolf": [
+      15.392425278692814,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "winter wolf balanced zh v1": [
+      15.392425278692814,
+      1.0986122886681096,
+      1.3862943611198906
+    ],
+    "wolf's calling": [
+      16.1437633977069,
+      1.1786549963416462,
+      1.4469189829363254
+    ],
+    "world": [
+      16.485512691428955,
+      1.4350845252893227,
+      1.1631508098056809
+    ],
+    "world of asus v2": [
+      16.3773782488884,
+      1.7676619176489945,
+      1.5198257537444133
+    ],
+    "world war (3)": [
+      17.793321303930423,
+      1.3862943611198906,
+      2.315007612992603
+    ],
+    "x-for ponds-x": [
+      16.823665351516823,
+      2.6855773452501515,
+      1.2992829841302609
+    ],
+    "x-valley showdown": [
+      15.38412647587812,
+      0.6931471805599453,
+      0.9808292530117262
+    ],
+    "xezons secret lab a": [
+      15.339390582036728,
+      2.5649493574615367,
+      0.9162907318741551
+    ],
+    "xiamen assault": [
+      16.90655301132259,
+      1.0986122886681096,
+      1.2163953243244932
+    ],
+    "xtra power testv1": [
+      15.747031969567487,
+      2.8903717578961645,
+      2.4849066497880004
+    ],
+    "xtreme cold v2": [
+      16.3957273875566,
+      1.791759469228055,
+      0.8472978603872036
+    ],
+    "yelling avalanche zh v1": [
+      15.450616217146953,
+      2.4849066497880004,
+      1.8718021769015913
+    ],
+    "yelling avalanche zh v2": [
+      15.450616217146953,
+      2.4849066497880004,
+      1.8718021769015913
+    ],
+    "yota nation arena": [
+      15.450616217146953,
+      2.3513752571634776,
+      1.9459101490553132
+    ],
+    "yota nation arena v3": [
+      15.450616217146953,
+      2.3513752571634776,
+      1.9459101490553132
+    ],
+    "yota nation battleground": [
+      15.838712381321233,
+      1.252762968495368,
+      1.791759469228055
+    ],
+    "yota nation battleground v2": [
+      15.838712381321233,
+      1.252762968495368,
+      1.791759469228055
+    ],
+    "zapdock": [
+      15.481328803834483,
+      2.6026896854443837,
+      1.3862943611198906
+    ],
+    "zeroislandcombat": [
+      16.823665351516823,
+      1.0986122886681096,
+      2.0149030205422647
+    ],
+    "zeta6finaltouches": [
+      15.479436655682445,
+      2.1594842493533726,
+      1.2039728043259361
+    ],
+    "zh carrier is over v2": [
+      15.501909511534503,
+      2.1972245773362196,
+      0.9162907318741551
+    ]
+  },
+  "map_feat_std": [
+    0.3947291157568157,
+    0.6039429453954256,
+    0.3769261978296305
+  ],
   "player": {
     "CoreDawg": 1,
     "EnragedFerret": 2,
@@ -201,9 +7029,10 @@
     "Shifty": 10,
     "Skip": 11,
     "Syn": 12,
-    "Tytan": 13,
-    "WildCard": 14,
-    "WilyWolf": 15,
-    "pcap": 16
+    "TacticalAI": 13,
+    "Tytan": 14,
+    "WildCard": 15,
+    "WilyWolf": 16,
+    "pcap": 17
   }
 }
