@@ -23,7 +23,7 @@
     "react-activity-calendar": "^3.2.1",
     "react-dom": "^19.2.8",
     "react-is": "^19.2.8",
-    "recharts": "^3.9.2"
+    "recharts": "^3.10.1"
   },
   "scripts": {
     "start": "vite",
