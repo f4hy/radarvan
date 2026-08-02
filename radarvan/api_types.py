@@ -1815,6 +1815,31 @@ class FactionMatchupPrediction(BaseModel):
     compute_ms: float
 
 
+class FactionMatrixCell(BaseModel):
+    """One (general_a, general_b) cell of the player-agnostic faction matrix."""
+
+    model_config = _SLOTS
+
+    general_a: General
+    general_b: General
+    prob_a_wins: float
+
+
+class FactionMatrix(BaseModel):
+    """The full general-vs-general grid with both players and the map forced
+    to the model's UNK slot - i.e. a pure faction-vs-faction signal, not tied
+    to any specific players. ``median_prob_a_wins`` is the median across all
+    cells; callers derive "above/below median" from it rather than reading
+    ``prob_a_wins`` as an absolute probability."""
+
+    model_config = _SLOTS
+
+    map_name: str
+    median_prob_a_wins: float
+    cells: list[FactionMatrixCell]
+    compute_ms: float
+
+
 class WinProbPoint(BaseModel):
     model_config = _SLOTS
 
