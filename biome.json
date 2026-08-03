@@ -32,8 +32,7 @@
       "**",
       "!build/**",
       "!node_modules/**",
-      "!src/api/**",
-      "!src/proto/**"
+      "!src/api/**"
     ]
   },
   "javascript": {
