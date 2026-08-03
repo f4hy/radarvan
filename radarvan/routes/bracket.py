@@ -25,15 +25,22 @@ from ..api_types import (
     BracketTournamentOutput,
     CreateBracketRequest,
     LoserOfSource,
+    BracketMatchPrediction,
     MatchSource,
     SeedSource,
     SetBracketMatchRequest,
     SetBracketRevealAtRequest,
+    SetMatchPredictionRequest,
     WinnerOfSource,
 )
 from ..db import BracketMatchState, BracketTournament, User
-from ..dependencies import get_bracket_repo, get_current_user, require_current_user
-from ..repositories import BracketRepo
+from ..dependencies import (
+    get_bracket_prediction_repo,
+    get_bracket_repo,
+    get_current_user,
+    require_current_user,
+)
+from ..repositories import BracketPredictionRepo, BracketRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -349,3 +356,106 @@ def set_bracket_match(
             row.discord_event_id = new_event_id
 
     return _build_output_from_states(tournament, raw_states, allow_preview=True)
+
+
+def _prediction_is_open(
+    status: str, scheduled_at: datetime | None, now: datetime
+) -> bool:
+    """Predictions stay open while a match is unplayed and, if scheduled,
+    hasn't started yet - once the scheduled time passes (or it's scored),
+    nobody should be able to "predict" after already knowing the outcome.
+    """
+    return status == "ready" and (scheduled_at is None or scheduled_at > now)
+
+
+@router.get("/api/bracket_predictions")
+def get_bracket_predictions(
+    user: User | None = Depends(get_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    prediction_repo: BracketPredictionRepo = Depends(get_bracket_prediction_repo),
+) -> list[BracketMatchPrediction]:
+    """Community "who wins this match" prediction tallies for every match
+    with both players known - a hype feature, not authoritative (the real
+    result lives in BracketMatchState via resolve_bracket). Reads are open;
+    casting (POST) requires login. Withheld entirely before the bracket is
+    revealed, same as player placements.
+    """
+    tournament = repo.get_active()
+    if tournament is None or not _is_revealed(tournament, allow_preview=False):
+        return []
+
+    raw_states = repo.get_match_states(tournament.id)
+    result = _resolve_from_states(tournament, raw_states)
+    tallies = prediction_repo.tally_all(tournament.id)
+    my_picks = prediction_repo.get_user_picks(tournament.id, user.id) if user else {}
+    now = datetime.now(UTC)
+
+    predictions = []
+    for m in result.matches:
+        if m.player_a is None or m.player_b is None:
+            continue
+        raw = raw_states.get(m.match_id)
+        tally = tallies.get(m.match_id, {})
+        predictions.append(
+            BracketMatchPrediction(
+                match_id=m.match_id,
+                tally=tally,
+                total_predictions=sum(tally.values()),
+                my_pick=my_picks.get(m.match_id),
+                open=_prediction_is_open(
+                    m.status, raw.scheduled_at if raw else None, now
+                ),
+            )
+        )
+    return predictions
+
+
+@router.post("/api/bracket_predictions/{match_id}")
+def set_bracket_prediction(
+    match_id: str,
+    req: SetMatchPredictionRequest,
+    user: User = Depends(require_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    prediction_repo: BracketPredictionRepo = Depends(get_bracket_prediction_repo),
+) -> BracketMatchPrediction:
+    """Set (or clear, with null) the caller's prediction for a match."""
+    tournament = repo.get_active()
+    if tournament is None:
+        raise HTTPException(status_code=404, detail="No active bracket tournament")
+    if not bracket.is_valid_match_id(match_id, len(tournament.players)):
+        raise HTTPException(status_code=404, detail="Unknown match id")
+
+    raw_states = repo.get_match_states(tournament.id)
+    result = _resolve_from_states(tournament, raw_states)
+    m = next(x for x in result.matches if x.match_id == match_id)
+    if m.player_a is None or m.player_b is None:
+        raise HTTPException(
+            status_code=400, detail="This match's players aren't determined yet"
+        )
+
+    raw = raw_states.get(match_id)
+    is_open = _prediction_is_open(
+        m.status, raw.scheduled_at if raw else None, datetime.now(UTC)
+    )
+    if not is_open:
+        raise HTTPException(
+            status_code=409, detail="Predictions are closed for this match"
+        )
+    if req.predicted_winner is not None and req.predicted_winner not in (
+        m.player_a,
+        m.player_b,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="predicted_winner must be one of this match's players",
+        )
+
+    prediction_repo.set_pick(tournament.id, match_id, user.id, req.predicted_winner)
+    tally = prediction_repo.tally(tournament.id, match_id)
+    return BracketMatchPrediction(
+        match_id=match_id,
+        tally=tally,
+        total_predictions=sum(tally.values()),
+        my_pick=req.predicted_winner,
+        open=is_open,
+    )
