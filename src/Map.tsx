@@ -6,7 +6,6 @@ import Typography from "@mui/material/Typography"
 import DownloadIcon from "@mui/icons-material/Download"
 import html2canvas from "html2canvas"
 import * as React from "react"
-import { MAPLIST } from "./maplist"
 import { Client } from "./Client"
 import { getColorHex } from "./utils"
 import type { MapDataPayload } from "./api"
@@ -38,25 +37,10 @@ function pointStyle(category: PointCategory, name: string): PointStyle {
   return base
 }
 
-function getMapUrl(mapname: string) {
-  return import.meta.env.BASE_URL + "maps/" + mapname
-}
-
 function getMapImageApiUrl(mapname: string) {
   return (
     import.meta.env.BASE_URL + "api/map_image/" + encodeURIComponent(mapname)
   )
-}
-
-function resolveMap(mapname: string) {
-  const direct = MAPLIST.find((m) => m.includes(mapname))
-  if (direct) {
-    return direct
-  }
-  const underscored = MAPLIST.find((m) =>
-    m.includes(mapname.replaceAll(" ", "_")),
-  )
-  return underscored
 }
 
 const mapDataResolved: Record<string, MapDataPayload> = {}
@@ -104,7 +88,6 @@ export default function GameMap(props: {
   deferData?: boolean
 }) {
   const [imgError, setImgError] = React.useState(false)
-  const [triedFallback, setTriedFallback] = React.useState(false)
   const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
   const [dataRequested, setDataRequested] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -119,16 +102,10 @@ export default function GameMap(props: {
   }
 
   const mapname = props.mapname.split("/").slice(-1).pop() ?? ""
-  const mapmatch = resolveMap(mapname)
-  // Legacy maps live in dist/maps; new ones come back from the API endpoint
-  // (S3-backed). If the legacy file 404s, retry once via the API endpoint.
-  const legacyUrl = mapmatch ? getMapUrl(mapmatch) : ""
-  const apiUrl = mapname ? getMapImageApiUrl(mapname) : ""
-  const mapUrl = triedFallback ? apiUrl : legacyUrl || apiUrl
+  const mapUrl = mapname ? getMapImageApiUrl(mapname) : ""
 
   React.useEffect(() => {
     setImgError(false)
-    setTriedFallback(false)
     setDataRequested(false)
   }, [mapname])
 
@@ -201,13 +178,7 @@ export default function GameMap(props: {
             <img
               src={mapUrl}
               alt={"Map: " + mapname}
-              onError={() => {
-                if (!triedFallback && apiUrl && mapUrl !== apiUrl) {
-                  setTriedFallback(true)
-                } else {
-                  setImgError(true)
-                }
-              }}
+              onError={() => setImgError(true)}
               style={{ width: "100%", height: "auto", display: "block" }}
             />
             {mapData &&

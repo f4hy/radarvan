@@ -6,7 +6,7 @@
 
 Name | Type
 ------------ | -------------
-`scheduledDate` | Date
+`scheduledAt` | Date
 `bestOf` | number
 `scoreA` | number
 `scoreB` | number
@@ -18,7 +18,7 @@ import type { SetBracketMatchRequest } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "scheduledDate": null,
+  "scheduledAt": null,
   "bestOf": null,
   "scoreA": null,
   "scoreB": null,

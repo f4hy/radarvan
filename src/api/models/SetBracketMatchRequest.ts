@@ -24,7 +24,7 @@ export interface SetBracketMatchRequest {
      * @type {Date}
      * @memberof SetBracketMatchRequest
      */
-    scheduledDate?: Date | null;
+    scheduledAt?: Date | null;
     /**
      * 
      * @type {SetBracketMatchRequestBestOfEnum}
@@ -75,7 +75,7 @@ export function SetBracketMatchRequestFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'scheduledDate': json['scheduled_date'] == null ? undefined : (new Date(json['scheduled_date'])),
+        'scheduledAt': json['scheduled_at'] == null ? undefined : (new Date(json['scheduled_at'])),
         'bestOf': json['best_of'] == null ? undefined : json['best_of'],
         'scoreA': json['score_a'] == null ? undefined : json['score_a'],
         'scoreB': json['score_b'] == null ? undefined : json['score_b'],
@@ -93,7 +93,7 @@ export function SetBracketMatchRequestToJSONTyped(value?: SetBracketMatchRequest
 
     return {
         
-        'scheduled_date': value['scheduledDate'] == null ? value['scheduledDate'] : value['scheduledDate'].toISOString().substring(0,10),
+        'scheduled_at': value['scheduledAt'] == null ? value['scheduledAt'] : value['scheduledAt'].toISOString(),
         'best_of': value['bestOf'],
         'score_a': value['scoreA'],
         'score_b': value['scoreB'],

@@ -12,7 +12,7 @@ Name | Type
 `roundName` | string
 `playerA` | string
 `playerB` | string
-`scheduledDate` | Date
+`scheduledAt` | Date
 `bestOf` | number
 `scoreA` | number
 `scoreB` | number
@@ -34,7 +34,7 @@ const example = {
   "roundName": null,
   "playerA": null,
   "playerB": null,
-  "scheduledDate": null,
+  "scheduledAt": null,
   "bestOf": null,
   "scoreA": null,
   "scoreB": null,

@@ -27,7 +27,6 @@ import { Client } from "./Client"
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
-import { MAPLIST } from "./maplist"
 
 const VALID_PLAYER_NAMES = new Set<string>(Object.values(PlayerEnum))
 
@@ -42,26 +41,6 @@ const TEAM_COLORS: Record<1 | 2 | 3 | 4, string> = {
   2: "#F44336",
   3: "#4CAF50",
   4: "#FF9800",
-}
-
-function mapDisplayName(filename: string): string {
-  let stem = filename.replace(/\.webp$/, "")
-  if (stem.startsWith("userdata_maps_")) {
-    stem = stem.slice("userdata_maps_".length)
-  } else if (stem.startsWith("maps_")) {
-    stem = stem.slice("maps_".length)
-  }
-  // Remove doubled suffix: "defcon6_defcon6" -> "defcon6"
-  const parts = stem.split("_")
-  const half = parts.length / 2
-  if (
-    parts.length >= 2 &&
-    parts.length % 2 === 0 &&
-    parts.slice(0, half).join("_") === parts.slice(half).join("_")
-  ) {
-    stem = parts.slice(0, half).join("_")
-  }
-  return stem
 }
 
 let nextId = 1
@@ -116,8 +95,7 @@ export default function DisplayDraft() {
     setAssignments([])
     setRandomizedAt(null)
     if (!selectedMap) return
-    const apiName = mapDisplayName(selectedMap)
-    Client.getMapDataApiMapDataMapNameGet({ mapName: apiName }).then(
+    Client.getMapDataApiMapDataMapNameGet({ mapName: selectedMap }).then(
       (data) => setMapData(data),
       () => setMapData(null),
     )
@@ -181,7 +159,7 @@ export default function DisplayDraft() {
     if (!selectedMap || players.length === 0) return
     const result = await Client.randomizeDraftApiDraftRandomizePost({
       draftRequest: {
-        mapName: mapDisplayName(selectedMap),
+        mapName: selectedMap,
         players: players.map((p) => ({ name: p.name, team: p.team })),
       },
     })
@@ -198,7 +176,7 @@ export default function DisplayDraft() {
     )
   }, [mapsByCount, selectedPlayerCount])
 
-  const filteredMapList = knownMaps ? Array.from(knownMaps).sort() : MAPLIST
+  const filteredMapList = Array.from(knownMaps ?? []).sort()
 
   const assignmentByName = React.useMemo(
     () => Object.fromEntries(assignments.map((a) => [a.playerName, a])),
@@ -360,7 +338,6 @@ export default function DisplayDraft() {
 
           <Autocomplete
             options={filteredMapList}
-            getOptionLabel={(f) => mapDisplayName(f)}
             value={selectedMap}
             onChange={(_e, val) => {
               setSelectedMap(val)
@@ -374,7 +351,7 @@ export default function DisplayDraft() {
           {selectedMap && (
             <Box sx={{ mb: 2, maxWidth: 600 }}>
               <GameMap
-                mapname={mapDisplayName(selectedMap)}
+                mapname={selectedMap}
                 playerPositions={positionToPlayer}
                 showDownload
               />

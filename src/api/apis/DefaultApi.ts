@@ -1417,7 +1417,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).  Strips a trailing `.map` extension and tries case-insensitive variants in S3. Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that haven\'t been migrated yet.
+     * Return the WebP for a map, redirecting to its presigned S3 URL.  Strips a trailing `.map` extension and tries case-insensitive variants in S3.
      * Get Map Image
      */
     async getMapImageApiMapImageMapNameGetRaw(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -1432,7 +1432,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).  Strips a trailing `.map` extension and tries case-insensitive variants in S3. Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that haven\'t been migrated yet.
+     * Return the WebP for a map, redirecting to its presigned S3 URL.  Strips a trailing `.map` extension and tries case-insensitive variants in S3.
      * Get Map Image
      */
     async getMapImageApiMapImageMapNameGet(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
