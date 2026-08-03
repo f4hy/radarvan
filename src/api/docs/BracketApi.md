@@ -7,7 +7,9 @@ All URIs are relative to *http://localhost*
 | [**createBracketApiBracketPost**](BracketApi.md#createbracketapibracketpost) | **POST** /api/bracket | Create Bracket |
 | [**eligiblePlayersApiBracketEligiblePlayersGet**](BracketApi.md#eligibleplayersapibracketeligibleplayersget) | **GET** /api/bracket_eligible_players | Eligible Players |
 | [**getBracketApiBracketGet**](BracketApi.md#getbracketapibracketget) | **GET** /api/bracket | Get Bracket |
+| [**getBracketPredictionsApiBracketPredictionsGet**](BracketApi.md#getbracketpredictionsapibracketpredictionsget) | **GET** /api/bracket_predictions | Get Bracket Predictions |
 | [**setBracketMatchApiBracketMatchIdPost**](BracketApi.md#setbracketmatchapibracketmatchidpost) | **POST** /api/bracket/{match_id} | Set Bracket Match |
+| [**setBracketPredictionApiBracketPredictionsMatchIdPost**](BracketApi.md#setbracketpredictionapibracketpredictionsmatchidpost) | **POST** /api/bracket_predictions/{match_id} | Set Bracket Prediction |
 | [**setBracketRevealAtApiBracketRevealAtPost**](BracketApi.md#setbracketrevealatapibracketrevealatpost) | **POST** /api/bracket/reveal_at | Set Bracket Reveal At |
 
 
@@ -207,6 +209,65 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getBracketPredictionsApiBracketPredictionsGet
+
+> Array&lt;BracketMatchPrediction&gt; getBracketPredictionsApiBracketPredictionsGet()
+
+Get Bracket Predictions
+
+Community \&quot;who wins this match\&quot; prediction tallies for every match with both players known - a hype feature, not authoritative (the real result lives in BracketMatchState via resolve_bracket). Reads are open; casting (POST) requires login. Withheld entirely before the bracket is revealed, same as player placements.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { GetBracketPredictionsApiBracketPredictionsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  try {
+    const data = await api.getBracketPredictionsApiBracketPredictionsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;BracketMatchPrediction&gt;**](BracketMatchPrediction.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## setBracketMatchApiBracketMatchIdPost
 
 > BracketTournamentOutput setBracketMatchApiBracketMatchIdPost(matchId, setBracketMatchRequest)
@@ -258,6 +319,77 @@ example().catch(console.error);
 ### Return type
 
 [**BracketTournamentOutput**](BracketTournamentOutput.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setBracketPredictionApiBracketPredictionsMatchIdPost
+
+> BracketMatchPrediction setBracketPredictionApiBracketPredictionsMatchIdPost(matchId, setMatchPredictionRequest)
+
+Set Bracket Prediction
+
+Set (or clear, with null) the caller\&#39;s prediction for a match.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { SetBracketPredictionApiBracketPredictionsMatchIdPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  const body = {
+    // string
+    matchId: matchId_example,
+    // SetMatchPredictionRequest
+    setMatchPredictionRequest: ...,
+  } satisfies SetBracketPredictionApiBracketPredictionsMatchIdPostRequest;
+
+  try {
+    const data = await api.setBracketPredictionApiBracketPredictionsMatchIdPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `string` |  | [Defaults to `undefined`] |
+| **setMatchPredictionRequest** | [SetMatchPredictionRequest](SetMatchPredictionRequest.md) |  | |
+
+### Return type
+
+[**BracketMatchPrediction**](BracketMatchPrediction.md)
 
 ### Authorization
 

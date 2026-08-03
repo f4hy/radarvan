@@ -13,6 +13,7 @@ docs/AuthStatus.md
 docs/BackfillMapCrcsResponse.md
 docs/BracketApi.md
 docs/BracketMatchOutput.md
+docs/BracketMatchPrediction.md
 docs/BracketPlayerEntry.md
 docs/BracketTournamentOutput.md
 docs/BuildOrder.md
@@ -135,6 +136,7 @@ docs/SelectPlayerRequest.md
 docs/SetBracketMatchRequest.md
 docs/SetBracketRevealAtRequest.md
 docs/SetMapVoteRequest.md
+docs/SetMatchPredictionRequest.md
 docs/ShortPlayerRating.md
 docs/SourceA.md
 docs/SourceB.md
@@ -165,6 +167,7 @@ models/AcademyStats.ts
 models/AuthStatus.ts
 models/BackfillMapCrcsResponse.ts
 models/BracketMatchOutput.ts
+models/BracketMatchPrediction.ts
 models/BracketPlayerEntry.ts
 models/BracketTournamentOutput.ts
 models/BuildOrder.ts
@@ -282,6 +285,7 @@ models/SelectPlayerRequest.ts
 models/SetBracketMatchRequest.ts
 models/SetBracketRevealAtRequest.ts
 models/SetMapVoteRequest.ts
+models/SetMatchPredictionRequest.ts
 models/ShortPlayerRating.ts
 models/SourceA.ts
 models/SourceB.ts

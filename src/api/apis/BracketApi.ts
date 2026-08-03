@@ -15,13 +15,17 @@
 
 import * as runtime from '../runtime';
 import type {
+  BracketMatchPrediction,
   BracketTournamentOutput,
   CreateBracketRequest,
   HTTPValidationError,
   SetBracketMatchRequest,
   SetBracketRevealAtRequest,
+  SetMatchPredictionRequest,
 } from '../models/index';
 import {
+    BracketMatchPredictionFromJSON,
+    BracketMatchPredictionToJSON,
     BracketTournamentOutputFromJSON,
     BracketTournamentOutputToJSON,
     CreateBracketRequestFromJSON,
@@ -32,6 +36,8 @@ import {
     SetBracketMatchRequestToJSON,
     SetBracketRevealAtRequestFromJSON,
     SetBracketRevealAtRequestToJSON,
+    SetMatchPredictionRequestFromJSON,
+    SetMatchPredictionRequestToJSON,
 } from '../models/index';
 
 export interface CreateBracketApiBracketPostRequest {
@@ -45,6 +51,11 @@ export interface GetBracketApiBracketGetRequest {
 export interface SetBracketMatchApiBracketMatchIdPostRequest {
     matchId: string;
     setBracketMatchRequest: SetBracketMatchRequest;
+}
+
+export interface SetBracketPredictionApiBracketPredictionsMatchIdPostRequest {
+    matchId: string;
+    setMatchPredictionRequest: SetMatchPredictionRequest;
 }
 
 export interface SetBracketRevealAtApiBracketRevealAtPostRequest {
@@ -188,6 +199,45 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getBracketPredictionsApiBracketPredictionsGet without sending the request
+     */
+    async getBracketPredictionsApiBracketPredictionsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/bracket_predictions`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Community \"who wins this match\" prediction tallies for every match with both players known - a hype feature, not authoritative (the real result lives in BracketMatchState via resolve_bracket). Reads are open; casting (POST) requires login. Withheld entirely before the bracket is revealed, same as player placements.
+     * Get Bracket Predictions
+     */
+    async getBracketPredictionsApiBracketPredictionsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<BracketMatchPrediction>>> {
+        const requestOptions = await this.getBracketPredictionsApiBracketPredictionsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(BracketMatchPredictionFromJSON));
+    }
+
+    /**
+     * Community \"who wins this match\" prediction tallies for every match with both players known - a hype feature, not authoritative (the real result lives in BracketMatchState via resolve_bracket). Reads are open; casting (POST) requires login. Withheld entirely before the bracket is revealed, same as player placements.
+     * Get Bracket Predictions
+     */
+    async getBracketPredictionsApiBracketPredictionsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<BracketMatchPrediction>> {
+        const response = await this.getBracketPredictionsApiBracketPredictionsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for setBracketMatchApiBracketMatchIdPost without sending the request
      */
     async setBracketMatchApiBracketMatchIdPostRequestOpts(requestParameters: SetBracketMatchApiBracketMatchIdPostRequest): Promise<runtime.RequestOpts> {
@@ -241,6 +291,63 @@ export class BracketApi extends runtime.BaseAPI {
      */
     async setBracketMatchApiBracketMatchIdPost(requestParameters: SetBracketMatchApiBracketMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
         const response = await this.setBracketMatchApiBracketMatchIdPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setBracketPredictionApiBracketPredictionsMatchIdPost without sending the request
+     */
+    async setBracketPredictionApiBracketPredictionsMatchIdPostRequestOpts(requestParameters: SetBracketPredictionApiBracketPredictionsMatchIdPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling setBracketPredictionApiBracketPredictionsMatchIdPost().'
+            );
+        }
+
+        if (requestParameters['setMatchPredictionRequest'] == null) {
+            throw new runtime.RequiredError(
+                'setMatchPredictionRequest',
+                'Required parameter "setMatchPredictionRequest" was null or undefined when calling setBracketPredictionApiBracketPredictionsMatchIdPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/bracket_predictions/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SetMatchPredictionRequestToJSON(requestParameters['setMatchPredictionRequest']),
+        };
+    }
+
+    /**
+     * Set (or clear, with null) the caller\'s prediction for a match.
+     * Set Bracket Prediction
+     */
+    async setBracketPredictionApiBracketPredictionsMatchIdPostRaw(requestParameters: SetBracketPredictionApiBracketPredictionsMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketMatchPrediction>> {
+        const requestOptions = await this.setBracketPredictionApiBracketPredictionsMatchIdPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BracketMatchPredictionFromJSON(jsonValue));
+    }
+
+    /**
+     * Set (or clear, with null) the caller\'s prediction for a match.
+     * Set Bracket Prediction
+     */
+    async setBracketPredictionApiBracketPredictionsMatchIdPost(requestParameters: SetBracketPredictionApiBracketPredictionsMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketMatchPrediction> {
+        const response = await this.setBracketPredictionApiBracketPredictionsMatchIdPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
