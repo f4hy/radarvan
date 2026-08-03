@@ -1,4 +1,5 @@
 import EditCalendarIcon from "@mui/icons-material/EditCalendar"
+import EventAvailableIcon from "@mui/icons-material/EventAvailable"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
@@ -14,6 +15,7 @@ import { BracketMatchOutput, BracketTournamentOutput } from "./bracketApi"
 import {
   formatCountdown,
   formatScheduledAt,
+  googleCalendarUrl,
   playerLabel,
   shortMatchLabel,
   useCountdownMs,
@@ -166,6 +168,19 @@ function AgendaRow({
               </Typography>
             )}
           </Stack>
+          {match.scheduled_at && (
+            <Tooltip title="Add to Google Calendar">
+              <IconButton
+                size="small"
+                component="a"
+                href={googleCalendarUrl(match) ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <EventAvailableIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           {isAdmin && (
             <ScheduleMatchButton match={match} onSchedule={onSchedule} />
           )}
