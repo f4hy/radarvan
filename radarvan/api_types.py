@@ -1414,9 +1414,12 @@ class MapDataPayload(BaseModel):
 
     extent: MapExtent
     player_starts: list[MapPlayerStart]
-    supply: list[MapPoint]
-    tech: list[MapPoint]
-    waypoints: list[MapPoint]
+    # mapparse omits these keys entirely rather than emitting `[]` when a map
+    # has none of that category (e.g. a map with no waypoints) - default to
+    # empty instead of requiring the key.
+    supply: list[MapPoint] = []
+    tech: list[MapPoint] = []
+    waypoints: list[MapPoint] = []
 
 
 class MapsByPlayerCount(BaseModel):
