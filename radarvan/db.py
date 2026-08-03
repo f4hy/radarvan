@@ -561,5 +561,9 @@ class BracketMatchState(Base):
     best_of: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     score_a: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     score_b: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # The Discord Guild Scheduled Event mirroring `scheduled_at`, so a
+    # reschedule PATCHes that event instead of creating a duplicate. NULL
+    # when discord_events isn't configured or the match isn't scheduled.
+    discord_event_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     tournament: Mapped[BracketTournament] = relationship(back_populates="match_states")
