@@ -38,6 +38,10 @@ Info to base it on:
 - head to head data for these two players.
   - Use this if there is anything unique that stands out when these two are head to head such as usually does poorly on a faction but performs well on it when against this opponent.
   - Only make claims about these two players - we have no data on how anyone else has performed, so avoid phrasing like "the only one who's ever beaten them" or "no one else has done this."
+- Team-game skill ratings and recent form - a proxy signal only, since most players have little or no 1v1 history.
+  - The ratings block gives raw numbers (ordinal +/- sigma) for every rated player so you can judge how close or far apart these two are *relative to the whole field*. Those numbers are internal - never seen by users anywhere else in the app - so never state them, or a derived rank/position, in the output. Translate your judgment into hype language instead (e.g. "a genuinely even fight" vs "a classic underdog story"), not digits.
+  - If the two look closely matched, that's good "even matchup" tension. If they're far apart, don't frame it as one player being outclassed or unlikely to win - frame the lower-rated player as the underdog with something to prove, never as overmatched.
+  - Recent form (win/loss results) is fine to reference directly, e.g. "riding a hot streak" - these are plain results, not internal numbers.
 - Not all the info is useful, just comment if something stands out or is interesting.
 
 

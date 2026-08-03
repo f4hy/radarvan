@@ -67,6 +67,18 @@ def _h2h(player1: str, player2: str) -> HeadToHeadDetail:
 
 
 def test_build_user_message_includes_round_and_players() -> None:
+    from radarvan.api_types import PlayerRatings
+
+    ratings_context = hype_data.build_hype_ratings_context(
+        [
+            PlayerRatings(
+                name="Alice", ordinal=20.0, mu=25.0, sigma=1.5, game_count=50
+            ),
+            PlayerRatings(name="Bob", ordinal=18.0, mu=23.0, sigma=1.7, game_count=40),
+        ],
+        "Alice",
+        "Bob",
+    )
     msg = matchup_commentary.build_user_message(
         "Winners Round 1",
         "Alice",
@@ -75,6 +87,7 @@ def test_build_user_message_includes_round_and_players() -> None:
         hype_data.build_hype_player_data(_profile("Bob")),
         hype_data.build_hype_head_to_head(_h2h("Alice", "Bob")),
         hype_data.build_hype_head_to_head(_h2h("Alice", "Bob")),
+        ratings_context,
     )
     assert "Winners Round 1" in msg
     assert "Alice vs Bob" in msg
@@ -83,6 +96,10 @@ def test_build_user_message_includes_round_and_players() -> None:
     assert "<head_to_head_1v1>" in msg
     assert "<head_to_head_all_formats>" in msg
     assert "Teammate games together: 2" in msg
+    assert "<team_game_ratings>" in msg
+    assert "INTERNAL CALIBRATION ONLY" in msg
+    assert "<- Alice (this matchup)" in msg
+    assert "<- Bob (this matchup)" in msg
     # Not a JSON dump - no braces/quotes-as-syntax in the rendered payload.
     assert "{" not in msg
 

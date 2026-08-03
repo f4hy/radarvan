@@ -10,16 +10,18 @@ the model call differs (``_generate_with_anthropic`` / `_generate_with_gemini`).
 
 Data fetch deliberately calls the existing route handler functions directly
 (``radarvan.routes.profile.get_player_profile``,
-``radarvan.routes.players.get_player_head_to_head``) rather than
-re-deriving the same games/synergy assembly and calling the lower-level
-logic those routes wrap. This inverts the usual "routes depend on logic
-modules" direction on purpose: any future improvement to those endpoints -
-new fields, better computation, bug fixes - flows into commentary
-generation automatically instead of drifting out of sync with a second
-implementation. The fetched ``PlayerProfile``/``HeadToHeadDetail`` are then
-reduced to ``hype_data.HypePlayerData``/``HypeHeadToHead`` - a purpose-built
-shape holding only what the guidelines reference, rendered as plain text
-rather than JSON (see ``hype_data``'s module docstring for why).
+``radarvan.routes.players.get_player_head_to_head``,
+``radarvan.routes.players.get_player_ratings``) rather than re-deriving the
+same games/synergy/rating assembly and calling the lower-level logic those
+routes wrap. This inverts the usual "routes depend on logic modules"
+direction on purpose: any future improvement to those endpoints - new
+fields, better computation, bug fixes - flows into commentary generation
+automatically instead of drifting out of sync with a second implementation.
+The fetched ``PlayerProfile``/``HeadToHeadDetail``/``PlayerRatingData`` are
+then reduced to ``hype_data.HypePlayerData``/``HypeHeadToHead``/
+``HypeRatingsContext`` - purpose-built shapes holding only what the
+guidelines reference, rendered as plain text rather than JSON (see
+``hype_data``'s module docstring for why).
 
 This module always regenerates - the cache check/write lives at the route
 layer (routes/commentary.py), keyed on (player1, player2, round_name) via
@@ -97,8 +99,9 @@ def build_user_message(
     player2_data: hype_data.HypePlayerData,
     h2h_1v1: hype_data.HypeHeadToHead,
     h2h_all: hype_data.HypeHeadToHead,
+    ratings_context: hype_data.HypeRatingsContext,
 ) -> str:
-    """Assemble the user turn: the ask plus all four data payloads, clearly
+    """Assemble the user turn: the ask plus all five data payloads, clearly
     labeled. Kept separate from generate_commentary so it's unit-testable
     without a network call. Payloads are rendered as plain text (see
     hype_data's module docstring), not JSON.
@@ -116,7 +119,10 @@ def build_user_message(
         "</head_to_head_1v1>\n\n"
         "<head_to_head_all_formats>\n"
         f"{hype_data.render_head_to_head(h2h_all)}\n"
-        "</head_to_head_all_formats>"
+        "</head_to_head_all_formats>\n\n"
+        "<team_game_ratings>\n"
+        f"{hype_data.render_ratings_context(ratings_context)}\n"
+        "</team_game_ratings>"
     )
 
 
@@ -135,6 +141,17 @@ def build_prompt(
     )
     profile2 = profile_routes.get_player_profile(
         player=player2, replay_manager=replay_manager
+    )
+    # Team-game rating is fetched once for the whole population: per-player
+    # recent form (plain W/L) goes in each profile block, while the ordinals
+    # themselves go into one whole-population calibration block instead of
+    # being embedded per-player - see hype_data.HypeRatingsContext's
+    # docstring for why.
+    ratings = players_routes.get_player_ratings(
+        game_format=None, months_back=None, replay_manager=replay_manager
+    )
+    ratings_context = hype_data.build_hype_ratings_context(
+        ratings.player_rating, player1, player2
     )
     # get_player_head_to_head is async (it loads kill data for value
     # destroyed) but build_prompt is always called from a sync context (a
@@ -160,10 +177,15 @@ def build_prompt(
         round_name,
         player1,
         player2,
-        hype_data.build_hype_player_data(profile1),
-        hype_data.build_hype_player_data(profile2),
+        hype_data.build_hype_player_data(
+            profile1, ratings.player_form.get(player1, [])
+        ),
+        hype_data.build_hype_player_data(
+            profile2, ratings.player_form.get(player2, [])
+        ),
         hype_data.build_hype_head_to_head(h2h_1v1),
         hype_data.build_hype_head_to_head(h2h_all),
+        ratings_context,
     )
     return MatchupPrompt(system=SYSTEM_PROMPT, user_message=user_message)
 
