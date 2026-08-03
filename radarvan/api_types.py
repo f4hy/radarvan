@@ -830,6 +830,28 @@ class SetBracketMatchRequest(BaseModel):
     score_b: int | None = None
 
 
+class BracketMatchPrediction(BaseModel):
+    model_config = _SLOTS
+
+    match_id: str
+    # {player_name: vote_count}, only the two players in this match.
+    tally: dict[str, int] = Field(default_factory=dict)
+    total_predictions: int = 0
+    # The logged-in viewer's own pick (None if unset or logged out).
+    my_pick: str | None = None
+    # False once the match started (scheduled_at passed) or was scored -
+    # predictions lock so nobody can "predict" after already knowing the
+    # outcome.
+    open: bool = True
+
+
+class SetMatchPredictionRequest(BaseModel):
+    model_config = _SLOTS
+
+    # None clears the viewer's pick for this match.
+    predicted_winner: str | None = None
+
+
 class SetBracketRevealAtRequest(BaseModel):
     model_config = _SLOTS
 

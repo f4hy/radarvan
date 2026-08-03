@@ -11,6 +11,7 @@ import MapIcon from "@mui/icons-material/Map"
 import PersonIcon from "@mui/icons-material/Person"
 import SettingsIcon from "@mui/icons-material/Settings"
 import VisibilityIcon from "@mui/icons-material/Visibility"
+import WhatshotIcon from "@mui/icons-material/Whatshot"
 import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -41,7 +42,7 @@ import Typography from "@mui/material/Typography"
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
 import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
-import AgendaPanel from "./Agenda"
+import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import { useIsTournamentAdmin } from "./AuthContext"
 import { FactionMatchupOption, MatchInfo } from "./api"
 import {
@@ -1494,6 +1495,61 @@ function RevealCountdown({ revealAt }: { revealAt: string }) {
   )
 }
 
+// Hero banner for the soonest scheduled match, shown above the tabs so it's
+// visible regardless of which tab a visitor lands on (the same escalating
+// countdown otherwise only lives inside the Agenda tab, which a casual
+// visitor to the Bracket tab would never see). Renders nothing once there's
+// no scheduled match to promote - a bare "nothing scheduled yet" banner
+// would just be noise, not hype.
+function NextMatchBanner({
+  bracketData,
+  onClick,
+}: {
+  bracketData: BracketTournamentOutput | null
+  onClick: () => void
+}) {
+  const upcoming = agendaMatches(bracketData)
+  const nextMatch = upcoming[0]?.scheduled_at ? upcoming[0] : null
+  if (!nextMatch) return null
+
+  return (
+    <Paper
+      variant="outlined"
+      onClick={onClick}
+      sx={{
+        p: 2,
+        mb: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 1.5,
+        cursor: "pointer",
+        borderColor: BRAND_COLOR,
+        bgcolor: (theme) =>
+          alpha(BRAND_COLOR, theme.palette.mode === "dark" ? 0.12 : 0.06),
+      }}
+    >
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+        <WhatshotIcon sx={{ color: BRAND_COLOR }} />
+        <Stack spacing={0}>
+          <Typography
+            variant="overline"
+            sx={{ color: "text.secondary", lineHeight: 1.4 }}
+          >
+            Next match — {nextMatch.round_name}
+          </Typography>
+          <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
+            {playerLabel(nextMatch, "a")} vs {playerLabel(nextMatch, "b")}
+          </Typography>
+        </Stack>
+      </Stack>
+      {/* scheduled_at is narrowed non-null by the nextMatch guard above */}
+      <AgendaCountdown scheduledAt={nextMatch.scheduled_at as string} />
+    </Paper>
+  )
+}
+
 export default function DisplayBracket({
   goToPlayerProfile,
   goToHeadToHead,
@@ -1905,6 +1961,10 @@ export default function DisplayBracket({
           </IconButton>
         )}
       </Stack>
+      <NextMatchBanner
+        bracketData={bracketData}
+        onClick={() => setPageTab("agenda")}
+      />
       <Tabs value={pageTab} onChange={(_e, v) => setPageTab(v)} sx={{ mb: 2 }}>
         <Tab
           value="bracket"

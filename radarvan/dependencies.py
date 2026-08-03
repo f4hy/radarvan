@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from . import db
 from .db_utils import DatabaseManager, ReplayManager
 from .notify import notify_async
-from .repositories import BracketRepo, MapVoteRepo, UserRepo
+from .repositories import BracketPredictionRepo, BracketRepo, MapVoteRepo, UserRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -119,6 +119,13 @@ def get_map_vote_repo(session: Session = Depends(get_db_session)) -> MapVoteRepo
 def get_bracket_repo(session: Session = Depends(get_db_session)) -> BracketRepo:
     """Dependency that provides a BracketRepo instance."""
     return BracketRepo(session)
+
+
+def get_bracket_prediction_repo(
+    session: Session = Depends(get_db_session),
+) -> BracketPredictionRepo:
+    """Dependency that provides a BracketPredictionRepo instance."""
+    return BracketPredictionRepo(session)
 
 
 def get_current_user(

@@ -72,6 +72,18 @@ export interface SetBracketRevealAtRequest {
   reveal_at: string | null
 }
 
+// Community "who wins this match" prediction tally - a hype feature, not
+// the authoritative result (BracketMatchOutput.winner is). `open` is false
+// once the match started (scheduled_at passed) or was scored, so the UI can
+// stop accepting new picks without needing its own clock/status logic.
+export interface BracketMatchPrediction {
+  match_id: string
+  tally: Record<string, number>
+  total_predictions: number
+  my_pick: string | null
+  open: boolean
+}
+
 async function handle<T>(resp: Response, action: string): Promise<T> {
   if (!resp.ok) {
     let detail = `${action} failed (${resp.status})`
@@ -137,4 +149,30 @@ export async function setBracketMatch(
     body: JSON.stringify(req),
   })
   return handle<BracketTournamentOutput>(resp, "set match")
+}
+
+export async function fetchBracketPredictions(): Promise<
+  BracketMatchPrediction[]
+> {
+  const resp = await fetch("/api/bracket_predictions", {
+    credentials: "same-origin",
+  })
+  return handle<BracketMatchPrediction[]>(resp, "get predictions")
+}
+
+// `predictedWinner: null` clears the caller's pick for this match.
+export async function setBracketPrediction(
+  matchId: string,
+  predictedWinner: string | null,
+): Promise<BracketMatchPrediction> {
+  const resp = await fetch(
+    `/api/bracket_predictions/${encodeURIComponent(matchId)}`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ predicted_winner: predictedWinner }),
+    },
+  )
+  return handle<BracketMatchPrediction>(resp, "set prediction")
 }
