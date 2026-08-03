@@ -1,11 +1,9 @@
 """Map stats, geometry, render, and image endpoints."""
 
 import asyncio
-import re
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 
 from .. import map_render as map_render_module
 from .. import map_stats as map_stats_module
@@ -302,52 +300,12 @@ async def push_maps_to_cncstats(
     )
 
 
-_MAPS_DIR = "dist/maps"
-
-
-def _map_match_key(name: str) -> str:
-    """Alphanumeric-lowercase key so spaces, underscores, brackets, and case
-    don't block matching (e.g. `[RANK] Territorial Dispute ZH v1` vs the bundled
-    `userdata_maps_[rank] territorial dispute zh v1_...webp`)."""
-    return re.sub(r"[^a-z0-9]", "", name.lower())
-
-
-def _find_dist_map_path(map_name: str) -> Path | None:
-    """Resolve a map name to a bundled webp in dist/maps, or None.
-
-    Tries exact filenames first, then a normalized exact match, then a
-    normalized substring match (bundled filenames carry prefixes that embed the
-    map name, e.g. `userdata_maps_<name>_<name>.webp`).
-    """
-    maps_dir = Path(_MAPS_DIR)
-    base = map_name.removesuffix(".map")
-    for candidate in (maps_dir / f"{base}.webp", maps_dir / f"{map_name}.webp"):
-        if candidate.exists():
-            return candidate
-    if not maps_dir.is_dir():
-        return None
-    needle = _map_match_key(base)
-    if not needle:
-        return None
-    webps = [f for f in maps_dir.iterdir() if f.suffix == ".webp"]
-    for fname in webps:
-        if _map_match_key(fname.stem) == needle:
-            return fname
-    for fname in webps:
-        if needle in _map_match_key(fname.stem):
-            return fname
-    return None
-
-
 def _load_map_image_bytes(map_name: str) -> bytes:
     s3_uri = missing_maps_module.find_s3_webp(map_name)
     if s3_uri is not None:
         fs = replay_files.get_fs()
         data: bytes = fs.read_bytes(s3_uri)
         return data
-    path = _find_dist_map_path(map_name)
-    if path is not None:
-        return path.read_bytes()
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
 
 
@@ -378,12 +336,10 @@ def render_map_with_players(
 
 
 @public_router.get("/api/map_image/{map_name}", response_model=None)
-def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
-    """Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).
+def get_map_image(map_name: str) -> RedirectResponse:
+    """Return the WebP for a map, redirecting to its presigned S3 URL.
 
     Strips a trailing `.map` extension and tries case-insensitive variants in S3.
-    Falls back to the bundled `dist/maps/<name>.webp` for legacy maps that
-    haven't been migrated yet.
     """
     # Map images are static, so cache aggressively. The browser caches the
     # redirect, reusing its presigned URL for up to max-age - which must stay
@@ -395,7 +351,4 @@ def get_map_image(map_name: str) -> RedirectResponse | FileResponse:
             s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL
         )
         return RedirectResponse(presigned, status_code=302, headers=cache_headers)
-    path = _find_dist_map_path(map_name)
-    if path is not None:
-        return FileResponse(path, headers=cache_headers)
     raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")

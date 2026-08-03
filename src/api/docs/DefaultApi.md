@@ -1490,7 +1490,7 @@ example().catch(console.error);
 
 Get Map Image
 
-Return the WebP for a map, preferring S3 (dynamic) over public/maps (legacy).  Strips a trailing &#x60;.map&#x60; extension and tries case-insensitive variants in S3. Falls back to the bundled &#x60;dist/maps/&lt;name&gt;.webp&#x60; for legacy maps that haven\&#39;t been migrated yet.
+Return the WebP for a map, redirecting to its presigned S3 URL.  Strips a trailing &#x60;.map&#x60; extension and tries case-insensitive variants in S3.
 
 ### Example
 
