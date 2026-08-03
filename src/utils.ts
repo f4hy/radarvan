@@ -1,3 +1,22 @@
+import type { MapPoint } from "./api"
+
+const compactCash = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+
+// Format a dollar amount compactly, e.g. 1400000 -> "$1.4M".
+export function formatCash(amount: number): string {
+  return `$${compactCash.format(amount)}`
+}
+
+// Sum of cash available across a map's supply piles (mapparse's `supply`
+// category, MapPoint.amount) - the total money on the map to collect, not
+// what any player actually gathered.
+export function totalMapSupply(supply: MapPoint[] | undefined): number {
+  return (supply ?? []).reduce((sum, p) => sum + (p.amount ?? 0), 0)
+}
+
 export function winRate(wins: number, losses: number): number {
   const tot = wins + losses
   return tot > 0 ? wins / tot : 0

@@ -35,7 +35,7 @@ import {
   BuildOrderEntry,
   TimelineEvent,
 } from "./api"
-import GameMap from "./Map"
+import GameMap, { useMapSupplyTotal } from "./Map"
 import ReplayPlayback from "./ReplayPlayback"
 import AIPredictions from "./AIPredictions"
 import { Alert, Stack, Tooltip as MuiTooltip } from "@mui/material"
@@ -60,7 +60,7 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { buildPlayerColorMap, getColorHex } from "./utils"
+import { buildPlayerColorMap, formatCash, getColorHex } from "./utils"
 import { BRAND_COLOR } from "./theme"
 
 function getDetails(
@@ -1371,6 +1371,7 @@ function PlayerIncomeChart(props: {
 function IncomeBySourceTab(props: { details: MatchDetails }) {
   const income = props.details.incomeBySource ?? {}
   const minutes = React.useMemo(() => incomeMinutes(income), [income])
+  const mapSupplyTotal = useMapSupplyTotal(props.details.mapName ?? "")
   if (!hasIncomeBySourceData(props.details)) {
     return <Typography>No income-by-source data for this replay</Typography>
   }
@@ -1384,6 +1385,11 @@ function IncomeBySourceTab(props: { details: MatchDetails }) {
   )
   return (
     <>
+      {!!mapSupplyTotal && (
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Total map supply: {formatCash(mapSupplyTotal)}
+        </Typography>
+      )}
       {props.details.playerSummary.map((ps) => (
         <PlayerIncomeChart
           // Color is unique per player in a match; names aren't (twin CPUs).
@@ -1451,17 +1457,19 @@ function finalValueForPlayer(
 }
 
 // Bar height is the actual $ value collected; each bar is additionally
-// labeled with that player's share of what these players collected between
-// them this match - not (yet) the map's total available resource, which
-// cncstats doesn't expose per-map today. Once a per-map high-water mark is
-// available, swap the percent denominator for that instead of the sum below.
+// labeled with that player's share either of the map's total available
+// supply cash (`totalOverride`, when known - see mapparse's `supply` data)
+// or, absent that, of what these players collected between them this match.
 function PercentOfTotalChart(props: {
   title: string
   rows: { name: string; [key: string]: string | number }[]
   field: string
   colors: Record<string, string>
+  totalOverride?: number
 }) {
-  const total = props.rows.reduce((sum, r) => sum + Number(r[props.field]), 0)
+  const total =
+    props.totalOverride ??
+    props.rows.reduce((sum, r) => sum + Number(r[props.field]), 0)
   const data = props.rows
     .map((r) => {
       const value = Number(r[props.field])
@@ -1499,7 +1507,11 @@ function PercentOfTotalChart(props: {
           />
           <Tooltip
             formatter={(v, _name, item) => [
-              `${v} (${item.payload.percentLabel} of collected this match)`,
+              `${v} (${item.payload.percentLabel} of ${
+                props.totalOverride !== undefined
+                  ? "map's total supply"
+                  : "collected this match"
+              })`,
               "$ collected",
             ]}
             cursor={false}
@@ -1513,6 +1525,7 @@ function PercentOfTotalChart(props: {
 function EconTab(props: { details: MatchDetails }) {
   const income = props.details.incomeBySource ?? {}
   const minutes = React.useMemo(() => incomeMinutes(income), [income])
+  const mapSupplyTotal = useMapSupplyTotal(props.details.mapName ?? "")
   const secondaryKeys = React.useMemo(
     () =>
       Object.keys(income).filter(
@@ -1542,6 +1555,11 @@ function EconTab(props: { details: MatchDetails }) {
   }
   return (
     <>
+      {!!mapSupplyTotal && (
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Total map supply: {formatCash(mapSupplyTotal)}
+        </Typography>
+      )}
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={data}
@@ -1570,15 +1588,20 @@ function EconTab(props: { details: MatchDetails }) {
         </BarChart>
       </ResponsiveContainer>
       <Divider />
-      {categories.map((c) => (
-        <PercentOfTotalChart
-          key={c.label}
-          title={`${c.label} - % of collected this match`}
-          rows={data}
-          field={c.label}
-          colors={colors}
-        />
-      ))}
+      {categories.map((c) => {
+        const totalOverride =
+          c.label === "Supplies" && mapSupplyTotal ? mapSupplyTotal : undefined
+        return (
+          <PercentOfTotalChart
+            key={c.label}
+            title={`${c.label} - % of ${totalOverride ? "map's total supply" : "collected this match"}`}
+            rows={data}
+            field={c.label}
+            colors={colors}
+            totalOverride={totalOverride}
+          />
+        )
+      })}
     </>
   )
 }

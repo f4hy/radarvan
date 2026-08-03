@@ -7,7 +7,7 @@ import DownloadIcon from "@mui/icons-material/Download"
 import html2canvas from "html2canvas"
 import * as React from "react"
 import { MapClient } from "./Client"
-import { getColorHex } from "./utils"
+import { formatCash, getColorHex, totalMapSupply } from "./utils"
 import type { MapDataPayload } from "./api"
 
 export type PlayerPosition = {
@@ -52,7 +52,7 @@ function getMapImageApiUrl(mapname: string) {
 const mapDataResolved: Record<string, MapDataPayload> = {}
 const mapDataInFlight: Record<string, Promise<MapDataPayload>> = {}
 
-function fetchMapData(mapname: string): Promise<MapDataPayload> {
+export function fetchMapData(mapname: string): Promise<MapDataPayload> {
   const resolved = mapDataResolved[mapname]
   if (resolved) return Promise.resolve(resolved)
   if (!mapDataInFlight[mapname]) {
@@ -71,6 +71,34 @@ function fetchMapData(mapname: string): Promise<MapDataPayload> {
     mapDataInFlight[mapname] = promise
   }
   return mapDataInFlight[mapname]
+}
+
+// Total collectible supply cash for a map, fetched (and cached via
+// fetchMapData) lazily on mount - null until resolved or if the map has none.
+// `mapname` may be a full path (e.g. "userdata/maps/Foo") like MatchDetails.mapName -
+// only the basename is a valid map_data lookup key (see GameMap above).
+export function useMapSupplyTotal(mapname: string): number | null {
+  const basename = mapname.split("/").slice(-1).pop() ?? ""
+  const [total, setTotal] = React.useState<number | null>(null)
+  React.useEffect(() => {
+    if (!basename) {
+      setTotal(null)
+      return
+    }
+    let cancelled = false
+    fetchMapData(basename).then(
+      (data) => {
+        if (!cancelled) setTotal(totalMapSupply(data.supply))
+      },
+      () => {
+        if (!cancelled) setTotal(null)
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [basename])
+  return total
 }
 
 export type EventDot = {
@@ -148,9 +176,14 @@ export default function GameMap(props: {
   }, [mapname, props.deferData, dataRequested])
 
   const showPlaceholder = !mapUrl || imgError
+  const supplyTotal = mapData ? totalMapSupply(mapData.supply) : 0
+  const tooltipTitle =
+    supplyTotal > 0
+      ? `Map ${mapname} — total supplies ${formatCash(supplyTotal)}`
+      : `Map ${mapname}`
 
   return (
-    <Tooltip title={"Map " + mapname}>
+    <Tooltip title={tooltipTitle}>
       <Card
         sx={{ minHeight: 300, minWidth: 300, position: "relative" }}
         onMouseEnter={
