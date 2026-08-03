@@ -1,19 +1,29 @@
 import EditCalendarIcon from "@mui/icons-material/EditCalendar"
 import EventAvailableIcon from "@mui/icons-material/EventAvailable"
+import HowToVoteIcon from "@mui/icons-material/HowToVote"
+import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
+import ButtonBase from "@mui/material/ButtonBase"
 import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
 import Popover from "@mui/material/Popover"
 import Stack from "@mui/material/Stack"
-import { keyframes } from "@mui/material/styles"
+import { alpha, keyframes, Theme } from "@mui/material/styles"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
 import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
-import { useIsTournamentAdmin } from "./AuthContext"
-import { BracketMatchOutput, BracketTournamentOutput } from "./bracketApi"
+import { useAuth, useIsTournamentAdmin } from "./AuthContext"
+import { startDiscordLogin } from "./auth"
+import {
+  BracketMatchOutput,
+  BracketMatchPrediction,
+  BracketTournamentOutput,
+  fetchBracketPredictions,
+  setBracketPrediction,
+} from "./bracketApi"
 import {
   formatCountdown,
   formatScheduledAt,
@@ -22,6 +32,7 @@ import {
   shortMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
+import { useErrorSnackbar } from "./useErrorSnackbar"
 
 // Escalating hype thresholds for AgendaCountdown - calm and quiet until a
 // match is a week out, then increasingly loud so the countdown itself
@@ -51,8 +62,9 @@ const flashLive = keyframes`
 
 // Uses the same shared per-second countdown ticker as Bracket.tsx's
 // RevealCountdown, so only this row re-renders each second, not the whole
-// list.
-function AgendaCountdown({ scheduledAt }: { scheduledAt: string }) {
+// list. Exported for Bracket.tsx's hero "next match" banner, which reuses
+// the same escalating hype styling rather than a second copy of it.
+export function AgendaCountdown({ scheduledAt }: { scheduledAt: string }) {
   const remaining = useCountdownMs(scheduledAt)
 
   if (remaining <= 0) {
@@ -196,12 +208,163 @@ function ScheduleMatchButton({
   )
 }
 
+// Community "who wins this match" prediction poll. Real Button-ish click
+// targets (ButtonBase + hover states), not just clickable text, so it reads
+// as an interactive poll rather than a static stat bar. Percentages default
+// to a 50/50 split with no tally yet so the bar isn't empty/blank before
+// anyone's voted; the total-prediction count is always shown (even at zero)
+// so the feature itself is discoverable.
+function PredictionBar({
+  prediction,
+  playerA,
+  playerB,
+  onPick,
+}: {
+  prediction: BracketMatchPrediction | undefined
+  playerA: string
+  playerB: string
+  onPick: (winner: string | null) => void
+}) {
+  const { status } = useAuth()
+  const loggedIn = status?.logged_in ?? false
+  const [pending, setPending] = React.useState(false)
+
+  const tally = prediction?.tally ?? {}
+  const countA = tally[playerA] ?? 0
+  const countB = tally[playerB] ?? 0
+  const total = countA + countB
+  const pctA = total > 0 ? Math.round((countA / total) * 100) : 50
+  const pctB = 100 - pctA
+  const myPick = prediction?.my_pick ?? null
+  const open = prediction?.open ?? false
+
+  // Logged out isn't a dead end: clicking either side sends the visitor
+  // straight into Discord login instead of silently doing nothing, so the
+  // poll doubles as a login funnel rather than a tease.
+  const handlePick = (winner: string) => {
+    if (!open || pending) return
+    if (!loggedIn) {
+      startDiscordLogin()
+      return
+    }
+    setPending(true)
+    try {
+      onPick(myPick === winner ? null : winner)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const segmentSx = (picked: boolean) => ({
+    py: 0.75,
+    px: 1.25,
+    transition: "all 0.2s ease",
+    color: picked ? "primary.contrastText" : "text.primary",
+    bgcolor: picked
+      ? "primary.main"
+      : (theme: Theme) => alpha(theme.palette.primary.main, 0.1),
+    "&:hover": open
+      ? {
+          bgcolor: picked
+            ? "primary.dark"
+            : (theme: Theme) => alpha(theme.palette.primary.main, 0.22),
+        }
+      : undefined,
+    "&.Mui-disabled": { opacity: 0.6 },
+  })
+
+  return (
+    <Stack spacing={0.5} sx={{ width: "100%", maxWidth: 420 }}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", justifyContent: "space-between" }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+          }}
+        >
+          <HowToVoteIcon sx={{ fontSize: 14 }} /> Predict the winner
+        </Typography>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {total > 0
+            ? `${total} prediction${total === 1 ? "" : "s"}`
+            : "no predictions yet"}
+        </Typography>
+      </Stack>
+      <Stack
+        direction="row"
+        sx={{
+          borderRadius: 1.5,
+          overflow: "hidden",
+          border: (theme) => `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <ButtonBase
+          disabled={!open || pending}
+          onClick={() => handlePick(playerA)}
+          sx={{
+            flexBasis: `${pctA}%`,
+            justifyContent: "flex-start",
+            ...segmentSx(myPick === playerA),
+          }}
+        >
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontWeight: myPick === playerA ? 700 : 500 }}
+          >
+            {playerA}
+            {total > 0 && ` · ${pctA}%`}
+          </Typography>
+        </ButtonBase>
+        <ButtonBase
+          disabled={!open || pending}
+          onClick={() => handlePick(playerB)}
+          sx={{
+            flexBasis: `${pctB}%`,
+            justifyContent: "flex-end",
+            ...segmentSx(myPick === playerB),
+          }}
+        >
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontWeight: myPick === playerB ? 700 : 500 }}
+          >
+            {total > 0 && `${pctB}% · `}
+            {playerB}
+          </Typography>
+        </ButtonBase>
+      </Stack>
+      {open && !loggedIn && (
+        <Typography variant="caption" sx={{ color: "text.disabled" }}>
+          Click a player to log in and lock in your pick
+        </Typography>
+      )}
+      {!open && (
+        <Typography variant="caption" sx={{ color: "text.disabled" }}>
+          Predictions closed
+        </Typography>
+      )}
+    </Stack>
+  )
+}
+
 function AgendaRow({
   match,
   onSchedule,
+  prediction,
+  onPick,
 }: {
   match: BracketMatchOutput
   onSchedule: (matchId: string, scheduledAt: string | null) => Promise<void>
+  prediction: BracketMatchPrediction | undefined
+  onPick: (matchId: string, winner: string | null) => void
 }) {
   const isAdmin = useIsTournamentAdmin()
   return (
@@ -259,6 +422,16 @@ function AgendaRow({
           )}
         </Stack>
       </Stack>
+      {match.player_a && match.player_b && (
+        <Box sx={{ mt: 1.5 }}>
+          <PredictionBar
+            prediction={prediction}
+            playerA={match.player_a}
+            playerB={match.player_b}
+            onPick={(winner) => onPick(match.match_id, winner)}
+          />
+        </Box>
+      )}
     </Paper>
   )
 }
@@ -267,8 +440,9 @@ function AgendaRow({
 // recorded yet) - excludes TBD matches (still waiting on an earlier result),
 // completed matches, and the Grand Final Reset when it isn't needed.
 // Scheduled matches sort soonest-first; unscheduled ones (nothing to sort by)
-// trail behind them.
-function agendaMatches(
+// trail behind them. Exported so Bracket.tsx's hero banner can pick the
+// single soonest match without duplicating this filter/sort.
+export function agendaMatches(
   bracketData: BracketTournamentOutput | null,
 ): BracketMatchOutput[] {
   return (bracketData?.matches ?? [])
@@ -299,6 +473,41 @@ export default function AgendaPanel({
   onSchedule: (matchId: string, scheduledAt: string | null) => Promise<void>
 }) {
   const matches = agendaMatches(bracketData)
+  const [predictions, setPredictions] = React.useState<
+    Record<string, BracketMatchPrediction>
+  >({})
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  // Re-fetch whenever the underlying tournament data changes (new/reset
+  // tournament, a match getting scored, reveal_at flipping) - simplest way
+  // to stay in sync without hand-diffing which matches actually need it.
+  React.useEffect(() => {
+    if (!bracketData) {
+      setPredictions({})
+      return
+    }
+    let cancelled = false
+    fetchBracketPredictions()
+      .then((list) => {
+        if (cancelled) return
+        setPredictions(Object.fromEntries(list.map((p) => [p.match_id, p])))
+      })
+      .catch(showError)
+    return () => {
+      cancelled = true
+    }
+  }, [bracketData, showError])
+
+  const handlePick = React.useCallback(
+    (matchId: string, winner: string | null) => {
+      setBracketPrediction(matchId, winner)
+        .then((updated) => {
+          setPredictions((prev) => ({ ...prev, [matchId]: updated }))
+        })
+        .catch(showError)
+    },
+    [showError],
+  )
 
   return (
     <>
@@ -315,10 +524,17 @@ export default function AgendaPanel({
       {matches.length > 0 && (
         <Stack spacing={1.5}>
           {matches.map((m) => (
-            <AgendaRow key={m.match_id} match={m} onSchedule={onSchedule} />
+            <AgendaRow
+              key={m.match_id}
+              match={m}
+              onSchedule={onSchedule}
+              prediction={predictions[m.match_id]}
+              onPick={handlePick}
+            />
           ))}
         </Stack>
       )}
+      {errorSnackbar}
     </>
   )
 }
