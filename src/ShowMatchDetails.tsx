@@ -1456,6 +1456,8 @@ function finalValueForPlayer(
   return keys.reduce((sum, k) => sum + (last[k] ?? 0), 0)
 }
 
+const UNCOLLECTED_COLOR = "#9e9e9e"
+
 // Bar height is the actual $ value collected; each bar is additionally
 // labeled with that player's share either of the map's total available
 // supply cash (`totalOverride`, when known - see mapparse's `supply` data)
@@ -1466,10 +1468,12 @@ function PercentOfTotalChart(props: {
   field: string
   colors: Record<string, string>
   totalOverride?: number
+  // When set (and totalOverride leaves a positive remainder), adds a synthetic
+  // bar for total - sum(collected) - e.g. supply cash still unclaimed on the map.
+  remainderLabel?: string
 }) {
-  const total =
-    props.totalOverride ??
-    props.rows.reduce((sum, r) => sum + Number(r[props.field]), 0)
+  const rowSum = props.rows.reduce((sum, r) => sum + Number(r[props.field]), 0)
+  const total = props.totalOverride ?? rowSum
   const data = props.rows
     .map((r) => {
       const value = Number(r[props.field])
@@ -1481,6 +1485,14 @@ function PercentOfTotalChart(props: {
       }
     })
     .sort((a, b) => b.value - a.value)
+  const remainder = props.totalOverride !== undefined ? total - rowSum : 0
+  if (props.remainderLabel && remainder > 0) {
+    data.push({
+      name: props.remainderLabel,
+      value: remainder,
+      percentLabel: `${((100 * remainder) / total).toFixed(1)}%`,
+    })
+  }
   return (
     <>
       <Typography variant="h6">{props.title}</Typography>
@@ -1493,7 +1505,10 @@ function PercentOfTotalChart(props: {
           <Bar dataKey="value">
             <LabelList dataKey="percentLabel" position="top" />
             {data.map((d) => (
-              <Cell key={d.name} fill={props.colors[d.name]} />
+              <Cell
+                key={d.name}
+                fill={props.colors[d.name] ?? UNCOLLECTED_COLOR}
+              />
             ))}
           </Bar>
           <XAxis dataKey="name" />
@@ -1599,6 +1614,7 @@ function EconTab(props: { details: MatchDetails }) {
             field={c.label}
             colors={colors}
             totalOverride={totalOverride}
+            remainderLabel={totalOverride ? "Uncollected" : undefined}
           />
         )
       })}
