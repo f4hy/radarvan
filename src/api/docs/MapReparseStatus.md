@@ -1,26 +1,30 @@
 
-# FetchMissingMapsResponse
+# MapReparseStatus
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`requested` | number
-`fetched` | number
-`results` | [Array&lt;FetchMissingMapResult&gt;](FetchMissingMapResult.md)
+`totalMaps` | number
+`staleMaps` | number
+`missingMaps` | number
+`mapparseAvailable` | boolean
+`currentMapparseHash` | string
 
 ## Example
 
 ```typescript
-import type { FetchMissingMapsResponse } from ''
+import type { MapReparseStatus } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "requested": null,
-  "fetched": null,
-  "results": null,
-} satisfies FetchMissingMapsResponse
+  "totalMaps": null,
+  "staleMaps": null,
+  "missingMaps": null,
+  "mapparseAvailable": null,
+  "currentMapparseHash": null,
+} satisfies MapReparseStatus
 
 console.log(example)
 
@@ -29,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as FetchMissingMapsResponse
+const exampleParsed = JSON.parse(exampleJSON) as MapReparseStatus
 console.log(exampleParsed)
 ```
 

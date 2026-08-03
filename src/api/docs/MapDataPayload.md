@@ -10,6 +10,7 @@ Name | Type
 `playerStarts` | [Array&lt;MapPlayerStart&gt;](MapPlayerStart.md)
 `supply` | [Array&lt;MapPoint&gt;](MapPoint.md)
 `tech` | [Array&lt;MapPoint&gt;](MapPoint.md)
+`garrison` | [Array&lt;MapPoint&gt;](MapPoint.md)
 `waypoints` | [Array&lt;MapPoint&gt;](MapPoint.md)
 
 ## Example
@@ -23,6 +24,7 @@ const example = {
   "playerStarts": null,
   "supply": null,
   "tech": null,
+  "garrison": null,
   "waypoints": null,
 } satisfies MapDataPayload
 

@@ -2,6 +2,7 @@ apis/AuthApi.ts
 apis/BracketApi.ts
 apis/CommentaryApi.ts
 apis/DefaultApi.ts
+apis/MapApi.ts
 apis/MapUploadApi.ts
 apis/MapVoteApi.ts
 apis/index.ts
@@ -42,7 +43,6 @@ docs/FactionMatrix.md
 docs/FactionMatrixCell.md
 docs/FavoriteObject.md
 docs/FetchMissingMapResult.md
-docs/FetchMissingMapsResponse.md
 docs/FirstBlood.md
 docs/GameComposition.md
 docs/GameRecord.md
@@ -63,6 +63,7 @@ docs/HeadToHeadMapRecord.md
 docs/KillEventOutput.md
 docs/LocationInner.md
 docs/LoserOfSource.md
+docs/MapApi.md
 docs/MapData.md
 docs/MapDataPayload.md
 docs/MapEventOutput.md
@@ -75,6 +76,7 @@ docs/MapPoint.md
 docs/MapProfileStat.md
 docs/MapRenderPlayer.md
 docs/MapRenderRequest.md
+docs/MapReparseStatus.md
 docs/MapStatsResponse.md
 docs/MapSummaryPlayer.md
 docs/MapSummaryRequest.md
@@ -121,6 +123,8 @@ docs/ProfileBadge.md
 docs/PushMapResult.md
 docs/PushMapsResponse.md
 docs/RatingUpset.md
+docs/ReparseMapResult.md
+docs/ReparseMapsResponse.md
 docs/ReplayFileSchema.md
 docs/ReplayWithoutPlayerStats.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
@@ -189,7 +193,6 @@ models/FactionMatrix.ts
 models/FactionMatrixCell.ts
 models/FavoriteObject.ts
 models/FetchMissingMapResult.ts
-models/FetchMissingMapsResponse.ts
 models/FirstBlood.ts
 models/GameComposition.ts
 models/GameRecord.ts
@@ -222,6 +225,7 @@ models/MapPoint.ts
 models/MapProfileStat.ts
 models/MapRenderPlayer.ts
 models/MapRenderRequest.ts
+models/MapReparseStatus.ts
 models/MapStatsResponse.ts
 models/MapSummaryPlayer.ts
 models/MapSummaryRequest.ts
@@ -266,6 +270,8 @@ models/ProfileBadge.ts
 models/PushMapResult.ts
 models/PushMapsResponse.ts
 models/RatingUpset.ts
+models/ReparseMapResult.ts
+models/ReparseMapsResponse.ts
 models/ReplayFileSchema.ts
 models/ReplayWithoutPlayerStats.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts

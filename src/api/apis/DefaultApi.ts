@@ -15,32 +15,22 @@
 
 import * as runtime from '../runtime';
 import type {
-  BackfillMapCrcsResponse,
   BuildOrder,
   DraftRequest,
   DraftResult,
   FFAStats,
   FactionMatchupPrediction,
   FactionMatrix,
-  FetchMissingMapResult,
-  FetchMissingMapsResponse,
   GameComposition,
   GameRecord,
   GeneralStats,
   HTTPValidationError,
   HeadToHead,
   HeadToHeadDetail,
-  MapDataPayload,
-  MapMatchCount,
-  MapRenderRequest,
-  MapStatsResponse,
-  MapSummaryRequest,
-  MapsByPlayerCount,
   MatchDetails,
   MatchInfo,
   MatchPrediction,
   Matches,
-  MissingMapInfo,
   PlayerEnum,
   PlayerGameCount,
   PlayerProfile,
@@ -50,7 +40,6 @@ import type {
   PlayerStats,
   PlayerSynergy,
   PredictRequest,
-  PushMapsResponse,
   RatingUpset,
   ReplayFileSchema,
   ReplayWithoutPlayerStats,
@@ -66,8 +55,6 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
-    BackfillMapCrcsResponseFromJSON,
-    BackfillMapCrcsResponseToJSON,
     BuildOrderFromJSON,
     BuildOrderToJSON,
     DraftRequestFromJSON,
@@ -80,10 +67,6 @@ import {
     FactionMatchupPredictionToJSON,
     FactionMatrixFromJSON,
     FactionMatrixToJSON,
-    FetchMissingMapResultFromJSON,
-    FetchMissingMapResultToJSON,
-    FetchMissingMapsResponseFromJSON,
-    FetchMissingMapsResponseToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
     GameRecordFromJSON,
@@ -96,18 +79,6 @@ import {
     HeadToHeadToJSON,
     HeadToHeadDetailFromJSON,
     HeadToHeadDetailToJSON,
-    MapDataPayloadFromJSON,
-    MapDataPayloadToJSON,
-    MapMatchCountFromJSON,
-    MapMatchCountToJSON,
-    MapRenderRequestFromJSON,
-    MapRenderRequestToJSON,
-    MapStatsResponseFromJSON,
-    MapStatsResponseToJSON,
-    MapSummaryRequestFromJSON,
-    MapSummaryRequestToJSON,
-    MapsByPlayerCountFromJSON,
-    MapsByPlayerCountToJSON,
     MatchDetailsFromJSON,
     MatchDetailsToJSON,
     MatchInfoFromJSON,
@@ -116,8 +87,6 @@ import {
     MatchPredictionToJSON,
     MatchesFromJSON,
     MatchesToJSON,
-    MissingMapInfoFromJSON,
-    MissingMapInfoToJSON,
     PlayerEnumFromJSON,
     PlayerEnumToJSON,
     PlayerGameCountFromJSON,
@@ -136,8 +105,6 @@ import {
     PlayerSynergyToJSON,
     PredictRequestFromJSON,
     PredictRequestToJSON,
-    PushMapsResponseFromJSON,
-    PushMapsResponseToJSON,
     RatingUpsetFromJSON,
     RatingUpsetToJSON,
     ReplayFileSchemaFromJSON,
@@ -166,10 +133,6 @@ import {
     WinnerOverrideToJSON,
 } from '../models/index';
 
-export interface BackfillMapCrcsApiBackfillMapCrcsPostRequest {
-    maxToUpdate?: number;
-}
-
 export interface BackfillMatchCompositionApiBackfillCompositionPostRequest {
     maxToUpdate?: number;
 }
@@ -188,16 +151,6 @@ export interface DebugMatchApiDebugMatchMatchIdGetRequest {
 
 export interface DeleteOverrideApiOverrideMatchIdDeleteRequest {
     matchId: number;
-}
-
-export interface FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest {
-    matchId: number;
-    parseMap?: boolean;
-}
-
-export interface FetchMissingMapsApiFetchMissingMapsPostRequest {
-    maxToUpdate?: number;
-    parseMap?: boolean;
 }
 
 export interface FixIncompleteApiFixIncompletePostRequest {
@@ -226,18 +179,6 @@ export interface GetGeneralsStatsApiGeneralstatsGetRequest {
 
 export interface GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest {
     gameFormat?: string | null;
-}
-
-export interface GetMapDataApiMapDataMapNameGetRequest {
-    mapName: string;
-}
-
-export interface GetMapImageApiMapImageMapNameGetRequest {
-    mapName: string;
-}
-
-export interface GetMapSummaryApiMapSummaryPostRequest {
-    mapSummaryRequest: MapSummaryRequest;
 }
 
 export interface GetMatchByIdApiMatchMatchIdGetRequest {
@@ -318,10 +259,6 @@ export interface IsTournamentGameApiIsTournamentGameMatchIdGetRequest {
     matchId: number;
 }
 
-export interface ListMissingMapsEndpointApiMissingMapsGetRequest {
-    limit?: number | null;
-}
-
 export interface ListReplaysApiReplaysGetRequest {
     matchId?: number | null;
     gameDate?: Date | null;
@@ -350,10 +287,6 @@ export interface PredictOverTimeApiPredictOverTimeMatchIdGetRequest {
     matchId: number;
 }
 
-export interface PushMapsToCncstatsApiPushMapsToCncstatsPostRequest {
-    maxToUpdate?: number;
-}
-
 export interface RandomizeDraftApiDraftRandomizePostRequest {
     draftRequest: DraftRequest;
 }
@@ -364,10 +297,6 @@ export interface RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest {
 
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
     urlOfReplay: string;
-}
-
-export interface RenderMapWithPlayersApiMapRenderPostRequest {
-    mapRenderRequest: MapRenderRequest;
 }
 
 export interface ReparseApiReparseMatchIdPostRequest {
@@ -394,11 +323,6 @@ export interface ReplaysWithoutPlayerstatsApiReplaysWithoutPlayerstatsGetRequest
 
 export interface ResetMatchApiMatchMatchIdDeleteRequest {
     matchId: number;
-}
-
-export interface SaveMapDataApiMapDataMapNamePostRequest {
-    mapName: string;
-    mapDataPayload: MapDataPayload;
 }
 
 export interface ScrapeApiScrapeDaysPostRequest {
@@ -429,53 +353,6 @@ export interface UploadReplayApiUploadReplayPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
-
-    /**
-     * Creates request options for backfillMapCrcsApiBackfillMapCrcsPost without sending the request
-     */
-    async backfillMapCrcsApiBackfillMapCrcsPostRequestOpts(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['maxToUpdate'] != null) {
-            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/backfill_map_crcs`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Fill in MapData.crc from a sample match\'s replay, or the hosted `.map` bytes.  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON; for a map nobody has played, computes it from the `.map` bytes we host in S3 instead. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
-     * Backfill Map Crcs
-     */
-    async backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BackfillMapCrcsResponse>> {
-        const requestOptions = await this.backfillMapCrcsApiBackfillMapCrcsPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => BackfillMapCrcsResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Fill in MapData.crc from a sample match\'s replay, or the hosted `.map` bytes.  For each MapData row missing a CRC, finds a match played on that map and reads the CRC from its parsed replay JSON; for a map nobody has played, computes it from the `.map` bytes we host in S3 instead. Resumable (only NULL-CRC rows are touched). Processes up to `max_to_update` rows.
-     * Backfill Map Crcs
-     */
-    async backfillMapCrcsApiBackfillMapCrcsPost(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BackfillMapCrcsResponse> {
-        const response = await this.backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
 
     /**
      * Creates request options for backfillMatchCompositionApiBackfillCompositionPost without sending the request
@@ -762,112 +639,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async deleteOverrideApiOverrideMatchIdDelete(requestParameters: DeleteOverrideApiOverrideMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.deleteOverrideApiOverrideMatchIdDeleteRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for fetchMapForMatchApiFetchMapForMatchMatchIdPost without sending the request
-     */
-    async fetchMapForMatchApiFetchMapForMatchMatchIdPostRequestOpts(requestParameters: FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['matchId'] == null) {
-            throw new runtime.RequiredError(
-                'matchId',
-                'Required parameter "matchId" was null or undefined when calling fetchMapForMatchApiFetchMapForMatchMatchIdPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['parseMap'] != null) {
-            queryParameters['parse_map'] = requestParameters['parseMap'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/fetch_map_for_match/{match_id}`;
-        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Fetch the cncstats map for a single match\'s MapCRC and upload to S3.  When `parse_map` is true and the local mapparse binary is available, also parse the .map and store the geometry payload in `MapData`.
-     * Fetch Map For Match
-     */
-    async fetchMapForMatchApiFetchMapForMatchMatchIdPostRaw(requestParameters: FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMissingMapResult>> {
-        const requestOptions = await this.fetchMapForMatchApiFetchMapForMatchMatchIdPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => FetchMissingMapResultFromJSON(jsonValue));
-    }
-
-    /**
-     * Fetch the cncstats map for a single match\'s MapCRC and upload to S3.  When `parse_map` is true and the local mapparse binary is available, also parse the .map and store the geometry payload in `MapData`.
-     * Fetch Map For Match
-     */
-    async fetchMapForMatchApiFetchMapForMatchMatchIdPost(requestParameters: FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMissingMapResult> {
-        const response = await this.fetchMapForMatchApiFetchMapForMatchMatchIdPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for fetchMissingMapsApiFetchMissingMapsPost without sending the request
-     */
-    async fetchMissingMapsApiFetchMissingMapsPostRequestOpts(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['maxToUpdate'] != null) {
-            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
-        }
-
-        if (requestParameters['parseMap'] != null) {
-            queryParameters['parse_map'] = requestParameters['parseMap'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/fetch_missing_maps`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.  When `parse_map` is true and the local mapparse binary is available, the .map file is also parsed and saved to MapData.
-     * Fetch Missing Maps
-     */
-    async fetchMissingMapsApiFetchMissingMapsPostRaw(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMissingMapsResponse>> {
-        const requestOptions = await this.fetchMissingMapsApiFetchMissingMapsPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => FetchMissingMapsResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Pull up to `max_to_update` missing maps from cncstats and upload to S3.  When `parse_map` is true and the local mapparse binary is available, the .map file is also parsed and saved to MapData.
-     * Fetch Missing Maps
-     */
-    async fetchMissingMapsApiFetchMissingMapsPost(requestParameters: FetchMissingMapsApiFetchMissingMapsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMissingMapsResponse> {
-        const response = await this.fetchMissingMapsApiFetchMissingMapsPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1337,292 +1108,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getHeadToHeadApiPlayerRatingsHeadToHeadGet(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: { [key: string]: HeadToHead; }; }> {
         const response = await this.getHeadToHeadApiPlayerRatingsHeadToHeadGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMapDataApiMapDataMapNameGet without sending the request
-     */
-    async getMapDataApiMapDataMapNameGetRequestOpts(requestParameters: GetMapDataApiMapDataMapNameGetRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['mapName'] == null) {
-            throw new runtime.RequiredError(
-                'mapName',
-                'Required parameter "mapName" was null or undefined when calling getMapDataApiMapDataMapNameGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_data/{map_name}`;
-        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Get Map Data
-     */
-    async getMapDataApiMapDataMapNameGetRaw(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
-        const requestOptions = await this.getMapDataApiMapDataMapNameGetRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => MapDataPayloadFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Map Data
-     */
-    async getMapDataApiMapDataMapNameGet(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDataPayload> {
-        const response = await this.getMapDataApiMapDataMapNameGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMapImageApiMapImageMapNameGet without sending the request
-     */
-    async getMapImageApiMapImageMapNameGetRequestOpts(requestParameters: GetMapImageApiMapImageMapNameGetRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['mapName'] == null) {
-            throw new runtime.RequiredError(
-                'mapName',
-                'Required parameter "mapName" was null or undefined when calling getMapImageApiMapImageMapNameGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/api/map_image/{map_name}`;
-        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Return the WebP for a map, redirecting to its presigned S3 URL.  Strips a trailing `.map` extension and tries case-insensitive variants in S3.
-     * Get Map Image
-     */
-    async getMapImageApiMapImageMapNameGetRaw(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        const requestOptions = await this.getMapImageApiMapImageMapNameGetRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
-    }
-
-    /**
-     * Return the WebP for a map, redirecting to its presigned S3 URL.  Strips a trailing `.map` extension and tries case-insensitive variants in S3.
-     * Get Map Image
-     */
-    async getMapImageApiMapImageMapNameGet(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getMapImageApiMapImageMapNameGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMapMatchCountsApiMapMatchCountsGet without sending the request
-     */
-    async getMapMatchCountsApiMapMatchCountsGetRequestOpts(): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_match_counts`;
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * List every map that appears in our match history, with its match count.  Sorted by match count descending.
-     * Get Map Match Counts
-     */
-    async getMapMatchCountsApiMapMatchCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapMatchCount>>> {
-        const requestOptions = await this.getMapMatchCountsApiMapMatchCountsGetRequestOpts();
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MapMatchCountFromJSON));
-    }
-
-    /**
-     * List every map that appears in our match history, with its match count.  Sorted by match count descending.
-     * Get Map Match Counts
-     */
-    async getMapMatchCountsApiMapMatchCountsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MapMatchCount>> {
-        const response = await this.getMapMatchCountsApiMapMatchCountsGetRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMapStatsApiMapStatsGet without sending the request
-     */
-    async getMapStatsApiMapStatsGetRequestOpts(): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_stats/`;
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Get player and general win rates grouped by map.
-     * Get Map Stats
-     */
-    async getMapStatsApiMapStatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapStatsResponse>> {
-        const requestOptions = await this.getMapStatsApiMapStatsGetRequestOpts();
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => MapStatsResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Get player and general win rates grouped by map.
-     * Get Map Stats
-     */
-    async getMapStatsApiMapStatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapStatsResponse> {
-        const response = await this.getMapStatsApiMapStatsGetRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMapSummaryApiMapSummaryPost without sending the request
-     */
-    async getMapSummaryApiMapSummaryPostRequestOpts(requestParameters: GetMapSummaryApiMapSummaryPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['mapSummaryRequest'] == null) {
-            throw new runtime.RequiredError(
-                'mapSummaryRequest',
-                'Required parameter "mapSummaryRequest" was null or undefined when calling getMapSummaryApiMapSummaryPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_summary/`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: MapSummaryRequestToJSON(requestParameters['mapSummaryRequest']),
-        };
-    }
-
-    /**
-     * Return a pre-game summary: map history, team h2h, and per-player records.
-     * Get Map Summary
-     */
-    async getMapSummaryApiMapSummaryPostRaw(requestParameters: GetMapSummaryApiMapSummaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
-        const requestOptions = await this.getMapSummaryApiMapSummaryPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<string>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
-    }
-
-    /**
-     * Return a pre-game summary: map history, team h2h, and per-player records.
-     * Get Map Summary
-     */
-    async getMapSummaryApiMapSummaryPost(requestParameters: GetMapSummaryApiMapSummaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
-        const response = await this.getMapSummaryApiMapSummaryPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for getMapsByPlayerCountApiMapsByPlayerCountGet without sending the request
-     */
-    async getMapsByPlayerCountApiMapsByPlayerCountGetRequestOpts(): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/maps_by_player_count`;
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Return all maps grouped by number of player starting positions.
-     * Get Maps By Player Count
-     */
-    async getMapsByPlayerCountApiMapsByPlayerCountGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapsByPlayerCount>>> {
-        const requestOptions = await this.getMapsByPlayerCountApiMapsByPlayerCountGetRequestOpts();
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MapsByPlayerCountFromJSON));
-    }
-
-    /**
-     * Return all maps grouped by number of player starting positions.
-     * Get Maps By Player Count
-     */
-    async getMapsByPlayerCountApiMapsByPlayerCountGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MapsByPlayerCount>> {
-        const response = await this.getMapsByPlayerCountApiMapsByPlayerCountGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -2925,53 +2410,6 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for listMissingMapsEndpointApiMissingMapsGet without sending the request
-     */
-    async listMissingMapsEndpointApiMissingMapsGetRequestOpts(requestParameters: ListMissingMapsEndpointApiMissingMapsGetRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['limit'] != null) {
-            queryParameters['limit'] = requestParameters['limit'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/missing_maps`;
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Maps referenced by matches that have no MapData row, with their CRC.
-     * List Missing Maps Endpoint
-     */
-    async listMissingMapsEndpointApiMissingMapsGetRaw(requestParameters: ListMissingMapsEndpointApiMissingMapsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MissingMapInfo>>> {
-        const requestOptions = await this.listMissingMapsEndpointApiMissingMapsGetRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MissingMapInfoFromJSON));
-    }
-
-    /**
-     * Maps referenced by matches that have no MapData row, with their CRC.
-     * List Missing Maps Endpoint
-     */
-    async listMissingMapsEndpointApiMissingMapsGet(requestParameters: ListMissingMapsEndpointApiMissingMapsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MissingMapInfo>> {
-        const response = await this.listMissingMapsEndpointApiMissingMapsGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Creates request options for listPendingUnprocessedApiFilesPendingUnprocessedGet without sending the request
      */
     async listPendingUnprocessedApiFilesPendingUnprocessedGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -3384,53 +2822,6 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for pushMapsToCncstatsApiPushMapsToCncstatsPost without sending the request
-     */
-    async pushMapsToCncstatsApiPushMapsToCncstatsPostRequestOpts(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['maxToUpdate'] != null) {
-            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/push_maps_to_cncstats`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing - so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
-     * Push Maps To Cncstats
-     */
-    async pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PushMapsResponse>> {
-        const requestOptions = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => PushMapsResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Register maps we host (.map + .tga preview, from S3) with cncstats /add_map.  Only considers maps not already marked synced, and checks cncstats /map_exists before pushing - so a map is never sent twice. Pushes run concurrently (bounded by `_PUSH_CONCURRENCY`); the CRC + synced mark are then written back serially (one DB session). Processes up to `max_to_update` unsynced maps. Requires `CNCSTATS_API_KEY`.
-     * Push Maps To Cncstats
-     */
-    async pushMapsToCncstatsApiPushMapsToCncstatsPost(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushMapsResponse> {
-        const response = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Creates request options for randomizeDraftApiDraftRandomizePost without sending the request
      */
     async randomizeDraftApiDraftRandomizePostRequestOpts(requestParameters: RandomizeDraftApiDraftRandomizePostRequest): Promise<runtime.RequestOpts> {
@@ -3708,63 +3099,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async registerReplayUrlApiRegisterReplayUrlPost(requestParameters: RegisterReplayUrlApiRegisterReplayUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
         const response = await this.registerReplayUrlApiRegisterReplayUrlPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for renderMapWithPlayersApiMapRenderPost without sending the request
-     */
-    async renderMapWithPlayersApiMapRenderPostRequestOpts(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['mapRenderRequest'] == null) {
-            throw new runtime.RequiredError(
-                'mapRenderRequest',
-                'Required parameter "mapRenderRequest" was null or undefined when calling renderMapWithPlayersApiMapRenderPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_render`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: MapRenderRequestToJSON(requestParameters['mapRenderRequest']),
-        };
-    }
-
-    /**
-     * Render a map image with player positions (name, general, team color) baked in.
-     * Render Map With Players
-     */
-    async renderMapWithPlayersApiMapRenderPostRaw(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        const requestOptions = await this.renderMapWithPlayersApiMapRenderPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
-    }
-
-    /**
-     * Render a map image with player positions (name, general, team color) baked in.
-     * Render Map With Players
-     */
-    async renderMapWithPlayersApiMapRenderPost(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.renderMapWithPlayersApiMapRenderPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -4068,65 +3402,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async resetMatchApiMatchMatchIdDelete(requestParameters: ResetMatchApiMatchMatchIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.resetMatchApiMatchMatchIdDeleteRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for saveMapDataApiMapDataMapNamePost without sending the request
-     */
-    async saveMapDataApiMapDataMapNamePostRequestOpts(requestParameters: SaveMapDataApiMapDataMapNamePostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['mapName'] == null) {
-            throw new runtime.RequiredError(
-                'mapName',
-                'Required parameter "mapName" was null or undefined when calling saveMapDataApiMapDataMapNamePost().'
-            );
-        }
-
-        if (requestParameters['mapDataPayload'] == null) {
-            throw new runtime.RequiredError(
-                'mapDataPayload',
-                'Required parameter "mapDataPayload" was null or undefined when calling saveMapDataApiMapDataMapNamePost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_data/{map_name}`;
-        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: MapDataPayloadToJSON(requestParameters['mapDataPayload']),
-        };
-    }
-
-    /**
-     * Save Map Data
-     */
-    async saveMapDataApiMapDataMapNamePostRaw(requestParameters: SaveMapDataApiMapDataMapNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
-        const requestOptions = await this.saveMapDataApiMapDataMapNamePostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => MapDataPayloadFromJSON(jsonValue));
-    }
-
-    /**
-     * Save Map Data
-     */
-    async saveMapDataApiMapDataMapNamePost(requestParameters: SaveMapDataApiMapDataMapNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDataPayload> {
-        const response = await this.saveMapDataApiMapDataMapNamePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

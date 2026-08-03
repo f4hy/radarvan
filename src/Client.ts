@@ -1,4 +1,4 @@
-import { CommentaryApi, DefaultApi, Configuration } from "./api"
+import { CommentaryApi, DefaultApi, MapApi, Configuration } from "./api"
 
 const apiKey = import.meta.env.VITE_API_KEY as string | undefined
 const headers: Record<string, string> = { "X-Client-Id": "react-frontend" }
@@ -57,3 +57,4 @@ function getConfig(): Configuration {
 const config = getConfig()
 export const Client = new DefaultApi(config)
 export const CommentaryClient = new CommentaryApi(config)
+export const MapClient = new MapApi(config)

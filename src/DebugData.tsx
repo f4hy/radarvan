@@ -15,7 +15,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
 import { GameRecord, MatchInfo, MatchPrediction, Team } from "./api"
-import { Client } from "./Client"
+import { Client, MapClient } from "./Client"
 import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
 import Link from "@mui/material/Link"
@@ -69,7 +69,7 @@ function getMapSummary(
   callback: (s: string) => void,
   onError = console.error,
 ) {
-  Client.getMapSummaryApiMapSummaryPost({
+  MapClient.getMapSummaryApiMapSummaryPost({
     mapSummaryRequest: {
       mapName: match.map.split("/").pop() ?? match.map,
       players: match.players

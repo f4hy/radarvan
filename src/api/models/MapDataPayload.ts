@@ -58,19 +58,25 @@ export interface MapDataPayload {
      * @type {Array<MapPoint>}
      * @memberof MapDataPayload
      */
-    supply: Array<MapPoint>;
+    supply?: Array<MapPoint>;
     /**
      * 
      * @type {Array<MapPoint>}
      * @memberof MapDataPayload
      */
-    tech: Array<MapPoint>;
+    tech?: Array<MapPoint>;
     /**
      * 
      * @type {Array<MapPoint>}
      * @memberof MapDataPayload
      */
-    waypoints: Array<MapPoint>;
+    garrison?: Array<MapPoint>;
+    /**
+     * 
+     * @type {Array<MapPoint>}
+     * @memberof MapDataPayload
+     */
+    waypoints?: Array<MapPoint>;
 }
 
 /**
@@ -79,9 +85,6 @@ export interface MapDataPayload {
 export function instanceOfMapDataPayload(value: object): value is MapDataPayload {
     if (!('extent' in value) || value['extent'] === undefined) return false;
     if (!('playerStarts' in value) || value['playerStarts'] === undefined) return false;
-    if (!('supply' in value) || value['supply'] === undefined) return false;
-    if (!('tech' in value) || value['tech'] === undefined) return false;
-    if (!('waypoints' in value) || value['waypoints'] === undefined) return false;
     return true;
 }
 
@@ -97,9 +100,10 @@ export function MapDataPayloadFromJSONTyped(json: any, ignoreDiscriminator: bool
         
         'extent': MapExtentFromJSON(json['extent']),
         'playerStarts': ((json['player_starts'] as Array<any>).map(MapPlayerStartFromJSON)),
-        'supply': ((json['supply'] as Array<any>).map(MapPointFromJSON)),
-        'tech': ((json['tech'] as Array<any>).map(MapPointFromJSON)),
-        'waypoints': ((json['waypoints'] as Array<any>).map(MapPointFromJSON)),
+        'supply': json['supply'] == null ? undefined : ((json['supply'] as Array<any>).map(MapPointFromJSON)),
+        'tech': json['tech'] == null ? undefined : ((json['tech'] as Array<any>).map(MapPointFromJSON)),
+        'garrison': json['garrison'] == null ? undefined : ((json['garrison'] as Array<any>).map(MapPointFromJSON)),
+        'waypoints': json['waypoints'] == null ? undefined : ((json['waypoints'] as Array<any>).map(MapPointFromJSON)),
     };
 }
 
@@ -116,9 +120,10 @@ export function MapDataPayloadToJSONTyped(value?: MapDataPayload | null, ignoreD
         
         'extent': MapExtentToJSON(value['extent']),
         'player_starts': ((value['playerStarts'] as Array<any>).map(MapPlayerStartToJSON)),
-        'supply': ((value['supply'] as Array<any>).map(MapPointToJSON)),
-        'tech': ((value['tech'] as Array<any>).map(MapPointToJSON)),
-        'waypoints': ((value['waypoints'] as Array<any>).map(MapPointToJSON)),
+        'supply': value['supply'] == null ? undefined : ((value['supply'] as Array<any>).map(MapPointToJSON)),
+        'tech': value['tech'] == null ? undefined : ((value['tech'] as Array<any>).map(MapPointToJSON)),
+        'garrison': value['garrison'] == null ? undefined : ((value['garrison'] as Array<any>).map(MapPointToJSON)),
+        'waypoints': value['waypoints'] == null ? undefined : ((value['waypoints'] as Array<any>).map(MapPointToJSON)),
     };
 }
 

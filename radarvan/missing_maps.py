@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import structlog
 import asyncio
+import hashlib
 import os
 import shutil
 import subprocess
@@ -440,7 +441,10 @@ def fetch_and_upload(
         if parse_and_save and replay_manager is not None and mapparse_available():
             payload = parse_map_file(extracted.map_file)
             replay_manager.save_map_data(
-                extracted.base_name, payload, crc=missing.map_crc_hex
+                extracted.base_name,
+                payload,
+                crc=missing.map_crc_hex,
+                mapparse_bin_hash=mapparse_bin_hash(),
             )
         return fetched
     except Exception as e:
@@ -453,11 +457,29 @@ def fetch_and_upload(
         return None
 
 
+def _resolve_mapparse_path() -> str | None:
+    if Path(MAPPARSE_BIN).is_file() and os.access(MAPPARSE_BIN, os.X_OK):
+        return MAPPARSE_BIN
+    return shutil.which(MAPPARSE_BIN)
+
+
 def mapparse_available() -> bool:
     """Return True if the mapparse binary is reachable on this host."""
-    if Path(MAPPARSE_BIN).is_file() and os.access(MAPPARSE_BIN, os.X_OK):
-        return True
-    return shutil.which(MAPPARSE_BIN) is not None
+    return _resolve_mapparse_path() is not None
+
+
+def mapparse_bin_hash() -> str | None:
+    """SHA-256 of the current mapparse binary, or None if it's unavailable.
+
+    Recomputed from the file on every call (cheap - a few ms for a few-MB
+    binary) rather than cached, so a binary rebuild is picked up immediately
+    without a server restart. Stored on MapData rows to detect which ones
+    were parsed by an older binary build - see `maps_needing_reparse`.
+    """
+    path = _resolve_mapparse_path()
+    if path is None:
+        return None
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def parse_map_file(map_bytes: bytes) -> MapDataPayload:
@@ -528,7 +550,12 @@ def fetch_and_upload_for_match(
             )
         else:
             payload = parse_map_file(extracted.map_file)
-            replay_manager.save_map_data(extracted.base_name, payload, crc=crc)
+            replay_manager.save_map_data(
+                extracted.base_name,
+                payload,
+                crc=crc,
+                mapparse_bin_hash=mapparse_bin_hash(),
+            )
             logger.info(
                 "saved MapData",
                 base_name=extracted.base_name,
@@ -537,6 +564,28 @@ def fetch_and_upload_for_match(
                 tech=len(payload.tech),
             )
     return fetched, payload
+
+
+def reparse_stored_map(
+    map_name: str, replay_manager: ReplayManager
+) -> MapDataPayload:
+    """Re-run mapparse on a map's already-hosted `.map` bytes and save the result.
+
+    Unlike `fetch_and_upload_for_match`, this never calls cncstats - it reparses
+    the `.map` file we already host in S3, so it's the cheap path for "the
+    mapparse binary changed, refresh our stored geometry" (see
+    `ReplayManager.maps_needing_reparse`). Raises if we don't host a `.map` for
+    this name or mapparse fails.
+    """
+    uri = find_s3_asset(map_name, "map")
+    if uri is None:
+        raise FileNotFoundError(f"no hosted .map file for {map_name!r}")
+    map_bytes = replay_files.get_fs().read_bytes(uri)
+    payload = parse_map_file(map_bytes)
+    replay_manager.save_map_data(
+        map_name, payload, mapparse_bin_hash=mapparse_bin_hash()
+    )
+    return payload
 
 
 def s3_webp_exists(base_name: str) -> bool:
