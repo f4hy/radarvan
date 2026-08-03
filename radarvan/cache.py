@@ -19,6 +19,7 @@ from .api_types import MatchInfo, MatchDetails
 from .db_utils import ReplayManager
 from . import match_details
 from .dependencies import db_manager
+from .repositories.maps import normalize_map_name
 
 logger = structlog.get_logger(__name__)
 
@@ -33,6 +34,7 @@ _sorted_lock = threading.Lock()
 _competitive_lock = threading.Lock()
 _details_lock = threading.Lock()
 _maps_by_count_lock = threading.Lock()
+_map_name_index_lock = threading.Lock()
 
 
 @cached(
@@ -63,6 +65,29 @@ def maps_by_player_count(replay_manager: ReplayManager) -> dict[int, list[str]]:
     invalidate_match_caches() as well, so a re-scrape surfaces new maps promptly.
     """
     return replay_manager.list_maps_by_player_count()
+
+
+@cached(
+    cache=TTLCache(maxsize=1, ttl=600),
+    key=lambda replay_manager: "map_names",
+    lock=_map_name_index_lock,
+)
+def map_name_index(replay_manager: ReplayManager) -> dict[str, str]:
+    """{normalized map name -> canonical MapData.map_name}, loaded once and cached.
+
+    Every played map has (at most) one MapData row, and `map_name` is stored
+    with the exact case/punctuation of the S3-hosted asset - resolving through
+    this index is how map-image serving (routes/maps.py) finds the right S3
+    object without guessing at case variants. Loading the full (small) table
+    once beats a per-request query; same TTL/invalidation shape as
+    `maps_by_player_count`.
+    """
+    return {normalize_map_name(name): name for name in replay_manager.list_map_names()}
+
+
+def resolve_map_name_cached(replay_manager: ReplayManager, map_name: str) -> str | None:
+    """Like `ReplayManager.resolve_map_name`, but served from `map_name_index`."""
+    return map_name_index(replay_manager).get(normalize_map_name(map_name))
 
 
 @cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_sorted_lock)
@@ -155,5 +180,6 @@ def invalidate_match_caches() -> None:
     competitive_matches.cache_clear()
     details_from_id.cache_clear()
     maps_by_player_count.cache_clear()
+    map_name_index.cache_clear()
     _ensure_warm_thread()
     _warm_event.set()

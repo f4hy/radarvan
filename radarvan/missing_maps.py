@@ -486,7 +486,13 @@ def parse_map_file(map_bytes: bytes) -> MapDataPayload:
         ) from e
     finally:
         Path(tmp_path).unlink(missing_ok=True)
-    return MapDataPayload.model_validate_json(result.stdout)
+    raw = result.stdout.decode(errors="replace")
+    logger.debug("mapparse output", raw=raw)
+    try:
+        return MapDataPayload.model_validate_json(result.stdout)
+    except Exception:
+        logger.warning("mapparse output failed MapDataPayload validation", raw=raw)
+        raise
 
 
 def fetch_and_upload_for_match(
@@ -540,7 +546,15 @@ def s3_webp_exists(base_name: str) -> bool:
 
 
 def find_s3_asset(map_name: str, ext: str) -> str | None:
-    """Look up an S3 map asset by name (case-/whitespace-insensitive, w/ or w/o .map)."""
+    """Look up an S3 map asset by name (case-/whitespace-insensitive, w/ or w/o .map).
+
+    Callers should resolve `map_name` to its canonical `MapData.map_name` first
+    (via `ReplayManager.resolve_map_name`) where possible - that's stored as the
+    exact S3 asset base name, so it matches on the first candidate below. This
+    exact-candidate guessing only remains as a fallback for maps with no
+    MapData row yet (register them via `/api/fetch_missing_maps` for a
+    reliable match instead of relying on a guess).
+    """
     fs = replay_files.get_fs()
     no_ws = "".join(map_name.split())
     candidates = [

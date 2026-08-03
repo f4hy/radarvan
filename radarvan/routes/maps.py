@@ -24,7 +24,7 @@ from ..api_types import (
     PushMapResult,
     PushMapsResponse,
 )
-from ..cache import competitive_matches, sorted_deduped_matches
+from ..cache import competitive_matches, resolve_map_name_cached, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
 
@@ -300,8 +300,9 @@ async def push_maps_to_cncstats(
     )
 
 
-def _load_map_image_bytes(map_name: str) -> bytes:
-    s3_uri = missing_maps_module.find_s3_webp(map_name)
+def _load_map_image_bytes(map_name: str, replay_manager: ReplayManager) -> bytes:
+    canonical = resolve_map_name_cached(replay_manager, map_name) or map_name
+    s3_uri = missing_maps_module.find_s3_webp(canonical)
     if s3_uri is not None:
         fs = replay_files.get_fs()
         data: bytes = fs.read_bytes(s3_uri)
@@ -325,7 +326,7 @@ def render_map_with_players(
         raise HTTPException(
             status_code=404, detail=f"No map data for '{request.map_name}'"
         )
-    image_bytes = _load_map_image_bytes(canonical)
+    image_bytes = _load_map_image_bytes(canonical, replay_manager)
     png = map_render_module.render_map(image_bytes, map_data, request.players)
     base = canonical.removesuffix(".map").split("/")[-1]
     return Response(
@@ -336,16 +337,21 @@ def render_map_with_players(
 
 
 @public_router.get("/api/map_image/{map_name}", response_model=None)
-def get_map_image(map_name: str) -> RedirectResponse:
+def get_map_image(
+    map_name: str, replay_manager: ReplayManager = Depends(get_replay_manager)
+) -> RedirectResponse:
     """Return the WebP for a map, redirecting to its presigned S3 URL.
 
-    Strips a trailing `.map` extension and tries case-insensitive variants in S3.
+    Resolves to the canonical `MapData.map_name` first (case-/whitespace-
+    insensitive), since that's stored as the exact S3 asset base name; falls
+    back to case-insensitive variant guesses in S3 for maps with no MapData row.
     """
     # Map images are static, so cache aggressively. The browser caches the
     # redirect, reusing its presigned URL for up to max-age - which must stay
     # under the presign TTL or a cached redirect would point at an expired URL.
     cache_headers = {"Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}"}
-    s3_uri = missing_maps_module.find_s3_webp(map_name)
+    canonical = resolve_map_name_cached(replay_manager, map_name) or map_name
+    s3_uri = missing_maps_module.find_s3_webp(canonical)
     if s3_uri is not None:
         presigned = replay_files.presigned_url(
             s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL
