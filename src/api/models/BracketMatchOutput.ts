@@ -75,7 +75,7 @@ export interface BracketMatchOutput {
      * @type {Date}
      * @memberof BracketMatchOutput
      */
-    scheduledDate?: Date | null;
+    scheduledAt?: Date | null;
     /**
      * 
      * @type {number}
@@ -173,7 +173,7 @@ export function BracketMatchOutputFromJSONTyped(json: any, ignoreDiscriminator: 
         'roundName': json['round_name'],
         'playerA': json['player_a'] == null ? undefined : json['player_a'],
         'playerB': json['player_b'] == null ? undefined : json['player_b'],
-        'scheduledDate': json['scheduled_date'] == null ? undefined : (new Date(json['scheduled_date'])),
+        'scheduledAt': json['scheduled_at'] == null ? undefined : (new Date(json['scheduled_at'])),
         'bestOf': json['best_of'] == null ? undefined : json['best_of'],
         'scoreA': json['score_a'] == null ? undefined : json['score_a'],
         'scoreB': json['score_b'] == null ? undefined : json['score_b'],
@@ -201,7 +201,7 @@ export function BracketMatchOutputToJSONTyped(value?: BracketMatchOutput | null,
         'round_name': value['roundName'],
         'player_a': value['playerA'],
         'player_b': value['playerB'],
-        'scheduled_date': value['scheduledDate'] == null ? value['scheduledDate'] : value['scheduledDate'].toISOString().substring(0,10),
+        'scheduled_at': value['scheduledAt'] == null ? value['scheduledAt'] : value['scheduledAt'].toISOString(),
         'best_of': value['bestOf'],
         'score_a': value['scoreA'],
         'score_b': value['scoreB'],

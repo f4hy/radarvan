@@ -213,7 +213,7 @@ No authorization required
 
 Set Bracket Match
 
-Update a match\&#39;s scheduled date / best-of / score (admin only).  PATCH semantics: only fields present in the request body change; omitted fields keep their stored values, and an explicit null clears a field.
+Update a match\&#39;s scheduled date/time / best-of / score (admin only).  PATCH semantics: only fields present in the request body change; omitted fields keep their stored values, and an explicit null clears a field. &#x60;&#x60;scheduled_at&#x60;&#x60; can be set (or cleared) independently of best_of/scores - e.g. an admin scheduling a match ahead of time, before it\&#39;s been played.
 
 ### Example
 
