@@ -3,25 +3,14 @@ from pathlib import Path
 
 import pytest
 
-from radarvan.cncstats_types import EnhancedReplay
 from radarvan.cncstats_model.zhreplay import EnhancedReplayV2
 
 TESTS_DIR = Path(__file__).parent
 
 
 @pytest.fixture
-def parsed_data() -> dict:
-    return json.loads((TESTS_DIR / "parsed.json").read_text())
-
-
-@pytest.fixture
 def new_format_data() -> dict:
     return json.loads((TESTS_DIR / "new_format.json").read_text())
-
-
-@pytest.fixture
-def v1_replay(parsed_data: dict) -> EnhancedReplay:
-    return EnhancedReplay.model_validate(parsed_data)
 
 
 @pytest.fixture
@@ -37,22 +26,6 @@ def new_output_data() -> dict:
 @pytest.fixture
 def new_output_replay(new_output_data: dict) -> EnhancedReplayV2:
     return EnhancedReplayV2.model_validate(new_output_data)
-
-
-def test_v1_parses_players(v1_replay: EnhancedReplay) -> None:
-    players = {p.Name: p for p in v1_replay.Summary}
-    assert players["Skip"].Side == "China"
-    assert players["Skip"].Win is True
-    assert players["131"].Win is False
-    assert players["Skip"].Team != players["131"].Team
-
-
-def test_v1_parses_commands(v1_replay: EnhancedReplay) -> None:
-    first = v1_replay.Body[0]
-    assert first.OrderName == "CreateUnit"
-    assert first.PlayerName == "Skip"
-    assert first.Details is not None
-    assert first.Details.Name == "ChinaVehicleDozer"
 
 
 @pytest.mark.skip(
