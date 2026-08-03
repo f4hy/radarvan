@@ -189,4 +189,4 @@ replay = EnhancedReplayV2.model_validate(json.load(open("references/example_cncs
 details = match_details_from_replay(replay)
 ```
 
-Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`. `proto/match.proto` is unused by current code paths — `radarvan/api_types.py` is the source of truth for the wire format.
+Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`. `radarvan/api_types.py` is the source of truth for the wire format (the unused `proto/match.proto` was removed).
