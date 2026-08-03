@@ -42,6 +42,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 | `API_KEY_READ` / `API_KEY_WRITE` | Comma-separated keys for `X-API-Key`; `ENFORCE_AUTH` set = actually reject |
 | `SESSION_SECRET` | Signs the session cookie (random per-process fallback in dev) |
 | `DISCORD_CLIENT_ID/SECRET`, `DISCORD_REDIRECT_URI` | Discord OAuth login (see `auth.md`) |
+| `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_VOICE_CHANNEL_ID` | Bot creds for syncing bracket match schedules to Discord Guild Scheduled Events (`discord_events.py`); all three required or it's a no-op |
 | `NOTIFY_WEB_HOOK` | Discord webhook for `notify()` |
 | `CNCSTATS_APIKEY` | Bearer token for cncstats **replay parsing** (`POST /replay`) |
 | `CNCSTATS_API_KEY` | X-API-Key for the cncstats **map registry** (`/add_map`) — distinct from the above, do not conflate |

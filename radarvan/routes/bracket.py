@@ -18,7 +18,7 @@ import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import bracket, player_ids
+from .. import bracket, discord_events, player_ids
 from ..api_types import (
     BracketMatchOutput,
     BracketPlayerEntry,
@@ -269,6 +269,7 @@ def set_bracket_match(
     seed_to_name = _seed_to_name(tournament)
     states = _states_from_rows(raw_states)
     before = bracket.resolve_bracket(seed_to_name, states)
+    resolved_match = next(m for m in before.matches if m.match_id == match_id)
 
     if score_a is not None or score_b is not None:
         if best_of is None or score_a is None or score_b is None:
@@ -281,8 +282,7 @@ def set_bracket_match(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
 
-        match = next(m for m in before.matches if m.match_id == match_id)
-        if match.player_a is None or match.player_b is None:
+        if resolved_match.player_a is None or resolved_match.player_b is None:
             raise HTTPException(
                 status_code=400, detail="This match's players aren't determined yet"
             )
@@ -317,7 +317,11 @@ def set_bracket_match(
                 ),
             )
 
-    raw_states[match_id] = repo.set_match(
+    scheduled_at_changed = scheduled_at != (
+        existing.scheduled_at if existing else None
+    )
+
+    row = repo.set_match(
         tournament.id,
         match_id,
         scheduled_at,
@@ -325,4 +329,23 @@ def set_bracket_match(
         score_a,
         score_b,
     )
+    raw_states[match_id] = row
+
+    # Best-effort: keep the Discord scheduled event in sync with
+    # scheduled_at, but only bother calling out when it actually changed -
+    # a pure best_of/score edit shouldn't touch Discord.
+    if scheduled_at_changed:
+        event_name = (
+            f"{resolved_match.player_a or 'TBD'} vs {resolved_match.player_b or 'TBD'} "
+            f"({resolved_match.round_name})"
+        )
+        new_event_id = discord_events.sync_match_event(
+            existing_event_id=row.discord_event_id,
+            scheduled_at=scheduled_at,
+            name=event_name,
+        )
+        if new_event_id != row.discord_event_id:
+            repo.set_discord_event_id(tournament.id, match_id, new_event_id)
+            row.discord_event_id = new_event_id
+
     return _build_output_from_states(tournament, raw_states, allow_preview=True)

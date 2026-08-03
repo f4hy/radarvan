@@ -1,10 +1,12 @@
 import EditCalendarIcon from "@mui/icons-material/EditCalendar"
 import EventAvailableIcon from "@mui/icons-material/EventAvailable"
 import Button from "@mui/material/Button"
+import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
 import Popover from "@mui/material/Popover"
 import Stack from "@mui/material/Stack"
+import { keyframes } from "@mui/material/styles"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
@@ -21,21 +23,92 @@ import {
   useCountdownMs,
 } from "./bracketFormat"
 
+// Escalating hype thresholds for AgendaCountdown - calm and quiet until a
+// match is a week out, then increasingly loud so the countdown itself
+// signals "go watch this" without anyone needing to read the clock digits.
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
+const HOUR_MS = 60 * 60 * 1000
+
+type HypeLevel = "calm" | "week" | "day" | "hour"
+
+function hypeLevel(remainingMs: number): HypeLevel {
+  if (remainingMs <= HOUR_MS) return "hour"
+  if (remainingMs <= DAY_MS) return "day"
+  if (remainingMs <= WEEK_MS) return "week"
+  return "calm"
+}
+
+const pulseGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 4px 0 currentColor; transform: scale(1); }
+  50% { box-shadow: 0 0 14px 3px currentColor; transform: scale(1.06); }
+`
+
+const flashLive = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+`
+
 // Uses the same shared per-second countdown ticker as Bracket.tsx's
 // RevealCountdown, so only this row re-renders each second, not the whole
 // list.
 function AgendaCountdown({ scheduledAt }: { scheduledAt: string }) {
   const remaining = useCountdownMs(scheduledAt)
+
+  if (remaining <= 0) {
+    return (
+      <Chip
+        size="small"
+        label="LIVE NOW"
+        sx={{
+          fontWeight: 800,
+          letterSpacing: 0.5,
+          color: "error.contrastText",
+          bgcolor: "error.main",
+          animation: `${flashLive} 1s ease-in-out infinite`,
+        }}
+      />
+    )
+  }
+
+  const level = hypeLevel(remaining)
+
   return (
-    <Typography
-      variant="body2"
+    <Chip
+      size="small"
+      variant={level === "calm" ? "outlined" : "filled"}
+      label={`${level === "hour" ? "🔥 " : ""}${formatCountdown(remaining)}`}
       sx={{
         fontFamily: "monospace",
-        color: remaining > 0 ? "text.secondary" : "warning.main",
+        letterSpacing: 0.5,
+        fontWeight:
+          level === "hour"
+            ? 800
+            : level === "day"
+              ? 700
+              : level === "week"
+                ? 600
+                : 500,
+        color: {
+          hour: "error.contrastText",
+          day: "warning.contrastText",
+          week: "info.contrastText",
+          calm: "text.secondary",
+        }[level],
+        bgcolor: {
+          hour: "error.main",
+          day: "warning.main",
+          week: "info.main",
+          calm: "transparent",
+        }[level],
+        borderColor: level === "week" ? "info.main" : undefined,
+        transition: "background-color 0.3s ease, color 0.3s ease",
+        animation:
+          level === "hour"
+            ? `${pulseGlow} 0.9s ease-in-out infinite`
+            : undefined,
       }}
-    >
-      {remaining > 0 ? formatCountdown(remaining) : "Overdue"}
-    </Typography>
+    />
   )
 }
 
