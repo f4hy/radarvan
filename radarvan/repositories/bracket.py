@@ -81,3 +81,16 @@ class BracketRepo(BaseRepo):
         self.session.flush()
         self._commit_if_auto()
         return row
+
+    def set_discord_event_id(
+        self, tournament_id: int, match_id: str, discord_event_id: str | None
+    ) -> None:
+        """Persist the Discord scheduled event id created/updated for a
+        match's ``scheduled_at`` - see ``discord_events.sync_match_event``,
+        called by the route just before this."""
+        row = self.session.get(BracketMatchState, (tournament_id, match_id))
+        if row is None:
+            raise ValueError(f"No bracket_match_state row for {match_id}")
+        row.discord_event_id = discord_event_id
+        self.session.flush()
+        self._commit_if_auto()
