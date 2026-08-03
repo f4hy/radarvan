@@ -2,6 +2,7 @@
 
 import asyncio
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import RedirectResponse
 
@@ -12,9 +13,9 @@ from .. import missing_maps as missing_maps_module
 from .. import replay_files
 from ..api_types import (
     FetchMissingMapResult,
-    FetchMissingMapsResponse,
     MapDataPayload,
     MapMatchCount,
+    MapReparseStatus,
     MapRenderRequest,
     MapStatsResponse,
     MapsByPlayerCount,
@@ -23,16 +24,20 @@ from ..api_types import (
     BackfillMapCrcsResponse,
     PushMapResult,
     PushMapsResponse,
+    ReparseMapResult,
+    ReparseMapsResponse,
 )
 from ..cache import competitive_matches, resolve_map_name_cached, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, get_replay_manager
+from ..dependencies import IS_DEV, cache_short, get_replay_manager, require_dev
 
-router = APIRouter()
+logger = structlog.get_logger(__name__)
+
+router = APIRouter(tags=["map"])
 
 # Routes that must be reachable without an API key (e.g. <img src> loads, which
 # cannot send the X-API-Key header). Included without auth deps in main.py.
-public_router = APIRouter()
+public_router = APIRouter(tags=["map"])
 
 # Map images are static. Presign for the S3 max (7 days) and let browsers cache
 # the redirect - max-age must stay under the presign TTL. We keep the cache to
@@ -120,6 +125,27 @@ def get_map_data(
     return result
 
 
+@router.delete(
+    "/api/map_data/{map_name}",
+    include_in_schema=IS_DEV,
+    dependencies=[Depends(require_dev)],
+)
+def delete_map_data(
+    map_name: str,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, str]:
+    """Delete the MapData row for a map (geometry + CRC + sync state). Dev-only.
+
+    Does not touch the `.map`/`.tga`/`.webp` assets in S3 or any match history -
+    only the derived MapData row. For an orphaned map (no matches reference it),
+    that's a full removal.
+    """
+    deleted = replay_manager.delete_map_data(map_name)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"No map data for '{map_name}'")
+    return {"status": "deleted", "map_name": map_name}
+
+
 @router.get("/api/missing_maps")
 def list_missing_maps_endpoint(
     limit: int | None = None,
@@ -166,51 +192,6 @@ def fetch_map_for_match(
     )
 
 
-@router.post("/api/fetch_missing_maps")
-def fetch_missing_maps(
-    max_to_update: int = 10,
-    parse_map: bool = True,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> FetchMissingMapsResponse:
-    """Pull up to `max_to_update` missing maps from cncstats and upload to S3.
-
-    When `parse_map` is true and the local mapparse binary is available, the
-    .map file is also parsed and saved to MapData.
-    """
-    missing = missing_maps_module.list_missing_maps_with_crc(
-        replay_manager, limit=max_to_update
-    )
-    results: list[FetchMissingMapResult] = []
-    fetched = 0
-    for m in missing:
-        try:
-            result = missing_maps_module.fetch_and_upload(
-                m, replay_manager=replay_manager, parse_and_save=parse_map
-            )
-        except Exception as e:
-            results.append(FetchMissingMapResult(map_name=m.map_name, error=str(e)))
-            continue
-        if result is None:
-            results.append(
-                FetchMissingMapResult(map_name=m.map_name, error="fetch failed")
-            )
-            continue
-        fetched += 1
-        results.append(
-            FetchMissingMapResult(
-                map_name=m.map_name,
-                base_name=result.base_name,
-                tga_s3_uri=result.tga_s3_uri,
-                webp_s3_uri=result.webp_s3_uri,
-                map_s3_uri=result.map_s3_uri,
-                map_data_saved=parse_map and missing_maps_module.mapparse_available(),
-            )
-        )
-    return FetchMissingMapsResponse(
-        requested=len(missing), fetched=fetched, results=results
-    )
-
-
 @router.post("/api/backfill_map_crcs")
 def backfill_map_crcs(
     max_to_update: int = 50,
@@ -228,6 +209,103 @@ def backfill_map_crcs(
     return BackfillMapCrcsResponse(
         processed=len(results), resolved=resolved, results=results
     )
+
+
+@router.get("/api/map_reparse_status", include_in_schema=IS_DEV)
+def map_reparse_status(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> MapReparseStatus:
+    """How much work `POST /api/reparse_maps` has left: stale rows + missing maps.
+
+    `stale_maps` compares each MapData row's stored `mapparse_bin_hash` against
+    the current binary's hash (recomputed from the file, so a rebuild is
+    detected without a manual version bump). `missing_maps` is maps referenced
+    by matches with no MapData row at all. Both are what `reparse_maps` works
+    through; call it repeatedly (it's resumable) until both hit 0.
+    """
+    current_hash = missing_maps_module.mapparse_bin_hash()
+    total = len(replay_manager.list_map_names())
+    stale = (
+        replay_manager.count_maps_needing_reparse(current_hash)
+        if current_hash is not None
+        else total
+    )
+    missing = len(missing_maps_module.list_missing_maps(replay_manager))
+    return MapReparseStatus(
+        total_maps=total,
+        stale_maps=stale,
+        missing_maps=missing,
+        mapparse_available=missing_maps_module.mapparse_available(),
+        current_mapparse_hash=current_hash,
+    )
+
+
+@router.post("/api/reparse_maps", include_in_schema=IS_DEV)
+def reparse_maps(
+    max_to_update: int = 20,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> ReparseMapsResponse:
+    """Bring stored map geometry up to date with the current mapparse binary.
+
+    Covers both buckets in one pass, up to `max_to_update` total (stale rows
+    first, then missing maps with whatever budget is left):
+
+    - Existing rows whose stored geometry predates the current binary:
+      reparsed from the `.map` bytes already in S3, no cncstats call (see
+      `missing_maps.reparse_stored_map`) - cheap and always the bulk of the
+      work, so it goes first.
+    - Maps referenced by matches with no MapData row yet: fetched fresh from
+      cncstats and parsed (like the old `fetch_missing_maps`). Some of these
+      may be maps cncstats has never seen either, so they fail every call -
+      put last so a handful of permanently-missing maps can't crowd out the
+      (fast, reliable) stale reparses batch after batch.
+
+    Resumable - call repeatedly (e.g. from a script) until `remaining` is 0.
+    Use `GET /api/map_reparse_status` to check progress without doing any work.
+    """
+    current_hash = missing_maps_module.mapparse_bin_hash()
+    if current_hash is None:
+        raise HTTPException(status_code=503, detail="mapparse binary not available")
+
+    results: list[ReparseMapResult] = []
+    updated = 0
+
+    stale = replay_manager.maps_needing_reparse(current_hash, limit=max_to_update)
+    for name in stale:
+        try:
+            missing_maps_module.reparse_stored_map(name, replay_manager)
+            updated += 1
+            results.append(ReparseMapResult(map_name=name))
+        except Exception as e:
+            logger.warning("reparse_maps failed for map", map_name=name, error=repr(e))
+            results.append(ReparseMapResult(map_name=name, ok=False, error=str(e)))
+
+    missing_budget = max_to_update - len(stale)
+    missing = (
+        missing_maps_module.list_missing_maps_with_crc(
+            replay_manager, limit=missing_budget
+        )
+        if missing_budget > 0
+        else []
+    )
+    for m in missing:
+        fetched = missing_maps_module.fetch_and_upload(
+            m, replay_manager=replay_manager, parse_and_save=True
+        )
+        if fetched is None:
+            results.append(
+                ReparseMapResult(
+                    map_name=m.map_name, was_missing=True, ok=False, error="fetch failed"
+                )
+            )
+            continue
+        updated += 1
+        results.append(ReparseMapResult(map_name=m.map_name, was_missing=True))
+
+    remaining = replay_manager.count_maps_needing_reparse(current_hash) + len(
+        missing_maps_module.list_missing_maps(replay_manager)
+    )
+    return ReparseMapsResponse(updated=updated, remaining=remaining, results=results)
 
 
 # Bound the in-flight pushes so we don't open an unbounded number of S3 reads /

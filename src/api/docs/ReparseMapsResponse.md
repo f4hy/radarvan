@@ -1,30 +1,26 @@
 
-# MapPoint
+# ReparseMapsResponse
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`name` | string
-`x` | number
-`y` | number
-`amount` | number
-`overridden` | boolean
+`updated` | number
+`remaining` | number
+`results` | [Array&lt;ReparseMapResult&gt;](ReparseMapResult.md)
 
 ## Example
 
 ```typescript
-import type { MapPoint } from ''
+import type { ReparseMapsResponse } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "name": null,
-  "x": null,
-  "y": null,
-  "amount": null,
-  "overridden": null,
-} satisfies MapPoint
+  "updated": null,
+  "remaining": null,
+  "results": null,
+} satisfies ReparseMapsResponse
 
 console.log(example)
 
@@ -33,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as MapPoint
+const exampleParsed = JSON.parse(exampleJSON) as ReparseMapsResponse
 console.log(exampleParsed)
 ```
 

@@ -15,6 +15,7 @@ from pydantic import (
     ConfigDict,
     PlainSerializer,
     computed_field,
+    field_validator,
     model_validator,
 )
 from datetime import datetime, date
@@ -1399,6 +1400,12 @@ class MapPoint(BaseModel):
     name: str
     x: float
     y: float
+    # Supply objects only: available cash (INI default or script override) and
+    # whether a start-of-game script overrode the INI default. mapparse emits
+    # these as omitempty, so non-supply points (tech/waypoints/garrison) never
+    # carry them - 0/False are indistinguishable from "not applicable" here.
+    amount: int = 0
+    overridden: bool = False
 
 
 class MapPlayerStart(BaseModel):
@@ -1414,12 +1421,21 @@ class MapDataPayload(BaseModel):
 
     extent: MapExtent
     player_starts: list[MapPlayerStart]
-    # mapparse omits these keys entirely rather than emitting `[]` when a map
-    # has none of that category (e.g. a map with no waypoints) - default to
-    # empty instead of requiring the key.
+    # mapparse's `supply`/`tech`/`garrison` JSON tags lack `omitempty`, so an
+    # empty category serializes as an explicit `null` (a nil Go slice), not a
+    # missing key or `[]` - default to empty instead of requiring the key, and
+    # normalize below since a `list[...] = []` field still rejects an explicit
+    # `null` for the key. `waypoints` does have `omitempty` upstream (key is
+    # actually omitted when empty), so its default alone is enough.
     supply: list[MapPoint] = []
     tech: list[MapPoint] = []
+    garrison: list[MapPoint] = []
     waypoints: list[MapPoint] = []
+
+    @field_validator("supply", "tech", "garrison", mode="before")
+    @classmethod
+    def _null_to_empty(cls, v: list[MapPoint] | None) -> list[MapPoint]:
+        return v if v is not None else []
 
 
 class MapsByPlayerCount(BaseModel):
@@ -1454,14 +1470,6 @@ class FetchMissingMapResult(BaseModel):
     map_s3_uri: str | None = None
     map_data_saved: bool = False
     error: str | None = None
-
-
-class FetchMissingMapsResponse(BaseModel):
-    model_config = _SLOTS
-
-    requested: int
-    fetched: int
-    results: list[FetchMissingMapResult]
 
 
 class DraftPlayerRequest(BaseModel):
@@ -1756,6 +1764,41 @@ class PushMapsResponse(BaseModel):
     # Maps cncstats already had, so we skipped the push.
     already_present: int = 0
     results: list[PushMapResult] = Field(default_factory=list)
+
+
+class ReparseMapResult(BaseModel):
+    model_config = _SLOTS
+
+    map_name: str
+    # True when this map had no MapData row at all (fetched fresh from
+    # cncstats), False when it was an existing row reparsed from its
+    # already-hosted `.map` bytes.
+    was_missing: bool = False
+    ok: bool = True
+    error: str | None = None
+
+
+class ReparseMapsResponse(BaseModel):
+    model_config = _SLOTS
+
+    updated: int
+    # Maps left needing work after this run (missing + stale combined) - call
+    # again with the same max_to_update until this hits 0.
+    remaining: int
+    results: list[ReparseMapResult] = Field(default_factory=list)
+
+
+class MapReparseStatus(BaseModel):
+    model_config = _SLOTS
+
+    total_maps: int
+    stale_maps: int
+    # Maps referenced by matches with no MapData row at all.
+    missing_maps: int
+    mapparse_available: bool
+    # SHA-256 of the currently-installed mapparse binary, or None if it's not
+    # reachable. Stale rows are those whose stored hash doesn't match this.
+    current_mapparse_hash: str | None = None
 
 
 # --- ML match-outcome prediction -------------------------------------------

@@ -143,6 +143,17 @@ def require_current_user(
     return user
 
 
+def require_dev() -> None:
+    """404s unless running in dev mode (`DEV` env var set).
+
+    For routes that must be genuinely unreachable in prod, not just hidden
+    from the OpenAPI docs (`include_in_schema=IS_DEV`, used elsewhere, still
+    leaves the route routable). Apply via ``dependencies=[Depends(require_dev)]``.
+    """
+    if not IS_DEV:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 def cache_short(response: Response) -> None:
     """Mark a response privately cacheable for 60s.
 

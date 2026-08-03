@@ -37,6 +37,18 @@ export interface MapPoint {
      * @memberof MapPoint
      */
     y: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MapPoint
+     */
+    amount?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MapPoint
+     */
+    overridden?: boolean;
 }
 
 /**
@@ -62,6 +74,8 @@ export function MapPointFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'name': json['name'],
         'x': json['x'],
         'y': json['y'],
+        'amount': json['amount'] == null ? undefined : json['amount'],
+        'overridden': json['overridden'] == null ? undefined : json['overridden'],
     };
 }
 
@@ -79,6 +93,8 @@ export function MapPointToJSONTyped(value?: MapPoint | null, ignoreDiscriminator
         'name': value['name'],
         'x': value['x'],
         'y': value['y'],
+        'amount': value['amount'],
+        'overridden': value['overridden'],
     };
 }
 

@@ -16,7 +16,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import { MapData, MapStatsResponse } from "./api"
-import { Client } from "./Client"
+import { MapClient } from "./Client"
 import { toGeneralName } from "./general_utils"
 import GameMap from "./Map"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -27,7 +27,7 @@ function getMapStats(
   callback: (m: MapStatsResponse) => void,
   onError = console.error,
 ) {
-  Client.getMapStatsApiMapStatsGet().then(callback).catch(onError)
+  MapClient.getMapStatsApiMapStatsGet().then(callback).catch(onError)
 }
 
 function mapId(mapName: string): string {

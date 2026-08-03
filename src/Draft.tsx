@@ -23,7 +23,7 @@ import type {
 } from "./api"
 import Chip from "@mui/material/Chip"
 import { PlayerEnum } from "./api"
-import { Client } from "./Client"
+import { Client, MapClient } from "./Client"
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
@@ -63,7 +63,7 @@ export default function DisplayDraft() {
   const [balanceLoading, setBalanceLoading] = React.useState(false)
 
   React.useEffect(() => {
-    Client.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
+    MapClient.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
       setMapsByCount,
       () => {},
     )
@@ -95,7 +95,7 @@ export default function DisplayDraft() {
     setAssignments([])
     setRandomizedAt(null)
     if (!selectedMap) return
-    Client.getMapDataApiMapDataMapNameGet({ mapName: selectedMap }).then(
+    MapClient.getMapDataApiMapDataMapNameGet({ mapName: selectedMap }).then(
       (data) => setMapData(data),
       () => setMapData(null),
     )

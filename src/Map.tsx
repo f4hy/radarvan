@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography"
 import DownloadIcon from "@mui/icons-material/Download"
 import html2canvas from "html2canvas"
 import * as React from "react"
-import { Client } from "./Client"
+import { MapClient } from "./Client"
 import { getColorHex } from "./utils"
 import type { MapDataPayload } from "./api"
 
@@ -16,14 +16,20 @@ export type PlayerPosition = {
   general?: string
 }
 
-type PointCategory = "playerStarts" | "supply" | "tech"
+type PointCategory = "playerStarts" | "supply" | "tech" | "garrison"
 
-type PointStyle = { color: string; size: number; symbol?: string }
+type PointStyle = {
+  color: string
+  size: number
+  symbol?: string
+  border?: string
+}
 
 const BASE_STYLES: Record<PointCategory, PointStyle> = {
   playerStarts: { color: "#000000", size: 12 },
   supply: { color: "#32CD32", size: 14, symbol: "$" },
   tech: { color: "#ffdd00", size: 14, symbol: "★" },
+  garrison: { color: "#FFFFFF", size: 5, border: "2px solid #333333" },
 }
 
 function pointStyle(category: PointCategory, name: string): PointStyle {
@@ -50,7 +56,9 @@ function fetchMapData(mapname: string): Promise<MapDataPayload> {
   const resolved = mapDataResolved[mapname]
   if (resolved) return Promise.resolve(resolved)
   if (!mapDataInFlight[mapname]) {
-    const promise = Client.getMapDataApiMapDataMapNameGet({ mapName: mapname })
+    const promise = MapClient.getMapDataApiMapDataMapNameGet({
+      mapName: mapname,
+    })
       .then((data) => {
         mapDataResolved[mapname] = data
         delete mapDataInFlight[mapname]
@@ -184,11 +192,14 @@ export default function GameMap(props: {
             {mapData &&
               (Object.keys(BASE_STYLES) as PointCategory[]).flatMap(
                 (category) => {
-                  const points = mapData[category]
+                  const points = mapData[category] ?? []
                   if (!points.length) return []
                   return points.map((pt, i) => {
                     const name = "name" in pt ? pt.name : ""
-                    const { color, size, symbol } = pointStyle(category, name)
+                    const { color, size, symbol, border } = pointStyle(
+                      category,
+                      name,
+                    )
                     const playerEntry =
                       !symbol && "playerNumber" in pt
                         ? props.playerPositions?.[pt.playerNumber]
@@ -249,7 +260,7 @@ export default function GameMap(props: {
                                 bgcolor: color,
                                 border: playerColor
                                   ? `3px solid ${playerColor}`
-                                  : "2px solid white",
+                                  : (border ?? "2px solid white"),
                                 boxShadow: "0 0 4px rgba(0,0,0,0.6)",
                                 display: "flex",
                                 alignItems: "center",

@@ -471,6 +471,11 @@ class MapData(Base):
     cncstats_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # SHA-256 of the local `mapparse` binary that produced `data`. NULL for rows
+    # from before this column existed. Compared against the current binary's hash
+    # (missing_maps.mapparse_bin_hash()) to find rows that predate a binary
+    # rebuild and need `POST /api/reparse_maps` - see missing_maps.reparse_stored_map.
+    mapparse_bin_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
