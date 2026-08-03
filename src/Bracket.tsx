@@ -1,9 +1,13 @@
+import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import AddIcon from "@mui/icons-material/Add"
 import CloseIcon from "@mui/icons-material/Close"
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
+import EventNoteIcon from "@mui/icons-material/EventNote"
+import GavelIcon from "@mui/icons-material/Gavel"
+import MapIcon from "@mui/icons-material/Map"
 import PersonIcon from "@mui/icons-material/Person"
 import SettingsIcon from "@mui/icons-material/Settings"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -1902,10 +1906,30 @@ export default function DisplayBracket({
         )}
       </Stack>
       <Tabs value={pageTab} onChange={(_e, v) => setPageTab(v)} sx={{ mb: 2 }}>
-        <Tab value="bracket" label="Bracket" />
-        <Tab value="agenda" label="Agenda" />
-        <Tab value="rules" label="Rules" />
-        <Tab value="maps" label="Map List" />
+        <Tab
+          value="bracket"
+          label="Bracket"
+          icon={<AccountTreeIcon />}
+          iconPosition="start"
+        />
+        <Tab
+          value="agenda"
+          label="Agenda"
+          icon={<EventNoteIcon />}
+          iconPosition="start"
+        />
+        <Tab
+          value="rules"
+          label="Rules"
+          icon={<GavelIcon />}
+          iconPosition="start"
+        />
+        <Tab
+          value="maps"
+          label="Map List"
+          icon={<MapIcon />}
+          iconPosition="start"
+        />
       </Tabs>
       {pageTab === "rules" && <TournamentRulesPanel />}
       {pageTab === "maps" && <TournamentMapListPanel />}
