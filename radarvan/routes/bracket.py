@@ -83,6 +83,30 @@ def _resolve_from_states(
     )
 
 
+def _load_match(
+    repo: BracketRepo, match_id: str
+) -> tuple[
+    BracketTournament,
+    dict[str, BracketMatchState],
+    bracket.BracketResult,
+    bracket.ResolvedMatch,
+]:
+    """Shared preamble for every single-match bracket write/read: fetch the
+    active tournament, validate ``match_id``, resolve the whole bracket, and
+    locate that match within it. 404s on no active tournament or an unknown
+    match_id - the two checks every caller needs before touching one match.
+    """
+    tournament = repo.get_active()
+    if tournament is None:
+        raise HTTPException(status_code=404, detail="No active bracket tournament")
+    if not bracket.is_valid_match_id(match_id, len(tournament.players)):
+        raise HTTPException(status_code=404, detail="Unknown match id")
+    raw_states = repo.get_match_states(tournament.id)
+    result = _resolve_from_states(tournament, raw_states)
+    resolved_match = next(m for m in result.matches if m.match_id == match_id)
+    return tournament, raw_states, result, resolved_match
+
+
 def _is_revealed(tournament: BracketTournament, *, allow_preview: bool) -> bool:
     """True once the bracket's placements/matchups may be shown.
 
@@ -253,15 +277,10 @@ def set_bracket_match(
     e.g. an admin scheduling a match ahead of time, before it's been played.
     """
     _require_tournament_admin(user)
-    tournament = repo.get_active()
-    if tournament is None:
-        raise HTTPException(status_code=404, detail="No active bracket tournament")
-    if not bracket.is_valid_match_id(match_id, len(tournament.players)):
-        raise HTTPException(status_code=404, detail="Unknown match id")
-
-    # Fetched once and reused for both the pre-write validation resolve and
-    # the post-write response, patched in place below instead of re-querying.
-    raw_states = repo.get_match_states(tournament.id)
+    # raw_states is fetched once here and reused for both the pre-write
+    # validation resolve and the post-write response, patched in place below
+    # instead of re-querying.
+    tournament, raw_states, before, resolved_match = _load_match(repo, match_id)
     existing = raw_states.get(match_id)
 
     def merged[T](field: str, current: T) -> T:
@@ -275,8 +294,6 @@ def set_bracket_match(
 
     seed_to_name = _seed_to_name(tournament)
     states = _states_from_rows(raw_states)
-    before = bracket.resolve_bracket(seed_to_name, states)
-    resolved_match = next(m for m in before.matches if m.match_id == match_id)
 
     if score_a is not None or score_b is not None:
         if best_of is None or score_a is None or score_b is None:
@@ -400,7 +417,6 @@ def get_bracket_predictions(
             BracketMatchPrediction(
                 match_id=m.match_id,
                 tally=tally,
-                total_predictions=sum(tally.values()),
                 my_pick=my_picks.get(m.match_id),
                 open=_prediction_is_open(
                     m.status, raw.scheduled_at if raw else None, now
@@ -419,15 +435,7 @@ def set_bracket_prediction(
     prediction_repo: BracketPredictionRepo = Depends(get_bracket_prediction_repo),
 ) -> BracketMatchPrediction:
     """Set (or clear, with null) the caller's prediction for a match."""
-    tournament = repo.get_active()
-    if tournament is None:
-        raise HTTPException(status_code=404, detail="No active bracket tournament")
-    if not bracket.is_valid_match_id(match_id, len(tournament.players)):
-        raise HTTPException(status_code=404, detail="Unknown match id")
-
-    raw_states = repo.get_match_states(tournament.id)
-    result = _resolve_from_states(tournament, raw_states)
-    m = next(x for x in result.matches if x.match_id == match_id)
+    tournament, raw_states, _result, m = _load_match(repo, match_id)
     if m.player_a is None or m.player_b is None:
         raise HTTPException(
             status_code=400, detail="This match's players aren't determined yet"
@@ -455,7 +463,6 @@ def set_bracket_prediction(
     return BracketMatchPrediction(
         match_id=match_id,
         tally=tally,
-        total_predictions=sum(tally.values()),
         my_pick=req.predicted_winner,
         open=is_open,
     )

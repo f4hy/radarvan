@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**backfillMapCrcsApiBackfillMapCrcsPost**](MapApi.md#backfillmapcrcsapibackfillmapcrcspost) | **POST** /api/backfill_map_crcs | Backfill Map Crcs |
+| [**deleteMapDataApiMapDataMapNameDelete**](MapApi.md#deletemapdataapimapdatamapnamedelete) | **DELETE** /api/map_data/{map_name} | Delete Map Data |
 | [**fetchMapForMatchApiFetchMapForMatchMatchIdPost**](MapApi.md#fetchmapformatchapifetchmapformatchmatchidpost) | **POST** /api/fetch_map_for_match/{match_id} | Fetch Map For Match |
 | [**getMapDataApiMapDataMapNameGet**](MapApi.md#getmapdataapimapdatamapnameget) | **GET** /api/map_data/{map_name} | Get Map Data |
 | [**getMapImageApiMapImageMapNameGet**](MapApi.md#getmapimageapimapimagemapnameget) | **GET** /api/map_image/{map_name} | Get Map Image |
@@ -73,6 +74,78 @@ example().catch(console.error);
 ### Return type
 
 [**BackfillMapCrcsResponse**](BackfillMapCrcsResponse.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## deleteMapDataApiMapDataMapNameDelete
+
+> { [key: string]: string | null; } deleteMapDataApiMapDataMapNameDelete(mapName)
+
+Delete Map Data
+
+Delete the MapData row for a map (geometry + CRC + sync state). Dev-only.  Does not touch the &#x60;.map&#x60;/&#x60;.tga&#x60;/&#x60;.webp&#x60; assets in S3 or any match history - only the derived MapData row. For an orphaned map (no matches reference it), that\&#39;s a full removal.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  MapApi,
+} from '';
+import type { DeleteMapDataApiMapDataMapNameDeleteRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new MapApi(config);
+
+  const body = {
+    // string
+    mapName: mapName_example,
+  } satisfies DeleteMapDataApiMapDataMapNameDeleteRequest;
+
+  try {
+    const data = await api.deleteMapDataApiMapDataMapNameDelete(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **mapName** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+**{ [key: string]: string | null; }**
 
 ### Authorization
 
@@ -852,7 +925,7 @@ example().catch(console.error);
 
 Reparse Maps
 
-Bring stored map geometry up to date with the current mapparse binary.  Covers both buckets in one pass, up to &#x60;max_to_update&#x60; total (missing maps first, then stale ones with whatever budget is left):  - Maps referenced by matches with no MapData row yet: fetched fresh from   cncstats and parsed (like the old &#x60;fetch_missing_maps&#x60;). - Existing rows whose stored geometry predates the current binary:   reparsed from the &#x60;.map&#x60; bytes already in S3, no cncstats call (see   &#x60;missing_maps.reparse_stored_map&#x60;).  Resumable - call repeatedly (e.g. from a script) until &#x60;remaining&#x60; is 0. Use &#x60;GET /api/map_reparse_status&#x60; to check progress without doing any work.
+Bring stored map geometry up to date with the current mapparse binary.  Covers both buckets in one pass, up to &#x60;max_to_update&#x60; total (stale rows first, then missing maps with whatever budget is left):  - Existing rows whose stored geometry predates the current binary:   reparsed from the &#x60;.map&#x60; bytes already in S3, no cncstats call (see   &#x60;missing_maps.reparse_stored_map&#x60;) - cheap and always the bulk of the   work, so it goes first. - Maps referenced by matches with no MapData row yet: fetched fresh from   cncstats and parsed (like the old &#x60;fetch_missing_maps&#x60;). Some of these   may be maps cncstats has never seen either, so they fail every call -   put last so a handful of permanently-missing maps can\&#39;t crowd out the   (fast, reliable) stale reparses batch after batch.  Resumable - call repeatedly (e.g. from a script) until &#x60;remaining&#x60; is 0. Use &#x60;GET /api/map_reparse_status&#x60; to check progress without doing any work.
 
 ### Example
 
