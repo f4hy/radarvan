@@ -251,7 +251,9 @@ def match_to_matchinfo(
     )
 
 
-def register_matches(replay_manager: ReplayManager, max_to_update: int | None = None) -> int:
+def register_matches(
+    replay_manager: ReplayManager, max_to_update: int | None = None
+) -> int:
     replay_jsons = replay_manager.list_jsons_without_match()
     logger.info("replay_jsons without matches", count=len(replay_jsons))
     seen: set[int] = set()
