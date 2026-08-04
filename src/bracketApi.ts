@@ -81,6 +81,18 @@ export interface BracketMatchPrediction {
   tally: Record<string, number>
   my_pick: string | null
   open: boolean
+  // Display names of users who predicted the actual winner. Only populated
+  // once the match is completed (null beforehand); an empty array means the
+  // match completed but nobody called it, not "not completed yet".
+  correct_picks: string[] | null
+}
+
+// One row of the "who's called the most winners" standings - only counts
+// predictions against matches that have completed.
+export interface BracketPredictionLeaderboardEntry {
+  user_name: string
+  correct: number
+  total: number
 }
 
 async function handle<T>(resp: Response, action: string): Promise<T> {
@@ -157,6 +169,15 @@ export async function fetchBracketPredictions(): Promise<
     credentials: "same-origin",
   })
   return handle<BracketMatchPrediction[]>(resp, "get predictions")
+}
+
+export async function fetchBracketPredictionLeaderboard(): Promise<
+  BracketPredictionLeaderboardEntry[]
+> {
+  const resp = await fetch("/api/bracket_prediction_leaderboard", {
+    credentials: "same-origin",
+  })
+  return handle<BracketPredictionLeaderboardEntry[]>(resp, "get leaderboard")
 }
 
 // `predictedWinner: null` clears the caller's pick for this match.

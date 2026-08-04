@@ -6,7 +6,7 @@ authoritative result (see BracketRepo/BracketMatchState for that).
 
 from sqlalchemy import func, select
 
-from ..db import BracketPrediction
+from ..db import BracketPrediction, User
 
 from .base import BaseRepo
 
@@ -42,6 +42,30 @@ class BracketPredictionRepo(BaseRepo):
         for match_id, predicted_winner, count in self.session.execute(stmt).all():
             result.setdefault(match_id, {})[predicted_winner] = count
         return result
+
+    def all_picks_with_names(self, tournament_id: int) -> list[tuple[str, str, str]]:
+        """(match_id, predicted_winner, display_name) for every prediction in
+        the tournament - display_name prefers the user's claimed in-game
+        player_name (what the rest of the site calls them) and falls back to
+        their Discord username for users who haven't claimed one yet.
+        Correctness against the resolved winner is computed by the caller
+        (bracket.py owns match resolution, not this repo).
+        """
+        stmt = (
+            select(
+                BracketPrediction.match_id,
+                BracketPrediction.predicted_winner,
+                func.coalesce(User.player_name, User.discord_username),
+            )
+            .join(User, User.id == BracketPrediction.user_id)
+            .where(BracketPrediction.tournament_id == tournament_id)
+        )
+        return [
+            (match_id, predicted_winner, display_name)
+            for match_id, predicted_winner, display_name in self.session.execute(
+                stmt
+            ).all()
+        ]
 
     def get_user_picks(self, tournament_id: int, user_id: int) -> dict[str, str]:
         """{match_id: predicted_winner} for this user's picks in the tournament."""

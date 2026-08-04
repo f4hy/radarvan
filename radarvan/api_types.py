@@ -843,6 +843,19 @@ class BracketMatchPrediction(BaseModel):
     # predictions lock so nobody can "predict" after already knowing the
     # outcome.
     open: bool = True
+    # Display names of users who predicted the actual winner - populated
+    # only once the match is completed (None beforehand, so the frontend
+    # can't accidentally leak a live result). Empty list means nobody called
+    # it, not "not completed yet".
+    correct_picks: list[str] | None = None
+
+
+class BracketPredictionLeaderboardEntry(BaseModel):
+    model_config = _SLOTS
+
+    user_name: str
+    correct: int
+    total: int
 
 
 class SetMatchPredictionRequest(BaseModel):

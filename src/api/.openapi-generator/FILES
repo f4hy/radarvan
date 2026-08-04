@@ -15,6 +15,7 @@ docs/BracketApi.md
 docs/BracketMatchOutput.md
 docs/BracketMatchPrediction.md
 docs/BracketPlayerEntry.md
+docs/BracketPredictionLeaderboardEntry.md
 docs/BracketTournamentOutput.md
 docs/BuildOrder.md
 docs/BuildOrderEntry.md
@@ -169,6 +170,7 @@ models/BackfillMapCrcsResponse.ts
 models/BracketMatchOutput.ts
 models/BracketMatchPrediction.ts
 models/BracketPlayerEntry.ts
+models/BracketPredictionLeaderboardEntry.ts
 models/BracketTournamentOutput.ts
 models/BuildOrder.ts
 models/BuildOrderEntry.ts

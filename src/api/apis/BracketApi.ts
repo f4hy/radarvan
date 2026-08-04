@@ -16,6 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   BracketMatchPrediction,
+  BracketPredictionLeaderboardEntry,
   BracketTournamentOutput,
   CreateBracketRequest,
   HTTPValidationError,
@@ -26,6 +27,8 @@ import type {
 import {
     BracketMatchPredictionFromJSON,
     BracketMatchPredictionToJSON,
+    BracketPredictionLeaderboardEntryFromJSON,
+    BracketPredictionLeaderboardEntryToJSON,
     BracketTournamentOutputFromJSON,
     BracketTournamentOutputToJSON,
     CreateBracketRequestFromJSON,
@@ -195,6 +198,45 @@ export class BracketApi extends runtime.BaseAPI {
      */
     async getBracketApiBracketGet(requestParameters: GetBracketApiBracketGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketTournamentOutput> {
         const response = await this.getBracketApiBracketGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet without sending the request
+     */
+    async getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/bracket_prediction_leaderboard`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Ranked \"who\'s called the most winners\" standings for the active tournament - only counts predictions against matches that have completed, so an unfinished bracket\'s leaderboard only grows, it never reshuffles into an incomplete-looking mid-guess state. Empty (not 404) before a tournament exists or before it\'s revealed, same as ``get_bracket_predictions``.
+     * Get Bracket Prediction Leaderboard
+     */
+    async getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<BracketPredictionLeaderboardEntry>>> {
+        const requestOptions = await this.getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(BracketPredictionLeaderboardEntryFromJSON));
+    }
+
+    /**
+     * Ranked \"who\'s called the most winners\" standings for the active tournament - only counts predictions against matches that have completed, so an unfinished bracket\'s leaderboard only grows, it never reshuffles into an incomplete-looking mid-guess state. Empty (not 404) before a tournament exists or before it\'s revealed, same as ``get_bracket_predictions``.
+     * Get Bracket Prediction Leaderboard
+     */
+    async getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<BracketPredictionLeaderboardEntry>> {
+        const response = await this.getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetRaw(initOverrides);
         return await response.value();
     }
 
