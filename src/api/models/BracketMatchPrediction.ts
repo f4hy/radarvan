@@ -43,6 +43,12 @@ export interface BracketMatchPrediction {
      * @memberof BracketMatchPrediction
      */
     open?: boolean;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof BracketMatchPrediction
+     */
+    correctPicks?: Array<string> | null;
 }
 
 /**
@@ -67,6 +73,7 @@ export function BracketMatchPredictionFromJSONTyped(json: any, ignoreDiscriminat
         'tally': json['tally'] == null ? undefined : json['tally'],
         'myPick': json['my_pick'] == null ? undefined : json['my_pick'],
         'open': json['open'] == null ? undefined : json['open'],
+        'correctPicks': json['correct_picks'] == null ? undefined : json['correct_picks'],
     };
 }
 
@@ -85,6 +92,7 @@ export function BracketMatchPredictionToJSONTyped(value?: BracketMatchPrediction
         'tally': value['tally'],
         'my_pick': value['myPick'],
         'open': value['open'],
+        'correct_picks': value['correctPicks'],
     };
 }
 

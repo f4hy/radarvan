@@ -1,4 +1,6 @@
+import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import EditCalendarIcon from "@mui/icons-material/EditCalendar"
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import EventAvailableIcon from "@mui/icons-material/EventAvailable"
 import HowToVoteIcon from "@mui/icons-material/HowToVote"
 import Box from "@mui/material/Box"
@@ -20,7 +22,9 @@ import { startDiscordLogin } from "./auth"
 import {
   BracketMatchOutput,
   BracketMatchPrediction,
+  BracketPredictionLeaderboardEntry,
   BracketTournamentOutput,
+  fetchBracketPredictionLeaderboard,
   fetchBracketPredictions,
   setBracketPrediction,
 } from "./bracketApi"
@@ -32,6 +36,7 @@ import {
   shortMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
+import { WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 // Escalating hype thresholds for AgendaCountdown - calm and quiet until a
@@ -462,6 +467,243 @@ export function agendaMatches(
     })
 }
 
+// Completed matches, most-recently-scheduled first (there's no separate
+// "completed at" timestamp, but a match's scheduled_at is a reasonable proxy
+// for when it actually happened) - unscheduled completions trail behind,
+// same tiebreak idiom as agendaMatches.
+function recentlyCompletedMatches(
+  bracketData: BracketTournamentOutput | null,
+): BracketMatchOutput[] {
+  return (bracketData?.matches ?? [])
+    .filter((m) => m.status === "completed")
+    .sort((a, b) => {
+      if (a.scheduled_at === null) return b.scheduled_at === null ? 0 : 1
+      if (b.scheduled_at === null) return -1
+      return (
+        new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
+      )
+    })
+}
+
+// Read-only version of PredictionBar for a completed match: the winner's
+// segment is highlighted (WIN_COLOR) instead of "my pick" (there's nothing
+// left to click), and a line below names who called it - the payoff for
+// everyone who predicted while it was still open.
+function CompletedPredictionReveal({
+  match,
+  prediction,
+}: {
+  match: BracketMatchOutput
+  prediction: BracketMatchPrediction | undefined
+}) {
+  if (!match.player_a || !match.player_b || !match.winner) return null
+  const playerA = match.player_a
+  const playerB = match.player_b
+  const tally = prediction?.tally ?? {}
+  const countA = tally[playerA] ?? 0
+  const countB = tally[playerB] ?? 0
+  const total = countA + countB
+  const pctA = total > 0 ? Math.round((countA / total) * 100) : 50
+  const pctB = 100 - pctA
+  const correctPicks = prediction?.correct_picks ?? []
+
+  const segmentSx = (isWinnerSide: boolean) => ({
+    py: 0.75,
+    px: 1.25,
+    color: isWinnerSide ? "success.contrastText" : "text.secondary",
+    bgcolor: isWinnerSide
+      ? alpha(WIN_COLOR, 0.85)
+      : (theme: Theme) => alpha(theme.palette.text.primary, 0.06),
+  })
+
+  return (
+    <Stack spacing={0.5} sx={{ width: "100%", maxWidth: 420 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+        }}
+      >
+        <HowToVoteIcon sx={{ fontSize: 14 }} />
+        {total > 0
+          ? `${total} prediction${total === 1 ? "" : "s"}`
+          : "no predictions"}
+      </Typography>
+      <Stack
+        direction="row"
+        sx={{
+          borderRadius: 1.5,
+          overflow: "hidden",
+          border: (theme) => `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <Box
+          sx={{ flexBasis: `${pctA}%`, ...segmentSx(match.winner === playerA) }}
+        >
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontWeight: match.winner === playerA ? 700 : 500 }}
+          >
+            {playerA}
+            {total > 0 && ` · ${pctA}%`}
+          </Typography>
+        </Box>
+        <Box
+          sx={{
+            flexBasis: `${pctB}%`,
+            textAlign: "right",
+            ...segmentSx(match.winner === playerB),
+          }}
+        >
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontWeight: match.winner === playerB ? 700 : 500 }}
+          >
+            {total > 0 && `${pctB}% · `}
+            {playerB}
+          </Typography>
+        </Box>
+      </Stack>
+      {correctPicks.length > 0 ? (
+        <Typography
+          variant="caption"
+          sx={{
+            color: "success.main",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+          }}
+        >
+          <CheckCircleIcon sx={{ fontSize: 14 }} /> Called it:{" "}
+          {correctPicks.join(", ")}
+        </Typography>
+      ) : (
+        total > 0 && (
+          <Typography variant="caption" sx={{ color: "text.disabled" }}>
+            Nobody predicted this one
+          </Typography>
+        )
+      )}
+    </Stack>
+  )
+}
+
+function CompletedMatchRow({
+  match,
+  prediction,
+}: {
+  match: BracketMatchOutput
+  prediction: BracketMatchPrediction | undefined
+}) {
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Stack spacing={0.25} sx={{ mb: 1.5 }}>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {match.round_name} ({shortMatchLabel(match)})
+        </Typography>
+        <Typography variant="subtitle1">
+          <Box
+            component="span"
+            sx={{
+              fontWeight: match.winner === match.player_a ? 700 : 400,
+              color: match.winner === match.player_a ? WIN_COLOR : undefined,
+            }}
+          >
+            {playerLabel(match, "a")}
+          </Box>
+          {" vs "}
+          <Box
+            component="span"
+            sx={{
+              fontWeight: match.winner === match.player_b ? 700 : 400,
+              color: match.winner === match.player_b ? WIN_COLOR : undefined,
+            }}
+          >
+            {playerLabel(match, "b")}
+          </Box>
+        </Typography>
+        {match.score_a !== null && match.score_b !== null && (
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            {match.score_a} – {match.score_b}
+          </Typography>
+        )}
+      </Stack>
+      {match.player_a && match.player_b && (
+        <CompletedPredictionReveal match={match} prediction={prediction} />
+      )}
+    </Paper>
+  )
+}
+
+// Compact top-N "who's called the most winners" standings - lives right
+// alongside the prediction UI itself (rather than a separate page) so the
+// same anxious-refresher crowd sees the payoff without hunting for it.
+// Renders nothing until there's at least one completed, predicted-on match -
+// an empty leaderboard would just be a confusing "0/0 everyone" list.
+function PredictionLeaderboardPanel() {
+  const [entries, setEntries] = React.useState<
+    BracketPredictionLeaderboardEntry[]
+  >([])
+  const { showError, errorSnackbar } = useErrorSnackbar()
+
+  React.useEffect(() => {
+    let cancelled = false
+    fetchBracketPredictionLeaderboard()
+      .then((list) => !cancelled && setEntries(list))
+      .catch(showError)
+    return () => {
+      cancelled = true
+    }
+  }, [showError])
+
+  if (entries.length === 0) return null
+  const top = entries.slice(0, 5)
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2, mb: 1.5 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}
+      >
+        <EmojiEventsIcon fontSize="small" sx={{ color: "warning.main" }} />
+        Prediction leaderboard
+      </Typography>
+      <Stack spacing={0.5}>
+        {top.map((entry, i) => (
+          <Stack
+            key={entry.user_name}
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: "center" }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ width: 20, color: "text.secondary" }}
+            >
+              #{i + 1}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ flexGrow: 1, fontWeight: i === 0 ? 700 : 400 }}
+            >
+              {entry.user_name}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              {entry.correct}/{entry.total}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+      {errorSnackbar}
+    </Paper>
+  )
+}
+
 // Body of the Bracket page's "Agenda" tab - takes the tournament data the
 // page already fetched (see DisplayBracket's bracketData state) rather than
 // fetching its own copy. `onSchedule` is DisplayBracket's handleSaveMatch,
@@ -512,8 +754,11 @@ export default function AgendaPanel({
     [showError],
   )
 
+  const completed = recentlyCompletedMatches(bracketData)
+
   return (
     <>
+      <PredictionLeaderboardPanel />
       {!bracketData && (
         <Typography sx={{ color: "text.secondary" }}>
           No tournament has been created yet.
@@ -536,6 +781,25 @@ export default function AgendaPanel({
             />
           ))}
         </Stack>
+      )}
+      {completed.length > 0 && (
+        <>
+          <Typography
+            variant="subtitle2"
+            sx={{ color: "text.secondary", mt: 3, mb: 1.5 }}
+          >
+            Completed
+          </Typography>
+          <Stack spacing={1.5}>
+            {completed.map((m) => (
+              <CompletedMatchRow
+                key={m.match_id}
+                match={m}
+                prediction={predictions[m.match_id]}
+              />
+            ))}
+          </Stack>
+        </>
       )}
       {errorSnackbar}
     </>

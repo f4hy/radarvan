@@ -1,30 +1,26 @@
 
-# BracketMatchPrediction
+# BracketPredictionLeaderboardEntry
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`matchId` | string
-`tally` | { [key: string]: number; }
-`myPick` | string
-`open` | boolean
-`correctPicks` | Array&lt;string&gt;
+`userName` | string
+`correct` | number
+`total` | number
 
 ## Example
 
 ```typescript
-import type { BracketMatchPrediction } from ''
+import type { BracketPredictionLeaderboardEntry } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "matchId": null,
-  "tally": null,
-  "myPick": null,
-  "open": null,
-  "correctPicks": null,
-} satisfies BracketMatchPrediction
+  "userName": null,
+  "correct": null,
+  "total": null,
+} satisfies BracketPredictionLeaderboardEntry
 
 console.log(example)
 
@@ -33,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as BracketMatchPrediction
+const exampleParsed = JSON.parse(exampleJSON) as BracketPredictionLeaderboardEntry
 console.log(exampleParsed)
 ```
 

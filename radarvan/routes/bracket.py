@@ -22,6 +22,7 @@ from .. import bracket, discord_events, player_ids
 from ..api_types import (
     BracketMatchOutput,
     BracketPlayerEntry,
+    BracketPredictionLeaderboardEntry,
     BracketTournamentOutput,
     CreateBracketRequest,
     LoserOfSource,
@@ -405,6 +406,10 @@ def get_bracket_predictions(
     my_picks = prediction_repo.get_user_picks(tournament.id, user.id) if user else {}
     now = datetime.now(UTC)
 
+    correct_names_by_match, _ = _resolved_predictions(
+        prediction_repo, tournament, result
+    )
+
     predictions = []
     for m in result.matches:
         if m.player_a is None or m.player_b is None:
@@ -419,9 +424,77 @@ def get_bracket_predictions(
                 open=_prediction_is_open(
                     m.status, raw.scheduled_at if raw else None, now
                 ),
+                correct_picks=correct_names_by_match.get(m.match_id)
+                if m.status == "completed"
+                else None,
             )
         )
     return predictions
+
+
+def _resolved_predictions(
+    prediction_repo: BracketPredictionRepo,
+    tournament: BracketTournament,
+    result: bracket.BracketResult,
+) -> tuple[dict[str, list[str]], list[BracketPredictionLeaderboardEntry]]:
+    """Walks every prediction once and derives both per-match "who called
+    it" name lists and the overall per-user leaderboard, restricted to
+    matches that have completed (winners come from the already-resolved
+    bracket - bracket.py owns that logic, not stored on the prediction
+    rows). Shared so ``get_bracket_predictions`` and the leaderboard
+    endpoint agree on exactly the same notion of "correct".
+    """
+    winners = {
+        m.match_id: m.winner
+        for m in result.matches
+        if m.status == "completed" and m.winner is not None
+    }
+    correct_by_match: dict[str, list[str]] = {}
+    tallies: dict[str, dict[str, int]] = {}
+    for (
+        match_id,
+        predicted_winner,
+        display_name,
+    ) in prediction_repo.all_picks_with_names(tournament.id):
+        winner = winners.get(match_id)
+        if winner is None:
+            continue
+        entry = tallies.setdefault(display_name, {"correct": 0, "total": 0})
+        entry["total"] += 1
+        if predicted_winner == winner:
+            entry["correct"] += 1
+            correct_by_match.setdefault(match_id, []).append(display_name)
+
+    leaderboard = [
+        BracketPredictionLeaderboardEntry(
+            user_name=name, correct=counts["correct"], total=counts["total"]
+        )
+        for name, counts in tallies.items()
+    ]
+    leaderboard.sort(key=lambda e: (-e.correct, -e.total, e.user_name))
+    return correct_by_match, leaderboard
+
+
+@router.get("/api/bracket_prediction_leaderboard")
+def get_bracket_prediction_leaderboard(
+    repo: BracketRepo = Depends(get_bracket_repo),
+    prediction_repo: BracketPredictionRepo = Depends(get_bracket_prediction_repo),
+) -> list[BracketPredictionLeaderboardEntry]:
+    """Ranked "who's called the most winners" standings for the active
+    tournament - only counts predictions against matches that have
+    completed, so an unfinished bracket's leaderboard only grows, it never
+    reshuffles into an incomplete-looking mid-guess state. Empty (not 404)
+    before a tournament exists or before it's revealed, same as
+    ``get_bracket_predictions``.
+    """
+    tournament = repo.get_active()
+    if tournament is None or not _is_revealed(tournament, allow_preview=False):
+        return []
+
+    raw_states = repo.get_match_states(tournament.id)
+    result = _resolve_from_states(tournament, raw_states)
+    _, leaderboard = _resolved_predictions(prediction_repo, tournament, result)
+    return leaderboard
 
 
 @router.post("/api/bracket_predictions/{match_id}")

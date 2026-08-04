@@ -7,6 +7,7 @@ export * from './BackfillMapCrcsResponse';
 export * from './BracketMatchOutput';
 export * from './BracketMatchPrediction';
 export * from './BracketPlayerEntry';
+export * from './BracketPredictionLeaderboardEntry';
 export * from './BracketTournamentOutput';
 export * from './BuildOrder';
 export * from './BuildOrderEntry';
