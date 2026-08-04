@@ -269,7 +269,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 />
                 <Tooltip
                   cursor={false}
-                  labelFormatter={(v) => formatDate(v)}
+                  labelFormatter={(v) => formatDate(v as number)}
                   formatter={(v, name) => {
                     if (name === "skill")
                       return v != null ? formatSkill(v as [number, number]) : ""
