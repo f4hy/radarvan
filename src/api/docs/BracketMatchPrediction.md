@@ -8,7 +8,6 @@ Name | Type
 ------------ | -------------
 `matchId` | string
 `tally` | { [key: string]: number; }
-`totalPredictions` | number
 `myPick` | string
 `open` | boolean
 
@@ -21,7 +20,6 @@ import type { BracketMatchPrediction } from ''
 const example = {
   "matchId": null,
   "tally": null,
-  "totalPredictions": null,
   "myPick": null,
   "open": null,
 } satisfies BracketMatchPrediction

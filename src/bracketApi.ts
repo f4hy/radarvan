@@ -79,7 +79,6 @@ export interface SetBracketRevealAtRequest {
 export interface BracketMatchPrediction {
   match_id: string
   tally: Record<string, number>
-  total_predictions: number
   my_pick: string | null
   open: boolean
 }

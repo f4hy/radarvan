@@ -62,6 +62,10 @@ export interface BackfillMapCrcsApiBackfillMapCrcsPostRequest {
     maxToUpdate?: number;
 }
 
+export interface DeleteMapDataApiMapDataMapNameDeleteRequest {
+    mapName: string;
+}
+
 export interface FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest {
     matchId: number;
     parseMap?: boolean;
@@ -149,6 +153,57 @@ export class MapApi extends runtime.BaseAPI {
      */
     async backfillMapCrcsApiBackfillMapCrcsPost(requestParameters: BackfillMapCrcsApiBackfillMapCrcsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BackfillMapCrcsResponse> {
         const response = await this.backfillMapCrcsApiBackfillMapCrcsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for deleteMapDataApiMapDataMapNameDelete without sending the request
+     */
+    async deleteMapDataApiMapDataMapNameDeleteRequestOpts(requestParameters: DeleteMapDataApiMapDataMapNameDeleteRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['mapName'] == null) {
+            throw new runtime.RequiredError(
+                'mapName',
+                'Required parameter "mapName" was null or undefined when calling deleteMapDataApiMapDataMapNameDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/map_data/{map_name}`;
+        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Delete the MapData row for a map (geometry + CRC + sync state). Dev-only.  Does not touch the `.map`/`.tga`/`.webp` assets in S3 or any match history - only the derived MapData row. For an orphaned map (no matches reference it), that\'s a full removal.
+     * Delete Map Data
+     */
+    async deleteMapDataApiMapDataMapNameDeleteRaw(requestParameters: DeleteMapDataApiMapDataMapNameDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const requestOptions = await this.deleteMapDataApiMapDataMapNameDeleteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Delete the MapData row for a map (geometry + CRC + sync state). Dev-only.  Does not touch the `.map`/`.tga`/`.webp` assets in S3 or any match history - only the derived MapData row. For an orphaned map (no matches reference it), that\'s a full removal.
+     * Delete Map Data
+     */
+    async deleteMapDataApiMapDataMapNameDelete(requestParameters: DeleteMapDataApiMapDataMapNameDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.deleteMapDataApiMapDataMapNameDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -715,7 +770,7 @@ export class MapApi extends runtime.BaseAPI {
     }
 
     /**
-     * Bring stored map geometry up to date with the current mapparse binary.  Covers both buckets in one pass, up to `max_to_update` total (missing maps first, then stale ones with whatever budget is left):  - Maps referenced by matches with no MapData row yet: fetched fresh from   cncstats and parsed (like the old `fetch_missing_maps`). - Existing rows whose stored geometry predates the current binary:   reparsed from the `.map` bytes already in S3, no cncstats call (see   `missing_maps.reparse_stored_map`).  Resumable - call repeatedly (e.g. from a script) until `remaining` is 0. Use `GET /api/map_reparse_status` to check progress without doing any work.
+     * Bring stored map geometry up to date with the current mapparse binary.  Covers both buckets in one pass, up to `max_to_update` total (stale rows first, then missing maps with whatever budget is left):  - Existing rows whose stored geometry predates the current binary:   reparsed from the `.map` bytes already in S3, no cncstats call (see   `missing_maps.reparse_stored_map`) - cheap and always the bulk of the   work, so it goes first. - Maps referenced by matches with no MapData row yet: fetched fresh from   cncstats and parsed (like the old `fetch_missing_maps`). Some of these   may be maps cncstats has never seen either, so they fail every call -   put last so a handful of permanently-missing maps can\'t crowd out the   (fast, reliable) stale reparses batch after batch.  Resumable - call repeatedly (e.g. from a script) until `remaining` is 0. Use `GET /api/map_reparse_status` to check progress without doing any work.
      * Reparse Maps
      */
     async reparseMapsApiReparseMapsPostRaw(requestParameters: ReparseMapsApiReparseMapsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ReparseMapsResponse>> {
@@ -726,7 +781,7 @@ export class MapApi extends runtime.BaseAPI {
     }
 
     /**
-     * Bring stored map geometry up to date with the current mapparse binary.  Covers both buckets in one pass, up to `max_to_update` total (missing maps first, then stale ones with whatever budget is left):  - Maps referenced by matches with no MapData row yet: fetched fresh from   cncstats and parsed (like the old `fetch_missing_maps`). - Existing rows whose stored geometry predates the current binary:   reparsed from the `.map` bytes already in S3, no cncstats call (see   `missing_maps.reparse_stored_map`).  Resumable - call repeatedly (e.g. from a script) until `remaining` is 0. Use `GET /api/map_reparse_status` to check progress without doing any work.
+     * Bring stored map geometry up to date with the current mapparse binary.  Covers both buckets in one pass, up to `max_to_update` total (stale rows first, then missing maps with whatever budget is left):  - Existing rows whose stored geometry predates the current binary:   reparsed from the `.map` bytes already in S3, no cncstats call (see   `missing_maps.reparse_stored_map`) - cheap and always the bulk of the   work, so it goes first. - Maps referenced by matches with no MapData row yet: fetched fresh from   cncstats and parsed (like the old `fetch_missing_maps`). Some of these   may be maps cncstats has never seen either, so they fail every call -   put last so a handful of permanently-missing maps can\'t crowd out the   (fast, reliable) stale reparses batch after batch.  Resumable - call repeatedly (e.g. from a script) until `remaining` is 0. Use `GET /api/map_reparse_status` to check progress without doing any work.
      * Reparse Maps
      */
     async reparseMapsApiReparseMapsPost(requestParameters: ReparseMapsApiReparseMapsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ReparseMapsResponse> {

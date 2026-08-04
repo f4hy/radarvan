@@ -223,7 +223,7 @@ function PredictionBar({
   prediction: BracketMatchPrediction | undefined
   playerA: string
   playerB: string
-  onPick: (winner: string | null) => void
+  onPick: (winner: string | null) => Promise<void>
 }) {
   const { status } = useAuth()
   const loggedIn = status?.logged_in ?? false
@@ -240,8 +240,10 @@ function PredictionBar({
 
   // Logged out isn't a dead end: clicking either side sends the visitor
   // straight into Discord login instead of silently doing nothing, so the
-  // poll doubles as a login funnel rather than a tease.
-  const handlePick = (winner: string) => {
+  // poll doubles as a login funnel rather than a tease. `pending` is held
+  // until onPick's request actually resolves (not just kicked off), so a
+  // fast double-click can't fire two POSTs for the same pick.
+  const handlePick = async (winner: string) => {
     if (!open || pending) return
     if (!loggedIn) {
       startDiscordLogin()
@@ -249,7 +251,7 @@ function PredictionBar({
     }
     setPending(true)
     try {
-      onPick(myPick === winner ? null : winner)
+      await onPick(myPick === winner ? null : winner)
     } finally {
       setPending(false)
     }
@@ -364,7 +366,7 @@ function AgendaRow({
   match: BracketMatchOutput
   onSchedule: (matchId: string, scheduledAt: string | null) => Promise<void>
   prediction: BracketMatchPrediction | undefined
-  onPick: (matchId: string, winner: string | null) => void
+  onPick: (matchId: string, winner: string | null) => Promise<void>
 }) {
   const isAdmin = useIsTournamentAdmin()
   return (
@@ -499,12 +501,13 @@ export default function AgendaPanel({
   }, [bracketData, showError])
 
   const handlePick = React.useCallback(
-    (matchId: string, winner: string | null) => {
-      setBracketPrediction(matchId, winner)
-        .then((updated) => {
-          setPredictions((prev) => ({ ...prev, [matchId]: updated }))
-        })
-        .catch(showError)
+    async (matchId: string, winner: string | null) => {
+      try {
+        const updated = await setBracketPrediction(matchId, winner)
+        setPredictions((prev) => ({ ...prev, [matchId]: updated }))
+      } catch (e) {
+        showError(e)
+      }
     },
     [showError],
   )
