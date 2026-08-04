@@ -48,10 +48,10 @@ function getDebugData(
     .catch(onError)
 }
 
-function reparse(matchId: number) {
-  Client.reparseApiReparseMatchIdPost({ matchId: matchId }).then(() =>
-    console.log("Parsed " + matchId),
-  )
+function reparse(matchId: number, onError = console.error) {
+  Client.reparseApiReparseMatchIdPost({ matchId: matchId })
+    .then(() => console.log("Parsed " + matchId))
+    .catch(onError)
 }
 
 function getPrediction(

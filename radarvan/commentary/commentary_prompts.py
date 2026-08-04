@@ -1,15 +1,13 @@
 """System-prompt text for LLM-generated pre-game matchup commentary.
 
-``GUIDELINES`` mirrors ``commentary_guide.md`` at the repo root, which is
-the working draft - edit that file by hand while iterating on real
-matchups, then port changes back here (kept as an embedded string rather
-than read at runtime so production doesn't depend on a file outside the
-package). This replaced the earlier, much longer PRIMER+GUIDELINES pair
-(hand-tuned over many real matchups, each rule tied to an observed
-failure) as a deliberate reset - short enough to actually navigate when an
-output needs fixing. If a rule that was dropped turns out to matter again,
-re-add it here with the same discipline: tie it to what actually went
-wrong, not to a hypothetical.
+``GUIDELINES`` is edited in place here while iterating on real matchups
+(kept as an embedded string rather than read from an external file so
+production doesn't depend on anything outside the package). This replaced
+the earlier, much longer PRIMER+GUIDELINES pair (hand-tuned over many real
+matchups, each rule tied to an observed failure) as a deliberate reset -
+short enough to actually navigate when an output needs fixing. If a rule
+that was dropped turns out to matter again, re-add it here with the same
+discipline: tie it to what actually went wrong, not to a hypothetical.
 
 This string is domain/rule content only - no per-call interpolation (round
 name, player names, fetched data) happens here. That's assembled into the
@@ -43,27 +41,6 @@ Info to base it on:
   - If the two look closely matched, that's good "even matchup" tension. If they're far apart, don't frame it as one player being outclassed or unlikely to win - frame the lower-rated player as the underdog with something to prove, never as overmatched.
   - Recent form (win/loss results) is fine to reference directly, e.g. "riding a hot streak" - these are plain results, not internal numbers.
 - Not all the info is useful, just comment if something stands out or is interesting.
-
-
-data may use ids rather than names for a given general:
-
-| id | enum name | faction |
-|----|-----------|---------|
-| 0  | USA       | USA (base) |
-| 1  | AIR       | USA - Air Force General |
-| 2  | LASER     | USA - Laser General |
-| 3  | SUPER     | USA - Superweapon General |
-| 4  | CHINA     | China (base) |
-| 5  | NUKE      | China - Nuke General |
-| 6  | TANK      | China - Tank General |
-| 7  | INFANTRY  | China - Infantry General |
-| 8  | GLA       | GLA (base) |
-| 9  | TOXIN     | GLA - Toxin General |
-| 10 | STEALTH   | GLA - Stealth General |
-| 11 | DEMO      | GLA - Demolition General |
-
-(`-1` / `UNRECOGNIZED` also exists - not a real general, ignore for
-commentary purposes.)
 
 Output:
 Give a short message to hype up the match that will be played

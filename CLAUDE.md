@@ -133,7 +133,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 
 - `body[].details.Name` for `SpecialPowerAt*` orders encodes three families: `SpecialAbility*` (unit abilities — skip, they flood timelines), `SpecialPower*` (generals-panel powers), `Superweapon*` (mix of powers AND true superweapons — a true launch matches `_SUPERWEAPON_ACTIVATION_KEYWORDS`). Superweapon *buildings* are detected by name against `_SUPERWEAPON_STRUCTURES`, not cost.
 - `MatchDetails.timeline_events` markers: `search_and_destroy` fires only on 0→1 battle-plan flips; `low_power` only on OK→low transitions; rank-ups with `rank_level <= 1` or seed frames are dropped.
-- Object names rendered to the UI go through `replay_helpers.clean_object_name` (strips `Lazr_`-style prefix then faction prefix); power names additionally through `_clean_power_name`.
+- Object names rendered to the UI go through `replay_helpers.clean_object_name` (strips `Lazr_`-style prefix then faction prefix); power names additionally through `clean_power_name`.
 
 ### Matches, overrides, reparse
 
@@ -166,7 +166,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 ### Frontend
 
 - The map component is named `GameMap` (from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor. Pass `eventDots?: EventDot[]` to overlay dots in game-space coordinates.
-- `ShowMatchDetails.tsx:EventChart` is pure MUI (no recharts); adding an event type means updating `EVENT_TYPE_META`, `EVENT_TYPE_ICON`, and `ROW_ORDER` together.
+- `ShowMatchDetails.tsx:EventChart` is pure MUI (no recharts); event types are driven by one `EVENT_TYPES` array (label, row, icon) — `EVENT_TYPE_BY_KEY` and `ROW_ORDER` are both derived from it, so adding an event type only means adding an entry there.
 - recharts Sankey `nodePadding` is uniform across columns; `node`/`link` accept custom elements receiving layout props; `payload.sourceLinks` detects leaf nodes.
 - Use `getColorHex`/`buildPlayerColorMap` from `src/utils.ts` for player-color maps; `WinRateRadar` is the shared radar chart (`data: {name, winRate}[]`).
 - Format toggles: `FORMAT_OPTIONS` arrays drive ToggleButtonGroups; selected format goes up as the `gameFormat` query param; reset dependent state on format change.
