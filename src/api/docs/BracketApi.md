@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 | [**createBracketApiBracketPost**](BracketApi.md#createbracketapibracketpost) | **POST** /api/bracket | Create Bracket |
 | [**eligiblePlayersApiBracketEligiblePlayersGet**](BracketApi.md#eligibleplayersapibracketeligibleplayersget) | **GET** /api/bracket_eligible_players | Eligible Players |
 | [**getBracketApiBracketGet**](BracketApi.md#getbracketapibracketget) | **GET** /api/bracket | Get Bracket |
+| [**getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet**](BracketApi.md#getbracketpredictionleaderboardapibracketpredictionleaderboardget) | **GET** /api/bracket_prediction_leaderboard | Get Bracket Prediction Leaderboard |
 | [**getBracketPredictionsApiBracketPredictionsGet**](BracketApi.md#getbracketpredictionsapibracketpredictionsget) | **GET** /api/bracket_predictions | Get Bracket Predictions |
 | [**setBracketMatchApiBracketMatchIdPost**](BracketApi.md#setbracketmatchapibracketmatchidpost) | **POST** /api/bracket/{match_id} | Set Bracket Match |
 | [**setBracketPredictionApiBracketPredictionsMatchIdPost**](BracketApi.md#setbracketpredictionapibracketpredictionsmatchidpost) | **POST** /api/bracket_predictions/{match_id} | Set Bracket Prediction |
@@ -205,6 +206,65 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet
+
+> Array&lt;BracketPredictionLeaderboardEntry&gt; getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet()
+
+Get Bracket Prediction Leaderboard
+
+Ranked \&quot;who\&#39;s called the most winners\&quot; standings for the active tournament - only counts predictions against matches that have completed, so an unfinished bracket\&#39;s leaderboard only grows, it never reshuffles into an incomplete-looking mid-guess state. Empty (not 404) before a tournament exists or before it\&#39;s revealed, same as &#x60;&#x60;get_bracket_predictions&#x60;&#x60;.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { GetBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  try {
+    const data = await api.getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;BracketPredictionLeaderboardEntry&gt;**](BracketPredictionLeaderboardEntry.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
