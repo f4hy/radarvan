@@ -19,7 +19,7 @@ from __future__ import annotations
 
 GUIDELINES = """\
 Goal:
-Provide a short, punchy, pre-game summary to hype up a match that is  part of a 1v1 double elimination tournament
+Provide a punchy, pre-game summary to hype up a match that is part of a 1v1 double elimination tournament.
 
 Setup:
 - A gaming group plays games Command and Conquer Generals Zero hour together a few times a week.
