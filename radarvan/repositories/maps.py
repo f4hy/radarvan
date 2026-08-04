@@ -112,8 +112,10 @@ class MapRepo(BaseRepo):
 
     def count_maps_needing_reparse(self, current_hash: str) -> int:
         """Total rows whose stored geometry predates `current_hash`."""
-        stmt = select(func.count()).select_from(MapData).where(
-            self._stale_mapparse_filter(current_hash)
+        stmt = (
+            select(func.count())
+            .select_from(MapData)
+            .where(self._stale_mapparse_filter(current_hash))
         )
         return self.session.scalar(stmt) or 0
 
