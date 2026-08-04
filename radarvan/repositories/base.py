@@ -8,7 +8,7 @@ Repos share:
   Callers can flip to False to batch many writes into one transaction; do not
   forget to call `session.commit()` yourself in that mode.
 - `notify`: when True, write methods call out to the side-channel notifier
-  (currently Slack). Default False so background backfills stay silent.
+  (a Discord webhook). Default False so background backfills stay silent.
 """
 
 from sqlalchemy.orm import Session

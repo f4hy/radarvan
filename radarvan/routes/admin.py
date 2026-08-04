@@ -388,16 +388,21 @@ def refresh_matches_from_json(
             replay_manager.session.commit()
     finally:
         replay_manager.auto_commit = True
+    if updated_count:
+        invalidate_match_caches()
     return {"updated": updated_count, "checked": len(parsed)}
 
 
 @router.post("/api/register_matches/", include_in_schema=IS_DEV)
 def register_matches(
+    max_to_update: int = 100,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, str]:
+) -> dict[str, int]:
     """Register Match rows for any ParsedReplayJson that has no corresponding Match."""
-    matches.register_matches(replay_manager)
-    return {"status": "ok"}
+    updated = matches.register_matches(replay_manager, max_to_update=max_to_update)
+    if updated:
+        invalidate_match_caches()
+    return {"updated": updated}
 
 
 @router.post("/api/fix_incomplete/", include_in_schema=IS_DEV)
