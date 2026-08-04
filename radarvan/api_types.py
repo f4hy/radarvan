@@ -834,9 +834,9 @@ class BracketMatchPrediction(BaseModel):
     model_config = _SLOTS
 
     match_id: str
-    # {player_name: vote_count}, only the two players in this match.
+    # {player_name: vote_count}, only the two players in this match - total
+    # prediction count is len(tally.values()) summed, derivable client-side.
     tally: dict[str, int] = Field(default_factory=dict)
-    total_predictions: int = 0
     # The logged-in viewer's own pick (None if unset or logged out).
     my_pick: str | None = None
     # False once the match started (scheduled_at passed) or was scored -

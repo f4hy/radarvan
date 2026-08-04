@@ -33,12 +33,6 @@ export interface BracketMatchPrediction {
     tally?: { [key: string]: number; };
     /**
      * 
-     * @type {number}
-     * @memberof BracketMatchPrediction
-     */
-    totalPredictions?: number;
-    /**
-     * 
      * @type {string}
      * @memberof BracketMatchPrediction
      */
@@ -71,7 +65,6 @@ export function BracketMatchPredictionFromJSONTyped(json: any, ignoreDiscriminat
         
         'matchId': json['match_id'],
         'tally': json['tally'] == null ? undefined : json['tally'],
-        'totalPredictions': json['total_predictions'] == null ? undefined : json['total_predictions'],
         'myPick': json['my_pick'] == null ? undefined : json['my_pick'],
         'open': json['open'] == null ? undefined : json['open'],
     };
@@ -90,7 +83,6 @@ export function BracketMatchPredictionToJSONTyped(value?: BracketMatchPrediction
         
         'match_id': value['matchId'],
         'tally': value['tally'],
-        'total_predictions': value['totalPredictions'],
         'my_pick': value['myPick'],
         'open': value['open'],
     };
