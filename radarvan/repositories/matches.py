@@ -7,7 +7,7 @@ fields; reset_match deletes across all four.
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 import structlog
 
 from sqlalchemy import or_, select, func
@@ -97,6 +97,9 @@ class MatchRepo(BaseRepo):
         # Preserve is_dev: it comes from the upload header, not the replay, so a
         # reparse-built match always has the default False and would clobber it.
         new_match.is_dev = existing.is_dev
+        # merge() copies attribute state by PK, so an unset onupdate column
+        # merges as NULL instead of firing onupdate=func.now() - set explicitly.
+        new_match.updated_at = datetime.now(UTC)
         # Clear players before merge: new MatchPlayer objects have no id, so merge
         # would insert duplicates rather than replace the existing rows.
         existing.players.clear()

@@ -114,7 +114,10 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
             else None
         ) or []
         real_players = [
-            PlayerAdapter(team=int(p.team or "-1"), type=p.type)
+            # header team is raw/0-based; categorize_game_type expects the
+            # 1-based scheme (0 = no team/FFA), same conversion as
+            # utils.determine_team.
+            PlayerAdapter(team=int(utils.determine_team(p, None)), type=p.type)
             for p in header_players
             if p.type in ("H", "C")
         ]
@@ -207,10 +210,12 @@ def match_to_matchinfo(
     db_match: db.Match, override: db.WinnerOverride | None = None
 ) -> MatchInfo:
     """Convert. If an override is set it takes full precedence: winner, player won-flags,
-    and incomplete/notes are all replaced regardless of what the replay headers say."""
-    winner = (
-        override.winning_team_id if override is not None else db_match.winning_team_id
-    )
+    and incomplete/notes are all replaced regardless of what the replay headers say.
+    An override with no winning_team_id (e.g. one that only sets `incomplete`) leaves
+    the replay-derived winner alone - it must not be treated as "no team won"."""
+    override_winner = override.winning_team_id if override is not None else None
+    has_winner_override = override_winner is not None
+    winner = override_winner if has_winner_override else db_match.winning_team_id
     db_players = db_match.players
     players = [
         Player(
@@ -218,7 +223,7 @@ def match_to_matchinfo(
             general=p.general_id,
             team=p.team_id,
             color=p.color,
-            won=p.team_id == winner if override is not None else p.is_winner,
+            won=p.team_id == winner if has_winner_override else p.is_winner,
             starting_position=p.starting_position,
         )
         for p in db_players
@@ -246,11 +251,14 @@ def match_to_matchinfo(
     )
 
 
-def register_matches(replay_manager: ReplayManager) -> None:
+def register_matches(replay_manager: ReplayManager, max_to_update: int | None = None) -> int:
     replay_jsons = replay_manager.list_jsons_without_match()
     logger.info("replay_jsons without matches", count=len(replay_jsons))
     seen: set[int] = set()
+    registered = 0
     for j in replay_jsons:
+        if max_to_update is not None and registered >= max_to_update:
+            break
         if j.match_id in seen:
             continue
         parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
@@ -268,6 +276,7 @@ def register_matches(replay_manager: ReplayManager) -> None:
             continue
         if not created:
             continue
+        registered += 1
         # Best-effort win prediction for the newly registered match (notifies
         # predicted vs actual). Never lets a prediction error affect ingestion.
         try:
@@ -276,6 +285,7 @@ def register_matches(replay_manager: ReplayManager) -> None:
                 ml_inference.predict_and_notify(mi)
         except Exception as e:
             logger.info("post-register prediction skipped", error=repr(e))
+    return registered
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:

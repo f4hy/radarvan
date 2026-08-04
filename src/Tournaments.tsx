@@ -164,7 +164,6 @@ function LoadAndShowMatch(props: { matchId: number }) {
     return (
       <>
         <Loading />
-        <Typography>{JSON.stringify(match?.durationMinutes)}</Typography>
         {errorSnackbar}
       </>
     )
