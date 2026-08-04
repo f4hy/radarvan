@@ -341,9 +341,7 @@ def set_bracket_match(
                 ),
             )
 
-    scheduled_at_changed = scheduled_at != (
-        existing.scheduled_at if existing else None
-    )
+    scheduled_at_changed = scheduled_at != (existing.scheduled_at if existing else None)
 
     row = repo.set_match(
         tournament.id,

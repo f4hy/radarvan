@@ -566,9 +566,7 @@ def fetch_and_upload_for_match(
     return fetched, payload
 
 
-def reparse_stored_map(
-    map_name: str, replay_manager: ReplayManager
-) -> MapDataPayload:
+def reparse_stored_map(map_name: str, replay_manager: ReplayManager) -> MapDataPayload:
     """Re-run mapparse on a map's already-hosted `.map` bytes and save the result.
 
     Unlike `fetch_and_upload_for_match`, this never calls cncstats - it reparses

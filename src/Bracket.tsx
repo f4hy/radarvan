@@ -129,6 +129,7 @@ const TOURNAMENT_RULES: string[] = [
   "**Best of 5**, then **best of 7** for winners semis, winners finals, losers semis, losers finals, then **best of 9** for grand finals.",
   "**Double elimination.**",
   "If set count is even going into final match of the set, the redo coin flip for final map pick, mirror faction based on the person who is higher up in the lobby screen. **Whatever general they get is the one both players will play as for the final game.** The person higher up in the lobby is also the one who calls the coin flip in the air.",
+  "If the randomizer gives you a mirror match, play two matches of it that way you don’t mess up the tie breaker system. If both players agree to a gentlemen’s agreement you can reroll generals and get a different matchup.",
   "Tournament admin: **Scottagorn**. Any disputes or rule clarifications go to him.",
 ]
 

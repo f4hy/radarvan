@@ -295,7 +295,10 @@ def reparse_maps(
         if fetched is None:
             results.append(
                 ReparseMapResult(
-                    map_name=m.map_name, was_missing=True, ok=False, error="fetch failed"
+                    map_name=m.map_name,
+                    was_missing=True,
+                    ok=False,
+                    error="fetch failed",
                 )
             )
             continue
