@@ -103,6 +103,7 @@ function GeneralWinLossChart(props: {
           angle={-35}
           textAnchor="end"
           interval={0}
+          height="auto"
           tick={{ fontSize: props.isMobile ? 9 : 12 }}
         />
         <YAxis tick={{ fontSize: props.isMobile ? 9 : 12 }} />

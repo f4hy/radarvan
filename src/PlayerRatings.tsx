@@ -250,7 +250,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                   tickFormatter={(v) => formatDate(v, isMobile)}
                   angle={isMobile ? -35 : 0}
                   textAnchor={isMobile ? "end" : "middle"}
-                  height={isMobile ? 50 : 30}
+                  height="auto"
                 />
                 <YAxis
                   label={

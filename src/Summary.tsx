@@ -238,6 +238,7 @@ const cashFormatter = (value: unknown) =>
 function PlayerSankeyChart(props: {
   data: SankeyData
   emptyMessage: string
+  description: string
   formatter?: (value: unknown) => string
   minHeight?: number
 }) {
@@ -255,6 +256,8 @@ function PlayerSankeyChart(props: {
         node={<SankeyNode />}
         link={<SankeyLink />}
         linkCurvature={0.7}
+        title={props.description}
+        desc={props.description}
       >
         <Tooltip formatter={props.formatter} />
       </Sankey>
@@ -276,6 +279,7 @@ function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="Spending data unavailable for this replay"
+      description={`${props.playerSummary.name} spending breakdown across units, buildings, and upgrades`}
       formatter={cashFormatter}
     />
   )
@@ -300,6 +304,7 @@ function PlayerDestroyedSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="Value destroyed data unavailable for this replay"
+      description={`Value ${props.playerSummary.name} destroyed, broken down by units and buildings`}
       formatter={cashFormatter}
     />
   )
@@ -321,6 +326,7 @@ function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="Losses data unavailable for this replay"
+      description={`Value ${props.playerSummary.name} lost, broken down by units and buildings`}
       formatter={cashFormatter}
     />
   )
@@ -378,6 +384,7 @@ function PlayerDestroyedFromOpponentSankey(props: {
     <PlayerSankeyChart
       data={data}
       emptyMessage="No kill events recorded against a specific opponent"
+      description={`Value ${props.playerName} destroyed, broken down by opponent`}
       formatter={cashFormatter}
     />
   )
@@ -401,6 +408,7 @@ function PlayerLostToOpponentSankey(props: {
     <PlayerSankeyChart
       data={data}
       emptyMessage="No kill events recorded against a specific opponent"
+      description={`Value ${props.playerName} lost, broken down by opponent`}
       formatter={cashFormatter}
     />
   )
@@ -431,6 +439,7 @@ function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="No powers used data"
+      description={`Special powers ${props.playerSummary.name} used`}
       minHeight={300}
     />
   )
