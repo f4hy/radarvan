@@ -309,7 +309,7 @@ function DisplayPlayerStat(props: {
               <Bar dataKey="losses" fill={CHART_LOSS} />
               <XAxis
                 dataKey="general"
-                height={130}
+                height="auto"
                 angle={60}
                 minTickGap={0}
                 interval={0}

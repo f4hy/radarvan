@@ -33,6 +33,7 @@ Info to base it on:
 - Player profile data for each player
   - It's good to mention a player's best general (their strongest overall faction/general) if it's notable.
   - Bonus if a player has a general they are significantly elevated on specifically when facing this opponent (vs their overall average) - that's a more interesting, matchup-specific detail than just their best general overall.
+  - Favorite unit and signature damage dealer are fair game too - mention one if it genuinely adds hype (a flavorful main, a unit they lean on hard). Skip it if it's generic or wouldn't land as interesting; don't force it in just to cover the field.
 - head to head data for these two players.
   - Use this if there is anything unique that stands out when these two are head to head such as usually does poorly on a faction but performs well on it when against this opponent.
   - Only make claims about these two players - we have no data on how anyone else has performed, so avoid phrasing like "the only one who's ever beaten them" or "no one else has done this."

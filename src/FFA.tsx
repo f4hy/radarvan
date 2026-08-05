@@ -313,6 +313,7 @@ function GeneralWinRates(props: { stats: FFAStats }) {
                 angle={-35}
                 textAnchor="end"
                 interval={0}
+                height="auto"
                 tick={{ fontSize: isMobile ? 9 : 12 }}
               />
               <YAxis

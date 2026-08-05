@@ -250,7 +250,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                   tickFormatter={(v) => formatDate(v, isMobile)}
                   angle={isMobile ? -35 : 0}
                   textAnchor={isMobile ? "end" : "middle"}
-                  height={isMobile ? 50 : 30}
+                  height="auto"
                 />
                 <YAxis
                   label={
@@ -269,7 +269,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 />
                 <Tooltip
                   cursor={false}
-                  labelFormatter={(v) => formatDate(v)}
+                  labelFormatter={(v) => formatDate(v as number)}
                   formatter={(v, name) => {
                     if (name === "skill")
                       return v != null ? formatSkill(v as [number, number]) : ""
