@@ -19,10 +19,15 @@ import structlog
 
 from ml_win_prediction_over_time.config import BUCKET_SECONDS
 from ml_win_prediction_over_time.features import FeatureStats, match_to_sequence
-from ml_win_prediction_over_time.snapshot import record_from_replay
+from ml_win_prediction_over_time.snapshot import (
+    higher_slot_is_side_a,
+    record_from_replay,
+)
 
 from .api_types import WinProbOverTime, WinProbPoint
 from .cncstats_model.zhreplay import EnhancedReplayV2
+from .player_ids import resolve_player_name
+from .utils import players_from_replay
 
 logger = structlog.get_logger(__name__)
 
@@ -52,12 +57,31 @@ def model_available() -> bool:
     return MODEL_PATH.exists() and STATS_PATH.exists()
 
 
+def _resolved_names(replay: EnhancedReplayV2, names: list[str]) -> list[str]:
+    """Alias-resolve raw replay names ("Mod" -> "Modus") for display.
+
+    The snapshot record carries in-game names; every other surface (including
+    the pre-game ``MatchPrediction`` shown right above this chart) shows
+    canonical ones, so resolve here rather than making the UI do it. Color
+    disambiguates the shared "pc" alias.
+    """
+    color_by_name = {p.name: p.color for p in players_from_replay(replay)}
+    return [resolve_player_name(n, color_by_name.get(n, "")) for n in names]
+
+
 def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
     """Win-probability curve for a parsed replay.
 
     Returns ``None`` if the replay isn't a usable two-team game with a decisive
     winner (the same gate the model was trained under). Rosters come straight
     from the encoded record, so the names always line up with ``prob_team_a``.
+
+    The model's own side A is a per-match coin flip (see
+    ``snapshot.higher_slot_is_side_a``) — a training-time trick to keep the
+    t=0 prior at 0.5. We undo it here so the response honours its documented
+    contract of "team A == lower team id", which is what
+    ``ml_inference.predict_match_info`` also uses. Without this the two AI
+    panels label opposite teams "Team A" on ~half of all matches.
     """
     record = record_from_replay(replay)
     if record is None:
@@ -68,15 +92,23 @@ def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
 
     x = _stats().apply(seq.x).astype(np.float32)[None]  # [1, T, F]
     probs = _session().run(["prob_team_a"], {"x": x})[0][0]  # [T]
+
+    flip = higher_slot_is_side_a(int(record["match_id"]))
+    a_players, b_players = record["team_a_players"], record["team_b_players"]
+    a_won = bool(record["label_a_win"])
+    if flip:
+        a_players, b_players = b_players, a_players
+        a_won = not a_won
+        probs = 1.0 - probs
+
     points = [
         WinProbPoint(at_minute=(i + 1) * BUCKET_SECONDS / 60.0, prob_team_a=float(p))
         for i, p in enumerate(probs)
     ]
-    actual = "team_a" if record["label_a_win"] else "team_b"
     return WinProbOverTime(
         match_id=int(record["match_id"]),
-        team_a_players=record["team_a_players"],
-        team_b_players=record["team_b_players"],
-        actual_winner=actual,
+        team_a_players=_resolved_names(replay, a_players),
+        team_b_players=_resolved_names(replay, b_players),
+        actual_winner="team_a" if a_won else "team_b",
         points=points,
     )

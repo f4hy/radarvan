@@ -51,7 +51,7 @@ EV_CAPTURE = 3  # a structure captured
 Record = dict[str, Any]
 
 
-def _higher_slot_is_side_a(match_id: int) -> bool:
+def higher_slot_is_side_a(match_id: int) -> bool:
     """Stable per-match coin flip: should the *higher* team slot be side A?
 
     If side A were always the lower lobby team-slot, the model keys on lobby
@@ -61,6 +61,10 @@ def _higher_slot_is_side_a(match_id: int) -> bool:
     the match id; that balances ``label_a_win`` to ~0.5 and removes the spurious
     order signal. Deterministic (not ``random``) so training and serving — which
     both call this on the same ``match_id`` — always agree.
+
+    This is a *training-time* device only. Anything user-facing must un-flip it
+    back to "team A == lower team id" so it agrees with the pre-game model's
+    A/B labelling — see ``radarvan.winprob_inference.predict_over_time``.
     """
     digest = hashlib.blake2b(str(match_id).encode(), digest_size=2).digest()
     return bool(digest[0] & 1)
@@ -82,7 +86,7 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
         return None
     # Side A is one of the two team slots, chosen by a stable per-match hash
     # rather than "lowest slot" so the model can't key on arbitrary lobby order.
-    team_a = teams[1] if _higher_slot_is_side_a(replay.replay_id) else teams[0]
+    team_a = teams[1] if higher_slot_is_side_a(replay.replay_id) else teams[0]
 
     # side 0 == team_a, side 1 == the other team.
     index_side: dict[int, int] = {}
