@@ -199,6 +199,13 @@ class Match(Base):
         )
 
 
+# Identity of a match_players row within its match, as written by
+# matches.replay_to_db_match: (player_name, color, team_id, general_id). Used
+# to line stored rows up against freshly parsed replay players without
+# depending on row order.
+PlayerKey = tuple[str, str, int, int]
+
+
 class MatchPlayer(Base):
     __tablename__ = "match_players"
 
@@ -212,6 +219,10 @@ class MatchPlayer(Base):
     color: Mapped[str] = mapped_column(String(20))
     is_winner: Mapped[bool] = mapped_column()
     starting_position: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # player_role.PlayerRole. Nullable for rows written before the column
+    # existed; readers fall back to a name-based guess until the backfill
+    # completes, after which this can be tightened to NOT NULL.
+    role: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
 
     __table_args__ = (
         Index("idx_match_players_match", "match_id"),
