@@ -10,7 +10,6 @@ from anthropic.types import TextBlock, Usage
 
 from radarvan.api_types import (
     HeadToHeadDetail,
-    MatchupCommentaryRequest,
     PlayerProfile,
 )
 from radarvan.commentary import (
@@ -139,14 +138,14 @@ def test_commentary_available_dispatches_to_active_provider(
 
 def test_route_503_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: False)
-    req = MatchupCommentaryRequest(
-        player1="Alice", player2="Bob", round_name="Winners Round 1"
-    )
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc_info:
         commentary.get_matchup_commentary(
-            req, cast(ReplayManager, _StubReplayManager())
+            "Alice",
+            "Bob",
+            "Winners Round 1",
+            replay_manager=cast(ReplayManager, _StubReplayManager()),
         )
     assert exc_info.value.status_code == 503
 
@@ -158,11 +157,11 @@ def test_route_200_returns_generated_text(monkeypatch: pytest.MonkeyPatch) -> No
         "generate_commentary",
         lambda replay_manager, player1, player2, round_name: "**Hype.**",
     )
-    req = MatchupCommentaryRequest(
-        player1="Alice", player2="Bob", round_name="Winners Round 1"
-    )
     result = commentary.get_matchup_commentary(
-        req, cast(ReplayManager, _StubReplayManager())
+        "Alice",
+        "Bob",
+        "Winners Round 1",
+        replay_manager=cast(ReplayManager, _StubReplayManager()),
     )
     assert result.commentary == "**Hype.**"
 
@@ -176,14 +175,14 @@ def test_route_502_on_generation_failure(monkeypatch: pytest.MonkeyPatch) -> Non
         raise matchup_commentary.CommentaryGenerationError("boom")
 
     monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
-    req = MatchupCommentaryRequest(
-        player1="Alice", player2="Bob", round_name="Winners Round 1"
-    )
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc_info:
         commentary.get_matchup_commentary(
-            req, cast(ReplayManager, _StubReplayManager())
+            "Alice",
+            "Bob",
+            "Winners Round 1",
+            replay_manager=cast(ReplayManager, _StubReplayManager()),
         )
     assert exc_info.value.status_code == 502
 
@@ -199,11 +198,10 @@ def test_route_returns_cached_commentary_without_generating(
         raise AssertionError("generate_commentary should not be called on a cache hit")
 
     monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
-    req = MatchupCommentaryRequest(
-        player1="Alice", player2="Bob", round_name="Winners Round 1"
-    )
     stub = _StubReplayManager(cached="**Already hyped.**")
-    result = commentary.get_matchup_commentary(req, cast(ReplayManager, stub))
+    result = commentary.get_matchup_commentary(
+        "Alice", "Bob", "Winners Round 1", replay_manager=cast(ReplayManager, stub)
+    )
     assert result.commentary == "**Already hyped.**"
 
 
@@ -217,12 +215,101 @@ def test_route_saves_commentary_after_generating(
         lambda replay_manager, player1, player2, round_name: "**Hype.**",
     )
     monkeypatch.setattr(matchup_commentary, "active_provider", lambda: "gemini")
-    req = MatchupCommentaryRequest(
-        player1="Alice", player2="Bob", round_name="Winners Round 1"
-    )
     stub = _StubReplayManager()
-    commentary.get_matchup_commentary(req, cast(ReplayManager, stub))
+    commentary.get_matchup_commentary(
+        "Alice", "Bob", "Winners Round 1", replay_manager=cast(ReplayManager, stub)
+    )
     assert stub.saved == ("Alice", "Bob", "Winners Round 1", "**Hype.**", "gemini")
+
+
+def test_route_400_on_unknown_round_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The route is a read-tier GET, so an arbitrary round_name would be an
+    unbounded cache key - and every miss on a fresh key is a billed LLM
+    call. Only names a real bracket produces are accepted."""
+
+    def _boom(*args: object, **kwargs: object) -> str:
+        raise AssertionError("generate_commentary should not be called")
+
+    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
+    monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc_info:
+        commentary.get_matchup_commentary(
+            "Alice",
+            "Bob",
+            "Round of whatever I want",
+            replay_manager=cast(ReplayManager, _StubReplayManager()),
+        )
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.parametrize("flag", ["bypass_cache", "force_refresh"])
+def test_route_403_when_forcing_regeneration_without_write_key(
+    monkeypatch: pytest.MonkeyPatch, flag: str
+) -> None:
+    """Both regenerate flags bill a fresh LLM call on every request, so a
+    read-tier caller must not be able to set them."""
+
+    def _boom(*args: object, **kwargs: object) -> str:
+        raise AssertionError("generate_commentary should not be called")
+
+    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
+    monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc_info:
+        commentary.get_matchup_commentary(
+            "Alice",
+            "Bob",
+            "Winners Round 1",
+            write_access=False,
+            replay_manager=cast(ReplayManager, _StubReplayManager(cached="cached")),
+            **{flag: True},
+        )
+    assert exc_info.value.status_code == 403
+
+
+def test_route_force_refresh_regenerates_with_write_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
+    monkeypatch.setattr(
+        matchup_commentary,
+        "generate_commentary",
+        lambda replay_manager, player1, player2, round_name: "**Fresh.**",
+    )
+    monkeypatch.setattr(matchup_commentary, "active_provider", lambda: "gemini")
+    stub = _StubReplayManager(cached="**Stale.**")
+    result = commentary.get_matchup_commentary(
+        "Alice",
+        "Bob",
+        "Winners Round 1",
+        force_refresh=True,
+        write_access=True,
+        replay_manager=cast(ReplayManager, stub),
+    )
+    assert result.commentary == "**Fresh.**"
+    assert stub.saved is not None
+
+
+def test_known_round_names_covers_every_bracket_round() -> None:
+    """The commentary route rejects anything outside this set, so it must
+    contain every name the bracket can actually hand the frontend."""
+    from radarvan import bracket
+
+    names = bracket.known_round_names()
+    assert {
+        "Winners Round 1",
+        "Winners Round 2",
+        "Winners Semifinal",
+        "Winners Final",
+        "Losers Final",
+        "Grand Final",
+        "Grand Final Reset",
+    } <= names
+    for n in range(bracket.MIN_PLAYERS, bracket.MAX_PLAYERS + 1):
+        assert {m.round_name for m in bracket.build_topology(n).matches} <= names
 
 
 def test_generate_with_anthropic_logs_usage_and_duration(

@@ -85,6 +85,21 @@ async def verify_api_key(
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
+def has_write_access(key: str | None = Security(_api_key_header)) -> bool:
+    """True when the caller holds a write-tier API key.
+
+    For routes that are readable with the read tier but expose a write-tier-
+    only *option* (see routes/commentary.py's force_refresh, which forces a
+    billed LLM call). Mirrors verify_api_key's stances: no keys configured at
+    all, or auth not enforced, means everything is permitted.
+    """
+    if not API_KEYS_READ and not API_KEYS_WRITE:
+        return True
+    if not ENFORCE_AUTH:
+        return True
+    return key in API_KEYS_WRITE
+
+
 def get_db_session() -> Generator[Session]:
     """Dependency that provides a database session.
 
