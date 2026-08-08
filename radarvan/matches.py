@@ -119,7 +119,7 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
             # utils.determine_team.
             PlayerAdapter(team=int(utils.determine_team(p, None)), type=p.type)
             for p in header_players
-            if p.type in ("H", "C")
+            if utils.is_competitor(p)
         ]
         composition = categorize_game_type(real_players)
         if composition.is_ffa:

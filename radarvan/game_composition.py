@@ -89,6 +89,10 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     """
     Analyze the composition of an RTS game based on the player list.
 
+    Players on team <= 0 (spectators, disconnected slots) are filtered out
+    before the game type is determined; they still count toward
+    total_players/num_humans/num_computers.
+
     Args:
         players: list of Player objects
 
@@ -104,10 +108,10 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
         category: str,
         is_comp_stomp: bool,
         is_ffa: bool,
-        num_teams: int,
         team_sizes: list[int],
     ) -> GameComposition:
         """Helper to create GameComposition with computed fields."""
+        num_teams = len(team_sizes)
         is_balanced = len(set(team_sizes)) <= 1 if team_sizes else False
         is_1v1 = category == "1v1"
         is_team_game = not is_ffa and num_teams >= 2
@@ -127,93 +131,65 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
         )
 
     if not players:
-        return create_composition("Unknown", False, False, 0, [])
+        return create_composition("Unknown", False, False, [])
 
-    if len(players) == 1:
-        return create_composition("Unknown", False, False, 1, [1])
+    # Team <= 0 means "no team": spectators and disconnected slots. They count
+    # toward total_players/num_humans but must never influence the determined
+    # game type, so every branch below reads `participants`, not `players` - a
+    # 1v1 watched by two spectators is a 1v1, not a four-player FFA.
+    participants = [p for p in players if p.team > 0]
 
-    # Count players per team
-    team_counts = Counter(player.team for player in players)
+    if not participants:
+        # Nobody was given a real team, so there is no spectator/competitor
+        # distinction to draw and every slot counts. Exactly two is a 1v1 that
+        # never went through parse_replay.reassign_1v1_teams (old rows, and
+        # replays where the lobby left both slots teamless); any more is a
+        # genuine teamless free-for-all.
+        if len(players) == 1:
+            return create_composition("Unknown", False, False, [1])
+        if len(players) == 2:
+            return create_composition("1v1", False, False, [1, 1])
+        return create_composition("FFA", False, True, [])
 
-    # Team 0 means no team (FFA players)
-    ffa_player_count = team_counts.get(0, 0) + team_counts.get(-1, 0)
-    valid_teams = {team: count for team, count in team_counts.items() if team > 0}
+    if len(participants) == 1:
+        return create_composition("Unknown", False, False, [1])
 
-    num_teams = len(valid_teams)
-    team_sizes = sorted(valid_teams.values()) if valid_teams else []
+    if len(participants) == 2:
+        return create_composition("1v1", False, False, [1, 1])
 
-    if len(players) == 2:
-        return create_composition("1v1", False, False, 2, [1, 1])
+    team_counts = Counter(p.team for p in participants)
+    num_teams = len(team_counts)
+    team_sizes = sorted(team_counts.values())
 
-    del team_counts[-1]  # remove unset
-    if team_counts:
-        largest_team_size = team_counts.most_common(1)[0][1]
-        if largest_team_size < 2:
-            return create_composition("FFA", False, True, 0, [])
-    # Case 2: All players on Team 0
-    if ffa_player_count == len(players):
-        category = "FFA"
-        return create_composition(category, False, category == "FFA", 0, [])
+    # Everyone in a team of their own is a free-for-all.
+    if max(team_sizes) < 2:
+        return create_composition("FFA", False, True, [])
 
-    # Case 3: No valid teams
-    if not valid_teams:
-        return create_composition("Unknown", False, False, 0, [])
-
-    # Case 4: Everyone on different teams
-    if num_teams == len(players):
-        category = "FFA"
-        return create_composition(
-            category, False, category == "FFA", num_teams, team_sizes
-        )
-
-    # Case 5: Everyone on the same team
+    # Everyone on the same team
     if num_teams == 1:
-        return create_composition("FFA", False, True, num_teams, team_sizes)
+        return create_composition("FFA", False, True, team_sizes)
 
-    # Check for CompStomp
-    team_compositions = {}
-    for player in players:
-        if player.team > 0:
-            if player.team not in team_compositions:
-                team_compositions[player.team] = {"humans": 0, "computers": 0}
-            if player.type == "H":
-                team_compositions[player.team]["humans"] += 1
-            elif player.type == "C":
-                team_compositions[player.team]["computers"] += 1
-
-    human_only_teams = [
-        team
-        for team, comp in team_compositions.items()
-        if comp["humans"] > 0 and comp["computers"] == 0
-    ]
-    computer_only_teams = [
-        team
-        for team, comp in team_compositions.items()
-        if comp["computers"] > 0 and comp["humans"] == 0
-    ]
-
-    is_comp_stomp = False
-    if (
-        len(human_only_teams) >= 1
-        and len(computer_only_teams) >= 1
+    # Comp-stomp: every team is exclusively human or exclusively computer,
+    # with at least one of each.
+    human_teams = {p.team for p in participants if p.type == "H"}
+    computer_teams = {p.team for p in participants if p.type == "C"}
+    human_only_teams = human_teams - computer_teams
+    computer_only_teams = computer_teams - human_teams
+    is_comp_stomp = (
+        bool(human_only_teams)
+        and bool(computer_only_teams)
         and len(human_only_teams) + len(computer_only_teams) == num_teams
-    ):
-        is_comp_stomp = True
+    )
 
-    # Determine category string
+    # Determine category string. num_teams >= 2 here - one team returned above.
     if num_teams == 2:
         category = f"{team_sizes[0]}v{team_sizes[1]}"
-    elif num_teams > 2:
-        if len(set(team_sizes)) == 1:
-            category = "v".join([str(team_sizes[0])] * num_teams)
-        else:
-            category = "FFA"
+    elif len(set(team_sizes)) == 1:
+        category = "v".join([str(team_sizes[0])] * num_teams)
     else:
-        category = "Unknown"
+        category = "FFA"
 
-    return create_composition(
-        category, is_comp_stomp, category == "FFA", num_teams, team_sizes
-    )
+    return create_composition(category, is_comp_stomp, category == "FFA", team_sizes)
 
 
 class PlayerAdapter(NamedTuple):

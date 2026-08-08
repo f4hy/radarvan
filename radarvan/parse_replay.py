@@ -2,6 +2,7 @@
 
 from .db_utils import DatabaseManager
 
+import itertools
 import os
 
 import sys
@@ -12,21 +13,26 @@ from .cncstats_model.zhreplay import EnhancedReplayV2
 from .cncstats_model.header import Player
 from .db_utils import ReplayManager
 import structlog
+from . import utils
 from .game_composition import categorize_game_type, PlayerAdapter
 
 logger = structlog.get_logger(__name__)
 
 
 def reassign_1v1_teams(players: list[Player]) -> list[Player]:
-    """Reasign teams for 1v1s as players may be team less."""
-    new_players: list[Player] = []
-    for i, p in enumerate(players, 1):
-        if p.type in ("H", "C"):
-            copy = p.model_copy(update={"team": str(i)}, deep=True)
-        else:
-            copy = p.model_copy()
-        new_players.append(copy)
-    return new_players
+    """Reasign teams for 1v1s as players may be team less.
+
+    Only the two actual competitors get numbered; observers keep their
+    original teamless slot. Numbering every slot instead would spread a
+    spectated 1v1 across three or four teams and categorize it as an FFA.
+    """
+    seats = itertools.count(1)
+    return [
+        p.model_copy(update={"team": str(next(seats))}, deep=True)
+        if utils.is_competitor(p)
+        else p.model_copy()
+        for p in players
+    ]
 
 
 def parse_replay_data(
@@ -45,9 +51,13 @@ def parse_replay_data(
     header_metadata = validated.header.metadata if validated.header else None
     header_players_raw = (header_metadata.players if header_metadata else None) or []
     players = [
-        PlayerAdapter(team=int(p.team or "-1"), type=p.type)
+        # header team is raw/0-based; categorize_game_type expects the
+        # 1-based scheme (0 = no team/FFA) - same conversion as matches.py's
+        # winner check. Feeding the raw value in reads a 2v2's "team 0" side
+        # as teamless and mistakes the other two for a 1v1.
+        PlayerAdapter(team=int(utils.determine_team(p, None)), type=p.type)
         for p in header_players_raw
-        if p.type in ("H", "C")
+        if utils.is_competitor(p)
     ]
     composition = categorize_game_type(players)
     if composition.is_1v1 and header_metadata is not None:

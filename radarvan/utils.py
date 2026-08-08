@@ -149,6 +149,26 @@ def cncstats_faction_to_general(side: int) -> General:
     raise ValueError(f"Unknown side {side=}")
 
 
+# SAGE marks a spectator slot with playerTemplate -2 (the summary side is
+# "Observer", and cncstats_faction_to_general above maps -2 to UNRECOGNIZED).
+_OBSERVER_PLAYER_TEMPLATE = "-2"
+
+
+def is_observer(player_header: HeaderPlayer) -> bool:
+    """True for a spectator slot rather than an actual competitor."""
+    return player_header.player_template.strip() == _OBSERVER_PLAYER_TEMPLATE
+
+
+def is_competitor(player_header: HeaderPlayer) -> bool:
+    """True for a header slot that actually plays the game.
+
+    Spectators come through as type "H" like everyone else, so the H/C check
+    alone does not exclude them - a 1v1 watched by two spectators looks like
+    a four-player game without this.
+    """
+    return player_header.type in ("H", "C") and not is_observer(player_header)
+
+
 def determine_team(
     player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> Team:
