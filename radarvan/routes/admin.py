@@ -13,10 +13,10 @@ from typing import Any, NamedTuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import matches, replay_files, schedule
+from .. import matches, replay_files, schedule, utils
 from ..api_types import MatchInfo, Team, WinnerOverride
 from ..cache import details_from_id, invalidate_match_caches
-from ..db import Match
+from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import IS_DEV, db_manager, get_replay_manager
 from ..game_composition import GameComposition
@@ -315,6 +315,73 @@ def delete_override(
         )
     invalidate_match_caches()
     return {"status": "deleted", "match_id": str(match_id)}
+
+
+def _roles_from_json(json_s3_uri: str) -> list[tuple[PlayerKey, int]]:
+    """A match's players in header order, as (identity tuple, role) pairs.
+
+    Order is what `set_player_roles` pairs on; the identity tuple is its
+    fallback. Built the same way `replay_to_db_match` writes the rows, so the
+    caller can stamp roles onto existing match_players without rebuilding the
+    match.
+    """
+    replay = replay_files.parse_json(json_s3_uri)
+    return [
+        ((p.name, p.color, int(p.team), int(p.general)), int(p.role_or_guess()))
+        for p in utils.players_from_replay(replay)
+    ]
+
+
+@router.post("/api/backfill_player_roles/", include_in_schema=IS_DEV)
+def backfill_player_roles(
+    max_to_update: int = 100,
+    max_concurrent: int = 16,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Stamp match_players.role from each match's already-parsed replay JSON.
+
+    Reads the stored S3 JSON - does NOT call cncstats - so this is free to run
+    in bulk. Idempotent and incremental: it only looks at matches that still
+    have a role-less player row, so it can be called repeatedly until
+    `remaining` is 0.
+    """
+    candidates = replay_manager.list_matches_with_unset_roles(limit=max_to_update)
+    logger.info("backfill_player_roles", candidates=len(candidates))
+
+    # Phase 1: S3 fetches in parallel. Plain strings only - no ORM objects
+    # cross into the worker threads.
+    fetched: dict[int, list[tuple[PlayerKey, int]]] = {}
+    failed = 0
+    with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+        future_to_match = {
+            executor.submit(_roles_from_json, uri): match_id
+            for match_id, uri in candidates
+        }
+        for future in as_completed(future_to_match):
+            match_id = future_to_match[future]
+            try:
+                fetched[match_id] = future.result()
+            except Exception:
+                logger.exception("failed to load JSON for match", match_id=match_id)
+                failed += 1
+
+    # Phase 2: DB writes serially on the request's session.
+    rows_updated = 0
+    matches_updated = 0
+    for match_id, roles in fetched.items():
+        updated = replay_manager.set_player_roles(match_id, roles)
+        if updated:
+            matches_updated += 1
+            rows_updated += updated
+
+    if matches_updated:
+        invalidate_match_caches()
+    return {
+        "matches_updated": matches_updated,
+        "rows_updated": rows_updated,
+        "checked": len(candidates),
+        "failed": failed,
+    }
 
 
 class MatchPair(NamedTuple):
