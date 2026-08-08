@@ -2,14 +2,17 @@
 (``competitive_game_filter``) used to scope leaderboard stats to balanced, non-comp-stomp
 team games."""
 
+from __future__ import annotations
+
 import structlog
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import NamedTuple
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Protocol
 from .db import MatchPlayer
+from .player_role import PlayerRole, resolve_role
 
 logger = structlog.get_logger(__name__)
 
@@ -85,24 +88,188 @@ class GameComposition(BaseModel):
     )
 
 
+@dataclass(frozen=True, slots=True)
+class RosterSlot:
+    """One player slot, normalized away from whichever shape it arrived in.
+
+    ``general`` is a raw ``api_types.General`` value rather than the enum -
+    api_types imports this module, so the dependency can't run the other way.
+    Negative means UNRECOGNIZED.
+    """
+
+    name: str
+    color: str
+    team: int
+    general: int
+    role: PlayerRole
+    won: bool = False
+
+    @property
+    def has_known_general(self) -> bool:
+        """False for observers and slots whose side the parser didn't recognize."""
+        return self.general >= 0
+
+
+class MatchRoster:
+    """Who was in a match, partitioned once at construction.
+
+    Built from whichever player shape the caller has (replay header, DB rows,
+    or ``api_types.Player``), this is the one place that decides who is a
+    spectator, who is an AI, and who is actually on a team. Consumers ask the
+    roster instead of re-deriving it - the codebase previously carried three
+    mutually inconsistent spellings of "skip the observers" (``team > 0``,
+    ``team == Team.OBSERVER``, ``is_real()``) and two disagreeing CPU-name
+    lists.
+
+    Two distinctions that look alike but are not:
+
+    - ``role`` separates spectators from people who played. It comes from the
+      replay header and is authoritative.
+    - ``team > 0`` separates slots placed on a real team from teamless ones. A
+      1v1 that never went through ``reassign_1v1_teams`` has two teamless
+      *competitors*, which is why ``participants`` and ``competitors`` are
+      different properties and why the caller has to pick the right one.
+    """
+
+    __slots__ = ("_competitors", "_observers", "_participants", "_slots")
+
+    def __init__(self, slots: Iterable[RosterSlot]) -> None:
+        self._slots = tuple(slots)
+        self._observers = tuple(
+            s for s in self._slots if s.role is PlayerRole.OBSERVER
+        )
+        self._competitors = tuple(
+            s for s in self._slots if s.role is not PlayerRole.OBSERVER
+        )
+        self._participants = tuple(s for s in self._competitors if s.team > 0)
+
+    @classmethod
+    def from_db_players(cls, players: Iterable[MatchPlayer]) -> MatchRoster:
+        """Build from ``match_players`` rows, guessing role where unset."""
+        return cls(
+            RosterSlot(
+                name=p.player_name,
+                color=p.color,
+                team=p.team_id,
+                general=p.general_id,
+                role=resolve_role(
+                    p.role, p.player_name, p.color, is_observer=p.team_id < 0
+                ),
+                won=p.is_winner,
+            )
+            for p in players
+        )
+
+    @classmethod
+    def from_players(cls, players: Iterable[RosterInput]) -> MatchRoster:
+        """Build from anything with the ``api_types.Player`` shape."""
+        return cls(
+            RosterSlot(
+                name=p.name,
+                color=p.color,
+                team=int(p.team),
+                general=int(p.general),
+                role=resolve_role(p.role, p.name, p.color, is_observer=p.team < 0),
+                won=p.won,
+            )
+            for p in players
+        )
+
+    @property
+    def slots(self) -> tuple[RosterSlot, ...]:
+        """Every slot in the match, observers included."""
+        return self._slots
+
+    @property
+    def observers(self) -> tuple[RosterSlot, ...]:
+        """Spectators and empty/disconnected slots. Never played."""
+        return self._observers
+
+    @property
+    def competitors(self) -> tuple[RosterSlot, ...]:
+        """Everyone who played - humans and AI, teamless slots included."""
+        return self._competitors
+
+    @property
+    def participants(self) -> tuple[RosterSlot, ...]:
+        """Competitors placed on a real team (``team > 0``)."""
+        return self._participants
+
+    @property
+    def humans(self) -> tuple[RosterSlot, ...]:
+        return tuple(s for s in self._competitors if s.role is PlayerRole.HUMAN)
+
+    @property
+    def cpus(self) -> tuple[RosterSlot, ...]:
+        return tuple(s for s in self._competitors if s.role is PlayerRole.CPU)
+
+    @property
+    def teams(self) -> dict[int, tuple[RosterSlot, ...]]:
+        """Participants grouped by team id, in ascending team order."""
+        grouped: dict[int, list[RosterSlot]] = {}
+        for s in self._participants:
+            grouped.setdefault(s.team, []).append(s)
+        return {team: tuple(grouped[team]) for team in sorted(grouped)}
+
+    def composition(self) -> GameComposition:
+        """Categorize this match's game type."""
+        return _composition_from_roster(self)
+
+
+class RosterInput(Protocol):
+    """The ``api_types.Player`` shape, structurally.
+
+    Declared here rather than importing api_types, which imports this module.
+    """
+
+    @property
+    def name(self) -> str: ...
+    @property
+    def color(self) -> str: ...
+    @property
+    def team(self) -> int: ...
+    @property
+    def general(self) -> int: ...
+    @property
+    def role(self) -> PlayerRole | None: ...
+    @property
+    def won(self) -> bool: ...
+
+
 def categorize_game_type(players: Sequence[Player]) -> GameComposition:
+    """Analyze the composition of an RTS game based on the player list.
+
+    Back-compat entry point for callers holding the older ``(team, type)``
+    shape; prefer building a ``MatchRoster`` and calling ``.composition()``.
+    Callers of this form have already dropped observers upstream (via
+    ``utils.is_competitor``), so every slot here is treated as a competitor.
     """
-    Analyze the composition of an RTS game based on the player list.
+    return MatchRoster(
+        RosterSlot(
+            name="",
+            color="",
+            team=p.team,
+            general=-1,
+            role=PlayerRole.CPU if p.type == "C" else PlayerRole.HUMAN,
+        )
+        for p in players
+    ).composition()
 
-    Players on team <= 0 (spectators, disconnected slots) are filtered out
-    before the game type is determined; they still count toward
-    total_players/num_humans/num_computers.
 
-    Args:
-        players: list of Player objects
-
-    Returns:
-        GameComposition object with detailed game information
+def _composition_from_roster(roster: MatchRoster) -> GameComposition:
     """
-    logger.debug("computing match comp", players=players)
-    total_players = len(players)
-    num_humans = sum(1 for p in players if p.type == "H")
-    num_computers = sum(1 for p in players if p.type == "C")
+    Determine game type from a roster.
+
+    Only ``participants`` (competitors on a real team) influence the
+    determined game type; observers and teamless slots still count toward
+    total_players. num_humans/num_computers count competitors by role, so
+    spectators are in neither.
+    """
+    logger.debug("computing match comp", slots=roster.slots)
+    players = roster.competitors
+    total_players = len(roster.slots)
+    num_humans = len(roster.humans)
+    num_computers = len(roster.cpus)
 
     def create_composition(
         category: str,
@@ -133,11 +300,11 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
     if not players:
         return create_composition("Unknown", False, False, [])
 
-    # Team <= 0 means "no team": spectators and disconnected slots. They count
-    # toward total_players/num_humans but must never influence the determined
-    # game type, so every branch below reads `participants`, not `players` - a
-    # 1v1 watched by two spectators is a 1v1, not a four-player FFA.
-    participants = [p for p in players if p.team > 0]
+    # Observers and teamless slots count toward total_players but must never
+    # influence the determined game type, so every branch below reads
+    # `participants`, not `players` - a 1v1 watched by two spectators is a
+    # 1v1, not a four-player FFA.
+    participants = roster.participants
 
     if not participants:
         # Nobody was given a real team, so there is no spectator/competitor
@@ -171,8 +338,8 @@ def categorize_game_type(players: Sequence[Player]) -> GameComposition:
 
     # Comp-stomp: every team is exclusively human or exclusively computer,
     # with at least one of each.
-    human_teams = {p.team for p in participants if p.type == "H"}
-    computer_teams = {p.team for p in participants if p.type == "C"}
+    human_teams = {p.team for p in participants if p.role is PlayerRole.HUMAN}
+    computer_teams = {p.team for p in participants if p.role is PlayerRole.CPU}
     human_only_teams = human_teams - computer_teams
     computer_only_teams = computer_teams - human_teams
     is_comp_stomp = (
@@ -199,32 +366,12 @@ class PlayerAdapter(NamedTuple):
     type: str | None
 
 
-# Matches the CPU name check in api_types.Player.Type
-_CPU_NAMES = frozenset({"cpu", "hardai", "hardarmy", "mediai", "easyai"})
-
-
-@dataclass(slots=True)
-class _MatchPlayerAdapter:
-    """Adapts a DB MatchPlayer to satisfy the Player protocol."""
-
-    player: MatchPlayer
-
-    @property
-    def team(self) -> int:
-        return self.player.team_id
-
-    @property
-    def type(self) -> str:
-        return "C" if self.player.player_name.lower() in _CPU_NAMES else "H"
-
-
 def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition:
     """Compute match composition from DB MatchPlayer records.
 
     Separated from persistence so it can be reused outside of the DB layer.
     """
-    adapters = [_MatchPlayerAdapter(p) for p in players]
-    return categorize_game_type(adapters)
+    return MatchRoster.from_db_players(players).composition()
 
 
 def is_recognized_team_game(comp: GameComposition | None) -> bool:
