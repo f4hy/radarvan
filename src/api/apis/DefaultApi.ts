@@ -137,6 +137,11 @@ export interface BackfillMatchCompositionApiBackfillCompositionPostRequest {
     maxToUpdate?: number;
 }
 
+export interface BackfillPlayerRolesApiBackfillPlayerRolesPostRequest {
+    maxToUpdate?: number;
+    maxConcurrent?: number;
+}
+
 export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<string>;
 }
@@ -402,6 +407,57 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async backfillMatchCompositionApiBackfillCompositionPost(requestParameters: BackfillMatchCompositionApiBackfillCompositionPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.backfillMatchCompositionApiBackfillCompositionPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for backfillPlayerRolesApiBackfillPlayerRolesPost without sending the request
+     */
+    async backfillPlayerRolesApiBackfillPlayerRolesPostRequestOpts(requestParameters: BackfillPlayerRolesApiBackfillPlayerRolesPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        if (requestParameters['maxConcurrent'] != null) {
+            queryParameters['max_concurrent'] = requestParameters['maxConcurrent'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/backfill_player_roles/`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Stamp match_players.role from each match\'s already-parsed replay JSON.  Reads the stored S3 JSON - does NOT call cncstats - so this is free to run in bulk. Idempotent and incremental: it only looks at matches that still have a role-less player row, so it can be called repeatedly until `remaining` is 0.
+     * Backfill Player Roles
+     */
+    async backfillPlayerRolesApiBackfillPlayerRolesPostRaw(requestParameters: BackfillPlayerRolesApiBackfillPlayerRolesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+        const requestOptions = await this.backfillPlayerRolesApiBackfillPlayerRolesPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Stamp match_players.role from each match\'s already-parsed replay JSON.  Reads the stored S3 JSON - does NOT call cncstats - so this is free to run in bulk. Idempotent and incremental: it only looks at matches that still have a role-less player row, so it can be called repeatedly until `remaining` is 0.
+     * Backfill Player Roles
+     */
+    async backfillPlayerRolesApiBackfillPlayerRolesPost(requestParameters: BackfillPlayerRolesApiBackfillPlayerRolesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+        const response = await this.backfillPlayerRolesApiBackfillPlayerRolesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

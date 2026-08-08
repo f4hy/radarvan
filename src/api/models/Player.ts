@@ -20,6 +20,13 @@ import {
     GeneralToJSON,
     GeneralToJSONTyped,
 } from './General';
+import type { PlayerRole } from './PlayerRole';
+import {
+    PlayerRoleFromJSON,
+    PlayerRoleFromJSONTyped,
+    PlayerRoleToJSON,
+    PlayerRoleToJSONTyped,
+} from './PlayerRole';
 import type { Team } from './Team';
 import {
     TeamFromJSON,
@@ -70,6 +77,12 @@ export interface Player {
      * @memberof Player
      */
     startingPosition?: number | null;
+    /**
+     * 
+     * @type {PlayerRole}
+     * @memberof Player
+     */
+    role?: PlayerRole | null;
 }
 
 
@@ -101,6 +114,7 @@ export function PlayerFromJSONTyped(json: any, ignoreDiscriminator: boolean): Pl
         'color': json['color'],
         'won': json['won'] == null ? undefined : json['won'],
         'startingPosition': json['starting_position'] == null ? undefined : json['starting_position'],
+        'role': json['role'] == null ? undefined : PlayerRoleFromJSON(json['role']),
     };
 }
 
@@ -121,6 +135,7 @@ export function PlayerToJSONTyped(value?: Player | null, ignoreDiscriminator: bo
         'color': value['color'],
         'won': value['won'],
         'starting_position': value['startingPosition'],
+        'role': PlayerRoleToJSON(value['role']),
     };
 }
 
