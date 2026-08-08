@@ -909,6 +909,11 @@ class BracketMatchOutput(BaseModel):
     player_a: str | None = None
     player_b: str | None = None
     scheduled_at: datetime | None = None
+    # The game night scheduled_at falls on (utils.game_night_date_of), so
+    # clients can look up the games actually played for this match without
+    # reimplementing the Eastern-time 5am rollover. Not the same calendar day
+    # as scheduled_at whenever the match starts at/after 8pm Eastern.
+    game_night_date: date | None = None
     best_of: int | None = None
     score_a: int | None = None
     score_b: int | None = None

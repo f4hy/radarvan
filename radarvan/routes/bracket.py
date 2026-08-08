@@ -18,7 +18,7 @@ import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import bracket, discord_events, player_ids
+from .. import bracket, discord_events, player_ids, utils
 from ..api_types import (
     BracketMatchOutput,
     BracketPlayerEntry,
@@ -163,6 +163,11 @@ def _build_output_from_states(
                 player_a=m.player_a,
                 player_b=m.player_b,
                 scheduled_at=raw.scheduled_at if raw else None,
+                game_night_date=(
+                    utils.game_night_date_of(raw.scheduled_at)
+                    if raw and raw.scheduled_at
+                    else None
+                ),
                 best_of=raw.best_of if raw else None,
                 score_a=raw.score_a if raw else None,
                 score_b=raw.score_b if raw else None,

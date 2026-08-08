@@ -77,6 +77,20 @@ def game_night_date(timestamp: int | float) -> datetime.date:
     return (local - datetime.timedelta(hours=_GAME_NIGHT_ROLLOVER_HOURS)).date()
 
 
+def game_night_date_of(when: datetime.datetime) -> datetime.date:
+    """game_night_date for a datetime rather than a POSIX epoch.
+
+    For instants that aren't replay timestamps - e.g. a bracket match's
+    scheduled_at. A naive value is read as UTC, matching how every stored
+    timestamp in this app is written. Anything comparing against
+    ``MatchInfo.date`` must go through this, not ``.date()``: an 8pm Eastern
+    match is already the *next* UTC day, so a raw UTC date lands on a game
+    night that has no games in it.
+    """
+    instant = when if when.tzinfo else when.replace(tzinfo=datetime.UTC)
+    return game_night_date(instant.timestamp())
+
+
 def minutes_per_step(replay: EnhancedReplayV2) -> float:
     """Scale factor to convert a timecode to minutes."""
     minutes = duration_minutes(replay)
