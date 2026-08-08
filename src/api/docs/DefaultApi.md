@@ -3209,7 +3209,7 @@ example().catch(console.error);
 
 Predict Faction Matchup
 
-Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 &#x3D; 144 calls.  Experimental/exploratory: this exists to inspect output shape and timing, not (yet) to back a UI. No map is known before the draw; omit map_name to use a placeholder the model treats as \&quot;unknown\&quot; (see &#x60;&#x60;_UNKNOWN_MAP_PLACEHOLDER&#x60;&#x60;), or pass a real map name to fix it.
+Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 &#x3D; 144 calls.  Backs the \&quot;best possible draws\&quot; section of Bracket.tsx\&#39;s MatchupPopup, which calls this on every popup open - hence the grid cache (see &#x60;&#x60;_FACTION_GRID_CACHE&#x60;&#x60;); &#x60;&#x60;compute_ms&#x60;&#x60; is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \&quot;unknown\&quot; (see &#x60;&#x60;_UNKNOWN_MAP_PLACEHOLDER&#x60;&#x60;), or pass a real map name to fix it.
 
 ### Example
 
@@ -3830,7 +3830,7 @@ example().catch(console.error);
 
 ## registerMatchesApiRegisterMatchesPost
 
-> { [key: string]: string | null; } registerMatchesApiRegisterMatchesPost()
+> { [key: string]: number | null; } registerMatchesApiRegisterMatchesPost(maxToUpdate)
 
 Register Matches
 
@@ -3853,8 +3853,13 @@ async function example() {
   });
   const api = new DefaultApi(config);
 
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies RegisterMatchesApiRegisterMatchesPostRequest;
+
   try {
-    const data = await api.registerMatchesApiRegisterMatchesPost();
+    const data = await api.registerMatchesApiRegisterMatchesPost(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -3867,11 +3872,14 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `100`] |
 
 ### Return type
 
-**{ [key: string]: string | null; }**
+**{ [key: string]: number | null; }**
 
 ### Authorization
 
@@ -3887,6 +3895,7 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

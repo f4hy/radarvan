@@ -4,18 +4,18 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
-| [**getMatchupCommentaryApiMatchupCommentaryPost**](CommentaryApi.md#getmatchupcommentaryapimatchupcommentarypost) | **POST** /api/matchup_commentary/ | Get Matchup Commentary |
+| [**getMatchupCommentaryApiMatchupCommentaryGet**](CommentaryApi.md#getmatchupcommentaryapimatchupcommentaryget) | **GET** /api/matchup_commentary/ | Get Matchup Commentary |
 | [**getMatchupCommentaryPromptPreviewApiMatchupCommentaryPromptPreviewGet**](CommentaryApi.md#getmatchupcommentarypromptpreviewapimatchupcommentarypromptpreviewget) | **GET** /api/matchup_commentary/prompt_preview | Get Matchup Commentary Prompt Preview |
 
 
 
-## getMatchupCommentaryApiMatchupCommentaryPost
+## getMatchupCommentaryApiMatchupCommentaryGet
 
-> MatchupCommentaryResponse getMatchupCommentaryApiMatchupCommentaryPost(matchupCommentaryRequest)
+> MatchupCommentaryResponse getMatchupCommentaryApiMatchupCommentaryGet(player1, player2, roundName, bypassCache, forceRefresh)
 
 Get Matchup Commentary
 
-Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.  &#x60;&#x60;req.bypass_cache&#x60;&#x60; and &#x60;&#x60;req.force_refresh&#x60;&#x60; both skip the cache read and always call the LLM (still real, billed calls - not free just because caching is being bypassed). They differ in whether the result is then persisted: &#x60;&#x60;force_refresh&#x60;&#x60; overwrites the cached row, &#x60;&#x60;bypass_cache&#x60;&#x60; does not touch it. If both are set, &#x60;&#x60;bypass_cache&#x60;&#x60; wins (no write).
+Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  A GET so the read-tier API key the browser ships with can reach it - the bracket UI needs to show this to everyone, and a cache hit is free and instant. A cache *miss* still triggers a real, billed LLM call, so the two things that would make that spend unbounded are fenced off:  - &#x60;&#x60;round_name&#x60;&#x60; must be one a bracket actually produces   (&#x60;&#x60;bracket.known_round_names()&#x60;&#x60;); the cache key is   (player1, player2, round_name) and all three must be enumerable, or a   caller could mint fresh keys forever. Player names are already bounded   by &#x60;&#x60;PlayerName&#x60;&#x60;\&#39;s alias resolution. - &#x60;&#x60;bypass_cache&#x60;&#x60;/&#x60;&#x60;force_refresh&#x60;&#x60; both skip the cache read and always   call the LLM, so they require the write-tier key. They differ in   whether the result is then persisted: &#x60;&#x60;force_refresh&#x60;&#x60; overwrites the   cached row, &#x60;&#x60;bypass_cache&#x60;&#x60; does not touch it. If both are set,   &#x60;&#x60;bypass_cache&#x60;&#x60; wins (no write).
 
 ### Example
 
@@ -24,7 +24,7 @@ import {
   Configuration,
   CommentaryApi,
 } from '';
-import type { GetMatchupCommentaryApiMatchupCommentaryPostRequest } from '';
+import type { GetMatchupCommentaryApiMatchupCommentaryGetRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
@@ -35,12 +35,20 @@ async function example() {
   const api = new CommentaryApi(config);
 
   const body = {
-    // MatchupCommentaryRequest
-    matchupCommentaryRequest: ...,
-  } satisfies GetMatchupCommentaryApiMatchupCommentaryPostRequest;
+    // string
+    player1: player1_example,
+    // string
+    player2: player2_example,
+    // string
+    roundName: roundName_example,
+    // boolean (optional)
+    bypassCache: true,
+    // boolean (optional)
+    forceRefresh: true,
+  } satisfies GetMatchupCommentaryApiMatchupCommentaryGetRequest;
 
   try {
-    const data = await api.getMatchupCommentaryApiMatchupCommentaryPost(body);
+    const data = await api.getMatchupCommentaryApiMatchupCommentaryGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -56,7 +64,11 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **matchupCommentaryRequest** | [MatchupCommentaryRequest](MatchupCommentaryRequest.md) |  | |
+| **player1** | `string` |  | [Defaults to `undefined`] |
+| **player2** | `string` |  | [Defaults to `undefined`] |
+| **roundName** | `string` |  | [Defaults to `undefined`] |
+| **bypassCache** | `boolean` |  | [Optional] [Defaults to `false`] |
+| **forceRefresh** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 
@@ -68,7 +80,7 @@ example().catch(console.error);
 
 ### HTTP request headers
 
-- **Content-Type**: `application/json`
+- **Content-Type**: Not defined
 - **Accept**: `application/json`
 
 

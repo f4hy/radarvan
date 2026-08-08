@@ -295,6 +295,10 @@ export interface RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest {
     maxToUpdate?: number;
 }
 
+export interface RegisterMatchesApiRegisterMatchesPostRequest {
+    maxToUpdate?: number;
+}
+
 export interface RegisterReplayUrlApiRegisterReplayUrlPostRequest {
     urlOfReplay: string;
 }
@@ -2604,7 +2608,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Experimental/exploratory: this exists to inspect output shape and timing, not (yet) to back a UI. No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Backs the \"best possible draws\" section of Bracket.tsx\'s MatchupPopup, which calls this on every popup open - hence the grid cache (see ``_FACTION_GRID_CACHE``); ``compute_ms`` is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
      * Predict Faction Matchup
      */
     async predictFactionMatchupApiPredictFactionMatchupGetRaw(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FactionMatchupPrediction>> {
@@ -2615,7 +2619,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Experimental/exploratory: this exists to inspect output shape and timing, not (yet) to back a UI. No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Backs the \"best possible draws\" section of Bracket.tsx\'s MatchupPopup, which calls this on every popup open - hence the grid cache (see ``_FACTION_GRID_CACHE``); ``compute_ms`` is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
      * Predict Faction Matchup
      */
     async predictFactionMatchupApiPredictFactionMatchupGet(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FactionMatchupPrediction> {
@@ -3008,8 +3012,12 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Creates request options for registerMatchesApiRegisterMatchesPost without sending the request
      */
-    async registerMatchesApiRegisterMatchesPostRequestOpts(): Promise<runtime.RequestOpts> {
+    async registerMatchesApiRegisterMatchesPostRequestOpts(requestParameters: RegisterMatchesApiRegisterMatchesPostRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -3032,8 +3040,8 @@ export class DefaultApi extends runtime.BaseAPI {
      * Register Match rows for any ParsedReplayJson that has no corresponding Match.
      * Register Matches
      */
-    async registerMatchesApiRegisterMatchesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
-        const requestOptions = await this.registerMatchesApiRegisterMatchesPostRequestOpts();
+    async registerMatchesApiRegisterMatchesPostRaw(requestParameters: RegisterMatchesApiRegisterMatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+        const requestOptions = await this.registerMatchesApiRegisterMatchesPostRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
@@ -3043,8 +3051,8 @@ export class DefaultApi extends runtime.BaseAPI {
      * Register Match rows for any ParsedReplayJson that has no corresponding Match.
      * Register Matches
      */
-    async registerMatchesApiRegisterMatchesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.registerMatchesApiRegisterMatchesPostRaw(initOverrides);
+    async registerMatchesApiRegisterMatchesPost(requestParameters: RegisterMatchesApiRegisterMatchesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+        const response = await this.registerMatchesApiRegisterMatchesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

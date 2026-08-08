@@ -133,8 +133,8 @@ def build_prompt(
     would be sent to the active LLM provider for round_name - without
     calling the API. Identical regardless of which provider is active.
 
-    player1/player2 must already be alias-resolved - PlayerName validation
-    on MatchupCommentaryRequest handles this before it reaches here.
+    player1/player2 must already be alias-resolved - the PlayerName-typed
+    query params on routes/commentary.py handle this before it reaches here.
     """
     profile1 = profile_routes.get_player_profile(
         player=player1, replay_manager=replay_manager
