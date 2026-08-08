@@ -21,6 +21,7 @@ from .cncstats_model.header import GeneralsHeader
 from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
+from .player_role import PlayerRole
 from .logging_config import configure_logging
 from dataclasses import dataclass
 from collections.abc import Callable
@@ -176,6 +177,7 @@ def replay_to_db_match(
             color=p.color,
             is_winner=p.won,
             starting_position=p.starting_position,
+            role=p.role_or_guess(),
         )
         for p in players
     ]
@@ -225,6 +227,7 @@ def match_to_matchinfo(
             color=p.color,
             won=p.team_id == winner if has_winner_override else p.is_winner,
             starting_position=p.starting_position,
+            role=PlayerRole(p.role) if p.role is not None else None,
         )
         for p in db_players
     ]
@@ -357,6 +360,9 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
         return True
     if existing.game_version != new.game_version:
         return True
+    # role sorts as -1 when unset: an un-backfilled row must compare unequal to
+    # a freshly parsed one so reparse paths pick the classification up, and a
+    # None here would raise on the tuple comparison against an int.
     existing_players = sorted(
         (
             p.player_name,
@@ -365,6 +371,7 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
             p.color,
             p.is_winner,
             p.starting_position,
+            -1 if p.role is None else p.role,
         )
         for p in existing.players
     )
@@ -376,6 +383,7 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
             p.color,
             p.is_winner,
             p.starting_position,
+            -1 if p.role is None else p.role,
         )
         for p in new.players
     )
