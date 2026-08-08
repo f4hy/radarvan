@@ -4,6 +4,8 @@ import statistics
 import time
 
 import structlog
+from cachetools import LRUCache
+from cachetools.keys import hashkey
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import ml_inference, replay_files, winprob_inference
@@ -21,6 +23,7 @@ from ..api_types import (
 from ..cache import sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
+from ..utils import locked_cached
 
 logger = structlog.get_logger(__name__)
 
@@ -60,13 +63,33 @@ def _percentile_stats(vals: list[float]) -> tuple[float, float, bool]:
     return mean, std, (lo > 0.5 or hi < 0.5)
 
 
+# 144 combos x the full N-model ensemble takes ~1.3s, and Bracket.tsx's
+# MatchupPopup fires faction_matchup on every open - so the same grid gets
+# recomputed constantly for the same handful of tournament pairs. The result
+# is a pure function of (map, player1, player2) plus the frozen ONNX weights
+# and vocab, none of which change within a process, so an unbounded-lifetime
+# LRU is correct here - no TTL needed, unlike the match-derived caches in
+# cache.py that must follow new games landing.
+_FACTION_GRID_CACHE: LRUCache[tuple[object, ...], list[tuple[object, ...]]] = LRUCache(
+    maxsize=256
+)
+
+
+@locked_cached(
+    cache=_FACTION_GRID_CACHE,
+    key=lambda map_name, player1, player2: hashkey(map_name, player1, player2),
+)
 def _faction_grid(
     map_name: str, player1: str, player2: str
 ) -> list[tuple[General, General, float, float, bool, int]]:
     """(general1, general2, prob_player1_wins, std, significant, ensemble_size)
     for every general combination - the 144-call loop shared by
     faction_matchup and faction_matrix. Each cell runs the full N-model
-    ensemble (see ``ml_inference.predict_features_raw``)."""
+    ensemble (see ``ml_inference.predict_features_raw``).
+
+    Cached (see ``_FACTION_GRID_CACHE``); callers must treat the returned list
+    as read-only - it's the shared cached object, not a fresh copy.
+    """
     results = []
     for gen1 in _RECOGNIZED_GENERALS:
         for gen2 in _RECOGNIZED_GENERALS:
@@ -157,10 +180,13 @@ def predict_faction_matchup(
     player1 and player2, by running the win-prediction model once per
     (player1_general, player2_general) combination - 12x12 = 144 calls.
 
-    Experimental/exploratory: this exists to inspect output shape and timing,
-    not (yet) to back a UI. No map is known before the draw; omit map_name
-    to use a placeholder the model treats as "unknown" (see
-    ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+    Backs the "best possible draws" section of Bracket.tsx's MatchupPopup,
+    which calls this on every popup open - hence the grid cache (see
+    ``_FACTION_GRID_CACHE``); ``compute_ms`` is near-zero on a cache hit.
+
+    No map is known before the draw; omit map_name to use a placeholder the
+    model treats as "unknown" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a
+    real map name to fix it.
     """
     _require_model()
     resolved_map = (
