@@ -112,6 +112,7 @@ docs/PlayerRateOverTime.md
 docs/PlayerRatingDailyChange.md
 docs/PlayerRatingData.md
 docs/PlayerRatings.md
+docs/PlayerRole.md
 docs/PlayerSkill.md
 docs/PlayerStat.md
 docs/PlayerStatFactionWL.md
@@ -261,6 +262,7 @@ models/PlayerRateOverTime.ts
 models/PlayerRatingDailyChange.ts
 models/PlayerRatingData.ts
 models/PlayerRatings.ts
+models/PlayerRole.ts
 models/PlayerSkill.ts
 models/PlayerStat.ts
 models/PlayerStatFactionWL.ts

@@ -99,6 +99,7 @@ export * from './PlayerRateOverTime';
 export * from './PlayerRatingDailyChange';
 export * from './PlayerRatingData';
 export * from './PlayerRatings';
+export * from './PlayerRole';
 export * from './PlayerSkill';
 export * from './PlayerStat';
 export * from './PlayerStatFactionWL';
