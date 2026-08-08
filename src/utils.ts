@@ -1,4 +1,32 @@
-import type { MapPoint } from "./api"
+import type { MapPoint, Player } from "./api"
+import { PlayerRole, Team } from "./api"
+
+// The generated PlayerRole is NUMBER_0/1/2 - Python IntEnum member names don't
+// survive into the OpenAPI schema (same reason Team is NUMBER_MINUS_1). Alias
+// them so call sites read as something other than magic numbers.
+export const PLAYER_ROLE = {
+  HUMAN: PlayerRole.NUMBER_0,
+  CPU: PlayerRole.NUMBER_1,
+  OBSERVER: PlayerRole.NUMBER_2,
+} as const
+
+/** True for a spectator slot - someone in the lobby who didn't play.
+ *
+ * Prefer this over inspecting `team`. Observer-ness lives in `role`, which the
+ * backend derives from the replay header; `team` only carries it for matches
+ * re-parsed since that fix, so most historical observers still sit on team 0
+ * and a `team === -1` check misses them. `role` is null only for the handful of
+ * rows the backfill couldn't classify, hence the fallback.
+ */
+export function isObserver(p: Player): boolean {
+  if (p.role != null) return p.role === PLAYER_ROLE.OBSERVER
+  return p.team === Team.NUMBER_MINUS_1
+}
+
+/** True for anyone who actually played - humans and AI, observers excluded. */
+export function isCompetitor(p: Player): boolean {
+  return !isObserver(p)
+}
 
 const compactCash = new Intl.NumberFormat("en-US", {
   notation: "compact",
