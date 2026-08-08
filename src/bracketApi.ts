@@ -32,6 +32,11 @@ export interface BracketMatchOutput {
   player_a: string | null
   player_b: string | null
   scheduled_at: string | null
+  // The game night scheduled_at falls on, per the backend's Eastern-time 5am
+  // rollover. Use this - never scheduled_at's own calendar date - to look up
+  // matches by date: an 8pm Eastern start is already the next UTC day, so the
+  // two differ for most scheduled matches.
+  game_night_date: string | null
   best_of: number | null
   score_a: number | null
   score_b: number | null
