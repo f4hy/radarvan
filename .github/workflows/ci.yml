@@ -32,12 +32,15 @@ jobs:
           enable-cache: true
           python-version: "3.14"
 
-      # Node 20 LTS for the Vite/React frontend; npm cache keys off
-      # package-lock.json.
-      - name: Set up Node 20
+      # Current Node LTS for the Vite/React frontend; npm cache keys off
+      # package-lock.json. Must stay >= 22.19: jsdom 30 pulls undici 8, whose
+      # `engines` requires it (on Node 20 the vitest worker dies with
+      # "webidl.util.markAsUncloneable is not a function"). Matches the
+      # `lts/*` used by playwright.yml.
+      - name: Set up Node LTS
         uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: lts/*
           cache: npm
 
       # Mirrors `make install` (uv sync + npm install / ci).
