@@ -120,7 +120,7 @@ export interface MatchInfo {
      */
     isDev?: boolean;
     /**
-     * True if any player is a CPU/AI opponent (see player_ids.CPU_NAME_MAPPING).
+     * True if any player is a CPU/AI opponent (see player_role.PlayerRole).
      * @type {boolean}
      * @memberof MatchInfo
      */
