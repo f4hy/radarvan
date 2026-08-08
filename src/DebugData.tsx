@@ -15,6 +15,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
 import { GameRecord, MatchInfo, MatchPrediction, Team } from "./api"
+import { isCompetitor } from "./utils"
 import { Client, MapClient } from "./Client"
 import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
@@ -73,7 +74,9 @@ function getMapSummary(
     mapSummaryRequest: {
       mapName: match.map.split("/").pop() ?? match.map,
       players: match.players
-        .filter((p) => p.team !== Team.NUMBER_0)
+        // Spectators aren't on the map. The team-0 filter caught most of them
+        // by accident; isObserver catches the rest (see utils.isObserver).
+        .filter((p) => isCompetitor(p) && p.team !== Team.NUMBER_0)
         .map((p) => ({ name: p.name, general: p.general, team: p.team })),
     },
   })
