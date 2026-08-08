@@ -9,6 +9,7 @@ from cachetools import cached
 from .api_types import Player, General, Team
 from .cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
 from .cncstats_model.header import Player as HeaderPlayer
+from .player_role import PlayerRole, role_from_header
 import structlog
 import time
 import functools
@@ -163,14 +164,9 @@ def cncstats_faction_to_general(side: int) -> General:
     raise ValueError(f"Unknown side {side=}")
 
 
-# SAGE marks a spectator slot with playerTemplate -2 (the summary side is
-# "Observer", and cncstats_faction_to_general above maps -2 to UNRECOGNIZED).
-_OBSERVER_PLAYER_TEMPLATE = "-2"
-
-
 def is_observer(player_header: HeaderPlayer) -> bool:
     """True for a spectator slot rather than an actual competitor."""
-    return player_header.player_template.strip() == _OBSERVER_PLAYER_TEMPLATE
+    return role_from_header(player_header) == PlayerRole.OBSERVER
 
 
 def is_competitor(player_header: HeaderPlayer) -> bool:
@@ -180,16 +176,16 @@ def is_competitor(player_header: HeaderPlayer) -> bool:
     alone does not exclude them - a 1v1 watched by two spectators looks like
     a four-player game without this.
     """
-    return player_header.type in ("H", "C") and not is_observer(player_header)
+    return not is_observer(player_header)
 
 
 def determine_team(
     player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> Team:
     # Spectator slots are type "H" with a teamless team field, so without the
-    # is_observer check they fall through to Team.NONE and render as "Unknown
+    # observer check they fall through to Team.NONE and render as "Unknown
     # Team" instead of "Observers".
-    if player_header.type not in ("H", "C") or is_observer(player_header):
+    if is_observer(player_header):
         return Team(Team.OBSERVER)
     team_num = int(player_header.team or "-1")
     if team_num < 0:
@@ -229,6 +225,7 @@ def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
                 name=p.name or (summary.name if summary else "") or "CPU",
                 general=faction,
                 team=team,
+                role=role_from_header(p),
                 color=color,
                 won=summary.win if summary else False,
                 starting_position=starting_position,
