@@ -13,6 +13,7 @@ import pytest
 from radarvan.cncstats_model import header
 from radarvan.cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
 from radarvan.matches import filter_by_months_back, is_incomplete, matches_differ
+from radarvan.player_role import PlayerRole
 
 
 def _header_player(name: str, team: str) -> header.Player:
@@ -87,6 +88,7 @@ def _player(**overrides: object) -> SimpleNamespace:
         "color": "red",
         "is_winner": True,
         "starting_position": 0,
+        "role": PlayerRole.HUMAN,
     }
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -155,6 +157,10 @@ def test_top_level_field_difference_is_detected(field: str, value: object) -> No
         ("color", "green"),
         ("is_winner", False),
         ("starting_position", 4),
+        # An un-backfilled row must compare unequal to a classified one so the
+        # reparse paths pick the role up.
+        ("role", None),
+        ("role", PlayerRole.CPU),
     ],
 )
 def test_player_field_difference_is_detected(field: str, value: object) -> None:

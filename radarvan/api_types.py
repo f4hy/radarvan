@@ -23,9 +23,9 @@ from enum import IntEnum
 from typing import Annotated, Literal
 from . import bracket as _bracket
 from .game_composition import GameComposition
+from .player_role import PlayerRole, resolve_role
 from .player_ids import (
     is_admin as _is_admin_player,
-    is_cpu_name as _is_cpu_name,
     is_tournament_admin as _is_tournament_admin_player,
     resolve_player_name,
 )
@@ -117,6 +117,15 @@ class Player(BaseModel):
     color: str
     won: bool = False
     starting_position: int | None = None
+    # None for match_players rows written before the column existed; consumers
+    # go through `role_or_guess()` rather than reading this directly.
+    role: PlayerRole | None = None
+
+    def role_or_guess(self) -> PlayerRole:
+        """The recorded role, or a name-based guess for un-backfilled rows."""
+        return resolve_role(
+            self.role, self.name, self.color, is_observer=self.team == Team.OBSERVER
+        )
 
     def is_real(self) -> bool:
         """Return True if this is a real (non-observer, recognized) player."""
@@ -124,9 +133,7 @@ class Player(BaseModel):
 
     @property
     def Type(self) -> Literal["H", "C"]:
-        if self.name.lower() in ["cpu", "hardai", "hardarmy", "mediai", "easyai"]:
-            return "C"
-        return "H"
+        return "C" if self.role_or_guess() == PlayerRole.CPU else "H"
 
     def __repr__(self) -> str:
         return f"{self.name}[{self.general.name} {'W' if self.won else 'L'}]"
@@ -152,8 +159,8 @@ class MatchInfo(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def has_ai(self) -> bool:
-        """True if any player is a CPU/AI opponent (see player_ids.CPU_NAME_MAPPING)."""
-        return any(_is_cpu_name(p.name, p.color) for p in self.players)
+        """True if any player is a CPU/AI opponent (see player_role.PlayerRole)."""
+        return any(p.role_or_guess() == PlayerRole.CPU for p in self.players)
 
 
 class Matches(BaseModel):
