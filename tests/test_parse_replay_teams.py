@@ -6,6 +6,7 @@ type "H" as real players and are only distinguishable by playerTemplate -2 -
 see ``utils.is_observer`` / ``utils.is_competitor``.
 """
 
+from radarvan.api_types import Team
 from radarvan.cncstats_model.header import Player
 from radarvan.game_composition import PlayerAdapter, categorize_game_type
 from radarvan.parse_replay import reassign_1v1_teams
@@ -55,6 +56,16 @@ def test_reassign_does_not_mutate_input() -> None:
     players = [_player("Syn", "2"), _player("Neo", "10")]
     reassign_1v1_teams(players)
     assert [p.team for p in players] == ["-1", "-1"]
+
+
+def test_determine_team_marks_spectators_as_observers() -> None:
+    # A spectator's header team is "-1" like a teamless competitor's, so
+    # without the playerTemplate check they'd land on Team.NONE and the
+    # matches page would label the card "Unknown Team" instead of "Observers".
+    assert determine_team(_player("Watcher", "-2"), None) == Team.OBSERVER
+    assert determine_team(_player("Slot", "2", ptype="X"), None) == Team.OBSERVER
+    assert determine_team(_player("Syn", "2", team="-1"), None) == Team.NONE
+    assert determine_team(_player("Syn", "2", team="1"), None) == Team.TWO
 
 
 def test_is_competitor_covers_humans_cpus_and_spectators() -> None:

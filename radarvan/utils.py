@@ -186,7 +186,10 @@ def is_competitor(player_header: HeaderPlayer) -> bool:
 def determine_team(
     player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> Team:
-    if player_header.type not in ("H", "C"):
+    # Spectator slots are type "H" with a teamless team field, so without the
+    # is_observer check they fall through to Team.NONE and render as "Unknown
+    # Team" instead of "Observers".
+    if player_header.type not in ("H", "C") or is_observer(player_header):
         return Team(Team.OBSERVER)
     team_num = int(player_header.team or "-1")
     if team_num < 0:
