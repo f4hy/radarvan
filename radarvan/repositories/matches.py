@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ..db import (
     Match,
+    PlayerKey,
     MatchCompostion,
     MatchPlayer,
     ParsedReplayJson,
@@ -152,6 +153,75 @@ class MatchRepo(BaseRepo):
             .distinct()
         )
         return list(self.session.scalars(stmt).all())
+
+    def list_matches_with_unset_roles(self, limit: int = 100) -> list[tuple[int, str]]:
+        """(match_id, json_s3_uri) for matches with any role-less player row.
+
+        Drives the one-off backfill of match_players.role; returns nothing once
+        every row is classified, at which point the column can be tightened.
+        """
+        stmt = (
+            select(Match.match_id, Match.json_s3_uri)
+            .join(MatchPlayer, MatchPlayer.match_id == Match.match_id)
+            .where(MatchPlayer.role.is_(None))
+            .order_by(Match.match_id)
+            .limit(limit)
+            .distinct()
+        )
+        return list(self.session.execute(stmt).all())  # type: ignore[arg-type]
+
+    def set_player_roles(
+        self, match_id: int, entries: list[tuple[PlayerKey, int]]
+    ) -> int:
+        """Stamp roles onto a match's player rows. Returns rows updated.
+
+        `entries` is the match's players in replay-header order, which is the
+        order `replay_to_db_match` inserted the rows in, so ordering by id
+        recovers the pairing. Position is the primary strategy because the
+        identity tuple alone is not always enough: twin CPUs share an identical
+        (name, color, team, general), and observers stored before the
+        Team.OBSERVER fix carry team_id 0 where the replay now derives -1.
+
+        Falling back to key matching (ambiguous keys dropped) keeps rows whose
+        order can't be trusted from being guessed at - they stay NULL and get
+        picked up by a later reparse rather than being silently mis-stamped.
+        """
+        rows = list(
+            self.session.scalars(
+                select(MatchPlayer)
+                .where(MatchPlayer.match_id == match_id)
+                .order_by(MatchPlayer.id)
+            )
+        )
+        updated = 0
+        names_line_up = len(rows) == len(entries) and all(
+            row.player_name == key[0]
+            for row, (key, _) in zip(rows, entries, strict=True)
+        )
+        if names_line_up:
+            for row, (_, role) in zip(rows, entries, strict=True):
+                row.role = role
+                updated += 1
+        else:
+            by_key: dict[PlayerKey, int] = {}
+            ambiguous: set[PlayerKey] = set()
+            for key, role in entries:
+                if key in by_key:
+                    ambiguous.add(key)
+                    continue
+                by_key[key] = role
+            for key in ambiguous:
+                del by_key[key]
+            for row in rows:
+                found = by_key.get(
+                    (row.player_name, row.color, row.team_id, row.general_id)
+                )
+                if found is None:
+                    continue
+                row.role = found
+                updated += 1
+        self._commit_if_auto()
+        return updated
 
     def list_matches_without_composition(self) -> Iterator[int]:
         """Yield match_ids for matches with no MatchCompostion row or an Unknown category."""
