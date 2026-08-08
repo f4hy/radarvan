@@ -655,12 +655,10 @@ function MatchupPopup({
     }
     let cancelled = false
     setCommentaryLoading(true)
-    CommentaryClient.getMatchupCommentaryApiMatchupCommentaryPost({
-      matchupCommentaryRequest: {
-        player1: playerA,
-        player2: playerB,
-        roundName: match.round_name,
-      },
+    CommentaryClient.getMatchupCommentaryApiMatchupCommentaryGet({
+      player1: playerA,
+      player2: playerB,
+      roundName: match.round_name,
     })
       .then((res) => {
         if (!cancelled) setCommentary(res.commentary)

@@ -17,7 +17,6 @@ import * as runtime from '../runtime';
 import type {
   HTTPValidationError,
   MatchupCommentaryPromptPreview,
-  MatchupCommentaryRequest,
   MatchupCommentaryResponse,
 } from '../models/index';
 import {
@@ -25,14 +24,16 @@ import {
     HTTPValidationErrorToJSON,
     MatchupCommentaryPromptPreviewFromJSON,
     MatchupCommentaryPromptPreviewToJSON,
-    MatchupCommentaryRequestFromJSON,
-    MatchupCommentaryRequestToJSON,
     MatchupCommentaryResponseFromJSON,
     MatchupCommentaryResponseToJSON,
 } from '../models/index';
 
-export interface GetMatchupCommentaryApiMatchupCommentaryPostRequest {
-    matchupCommentaryRequest: MatchupCommentaryRequest;
+export interface GetMatchupCommentaryApiMatchupCommentaryGetRequest {
+    player1: string;
+    player2: string;
+    roundName: string;
+    bypassCache?: boolean;
+    forceRefresh?: boolean;
 }
 
 export interface GetMatchupCommentaryPromptPreviewApiMatchupCommentaryPromptPreviewGetRequest {
@@ -47,21 +48,53 @@ export interface GetMatchupCommentaryPromptPreviewApiMatchupCommentaryPromptPrev
 export class CommentaryApi extends runtime.BaseAPI {
 
     /**
-     * Creates request options for getMatchupCommentaryApiMatchupCommentaryPost without sending the request
+     * Creates request options for getMatchupCommentaryApiMatchupCommentaryGet without sending the request
      */
-    async getMatchupCommentaryApiMatchupCommentaryPostRequestOpts(requestParameters: GetMatchupCommentaryApiMatchupCommentaryPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['matchupCommentaryRequest'] == null) {
+    async getMatchupCommentaryApiMatchupCommentaryGetRequestOpts(requestParameters: GetMatchupCommentaryApiMatchupCommentaryGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['player1'] == null) {
             throw new runtime.RequiredError(
-                'matchupCommentaryRequest',
-                'Required parameter "matchupCommentaryRequest" was null or undefined when calling getMatchupCommentaryApiMatchupCommentaryPost().'
+                'player1',
+                'Required parameter "player1" was null or undefined when calling getMatchupCommentaryApiMatchupCommentaryGet().'
+            );
+        }
+
+        if (requestParameters['player2'] == null) {
+            throw new runtime.RequiredError(
+                'player2',
+                'Required parameter "player2" was null or undefined when calling getMatchupCommentaryApiMatchupCommentaryGet().'
+            );
+        }
+
+        if (requestParameters['roundName'] == null) {
+            throw new runtime.RequiredError(
+                'roundName',
+                'Required parameter "roundName" was null or undefined when calling getMatchupCommentaryApiMatchupCommentaryGet().'
             );
         }
 
         const queryParameters: any = {};
 
-        const headerParameters: runtime.HTTPHeaders = {};
+        if (requestParameters['player1'] != null) {
+            queryParameters['player1'] = requestParameters['player1'];
+        }
 
-        headerParameters['Content-Type'] = 'application/json';
+        if (requestParameters['player2'] != null) {
+            queryParameters['player2'] = requestParameters['player2'];
+        }
+
+        if (requestParameters['roundName'] != null) {
+            queryParameters['round_name'] = requestParameters['roundName'];
+        }
+
+        if (requestParameters['bypassCache'] != null) {
+            queryParameters['bypass_cache'] = requestParameters['bypassCache'];
+        }
+
+        if (requestParameters['forceRefresh'] != null) {
+            queryParameters['force_refresh'] = requestParameters['forceRefresh'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
@@ -72,30 +105,29 @@ export class CommentaryApi extends runtime.BaseAPI {
 
         return {
             path: urlPath,
-            method: 'POST',
+            method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-            body: MatchupCommentaryRequestToJSON(requestParameters['matchupCommentaryRequest']),
         };
     }
 
     /**
-     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.  ``req.bypass_cache`` and ``req.force_refresh`` both skip the cache read and always call the LLM (still real, billed calls - not free just because caching is being bypassed). They differ in whether the result is then persisted: ``force_refresh`` overwrites the cached row, ``bypass_cache`` does not touch it. If both are set, ``bypass_cache`` wins (no write).
+     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  A GET so the read-tier API key the browser ships with can reach it - the bracket UI needs to show this to everyone, and a cache hit is free and instant. A cache *miss* still triggers a real, billed LLM call, so the two things that would make that spend unbounded are fenced off:  - ``round_name`` must be one a bracket actually produces   (``bracket.known_round_names()``); the cache key is   (player1, player2, round_name) and all three must be enumerable, or a   caller could mint fresh keys forever. Player names are already bounded   by ``PlayerName``\'s alias resolution. - ``bypass_cache``/``force_refresh`` both skip the cache read and always   call the LLM, so they require the write-tier key. They differ in   whether the result is then persisted: ``force_refresh`` overwrites the   cached row, ``bypass_cache`` does not touch it. If both are set,   ``bypass_cache`` wins (no write).
      * Get Matchup Commentary
      */
-    async getMatchupCommentaryApiMatchupCommentaryPostRaw(requestParameters: GetMatchupCommentaryApiMatchupCommentaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchupCommentaryResponse>> {
-        const requestOptions = await this.getMatchupCommentaryApiMatchupCommentaryPostRequestOpts(requestParameters);
+    async getMatchupCommentaryApiMatchupCommentaryGetRaw(requestParameters: GetMatchupCommentaryApiMatchupCommentaryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchupCommentaryResponse>> {
+        const requestOptions = await this.getMatchupCommentaryApiMatchupCommentaryGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MatchupCommentaryResponseFromJSON(jsonValue));
     }
 
     /**
-     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  POST (not GET) and gated behind the write-tier API key deliberately - a cache miss triggers a real LLM call, not just a read. A cache hit is free and instant; see the module docstring for the caching scheme.  ``req.bypass_cache`` and ``req.force_refresh`` both skip the cache read and always call the LLM (still real, billed calls - not free just because caching is being bypassed). They differ in whether the result is then persisted: ``force_refresh`` overwrites the cached row, ``bypass_cache`` does not touch it. If both are set, ``bypass_cache`` wins (no write).
+     * Generate (or return the cached) pre-game hype commentary for a 1v1 matchup.  A GET so the read-tier API key the browser ships with can reach it - the bracket UI needs to show this to everyone, and a cache hit is free and instant. A cache *miss* still triggers a real, billed LLM call, so the two things that would make that spend unbounded are fenced off:  - ``round_name`` must be one a bracket actually produces   (``bracket.known_round_names()``); the cache key is   (player1, player2, round_name) and all three must be enumerable, or a   caller could mint fresh keys forever. Player names are already bounded   by ``PlayerName``\'s alias resolution. - ``bypass_cache``/``force_refresh`` both skip the cache read and always   call the LLM, so they require the write-tier key. They differ in   whether the result is then persisted: ``force_refresh`` overwrites the   cached row, ``bypass_cache`` does not touch it. If both are set,   ``bypass_cache`` wins (no write).
      * Get Matchup Commentary
      */
-    async getMatchupCommentaryApiMatchupCommentaryPost(requestParameters: GetMatchupCommentaryApiMatchupCommentaryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchupCommentaryResponse> {
-        const response = await this.getMatchupCommentaryApiMatchupCommentaryPostRaw(requestParameters, initOverrides);
+    async getMatchupCommentaryApiMatchupCommentaryGet(requestParameters: GetMatchupCommentaryApiMatchupCommentaryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchupCommentaryResponse> {
+        const response = await this.getMatchupCommentaryApiMatchupCommentaryGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

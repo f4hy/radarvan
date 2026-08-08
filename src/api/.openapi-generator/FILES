@@ -95,7 +95,6 @@ docs/MatchListing.md
 docs/MatchPrediction.md
 docs/Matches.md
 docs/MatchupCommentaryPromptPreview.md
-docs/MatchupCommentaryRequest.md
 docs/MatchupCommentaryResponse.md
 docs/MatchupResult.md
 docs/MissingMapInfo.md
@@ -245,7 +244,6 @@ models/MatchListing.ts
 models/MatchPrediction.ts
 models/Matches.ts
 models/MatchupCommentaryPromptPreview.ts
-models/MatchupCommentaryRequest.ts
 models/MatchupCommentaryResponse.ts
 models/MatchupResult.ts
 models/MissingMapInfo.ts

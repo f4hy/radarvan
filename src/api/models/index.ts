@@ -82,7 +82,6 @@ export * from './MatchListing';
 export * from './MatchPrediction';
 export * from './Matches';
 export * from './MatchupCommentaryPromptPreview';
-export * from './MatchupCommentaryRequest';
 export * from './MatchupCommentaryResponse';
 export * from './MatchupResult';
 export * from './MissingMapInfo';

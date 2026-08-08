@@ -289,6 +289,24 @@ def _pair_round(
     return [WinnerOf(m.match_id) for m in matches], matches
 
 
+@lru_cache(maxsize=1)
+def known_round_names() -> frozenset[str]:
+    """Every ``round_name`` a bracket can produce, across all supported
+    entrant counts.
+
+    Derived from ``build_topology`` rather than hand-listed, so renaming a
+    round can't leave a stale copy behind. Used by
+    ``routes/commentary.py`` to bound the free-form round name a caller may
+    ask commentary for - a cache key nobody can enumerate is a cache key
+    nobody can bill you against.
+    """
+    return frozenset(
+        m.round_name
+        for n in range(MIN_PLAYERS, MAX_PLAYERS + 1)
+        for m in build_topology(n).matches
+    )
+
+
 @lru_cache(maxsize=8)
 def build_topology(num_players: int) -> Topology:
     """Build the full WB/LB/GF match topology for a fixed 16-slot bracket
