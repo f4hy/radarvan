@@ -2,6 +2,7 @@
 
 import statistics
 import time
+from typing import Any
 
 import structlog
 from cachetools import LRUCache
@@ -70,18 +71,13 @@ def _percentile_stats(vals: list[float]) -> tuple[float, float, bool]:
 # and vocab, none of which change within a process, so an unbounded-lifetime
 # LRU is correct here - no TTL needed, unlike the match-derived caches in
 # cache.py that must follow new games landing.
-_FACTION_GRID_CACHE: LRUCache[tuple[object, ...], list[tuple[object, ...]]] = LRUCache(
-    maxsize=256
-)
+type _GridRow = tuple[General, General, float, float, bool, int]
+
+_FACTION_GRID_CACHE: LRUCache[tuple[Any, ...], list[_GridRow]] = LRUCache(maxsize=256)
 
 
-@locked_cached(
-    cache=_FACTION_GRID_CACHE,
-    key=lambda map_name, player1, player2: hashkey(map_name, player1, player2),
-)
-def _faction_grid(
-    map_name: str, player1: str, player2: str
-) -> list[tuple[General, General, float, float, bool, int]]:
+@locked_cached(cache=_FACTION_GRID_CACHE, key=hashkey)
+def _faction_grid(map_name: str, player1: str, player2: str) -> list[_GridRow]:
     """(general1, general2, prob_player1_wins, std, significant, ensemble_size)
     for every general combination - the 144-call loop shared by
     faction_matchup and faction_matrix. Each cell runs the full N-model
