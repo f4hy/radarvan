@@ -16,8 +16,10 @@ from radarvan.matches import filter_by_months_back, is_incomplete, matches_diffe
 
 
 def _header_player(name: str, team: str) -> header.Player:
+    # player_template is read by utils.is_competitor on is_incomplete's
+    # no-winner path; "2" is an ordinary competitor (-2 would be a spectator).
     return header.Player.model_construct(
-        name=name, team=team, type="H", starting_position="0"
+        name=name, team=team, type="H", starting_position="0", player_template="2"
     )
 
 

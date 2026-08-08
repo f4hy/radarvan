@@ -88,6 +88,62 @@ def test_team_zero_players_ignored_for_game_type() -> None:
     assert comp.total_players == 6
 
 
+def test_1v1_with_spectators_is_still_1v1() -> None:
+    # A bracket 1v1 played with observers in the lobby: the two competitors
+    # sit on teams of their own and the spectators land on team 0. Judging
+    # "everyone in a solo team = FFA" on the spectator slots too used to send
+    # these to FFA, which dropped them out of head-to-head and the bracket's
+    # played-games list.
+    for n_spectators in (1, 2, 3):
+        comp = _categorize([(2, "H"), (3, "H")] + [(0, "H")] * n_spectators)
+        assert comp.category == "1v1", f"{n_spectators} spectators"
+        assert comp.is_1v1 is True
+        assert comp.is_ffa is False
+        assert comp.is_team_game is True
+        assert comp.total_players == 2 + n_spectators
+        assert competitive_game_filter(comp) is True
+
+
+def test_ffa_with_spectators_is_still_ffa() -> None:
+    # The flip side: three or more real solo teams stay an FFA no matter how
+    # many team-0 spectators are watching. Two spectators used to make the
+    # largest "team" size 2 and turned this into a 1v1v1.
+    for n_spectators in (1, 2):
+        comp = _categorize([(1, "H"), (2, "H"), (3, "H")] + [(0, "H")] * n_spectators)
+        assert comp.category == "FFA", f"{n_spectators} spectators"
+        assert comp.is_ffa is True
+        assert comp.is_team_game is False
+
+
+def test_two_teamless_players_is_1v1() -> None:
+    # A 1v1 that never went through parse_replay.reassign_1v1_teams leaves
+    # both competitors on team 0. With nobody on a real team there is no
+    # spectator/competitor distinction to draw, so two players is a 1v1.
+    comp = _categorize([(0, "H"), (0, "H")])
+    assert comp.category == "1v1"
+    assert comp.is_1v1 is True
+
+
+def test_only_spectators_is_ffa_not_a_team_game() -> None:
+    comp = _categorize([(0, "H"), (0, "H"), (0, "H")])
+    assert comp.category == "FFA"
+    assert comp.is_team_game is False
+
+
+def test_single_real_player_with_spectator_is_unknown() -> None:
+    comp = _categorize([(0, "H"), (2, "H")])
+    assert comp.category == "Unknown"
+    assert comp.is_1v1 is False
+    assert comp.total_players == 2
+
+
+def test_comp_stomp_survives_a_spectator() -> None:
+    comp = _categorize([(1, "H"), (1, "H"), (2, "C"), (2, "C"), (0, "H")])
+    assert comp.category == "2v2"
+    assert comp.is_comp_stomp is True
+    assert competitive_game_filter(comp) is False
+
+
 def test_competitive_filter_none_is_false() -> None:
     assert competitive_game_filter(None) is False
 
