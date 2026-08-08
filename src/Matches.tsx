@@ -38,7 +38,7 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { ActivityCalendar } from "react-activity-calendar"
-import { getColorHex } from "./utils"
+import { getColorHex, isCompetitor, isObserver } from "./utils"
 import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -76,7 +76,9 @@ function buildPlayerPositions(
 ): Record<number, PlayerPosition> {
   return Object.fromEntries(
     players
-      .filter((p) => p.startingPosition != null)
+      // Observers carry a starting position too, and since these are keyed by
+      // it a spectator can otherwise overwrite the real player standing there.
+      .filter((p) => isCompetitor(p) && p.startingPosition != null)
       .map((p) => [
         p.startingPosition!,
         {
@@ -133,18 +135,19 @@ function StatusBand(props: {
 }
 
 function TeamCard(props: { players: Player[]; won: boolean }) {
-  const team = props.players[0]?.team
+  const first = props.players[0]
+  const team = first?.team
   let label = `${props.won ? "Won" : "Lost"} · Team ${team}`
   let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
   let bandColor = props.won ? WON_BAND : LOST_BAND
-  if (team === Team.NUMBER_0) {
-    label = "Unknown Team"
-    icon = <QuestionMarkIcon />
-    bandColor = NEUTRAL_BAND
-  }
-  if (team === Team.NUMBER_MINUS_1) {
+  // Observer-ness comes from `role`, not `team` - see utils.isObserver.
+  if (first != null && isObserver(first)) {
     label = "Observers"
     icon = <VisibilityIcon />
+    bandColor = NEUTRAL_BAND
+  } else if (team === Team.NUMBER_0) {
+    label = "Unknown Team"
+    icon = <QuestionMarkIcon />
     bandColor = NEUTRAL_BAND
   }
   return (
@@ -425,7 +428,13 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
     />
   )
 
-  const teams = _.groupBy(props.match.players, "team")
+  // Group observers together regardless of the team they happen to carry:
+  // historically they sit on team 0 and only re-parsed matches have -1, so
+  // grouping on `team` alone splits them across cards (and labels the team-0
+  // ones "Unknown Team").
+  const teams = _.groupBy(props.match.players, (p) =>
+    isObserver(p) ? "observers" : p.team,
+  )
 
   const paperprops: Record<string, string | number> = { ...MATCH_CARD_SX }
   const incomplete = (props.match.incomplete ?? "").length !== 0
@@ -553,7 +562,7 @@ function MatchDateSummary(props: {
     for (const m of props.matches) {
       if (m.incomplete) continue
       for (const p of m.players) {
-        if (p.team === Team.NUMBER_MINUS_1) continue
+        if (isObserver(p)) continue
         if (!wl[p.name]) wl[p.name] = { w: 0, l: 0 }
         if (p.won) wl[p.name].w++
         else wl[p.name].l++

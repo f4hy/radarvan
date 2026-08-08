@@ -7,7 +7,11 @@ import {
   getColorHex,
   playerColor,
   buildPlayerColorMap,
+  isObserver,
+  isCompetitor,
+  PLAYER_ROLE,
 } from "./utils"
+import type { Player } from "./api"
 
 describe("winRate", () => {
   it("computes the ratio of wins to total games", () => {
@@ -172,5 +176,47 @@ describe("buildPlayerColorMap", () => {
 
   it("returns an empty object for no players", () => {
     expect(buildPlayerColorMap([])).toEqual({})
+  })
+})
+
+describe("isObserver / isCompetitor", () => {
+  const player = (overrides: Partial<Player>): Player =>
+    ({
+      name: "Skip",
+      general: 3,
+      team: 1,
+      color: "red",
+      won: false,
+      ...overrides,
+    }) as Player
+
+  it("reads role when it is set", () => {
+    expect(isObserver(player({ role: PLAYER_ROLE.OBSERVER }))).toBe(true)
+    expect(isObserver(player({ role: PLAYER_ROLE.HUMAN }))).toBe(false)
+    expect(isObserver(player({ role: PLAYER_ROLE.CPU }))).toBe(false)
+  })
+
+  it("trusts role over team", () => {
+    // The case the old team-based check got wrong: historical observers sit on
+    // team 0, which a `team === -1` test reads as an ordinary teamless player.
+    expect(isObserver(player({ role: PLAYER_ROLE.OBSERVER, team: 0 }))).toBe(
+      true,
+    )
+    // And a real player on team -1 is not a spectator just because of the team.
+    expect(isObserver(player({ role: PLAYER_ROLE.HUMAN, team: -1 }))).toBe(
+      false,
+    )
+  })
+
+  it("falls back to team when role is missing", () => {
+    // Rows the backfill could not classify, and any stale cached payload.
+    expect(isObserver(player({ role: null, team: -1 }))).toBe(true)
+    expect(isObserver(player({ role: null, team: 0 }))).toBe(false)
+    expect(isObserver(player({ role: undefined, team: 1 }))).toBe(false)
+  })
+
+  it("isCompetitor is the inverse", () => {
+    expect(isCompetitor(player({ role: PLAYER_ROLE.OBSERVER }))).toBe(false)
+    expect(isCompetitor(player({ role: PLAYER_ROLE.CPU }))).toBe(true)
   })
 })
