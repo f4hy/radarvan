@@ -120,11 +120,13 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
       })),
     [data.points],
   )
+  const labelA = `Team A: ${data.teamAPlayers.join(", ")}`
+  const labelB = `Team B: ${data.teamBPlayers.join(", ")}`
   const winner =
     data.actualWinner === "team_a"
-      ? "Team A"
+      ? `Team A (${data.teamAPlayers.join(", ")})`
       : data.actualWinner === "team_b"
-        ? "Team B"
+        ? `Team B (${data.teamBPlayers.join(", ")})`
         : null
   return (
     <Box>
@@ -140,6 +142,20 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
         From the sequence model — updates as the match unfolds (builds, kills,
         captures, economy). Shows P(Team A wins) at each point in the game.
       </Typography>
+      {/* Name both sides here: without rosters "Team A" is unreadable, and the
+          reader can't tell a correct curve from an inverted one. */}
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mt: 1, flexWrap: "wrap", rowGap: 0.5 }}
+      >
+        <Typography variant="body2" sx={{ color: teamA, fontWeight: "bold" }}>
+          {labelA}
+        </Typography>
+        <Typography variant="body2" sx={{ color: teamB, fontWeight: "bold" }}>
+          {labelB}
+        </Typography>
+      </Stack>
       <Box sx={{ width: "100%", height: 300, mt: 1.5 }}>
         <ResponsiveContainer>
           <AreaChart
@@ -157,7 +173,7 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
             <Tooltip
               formatter={(v, name) => [
                 `${Number(v).toFixed(0)}%`,
-                name === "probA" ? "Team A" : "Team B",
+                name === "probA" ? labelA : labelB,
               ]}
               labelFormatter={(label) => `${Number(label).toFixed(1)} min`}
             />
