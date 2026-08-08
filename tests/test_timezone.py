@@ -18,7 +18,7 @@ import pytest
 
 from radarvan import matches
 from radarvan.cncstats_model.zhreplay import EnhancedReplayV2
-from radarvan.utils import duration_minutes, game_night_date
+from radarvan.utils import duration_minutes, game_night_date, game_night_date_of
 
 EASTERN = ZoneInfo("America/New_York")
 REPO_ROOT = Path(__file__).parent.parent
@@ -90,6 +90,32 @@ class TestGameNightDate:
     def test_returns_a_plain_date(self) -> None:
         result = game_night_date(_eastern_epoch(2026, 6, 6, 20, 0))
         assert type(result) is datetime.date
+
+
+class TestGameNightDateOf:
+    """game_night_date_of is what the bracket exposes to the frontend so a
+    match popup can look up the games actually played for it - the raw UTC
+    date of scheduled_at is the wrong day for any evening start."""
+
+    def test_evening_start_is_the_previous_utc_day(self) -> None:
+        # A real case: WB1 scheduled 2026-08-08T00:05Z is 8:05pm Eastern on
+        # the 7th, and its games are stored under the 7th.
+        when = datetime.datetime(2026, 8, 8, 0, 5, tzinfo=datetime.UTC)
+        assert when.date() == datetime.date(2026, 8, 8), "precondition"
+        assert game_night_date_of(when) == datetime.date(2026, 8, 7)
+
+    def test_naive_input_is_read_as_utc(self) -> None:
+        aware = datetime.datetime(2026, 8, 8, 0, 5, tzinfo=datetime.UTC)
+        naive = datetime.datetime(2026, 8, 8, 0, 5)
+        assert game_night_date_of(naive) == game_night_date_of(aware)
+
+    def test_matches_game_night_date_for_the_same_instant(self) -> None:
+        when = datetime.datetime(2026, 1, 11, 1, 30, tzinfo=datetime.UTC)
+        assert game_night_date_of(when) == game_night_date(when.timestamp())
+
+    def test_afternoon_start_stays_on_its_own_day(self) -> None:
+        when = datetime.datetime(2026, 6, 7, 13, 0, tzinfo=EASTERN)
+        assert game_night_date_of(when) == datetime.date(2026, 6, 7)
 
 
 @pytest.fixture

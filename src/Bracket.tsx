@@ -603,6 +603,7 @@ function MatchupPopup({
   const playerA = match.player_a
   const playerB = match.player_b
   const scheduledAt = match.scheduled_at
+  const gameNight = match.game_night_date
   // Only worth asking the backend once the scheduled time has actually
   // arrived - a future or unset time can't have games yet by definition.
   const datePlayable =
@@ -676,14 +677,18 @@ function MatchupPopup({
   }, [playerA, playerB, match.round_name])
 
   React.useEffect(() => {
-    if (!datePlayable || !scheduledAt || !playerA || !playerB) {
+    if (!datePlayable || !gameNight || !playerA || !playerB) {
       setGames([])
       return
     }
     let cancelled = false
     setLoading(true)
+    // Queried by game night, not scheduled_at's calendar date: matches are
+    // stored under utils.game_night_date (Eastern, 5am rollover), so a 8:05pm
+    // Eastern start - already the next day in UTC - would otherwise ask for a
+    // night with no games in it. The backend hands us the right day.
     Client.getMatchesByDateApiMatchesByDateDateGet({
-      date: new Date(scheduledAt),
+      date: new Date(gameNight),
     })
       .then((res) => {
         if (cancelled) return
@@ -701,7 +706,7 @@ function MatchupPopup({
     return () => {
       cancelled = true
     }
-  }, [datePlayable, scheduledAt, playerA, playerB, showError])
+  }, [datePlayable, gameNight, playerA, playerB, showError])
 
   const handleGoToPlayer = (playerName: string) => {
     onClose()

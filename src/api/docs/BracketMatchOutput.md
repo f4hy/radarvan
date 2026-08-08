@@ -13,6 +13,7 @@ Name | Type
 `playerA` | string
 `playerB` | string
 `scheduledAt` | Date
+`gameNightDate` | Date
 `bestOf` | number
 `scoreA` | number
 `scoreB` | number
@@ -35,6 +36,7 @@ const example = {
   "playerA": null,
   "playerB": null,
   "scheduledAt": null,
+  "gameNightDate": null,
   "bestOf": null,
   "scoreA": null,
   "scoreB": null,
