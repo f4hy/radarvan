@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**backfillMatchCompositionApiBackfillCompositionPost**](DefaultApi.md#backfillmatchcompositionapibackfillcompositionpost) | **POST** /api/backfill/composition | Backfill Match Composition |
+| [**backfillPlayerRolesApiBackfillPlayerRolesPost**](DefaultApi.md#backfillplayerrolesapibackfillplayerrolespost) | **POST** /api/backfill_player_roles/ | Backfill Player Roles |
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
 | [**clearDetailsCacheApiClearDetailsCachePost**](DefaultApi.md#cleardetailscacheapicleardetailscachepost) | **POST** /api/clear_details_cache/ | Clear Details Cache |
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
@@ -121,6 +122,81 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **maxToUpdate** | `number` |  | [Optional] [Defaults to `100`] |
+
+### Return type
+
+**{ [key: string]: number | null; }**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## backfillPlayerRolesApiBackfillPlayerRolesPost
+
+> { [key: string]: number | null; } backfillPlayerRolesApiBackfillPlayerRolesPost(maxToUpdate, maxConcurrent)
+
+Backfill Player Roles
+
+Stamp match_players.role from each match\&#39;s already-parsed replay JSON.  Reads the stored S3 JSON - does NOT call cncstats - so this is free to run in bulk. Idempotent and incremental: it only looks at matches that still have a role-less player row, so it can be called repeatedly until &#x60;remaining&#x60; is 0.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { BackfillPlayerRolesApiBackfillPlayerRolesPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+    // number (optional)
+    maxConcurrent: 56,
+  } satisfies BackfillPlayerRolesApiBackfillPlayerRolesPostRequest;
+
+  try {
+    const data = await api.backfillPlayerRolesApiBackfillPlayerRolesPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `100`] |
+| **maxConcurrent** | `number` |  | [Optional] [Defaults to `16`] |
 
 ### Return type
 

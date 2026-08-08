@@ -1,34 +1,21 @@
 
-# Player
+# PlayerRole
 
+The kind of slot a player occupied.  HUMAN and CPU are both *competitors* - they play the game and belong to a team. OBSERVER covers spectators and any slot the header doesn\'t report as human or computer (empty/disconnected slots).
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`name` | string
-`general` | [General](General.md)
-`team` | [Team](Team.md)
-`color` | string
-`won` | boolean
-`startingPosition` | number
-`role` | [PlayerRole](PlayerRole.md)
 
 ## Example
 
 ```typescript
-import type { Player } from ''
+import type { PlayerRole } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "name": null,
-  "general": null,
-  "team": null,
-  "color": null,
-  "won": null,
-  "startingPosition": null,
-  "role": null,
-} satisfies Player
+} satisfies PlayerRole
 
 console.log(example)
 
@@ -37,7 +24,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as Player
+const exampleParsed = JSON.parse(exampleJSON) as PlayerRole
 console.log(exampleParsed)
 ```
 
