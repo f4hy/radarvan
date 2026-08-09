@@ -223,11 +223,13 @@ function PredictionBar({
   prediction,
   playerA,
   playerB,
+  scheduledAt,
   onPick,
 }: {
   prediction: BracketMatchPrediction | undefined
   playerA: string
   playerB: string
+  scheduledAt: string | null
   onPick: (winner: string | null) => Promise<void>
 }) {
   const { status } = useAuth()
@@ -241,7 +243,14 @@ function PredictionBar({
   const pctA = total > 0 ? Math.round((countA / total) * 100) : 50
   const pctB = 100 - pctA
   const myPick = prediction?.my_pick ?? null
-  const open = prediction?.open ?? false
+  // `prediction.open` is a snapshot from whenever the list was fetched, so a
+  // page left open past tip-off would keep offering picks (the POST would 409
+  // - _prediction_is_open in routes/bracket.py is the real gate). Re-check the
+  // start time against the shared per-second ticker so the poll closes itself
+  // the moment the match starts. Unscheduled matches (NaN remaining) stay open.
+  const remainingMs = useCountdownMs(scheduledAt ?? "")
+  const started = scheduledAt !== null && remainingMs <= 0
+  const open = (prediction?.open ?? false) && !started
 
   // Logged out isn't a dead end: clicking either side sends the visitor
   // straight into Discord login instead of silently doing nothing, so the
@@ -435,6 +444,7 @@ function AgendaRow({
             prediction={prediction}
             playerA={match.player_a}
             playerB={match.player_b}
+            scheduledAt={match.scheduled_at ?? null}
             onPick={(winner) => onPick(match.match_id, winner)}
           />
         </Box>

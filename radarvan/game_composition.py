@@ -1,6 +1,12 @@
-"""Game-type categorization (``categorize_game_type``) and the competitive-game filter
-(``competitive_game_filter``) used to scope leaderboard stats to balanced, non-comp-stomp
-team games."""
+"""Who was in a match, and what kind of match it was.
+
+``MatchRoster`` is the single place the backend decides who spectated, who
+played, and who was AI - build one from whichever shape you have (replay
+header, ``match_players`` rows, or ``api_types.Player`` via
+``MatchInfo.roster()``) and read its partitions instead of testing ``team`` or
+matching names. ``GameComposition`` / ``competitive_game_filter`` are derived
+from it and scope leaderboard stats to balanced, non-comp-stomp team games.
+"""
 
 from __future__ import annotations
 
@@ -8,23 +14,21 @@ import structlog
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import NamedTuple
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Protocol
 from .db import MatchPlayer
-from .player_role import PlayerRole, resolve_role
+from .player_ids import PLAYER_NAMES, resolve_player_name
+from .cncstats_model.header import Player as HeaderPlayer
+from .player_role import (
+    PlayerRole,
+    normalize_color,
+    resolve_role,
+    role_from_header,
+    start_position_from_header,
+    team_from_header,
+)
 
 logger = structlog.get_logger(__name__)
-
-
-class Player(Protocol):
-    @property
-    def team(self) -> int:
-        """Team the player is on."""
-
-    @property
-    def type(self) -> str | None:
-        """If its a human or cpu player."""
 
 
 def to_camel(string: str) -> str:
@@ -103,6 +107,8 @@ class RosterSlot:
     general: int
     role: PlayerRole
     won: bool = False
+    # 1-based, matching map-data player_number (see utils.players_from_replay).
+    starting_position: int | None = None
 
     @property
     def has_known_general(self) -> bool:
@@ -131,17 +137,41 @@ class MatchRoster:
       different properties and why the caller has to pick the right one.
     """
 
-    __slots__ = ("_competitors", "_observers", "_participants", "_slots")
+    __slots__ = (
+        "_competitors",
+        "_cpus",
+        "_human_participants",
+        "_humans",
+        "_participants",
+        "_slots",
+    )
 
     def __init__(self, slots: Iterable[RosterSlot]) -> None:
+        # One pass, not one per partition: every stats module builds a roster
+        # per match across thousands of matches. `observers` is derived on
+        # demand instead - it's the complement of `competitors` and no hot
+        # path reads it.
         self._slots = tuple(slots)
-        self._observers = tuple(
-            s for s in self._slots if s.role is PlayerRole.OBSERVER
-        )
-        self._competitors = tuple(
-            s for s in self._slots if s.role is not PlayerRole.OBSERVER
-        )
-        self._participants = tuple(s for s in self._competitors if s.team > 0)
+        competitors: list[RosterSlot] = []
+        humans: list[RosterSlot] = []
+        cpus: list[RosterSlot] = []
+        participants: list[RosterSlot] = []
+        human_participants: list[RosterSlot] = []
+        for s in self._slots:
+            if s.role is PlayerRole.OBSERVER:
+                continue
+            competitors.append(s)
+            is_human = s.role is PlayerRole.HUMAN
+            (humans if is_human else cpus).append(s)
+            if s.team > 0:
+                participants.append(s)
+                if is_human:
+                    human_participants.append(s)
+        self._competitors = tuple(competitors)
+        self._humans = tuple(humans)
+        self._cpus = tuple(cpus)
+        self._participants = tuple(participants)
+        self._human_participants = tuple(human_participants)
 
     @classmethod
     def from_db_players(cls, players: Iterable[MatchPlayer]) -> MatchRoster:
@@ -156,6 +186,29 @@ class MatchRoster:
                     p.role, p.player_name, p.color, is_observer=p.team_id < 0
                 ),
                 won=p.is_winner,
+                starting_position=p.starting_position,
+            )
+            for p in players
+        )
+
+    @classmethod
+    def from_header_players(cls, players: Iterable[HeaderPlayer]) -> MatchRoster:
+        """Build straight from a parsed replay header.
+
+        The parse-time entry point, before anything has been written to the DB.
+        Pass every header slot - the roster sorts spectators out itself, and
+        filtering beforehand would undercount total_players relative to the
+        DB-side roster.
+        """
+        return cls(
+            RosterSlot(
+                name=p.name,
+                color=normalize_color(p.color),
+                team=team_from_header(p),
+                # The header carries no side; general is a summary field.
+                general=-1,
+                role=role_from_header(p),
+                starting_position=start_position_from_header(p),
             )
             for p in players
         )
@@ -171,6 +224,7 @@ class MatchRoster:
                 general=int(p.general),
                 role=resolve_role(p.role, p.name, p.color, is_observer=p.team < 0),
                 won=p.won,
+                starting_position=p.starting_position,
             )
             for p in players
         )
@@ -183,7 +237,7 @@ class MatchRoster:
     @property
     def observers(self) -> tuple[RosterSlot, ...]:
         """Spectators and empty/disconnected slots. Never played."""
-        return self._observers
+        return tuple(s for s in self._slots if s.role is PlayerRole.OBSERVER)
 
     @property
     def competitors(self) -> tuple[RosterSlot, ...]:
@@ -197,19 +251,44 @@ class MatchRoster:
 
     @property
     def humans(self) -> tuple[RosterSlot, ...]:
-        return tuple(s for s in self._competitors if s.role is PlayerRole.HUMAN)
+        """Human competitors, teamless slots included."""
+        return self._humans
 
     @property
     def cpus(self) -> tuple[RosterSlot, ...]:
-        return tuple(s for s in self._competitors if s.role is PlayerRole.CPU)
+        """AI competitors, teamless slots included."""
+        return self._cpus
 
     @property
-    def teams(self) -> dict[int, tuple[RosterSlot, ...]]:
-        """Participants grouped by team id, in ascending team order."""
-        grouped: dict[int, list[RosterSlot]] = {}
+    def human_participants(self) -> tuple[RosterSlot, ...]:
+        """Humans on a real team - what per-player stats should count.
+
+        Note this says nothing about whether the player's *general* parsed;
+        callers that bucket by general must also check
+        ``RosterSlot.has_known_general``, which is a parse-quality question
+        rather than a role one.
+        """
+        return self._human_participants
+
+    @property
+    def has_cpu(self) -> bool:
+        return bool(self._cpus)
+
+    def all_teams_have_group_player(self) -> bool:
+        """True if every team has at least one player from PLAYER_NAMES.
+
+        A method on the roster rather than a free function taking players:
+        it must only ever see competitors already on a team, and taking the
+        partition from `self` is the only way to enforce that. Passing a raw
+        player list buckets observers into team 0 and quietly returns False.
+        """
+        teams: dict[int, bool] = {}
         for s in self._participants:
-            grouped.setdefault(s.team, []).append(s)
-        return {team: tuple(grouped[team]) for team in sorted(grouped)}
+            name = resolve_player_name(s.name, s.color)
+            teams.setdefault(s.team, False)
+            if name in PLAYER_NAMES:
+                teams[s.team] = True
+        return bool(teams) and all(teams.values())
 
     def composition(self) -> GameComposition:
         """Categorize this match's game type."""
@@ -227,6 +306,8 @@ class RosterInput(Protocol):
     @property
     def color(self) -> str: ...
     @property
+    def starting_position(self) -> int | None: ...
+    @property
     def team(self) -> int: ...
     @property
     def general(self) -> int: ...
@@ -234,26 +315,6 @@ class RosterInput(Protocol):
     def role(self) -> PlayerRole | None: ...
     @property
     def won(self) -> bool: ...
-
-
-def categorize_game_type(players: Sequence[Player]) -> GameComposition:
-    """Analyze the composition of an RTS game based on the player list.
-
-    Back-compat entry point for callers holding the older ``(team, type)``
-    shape; prefer building a ``MatchRoster`` and calling ``.composition()``.
-    Callers of this form have already dropped observers upstream (via
-    ``utils.is_competitor``), so every slot here is treated as a competitor.
-    """
-    return MatchRoster(
-        RosterSlot(
-            name="",
-            color="",
-            team=p.team,
-            general=-1,
-            role=PlayerRole.CPU if p.type == "C" else PlayerRole.HUMAN,
-        )
-        for p in players
-    ).composition()
 
 
 def _composition_from_roster(roster: MatchRoster) -> GameComposition:
@@ -357,13 +418,6 @@ def _composition_from_roster(roster: MatchRoster) -> GameComposition:
         category = "FFA"
 
     return create_composition(category, is_comp_stomp, category == "FFA", team_sizes)
-
-
-class PlayerAdapter(NamedTuple):
-    """Adapt any player-like data to the Player protocol."""
-
-    team: int
-    type: str | None
 
 
 def compute_match_composition(players: Sequence[MatchPlayer]) -> GameComposition:
