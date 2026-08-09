@@ -6,6 +6,7 @@ single DB engine + sessionmaker created at import time.
 
 import asyncio
 from collections.abc import Generator
+from enum import StrEnum
 import secrets
 import structlog
 import os
@@ -14,7 +15,7 @@ from fastapi import Depends, HTTPException, Request, Response, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
-from . import db
+from . import db, player_ids
 from .db_utils import DatabaseManager, ReplayManager
 from .notify import notify_async
 from .repositories import BracketPredictionRepo, BracketRepo, MapVoteRepo, UserRepo
@@ -37,8 +38,39 @@ SESSION_SECRET: str = _session_secret
 # Where to send the browser after a successful Discord login (the SPA root).
 FRONTEND_URL = os.getenv("FRONTEND_URL", "/")
 
-API_KEYS_READ = set(filter(None, os.getenv("API_KEY_READ", "").split(",")))
-API_KEYS_WRITE = set(filter(None, os.getenv("API_KEY_WRITE", "").split(",")))
+
+class AccessTier(StrEnum):
+    """What an ``X-API-Key`` entitles its holder to.
+
+    Two tiers, not read/write: the split is *privilege*, not HTTP method.
+    ``NORMAL`` covers everything the app itself does, including mutations that
+    are part of normal play (uploading a replay). ``ADMIN`` covers operational
+    endpoints - reparses, backfills, overrides, deletes, cache clears - and is
+    opted into per route via ``Depends(require_admin_key)``.
+    """
+
+    NONE = "none"
+    NORMAL = "normal"
+    ADMIN = "admin"
+
+
+def _keys_from_env(name: str, legacy: str) -> set[str]:
+    """Read a comma-separated key list, falling back to the pre-rename var.
+
+    The tiers used to be API_KEY_READ/API_KEY_WRITE. An environment that only
+    sets the old names still authenticates (read->normal, write->admin) rather
+    than silently configuring *no* keys, which disables auth entirely.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        raw = os.getenv(legacy)
+        if raw:
+            logger.warning("using deprecated env var; rename it", old=legacy, new=name)
+    return set(filter(None, (raw or "").split(",")))
+
+
+API_KEYS_NORMAL = _keys_from_env("API_KEY_NORMAL", "API_KEY_READ")
+API_KEYS_ADMIN = _keys_from_env("API_KEY_ADMIN", "API_KEY_WRITE")
 ENFORCE_AUTH = os.getenv("ENFORCE_AUTH") is not None
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -46,58 +78,101 @@ _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 _background_tasks: set[asyncio.Task[None]] = set()
 
 
+def _keys_configured() -> bool:
+    return bool(API_KEYS_NORMAL or API_KEYS_ADMIN)
+
+
+def _resolve_tier(key: str | None) -> AccessTier:
+    """Map a presented key to its tier. An admin key also satisfies NORMAL."""
+    if key is not None and key in API_KEYS_ADMIN:
+        return AccessTier.ADMIN
+    if key is not None and key in API_KEYS_NORMAL:
+        return AccessTier.NORMAL
+    return AccessTier.NONE
+
+
+def _notify_unauthenticated(path: str) -> None:
+    task = asyncio.create_task(notify_async(f"Call to {path} not authenticated."))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+
 async def verify_api_key(
     request: Request,
     response: Response,
     key: str | None = Security(_api_key_header),
 ) -> None:
-    if not API_KEYS_READ and not API_KEYS_WRITE:
+    """Baseline gate: any valid key (normal or admin) may pass.
+
+    Applied to whole routers in main.py. It does not care about the HTTP
+    method - a route that needs more than this tags itself with
+    ``Depends(require_admin_key)``.
+    """
+    if not _keys_configured():
         return
-    if key in API_KEYS_WRITE:
-        access = "write"
-    elif key in API_KEYS_READ:
-        access = "read"
-    else:
-        access = "none"
-    response.headers["X-Auth-Valid"] = "true" if access != "none" else "false"
-    response.headers["X-Auth-Access"] = access
-    is_write_method = request.method not in ("GET", "HEAD", "OPTIONS")
+    tier = _resolve_tier(key)
+    response.headers["X-Auth-Valid"] = "true" if tier != AccessTier.NONE else "false"
+    response.headers["X-Auth-Access"] = tier.value
     if not ENFORCE_AUTH:
         logger.info(
             "auth not enforced",
             key_present=key is not None,
-            access=access,
+            access=tier.value,
             method=request.method,
             path=request.url.path,
         )
-        if access == "none":
-            task = asyncio.create_task(
-                notify_async(
-                    f"Call to {request.url.path} not authenticated. Check auth"
-                )
-            )
-            _background_tasks.add(task)
-            task.add_done_callback(_background_tasks.discard)
+        if tier == AccessTier.NONE:
+            _notify_unauthenticated(request.url.path)
         return
-    if access == "none":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    if is_write_method and access != "write":
+    if tier == AccessTier.NONE:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
-def has_write_access(key: str | None = Security(_api_key_header)) -> bool:
-    """True when the caller holds a write-tier API key.
+async def require_admin_key(
+    request: Request,
+    key: str | None = Security(_api_key_header),
+) -> None:
+    """Elevated gate: only an admin-tier key may pass.
 
-    For routes that are readable with the read tier but expose a write-tier-
-    only *option* (see routes/commentary.py's force_refresh, which forces a
-    billed LLM call). Mirrors verify_api_key's stances: no keys configured at
-    all, or auth not enforced, means everything is permitted.
+    Tag operational routes with ``dependencies=ADMIN_ONLY`` - reparse,
+    backfill, override, delete, recompute, and anything else that costs real
+    work or rewrites stored data. Layers on top of ``verify_api_key``
+    (which the router already carries); it repeats the tier check so it is
+    also correct on a router that isn't otherwise protected.
     """
-    if not API_KEYS_READ and not API_KEYS_WRITE:
+    if not _keys_configured():
+        return
+    tier = _resolve_tier(key)
+    if not ENFORCE_AUTH:
+        logger.info(
+            "admin auth not enforced",
+            key_present=key is not None,
+            access=tier.value,
+            method=request.method,
+            path=request.url.path,
+        )
+        return
+    if tier != AccessTier.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin API key required")
+
+
+# Tag for elevated routes: `@router.post(..., dependencies=ADMIN_ONLY)`.
+ADMIN_ONLY = [Depends(require_admin_key)]
+
+
+def has_admin_access(key: str | None = Security(_api_key_header)) -> bool:
+    """True when the caller holds an admin-tier API key.
+
+    For routes reachable at the normal tier that expose an admin-only *option*
+    (see routes/commentary.py's force_refresh, which forces a billed LLM
+    call). Mirrors the dependencies' stances: no keys configured at all, or
+    auth not enforced, means everything is permitted.
+    """
+    if not _keys_configured():
         return True
     if not ENFORCE_AUTH:
         return True
-    return key in API_KEYS_WRITE
+    return _resolve_tier(key) == AccessTier.ADMIN
 
 
 def get_db_session() -> Generator[Session]:
@@ -163,6 +238,39 @@ def require_current_user(
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
+
+
+def require_admin_login(
+    request: Request,
+    user: db.User | None = Depends(get_current_user),
+) -> None:
+    """Admin gate for routes a *browser* reaches: the caller must be logged in
+    as a ``player_ids.ADMIN_PLAYERS`` user.
+
+    Use this instead of ``require_admin_key`` when the action is driven from
+    the UI. The frontend ships a single API key to every visitor, so an
+    admin-tier key can't live there; the signed session cookie identifies an
+    actual person. Routes carrying this must be on a router included *without*
+    ``verify_api_key`` (the browser sends the cookie, not a key) - see
+    ``admin.session_router``.
+
+    An admin-tier API key is accepted too, so scripts and curl keep working;
+    that also means the gate is open in dev, where ``has_admin_access`` is
+    permissive because no keys are configured. The header is read off the
+    request rather than declared as a ``Security`` param on purpose - declaring
+    it would advertise APIKeyHeader as this route's security scheme in the
+    OpenAPI spec, when the credential callers actually send is the cookie.
+    """
+    if has_admin_access(request.headers.get("X-API-Key")):
+        return
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not player_ids.is_admin(user.player_name):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+# Tag for admin routes driven from the UI: `dependencies=ADMIN_LOGIN`.
+ADMIN_LOGIN = [Depends(require_admin_login)]
 
 
 def require_dev() -> None:

@@ -121,7 +121,9 @@ async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse
     return response
 
 
-# Routers - all API routes require an API key; static/index routes below do not.
+# Routers - all API routes require an API key (any tier); static/index routes
+# below do not. Individual routes that need the admin tier tag themselves with
+# `dependencies=ADMIN_ONLY` (see dependencies.require_admin_key).
 app.include_router(files.router, dependencies=PROTECTED)
 app.include_router(matches.router, dependencies=PROTECTED)
 app.include_router(players.router, dependencies=PROTECTED)
@@ -152,6 +154,11 @@ app.include_router(map_upload.router)
 # Bracket tournament - public reads, login+admin-gated writes (checked inside
 # the route handlers), so not behind the API key.
 app.include_router(bracket.router)
+
+# Admin actions the UI drives (reparse) - gated on a logged-in admin via
+# ADMIN_LOGIN rather than an API key, since the browser only ships a
+# normal-tier key. Not behind the API key for the same reason.
+app.include_router(admin.session_router)
 
 
 @app.get("/", include_in_schema=False)

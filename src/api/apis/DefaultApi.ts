@@ -3181,10 +3181,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/reparse/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
@@ -3198,7 +3194,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rerun the replay parser on this match.
+     * Rerun the replay parser on this match.  On the cookie-session router, not the API-key one: the DebugData page\'s reparse button drives this, and the key the browser ships is normal-tier by design. Authorization is the logged-in user being an admin.
      * Reparse
      */
     async reparseApiReparseMatchIdPostRaw(requestParameters: ReparseApiReparseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchInfo>> {
@@ -3209,7 +3205,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rerun the replay parser on this match.
+     * Rerun the replay parser on this match.  On the cookie-session router, not the API-key one: the DebugData page\'s reparse button drives this, and the key the browser ships is normal-tier by design. Authorization is the logged-in user being an admin.
      * Reparse
      */
     async reparseApiReparseMatchIdPost(requestParameters: ReparseApiReparseMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchInfo> {
