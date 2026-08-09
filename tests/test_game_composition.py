@@ -9,15 +9,30 @@ from collections.abc import Sequence
 
 from radarvan.game_composition import (
     GameComposition,
-    PlayerAdapter,
-    categorize_game_type,
+    MatchRoster,
+    RosterSlot,
     competitive_game_filter,
     to_camel,
 )
+from radarvan.player_role import PlayerRole
 
 
 def _categorize(players: Sequence[tuple[int, str]]) -> GameComposition:
-    return categorize_game_type([PlayerAdapter(team, ptype) for team, ptype in players])
+    """(team, "H"/"C") pairs -> composition, via the roster.
+
+    The old PlayerAdapter shape carried no notion of a spectator, so every
+    slot here is a competitor; observer cases live in test_player_role.
+    """
+    return MatchRoster(
+        RosterSlot(
+            name="",
+            color="",
+            team=team,
+            general=0,
+            role=PlayerRole.CPU if ptype == "C" else PlayerRole.HUMAN,
+        )
+        for team, ptype in players
+    ).composition()
 
 
 def test_to_camel_basic() -> None:

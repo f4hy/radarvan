@@ -20,7 +20,7 @@ from .api_types import MatchInfo, Player, Team
 from .cncstats_model.header import GeneralsHeader
 from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
-from .game_composition import GameComposition, categorize_game_type, PlayerAdapter
+from .game_composition import GameComposition, MatchRoster
 from .player_role import PlayerRole
 from .logging_config import configure_logging
 from dataclasses import dataclass
@@ -114,15 +114,7 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
             if replay.header and replay.header.metadata
             else None
         ) or []
-        real_players = [
-            # header team is raw/0-based; categorize_game_type expects the
-            # 1-based scheme (0 = no team/FFA), same conversion as
-            # utils.determine_team.
-            PlayerAdapter(team=int(utils.determine_team(p, None)), type=p.type)
-            for p in header_players
-            if utils.is_competitor(p)
-        ]
-        composition = categorize_game_type(real_players)
+        composition = MatchRoster.from_header_players(header_players).composition()
         if composition.is_ffa:
             return None
         return "No team won"

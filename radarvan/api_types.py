@@ -18,11 +18,12 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+import functools
 from datetime import datetime, date
 from enum import IntEnum
 from typing import Annotated, Literal
 from . import bracket as _bracket
-from .game_composition import GameComposition
+from .game_composition import GameComposition, MatchRoster
 from .player_role import PlayerRole, resolve_role
 from .player_ids import (
     is_admin as _is_admin_player,
@@ -122,18 +123,14 @@ class Player(BaseModel):
     role: PlayerRole | None = None
 
     def role_or_guess(self) -> PlayerRole:
-        """The recorded role, or a name-based guess for un-backfilled rows."""
+        """The recorded role, or a name-based guess for un-backfilled rows.
+
+        Prefer going through ``MatchInfo.roster()`` - this exists for the two
+        places that hold a lone Player with no match around it.
+        """
         return resolve_role(
             self.role, self.name, self.color, is_observer=self.team == Team.OBSERVER
         )
-
-    def is_real(self) -> bool:
-        """Return True if this is a real (non-observer, recognized) player."""
-        return self.team != Team.OBSERVER and self.general != General.UNRECOGNIZED
-
-    @property
-    def Type(self) -> Literal["H", "C"]:
-        return "C" if self.role_or_guess() == PlayerRole.CPU else "H"
 
     def __repr__(self) -> str:
         return f"{self.name}[{self.general.name} {'W' if self.won else 'L'}]"
@@ -156,11 +153,28 @@ class MatchInfo(BaseModel):
     composition: GameComposition | None = None
     is_dev: bool = False
 
+    @functools.cached_property
+    def _roster(self) -> MatchRoster:
+        # Cached because has_ai is a computed_field (so this runs on every
+        # serialization) and the stats modules re-derive the same match's
+        # roster several times per pass - map_summary alone asked ~5x per
+        # match. Safe to cache: MatchInfo is frozen and nothing mutates
+        # .players.
+        return MatchRoster.from_players(self.players)
+
+    def roster(self) -> MatchRoster:
+        """This match's players, partitioned by role.
+
+        **The** way to ask who observed, who played, and who was AI. Do not
+        write a bare `team`/name check at a call site - see CLAUDE.md.
+        """
+        return self._roster
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def has_ai(self) -> bool:
         """True if any player is a CPU/AI opponent (see player_role.PlayerRole)."""
-        return any(p.role_or_guess() == PlayerRole.CPU for p in self.players)
+        return self.roster().has_cpu
 
 
 class Matches(BaseModel):

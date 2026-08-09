@@ -65,9 +65,7 @@ def _prepare(games_in: list[MatchInfo]) -> _Prepared:
         if not game_composition.competitive_game_filter(g.composition):
             continue
         teams: dict[int, list[str]] = defaultdict(list)
-        for player in g.players:
-            if player.team <= 0:
-                continue
+        for player in g.roster().participants:
             name = player_ids.resolve_player_name(player.name, player.color)
             teams[player.team].append(name)
         if len(teams) != 2 or g.winning_team not in teams:
