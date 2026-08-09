@@ -77,7 +77,25 @@ def save_replay_if_missing(
     with log_time("saving replay", logger, path=replay_path):
         raw_data = fsspec.filesystem("http").read_bytes(replay_path)
         fs.write_bytes(save_path, raw_data)
-    replay_manager.register_replay(replay_path, save_path, compute_hash(raw_data))
+    file_hash = compute_hash(raw_data)
+    # `replay_files.file_hash` is uniquely constrained, but the same bytes do
+    # legitimately show up under more than one original_url: a replay uploaded
+    # via /api/upload_replay is later found on gentool, or gentool serves a
+    # byte-identical copy from a second player's directory. Registering the
+    # second URL with the same hash raises IntegrityError, which poisons the
+    # session and kills the rest of the scrape run - so leave the hash NULL on
+    # the duplicate (NULLs don't collide) and let the first row keep it.
+    duplicate = replay_manager.get_replay_by_hash(file_hash)
+    if duplicate is not None:
+        logger.info(
+            "replay bytes already registered under another url",
+            url=replay_path,
+            existing_url=duplicate.original_url,
+            file_hash=file_hash,
+        )
+        replay_manager.register_replay(replay_path, save_path, None)
+        return
+    replay_manager.register_replay(replay_path, save_path, file_hash)
 
 
 def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
