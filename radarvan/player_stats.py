@@ -11,7 +11,6 @@ from .api_types import (
     WinLoss,
 )
 from . import game_composition
-from .general_stats import CPU_NAMES
 from .matches import months_back_cutoff
 import structlog
 from .player_ids import PLAYER_NAMES, resolve_player_name
@@ -34,11 +33,13 @@ def _color_counts(
     all_time: defaultdict[str, Counter[str]] = defaultdict(Counter)
     recent: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for game in games:
-        for p in game.players:
-            if not p.is_real() or p.Type == "C":
+        # roster().humans is the whole CPU/observer filter - the old
+        # `name in CPU_NAMES` guard below was a second, weaker one.
+        for p in game.roster().humans:
+            if not p.has_known_general:
                 continue
             name = resolve_player_name(p.name, p.color)
-            if name not in PLAYER_NAMES or name in CPU_NAMES:
+            if name not in PLAYER_NAMES:
                 continue
             all_time[name][p.color] += 1
             if game.date >= recent_cutoff:
@@ -100,7 +101,9 @@ def get_player_stats(
         category = game.composition.category
         is_competitive = stats_game_filter(game)
 
-        for player in game.players:
+        # Observers are dropped up front: they were previously counted as
+        # having played the game in `player_counts`.
+        for player in game.roster().competitors:
             name = resolve_player_name(player.name, player.color)
             player_counts[name][category] += 1
 
@@ -117,12 +120,13 @@ def get_player_stats(
                     faction_stats=[],
                     over_time=[],
                 )
-            if not player.is_real():
+            if not player.has_known_general:
                 continue
+            general = General(player.general)
             if player.won:
-                player_wl[name].stats[player.general].wins += 1
+                player_wl[name].stats[general].wins += 1
             else:
-                player_wl[name].stats[player.general].losses += 1
+                player_wl[name].stats[general].losses += 1
 
     for name, stat in player_wl.items():
         counts = player_counts[name]

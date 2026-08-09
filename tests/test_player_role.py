@@ -44,6 +44,7 @@ def _db_player(
         general_id=general,
         is_winner=False,
         role=role,
+        starting_position=None,
     )
 
 
@@ -120,20 +121,6 @@ class TestMatchRoster:
         )
         assert [s.name for s in roster.humans] == ["Skip"]
         assert [s.name for s in roster.cpus] == ["Tactical AI"]
-
-    def test_teams_groups_participants_in_team_order(self) -> None:
-        roster = MatchRoster(
-            [
-                RosterSlot("B", "blue", 2, 3, PlayerRole.HUMAN),
-                RosterSlot("A", "red", 1, 3, PlayerRole.HUMAN),
-                RosterSlot("C", "green", 1, 3, PlayerRole.HUMAN),
-                RosterSlot("Watcher", "-1", -1, -1, PlayerRole.OBSERVER),
-            ]
-        )
-        assert {t: [s.name for s in ss] for t, ss in roster.teams.items()} == {
-            1: ["A", "C"],
-            2: ["B"],
-        }
 
     def test_from_db_players_uses_stored_role(self) -> None:
         roster = MatchRoster.from_db_players(

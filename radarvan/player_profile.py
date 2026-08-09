@@ -55,7 +55,7 @@ from .api_types import (
 )
 from .build_order import is_economy_unit
 from .db_utils import DatabaseManager
-from .player_ids import CPU_NAME_MAPPING, resolve_player_name
+from .player_ids import resolve_player_name
 from .player_synergy import PairSynergy
 from .replay_files import map_basename
 from .replay_helpers import clean_object_name
@@ -142,9 +142,9 @@ def _compute_profile_version() -> str:
 PROFILE_VERSION = _compute_profile_version()
 
 # Resolved names never profiled nor used as peer baselines.
-_NON_HUMAN_PLAYERS: frozenset[str] = (
-    frozenset(CPU_NAME_MAPPING.values()) | EXCLUDED_PLAYERS
-)
+# Only the deliberately-excluded *humans*: AI slots are already gone, dropped
+# by the roster partition (roster().humans / .human_participants).
+_NON_HUMAN_PLAYERS: frozenset[str] = EXCLUDED_PLAYERS
 
 # Deep stats need enough games for peer-normalized rates to mean anything.
 DEFAULT_MIN_PROFILE_GAMES = 60
@@ -312,13 +312,13 @@ def profile_data_from_details(
     become profile subjects or peer baselines.
     """
     by_raw_name: dict[str, tuple[str, General, bool]] = {}
-    for p in info.players:
-        if p.team <= 0 or p.general == General.UNRECOGNIZED:
+    for p in info.roster().human_participants:
+        if not p.has_known_general:
             continue
         resolved = resolve_player_name(p.name, p.color)
-        if resolved in _NON_HUMAN_PLAYERS or p.Type == "C":
+        if resolved in _NON_HUMAN_PLAYERS:
             continue
-        by_raw_name[p.name] = (resolved, p.general, p.won)
+        by_raw_name[p.name] = (resolved, General(p.general), p.won)
 
     apm_by_raw = {
         a.player_name: a.apm
@@ -1503,24 +1503,24 @@ def compute_live_profile(
     # record as it actually evolved; every other aggregate here is
     # order-independent so sorting doesn't change them.
     for game in sorted(games, key=lambda g: g.timestamp):
+        roster = game.roster()
         me = None
-        for p in game.players:
-            if p.team <= 0:
-                continue
+        for p in roster.participants:
             if resolve_player_name(p.name, p.color) == player:
                 me = p
                 break
-        # is_real matches the Player Stats page's W/L rule, so the profile
-        # record and per-general numbers agree with that page.
-        if me is None or not me.is_real():
+        # The known-general check matches the Player Stats page's W/L rule, so
+        # the profile record and per-general numbers agree with that page.
+        if me is None or not me.has_known_general:
             continue
 
+        my_general = General(me.general)
         wins += me.won
         losses += not me.won
-        wl = general_wl[me.general]
+        wl = general_wl[my_general]
         wl[0 if me.won else 1] += 1
         total_on_general = wl[0] + wl[1]
-        general_win_rate_points[me.general].append(
+        general_win_rate_points[my_general].append(
             GeneralWinRatePoint(
                 date=game.date,
                 game_number=total_on_general,
@@ -1534,11 +1534,11 @@ def compute_live_profile(
         mwl[0 if me.won else 1] += 1
         (win_durations if me.won else loss_durations).append(game.duration_minutes)
 
-        for p in game.players:
-            if p.team <= 0 or p is me:
+        for p in roster.human_participants:
+            if p is me:
                 continue
             other = resolve_player_name(p.name, p.color)
-            if other == player or other in _NON_HUMAN_PLAYERS or p.Type == "C":
+            if other == player or other in _NON_HUMAN_PLAYERS:
                 continue
             if p.team == me.team:
                 tg = teammate_games[other]
