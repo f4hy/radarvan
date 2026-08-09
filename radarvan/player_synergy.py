@@ -28,7 +28,6 @@ import structlog
 from cachetools import cached
 from openskill.models import PlackettLuce
 
-from . import player_ids
 from .api_types import MatchInfo
 from .player_rating import (
     NamedRating,
@@ -108,7 +107,6 @@ def _collect_rows(
     # Synergy is about human chemistry; drop any game with a CPU player so CPUs
     # never form pairs or main effects (PLAYER_NAMES includes CPU names, so the
     # rating filter alone doesn't exclude them).
-    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
     rows: list[_GameRow] = []
     for game in games:
         if not is_ratable_team_game(game):
@@ -117,7 +115,7 @@ def _collect_rows(
         if result is None:
             continue
         teams = result.teams
-        if any(name in known_computers for team in teams.values() for name in team):
+        if game.roster().has_cpu:
             continue
         if any(name not in rating_by_name for team in teams.values() for name in team):
             continue

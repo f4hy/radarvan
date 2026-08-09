@@ -199,13 +199,11 @@ def build_match_info(map_name: str, players: list[Player]) -> MatchInfo:
     The winner is a placeholder (the lowest team id) only so ``encode_match``
     accepts it; it does not affect the prediction.
     """
-    team_ids = sorted({p.team for p in players if p.team > 0})
+    roster = game_composition.MatchRoster.from_players(players)
+    team_ids = sorted({s.team for s in roster.participants})
     if len(team_ids) != 2:
         raise ValueError("prediction requires exactly two teams")
-    adapters = [
-        game_composition.PlayerAdapter(team=p.team, type=p.Type) for p in players
-    ]
-    composition = game_composition.categorize_game_type(adapters)
+    composition = roster.composition()
     now = datetime.now(UTC)
     return MatchInfo(
         id=0,

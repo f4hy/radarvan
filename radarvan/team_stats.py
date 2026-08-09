@@ -4,7 +4,6 @@ from collections import defaultdict
 from typing import NamedTuple
 from .api_types import MatchInfo, TeamRecord, TeamSizeGroup, TeamStatsResponse
 from . import game_composition
-from .general_stats import CPU_NAMES
 from .player_ids import resolve_player_name
 import structlog
 
@@ -35,12 +34,8 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
 
         # Group human players by team number
         teams: dict[int, list[PlayerResult]] = defaultdict(list)
-        for player in game.players:
-            if player.team <= 0:
-                continue
+        for player in game.roster().human_participants:
             name = resolve_player_name(player.name, player.color)
-            if name in CPU_NAMES:
-                continue
             teams[player.team].append(PlayerResult(name=name, won=player.won))
 
         if not teams:

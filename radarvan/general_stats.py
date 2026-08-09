@@ -18,8 +18,6 @@ import structlog
 logger = structlog.get_logger(__name__)
 
 
-CPU_NAMES = set(player_ids.CPU_NAME_MAPPING.values())
-
 # Prefix marking the persisted Statistic rows below as machine-only data for
 # get_generals_stats, not a leaderboard entry - routes/superlatives.py's
 # get_superlatives() filters rows with this prefix out of the public feed.
@@ -42,9 +40,9 @@ def general_value_stats(
     general_by_match: dict[int, dict[str, General]] = {}
     for g in games:
         general_by_match[g.id] = {
-            player_ids.resolve_player_name(p.name, p.color): p.general
-            for p in g.players
-            if p.is_real()
+            player_ids.resolve_player_name(p.name, p.color): General(p.general)
+            for p in g.roster().humans
+            if p.has_known_general
         }
     totals: dict[General, list[int]] = defaultdict(lambda: [0, 0])
     for d in details:
@@ -53,8 +51,8 @@ def general_value_stats(
             continue
         for ps in d.player_summary:
             resolved = player_ids.resolve_player_name(ps.name, ps.color)
-            if resolved in CPU_NAMES:
-                continue
+            # general_by_player is built from roster().humans, so an AI's name
+            # simply isn't in it - no separate CPU-name check needed.
             general = general_by_player.get(resolved)
             if general is None:
                 continue
@@ -92,26 +90,23 @@ def get_generals_stats(
             continue
         if not game_composition.competitive_game_filter(game.composition):
             continue
-        resolved = [
-            player_ids.resolve_player_name(p.name, p.color) for p in game.players
-        ]
-        if sum(1 for n in resolved if n in CPU_NAMES) > 1:
+        roster = game.roster()
+        if len(roster.cpus) > 1:
             continue
-        for player, name in zip(game.players, resolved, strict=True):
-            if player.general not in general_stats:
-                general_stats[player.general] = GeneralStat(
-                    general=player.general,
+        for player in roster.humans:
+            general = General(player.general)
+            if general not in general_stats:
+                general_stats[general] = GeneralStat(
+                    general=general,
                     stats=[],
                     total=WinLoss(wins=0, losses=0),
                 )
-            if not player.is_real():
-                continue
-            if name in CPU_NAMES:
+            if not player.has_known_general:
                 continue
             if player.won:
-                general_stats[player.general].total.wins += 1
+                general_stats[general].total.wins += 1
             else:
-                general_stats[player.general].total.losses += 1
+                general_stats[general].total.losses += 1
 
     filtered = [
         s
