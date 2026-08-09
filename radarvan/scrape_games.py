@@ -187,11 +187,22 @@ async def get_replay_urls(
         for paths in replay_paths:
             for p in paths:
                 if p not in existing_paths:
-                    # parse_replay is blocking (S3 + cncstats HTTP); keep it off
-                    # the event loop. Sequential, so the shared session is safe.
-                    await asyncio.to_thread(
-                        replay_files.parse_replay, p, replay_manager
-                    )
+                    try:
+                        # parse_replay is blocking (S3 + cncstats HTTP); keep it
+                        # off the event loop. Sequential, so the shared session
+                        # is safe.
+                        await asyncio.to_thread(
+                            replay_files.parse_replay, p, replay_manager
+                        )
+                    except Exception as e:
+                        # One unparseable replay must not abandon the rest of
+                        # the run. A failed flush leaves the session in a
+                        # rolled-back state, so every later statement would
+                        # raise PendingRollbackError without this rollback.
+                        logger.warning(
+                            "failed to parse scraped replay", path=p, error=repr(e)
+                        )
+                        replay_manager.session.rollback()
     return all_replay_paths
 
 
