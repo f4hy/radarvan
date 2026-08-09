@@ -53,6 +53,37 @@ def role_from_header(player_header: HeaderPlayer) -> PlayerRole:
     return PlayerRole.HUMAN
 
 
+def normalize_color(raw: str | None) -> str:
+    """SAGE colour string ("ColorMetallicGrey") -> colour key ("metallicgrey").
+
+    One owner on purpose: this key is what `resolve_player_name(name, color)`
+    disambiguates the shared "pc" alias on (purple->pcap, pink->Pancake), so
+    two spellings drifting apart silently mis-resolves players.
+    """
+    return (raw or "").lower().replace("color", "")
+
+
+def start_position_from_header(player_header: HeaderPlayer) -> int | None:
+    """Header start position is 0-based; everything downstream is 1-based."""
+    try:
+        return int(player_header.starting_position or "") + 1
+    except ValueError, TypeError:
+        return None
+
+
+def team_from_header(player_header: HeaderPlayer) -> int:
+    """The header slot's team in the 1-based scheme the rest of the code uses.
+
+    -1 spectator, 0 teamless, else the header's 0-based team + 1. Lives here
+    rather than in utils so game_composition can build a roster straight from
+    a replay header (utils imports api_types, which imports game_composition).
+    """
+    if role_from_header(player_header) == PlayerRole.OBSERVER:
+        return -1
+    team_num = int(player_header.team or "-1")
+    return 0 if team_num < 0 else team_num + 1
+
+
 def resolve_role(
     role: int | None, name: str, color: str = "", is_observer: bool = False
 ) -> PlayerRole:

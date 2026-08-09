@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from radarvan import player_ids
-from radarvan.api_types import General, MatchInfo, Player
+from radarvan.api_types import General, MatchInfo
+from radarvan.game_composition import RosterSlot
 
 from .map_features import N_MAP_FEATURES, normalize_map_name
 
@@ -148,14 +149,16 @@ class Vocab:
         )
 
 
-def resolved_real_players(match: MatchInfo) -> list[tuple[str, Player]]:
-    """(resolved_name, player) for real (team > 0) players in a match."""
-    out: list[tuple[str, Player]] = []
-    for p in match.players:
-        if p.team <= 0:
-            continue
-        out.append((player_ids.resolve_player_name(p.name, p.color), p))
-    return out
+def resolved_real_players(match: MatchInfo) -> list[tuple[str, RosterSlot]]:
+    """(resolved_name, slot) for every competitor on a real team.
+
+    Goes through MatchRoster so training and serving classify observers and AI
+    the same way the rest of the backend does - see CLAUDE.md.
+    """
+    return [
+        (player_ids.resolve_player_name(p.name, p.color), p)
+        for p in match.roster().participants
+    ]
 
 
 def build_vocab(

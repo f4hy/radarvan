@@ -61,11 +61,10 @@ class NamedRating:
 
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     r = model.rating(name=name)
-    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
     known_players = set(player_ids.PLAYER_NAME_MAPPING.values())
     if name in NON_COMPETITIVE:
         return NamedRating(name=name, mu=0.5, sigma=r.sigma / 2.0)
-    if name in known_computers:
+    if player_ids.is_cpu_name(name):
         return NamedRating(name=name, mu=r.mu, sigma=r.sigma / 2.0)
     if name in known_players:
         return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
@@ -157,7 +156,7 @@ def build_teams(game: MatchInfo) -> TeamBuildResult | None:
     """Return (teams, counts_increment) or None if game should be skipped."""
     teams: dict[int, list[str]] = defaultdict(list)
     counts: dict[str, int] = defaultdict(int)
-    actual_players = [p for p in game.players if p.team > 0]
+    actual_players = game.roster().participants
     logger.debug("processing game", game_id=game.id, players=game.players)
     for player in actual_players:
         name = player_ids.resolve_player_name(player.name, player.color)
@@ -193,8 +192,7 @@ def _update_ratings_for_game(
     surprize_uncertainty_add = _compute_surprise_uncertainty(score_values, prediction)
     logger.debug("rating game", teams=teams, uncertainty_add=surprize_uncertainty_add)
     new_ratings = model.rate(teams=pteams, scores=score_values)
-    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
-    has_cpu = any(name in known_computers for team in teams.values() for name in team)
+    has_cpu = game.roster().has_cpu
     # CPU games are noise as "upsets" (the rating model down-weights them); skip them.
     upset = (
         None
@@ -301,8 +299,7 @@ def _log_sorted_ratings(
 
 
 def include_rating(game_counts: dict[str, int], name: str, min_game_count: int) -> bool:
-    known_computers = set(player_ids.CPU_NAME_MAPPING.values())
-    if name in known_computers:
+    if player_ids.is_cpu_name(name):
         return True
     return game_counts.get(name, 0) > min_game_count
 
