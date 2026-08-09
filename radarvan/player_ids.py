@@ -1,9 +1,6 @@
 """Player identity helpers - the known-player ID/alias tables, ``resolve_player_name``
 for canonicalizing in-game aliases, and ``is_admin`` admin checks."""
 
-from collections.abc import Iterable
-from typing import Protocol
-
 PLAYERS = {
     "wild": "A1AF434A9790",
     "modus": "09BAC013F91C",
@@ -133,26 +130,3 @@ def resolve_player_name(name: str, color: str = "") -> str:
 def is_cpu_name(name: str, color: str = "") -> bool:
     """True if the resolved name is a known CPU/AI opponent (any CPU_NAME_MAPPING side)."""
     return resolve_player_name(name, color) in set(CPU_NAME_MAPPING.values())
-
-
-class _Player(Protocol):
-    @property
-    def team(self) -> int: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def color(self) -> str: ...
-
-
-def all_teams_have_group_player(players: Iterable[_Player]) -> bool:
-    """Return True if every team (team > 0) has at least one player from PLAYER_NAMES."""
-    teams: dict[int, bool] = {}
-    for p in players:
-        if p.team <= 0:
-            continue
-        name = resolve_player_name(p.name, p.color)
-        if p.team not in teams:
-            teams[p.team] = False
-        if name in PLAYER_NAMES:
-            teams[p.team] = True
-    return bool(teams) and all(teams.values())

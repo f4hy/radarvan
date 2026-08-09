@@ -118,9 +118,7 @@ def openskill_probs(
     labels: list[int] = []
     for m in dev:
         teams: dict[int, list[str]] = {}
-        for p in m.players:
-            if p.team <= 0:
-                continue
+        for p in m.roster().participants:
             teams.setdefault(p.team, []).append(
                 player_ids.resolve_player_name(p.name, p.color)
             )

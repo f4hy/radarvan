@@ -14,7 +14,7 @@ from .cncstats_model.header import Player
 from .db_utils import ReplayManager
 import structlog
 from . import utils
-from .game_composition import categorize_game_type, PlayerAdapter
+from .game_composition import MatchRoster
 
 logger = structlog.get_logger(__name__)
 
@@ -50,16 +50,7 @@ def parse_replay_data(
     validated = EnhancedReplayV2.model_validate(response.json())
     header_metadata = validated.header.metadata if validated.header else None
     header_players_raw = (header_metadata.players if header_metadata else None) or []
-    players = [
-        # header team is raw/0-based; categorize_game_type expects the
-        # 1-based scheme (0 = no team/FFA) - same conversion as matches.py's
-        # winner check. Feeding the raw value in reads a 2v2's "team 0" side
-        # as teamless and mistakes the other two for a 1v1.
-        PlayerAdapter(team=int(utils.determine_team(p, None)), type=p.type)
-        for p in header_players_raw
-        if utils.is_competitor(p)
-    ]
-    composition = categorize_game_type(players)
+    composition = MatchRoster.from_header_players(header_players_raw).composition()
     if composition.is_1v1 and header_metadata is not None:
         header_metadata.players = reassign_1v1_teams(header_metadata.players or [])
         logger.info("reassigned teams for 1v1", players=header_metadata.players)

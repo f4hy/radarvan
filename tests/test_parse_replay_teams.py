@@ -8,7 +8,7 @@ see ``utils.is_observer`` / ``utils.is_competitor``.
 
 from radarvan.api_types import Team
 from radarvan.cncstats_model.header import Player
-from radarvan.game_composition import PlayerAdapter, categorize_game_type
+from radarvan.game_composition import MatchRoster
 from radarvan.parse_replay import reassign_1v1_teams
 from radarvan.utils import determine_team, is_competitor, is_observer
 
@@ -16,8 +16,15 @@ from radarvan.utils import determine_team, is_competitor, is_observer
 def _player(
     name: str, player_template: str, ptype: str = "H", team: str = "-1"
 ) -> Player:
+    # color is set because MatchRoster.from_header_players reads it;
+    # model_construct skips validation, so unset fields simply don't exist.
     return Player.model_construct(
-        name=name, team=team, type=ptype, player_template=player_template
+        name=name,
+        team=team,
+        type=ptype,
+        player_template=player_template,
+        color="ColorRed",
+        starting_position="0",
     )
 
 
@@ -77,13 +84,7 @@ def test_is_competitor_covers_humans_cpus_and_spectators() -> None:
 
 def _composition_as_parse_replay_sees_it(players: list[Player]):
     """Mirror parse_replay_data's 1v1 pre-check."""
-    return categorize_game_type(
-        [
-            PlayerAdapter(team=int(determine_team(p, None)), type=p.type)
-            for p in players
-            if is_competitor(p)
-        ]
-    )
+    return MatchRoster.from_header_players(players).composition()
 
 
 def test_team_games_are_not_mistaken_for_1v1() -> None:
