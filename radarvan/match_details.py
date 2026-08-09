@@ -27,7 +27,6 @@ from .api_types import (
     MatchDetails,
     ObjectSummary as APIObjectSummary,
     PlayerSummary as APIPlayerSummary,
-    Team,
     UpgradeEvent,
     Upgrades,
 )
@@ -41,6 +40,7 @@ from .stats_extraction import (
     stats_data_from_replay,
 )
 from .timeline_events import timeline_events_from_replay
+from .game_composition import MatchRoster
 from .utils import minutes_per_step
 import structlog
 
@@ -60,7 +60,10 @@ logger = structlog.get_logger(__name__)
 # v5: money/money_earned/money_spent time series drop rows identical to the
 # previous kept row (stats_extraction._drop_redundant_consecutive) - same
 # data, fewer wire entries.
-_DETAILS_LOGIC_VERSION = 5
+# v6: player_summary excludes spectators. The old `s.team == Team.OBSERVER`
+# test only caught the few whose summary team was -1, so cached rows carry
+# observer entries with empty stats.
+_DETAILS_LOGIC_VERSION = 6
 
 
 def _compute_details_version() -> str:
@@ -127,9 +130,21 @@ def api_player_summaries(
     buildings_lost: dict[str, dict[str, APIObjectSummary]] | None = None,
 ) -> list[APIPlayerSummary]:
     color_map = {p.name: p.color for p in replay.header.metadata.players}
+    # Classify from the header, the same authority every other observer check
+    # uses - the summary's own team field carries 0 for most spectators, so a
+    # Team.OBSERVER test here silently let them through. Matched by name
+    # because summary order is not header order (see CLAUDE.md); spectator
+    # header slots always carry a name, unlike AI slots.
+    observer_names = {
+        s.name
+        for s in MatchRoster.from_header_players(
+            replay.header.metadata.players
+        ).observers
+        if s.name
+    }
     player_summaries: list[APIPlayerSummary] = []
     for s in replay.summary:
-        if s.team == Team.OBSERVER:
+        if s.name in observer_names:
             continue
         color = (color_map.get(s.name, "") or "black").lower().replace("color", "")
         academy = (

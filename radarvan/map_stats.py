@@ -55,13 +55,11 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
         map_name = map_basename(game.map)
         map_games[map_name] += 1
 
-        for player in game.players:
-            if player.team == Team.OBSERVER:
-                continue
+        for player in game.roster().participants:
             name = resolve_player_name(player.name, player.color)
             idx = 0 if player.won else 1
             player_wl[map_name][name][idx] += 1
-            general_wl[map_name][player.general.value][idx] += 1
+            general_wl[map_name][player.general][idx] += 1
 
     maps = []
     for map_name, total in sorted(map_games.items(), key=lambda x: -x[1]):
@@ -145,16 +143,15 @@ def map_summary(
     min_min = on_map_sorted[0].duration_minutes
     max_min = min_min
     for g in on_map_sorted:
-        for p in g.players:
-            if p.team == Team.OBSERVER:
-                continue
+        for p in g.roster().participants:
             idx = 0 if p.won else 1
-            if p.general in request_generals:
-                gen_wl[p.general][idx] += 1
+            general = General(p.general)
+            if general in request_generals:
+                gen_wl[general][idx] += 1
             name = resolve_player_name(p.name, p.color)
             if name in request_names:
                 player_wl[name][idx] += 1
-                pg_wl[(name, p.general)][idx] += 1
+                pg_wl[(name, general)][idx] += 1
                 player_results_desc[name].append(p.won)
         d = g.duration_minutes
         total_min += d
@@ -198,9 +195,7 @@ def map_summary(
     for g in games_sorted_desc:
         if g.incomplete or g.winning_team < 1:
             continue
-        for p in g.players:
-            if p.team == Team.OBSERVER:
-                continue
+        for p in g.roster().participants:
             name = resolve_player_name(p.name, p.color)
             if name in request_names and p.general == player_general[name]:
                 general_results_desc[name].append(p.won)
@@ -252,10 +247,8 @@ def _player_general_records(
     for g in games:
         if g.incomplete or g.winning_team < 1:
             continue
-        for mp in g.players:
-            if mp.team == Team.OBSERVER:
-                continue
-            key = (resolve_player_name(mp.name, mp.color), mp.general)
+        for mp in g.roster().participants:
+            key = (resolve_player_name(mp.name, mp.color), General(mp.general))
             if key in wanted:
                 wl[key][0 if mp.won else 1] += 1
     return [
@@ -297,11 +290,11 @@ def _team_h2h(
     t2_wins = 0
     for g in on_map:
         match_teams: dict[Team, set[tuple[str, ...]]] = defaultdict(set)
-        for mp in g.players:
-            if mp.team == Team.OBSERVER:
-                continue
+        for mp in g.roster().participants:
             resolved = resolve_player_name(mp.name, mp.color)
-            match_teams[mp.team].add(_player_key(resolved, mp.general, with_general))
+            match_teams[Team(mp.team)].add(
+                _player_key(resolved, General(mp.general), with_general)
+            )
         by_set = {frozenset(s): tid for tid, s in match_teams.items()}
         a_id = by_set.get(t1_set)
         b_id = by_set.get(t2_set)

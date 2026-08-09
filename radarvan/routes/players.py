@@ -167,9 +167,7 @@ def get_player_ratings(
 
     player_results: dict[str, list[bool]] = defaultdict(list)
     for game in sorted(game_list, key=lambda g: g.timestamp):
-        for p in game.players:
-            if p.team <= 0:
-                continue
+        for p in game.roster().participants:
             player_results[player_ids.resolve_player_name(p.name, p.color)].append(
                 p.won
             )
@@ -337,9 +335,7 @@ def get_head_to_head(
 
     for game in game_list:
         teams: dict[int, list[tuple[str, bool]]] = defaultdict(list)
-        for p in game.players:
-            if p.team <= 0:
-                continue
+        for p in game.roster().participants:
             name = player_ids.resolve_player_name(p.name, p.color)
             if name not in rated_players:
                 continue

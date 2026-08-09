@@ -27,8 +27,6 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-CPU_NAMES = set(player_ids.CPU_NAME_MAPPING.values())
-
 # Minimum FFA games before a player appears on the leaderboard.
 MIN_PLAYER_GAMES = 8
 # Minimum FFA games on a map before it shows up in the map breakdown.
@@ -79,14 +77,14 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
         if not is_ffa_game(game):
             continue
 
-        # Resolve aliases and drop any stray CPU/observer slots before counting.
+        # roster().humans drops observers and AI in one go. Deliberately not
+        # `human_participants`: an FFA's slots are often all teamless (team 0),
+        # so requiring a team here would empty the field.
         entries = []
-        for player in game.players:
-            if not player.is_real():
+        for player in game.roster().humans:
+            if not player.has_known_general:
                 continue
             name = player_ids.resolve_player_name(player.name, player.color)
-            if name in CPU_NAMES:
-                continue
             entries.append((player, name))
 
         n = len(entries)
@@ -100,13 +98,14 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
         expected_per_player = 1.0 / n
 
         for player, name in entries:
+            general = General(player.general)
             player_games[name] += 1
             player_expected[name] += expected_per_player
-            gen_games[player.general] += 1
+            gen_games[general] += 1
 
             if player.won:
                 player_wins[name] += 1
-                gen_wins[player.general] += 1
+                gen_wins[general] += 1
 
         if most_recent_timestamp is None or game.timestamp > most_recent_timestamp:
             winner_name = next((name for p, name in entries if p.won), None)

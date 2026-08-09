@@ -109,8 +109,7 @@ def compute_head_to_head(
         # Resolve every roster name once, then reuse for lookup and team lists.
         roster = [
             (p, player_ids.resolve_player_name(p.name, p.color))
-            for p in game.players
-            if p.team > 0
+            for p in game.roster().participants
         ]
         p1p = next((p for p, name in roster if name == player1), None)
         p2p = next((p for p, name in roster if name == player2), None)
@@ -129,8 +128,8 @@ def compute_head_to_head(
             p1_wins += 1
         else:
             p2_wins += 1
-        p1_by_general[p1p.general][0 if p1_won else 1] += 1
-        p2_by_general[p2p.general][1 if p1_won else 0] += 1
+        p1_by_general[General(p1p.general)][0 if p1_won else 1] += 1
+        p2_by_general[General(p2p.general)][1 if p1_won else 0] += 1
         by_map[game.map][0 if p1_won else 1] += 1
         p1d, p2d = value_by_match.get(game.id, (0, 0))
         p1_value_destroyed += p1d

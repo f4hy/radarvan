@@ -9,7 +9,13 @@ from cachetools import cached
 from .api_types import Player, General, Team
 from .cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
 from .cncstats_model.header import Player as HeaderPlayer
-from .player_role import PlayerRole, role_from_header
+from .player_role import (
+    PlayerRole,
+    normalize_color,
+    role_from_header,
+    start_position_from_header,
+    team_from_header,
+)
 import structlog
 import time
 import functools
@@ -182,15 +188,7 @@ def is_competitor(player_header: HeaderPlayer) -> bool:
 def determine_team(
     player_header: HeaderPlayer, player_summary: PlayerSummaryV2 | None
 ) -> Team:
-    # Spectator slots are type "H" with a teamless team field, so without the
-    # observer check they fall through to Team.NONE and render as "Unknown
-    # Team" instead of "Observers".
-    if is_observer(player_header):
-        return Team(Team.OBSERVER)
-    team_num = int(player_header.team or "-1")
-    if team_num < 0:
-        return Team(Team.NONE)
-    return Team(team_num + 1)
+    return Team(team_from_header(player_header))
 
 
 def determine_general(
@@ -211,15 +209,11 @@ def players_from_replay(replay: EnhancedReplayV2) -> list[Player]:
         else None
     ) or []
     for i, p in enumerate(header_players):
-        color = (p.color or "").lower().replace("color", "")
+        color = normalize_color(p.color)
         summary = summaries_by_name.get(p.name) or summaries_by_index.get(i)
         team = determine_team(p, player_summary=summary)
         faction = determine_general(p, player_summary=summary)
-        try:
-            # indexed from 0 in the replay
-            starting_position = int(p.starting_position or "") + 1
-        except ValueError, TypeError:
-            starting_position = None
+        starting_position = start_position_from_header(p)
         players.append(
             Player(
                 name=p.name or (summary.name if summary else "") or "CPU",
