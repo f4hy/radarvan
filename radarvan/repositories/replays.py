@@ -95,8 +95,15 @@ class ReplayRepo(BaseRepo):
             select(ReplayFile).where(ReplayFile.file_hash == file_hash)
         )
 
-    def register_replay(self, from_url: str, s3_uri: str, file_hash: str) -> ReplayFile:
-        """Register a new replay scraped from a known source URL."""
+    def register_replay(
+        self, from_url: str, s3_uri: str, file_hash: str | None
+    ) -> ReplayFile:
+        """Register a new replay scraped from a known source URL.
+
+        ``file_hash`` is None when these exact bytes are already registered
+        under a different URL - the column is uniquely constrained, so only the
+        first row to claim a hash may carry it (see ``save_replay_if_missing``).
+        """
         logger.info("registering replay", from_url=from_url, s3_uri=s3_uri)
         prefix2 = "https://generals-public.s3.us-east-2.amazonaws.com/reps/"
         if prefix2 in from_url:
