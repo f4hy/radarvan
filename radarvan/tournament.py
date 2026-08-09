@@ -7,7 +7,7 @@ import structlog
 from itertools import combinations
 from .player_ids import resolve_player_name
 from datetime import UTC, date, datetime
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from collections import defaultdict
 from .api_types import (
     MatchDetails,
@@ -77,10 +77,10 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
         return None
     gamedate = match_info.timestamp.date()
     team_map: defaultdict[Team, set[str]] = defaultdict(set)
-    for p in match_info.players:
-        if not p.is_real():
+    for p in match_info.roster().participants:
+        if not p.has_known_general:
             continue
-        team_map[p.team].add(resolve_player_name(p.name, p.color))
+        team_map[Team(p.team)].add(resolve_player_name(p.name, p.color))
 
     teams = {sorted_tuple(list(t)) for t in team_map.values()}
 
@@ -147,12 +147,13 @@ def create_tournament_results(
         for match in matches:
             # Group players by team
             teams_in_match: dict[Team, set[str]] = {}
-            for player in match.players:
-                if not player.is_real():
+            for player in match.roster().participants:
+                if not player.has_known_general:
                     continue
-                if player.team not in teams_in_match:
-                    teams_in_match[player.team] = set()
-                teams_in_match[player.team].add(
+                team_id = Team(player.team)
+                if team_id not in teams_in_match:
+                    teams_in_match[team_id] = set()
+                teams_in_match[team_id].add(
                     resolve_player_name(player.name, player.color)
                 )
 
@@ -181,13 +182,14 @@ def create_tournament_results(
             for match in matchup_matches:
                 teams_in_match = {}
                 player_won: dict[str, bool] = {}
-                for player in match.players:
-                    if not player.is_real():
+                for player in match.roster().participants:
+                    if not player.has_known_general:
                         continue
-                    if player.team not in teams_in_match:
-                        teams_in_match[player.team] = set()
+                    team_id = Team(player.team)
+                    if team_id not in teams_in_match:
+                        teams_in_match[team_id] = set()
                     name = resolve_player_name(player.name, player.color)
-                    teams_in_match[player.team].add(name)
+                    teams_in_match[team_id].add(name)
                     player_won[name] = player.won
 
                 for player_set in teams_in_match.values():
@@ -313,10 +315,17 @@ def highest_ave_apm(matches: list[MatchDetails], computed_at: date) -> Statistic
 def faction_stats(matches: list[MatchInfo], computed_at: date) -> list[Statistic]:
     all_zeros = Counter({General(i): 0 for i in range(12)})
     generals_played = (
-        Counter(p.general for m in matches for p in m.players if p.team > 0) + all_zeros
+        Counter(General(p.general) for m in matches for p in m.roster().participants)
+        + all_zeros
     )
     generals_won = (
-        Counter(p.general for m in matches for p in m.players if p.won) + all_zeros
+        Counter(
+            General(p.general)
+            for m in matches
+            for p in m.roster().participants
+            if p.won
+        )
+        + all_zeros
     )
 
     most_played, most_count = generals_played.most_common(1)[0]
@@ -484,38 +493,32 @@ def min_max_stats(matches: list[MatchDetails], computed_at: date) -> list[Statis
     return stats
 
 
-def fastest_win(matches: list[MatchInfo], computed_at: date) -> Statistic:
-    fastest = min((m for m in matches), key=lambda x: x.duration_minutes)
-    winners = [resolve_player_name(p.name, p.color) for p in fastest.players if p.won]
-    losers = [
-        resolve_player_name(p.name, p.color)
-        for p in fastest.players
-        if not p.won and p.team > 0
-    ]
+def _duration_extreme(
+    matches: list[MatchInfo],
+    computed_at: date,
+    pick: Callable[..., MatchInfo],
+    stat_name: str,
+) -> Statistic:
+    """The match with the min/max duration, rendered as a ✅winners vs losers❌ line."""
+    match = pick(matches, key=lambda m: m.duration_minutes)
+    participants = match.roster().participants
+    winners = [resolve_player_name(p.name, p.color) for p in participants if p.won]
+    losers = [resolve_player_name(p.name, p.color) for p in participants if not p.won]
     return Statistic(
-        stat_name="Fastest win",
-        value=f"{fastest.duration_minutes:.1f}m",
+        stat_name=stat_name,
+        value=f"{match.duration_minutes:.1f}m",
         player="✅" + "+".join(winners) + " vs " + "+".join(losers) + "❌",
-        match_id=fastest.id,
+        match_id=match.id,
         date_computed=computed_at,
     )
+
+
+def fastest_win(matches: list[MatchInfo], computed_at: date) -> Statistic:
+    return _duration_extreme(matches, computed_at, min, "Fastest win")
 
 
 def slowest_win(matches: list[MatchInfo], computed_at: date) -> Statistic:
-    slowest = max((m for m in matches), key=lambda x: x.duration_minutes)
-    winners = [resolve_player_name(p.name, p.color) for p in slowest.players if p.won]
-    losers = [
-        resolve_player_name(p.name, p.color)
-        for p in slowest.players
-        if not p.won and p.team > 0
-    ]
-    return Statistic(
-        stat_name="Slowest win",
-        value=f"{slowest.duration_minutes:.1f}m",
-        player="✅" + "+".join(winners) + " vs " + "+".join(losers) + "❌",
-        match_id=slowest.id,
-        date_computed=computed_at,
-    )
+    return _duration_extreme(matches, computed_at, max, "Slowest win")
 
 
 def group_by_team(
@@ -525,7 +528,7 @@ def group_by_team(
     grouped: dict[tuple[str, ...], list[MatchInfo]] = defaultdict(list)
     for m in matches:
         player_names = {
-            resolve_player_name(p.name, p.color) for p in m.players if p.team > 0
+            resolve_player_name(p.name, p.color) for p in m.roster().participants
         }
         for team in teams:
             if set(team).issubset(player_names):

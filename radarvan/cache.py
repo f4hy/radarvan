@@ -14,7 +14,7 @@ import threading
 
 from cachetools import LRUCache, TTLCache, cached
 
-from . import game_composition, matches, player_ids, player_rating
+from . import game_composition, matches, player_rating
 from .api_types import MatchInfo, MatchDetails
 from .db_utils import ReplayManager
 from . import match_details
@@ -111,7 +111,7 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
         # pass the composition filter and pollute stats/ratings/upsets).
         if not m.incomplete
         and game_composition.competitive_game_filter(comp=m.composition)
-        and player_ids.all_teams_have_group_player(m.players)
+        and m.roster().all_teams_have_group_player()
     }
 
 
