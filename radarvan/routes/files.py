@@ -26,7 +26,7 @@ from ..api_types import (
 )
 from ..cache import invalidate_match_caches
 from ..db_utils import ReplayManager
-from ..dependencies import get_replay_manager
+from ..dependencies import ADMIN_ONLY, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
@@ -175,7 +175,7 @@ def upload_replay(
     return match_info
 
 
-@router.post("/api/register_replay_url")
+@router.post("/api/register_replay_url", dependencies=ADMIN_ONLY)
 def register_replay_url(
     url_of_replay: str,
     replay_manager: ReplayManager = Depends(get_replay_manager),
