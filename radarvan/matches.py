@@ -90,13 +90,105 @@ def _every_multi_member_team_has_a_survivor(head: GeneralsHeader) -> bool:
     )
 
 
+def _first_desync_frame(replay: EnhancedReplayV2) -> int | None:
+    """Frame of the first checksum round the clients disagreed on.
+
+    Every client stamps its own simulation checksum into the command stream
+    each `crcInterval` frames, so the first round whose values disagree is
+    where the simulations parted. None when the replay carries no checksum
+    orders - newer cncstats output can ship an empty body (see `apm.py`) - in
+    which case there is no way to place the divergence in time.
+    """
+    rounds: dict[int, set[object]] = {}
+    for chunk in replay.body:
+        if chunk.order_name != "Checksum" or not chunk.arguments:
+            continue
+        rounds.setdefault(chunk.time_code, set()).add(chunk.arguments[0])
+    disagreed = [frame for frame, values in rounds.items() if len(values) > 1]
+    return min(disagreed) if disagreed else None
+
+
+def _game_decided_frame(replay: EnhancedReplayV2) -> int | None:
+    """Frame at which one side lost its last player, or None if none did.
+
+    `stats.deathEvents` covers surrenders as well as eliminations - the engine
+    emits one either way - so "every team but one has a death event for every
+    member" is the same condition the game itself ends on.
+
+    cncstats can report a competitor in `stats` that the header never
+    described (a lobby AI written into the header's `S=` slot string as an
+    empty token), and there is no way here to tell whose side such a slot was
+    on. Both directions are handled conservatively: one still alive means the
+    game may not have been decided at all, so we decline; one that died pushes
+    the decision point out to its death, since it may have been the losing
+    side's last player. In 603038953 an unlisted AI outlived its three human
+    teammates by 39 seconds, which is exactly that second case.
+    """
+    stats = replay.stats
+    if stats is None:
+        return None
+    members: dict[int, list[int]] = {}
+    for player in replay.summary or []:
+        if player.team > 0:
+            members.setdefault(player.team, []).append(player.index)
+    if len(members) < 2:
+        return None
+    death_frame = {death.player: death.frame for death in stats.death_events}
+
+    listed = {player.index for player in replay.summary or []}
+    unlisted = {
+        build.player
+        for build in stats.build_events
+        if build.player > 0 and build.player not in listed
+    }
+    if unlisted - set(death_frame):
+        return None
+
+    wiped = {
+        team: max(death_frame[index] for index in indices)
+        for team, indices in members.items()
+        if all(index in death_frame for index in indices)
+    }
+    if len(wiped) != len(members) - 1:
+        return None
+    return max([*wiped.values(), *(death_frame[index] for index in unlisted)])
+
+
+def _desync_after_the_result(replay: EnhancedReplayV2) -> bool:
+    """True if the mismatch only happened once a side had already lost.
+
+    A mid-game desync invalidates a match: from the divergence on the clients
+    were simulating different games, so nothing recorded after it can be
+    trusted. A desync *after* the last member of a team died changes nothing -
+    every client agreed on every checksum for the whole of the game that
+    decided the result. 603038953 is the case this exists for: three players
+    surrendered and their AI teammate was destroyed, and only two seconds
+    later - with both diverging clients already out of the game - did the
+    checksums split, 56 frames from the end of the replay.
+
+    Conservative when it cannot tell: no checksums in the body means no way to
+    date the divergence, so the match stays flagged.
+    """
+    desync_frame = _first_desync_frame(replay)
+    if desync_frame is None:
+        return False
+    decided_frame = _game_decided_frame(replay)
+    return decided_frame is not None and decided_frame < desync_frame
+
+
 def is_incomplete(replay: EnhancedReplayV2) -> str | None:
     head = replay.header
     if head is not None:
         if head.desync:
-            if we := replay.win_estimation:
+            if _desync_after_the_result(replay):
+                logger.info(
+                    "mismatch came after the result was already settled, keeping match",
+                    replay_id=replay.replay_id,
+                )
+            elif we := replay.win_estimation:
                 return f"Replay header Mismatch Estimated win {win_estimation_str(we)}"
-            return "Replay header Mismatch"
+            else:
+                return "Replay header Mismatch"
         if head.quit_early:
             return "Quit Early"
         if any(
