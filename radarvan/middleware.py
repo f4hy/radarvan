@@ -20,6 +20,20 @@ logger = structlog.get_logger(__name__)
 REQUEST_ID_HEADER = "X-Request-ID"
 CLIENT_ID_HEADER = "X-Client-Id"
 
+
+def client_key(request: Request) -> str:
+    """Best available identity for a caller: the first X-Forwarded-For hop
+    (Heroku sets it) falling back to the socket peer.
+
+    Shared by the rate limiter and the auth-rejection notices in
+    dependencies.py so "one client" means the same thing in both.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 # Rate-limit config (env-overridable). 0 disables the limiter entirely.
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "1200"))
 # Max random seconds added to the advertised Retry-After so a burst of throttled
@@ -93,20 +107,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.limit = limit_per_minute
         self.store: RateLimitStore = store or InMemoryRateLimitStore()
 
-    @staticmethod
-    def _client_key(request: Request) -> str:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.client.host if request.client else "unknown"
-
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         if self.limit <= 0 or not request.url.path.startswith("/api"):
             return await call_next(request)
 
-        key = self._client_key(request)
+        key = client_key(request)
         decision = self.store.check(key, self.limit, _WINDOW_SECONDS)
 
         if not decision.allowed:
