@@ -10,7 +10,7 @@ from .. import general_stats, player_rating, superlatives
 from ..api_types import Statistic
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, db_manager, get_replay_manager
+from ..dependencies import ADMIN_ONLY, cache_short, db_manager, get_replay_manager
 from ..notify import notify_async
 
 logger = structlog.get_logger(__name__)
@@ -102,7 +102,7 @@ async def _do_recompute_bg() -> None:
             session.commit()
 
 
-@router.post("/api/superlatives/recompute")
+@router.post("/api/superlatives/recompute", dependencies=ADMIN_ONLY)
 async def recompute_superlatives(
     background_tasks: BackgroundTasks,
 ) -> dict[str, str]:

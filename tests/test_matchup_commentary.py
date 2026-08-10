@@ -245,11 +245,11 @@ def test_route_400_on_unknown_round_name(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.parametrize("flag", ["bypass_cache", "force_refresh"])
-def test_route_403_when_forcing_regeneration_without_write_key(
+def test_route_403_when_forcing_regeneration_without_admin_key(
     monkeypatch: pytest.MonkeyPatch, flag: str
 ) -> None:
     """Both regenerate flags bill a fresh LLM call on every request, so a
-    read-tier caller must not be able to set them."""
+    normal-tier caller must not be able to set them."""
 
     def _boom(*args: object, **kwargs: object) -> str:
         raise AssertionError("generate_commentary should not be called")
@@ -263,14 +263,14 @@ def test_route_403_when_forcing_regeneration_without_write_key(
             "Alice",
             "Bob",
             "Winners Round 1",
-            write_access=False,
+            admin_access=False,
             replay_manager=cast(ReplayManager, _StubReplayManager(cached="cached")),
             **{flag: True},
         )
     assert exc_info.value.status_code == 403
 
 
-def test_route_force_refresh_regenerates_with_write_key(
+def test_route_force_refresh_regenerates_with_admin_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
@@ -286,7 +286,7 @@ def test_route_force_refresh_regenerates_with_write_key(
         "Bob",
         "Winners Round 1",
         force_refresh=True,
-        write_access=True,
+        admin_access=True,
         replay_manager=cast(ReplayManager, stub),
     )
     assert result.commentary == "**Fresh.**"
