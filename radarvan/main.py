@@ -10,13 +10,17 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import Depends, FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import Response
 
 from . import cncstats_client, middleware, replay_files, schedule
+from .auth_notify import notify_auth_event
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
 from .logging_config import configure_logging
@@ -105,6 +109,31 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(StarletteHTTPException)
+async def handle_http_exception(
+    request: Request, exc: StarletteHTTPException
+) -> Response:
+    """The app's handler for *every* HTTPException - 404s from the StaticFiles
+    mount included - which additionally reports 401/403 to the notify webhook.
+
+    Registering it replaces FastAPI's built-in handler wholesale, hence the
+    delegation to `http_exception_handler` rather than building a response
+    here. Anyone adding custom behaviour for another status should extend this
+    function: a second `@app.exception_handler(StarletteHTTPException)` would
+    silently replace it, taking the auth notices with it.
+
+    Catching auth rejections here is what makes the reporting total -
+    dependencies.verify_api_key / require_admin_key / require_current_user /
+    require_admin_login, routes/bracket._require_tournament_admin and any
+    future check all raise, so none of them has to remember to notify. The
+    flip side is the invariant it rests on: a gate must *raise* 401/403, never
+    return one as a plain Response, or the rejection goes unreported.
+    """
+    if exc.status_code in (401, 403):
+        notify_auth_event(request, exc.status_code, str(exc.detail))
+    return await http_exception_handler(request, exc)
+
+
 @app.exception_handler(Exception)
 async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("unhandled exception", exc_info=exc)
@@ -121,7 +150,9 @@ async def my_exception_handler(request: Request, exc: Exception) -> JSONResponse
     return response
 
 
-# Routers - all API routes require an API key; static/index routes below do not.
+# Routers - all API routes require an API key (any tier); static/index routes
+# below do not. Individual routes that need the admin tier tag themselves with
+# `dependencies=ADMIN_ONLY` (see dependencies.require_admin_key).
 app.include_router(files.router, dependencies=PROTECTED)
 app.include_router(matches.router, dependencies=PROTECTED)
 app.include_router(players.router, dependencies=PROTECTED)
@@ -152,6 +183,11 @@ app.include_router(map_upload.router)
 # Bracket tournament - public reads, login+admin-gated writes (checked inside
 # the route handlers), so not behind the API key.
 app.include_router(bracket.router)
+
+# Admin actions the UI drives (reparse) - gated on a logged-in admin via
+# ADMIN_LOGIN rather than an API key, since the browser only ships a
+# normal-tier key. Not behind the API key for the same reason.
+app.include_router(admin.session_router)
 
 
 @app.get("/", include_in_schema=False)
