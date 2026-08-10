@@ -9,7 +9,7 @@ from .. import match_details, tournament
 from ..api_types import TournamentReport, TournamentResult
 from ..cache import sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, db_manager, get_replay_manager
+from ..dependencies import ADMIN_ONLY, cache_short, db_manager, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
@@ -88,7 +88,9 @@ async def get_tournament_report(
     return existing
 
 
-@router.post("/api/generate_tournament_report/{tournament_name}")
+@router.post(
+    "/api/generate_tournament_report/{tournament_name}", dependencies=ADMIN_ONLY
+)
 async def generate_tournament_report(
     background_tasks: BackgroundTasks,
     tournament_name: str = "2025_2v2_tournament",
@@ -97,7 +99,7 @@ async def generate_tournament_report(
     return "OK"
 
 
-@router.post("/api/test_tournament_report/{tournament_name}")
+@router.post("/api/test_tournament_report/{tournament_name}", dependencies=ADMIN_ONLY)
 async def test_tournament_report(
     tournament_name: str = "2025_2v2_tournament",
 ) -> TournamentReport:

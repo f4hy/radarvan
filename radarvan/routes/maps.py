@@ -29,7 +29,13 @@ from ..api_types import (
 )
 from ..cache import competitive_matches, resolve_map_name_cached, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import IS_DEV, cache_short, get_replay_manager, require_dev
+from ..dependencies import (
+    ADMIN_ONLY,
+    IS_DEV,
+    cache_short,
+    get_replay_manager,
+    require_dev,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -102,7 +108,7 @@ def get_maps_by_player_count(
     return [MapsByPlayerCount(player_count=k, maps=v) for k, v in grouped.items()]
 
 
-@router.post("/api/map_data/{map_name}")
+@router.post("/api/map_data/{map_name}", dependencies=ADMIN_ONLY)
 def save_map_data(
     map_name: str,
     payload: MapDataPayload,
@@ -128,7 +134,7 @@ def get_map_data(
 @router.delete(
     "/api/map_data/{map_name}",
     include_in_schema=IS_DEV,
-    dependencies=[Depends(require_dev)],
+    dependencies=[*ADMIN_ONLY, Depends(require_dev)],
 )
 def delete_map_data(
     map_name: str,
@@ -165,7 +171,7 @@ def list_missing_maps_endpoint(
     ]
 
 
-@router.post("/api/fetch_map_for_match/{match_id}")
+@router.post("/api/fetch_map_for_match/{match_id}", dependencies=ADMIN_ONLY)
 def fetch_map_for_match(
     match_id: int,
     parse_map: bool = True,
@@ -192,7 +198,7 @@ def fetch_map_for_match(
     )
 
 
-@router.post("/api/backfill_map_crcs")
+@router.post("/api/backfill_map_crcs", dependencies=ADMIN_ONLY)
 def backfill_map_crcs(
     max_to_update: int = 50,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -240,7 +246,7 @@ def map_reparse_status(
     )
 
 
-@router.post("/api/reparse_maps", include_in_schema=IS_DEV)
+@router.post("/api/reparse_maps", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
 def reparse_maps(
     max_to_update: int = 20,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -316,7 +322,7 @@ def reparse_maps(
 _PUSH_CONCURRENCY = 8
 
 
-@router.post("/api/push_maps_to_cncstats")
+@router.post("/api/push_maps_to_cncstats", dependencies=ADMIN_ONLY)
 async def push_maps_to_cncstats(
     max_to_update: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
