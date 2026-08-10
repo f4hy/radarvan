@@ -8,7 +8,7 @@ caching exists - it always regenerates when called.
 
 ``bypass_cache``/``force_refresh`` skip the cache read and force a fresh LLM
 call; ``force_refresh`` then overwrites the cached row, ``bypass_cache``
-leaves it untouched. Both are write-tier-only - see the route docstring.
+leaves it untouched. Both are admin-tier-only - see the route docstring.
 """
 
 import structlog
@@ -22,7 +22,7 @@ from ..api_types import (
 )
 from ..commentary import matchup_commentary
 from ..db_utils import ReplayManager
-from ..dependencies import IS_DEV, get_replay_manager, has_write_access
+from ..dependencies import IS_DEV, get_replay_manager, has_admin_access
 
 logger = structlog.get_logger(__name__)
 
@@ -36,13 +36,13 @@ def get_matchup_commentary(
     round_name: str,
     bypass_cache: bool = False,
     force_refresh: bool = False,
-    write_access: bool = Depends(has_write_access),
+    admin_access: bool = Depends(has_admin_access),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchupCommentaryResponse:
     """Generate (or return the cached) pre-game hype commentary for a 1v1
     matchup.
 
-    A GET so the read-tier API key the browser ships with can reach it - the
+    A GET so the normal-tier API key the browser ships with can reach it - the
     bracket UI needs to show this to everyone, and a cache hit is free and
     instant. A cache *miss* still triggers a real, billed LLM call, so the
     two things that would make that spend unbounded are fenced off:
@@ -53,16 +53,16 @@ def get_matchup_commentary(
       caller could mint fresh keys forever. Player names are already bounded
       by ``PlayerName``'s alias resolution.
     - ``bypass_cache``/``force_refresh`` both skip the cache read and always
-      call the LLM, so they require the write-tier key. They differ in
+      call the LLM, so they require the admin-tier key. They differ in
       whether the result is then persisted: ``force_refresh`` overwrites the
       cached row, ``bypass_cache`` does not touch it. If both are set,
       ``bypass_cache`` wins (no write).
     """
     skip_cache_read = bypass_cache or force_refresh
-    if skip_cache_read and not write_access:
+    if skip_cache_read and not admin_access:
         raise HTTPException(
             status_code=403,
-            detail="bypass_cache/force_refresh require a write-tier API key",
+            detail="bypass_cache/force_refresh require an admin-tier API key",
         )
     if round_name not in bracket.known_round_names():
         raise HTTPException(status_code=400, detail=f"unknown round: {round_name}")

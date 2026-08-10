@@ -4054,7 +4054,7 @@ example().catch(console.error);
 
 Reparse
 
-Rerun the replay parser on this match.
+Rerun the replay parser on this match.  On the cookie-session router, not the API-key one: the DebugData page\&#39;s reparse button drives this, and the key the browser ships is normal-tier by design. Authorization is the logged-in user being an admin.
 
 ### Example
 
@@ -4067,11 +4067,7 @@ import type { ReparseApiReparseMatchIdPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number
@@ -4103,7 +4099,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
