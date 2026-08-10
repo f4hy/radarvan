@@ -39,7 +39,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 |---|---|
 | `DATABASE_URL` | Postgres (required; `postgres://` auto-rewritten to `postgresql://`) |
 | `DEV` | Set = dev mode: no scheduler, ops routes visible in OpenAPI |
-| `API_KEY_READ` / `API_KEY_WRITE` | Comma-separated keys for `X-API-Key`; `ENFORCE_AUTH` set = actually reject |
+| `API_KEY_NORMAL` / `API_KEY_ADMIN` | Comma-separated keys for `X-API-Key`, by privilege tier (admin implies normal); `ENFORCE_AUTH` set = actually reject. The old `API_KEY_READ`/`API_KEY_WRITE` names still work as a fallback |
 | `SESSION_SECRET` | Signs the session cookie (random per-process fallback in dev) |
 | `DISCORD_CLIENT_ID/SECRET`, `DISCORD_REDIRECT_URI` | Discord OAuth login (see `auth.md`) |
 | `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_VOICE_CHANNEL_ID` | Bot creds for syncing bracket match schedules to Discord Guild Scheduled Events (`discord_events.py`); all three required or it's a no-op |
@@ -59,7 +59,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 
 - **`main.py`** — app composition only: middleware order, router registration, lifespan (scheduler + cache warm), the single global exception handler, static serving. Route handlers live in **`routes/`** (admin, auth, bracket, draft, ffa, files, generals, map_upload, maps, matches, players, predict, superlatives, teams, tournaments, votes).
 - **`db.py`** — SQLAlchemy ORM models. **`repositories/`** — per-entity repos over a `Session` (`BaseRepo` gives `auto_commit`/`notify`). **`db_utils.py`** — `DatabaseManager` (engine + sessionmaker + `get_replay_manager()` ctx manager) and `ReplayManager`, a multiple-inheritance facade over the repos; new code should prefer the specific repo, the facade exists for legacy callers.
-- **`dependencies.py`** — DI singletons (`db_manager`, `IS_DEV`) and Depends providers: `get_db_session` (commit/rollback/close per request), `get_replay_manager`, `verify_api_key`, `get_current_user`/`require_current_user` (session cookie), `cache_short` (60s private cache header).
+- **`dependencies.py`** — DI singletons (`db_manager`, `IS_DEV`) and Depends providers: `get_db_session` (commit/rollback/close per request), `get_replay_manager`, `verify_api_key`/`require_admin_key` (+ the `ADMIN_ONLY` tag list), `get_current_user`/`require_current_user` (session cookie), `cache_short` (60s private cache header).
 - **`api_types.py`** — Pydantic models defining every REST request/response shape. **This is the canonical wire schema**; TS types are generated from the resulting OpenAPI spec. Includes `PlayerName` (alias-resolving annotated str) and the `General`/`Team`/`Faction` enums.
 - **`cncstats_model/zhreplay.py`** — `EnhancedReplayV2`, the parsed-replay shape from cncstats. This is the **only** replay type to import; `cncstats_types.py`/`cncstats_types_v2.py` are unused reference copies.
 - Ingestion: **`scrape_games.py`** (gentool scraping) → **`replay_files.py`** (S3 read/write, `parse_replay`/`parse_json`/`reparse_paths`/`upload_and_parse`, presigned URLs) → **`parse_replay.py`** (calls cncstats, 1v1 team reassignment, winner overrides) → **`matches.py`** (`match_from_replay`, `replay_to_db_match`, `match_to_matchinfo`, `register_matches`, `reparse_*`, `matches_differ`, `filter_by_format`/`filter_since`/`filter_by_months_back`).
@@ -73,8 +73,8 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 
 ### Auth model (three tiers)
 
-1. Most `/api` routers require `X-API-Key` (`verify_api_key`; read keys for GET, write keys for mutations; only enforced when `ENFORCE_AUTH` is set).
-2. Cookie-session routes (Discord OAuth): `routes/auth.py`, `votes.py`, `map_upload.py`, `bracket.py` writes — deliberately **not** behind the API key; identity via signed session cookie. Admin checks: `player_ids.ADMIN_PLAYERS` (general admin) vs `player_ids.TOURNAMENT_ADMINS` (bracket only) — separate sets on purpose.
+1. Most `/api` routers require `X-API-Key` (`verify_api_key`), which accepts **either tier** — the HTTP method is irrelevant. A route needing the **admin** tier opts in explicitly with `dependencies=ADMIN_ONLY` (i.e. `Depends(require_admin_key)`): reparse, backfill, override, delete, scrape, recompute, map registry pushes. Normal tier covers everything the app itself does, including `POST /api/upload_replay`, draft randomization, and prediction. Only enforced when `ENFORCE_AUTH` is set; with no keys configured at all, auth is off. `has_admin_access` is the boolean form, for a normal-tier route with an admin-only *option* (commentary's `force_refresh`). `tests/test_auth_tiers.py` fails if a new mutating route picks neither tier.
+2. Cookie-session routes (Discord OAuth): `routes/auth.py`, `votes.py`, `map_upload.py`, `bracket.py` writes, `admin.session_router` — deliberately **not** behind the API key; identity via signed session cookie. Admin checks: `player_ids.ADMIN_PLAYERS` (general admin) vs `player_ids.TOURNAMENT_ADMINS` (bracket only) — separate sets on purpose. An admin action the **UI** drives goes here, tagged `dependencies=ADMIN_LOGIN` (`require_admin_login`), *not* on the API-key router: the frontend ships one key to every visitor, so it can only ever be normal-tier. `POST /api/reparse/{match_id}` (the DebugData button, via `src/adminApi.ts`) is the example. `require_admin_login` also accepts an admin-tier key so curl/ops still work, and reads that header off the request instead of declaring it as a `Security` param — declaring it would wrongly advertise APIKeyHeader as the route's security scheme in the OpenAPI spec.
 3. `maps.public_router` (map images) — no auth, because browsers load them via `<img src>`.
 
 ### Data flow
@@ -86,7 +86,7 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 ### Frontend layout (`src/`)
 
 - Entry `index.tsx` → `App.tsx` → `Menu.tsx` (drawer navigation). Views map ~1:1 to backend areas: `Matches`, `ShowMatchDetails`, `PlayerStats`, `PlayerRatings`, `PlayerSynergy`, `GeneralStats`, `MapStats`, `TeamStats`, `HeadToHead`, `FFA`, `Superlatives`, `Tournaments`, `Bracket`, `Draft`, `ChooseMap`/`MapVoting`, `MapUpload`, `BalanceTeams`, `AIPredictions`, `ReplayPlayback`, `Account`; `DebugData` only with `?debug=True`.
-- `Client.ts` configures the generated client (localhost:8000 in dev, Heroku in prod). MUI for components, recharts for charts.
+- `Client.ts` configures the generated client (localhost:8000 in dev, Heroku in prod). MUI for components, recharts for charts. The generated client points at an **absolute** base URL, so it never sends the session cookie (cross-origin in dev) — anything cookie-authenticated uses a relative `fetch(..., {credentials: "same-origin"})` through the Vite proxy instead: `auth.ts`, `bracketApi.ts`, `voting.ts`, `mapUpload.ts`, `adminApi.ts`.
 - Shared pieces: `Map.tsx` (exports `GameMap`), `WinRateRadar.tsx`, `PlayerChip`, `utils.ts` (`getColorHex`, `buildPlayerColorMap`), `AuthContext`, `useErrorSnackbar`.
 
 ## Core invariants — read before writing backend code

@@ -17,6 +17,7 @@ import RefreshIcon from "@mui/icons-material/Refresh"
 import { GameRecord, MatchInfo, MatchPrediction, Team } from "./api"
 import { isCompetitor } from "./utils"
 import { Client, MapClient } from "./Client"
+import { reparseMatch } from "./adminApi"
 import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
 import Link from "@mui/material/Link"
@@ -50,7 +51,7 @@ function getDebugData(
 }
 
 function reparse(matchId: number, onError = console.error) {
-  Client.reparseApiReparseMatchIdPost({ matchId: matchId })
+  reparseMatch(matchId)
     .then(() => console.log("Parsed " + matchId))
     .catch(onError)
 }
@@ -191,7 +192,10 @@ function DownloadButton(props: {
   )
 }
 
-function DisplayDataTable(props: { data: GameRecord[] }) {
+function DisplayDataTable(props: {
+  data: GameRecord[]
+  onError?: (e: unknown) => void
+}) {
   const data = props.data
   if (data.length === 0) {
     return <Typography>No matching files</Typography>
@@ -230,7 +234,7 @@ function DisplayDataTable(props: { data: GameRecord[] }) {
                 <TableCell>
                   <IconButton
                     color="primary"
-                    onClick={() => reparse(row.matchId)}
+                    onClick={() => reparse(row.matchId, props.onError)}
                   >
                     <RefreshIcon />
                   </IconButton>
@@ -516,7 +520,7 @@ export default function DisplayDebugData() {
           </Typography>
         </Paper>
       )}
-      <DisplayDataTable data={debugData} />
+      <DisplayDataTable data={debugData} onError={showError} />
       {Object.entries(matchDebugData).map(([name, data]) => (
         <Stack key={name}>
           <Accordion defaultExpanded={true}>

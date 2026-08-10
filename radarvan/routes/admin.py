@@ -1,8 +1,17 @@
 """Admin / operational / debug endpoints.
 
 These are mostly write or backfill operations; many are excluded from the
-OpenAPI schema in production. Authentication is enforced via the global
-verify_api_key dependency on the FastAPI app.
+OpenAPI schema in production.
+
+Two routers, because there are two kinds of caller:
+
+- ``router`` - operational endpoints run by scripts/curl. Every mutating route
+  carries ``dependencies=ADMIN_ONLY`` (admin-tier X-API-Key). The read-only
+  debug/override *listings* stay at the normal tier so the DebugData page can
+  reach them with the key the browser ships.
+- ``session_router`` - admin actions the UI drives, gated with
+  ``dependencies=ADMIN_LOGIN`` on a logged-in ``ADMIN_PLAYERS`` user. Included
+  in main.py without the API-key dependency.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -18,12 +27,23 @@ from ..api_types import MatchInfo, Team, WinnerOverride
 from ..cache import details_from_id, invalidate_match_caches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
-from ..dependencies import IS_DEV, db_manager, get_replay_manager
+from ..dependencies import (
+    ADMIN_LOGIN,
+    ADMIN_ONLY,
+    IS_DEV,
+    db_manager,
+    get_replay_manager,
+)
 from ..game_composition import GameComposition
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Admin actions driven from the UI. Included in main.py *without* the API-key
+# dependency: the browser sends a session cookie, not an admin key. Every route
+# here must carry `dependencies=ADMIN_LOGIN`.
+session_router = APIRouter()
 
 
 def _row_to_dict(obj: Any) -> dict[str, Any]:
@@ -46,7 +66,7 @@ def _debug_data_to_dict(data: MatchDebugData) -> dict[str, Any]:
     }
 
 
-@router.post("/api/scrape/{days}")
+@router.post("/api/scrape/{days}", dependencies=ADMIN_ONLY)
 def scrape(
     background_tasks: BackgroundTasks,
     days: int = 1,
@@ -84,7 +104,7 @@ def get_match_json_url(
     return {"url": replay_files.presigned_url(match.json_s3_uri)}
 
 
-@router.post("/api/matches/{match_id}/composition")
+@router.post("/api/matches/{match_id}/composition", dependencies=ADMIN_ONLY)
 def compute_match_composition(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -96,7 +116,9 @@ def compute_match_composition(
     return result
 
 
-@router.post("/api/backfill/composition", include_in_schema=IS_DEV)
+@router.post(
+    "/api/backfill/composition", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
 def backfill_match_composition(
     max_to_update: int = 100,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -117,12 +139,17 @@ def backfill_match_composition(
     return {"updated": updated, "missing": missing}
 
 
-@router.post("/api/reparse/{match_id}")
+@session_router.post("/api/reparse/{match_id}", dependencies=ADMIN_LOGIN)
 def reparse(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MatchInfo | None:
-    """Rerun the replay parser on this match."""
+    """Rerun the replay parser on this match.
+
+    On the cookie-session router, not the API-key one: the DebugData page's
+    reparse button drives this, and the key the browser ships is normal-tier
+    by design. Authorization is the logged-in user being an admin.
+    """
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
     invalidate_match_caches()
@@ -130,7 +157,9 @@ def reparse(
     return replay
 
 
-@router.post("/api/clear_details_cache/", include_in_schema=IS_DEV)
+@router.post(
+    "/api/clear_details_cache/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
 def clear_details_cache(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int]:
@@ -145,7 +174,7 @@ def clear_details_cache(
     return {"deleted": deleted}
 
 
-@router.post("/api/reparse_recent/", include_in_schema=IS_DEV)
+@router.post("/api/reparse_recent/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
 def reparse_recent(
     days: int = 3,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -169,7 +198,9 @@ def reparse_recent(
     }
 
 
-@router.post("/api/reparse_before_date/", include_in_schema=IS_DEV)
+@router.post(
+    "/api/reparse_before_date/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
 def reparse_before_date(
     before: date,
     max_to_update: int = 10,
@@ -200,7 +231,7 @@ def reparse_before_date(
     }
 
 
-@router.post("/api/reparse_non_v2/", include_in_schema=IS_DEV)
+@router.post("/api/reparse_non_v2/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
 async def reparse_non_v2(
     max_to_update: int = 10,
     max_concurrent: int = 8,
@@ -268,7 +299,7 @@ def get_overrides(
     ]
 
 
-@router.post("/api/set_override/")
+@router.post("/api/set_override/", dependencies=ADMIN_ONLY)
 def set_override(
     match_id: int,
     winner: Team | None = None,
@@ -287,7 +318,7 @@ def set_override(
     )
 
 
-@router.delete("/api/match/{match_id}")
+@router.delete("/api/match/{match_id}", dependencies=ADMIN_ONLY)
 def reset_match(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -302,7 +333,7 @@ def reset_match(
     return counts
 
 
-@router.delete("/api/override/{match_id}")
+@router.delete("/api/override/{match_id}", dependencies=ADMIN_ONLY)
 def delete_override(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -332,7 +363,9 @@ def _roles_from_json(json_s3_uri: str) -> list[tuple[PlayerKey, int]]:
     ]
 
 
-@router.post("/api/backfill_player_roles/", include_in_schema=IS_DEV)
+@router.post(
+    "/api/backfill_player_roles/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
 def backfill_player_roles(
     max_to_update: int = 100,
     max_concurrent: int = 16,
@@ -399,7 +432,9 @@ def _fetch_and_parse(json_s3_uri: str, replay_file_url: str) -> Match:
     return matches.replay_to_db_match(replay, json_s3_uri)
 
 
-@router.post("/api/refresh_matches_from_json/", include_in_schema=IS_DEV)
+@router.post(
+    "/api/refresh_matches_from_json/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
 def refresh_matches_from_json(
     max_to_update: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -460,7 +495,9 @@ def refresh_matches_from_json(
     return {"updated": updated_count, "checked": len(parsed)}
 
 
-@router.post("/api/register_matches/", include_in_schema=IS_DEV)
+@router.post(
+    "/api/register_matches/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
 def register_matches(
     max_to_update: int = 100,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -472,7 +509,7 @@ def register_matches(
     return {"updated": updated}
 
 
-@router.post("/api/fix_incomplete/", include_in_schema=IS_DEV)
+@router.post("/api/fix_incomplete/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
 def fix_incomplete(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -500,7 +537,7 @@ def fix_incomplete(
     return {"updated": updated_count}
 
 
-@router.post("/api/fix_unk_player/", include_in_schema=IS_DEV)
+@router.post("/api/fix_unk_player/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
 def fix_unk_players(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
