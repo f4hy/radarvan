@@ -10,8 +10,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from radarvan.cncstats_model import header
-from radarvan.cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
+from radarvan.cncstats_model import body, header
+from radarvan.cncstats_model.statsfile import DeathEvent
+from radarvan.cncstats_model.zhreplay import (
+    EnhancedReplayV2,
+    EnrichedBuildEvent,
+    EnrichedStats,
+    PlayerSummaryV2,
+)
 from radarvan.matches import filter_by_months_back, is_incomplete, matches_differ
 from radarvan.player_role import PlayerRole
 
@@ -24,29 +30,41 @@ def _header_player(name: str, team: str) -> header.Player:
     )
 
 
-def _summary_player(index: int, name: str, win: bool) -> PlayerSummaryV2:
-    return PlayerSummaryV2.model_construct(index=index, name=name, win=win)
+def _summary_player(index: int, name: str, team: int, win: bool) -> PlayerSummaryV2:
+    return PlayerSummaryV2.model_construct(index=index, name=name, team=team, win=win)
 
 
 def _replay(
-    teams: list[str], player_discons: list[bool], wins: list[bool]
+    teams: list[str],
+    player_discons: list[bool],
+    wins: list[bool],
+    desync: bool = False,
+    stats: EnrichedStats | None = None,
+    body_chunks: list[body.BodyChunk] | None = None,
 ) -> EnhancedReplayV2:
     names = [f"P{i}" for i in range(len(teams))]
     metadata = header.Metadata.model_construct(
-        players=[_header_player(n, t) for n, t in zip(names, teams)]
+        # seed is the match id, which the mismatch paths log.
+        seed=42,
+        players=[_header_player(n, t) for n, t in zip(names, teams)],
     )
     head = header.GeneralsHeader.model_construct(
-        desync=False,
+        desync=desync,
         quit_early=False,
         player_discons=player_discons,
         metadata=metadata,
         time_stamp_begin=0,
         time_stamp_end=600,
     )
+    # Summary teams are the header's 0-based team + 1, matching
+    # player_role.team_from_header.
     summary = [
-        _summary_player(i + 1, n, w) for i, (n, w) in enumerate(zip(names, wins))
+        _summary_player(i + 1, n, int(t) + 1, w)
+        for i, (n, t, w) in enumerate(zip(names, teams, wins))
     ]
-    return EnhancedReplayV2.model_construct(header=head, stats=None, summary=summary)
+    return EnhancedReplayV2.model_construct(
+        header=head, stats=stats, summary=summary, body=body_chunks or []
+    )
 
 
 def test_disconnect_with_a_surviving_teammate_is_not_flagged() -> None:
@@ -78,6 +96,118 @@ def test_whole_team_disconnecting_is_still_flagged() -> None:
         wins=[False, False, True, True],
     )
     assert is_incomplete(replay) == "Disconnect"
+
+
+def _checksum(frame: int, player_id: int, value: int) -> body.BodyChunk:
+    return body.BodyChunk.model_construct(
+        order_name="Checksum", time_code=frame, player_id=player_id, arguments=[value]
+    )
+
+
+def _build(player: int) -> EnrichedBuildEvent:
+    return EnrichedBuildEvent.model_construct(player=player, frame=100, cost=0)
+
+
+def _mismatch_replay(
+    decided_at: int | None,
+    diverged_at: int | None,
+    unlisted_death_at: int | None = None,
+    unlisted_alive: bool = False,
+) -> EnhancedReplayV2:
+    """A 2v2 that desynced, parameterized on when each thing happened.
+
+    Team "1" (summary indices 3 and 4) is wiped out at `decided_at`; two of the
+    four clients report a different checksum at `diverged_at`. Either may be
+    None to leave that evidence out entirely.
+
+    `unlisted_death_at` / `unlisted_alive` add a fifth competitor that built
+    something but has no summary entry - the cncstats slot-dropping bug - to
+    exercise the guard that refuses to call a game decided while a slot whose
+    side is unknown might still be playing.
+    """
+    deaths = (
+        []
+        if decided_at is None
+        else [
+            DeathEvent(frame=decided_at - 30, player=3),
+            DeathEvent(frame=decided_at, player=4),
+        ]
+    )
+    builds = [_build(i) for i in (1, 2, 3, 4)]
+    if unlisted_death_at is not None or unlisted_alive:
+        builds.append(_build(5))
+    if unlisted_death_at is not None:
+        deaths.append(DeathEvent(frame=unlisted_death_at, player=5))
+    chunks = (
+        []
+        if diverged_at is None
+        else [
+            _checksum(diverged_at, player_id, 111 if player_id < 4 else 222)
+            for player_id in (2, 3, 4, 5)
+        ]
+    )
+    return _replay(
+        teams=["0", "0", "1", "1"],
+        player_discons=[False] * 4,
+        wins=[True, True, False, False],
+        desync=True,
+        stats=EnrichedStats.model_construct(
+            build_events=builds, kill_events=[], death_events=deaths
+        ),
+        body_chunks=chunks,
+    )
+
+
+def test_mismatch_after_the_last_player_died_is_not_flagged() -> None:
+    # The losing team was gone 60 frames before the clients diverged, so every
+    # checksum covering the game that decided the result agreed (603038953).
+    assert is_incomplete(_mismatch_replay(decided_at=1000, diverged_at=1060)) == ""
+
+
+def test_mismatch_before_the_result_is_still_flagged() -> None:
+    # Divergence first: everything recorded afterwards - including who died -
+    # came out of simulations that no longer agreed.
+    replay = _mismatch_replay(decided_at=1000, diverged_at=940)
+    assert is_incomplete(replay) == "Replay header Mismatch"
+
+
+def test_mismatch_with_no_checksums_to_date_it_is_still_flagged() -> None:
+    # An empty body leaves nothing to place the divergence in time, so the
+    # match stays flagged rather than being cleared on an assumption.
+    replay = _mismatch_replay(decided_at=1000, diverged_at=None)
+    assert is_incomplete(replay) == "Replay header Mismatch"
+
+
+def test_mismatch_with_no_team_wiped_out_is_still_flagged() -> None:
+    # Nobody was eliminated, so the game never reached a result the divergence
+    # could have come after.
+    replay = _mismatch_replay(decided_at=None, diverged_at=1060)
+    assert is_incomplete(replay) == "Replay header Mismatch"
+
+
+def test_undescribed_slot_still_playing_keeps_the_flag() -> None:
+    # A competitor cncstats dropped from the header is alive at the end. It
+    # could have been the losing side's last player, so the listed teams dying
+    # does not prove the game was over before the divergence.
+    replay = _mismatch_replay(decided_at=1000, diverged_at=1060, unlisted_alive=True)
+    assert is_incomplete(replay) == "Replay header Mismatch"
+
+
+def test_undescribed_slot_pushes_the_decision_point_out_to_its_death() -> None:
+    # It died after the last listed player, so the game cannot have been
+    # decided before then - which is still before the divergence here.
+    replay = _mismatch_replay(
+        decided_at=1000, diverged_at=1100, unlisted_death_at=1050
+    )
+    assert is_incomplete(replay) == ""
+
+    # Same match, but the clients diverge between the listed players dying and
+    # the unlisted one - the flag has to stand (603038953's shape, had its AI
+    # outlived the mismatch).
+    replay = _mismatch_replay(
+        decided_at=1000, diverged_at=1020, unlisted_death_at=1050
+    )
+    assert is_incomplete(replay) == "Replay header Mismatch"
 
 
 def _player(**overrides: object) -> SimpleNamespace:
@@ -131,7 +261,10 @@ def test_player_order_does_not_matter() -> None:
 
 def test_duration_difference_within_rounding_is_ignored() -> None:
     # Durations are compared rounded to 2 decimals.
-    assert matches_differ(_match(duration_minutes=12.5), _match(duration_minutes=12.501)) is False
+    assert (
+        matches_differ(_match(duration_minutes=12.5), _match(duration_minutes=12.501))
+        is False
+    )
 
 
 @pytest.mark.parametrize(
