@@ -136,6 +136,24 @@ class Player(BaseModel):
         return f"{self.name}[{self.general.name} {'W' if self.won else 'L'}]"
 
 
+class TournamentTag(BaseModel):
+    """The tournament a match counted toward, if any.
+
+    Denormalized onto MatchInfo from the ``tournament_games`` link so callers
+    can tell tournament games apart without a second query. ``stage`` is the
+    bracket match id ("WB2-2") and is None for round-robin games. Identity
+    only - the display name lives on the tournament (``/api/tournaments``)
+    rather than being copied onto every match of every listing.
+    """
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    slug: str
+    stage: str | None = None
+    round_name: str | None = Field(default=None, alias="roundName")
+    series_index: int | None = Field(default=None, alias="seriesIndex")
+
+
 class MatchInfo(BaseModel):
     model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -152,6 +170,7 @@ class MatchInfo(BaseModel):
     game_version: str | None = None
     composition: GameComposition | None = None
     is_dev: bool = False
+    tournament: TournamentTag | None = None
 
     @functools.cached_property
     def _roster(self) -> MatchRoster:
@@ -816,6 +835,42 @@ class Statistic(BaseModel):
     match_id: int | None = None
 
 
+class TournamentInfo(BaseModel):
+    """A tournament in the registry, with how many games are linked to it."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    slug: str
+    name: str
+    format: str
+    status: str
+    start_date: date | None = Field(default=None, alias="startDate")
+    end_date: date | None = Field(default=None, alias="endDate")
+    game_count: int = Field(default=0, alias="gameCount")
+
+
+class BracketMatchGames(BaseModel):
+    """The games played for one bracket match, plus what else it could be.
+
+    ``linked`` is what's persisted. ``candidates`` is what the detector would
+    propose but nobody has confirmed - shown to tournament admins so they can
+    link a game the automatic rule missed (a mismatched alias, a game played
+    on a different night than scheduled).
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: str = Field(alias="matchId")
+    linked: list[MatchInfo] = Field(default_factory=list)
+    candidates: list[MatchInfo] = Field(default_factory=list)
+
+
+class SetBracketGamesRequest(BaseModel):
+    model_config = _SLOTS
+
+    match_ids: list[int]
+
+
 class BracketPlayerEntry(BaseModel):
     model_config = _SLOTS
 
@@ -930,11 +985,6 @@ class BracketMatchOutput(BaseModel):
     player_a: str | None = None
     player_b: str | None = None
     scheduled_at: datetime | None = None
-    # The game night scheduled_at falls on (utils.game_night_date_of), so
-    # clients can look up the games actually played for this match without
-    # reimplementing the Eastern-time 5am rollover. Not the same calendar day
-    # as scheduled_at whenever the match starts at/after 8pm Eastern.
-    game_night_date: date | None = None
     best_of: int | None = None
     score_a: int | None = None
     score_b: int | None = None

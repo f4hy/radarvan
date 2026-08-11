@@ -6,9 +6,11 @@ not safe to share between overlapping jobs, and a failed transaction on a
 process-lifetime session would poison every later run.
 """
 
-from .db_utils import DatabaseManager
+from .db_utils import DatabaseManager, ReplayManager
 from .cache import competitive_matches, invalidate_match_caches
-from .matches import register_matches
+from .matches import get_match_infos, register_matches
+from .repositories import BracketRepo
+from . import tournament_membership
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
 import asyncio
@@ -20,6 +22,21 @@ import structlog
 from .notify import notify_async
 
 logger = structlog.get_logger(__name__)
+
+
+def _sync_tournament_links(replay_manager: ReplayManager) -> dict[str, int]:
+    """Persist tournament membership for the games registered just now.
+
+    Builds its own match list via ``get_match_infos`` rather than reading the
+    cache: it needs the games registered moments ago, which the cached list
+    predates. Going direct costs one rebuild here, instead of clearing the
+    caches first - which kicks a full background re-warm - only to invalidate
+    and re-warm them again once the links land. Admin-set links are untouched.
+    """
+    games = get_match_infos(replay_manager)
+    return tournament_membership.sync_links(
+        replay_manager, BracketRepo(replay_manager.session), games
+    )
 
 
 async def update_games(
@@ -35,6 +52,11 @@ async def update_games(
         # register_matches is blocking (cncstats HTTP + S3 I/O); keep it off
         # the event loop so the API stays responsive during a scrape.
         await asyncio.to_thread(register_matches, replay_manager)
+        # Sequential to_thread calls may share this session; concurrent ones
+        # may not.
+        await asyncio.to_thread(_sync_tournament_links, replay_manager)
+    # Once, at the end: covers both the new matches and the links just written
+    # (a link doesn't move latest_match_ts, which is what the caches key on).
     invalidate_match_caches()
     logger.info("done updating", found=len(paths))
     if do_notify:

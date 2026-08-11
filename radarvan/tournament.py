@@ -49,6 +49,16 @@ TOURNAMENTS = [
 
 TOURNAMENT_MAP = {t.name: t for t in TOURNAMENTS}
 
+# Matches the detector will keep finding but that didn't count. Seeded into
+# `tournament_games` as excluded links on every sync, so a rebuilt database
+# reaches the same answer as this one - a tombstone written by hand exists
+# only in whichever DB it was written in. Admin exclusions made through the
+# UI are stored the same way and are not listed here.
+KNOWN_EXCLUSIONS: dict[str, set[int]] = {
+    # Warmup played inside the tournament window between two of its teams.
+    "2025_2v2_tournament": {437356734},
+}
+
 
 def overrides_for_tournament(tournament_id: str) -> list[MatchupResult]:
     """Overrides in case matchupes were not recorred, e.g. missing from gentool uploade."""
@@ -96,18 +106,19 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
 
 
 def tournament_games(matches: list[MatchInfo]) -> dict[str, list[MatchInfo]]:
-    """For each tournament return the list of matches in that tournament."""
+    """For each tournament, the matches that counted toward it.
 
+    Reads the persisted membership on each match (the ``tournament_games``
+    link table, surfaced as ``MatchInfo.tournament``) rather than re-deriving
+    it. ``is_tournament_game`` is still the rule that *proposes* those links -
+    see ``tournament_membership`` - but it is no longer the live read path, so
+    an admin's correction is honoured here too. The warmup game that used to
+    be skipped by a hard-coded match id is now simply an excluded link.
+    """
     games: dict[str, list[MatchInfo]] = defaultdict(list)
     for m in matches:
-        # if m.id != 1619771421:
-        #     continue
-        if m.id == 437356734:
-            logger.warning("Skipping wanmup game")
-            continue
-        tournament = is_tournament_game(m)
-        if tournament:
-            games[tournament].append(m)
+        if m.tournament is not None:
+            games[m.tournament.slug].append(m)
     return games
 
 

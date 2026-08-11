@@ -274,6 +274,19 @@ class MatchRoster:
     def has_cpu(self) -> bool:
         return bool(self._cpus)
 
+    def human_participant_names(self) -> frozenset[str]:
+        """Canonical names of the humans who actually played.
+
+        Alias-resolved, so the result is directly comparable to names written
+        canonically elsewhere - a bracket's entrants, a tournament's team
+        list. A method on the roster for the same reason as
+        ``all_teams_have_group_player``: reaching into a partition from a call
+        site is how you end up comparing against observers or AI slots.
+        """
+        return frozenset(
+            resolve_player_name(s.name, s.color) for s in self._human_participants
+        )
+
     def all_teams_have_group_player(self) -> bool:
         """True if every team has at least one player from PLAYER_NAMES.
 
