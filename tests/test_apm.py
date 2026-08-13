@@ -50,17 +50,20 @@ def _header_player(name: str, team: int, ptype: str) -> HeaderPlayer:
 
 def _chunk(name: str, order: str, time_code: int) -> BodyChunk:
     # BodyChunk is a pydantic dataclass (real __slots__, see cncstats_model/body.py),
-    # not a BaseModel, so it has no model_construct - every field is required.
+    # not a BaseModel, so it has no model_construct - every field is required, and
+    # (like BaseModel) construction validates by alias, not field name, unless the
+    # model opts into populate_by_name - so these kwargs are the camelCase aliases,
+    # matching how the real cncstats JSON populates it.
     return BodyChunk(
-        arg_metadata=[],
+        argMetadata=[],
         arguments=[],
         details=None,
-        number_of_arguments=0,
-        order_code=0,
-        order_name=order,
-        player_id=0,
-        player_name=name,
-        time_code=time_code,
+        numberOfArguments=0,
+        orderCode=0,
+        orderName=order,
+        playerID=0,
+        playerName=name,
+        timeCode=time_code,
     )
 
 
