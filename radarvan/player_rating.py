@@ -341,7 +341,7 @@ def is_ratable_team_game(game: MatchInfo) -> bool:
 
 
 @locked_cached(
-    cache=LRUCache(maxsize=32),
+    cache=LRUCache(maxsize=6),
     key=lambda games: frozenset(g.id for g in games),
 )
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:

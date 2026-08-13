@@ -31,11 +31,9 @@ from .player_ids import (
     resolve_player_name,
 )
 
-_SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
-_SLOTS_FA: ConfigDict = ConfigDict(from_attributes=True, slots=True)  # type: ignore[typeddict-unknown-key]
+_FROM_ATTRIBUTES: ConfigDict = ConfigDict(from_attributes=True)
 # Classes with field aliases must use an inline ConfigDict so the pydantic mypy plugin
-# can statically resolve populate_by_name=True. _SLOTS and _SLOTS_FA are safe to share
-# because none of those classes have aliases.
+# can statically resolve populate_by_name=True.
 
 
 def _resolve_player_name(name: str) -> str:
@@ -110,8 +108,6 @@ class Team(IntEnum):
 
 
 class Player(BaseModel):
-    model_config = _SLOTS
-
     name: str
     general: General
     team: Team
@@ -197,14 +193,10 @@ class MatchInfo(BaseModel):
 
 
 class Matches(BaseModel):
-    model_config = _SLOTS
-
     matches: list[MatchInfo]
 
 
 class WinLoss(BaseModel):
-    model_config = _SLOTS
-
     wins: int
     losses: int
 
@@ -225,8 +217,6 @@ class DateMessage(BaseModel):
 
 
 class PlayerRateOverTime(BaseModel):
-    model_config = _SLOTS
-
     date: DateMessage
     wl: GeneralWL
 
@@ -262,8 +252,6 @@ class GeneralStatPlayerWL(BaseModel):
 
 
 class GeneralStat(BaseModel):
-    model_config = _SLOTS
-
     general: General
     stats: list[GeneralStatPlayerWL]
     total: WinLoss
@@ -275,8 +263,6 @@ class GeneralStat(BaseModel):
 
 
 class GeneralStats(BaseModel):
-    model_config = _SLOTS
-
     general_stats: list[GeneralStat]
 
 
@@ -341,8 +327,6 @@ class FFAStats(BaseModel):
 
 
 class TeamStat(BaseModel):
-    model_config = _SLOTS
-
     date: DateMessage | None = None
     team: Team = Team.NONE
     wins: int = 0
@@ -355,29 +339,21 @@ class TeamStats(BaseModel):
 
 
 class TeamRecord(BaseModel):
-    model_config = _SLOTS
-
     players: list[str]
     wins: int
     losses: int
 
 
 class TeamSizeGroup(BaseModel):
-    model_config = _SLOTS
-
     size: int
     teams: list[TeamRecord]
 
 
 class TeamStatsResponse(BaseModel):
-    model_config = _SLOTS
-
     groups: list[TeamSizeGroup]
 
 
 class MapPlayerWL(BaseModel):
-    model_config = _SLOTS
-
     player: str
     wins: int
     losses: int
@@ -402,30 +378,22 @@ class MapData(BaseModel):
 
 
 class MapStatsResponse(BaseModel):
-    model_config = _SLOTS
-
     maps: list[MapData]
 
 
 class MapStat(BaseModel):
-    model_config = _SLOTS
-
     map: str = ""
     team: Team = Team.NONE
     wins: int = 0
 
 
 class MapResult(BaseModel):
-    model_config = _SLOTS
-
     map: str = ""
     date: DateMessage | None = None
     winner: Team = Team.NONE
 
 
 class MapResults(BaseModel):
-    model_config = _SLOTS
-
     results: list[MapResult]
 
 
@@ -437,8 +405,6 @@ class MapStats(BaseModel):
 
 
 class SaveResponse(BaseModel):
-    model_config = _SLOTS
-
     success: bool = False
 
 
@@ -485,8 +451,6 @@ class CostsBuiltObject(BaseModel):
 
 
 class Costs(BaseModel):
-    model_config = _SLOTS
-
     player: Player | None
     buildings: list[CostsBuiltObject]
     units: list[CostsBuiltObject]
@@ -521,14 +485,10 @@ class Spent(BaseModel):
 
 
 class Upgrades(BaseModel):
-    model_config = _SLOTS
-
     upgrades: list[UpgradeEvent]
 
 
 class ObjectSummary(BaseModel):
-    model_config = _SLOTS
-
     Count: int
     TotalSpent: int
 
@@ -559,8 +519,6 @@ class AcademyStats(BaseModel):
 
 
 class PlayerSummary(BaseModel):
-    model_config = _SLOTS
-
     Name: str
     Side: str
     Team: int
@@ -578,16 +536,12 @@ class PlayerSummary(BaseModel):
 
 
 class FirstBlood(BaseModel):
-    model_config = _SLOTS
-
     attacker: str
     victim: str
     atMinute: Minute
 
 
 class SuperlativePlayerSummary(BaseModel):
-    model_config = _SLOTS
-
     name: str
     color: str
     won: bool
@@ -602,8 +556,6 @@ class SuperlativePlayerSummary(BaseModel):
 
 
 class SuperlativeData(BaseModel):
-    model_config = _SLOTS
-
     match_id: int
     first_blood: FirstBlood | None = None
     building_first_blood: FirstBlood | None = None
@@ -707,30 +659,22 @@ class MatchDetails(BaseModel):
 
 
 class PairWinLoss(BaseModel):
-    model_config = _SLOTS
-
     general1: General
     general2: General
     winloss: WinLoss | None
 
 
 class PairFactionWinLoss(BaseModel):
-    model_config = _SLOTS
-
     faction1: Faction = Faction.ANYUSA
     faction2: Faction = Faction.ANYUSA
     winloss: WinLoss | None
 
 
 class PairsWinLosses(BaseModel):
-    model_config = _SLOTS
-
     pairwl: list[PairWinLoss]
 
 
 class PairFactionWinLosses(BaseModel):
-    model_config = _SLOTS
-
     pairwl: list[PairFactionWinLoss]
 
 
@@ -745,7 +689,7 @@ class TeamPairs(BaseModel):
 
 
 class PlayerListing(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     id: int
     player_name: str
@@ -757,7 +701,7 @@ class PlayerListing(BaseModel):
 
 
 class MatchListing(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     match_id: int
     map: str
@@ -773,7 +717,7 @@ class MatchListing(BaseModel):
 
 
 class GameRecord(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     json_s3_uri: str
     file_size_bytes: int | None = None
@@ -799,8 +743,6 @@ class Tournament(BaseModel):
 
 
 class MatchupResult(BaseModel):
-    model_config = _SLOTS
-
     tournament_name: str
     matches: list[MatchInfo]
     outcome: dict[tuple[str, ...], WinLoss]
@@ -808,16 +750,12 @@ class MatchupResult(BaseModel):
 
 
 class Matchup(BaseModel):
-    model_config = _SLOTS
-
     team1: tuple[str, ...]
     team2: tuple[str, ...]
     played: bool
 
 
 class TournamentResult(BaseModel):
-    model_config = _SLOTS
-
     tournament: Tournament
     matchups: list[MatchupResult]
 
@@ -872,15 +810,11 @@ class SetBracketGamesRequest(BaseModel):
 
 
 class BracketPlayerEntry(BaseModel):
-    model_config = _SLOTS
-
     seed: int
     player_name: PlayerName
 
 
 class CreateBracketRequest(BaseModel):
-    model_config = _SLOTS
-
     players: list[BracketPlayerEntry]
 
     @model_validator(mode="after")
@@ -898,8 +832,6 @@ class CreateBracketRequest(BaseModel):
 
 
 class SetBracketMatchRequest(BaseModel):
-    model_config = _SLOTS
-
     scheduled_at: datetime | None = None
     best_of: Literal[3, 5, 7, 9] | None = None
     score_a: int | None = None
@@ -907,8 +839,6 @@ class SetBracketMatchRequest(BaseModel):
 
 
 class BracketMatchPrediction(BaseModel):
-    model_config = _SLOTS
-
     match_id: str
     # {player_name: vote_count}, only the two players in this match - total
     # prediction count is len(tally.values()) summed, derivable client-side.
@@ -927,45 +857,33 @@ class BracketMatchPrediction(BaseModel):
 
 
 class BracketPredictionLeaderboardEntry(BaseModel):
-    model_config = _SLOTS
-
     user_name: str
     correct: int
     total: int
 
 
 class SetMatchPredictionRequest(BaseModel):
-    model_config = _SLOTS
-
     # None clears the viewer's pick for this match.
     predicted_winner: str | None = None
 
 
 class SetBracketRevealAtRequest(BaseModel):
-    model_config = _SLOTS
-
     # When the bracket becomes publicly visible. None clears the gate (the
     # bracket is visible immediately, regardless of the server clock).
     reveal_at: datetime | None = None
 
 
 class SeedSource(BaseModel):
-    model_config = _SLOTS
-
     kind: Literal["seed"] = "seed"
     seed: int
 
 
 class WinnerOfSource(BaseModel):
-    model_config = _SLOTS
-
     kind: Literal["winner"] = "winner"
     match_id: str
 
 
 class LoserOfSource(BaseModel):
-    model_config = _SLOTS
-
     kind: Literal["loser"] = "loser"
     match_id: str
 
@@ -976,8 +894,6 @@ MatchSource = Annotated[
 
 
 class BracketMatchOutput(BaseModel):
-    model_config = _SLOTS
-
     match_id: str
     bracket: Literal["W", "L", "GF"]
     round_number: int
@@ -995,8 +911,6 @@ class BracketMatchOutput(BaseModel):
 
 
 class BracketTournamentOutput(BaseModel):
-    model_config = _SLOTS
-
     # Alphabetical roster (names only, no seeding) - always populated,
     # regardless of `revealed`. Knowing who's *in* the tournament isn't a
     # spoiler; the bracket placement (`players`, `matches[*].player_a/b`,
@@ -1023,8 +937,6 @@ class TournamentReport(BaseModel):
 
 
 class WinnerOverride(BaseModel):
-    model_config = _SLOTS
-
     match_id: int
     winning_team_id: Team
     incomplete: str | None = None
@@ -1033,7 +945,7 @@ class WinnerOverride(BaseModel):
 class ReplayFileSchema(BaseModel):
     """Public API representation of ReplayFile"""
 
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     original_url: str
     s3_uri: str
@@ -1046,7 +958,7 @@ class ReplayFileSchema(BaseModel):
 class ParsedReplayJsonSchema(BaseModel):
     """Public API representation of ParsedReplayJson"""
 
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     json_s3_uri: str
     match_id: int
@@ -1062,7 +974,7 @@ class ParsedReplayJsonSchema(BaseModel):
 class ReplayWithoutPlayerStats(BaseModel):
     """A parsed replay still missing player stats (backfill work item)."""
 
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     match_id: int
     url: str
@@ -1073,8 +985,6 @@ class ReplayWithoutPlayerStats(BaseModel):
 
 
 class PlayerGameCount(BaseModel):
-    model_config = _SLOTS
-
     name: str
     count: int
 
@@ -1173,8 +1083,6 @@ class GeneralWinRatePoint(BaseModel):
 
 
 class GeneralWinRateSeries(BaseModel):
-    model_config = _SLOTS
-
     general: General
     points: list[GeneralWinRatePoint]
 
@@ -1190,8 +1098,6 @@ class GeneralProfileStat(BaseModel):
 
 
 class MapProfileStat(BaseModel):
-    model_config = _SLOTS
-
     map: str
     games: int
     wins: int
@@ -1211,8 +1117,6 @@ class TeammateProfileStat(BaseModel):
 
 class OpponentProfileStat(BaseModel):
     """The profiled player's record against one opponent (wins = subject's wins)."""
-
-    model_config = _SLOTS
 
     name: str
     wins: int
@@ -1301,7 +1205,7 @@ class PlayerProfile(BaseModel):
 
 
 class PlayerRatings(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     name: str
     ordinal: float
@@ -1315,7 +1219,7 @@ class PlayerRatings(BaseModel):
 
 
 class ShortPlayerRating(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     mu: float
     sigma: float
@@ -1323,7 +1227,7 @@ class ShortPlayerRating(BaseModel):
 
 
 class PlayerRatingData(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     player_rating: list[PlayerRatings]
     player_rating_overtime: dict[str, list[ShortPlayerRating]] = {}
@@ -1331,7 +1235,7 @@ class PlayerRatingData(BaseModel):
 
 
 class PlayerSkill(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     name: str
     skill: float
@@ -1348,7 +1252,7 @@ class PlayerSynergy(BaseModel):
     ``SYNERGY_METHODOLOGY.md``.
     """
 
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     player_a: str
     player_b: str
@@ -1366,7 +1270,7 @@ class PlayerSynergy(BaseModel):
 
 
 class HeadToHead(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     wins: int
     losses: int
@@ -1434,8 +1338,6 @@ class HeadToHeadDetail(BaseModel):
 
 
 class MatchupCommentaryResponse(BaseModel):
-    model_config = _SLOTS
-
     commentary: str
 
 
@@ -1454,7 +1356,7 @@ class MatchupCommentaryPromptPreview(BaseModel):
 
 
 class PlayerRatingDailyChange(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     name: str
     delta: float
@@ -1467,7 +1369,7 @@ class RatingUpset(BaseModel):
     converged ratings; ``surprise`` is the favorite's edge over the actual winner.
     """
 
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     match_id: int
     atdate: date
@@ -1481,8 +1383,6 @@ class RatingUpset(BaseModel):
 
 
 class MapExtent(BaseModel):
-    model_config = _SLOTS
-
     width: float
     height: float
     grid_width: float
@@ -1491,8 +1391,6 @@ class MapExtent(BaseModel):
 
 
 class MapPoint(BaseModel):
-    model_config = _SLOTS
-
     name: str
     x: float
     y: float
@@ -1505,16 +1403,12 @@ class MapPoint(BaseModel):
 
 
 class MapPlayerStart(BaseModel):
-    model_config = _SLOTS
-
     player_number: int
     x: float
     y: float
 
 
 class MapDataPayload(BaseModel):
-    model_config = _SLOTS
-
     extent: MapExtent
     player_starts: list[MapPlayerStart]
     # mapparse's `supply`/`tech`/`garrison` JSON tags lack `omitempty`, so an
@@ -1549,16 +1443,12 @@ class MapMatchCount(BaseModel):
 
 
 class MissingMapInfo(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     sample_match_id: int
     map_crc_hex: str | None = None
 
 
 class FetchMissingMapResult(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     base_name: str | None = None
     tga_s3_uri: str | None = None
@@ -1569,22 +1459,16 @@ class FetchMissingMapResult(BaseModel):
 
 
 class DraftPlayerRequest(BaseModel):
-    model_config = _SLOTS
-
     name: str
     team: int  # 1-4
 
 
 class DraftRequest(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     players: list[DraftPlayerRequest]
 
 
 class MapRenderPlayer(BaseModel):
-    model_config = _SLOTS
-
     name: str
     general: General
     team: int
@@ -1592,38 +1476,28 @@ class MapRenderPlayer(BaseModel):
 
 
 class MapRenderRequest(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     players: list[MapRenderPlayer]
 
 
 class MapSummaryPlayer(BaseModel):
-    model_config = _SLOTS
-
     name: PlayerName
     general: General
     team: int = 0
 
 
 class MapSummaryRequest(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     players: list[MapSummaryPlayer]
 
 
 class MapSummaryRanking(BaseModel):
-    model_config = _SLOTS
-
     name: str
     wins: int
     losses: int
 
 
 class MapSummaryTeamH2H(BaseModel):
-    model_config = _SLOTS
-
     team1: list[str]
     team2: list[str]
     team1_wins: int
@@ -1631,8 +1505,6 @@ class MapSummaryTeamH2H(BaseModel):
 
 
 class MapSummaryPlayerGeneralRecord(BaseModel):
-    model_config = _SLOTS
-
     name: str
     general: General
     wins: int
@@ -1640,24 +1512,18 @@ class MapSummaryPlayerGeneralRecord(BaseModel):
 
 
 class MapSummaryDuration(BaseModel):
-    model_config = _SLOTS
-
     avg_minutes: float
     shortest_minutes: float
     longest_minutes: float
 
 
 class MapSummaryPlayerForm(BaseModel):
-    model_config = _SLOTS
-
     name: str
     map_form: str
     general_form: str
 
 
 class MapSummaryResponse(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     total_games: int
     best_general: MapSummaryRanking | None = None
@@ -1693,7 +1559,7 @@ class DraftResult(BaseModel):
 
 
 class CurrentUser(BaseModel):
-    model_config = _SLOTS_FA
+    model_config = _FROM_ATTRIBUTES
 
     discord_id: str
     discord_username: str
@@ -1720,8 +1586,6 @@ class CurrentUser(BaseModel):
 
 
 class AuthStatus(BaseModel):
-    model_config = _SLOTS
-
     logged_in: bool
     user: CurrentUser | None = None
     # The in-game names a logged-in user may claim (sorted PLAYER_NAMES).
@@ -1729,8 +1593,6 @@ class AuthStatus(BaseModel):
 
 
 class SelectPlayerRequest(BaseModel):
-    model_config = _SLOTS
-
     player_name: str
 
 
@@ -1738,8 +1600,6 @@ MapVoteChoice = Literal["vote", "veto"]
 
 
 class MapVoteOption(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     game_count: int
     last_played: datetime | None = None
@@ -1749,8 +1609,6 @@ class MapVoteOption(BaseModel):
 
 
 class MapVotePage(BaseModel):
-    model_config = _SLOTS
-
     player_count: int
     logged_in: bool
     vote_limit: int
@@ -1762,24 +1620,18 @@ class MapVotePage(BaseModel):
 
 
 class SetMapVoteRequest(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     # None clears the viewer's pick for this map.
     choice: MapVoteChoice | None = None
 
 
 class ChooseMapRequest(BaseModel):
-    model_config = _SLOTS
-
     # In-game names of the players in this game; only their votes count.
     # PlayerName auto-resolves aliases (e.g. "skp" -> "Skip") at validation.
     players: list[PlayerName] = Field(default_factory=list)
 
 
 class ChooseMapCandidate(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     votes: int
     vetoes: int
@@ -1792,8 +1644,6 @@ class ChooseMapCandidate(BaseModel):
 
 
 class ChooseMapResult(BaseModel):
-    model_config = _SLOTS
-
     player_count: int
     # The backend's authoritative weighted-random pick (None if no eligible map).
     chosen_map: str | None = None
@@ -1806,8 +1656,6 @@ class ChooseMapResult(BaseModel):
 
 
 class MapUploadItem(BaseModel):
-    model_config = _SLOTS
-
     base_name: str
     # WebP data URL of the converted .tga - set in preview, omitted on commit.
     image: str | None = None
@@ -1824,16 +1672,12 @@ class MapUploadItem(BaseModel):
 
 
 class MapUploadResponse(BaseModel):
-    model_config = _SLOTS
-
     committed: bool
     maps: list[MapUploadItem] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 
 
 class BackfillMapCrcsResponse(BaseModel):
-    model_config = _SLOTS
-
     processed: int
     resolved: int
     # (map_name, crc) per row touched; crc is None when no match could supply it.
@@ -1841,8 +1685,6 @@ class BackfillMapCrcsResponse(BaseModel):
 
 
 class PushMapResult(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     crc: str | None = None
     # True if we POSTed it to cncstats this run.
@@ -1853,8 +1695,6 @@ class PushMapResult(BaseModel):
 
 
 class PushMapsResponse(BaseModel):
-    model_config = _SLOTS
-
     requested: int
     pushed: int
     # Maps cncstats already had, so we skipped the push.
@@ -1863,8 +1703,6 @@ class PushMapsResponse(BaseModel):
 
 
 class ReparseMapResult(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     # True when this map had no MapData row at all (fetched fresh from
     # cncstats), False when it was an existing row reparsed from its
@@ -1875,8 +1713,6 @@ class ReparseMapResult(BaseModel):
 
 
 class ReparseMapsResponse(BaseModel):
-    model_config = _SLOTS
-
     updated: int
     # Maps left needing work after this run (missing + stale combined) - call
     # again with the same max_to_update until this hits 0.
@@ -1885,8 +1721,6 @@ class ReparseMapsResponse(BaseModel):
 
 
 class MapReparseStatus(BaseModel):
-    model_config = _SLOTS
-
     total_maps: int
     stale_maps: int
     # Maps referenced by matches with no MapData row at all.
@@ -1901,8 +1735,6 @@ class MapReparseStatus(BaseModel):
 
 
 class PredictPlayer(BaseModel):
-    model_config = _SLOTS
-
     # PlayerName auto-resolves aliases (e.g. "skp" -> "Skip") at validation, so
     # the model sees the same canonical names it was trained on.
     name: PlayerName
@@ -1911,8 +1743,6 @@ class PredictPlayer(BaseModel):
 
 
 class PredictRequest(BaseModel):
-    model_config = _SLOTS
-
     map_name: str
     players: list[PredictPlayer]
 
@@ -1927,8 +1757,6 @@ class MatchPrediction(BaseModel):
     ensemble disagrees with itself and this prediction shouldn't be trusted
     much, which matters given how little training data there is.
     """
-
-    model_config = _SLOTS
 
     match_id: int | None = None
     map_name: str
@@ -1953,8 +1781,6 @@ class FactionMatchupOption(BaseModel):
     this cell (see ``ml.bootstrap_matrix``) - how much replicates disagree,
     not how far the mean is from 50%."""
 
-    model_config = _SLOTS
-
     player1_general: General
     player2_general: General
     prob_player1_wins: float
@@ -1964,8 +1790,6 @@ class FactionMatchupOption(BaseModel):
 class FactionMatchupPrediction(BaseModel):
     """Every general-vs-general draw for a hypothetical player1 vs player2
     matchup, ranked by how favorable it is to player1 (best first)."""
-
-    model_config = _SLOTS
 
     player1: str
     player2: str
@@ -1984,8 +1808,6 @@ class FactionMatrixCell(BaseModel):
     looks real rather than indistinguishable from a coin flip given how
     little training data there is (see ``ml.bootstrap_matrix``)."""
 
-    model_config = _SLOTS
-
     general_a: General
     general_b: General
     prob_a_wins: float
@@ -2000,8 +1822,6 @@ class FactionMatrix(BaseModel):
     cells; callers derive "above/below median" from it rather than reading
     ``prob_a_wins`` as an absolute probability."""
 
-    model_config = _SLOTS
-
     map_name: str
     median_prob_a_wins: float
     cells: list[FactionMatrixCell]
@@ -2010,8 +1830,6 @@ class FactionMatrix(BaseModel):
 
 
 class WinProbPoint(BaseModel):
-    model_config = _SLOTS
-
     at_minute: float
     prob_team_a: float
 
@@ -2023,8 +1841,6 @@ class WinProbOverTime(BaseModel):
     game up to that window. Team A is the lower team id (the model's canonical
     ordering).
     """
-
-    model_config = _SLOTS
 
     match_id: int
     team_a_players: list[str]
