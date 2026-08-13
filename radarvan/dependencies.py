@@ -17,7 +17,13 @@ from sqlalchemy.orm import Session
 from . import db, player_ids
 from .auth_notify import API_KEY_HEADER, notify_auth_event
 from .db_utils import DatabaseManager, ReplayManager
-from .repositories import BracketPredictionRepo, BracketRepo, MapVoteRepo, UserRepo
+from .repositories import (
+    BracketPredictionRepo,
+    BracketRepo,
+    MapVoteRepo,
+    TournamentRepo,
+    UserRepo,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -205,6 +211,11 @@ def get_map_vote_repo(session: Session = Depends(get_db_session)) -> MapVoteRepo
 def get_bracket_repo(session: Session = Depends(get_db_session)) -> BracketRepo:
     """Dependency that provides a BracketRepo instance."""
     return BracketRepo(session)
+
+
+def get_tournament_repo(session: Session = Depends(get_db_session)) -> TournamentRepo:
+    """Dependency that provides a TournamentRepo instance."""
+    return TournamentRepo(session)
 
 
 def get_bracket_prediction_repo(
