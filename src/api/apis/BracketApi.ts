@@ -15,16 +15,20 @@
 
 import * as runtime from '../runtime';
 import type {
+  BracketMatchGames,
   BracketMatchPrediction,
   BracketPredictionLeaderboardEntry,
   BracketTournamentOutput,
   CreateBracketRequest,
   HTTPValidationError,
+  SetBracketGamesRequest,
   SetBracketMatchRequest,
   SetBracketRevealAtRequest,
   SetMatchPredictionRequest,
 } from '../models/index';
 import {
+    BracketMatchGamesFromJSON,
+    BracketMatchGamesToJSON,
     BracketMatchPredictionFromJSON,
     BracketMatchPredictionToJSON,
     BracketPredictionLeaderboardEntryFromJSON,
@@ -35,6 +39,8 @@ import {
     CreateBracketRequestToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    SetBracketGamesRequestFromJSON,
+    SetBracketGamesRequestToJSON,
     SetBracketMatchRequestFromJSON,
     SetBracketMatchRequestToJSON,
     SetBracketRevealAtRequestFromJSON,
@@ -49,6 +55,15 @@ export interface CreateBracketApiBracketPostRequest {
 
 export interface GetBracketApiBracketGetRequest {
     preview?: boolean;
+}
+
+export interface GetBracketGamesApiBracketGamesMatchIdGetRequest {
+    matchId: string;
+}
+
+export interface SetBracketGamesApiBracketGamesMatchIdPostRequest {
+    matchId: string;
+    setBracketGamesRequest: SetBracketGamesRequest;
 }
 
 export interface SetBracketMatchApiBracketMatchIdPostRequest {
@@ -202,6 +217,53 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getBracketGamesApiBracketGamesMatchIdGet without sending the request
+     */
+    async getBracketGamesApiBracketGamesMatchIdGetRequestOpts(requestParameters: GetBracketGamesApiBracketGamesMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getBracketGamesApiBracketGamesMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/bracket_games/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The games actually played for one bracket match.  A distinct top-level path rather than ``/api/bracket/{match_id}/games`` for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Public: seeing which games were played is the same information the Matches page already shows. Only editing the links is admin-gated.
+     * Get Bracket Games
+     */
+    async getBracketGamesApiBracketGamesMatchIdGetRaw(requestParameters: GetBracketGamesApiBracketGamesMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketMatchGames>> {
+        const requestOptions = await this.getBracketGamesApiBracketGamesMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BracketMatchGamesFromJSON(jsonValue));
+    }
+
+    /**
+     * The games actually played for one bracket match.  A distinct top-level path rather than ``/api/bracket/{match_id}/games`` for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Public: seeing which games were played is the same information the Matches page already shows. Only editing the links is admin-gated.
+     * Get Bracket Games
+     */
+    async getBracketGamesApiBracketGamesMatchIdGet(requestParameters: GetBracketGamesApiBracketGamesMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketMatchGames> {
+        const response = await this.getBracketGamesApiBracketGamesMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet without sending the request
      */
     async getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -276,6 +338,63 @@ export class BracketApi extends runtime.BaseAPI {
      */
     async getBracketPredictionsApiBracketPredictionsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<BracketMatchPrediction>> {
         const response = await this.getBracketPredictionsApiBracketPredictionsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setBracketGamesApiBracketGamesMatchIdPost without sending the request
+     */
+    async setBracketGamesApiBracketGamesMatchIdPostRequestOpts(requestParameters: SetBracketGamesApiBracketGamesMatchIdPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling setBracketGamesApiBracketGamesMatchIdPost().'
+            );
+        }
+
+        if (requestParameters['setBracketGamesRequest'] == null) {
+            throw new runtime.RequiredError(
+                'setBracketGamesRequest',
+                'Required parameter "setBracketGamesRequest" was null or undefined when calling setBracketGamesApiBracketGamesMatchIdPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/bracket_games/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SetBracketGamesRequestToJSON(requestParameters['setBracketGamesRequest']),
+        };
+    }
+
+    /**
+     * Link matches to this bracket match (admin only).  Written as ``manual`` links, which the auto-detector will never overwrite or remove. Replaces the full set for this stage: anything previously linked and not in ``match_ids`` is excluded rather than deleted, so a later detector run doesn\'t just put it back.
+     * Set Bracket Games
+     */
+    async setBracketGamesApiBracketGamesMatchIdPostRaw(requestParameters: SetBracketGamesApiBracketGamesMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketMatchGames>> {
+        const requestOptions = await this.setBracketGamesApiBracketGamesMatchIdPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BracketMatchGamesFromJSON(jsonValue));
+    }
+
+    /**
+     * Link matches to this bracket match (admin only).  Written as ``manual`` links, which the auto-detector will never overwrite or remove. Replaces the full set for this stage: anything previously linked and not in ``match_ids`` is excluded rather than deleted, so a later detector run doesn\'t just put it back.
+     * Set Bracket Games
+     */
+    async setBracketGamesApiBracketGamesMatchIdPost(requestParameters: SetBracketGamesApiBracketGamesMatchIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketMatchGames> {
+        const response = await this.setBracketGamesApiBracketGamesMatchIdPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

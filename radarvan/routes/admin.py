@@ -22,9 +22,9 @@ from typing import Any, NamedTuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import matches, replay_files, schedule, utils
+from .. import matches, replay_files, schedule, tournament_membership, utils
 from ..api_types import MatchInfo, Team, WinnerOverride
-from ..cache import details_from_id, invalidate_match_caches
+from ..cache import details_from_id, invalidate_match_caches, sorted_deduped_matches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import (
@@ -32,8 +32,10 @@ from ..dependencies import (
     ADMIN_ONLY,
     IS_DEV,
     db_manager,
+    get_bracket_repo,
     get_replay_manager,
 )
+from ..repositories import BracketRepo
 from ..game_composition import GameComposition
 
 logger = structlog.get_logger(__name__)
@@ -346,6 +348,27 @@ def delete_override(
         )
     invalidate_match_caches()
     return {"status": "deleted", "match_id": str(match_id)}
+
+
+@router.post(
+    "/api/backfill/tournament_games", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
+)
+def backfill_tournament_games(
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+    bracket_repo: BracketRepo = Depends(get_bracket_repo),
+) -> dict[str, int]:
+    """Register the known tournaments and persist their game links.
+
+    Idempotent - re-running picks up games played since the last run and
+    leaves admin-set (``manual``) links untouched, so this is safe to call
+    repeatedly and is what the scrape job calls after registering matches.
+    Unlike the other backfills there's no ``max_to_update``: detection is one
+    in-memory pass over the already-cached match list, not per-match S3 work.
+    """
+    all_matches = list(sorted_deduped_matches(replay_manager).values())
+    counts = tournament_membership.sync_links(replay_manager, bracket_repo, all_matches)
+    invalidate_match_caches()
+    return counts
 
 
 def _roles_from_json(json_s3_uri: str) -> list[tuple[PlayerKey, int]]:
