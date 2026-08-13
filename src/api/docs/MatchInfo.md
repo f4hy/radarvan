@@ -19,6 +19,7 @@ Name | Type
 `gameVersion` | string
 `composition` | [GameComposition](GameComposition.md)
 `isDev` | boolean
+`tournament` | [TournamentTag](TournamentTag.md)
 `hasAi` | boolean
 
 ## Example
@@ -41,6 +42,7 @@ const example = {
   "gameVersion": null,
   "composition": null,
   "isDev": null,
+  "tournament": null,
   "hasAi": null,
 } satisfies MatchInfo
 

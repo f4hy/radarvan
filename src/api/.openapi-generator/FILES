@@ -12,6 +12,7 @@ docs/AuthApi.md
 docs/AuthStatus.md
 docs/BackfillMapCrcsResponse.md
 docs/BracketApi.md
+docs/BracketMatchGames.md
 docs/BracketMatchOutput.md
 docs/BracketMatchPrediction.md
 docs/BracketPlayerEntry.md
@@ -134,6 +135,7 @@ docs/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.md
 docs/ResponseReparseRecentApiReparseRecentPostValue.md
 docs/SeedSource.md
 docs/SelectPlayerRequest.md
+docs/SetBracketGamesRequest.md
 docs/SetBracketMatchRequest.md
 docs/SetBracketRevealAtRequest.md
 docs/SetMapVoteRequest.md
@@ -150,8 +152,10 @@ docs/TeamStatsResponse.md
 docs/TeammateProfileStat.md
 docs/TimelineEvent.md
 docs/Tournament.md
+docs/TournamentInfo.md
 docs/TournamentReport.md
 docs/TournamentResult.md
+docs/TournamentTag.md
 docs/UnitDamageStat.md
 docs/UpgradeEvent.md
 docs/Upgrades.md
@@ -167,6 +171,7 @@ models/APM.ts
 models/AcademyStats.ts
 models/AuthStatus.ts
 models/BackfillMapCrcsResponse.ts
+models/BracketMatchGames.ts
 models/BracketMatchOutput.ts
 models/BracketMatchPrediction.ts
 models/BracketPlayerEntry.ts
@@ -284,6 +289,7 @@ models/ResponseReparseBeforeDateApiReparseBeforeDatePostValue.ts
 models/ResponseReparseRecentApiReparseRecentPostValue.ts
 models/SeedSource.ts
 models/SelectPlayerRequest.ts
+models/SetBracketGamesRequest.ts
 models/SetBracketMatchRequest.ts
 models/SetBracketRevealAtRequest.ts
 models/SetMapVoteRequest.ts
@@ -300,8 +306,10 @@ models/TeamStatsResponse.ts
 models/TeammateProfileStat.ts
 models/TimelineEvent.ts
 models/Tournament.ts
+models/TournamentInfo.ts
 models/TournamentReport.ts
 models/TournamentResult.ts
+models/TournamentTag.ts
 models/UnitDamageStat.ts
 models/UpgradeEvent.ts
 models/Upgrades.ts
