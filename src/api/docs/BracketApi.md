@@ -7,8 +7,10 @@ All URIs are relative to *http://localhost*
 | [**createBracketApiBracketPost**](BracketApi.md#createbracketapibracketpost) | **POST** /api/bracket | Create Bracket |
 | [**eligiblePlayersApiBracketEligiblePlayersGet**](BracketApi.md#eligibleplayersapibracketeligibleplayersget) | **GET** /api/bracket_eligible_players | Eligible Players |
 | [**getBracketApiBracketGet**](BracketApi.md#getbracketapibracketget) | **GET** /api/bracket | Get Bracket |
+| [**getBracketGamesApiBracketGamesMatchIdGet**](BracketApi.md#getbracketgamesapibracketgamesmatchidget) | **GET** /api/bracket_games/{match_id} | Get Bracket Games |
 | [**getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet**](BracketApi.md#getbracketpredictionleaderboardapibracketpredictionleaderboardget) | **GET** /api/bracket_prediction_leaderboard | Get Bracket Prediction Leaderboard |
 | [**getBracketPredictionsApiBracketPredictionsGet**](BracketApi.md#getbracketpredictionsapibracketpredictionsget) | **GET** /api/bracket_predictions | Get Bracket Predictions |
+| [**setBracketGamesApiBracketGamesMatchIdPost**](BracketApi.md#setbracketgamesapibracketgamesmatchidpost) | **POST** /api/bracket_games/{match_id} | Set Bracket Games |
 | [**setBracketMatchApiBracketMatchIdPost**](BracketApi.md#setbracketmatchapibracketmatchidpost) | **POST** /api/bracket/{match_id} | Set Bracket Match |
 | [**setBracketPredictionApiBracketPredictionsMatchIdPost**](BracketApi.md#setbracketpredictionapibracketpredictionsmatchidpost) | **POST** /api/bracket_predictions/{match_id} | Set Bracket Prediction |
 | [**setBracketRevealAtApiBracketRevealAtPost**](BracketApi.md#setbracketrevealatapibracketrevealatpost) | **POST** /api/bracket/reveal_at | Set Bracket Reveal At |
@@ -210,6 +212,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getBracketGamesApiBracketGamesMatchIdGet
+
+> BracketMatchGames getBracketGamesApiBracketGamesMatchIdGet(matchId)
+
+Get Bracket Games
+
+The games actually played for one bracket match.  A distinct top-level path rather than &#x60;&#x60;/api/bracket/{match_id}/games&#x60;&#x60; for the same reason &#x60;&#x60;/api/bracket_eligible_players&#x60;&#x60; is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Public: seeing which games were played is the same information the Matches page already shows. Only editing the links is admin-gated.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { GetBracketGamesApiBracketGamesMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  const body = {
+    // string
+    matchId: matchId_example,
+  } satisfies GetBracketGamesApiBracketGamesMatchIdGetRequest;
+
+  try {
+    const data = await api.getBracketGamesApiBracketGamesMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**BracketMatchGames**](BracketMatchGames.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet
 
 > Array&lt;BracketPredictionLeaderboardEntry&gt; getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet()
@@ -324,6 +394,77 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setBracketGamesApiBracketGamesMatchIdPost
+
+> BracketMatchGames setBracketGamesApiBracketGamesMatchIdPost(matchId, setBracketGamesRequest)
+
+Set Bracket Games
+
+Link matches to this bracket match (admin only).  Written as &#x60;&#x60;manual&#x60;&#x60; links, which the auto-detector will never overwrite or remove. Replaces the full set for this stage: anything previously linked and not in &#x60;&#x60;match_ids&#x60;&#x60; is excluded rather than deleted, so a later detector run doesn\&#39;t just put it back.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { SetBracketGamesApiBracketGamesMatchIdPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  const body = {
+    // string
+    matchId: matchId_example,
+    // SetBracketGamesRequest
+    setBracketGamesRequest: ...,
+  } satisfies SetBracketGamesApiBracketGamesMatchIdPostRequest;
+
+  try {
+    const data = await api.setBracketGamesApiBracketGamesMatchIdPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `string` |  | [Defaults to `undefined`] |
+| **setBracketGamesRequest** | [SetBracketGamesRequest](SetBracketGamesRequest.md) |  | |
+
+### Return type
+
+[**BracketMatchGames**](BracketMatchGames.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

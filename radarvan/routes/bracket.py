@@ -18,30 +18,42 @@ import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import bracket, discord_events, player_ids, utils
+from .. import bracket, discord_events, player_ids, tournament_membership
 from ..api_types import (
+    BracketMatchGames,
     BracketMatchOutput,
     BracketPlayerEntry,
     BracketPredictionLeaderboardEntry,
     BracketTournamentOutput,
     CreateBracketRequest,
     LoserOfSource,
+    MatchInfo,
     BracketMatchPrediction,
     MatchSource,
     SeedSource,
+    SetBracketGamesRequest,
     SetBracketMatchRequest,
     SetBracketRevealAtRequest,
     SetMatchPredictionRequest,
     WinnerOfSource,
 )
-from ..db import BracketMatchState, BracketTournament, User
+from ..cache import invalidate_match_caches, sorted_deduped_matches
+from ..db import BracketMatchState, BracketTournament, Tournament, User
+from ..db_utils import ReplayManager
 from ..dependencies import (
     get_bracket_prediction_repo,
     get_bracket_repo,
     get_current_user,
+    get_replay_manager,
+    get_tournament_repo,
     require_current_user,
 )
-from ..repositories import BracketPredictionRepo, BracketRepo
+from ..repositories import BracketPredictionRepo, BracketRepo, TournamentRepo
+from ..repositories.bracket import (
+    resolve_from_states,
+    seed_to_name,
+    states_from_rows,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -59,29 +71,6 @@ def _to_api_source(source: bracket.Source) -> MatchSource:
     if isinstance(source, bracket.WinnerOf):
         return WinnerOfSource(match_id=source.match_id)
     return LoserOfSource(match_id=source.match_id)
-
-
-def _states_from_rows(
-    raw_states: dict[str, BracketMatchState],
-) -> dict[str, bracket.MatchState]:
-    return {
-        match_id: bracket.MatchState(
-            best_of=row.best_of, score_a=row.score_a, score_b=row.score_b
-        )
-        for match_id, row in raw_states.items()
-    }
-
-
-def _seed_to_name(tournament: BracketTournament) -> dict[int, str]:
-    return {p.seed: p.player_name for p in tournament.players}
-
-
-def _resolve_from_states(
-    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
-) -> bracket.BracketResult:
-    return bracket.resolve_bracket(
-        _seed_to_name(tournament), _states_from_rows(raw_states)
-    )
 
 
 def _load_match(
@@ -103,7 +92,7 @@ def _load_match(
     if not bracket.is_valid_match_id(match_id, len(tournament.players)):
         raise HTTPException(status_code=404, detail="Unknown match id")
     raw_states = repo.get_match_states(tournament.id)
-    result = _resolve_from_states(tournament, raw_states)
+    result = resolve_from_states(tournament, raw_states)
     resolved_match = next(m for m in result.matches if m.match_id == match_id)
     return tournament, raw_states, result, resolved_match
 
@@ -149,7 +138,7 @@ def _build_output_from_states(
     *,
     allow_preview: bool = False,
 ) -> BracketTournamentOutput:
-    result = _resolve_from_states(tournament, raw_states)
+    result = resolve_from_states(tournament, raw_states)
 
     matches = []
     for m in result.matches:
@@ -163,11 +152,6 @@ def _build_output_from_states(
                 player_a=m.player_a,
                 player_b=m.player_b,
                 scheduled_at=raw.scheduled_at if raw else None,
-                game_night_date=(
-                    utils.game_night_date_of(raw.scheduled_at)
-                    if raw and raw.scheduled_at
-                    else None
-                ),
                 best_of=raw.best_of if raw else None,
                 score_a=raw.score_a if raw else None,
                 score_b=raw.score_b if raw else None,
@@ -298,8 +282,8 @@ def set_bracket_match(
     score_a = merged("score_a", existing.score_a if existing else None)
     score_b = merged("score_b", existing.score_b if existing else None)
 
-    seed_to_name = _seed_to_name(tournament)
-    states = _states_from_rows(raw_states)
+    names_by_seed = seed_to_name(tournament)
+    states = states_from_rows(raw_states)
 
     if score_a is not None or score_b is not None:
         if best_of is None or score_a is None or score_b is None:
@@ -334,7 +318,7 @@ def set_bracket_match(
         new_states[match_id] = bracket.MatchState(
             best_of=best_of, score_a=score_a, score_b=score_b
         )
-        after = bracket.resolve_bracket(seed_to_name, new_states)
+        after = bracket.resolve_bracket(names_by_seed, new_states)
         conflicts = bracket.rerouted_scored_matches(
             before, after, states, edited_match_id=match_id
         )
@@ -379,6 +363,175 @@ def set_bracket_match(
     return _build_output_from_states(tournament, raw_states, allow_preview=True)
 
 
+def _tournament_for_bracket(
+    tournament: BracketTournament, tournament_repo: TournamentRepo
+) -> Tournament | None:
+    """The durable Tournament row this bracket writes its game links to."""
+    if tournament.tournament_id is None:
+        return None
+    return tournament_repo.get_tournament_by_id(tournament.tournament_id)
+
+
+def _games_response(
+    match_id: str,
+    resolved: bracket.ResolvedMatch,
+    scheduled_at: datetime | None,
+    parent: Tournament | None,
+    all_matches: dict[int, MatchInfo],
+    tournament_repo: TournamentRepo,
+) -> BracketMatchGames:
+    """Linked games for a bracket match, plus unconfirmed detector candidates.
+
+    Linked games come from the indexed link table, not from scanning every
+    MatchInfo for a matching tag - the tag is a denormalized copy, and reading
+    the rows keeps this endpoint agreeing with the writes below it.
+
+    Candidates are computed the same way the backfill does, so what an admin
+    sees offered here is exactly what an automatic run would have linked.
+    """
+    if parent is None:
+        return BracketMatchGames(match_id=match_id)
+
+    # Every link of this tournament, not just this stage's: a game already
+    # linked elsewhere must not be offered as a candidate here. Adding it
+    # would rewrite that row's stage (the unique key is (tournament, match))
+    # and silently take the game off the other match - the same collision
+    # `detect_bracket_links` guards against with its `claimed` set.
+    all_links = tournament_repo.list_links(parent.id)
+    spoken_for = {link.match_id for link in all_links}
+    linked = sorted(
+        (
+            all_matches[link.match_id]
+            for link in all_links
+            if link.stage == match_id and link.match_id in all_matches
+        ),
+        key=lambda m: m.timestamp,
+    )
+
+    candidates: list[MatchInfo] = []
+    if scheduled_at is not None and resolved.player_a and resolved.player_b:
+        stage = tournament_membership.BracketStage(
+            stage=match_id,
+            round_name=resolved.round_name,
+            player_a=resolved.player_a,
+            player_b=resolved.player_b,
+            scheduled_at=scheduled_at,
+        )
+        candidates = [
+            m
+            for m in tournament_membership.candidate_games(stage, all_matches.values())
+            if m.id not in spoken_for
+        ]
+    return BracketMatchGames(match_id=match_id, linked=linked, candidates=candidates)
+
+
+@router.get("/api/bracket_games/{match_id}")
+def get_bracket_games(
+    match_id: str,
+    user: User | None = Depends(get_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    tournament_repo: TournamentRepo = Depends(get_tournament_repo),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> BracketMatchGames:
+    """The games actually played for one bracket match.
+
+    A distinct top-level path rather than ``/api/bracket/{match_id}/games``
+    for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI
+    generator merges sibling paths sharing a parameterized prefix.
+
+    Readable without an account once the bracket is revealed - which games
+    were played is what the Matches page already shows. Before ``reveal_at``
+    it returns nothing: both the linked MatchInfos and the detector
+    candidates name the two players, which is exactly what ``_redact``
+    withholds from ``GET /api/bracket``. Editing is admin-gated below.
+    """
+    tournament_row, raw_states, _result, resolved = _load_match(repo, match_id)
+    is_admin = user is not None and player_ids.is_tournament_admin(user.player_name)
+    if not _is_revealed(tournament_row, allow_preview=is_admin):
+        return BracketMatchGames(match_id=match_id)
+    parent = _tournament_for_bracket(tournament_row, tournament_repo)
+    raw = raw_states.get(match_id)
+    return _games_response(
+        match_id,
+        resolved,
+        raw.scheduled_at if raw else None,
+        parent,
+        sorted_deduped_matches(replay_manager),
+        tournament_repo,
+    )
+
+
+@router.post("/api/bracket_games/{match_id}")
+def set_bracket_games(
+    match_id: str,
+    req: SetBracketGamesRequest,
+    user: User = Depends(require_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    tournament_repo: TournamentRepo = Depends(get_tournament_repo),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> BracketMatchGames:
+    """Link matches to this bracket match (admin only).
+
+    Written as ``manual`` links, which the auto-detector will never overwrite
+    or remove. Replaces the full set for this stage: anything previously
+    linked and not in ``match_ids`` is excluded rather than deleted, so a
+    later detector run doesn't just put it back.
+    """
+    _require_tournament_admin(user)
+    tournament_row, raw_states, _result, resolved = _load_match(repo, match_id)
+    parent = _tournament_for_bracket(tournament_row, tournament_repo)
+    if parent is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This bracket isn't registered as a tournament yet - run "
+                "POST /api/backfill/tournament_games first."
+            ),
+        )
+
+    wanted = set(req.match_ids)
+    known = sorted_deduped_matches(replay_manager)
+    unknown = sorted(wanted - set(known))
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Unknown match ids: {unknown}")
+
+    existing = {
+        link.match_id for link in tournament_repo.list_links(parent.id, stage=match_id)
+    }
+    for match_id_to_drop in existing - wanted:
+        tournament_repo.exclude_match(parent.id, match_id_to_drop, stage=match_id)
+    for index, linked_id in enumerate(
+        sorted(wanted, key=lambda m: known[m].timestamp), start=1
+    ):
+        tournament_repo.link_match(
+            tournament_id=parent.id,
+            match_id=linked_id,
+            stage=match_id,
+            round_name=resolved.round_name,
+            series_index=index,
+            source="manual",
+        )
+
+    logger.info(
+        "bracket games set", user_id=user.id, match_id=match_id, games=sorted(wanted)
+    )
+    raw = raw_states.get(match_id)
+    response = _games_response(
+        match_id,
+        resolved,
+        raw.scheduled_at if raw else None,
+        parent,
+        known,
+        tournament_repo,
+    )
+    # Last, and after the response is built off `known`: MatchInfo is cached on
+    # latest_match_ts, which doesn't move when a link is written for a match
+    # that already existed, so the tags need dropping - but invalidating first
+    # would make the response build re-derive every MatchInfo in the DB.
+    invalidate_match_caches()
+    return response
+
+
 def _prediction_is_open(
     status: str, scheduled_at: datetime | None, now: datetime
 ) -> bool:
@@ -406,7 +559,7 @@ def get_bracket_predictions(
         return []
 
     raw_states = repo.get_match_states(tournament.id)
-    result = _resolve_from_states(tournament, raw_states)
+    result = resolve_from_states(tournament, raw_states)
     tallies = prediction_repo.tally_all(tournament.id)
     my_picks = prediction_repo.get_user_picks(tournament.id, user.id) if user else {}
     now = datetime.now(UTC)
@@ -497,7 +650,7 @@ def get_bracket_prediction_leaderboard(
         return []
 
     raw_states = repo.get_match_states(tournament.id)
-    result = _resolve_from_states(tournament, raw_states)
+    result = resolve_from_states(tournament, raw_states)
     _, leaderboard = _resolved_predictions(prediction_repo, tournament, result)
     return leaderboard
 

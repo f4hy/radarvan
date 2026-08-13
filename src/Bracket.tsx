@@ -44,7 +44,7 @@ import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import { useIsTournamentAdmin } from "./AuthContext"
-import { FactionMatchupOption, MatchInfo } from "./api"
+import { BracketMatchGames, FactionMatchupOption } from "./api"
 import {
   BracketMatchOutput,
   BracketMatchStatus,
@@ -55,6 +55,7 @@ import {
   fetchEligiblePlayers,
   MatchSource,
   SetBracketMatchRequest,
+  setBracketGames,
   setBracketMatch,
   setBracketRevealAt,
 } from "./bracketApi"
@@ -66,7 +67,7 @@ import {
   sourceMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
-import { Client, CommentaryClient } from "./Client"
+import { BracketClient, Client, CommentaryClient } from "./Client"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import GameMap from "./Map"
@@ -584,6 +585,78 @@ function BestDrawsList(props: {
   )
 }
 
+// Admin-only tail of the matchup popup: link or unlink the games that count
+// for this bracket match. `candidates` are games the backend's detector
+// recognized but nothing has confirmed - normally empty, non-empty when a
+// series was played on a night other than the scheduled one, or when a game
+// needs excluding (a warmup between the same two players).
+function UnlinkedGames({
+  data,
+  saving,
+  onSetGames,
+}: {
+  data: BracketMatchGames
+  saving: boolean
+  onSetGames: (matchIds: number[]) => void
+}) {
+  const games = data.linked ?? []
+  const candidates = data.candidates ?? []
+  const linkedIds = games.map((g) => g.id)
+  const rows = [
+    ...games.map((m) => ({ match: m, linked: true })),
+    ...candidates.map((m) => ({ match: m, linked: false })),
+  ]
+  if (rows.length === 0) return null
+
+  return (
+    <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+      <Typography
+        variant="caption"
+        sx={{ color: "text.secondary", display: "block", mb: 1 }}
+      >
+        🔧 Admin: which games count for this match
+      </Typography>
+      <Stack spacing={1}>
+        {rows.map(({ match: m, linked }) => (
+          <Stack
+            key={m.id}
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: "center" }}
+          >
+            <Chip
+              size="small"
+              color={linked ? "success" : "default"}
+              variant={linked ? "filled" : "outlined"}
+              label={`#${m.id}`}
+            />
+            <Typography
+              variant="body2"
+              sx={{ flexGrow: 1, color: linked ? undefined : "text.secondary" }}
+            >
+              {new Date(m.timestamp).toLocaleTimeString()} ·{" "}
+              {m.durationMinutes.toFixed(0)} min{linked ? "" : " · not linked"}
+            </Typography>
+            <Button
+              size="small"
+              disabled={saving}
+              onClick={() =>
+                onSetGames(
+                  linked
+                    ? linkedIds.filter((id) => id !== m.id)
+                    : [...linkedIds, m.id],
+                )
+              }
+            >
+              {linked ? "Remove" : "Add"}
+            </Button>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
 // The everyone-gets-this popup a match card click opens (admins reach the
 // score editor via the edit icon instead - see MatchBox). Links to each
 // player's profile and their head-to-head record, an AI-generated pre-game
@@ -603,20 +676,20 @@ function MatchupPopup({
   const playerA = match.player_a
   const playerB = match.player_b
   const scheduledAt = match.scheduled_at
-  const gameNight = match.game_night_date
-  // Only worth asking the backend once the scheduled time has actually
-  // arrived - a future or unset time can't have games yet by definition.
-  const datePlayable =
-    scheduledAt != null && new Date(scheduledAt).getTime() <= Date.now()
 
-  const [games, setGames] = React.useState<MatchInfo[]>([])
+  const [gamesData, setGamesData] = React.useState<BracketMatchGames | null>(
+    null,
+  )
+  const [saving, setSaving] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
+  const games = gamesData?.linked ?? []
   const [commentary, setCommentary] = React.useState<string | null>(null)
   const [commentaryLoading, setCommentaryLoading] = React.useState(false)
   const [factionMatchup, setFactionMatchup] = React.useState<
     FactionMatchupOption[] | null
   >(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
+  const isTournamentAdmin = useIsTournamentAdmin()
 
   // No map is known this far ahead of the draw - the endpoint defaults to an
   // "unknown map" placeholder the model handles gracefully - so this is a
@@ -676,37 +749,41 @@ function MatchupPopup({
     }
   }, [playerA, playerB, match.round_name])
 
+  // The games played are a stored fact (the tournament_games link table), not
+  // something the client re-derives. The previous version guessed by fetching
+  // the night's matches and comparing player names directly, which silently
+  // found nothing for anyone whose in-game alias differs from their bracket
+  // name (`Grn` vs `Gorn`). The backend resolves aliases and also hands back
+  // unconfirmed `candidates` for admins to link.
   React.useEffect(() => {
-    if (!datePlayable || !gameNight || !playerA || !playerB) {
-      setGames([])
-      return
-    }
     let cancelled = false
     setLoading(true)
-    // Queried by game night, not scheduled_at's calendar date: matches are
-    // stored under utils.game_night_date (Eastern, 5am rollover), so a 8:05pm
-    // Eastern start - already the next day in UTC - would otherwise ask for a
-    // night with no games in it. The backend hands us the right day.
-    Client.getMatchesByDateApiMatchesByDateDateGet({
-      date: new Date(gameNight),
+    BracketClient.getBracketGamesApiBracketGamesMatchIdGet({
+      matchId: match.match_id,
     })
       .then((res) => {
-        if (cancelled) return
-        setGames(
-          res.matches.filter(
-            (m) =>
-              m.composition?.category === "1v1" &&
-              m.players.some((p) => p.name === playerA) &&
-              m.players.some((p) => p.name === playerB),
-          ),
-        )
+        if (!cancelled) setGamesData(res)
       })
       .catch((e) => !cancelled && showError(e))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [datePlayable, gameNight, playerA, playerB, showError])
+    // scheduledAt/playerA/playerB are inputs to what the backend links, so an
+    // in-popup reschedule or score edit (which re-routes players through this
+    // slot) has to refetch rather than keep showing the old pairing's games.
+  }, [match.match_id, scheduledAt, playerA, playerB, showError])
+
+  const handleLinkGames = React.useCallback(
+    (matchIds: number[]) => {
+      setSaving(true)
+      setBracketGames(match.match_id, matchIds)
+        .then(setGamesData)
+        .catch(showError)
+        .finally(() => setSaving(false))
+    },
+    [match.match_id, showError],
+  )
 
   const handleGoToPlayer = (playerName: string) => {
     onClose()
@@ -812,16 +889,13 @@ function MatchupPopup({
           </Box>
         )}
         {loading && <Loading />}
-        {!loading && !datePlayable && (
+        {!loading && games.length === 0 && (
           <Typography sx={{ color: "text.secondary" }}>
-            No games played yet.
-          </Typography>
-        )}
-        {!loading && datePlayable && games.length === 0 && scheduledAt && (
-          <Typography sx={{ color: "text.secondary" }}>
-            No 1v1 games found between {playerLabel(match, "a")} and{" "}
-            {playerLabel(match, "b")} on{" "}
-            {new Date(scheduledAt).toLocaleDateString()}.
+            {scheduledAt
+              ? `No games recorded for this match on ${new Date(
+                  scheduledAt,
+                ).toLocaleDateString()}.`
+              : "No games played yet."}
           </Typography>
         )}
         {!loading && games.length > 0 && (
@@ -830,6 +904,13 @@ function MatchupPopup({
               <DisplayMatchInfo key={g.id} match={g} idx={idx} />
             ))}
           </Stack>
+        )}
+        {!loading && isTournamentAdmin && gamesData && (
+          <UnlinkedGames
+            data={gamesData}
+            saving={saving}
+            onSetGames={handleLinkGames}
+          />
         )}
         {errorSnackbar}
       </DialogContent>
