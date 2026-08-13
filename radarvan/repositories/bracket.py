@@ -9,9 +9,42 @@ from datetime import datetime
 
 from sqlalchemy import select
 
+from .. import bracket
 from ..db import BracketMatchState, BracketPlayer, BracketTournament
 
 from .base import BaseRepo
+
+
+def states_from_rows(
+    raw_states: dict[str, BracketMatchState],
+) -> dict[str, bracket.MatchState]:
+    """DB rows -> the pure domain state ``bracket.resolve_bracket`` takes."""
+    return {
+        match_id: bracket.MatchState(
+            best_of=row.best_of, score_a=row.score_a, score_b=row.score_b
+        )
+        for match_id, row in raw_states.items()
+    }
+
+
+def seed_to_name(tournament: BracketTournament) -> dict[int, str]:
+    return {p.seed: p.player_name for p in tournament.players}
+
+
+def resolve_from_states(
+    tournament: BracketTournament, raw_states: dict[str, BracketMatchState]
+) -> bracket.BracketResult:
+    """Derive the whole bracket from seeds + stored scores.
+
+    The single conversion from persisted rows into ``radarvan.bracket``'s pure
+    domain. Every caller that needs a resolved bracket goes through here - the
+    read endpoints and the tournament-game detector both did their own copy of
+    this, which meant a new ``MatchState`` field would have silently resolved
+    two different brackets.
+    """
+    return bracket.resolve_bracket(
+        seed_to_name(tournament), states_from_rows(raw_states)
+    )
 
 
 class BracketRepo(BaseRepo):
@@ -53,6 +86,20 @@ class BracketRepo(BaseRepo):
         self.session.flush()
         self._commit_if_auto()
         return tournament
+
+    def set_tournament_id(self, bracket_id: int, tournament_id: int) -> None:
+        """Attach this bracket to a durable ``Tournament`` row.
+
+        The link points *up* only: resetting the bracket deletes this row but
+        must never touch the Tournament or the TournamentGame links hanging
+        off it, which is why there's no cascade in that direction.
+        """
+        tournament = self.session.get(BracketTournament, bracket_id)
+        if tournament is None:
+            raise ValueError(f"No bracket tournament with id {bracket_id}")
+        tournament.tournament_id = tournament_id
+        self.session.flush()
+        self._commit_if_auto()
 
     def get_match_states(self, tournament_id: int) -> dict[str, BracketMatchState]:
         stmt = select(BracketMatchState).where(

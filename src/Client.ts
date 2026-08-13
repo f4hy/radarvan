@@ -1,4 +1,10 @@
-import { CommentaryApi, DefaultApi, MapApi, Configuration } from "./api"
+import {
+  BracketApi,
+  CommentaryApi,
+  DefaultApi,
+  MapApi,
+  Configuration,
+} from "./api"
 
 const apiKey = import.meta.env.VITE_API_KEY as string | undefined
 const headers: Record<string, string> = { "X-Client-Id": "react-frontend" }
@@ -58,3 +64,6 @@ const config = getConfig()
 export const Client = new DefaultApi(config)
 export const CommentaryClient = new CommentaryApi(config)
 export const MapClient = new MapApi(config)
+// Reads only. Bracket *writes* go through src/bracketApi.ts' same-origin
+// fetch, which carries the session cookie this cross-origin client can't.
+export const BracketClient = new BracketApi(config)
