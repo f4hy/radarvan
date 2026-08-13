@@ -99,8 +99,18 @@ def test_whole_team_disconnecting_is_still_flagged() -> None:
 
 
 def _checksum(frame: int, player_id: int, value: int) -> body.BodyChunk:
-    return body.BodyChunk.model_construct(
-        order_name="Checksum", time_code=frame, player_id=player_id, arguments=[value]
+    # BodyChunk is a pydantic dataclass (real __slots__, see cncstats_model/body.py),
+    # not a BaseModel, so it has no model_construct - every field is required.
+    return body.BodyChunk(
+        arg_metadata=[],
+        arguments=[value],
+        details=None,
+        number_of_arguments=0,
+        order_code=0,
+        order_name="Checksum",
+        player_id=player_id,
+        player_name="",
+        time_code=frame,
     )
 
 

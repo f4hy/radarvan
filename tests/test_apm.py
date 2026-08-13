@@ -10,7 +10,9 @@ No committed replay fixture round-trips through the current `EnhancedReplayV2`
 schema (the checked-in `tests/*.json` are the older PascalCase v1 shape), so
 minimal replays are assembled directly from the model classes. Only the fields
 the APM code actually reads are populated; `model_construct` skips the dozens of
-unrelated required fields without running validation.
+unrelated required fields without running validation (BodyChunk is the
+exception - it's a pydantic dataclass, not a BaseModel, so it has no
+`model_construct` and every field is passed explicitly instead).
 """
 
 from radarvan import apm
@@ -47,8 +49,18 @@ def _header_player(name: str, team: int, ptype: str) -> HeaderPlayer:
 
 
 def _chunk(name: str, order: str, time_code: int) -> BodyChunk:
-    return BodyChunk.model_construct(
-        player_name=name, order_name=order, time_code=time_code
+    # BodyChunk is a pydantic dataclass (real __slots__, see cncstats_model/body.py),
+    # not a BaseModel, so it has no model_construct - every field is required.
+    return BodyChunk(
+        arg_metadata=[],
+        arguments=[],
+        details=None,
+        number_of_arguments=0,
+        order_code=0,
+        order_name=order,
+        player_id=0,
+        player_name=name,
+        time_code=time_code,
     )
 
 
