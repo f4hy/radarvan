@@ -99,8 +99,21 @@ def test_whole_team_disconnecting_is_still_flagged() -> None:
 
 
 def _checksum(frame: int, player_id: int, value: int) -> body.BodyChunk:
-    return body.BodyChunk.model_construct(
-        order_name="Checksum", time_code=frame, player_id=player_id, arguments=[value]
+    # BodyChunk is a pydantic dataclass (real __slots__, see cncstats_model/body.py),
+    # not a BaseModel, so it has no model_construct - every field is required, and
+    # (like BaseModel) construction validates by alias, not field name, unless the
+    # model opts into populate_by_name - so these kwargs are the camelCase aliases,
+    # matching how the real cncstats JSON populates it.
+    return body.BodyChunk(
+        argMetadata=[],
+        arguments=[value],
+        details=None,
+        numberOfArguments=0,
+        orderCode=0,
+        orderName="Checksum",
+        playerID=player_id,
+        playerName="",
+        timeCode=frame,
     )
 
 
