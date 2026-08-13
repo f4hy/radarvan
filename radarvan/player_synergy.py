@@ -25,7 +25,7 @@ from collections import defaultdict
 
 import numpy as np
 import structlog
-from cachetools import cached
+from cachetools import LRUCache
 from openskill.models import PlackettLuce
 
 from .api_types import MatchInfo
@@ -36,6 +36,7 @@ from .player_rating import (
     get_model,
     is_ratable_team_game,
 )
+from .utils import locked_cached
 
 logger = structlog.get_logger(__name__)
 
@@ -48,6 +49,13 @@ logger = structlog.get_logger(__name__)
 DEFAULT_LAMBDA_PAIR = 10.0
 DEFAULT_LAMBDA_MAIN = 25.0
 DEFAULT_MIN_GAMES_TOGETHER = 3
+
+# Bounds the synergy cache: keyed on (match-id set, lambda_pair, lambda_main,
+# min_games_together), so it grows both as new matches land and as callers vary
+# the (partly user-controlled, via /api/player_ratings/synergy/) regularization
+# params. An LRU bound keeps that growth from being unlimited - see cache.py's
+# module docstring for why every process-global cachetools cache needs one.
+_SYNERGY_CACHE_MAXSIZE = 32
 
 _NEWTON_ITERATIONS = 50
 _NEWTON_TOL = 1e-8
@@ -165,8 +173,8 @@ def _fit_ridge_logistic(
     return beta, cov
 
 
-@cached(
-    cache={},
+@locked_cached(
+    cache=LRUCache(maxsize=_SYNERGY_CACHE_MAXSIZE),
     key=lambda games, lambda_pair=DEFAULT_LAMBDA_PAIR, lambda_main=DEFAULT_LAMBDA_MAIN, min_games_together=DEFAULT_MIN_GAMES_TOGETHER: (
         frozenset(g.id for g in games),
         lambda_pair,
