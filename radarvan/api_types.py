@@ -804,8 +804,6 @@ class BracketMatchGames(BaseModel):
 
 
 class SetBracketGamesRequest(BaseModel):
-    model_config = _SLOTS
-
     match_ids: list[int]
 
 
