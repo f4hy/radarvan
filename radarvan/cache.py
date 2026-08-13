@@ -115,7 +115,7 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     }
 
 
-@cached(cache=LRUCache(maxsize=100), key=details_key, lock=_details_lock)
+@cached(cache=LRUCache(maxsize=30), key=details_key, lock=_details_lock)
 def details_from_id(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
