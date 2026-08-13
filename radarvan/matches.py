@@ -16,7 +16,7 @@ from . import db
 from . import ml_inference
 from . import replay_files
 from . import utils
-from .api_types import MatchInfo, Player, Team
+from .api_types import MatchInfo, Player, Team, TournamentTag
 from .cncstats_model.header import GeneralsHeader
 from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
@@ -293,12 +293,18 @@ def replay_to_db_match(
 
 
 def match_to_matchinfo(
-    db_match: db.Match, override: db.WinnerOverride | None = None
+    db_match: db.Match,
+    override: db.WinnerOverride | None = None,
+    link: db.TournamentGame | None = None,
 ) -> MatchInfo:
     """Convert. If an override is set it takes full precedence: winner, player won-flags,
     and incomplete/notes are all replaced regardless of what the replay headers say.
     An override with no winning_team_id (e.g. one that only sets `incomplete`) leaves
-    the replay-derived winner alone - it must not be treated as "no team won"."""
+    the replay-derived winner alone - it must not be treated as "no team won".
+
+    ``link`` is this match's ``tournament_games`` row, if it has one - passed
+    in (rather than looked up per match) so the caller can load them all in
+    one query."""
     override_winner = override.winning_team_id if override is not None else None
     has_winner_override = override_winner is not None
     winner = override_winner if has_winner_override else db_match.winning_team_id
@@ -335,6 +341,14 @@ def match_to_matchinfo(
         game_version=db_match.game_version,
         composition=comp,
         is_dev=db_match.is_dev,
+        tournament=TournamentTag(
+            slug=link.tournament.slug,
+            stage=link.stage,
+            round_name=link.round_name,
+            series_index=link.series_index,
+        )
+        if link is not None
+        else None,
     )
 
 
@@ -479,9 +493,15 @@ def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     with log_time("listing"):
         listing = replay_manager.list_matches(2.0)
     overrides = replay_manager.get_overrides()
+    # One query for every tournament link, same as overrides above - the
+    # alternative is a lookup per match across the whole listing.
+    links = replay_manager.links_by_match()
 
     with log_time("convert"):
-        return [match_to_matchinfo(m, overrides.get(m.match_id)) for m in listing]
+        return [
+            match_to_matchinfo(m, overrides.get(m.match_id), links.get(m.match_id))
+            for m in listing
+        ]
 
 
 if __name__ == "__main__":

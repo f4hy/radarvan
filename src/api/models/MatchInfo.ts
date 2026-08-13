@@ -34,6 +34,13 @@ import {
     TeamToJSON,
     TeamToJSONTyped,
 } from './Team';
+import type { TournamentTag } from './TournamentTag';
+import {
+    TournamentTagFromJSON,
+    TournamentTagFromJSONTyped,
+    TournamentTagToJSON,
+    TournamentTagToJSONTyped,
+} from './TournamentTag';
 
 /**
  * 
@@ -120,6 +127,12 @@ export interface MatchInfo {
      */
     isDev?: boolean;
     /**
+     * 
+     * @type {TournamentTag}
+     * @memberof MatchInfo
+     */
+    tournament?: TournamentTag | null;
+    /**
      * True if any player is a CPU/AI opponent (see player_role.PlayerRole).
      * @type {boolean}
      * @memberof MatchInfo
@@ -168,6 +181,7 @@ export function MatchInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'gameVersion': json['game_version'] == null ? undefined : json['game_version'],
         'composition': json['composition'] == null ? undefined : GameCompositionFromJSON(json['composition']),
         'isDev': json['is_dev'] == null ? undefined : json['is_dev'],
+        'tournament': json['tournament'] == null ? undefined : TournamentTagFromJSON(json['tournament']),
         'hasAi': json['has_ai'],
     };
 }
@@ -196,6 +210,7 @@ export function MatchInfoToJSONTyped(value?: Omit<MatchInfo, 'has_ai'> | null, i
         'game_version': value['gameVersion'],
         'composition': GameCompositionToJSON(value['composition']),
         'is_dev': value['isDev'],
+        'tournament': TournamentTagToJSON(value['tournament']),
     };
 }
 

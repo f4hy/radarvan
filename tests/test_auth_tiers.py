@@ -176,6 +176,7 @@ COOKIE_AUTH_MUTATIONS = {
     ("POST", "/api/bracket"),
     ("POST", "/api/bracket/reveal_at"),
     ("POST", "/api/bracket/{match_id}"),
+    ("POST", "/api/bracket_games/{match_id}"),
     ("POST", "/api/bracket_predictions/{match_id}"),
 }
 
