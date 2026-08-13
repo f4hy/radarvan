@@ -3,6 +3,8 @@
 // (the generated API-key client in Client.ts is cross-origin in dev and
 // can't carry the cookie).
 
+import { BracketMatchGames, BracketMatchGamesFromJSON } from "./api"
+
 export type BracketSide = "W" | "L" | "GF"
 export type BracketMatchStatus =
   | "pending"
@@ -32,11 +34,6 @@ export interface BracketMatchOutput {
   player_a: string | null
   player_b: string | null
   scheduled_at: string | null
-  // The game night scheduled_at falls on, per the backend's Eastern-time 5am
-  // rollover. Use this - never scheduled_at's own calendar date - to look up
-  // matches by date: an 8pm Eastern start is already the next UTC day, so the
-  // two differ for most scheduled matches.
-  game_night_date: string | null
   best_of: number | null
   score_a: number | null
   score_b: number | null
@@ -165,6 +162,27 @@ export async function setBracketMatch(
     body: JSON.stringify(req),
   })
   return handle<BracketTournamentOutput>(resp, "set match")
+}
+
+// Set the games played for a bracket match (tournament admin only). Written
+// as `manual` links the backend's auto-detector won't overwrite. Goes through
+// same-origin fetch for the session cookie, then reuses the generated
+// converter so the MatchInfos come back in the same camelCase shape every
+// other component consumes.
+export async function setBracketGames(
+  matchId: string,
+  gameMatchIds: number[],
+): Promise<BracketMatchGames> {
+  const resp = await fetch(
+    `/api/bracket_games/${encodeURIComponent(matchId)}`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_ids: gameMatchIds }),
+    },
+  )
+  return BracketMatchGamesFromJSON(await handle<unknown>(resp, "set games"))
 }
 
 export async function fetchBracketPredictions(): Promise<

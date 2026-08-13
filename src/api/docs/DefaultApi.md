@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**backfillMatchCompositionApiBackfillCompositionPost**](DefaultApi.md#backfillmatchcompositionapibackfillcompositionpost) | **POST** /api/backfill/composition | Backfill Match Composition |
 | [**backfillPlayerRolesApiBackfillPlayerRolesPost**](DefaultApi.md#backfillplayerrolesapibackfillplayerrolespost) | **POST** /api/backfill_player_roles/ | Backfill Player Roles |
+| [**backfillTournamentGamesApiBackfillTournamentGamesPost**](DefaultApi.md#backfilltournamentgamesapibackfilltournamentgamespost) | **POST** /api/backfill/tournament_games | Backfill Tournament Games |
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
 | [**clearDetailsCacheApiClearDetailsCachePost**](DefaultApi.md#cleardetailscacheapicleardetailscachepost) | **POST** /api/clear_details_cache/ | Clear Details Cache |
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
@@ -49,6 +50,7 @@ All URIs are relative to *http://localhost*
 | [**listFilesApiFilesGet**](DefaultApi.md#listfilesapifilesget) | **GET** /api/files/ | List Files |
 | [**listPendingUnprocessedApiFilesPendingUnprocessedGet**](DefaultApi.md#listpendingunprocessedapifilespendingunprocessedget) | **GET** /api/files/pending_unprocessed | List Pending Unprocessed |
 | [**listReplaysApiReplaysGet**](DefaultApi.md#listreplaysapireplaysget) | **GET** /api/replays/ | List Replays |
+| [**listTournamentsApiTournamentsGet**](DefaultApi.md#listtournamentsapitournamentsget) | **GET** /api/tournaments | List Tournaments |
 | [**partitionTeamsApiPartitionTeamsTeamSizeGet**](DefaultApi.md#partitionteamsapipartitionteamsteamsizeget) | **GET** /api/partition_teams/{team_size} | Partition Teams |
 | [**predictFactionMatchupApiPredictFactionMatchupGet**](DefaultApi.md#predictfactionmatchupapipredictfactionmatchupget) | **GET** /api/predict/faction_matchup | Predict Faction Matchup |
 | [**predictFactionMatrixApiPredictFactionMatrixGet**](DefaultApi.md#predictfactionmatrixapipredictfactionmatrixget) | **GET** /api/predict/faction_matrix | Predict Faction Matrix |
@@ -70,6 +72,7 @@ All URIs are relative to *http://localhost*
 | [**scrapeApiScrapeDaysPost**](DefaultApi.md#scrapeapiscrapedayspost) | **POST** /api/scrape/{days} | Scrape |
 | [**setOverrideApiSetOverridePost**](DefaultApi.md#setoverrideapisetoverridepost) | **POST** /api/set_override/ | Set Override |
 | [**testTournamentReportApiTestTournamentReportTournamentNamePost**](DefaultApi.md#testtournamentreportapitesttournamentreporttournamentnamepost) | **POST** /api/test_tournament_report/{tournament_name} | Test Tournament Report |
+| [**tournamentGamesForApiTournamentsSlugGamesGet**](DefaultApi.md#tournamentgamesforapitournamentssluggamesget) | **GET** /api/tournaments/{slug}/games | Tournament Games For |
 | [**uploadReplayApiUploadReplayPost**](DefaultApi.md#uploadreplayapiuploadreplaypost) | **POST** /api/upload_replay | Upload Replay |
 
 
@@ -217,6 +220,69 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## backfillTournamentGamesApiBackfillTournamentGamesPost
+
+> { [key: string]: number | null; } backfillTournamentGamesApiBackfillTournamentGamesPost()
+
+Backfill Tournament Games
+
+Register the known tournaments and persist their game links.  Idempotent - re-running picks up games played since the last run and leaves admin-set (&#x60;&#x60;manual&#x60;&#x60;) links untouched, so this is safe to call repeatedly and is what the scrape job calls after registering matches. Unlike the other backfills there\&#39;s no &#x60;&#x60;max_to_update&#x60;&#x60;: detection is one in-memory pass over the already-cached match list, not per-match S3 work.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { BackfillTournamentGamesApiBackfillTournamentGamesPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.backfillTournamentGamesApiBackfillTournamentGamesPost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: number | null; }**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -2808,7 +2874,7 @@ This endpoint does not need any parameter.
 
 Get Tournament Report
 
-Get report for a specific tournament.
+Get report for a specific tournament.  Round-robin only. &#x60;&#x60;tournament_games&#x60;&#x60; now yields bracket slugs too (it reads the persisted links), but the report builder derives team records from &#x60;&#x60;tournament.TOURNAMENT_MAP&#x60;&#x60; and would raise a KeyError partway through a background task for anything else.
 
 ### Example
 
@@ -2943,7 +3009,7 @@ This endpoint does not need any parameter.
 
 Is Tournament Game
 
-test if a match is a tournament game.
+The slug of the tournament this match counted toward, or None.  Reads the persisted link rather than re-deriving membership, so an admin\&#39;s manual link (or exclusion) is reflected here too.
 
 ### Example
 
@@ -3202,6 +3268,69 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listTournamentsApiTournamentsGet
+
+> Array&lt;TournamentInfo&gt; listTournamentsApiTournamentsGet()
+
+List Tournaments
+
+Every tournament ever run, newest first, with its linked game count.  Counts come from an aggregate over the link table, so this page doesn\&#39;t depend on the match cache being warm.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { ListTournamentsApiTournamentsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  try {
+    const data = await api.listTournamentsApiTournamentsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;TournamentInfo&gt;**](TournamentInfo.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -4678,6 +4807,78 @@ example().catch(console.error);
 ### Return type
 
 [**TournamentReport**](TournamentReport.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## tournamentGamesForApiTournamentsSlugGamesGet
+
+> Matches tournamentGamesForApiTournamentsSlugGamesGet(slug)
+
+Tournament Games For
+
+The matches linked to one tournament, newest first.  Driven off the persisted links, so this answers \&quot;every game of this tournament\&quot; for a finished bracket whose live state has since been reset. Links whose match is missing from the listing are skipped - the link table has no FK to matches on purpose (see db.TournamentGame).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { TournamentGamesForApiTournamentsSlugGamesGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string
+    slug: slug_example,
+  } satisfies TournamentGamesForApiTournamentsSlugGamesGetRequest;
+
+  try {
+    const data = await api.tournamentGamesForApiTournamentsSlugGamesGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **slug** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**Matches**](Matches.md)
 
 ### Authorization
 
