@@ -125,7 +125,7 @@ Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check agains
 
 - **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types (e.g. `locked_cached` lives in `utils.py` because `cache.py` imports `player_rating`).
 - **Never mutate function inputs** — return new values (`model_copy(update=...)` for Pydantic).
-- `slots=True` model_config on api_types models; camelCase wire aliases with `populate_by_name`.
+- camelCase wire aliases with `populate_by_name`. (Do not add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — pydantic v2's `ConfigDict` has no such key for `BaseModel`; it's silently ignored. Real slots require `pydantic.dataclasses.dataclass(..., slots=True)`, which isn't compatible with `api_types.py`'s OpenAPI/TS-codegen role.)
 
 ## Domain gotchas
 
