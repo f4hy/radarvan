@@ -73,6 +73,7 @@ docs/MapEventOutput.md
 docs/MapExtent.md
 docs/MapGeneralWL.md
 docs/MapMatchCount.md
+docs/MapPlayerRecords.md
 docs/MapPlayerStart.md
 docs/MapPlayerWL.md
 docs/MapPoint.md
@@ -229,6 +230,7 @@ models/MapEventOutput.ts
 models/MapExtent.ts
 models/MapGeneralWL.ts
 models/MapMatchCount.ts
+models/MapPlayerRecords.ts
 models/MapPlayerStart.ts
 models/MapPlayerWL.ts
 models/MapPoint.ts

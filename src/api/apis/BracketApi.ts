@@ -21,6 +21,7 @@ import type {
   BracketTournamentOutput,
   CreateBracketRequest,
   HTTPValidationError,
+  MapPlayerRecords,
   SetBracketGamesRequest,
   SetBracketMatchRequest,
   SetBracketRevealAtRequest,
@@ -39,6 +40,8 @@ import {
     CreateBracketRequestToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    MapPlayerRecordsFromJSON,
+    MapPlayerRecordsToJSON,
     SetBracketGamesRequestFromJSON,
     SetBracketGamesRequestToJSON,
     SetBracketMatchRequestFromJSON,
@@ -244,7 +247,7 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * The games actually played for one bracket match.  A distinct top-level path rather than ``/api/bracket/{match_id}/games`` for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Public: seeing which games were played is the same information the Matches page already shows. Only editing the links is admin-gated.
+     * The games actually played for one bracket match.  A distinct top-level path rather than ``/api/bracket/{match_id}/games`` for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Readable without an account once the bracket is revealed - which games were played is what the Matches page already shows. Before ``reveal_at`` it returns nothing: both the linked MatchInfos and the detector candidates name the two players, which is exactly what ``_redact`` withholds from ``GET /api/bracket``. Editing is admin-gated below.
      * Get Bracket Games
      */
     async getBracketGamesApiBracketGamesMatchIdGetRaw(requestParameters: GetBracketGamesApiBracketGamesMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketMatchGames>> {
@@ -255,11 +258,50 @@ export class BracketApi extends runtime.BaseAPI {
     }
 
     /**
-     * The games actually played for one bracket match.  A distinct top-level path rather than ``/api/bracket/{match_id}/games`` for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Public: seeing which games were played is the same information the Matches page already shows. Only editing the links is admin-gated.
+     * The games actually played for one bracket match.  A distinct top-level path rather than ``/api/bracket/{match_id}/games`` for the same reason ``/api/bracket_eligible_players`` is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Readable without an account once the bracket is revealed - which games were played is what the Matches page already shows. Before ``reveal_at`` it returns nothing: both the linked MatchInfos and the detector candidates name the two players, which is exactly what ``_redact`` withholds from ``GET /api/bracket``. Editing is admin-gated below.
      * Get Bracket Games
      */
     async getBracketGamesApiBracketGamesMatchIdGet(requestParameters: GetBracketGamesApiBracketGamesMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketMatchGames> {
         const response = await this.getBracketGamesApiBracketGamesMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getBracketMapRecordsApiBracketMapRecordsGet without sending the request
+     */
+    async getBracketMapRecordsApiBracketMapRecordsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/bracket_map_records`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Each map\'s per-player records across every game linked to the bracket.  Derived from the same persisted links ``/api/bracket_games`` reads, so an admin\'s manual link or exclusion is reflected here too. Empty before ``reveal_at`` for the same reason ``get_bracket_games`` is: the records name who played whom.
+     * Get Bracket Map Records
+     */
+    async getBracketMapRecordsApiBracketMapRecordsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<MapPlayerRecords>>> {
+        const requestOptions = await this.getBracketMapRecordsApiBracketMapRecordsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MapPlayerRecordsFromJSON));
+    }
+
+    /**
+     * Each map\'s per-player records across every game linked to the bracket.  Derived from the same persisted links ``/api/bracket_games`` reads, so an admin\'s manual link or exclusion is reflected here too. Empty before ``reveal_at`` for the same reason ``get_bracket_games`` is: the records name who played whom.
+     * Get Bracket Map Records
+     */
+    async getBracketMapRecordsApiBracketMapRecordsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<MapPlayerRecords>> {
+        const response = await this.getBracketMapRecordsApiBracketMapRecordsGetRaw(initOverrides);
         return await response.value();
     }
 
