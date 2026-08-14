@@ -97,6 +97,35 @@ export interface BracketPredictionLeaderboardEntry {
   total: number
 }
 
+export interface MapPlayerWL {
+  player: string
+  wins: number
+  losses: number
+}
+
+// One map and everyone who played it in the tournament. `map_key` is the
+// backend's normalized join key (path, ".map" suffix, whitespace and case
+// stripped - see replay_files.map_key); match it with mapKey() below rather
+// than comparing display names, which differ in case between the map pool
+// and match history. `total_games` counts games, so it is not the sum of the
+// per-player records.
+export interface MapPlayerRecords {
+  map_key: string
+  map_name: string
+  total_games: number
+  players: MapPlayerWL[]
+}
+
+// TS twin of radarvan/replay_files.py's map_key - the two must agree for a
+// pool map name to line up with the map recorded on a match.
+export function mapKey(name: string): string {
+  const base = name.split("/").pop() ?? name
+  return base
+    .replace(/\.map$/, "")
+    .replace(/\s+/g, "")
+    .toLowerCase()
+}
+
 async function handle<T>(resp: Response, action: string): Promise<T> {
   if (!resp.ok) {
     let detail = `${action} failed (${resp.status})`
@@ -183,6 +212,16 @@ export async function setBracketGames(
     },
   )
   return BracketMatchGamesFromJSON(await handle<unknown>(resp, "set games"))
+}
+
+// Each map's per-player records over the tournament's linked games. Empty
+// before the bracket is revealed (and same-origin so an admin previewing
+// early is recognized by their session cookie).
+export async function fetchBracketMapRecords(): Promise<MapPlayerRecords[]> {
+  const resp = await fetch("/api/bracket_map_records", {
+    credentials: "same-origin",
+  })
+  return handle<MapPlayerRecords[]>(resp, "get map records")
 }
 
 export async function fetchBracketPredictions(): Promise<
