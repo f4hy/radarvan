@@ -6,12 +6,16 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import EventNoteIcon from "@mui/icons-material/EventNote"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import GavelIcon from "@mui/icons-material/Gavel"
 import MapIcon from "@mui/icons-material/Map"
 import PersonIcon from "@mui/icons-material/Person"
 import SettingsIcon from "@mui/icons-material/Settings"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import WhatshotIcon from "@mui/icons-material/Whatshot"
+import Accordion from "@mui/material/Accordion"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import AccordionSummary from "@mui/material/AccordionSummary"
 import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -20,6 +24,7 @@ import Dialog from "@mui/material/Dialog"
 import DialogActions from "@mui/material/DialogActions"
 import DialogContent from "@mui/material/DialogContent"
 import DialogTitle from "@mui/material/DialogTitle"
+import Divider from "@mui/material/Divider"
 import IconButton from "@mui/material/IconButton"
 import List from "@mui/material/List"
 import ListItem from "@mui/material/ListItem"
@@ -52,7 +57,10 @@ import {
   BracketTournamentOutput,
   createBracket,
   fetchBracket,
+  fetchBracketMapRecords,
   fetchEligiblePlayers,
+  mapKey,
+  MapPlayerRecords,
   MatchSource,
   SetBracketMatchRequest,
   setBracketGames,
@@ -202,25 +210,158 @@ function TournamentRulesPanel() {
   )
 }
 
-// The Map List tab content — one GameMap card per map in the approved pool.
+// Pool map names by their normalized key, so a record coming back keyed on
+// the (lowercased, path-stripped) name stored on a match lines up with the
+// pool entry — and is shown with the pool's proper capitalization.
+const POOL_NAME_BY_KEY = new Map(
+  TOURNAMENT_MAP_LIST.map((name) => [mapKey(name), name]),
+)
+
+function recordColor(wins: number, losses: number): string {
+  if (wins > losses) return WIN_COLOR
+  if (losses > wins) return LOSS_COLOR
+  return NEUTRAL_COLOR
+}
+
+// Every pool map is listed whether or not it's been played, in the same order
+// as the cards above; a map played but not in the pool (shouldn't happen under
+// the rules) is appended under whatever name the match recorded.
+function mapSections(
+  records: MapPlayerRecords[],
+): { key: string; name: string; record: MapPlayerRecords | undefined }[] {
+  const byKey = new Map(records.map((r) => [r.map_key, r]))
+  return [
+    ...TOURNAMENT_MAP_LIST.map((name) => ({
+      key: mapKey(name),
+      name,
+      record: byKey.get(mapKey(name)),
+    })),
+    ...records
+      .filter((r) => !POOL_NAME_BY_KEY.has(r.map_key))
+      .map((r) => ({ key: r.map_key, name: r.map_name, record: r })),
+  ]
+}
+
+// Per-map breakdown of who has played it and how they did — e.g. Vendetta:
+// Gorn 2–0, Skip 1–1. Driven by the games linked to each bracket match, so it
+// tracks whatever an admin has linked/unlinked rather than re-deriving
+// membership.
+function MapPlayerRecordList() {
+  const [records, setRecords] = React.useState<MapPlayerRecords[] | null>(null)
+  const [failed, setFailed] = React.useState(false)
+
+  React.useEffect(() => {
+    let cancelled = false
+    fetchBracketMapRecords()
+      .then((res) => {
+        if (!cancelled) setRecords(res)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (failed) {
+    return (
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        Couldn't load map history.
+      </Typography>
+    )
+  }
+  if (records === null) return <Loading />
+  if (records.length === 0) {
+    return (
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        No tournament games have been played yet.
+      </Typography>
+    )
+  }
+
+  return (
+    <Stack spacing={1.5} divider={<Divider flexItem />}>
+      {mapSections(records).map(({ key, name, record }) => (
+        <Box key={key}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "baseline" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {name}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {record
+                ? `${record.total_games} game${record.total_games === 1 ? "" : "s"}`
+                : "not played yet"}
+            </Typography>
+          </Stack>
+          {record && (
+            <Stack
+              direction="row"
+              spacing={1.5}
+              useFlexGap
+              sx={{ flexWrap: "wrap", alignItems: "center", mt: 0.75 }}
+            >
+              {record.players.map((p) => (
+                <Stack
+                  key={p.player}
+                  direction="row"
+                  spacing={0.5}
+                  sx={{ alignItems: "center" }}
+                >
+                  <PlayerChip name={p.player} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: recordColor(p.wins, p.losses),
+                      fontWeight: 600,
+                    }}
+                  >
+                    {p.wins}–{p.losses}
+                  </Typography>
+                </Stack>
+              ))}
+            </Stack>
+          )}
+        </Box>
+      ))}
+    </Stack>
+  )
+}
+
+// The Map List tab content — one GameMap card per map in the approved pool,
+// plus a collapsed per-map record of who has played each one so far.
 function TournamentMapListPanel() {
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-        gap: 2,
-      }}
-    >
-      {TOURNAMENT_MAP_LIST.map((mapName) => (
-        <Stack key={mapName} spacing={1}>
-          <GameMap mapname={mapName} />
-          <Typography variant="subtitle1" noWrap title={mapName}>
-            {mapName}
+    <Stack spacing={2}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: 2,
+        }}
+      >
+        {TOURNAMENT_MAP_LIST.map((mapName) => (
+          <Stack key={mapName} spacing={1}>
+            <GameMap mapname={mapName} />
+            <Typography variant="subtitle1" noWrap title={mapName}>
+              {mapName}
+            </Typography>
+          </Stack>
+        ))}
+      </Box>
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography sx={{ fontWeight: 600 }}>
+            Who's played each map so far
           </Typography>
-        </Stack>
-      ))}
-    </Box>
+        </AccordionSummary>
+        {/* unmountOnExit (the default) keeps the fetch lazy: the list only
+            mounts — and only then hits the API — once someone opens this. */}
+        <AccordionDetails>
+          <MapPlayerRecordList />
+        </AccordionDetails>
+      </Accordion>
+    </Stack>
   )
 }
 
