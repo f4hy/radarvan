@@ -381,6 +381,22 @@ class MapStatsResponse(BaseModel):
     maps: list[MapData]
 
 
+class MapPlayerRecords(BaseModel):
+    """One map, and how everyone who played it did on it.
+
+    ``map_key`` is ``replay_files.map_key`` - the normalized join key a
+    caller can match against its own map list; ``map_name`` is the raw
+    basename as stored on the match, for display when nothing matches.
+    ``total_games`` counts games, not player-results, so it isn't the sum of
+    the per-player records.
+    """
+
+    map_key: str
+    map_name: str
+    total_games: int
+    players: list[MapPlayerWL]
+
+
 class MapStat(BaseModel):
     map: str = ""
     team: Team = Team.NONE

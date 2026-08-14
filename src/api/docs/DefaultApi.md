@@ -2874,7 +2874,7 @@ This endpoint does not need any parameter.
 
 Get Tournament Report
 
-Get report for a specific tournament.  Round-robin only. &#x60;&#x60;tournament_games&#x60;&#x60; now yields bracket slugs too (it reads the persisted links), but the report builder derives team records from &#x60;&#x60;tournament.TOURNAMENT_MAP&#x60;&#x60; and would raise a KeyError partway through a background task for anything else.
+Get report for a specific tournament (round-robin only).
 
 ### Example
 
