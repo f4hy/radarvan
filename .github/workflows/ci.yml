@@ -55,6 +55,14 @@ jobs:
       - name: TypeScript checks (biome + tsc)
         run: make ts-check
 
+      # Mirrors `npm run build` (tsc && vite build). Must run before the pytest
+      # step below: radarvan/main.py mounts StaticFiles(directory="dist") at
+      # import time, and several tests (tests/test_auth_tiers.py) import
+      # radarvan.main - without a built dist/ that import raises
+      # RuntimeError("Directory 'dist' does not exist").
+      - name: Frontend build
+        run: npm run build
+
       # `uv run pytest`. The whole suite runs against a clean checkout: the
       # canonical cncstats fixture is committed (references/example_cncstats_output.json)
       # and tests/new_cncstats_output.json is tracked, so no deselects are needed.
@@ -68,7 +76,3 @@ jobs:
       # Mirrors `npm test` (vitest run).
       - name: Frontend tests (vitest)
         run: npm run test
-
-      # Mirrors `npm run build` (tsc && vite build).
-      - name: Frontend build
-        run: npm run build

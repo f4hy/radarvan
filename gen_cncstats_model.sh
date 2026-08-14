@@ -17,3 +17,8 @@ datamodel-codegen  \
 		--collapse-root-models \
 		--disable-timestamp
 
+# NOTE: this regenerates radarvan/cncstats_model/body.py from scratch as plain
+# BaseModel classes, clobbering the hand-converted `pydantic.dataclasses.dataclass
+# (slots=True)` versions of ArgMetadata/BodyChunk (see the comment at the top of
+# that file for why). Re-apply that conversion after running this script.
+

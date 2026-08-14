@@ -49,6 +49,7 @@ import type {
   Superlatives,
   Team,
   TeamStatsResponse,
+  TournamentInfo,
   TournamentReport,
   TournamentResult,
   WinProbOverTime,
@@ -123,6 +124,8 @@ import {
     TeamToJSON,
     TeamStatsResponseFromJSON,
     TeamStatsResponseToJSON,
+    TournamentInfoFromJSON,
+    TournamentInfoToJSON,
     TournamentReportFromJSON,
     TournamentReportToJSON,
     TournamentResultFromJSON,
@@ -348,6 +351,10 @@ export interface TestTournamentReportApiTestTournamentReportTournamentNamePostRe
     tournamentName: string;
 }
 
+export interface TournamentGamesForApiTournamentsSlugGamesGetRequest {
+    slug: string;
+}
+
 export interface UploadReplayApiUploadReplayPostRequest {
     file: string;
     xZuluBuild?: string | null;
@@ -458,6 +465,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async backfillPlayerRolesApiBackfillPlayerRolesPost(requestParameters: BackfillPlayerRolesApiBackfillPlayerRolesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
         const response = await this.backfillPlayerRolesApiBackfillPlayerRolesPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for backfillTournamentGamesApiBackfillTournamentGamesPost without sending the request
+     */
+    async backfillTournamentGamesApiBackfillTournamentGamesPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/backfill/tournament_games`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Register the known tournaments and persist their game links.  Idempotent - re-running picks up games played since the last run and leaves admin-set (``manual``) links untouched, so this is safe to call repeatedly and is what the scrape job calls after registering matches. Unlike the other backfills there\'s no ``max_to_update``: detection is one in-memory pass over the already-cached match list, not per-match S3 work.
+     * Backfill Tournament Games
+     */
+    async backfillTournamentGamesApiBackfillTournamentGamesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+        const requestOptions = await this.backfillTournamentGamesApiBackfillTournamentGamesPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Register the known tournaments and persist their game links.  Idempotent - re-running picks up games played since the last run and leaves admin-set (``manual``) links untouched, so this is safe to call repeatedly and is what the scrape job calls after registering matches. Unlike the other backfills there\'s no ``max_to_update``: detection is one in-memory pass over the already-cached match list, not per-match S3 work.
+     * Backfill Tournament Games
+     */
+    async backfillTournamentGamesApiBackfillTournamentGamesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+        const response = await this.backfillTournamentGamesApiBackfillTournamentGamesPostRaw(initOverrides);
         return await response.value();
     }
 
@@ -2311,7 +2361,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get report for a specific tournament.
+     * Get report for a specific tournament.  Round-robin only. ``tournament_games`` now yields bracket slugs too (it reads the persisted links), but the report builder derives team records from ``tournament.TOURNAMENT_MAP`` and would raise a KeyError partway through a background task for anything else.
      * Get Tournament Report
      */
     async getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
@@ -2322,7 +2372,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get report for a specific tournament.
+     * Get report for a specific tournament.  Round-robin only. ``tournament_games`` now yields bracket slugs too (it reads the persisted links), but the report builder derives team records from ``tournament.TOURNAMENT_MAP`` and would raise a KeyError partway through a background task for anything else.
      * Get Tournament Report
      */
     async getTournamentReportApiTournamentReportTournamentNameGet(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
@@ -2405,7 +2455,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * test if a match is a tournament game.
+     * The slug of the tournament this match counted toward, or None.  Reads the persisted link rather than re-deriving membership, so an admin\'s manual link (or exclusion) is reflected here too.
      * Is Tournament Game
      */
     async isTournamentGameApiIsTournamentGameMatchIdGetRaw(requestParameters: IsTournamentGameApiIsTournamentGameMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
@@ -2420,7 +2470,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * test if a match is a tournament game.
+     * The slug of the tournament this match counted toward, or None.  Reads the persisted link rather than re-deriving membership, so an admin\'s manual link (or exclusion) is reflected here too.
      * Is Tournament Game
      */
     async isTournamentGameApiIsTournamentGameMatchIdGet(requestParameters: IsTournamentGameApiIsTournamentGameMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
@@ -2558,6 +2608,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async listReplaysApiReplaysGet(requestParameters: ListReplaysApiReplaysGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GameRecord>> {
         const response = await this.listReplaysApiReplaysGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listTournamentsApiTournamentsGet without sending the request
+     */
+    async listTournamentsApiTournamentsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/tournaments`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Every tournament ever run, newest first, with its linked game count.  Counts come from an aggregate over the link table, so this page doesn\'t depend on the match cache being warm.
+     * List Tournaments
+     */
+    async listTournamentsApiTournamentsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TournamentInfo>>> {
+        const requestOptions = await this.listTournamentsApiTournamentsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(TournamentInfoFromJSON));
+    }
+
+    /**
+     * Every tournament ever run, newest first, with its linked game count.  Counts come from an aggregate over the link table, so this page doesn\'t depend on the match cache being warm.
+     * List Tournaments
+     */
+    async listTournamentsApiTournamentsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TournamentInfo>> {
+        const response = await this.listTournamentsApiTournamentsGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -3622,6 +3715,57 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async testTournamentReportApiTestTournamentReportTournamentNamePost(requestParameters: TestTournamentReportApiTestTournamentReportTournamentNamePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
         const response = await this.testTournamentReportApiTestTournamentReportTournamentNamePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for tournamentGamesForApiTournamentsSlugGamesGet without sending the request
+     */
+    async tournamentGamesForApiTournamentsSlugGamesGetRequestOpts(requestParameters: TournamentGamesForApiTournamentsSlugGamesGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['slug'] == null) {
+            throw new runtime.RequiredError(
+                'slug',
+                'Required parameter "slug" was null or undefined when calling tournamentGamesForApiTournamentsSlugGamesGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/tournaments/{slug}/games`;
+        urlPath = urlPath.replace(`{${"slug"}}`, encodeURIComponent(String(requestParameters['slug'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The matches linked to one tournament, newest first.  Driven off the persisted links, so this answers \"every game of this tournament\" for a finished bracket whose live state has since been reset. Links whose match is missing from the listing are skipped - the link table has no FK to matches on purpose (see db.TournamentGame).
+     * Tournament Games For
+     */
+    async tournamentGamesForApiTournamentsSlugGamesGetRaw(requestParameters: TournamentGamesForApiTournamentsSlugGamesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
+        const requestOptions = await this.tournamentGamesForApiTournamentsSlugGamesGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchesFromJSON(jsonValue));
+    }
+
+    /**
+     * The matches linked to one tournament, newest first.  Driven off the persisted links, so this answers \"every game of this tournament\" for a finished bracket whose live state has since been reset. Links whose match is missing from the listing are skipped - the link table has no FK to matches on purpose (see db.TournamentGame).
+     * Tournament Games For
+     */
+    async tournamentGamesForApiTournamentsSlugGamesGet(requestParameters: TournamentGamesForApiTournamentsSlugGamesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
+        const response = await this.tournamentGamesForApiTournamentsSlugGamesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

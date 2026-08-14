@@ -271,6 +271,104 @@ class TournamentStat(Base):
     tournament_report: Mapped[TournamentReport] = relationship(back_populates="stats")
 
 
+class Tournament(Base):
+    """A tournament that was (or will be) run - the durable identity every
+    tournament game hangs off.
+
+    Deliberately separate from ``BracketTournament``: that table is a
+    singleton whose reset deletes the row and cascades away its players,
+    match states and predictions, so nothing anchored there survives the next
+    bracket. This row does, which is what makes "every tournament game ever"
+    answerable. ``BracketTournament.tournament_id`` points here.
+
+    Structure lives elsewhere on purpose - the round-robin team list and
+    games-per-team stay in ``tournament.TOURNAMENTS`` (the report needs them
+    to enumerate *unplayed* pairings, which linked games can't tell you), and
+    the bracket topology stays in ``bracket.py``. This table owns identity;
+    ``TournamentGame`` owns membership.
+    """
+
+    __tablename__ = "tournaments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    slug: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str] = mapped_column(String(200))
+    # "2v2_round_robin" | "1v1_double_elim" - see tournament_membership.py,
+    # which switches detection strategy on this.
+    format: Mapped[str] = mapped_column(String(32))
+    start_date: Mapped[date | None] = mapped_column(nullable=True)
+    end_date: Mapped[date | None] = mapped_column(nullable=True)
+    # "upcoming" | "active" | "complete"
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    games: Mapped[list[TournamentGame]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<Tournament {self.slug} ({self.format})>"
+
+
+class TournamentGame(Base):
+    """A played match that counted as part of a tournament.
+
+    ``match_id`` deliberately carries **no foreign key** to ``matches``:
+    ``MatchRepo.reset_match`` deletes the Match row and a reparse re-inserts
+    it under the same id, so ON DELETE CASCADE would silently destroy curated
+    links during an ops reparse and RESTRICT would break the reset outright.
+    Match ids are replay-derived and stable, so the plain indexed column is
+    safe; readers skip ids with no current match (same shape as
+    ``BracketPrediction.match_id``).
+
+    ``stage``/``round_name`` are the bracket topology id ("WB2-2") and its
+    human label, denormalized so they outlive a bracket reset; both are NULL
+    for round-robin games. ``series_index`` is the game's position within a
+    best-of series. ``source`` records how the link was made - a re-run of
+    the auto-detector must never overwrite a "manual" row.
+    """
+
+    __tablename__ = "tournament_games"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("tournaments.id", ondelete="CASCADE"), index=True
+    )
+    match_id: Mapped[int] = mapped_column(index=True)
+    stage: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    round_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    series_index: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    source: Mapped[str] = mapped_column(String(8), default="auto")
+    # A tombstone: "the detector will keep finding this match, and it still
+    # doesn't count" (warmups, a game replayed after a disconnect). Deleting
+    # the row can't express that - the next detector run would just recreate
+    # it - so an exclusion is a manual row that reads skip. This replaced a
+    # hard-coded match id in tournament.tournament_games().
+    excluded: Mapped[bool] = mapped_column(
+        default=False, server_default="false", nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_tournament_games_tournament_match",
+            "tournament_id",
+            "match_id",
+            unique=True,
+        ),
+        CheckConstraint("source in ('auto', 'manual')", name="check_link_source"),
+    )
+
+    tournament: Mapped[Tournament] = relationship(back_populates="games")
+
+    def __repr__(self) -> str:
+        return f"<TournamentGame match={self.match_id} stage={self.stage}>"
+
+
 class ComputedStatistic(Base):
     """A single statistic computed in bulk and persisted for fast serving."""
 
@@ -515,6 +613,14 @@ class BracketTournament(Base):
     # routes/bracket.py, never trusted from the client.
     reveal_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    # The durable Tournament this bracket belongs to. Nullable because
+    # brackets created before the tournaments registry existed have none, and
+    # because the bracket stays usable without one. Nothing cascades from
+    # here - deleting/resetting the bracket must not take the tournament (or
+    # its TournamentGame links) with it; that's the whole point of the split.
+    tournament_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tournaments.id"), nullable=True
     )
 
     players: Mapped[list[BracketPlayer]] = relationship(

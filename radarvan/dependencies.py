@@ -4,7 +4,6 @@ Imported by all routers. Keep this module side-effect free aside from the
 single DB engine + sessionmaker created at import time.
 """
 
-import asyncio
 from collections.abc import Generator
 from enum import StrEnum
 import secrets
@@ -16,9 +15,15 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
 from . import db, player_ids
+from .auth_notify import API_KEY_HEADER, notify_auth_event
 from .db_utils import DatabaseManager, ReplayManager
-from .notify import notify_async
-from .repositories import BracketPredictionRepo, BracketRepo, MapVoteRepo, UserRepo
+from .repositories import (
+    BracketPredictionRepo,
+    BracketRepo,
+    MapVoteRepo,
+    TournamentRepo,
+    UserRepo,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -72,10 +77,7 @@ def _keys_from_env(name: str, legacy: str) -> set[str]:
 API_KEYS_NORMAL = _keys_from_env("API_KEY_NORMAL", "API_KEY_READ")
 API_KEYS_ADMIN = _keys_from_env("API_KEY_ADMIN", "API_KEY_WRITE")
 ENFORCE_AUTH = os.getenv("ENFORCE_AUTH") is not None
-_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-# Keep strong refs to in-flight fire-and-forget tasks so they aren't GC'd mid-await.
-_background_tasks: set[asyncio.Task[None]] = set()
+_api_key_header = APIKeyHeader(name=API_KEY_HEADER, auto_error=False)
 
 
 def _keys_configured() -> bool:
@@ -89,12 +91,6 @@ def _resolve_tier(key: str | None) -> AccessTier:
     if key is not None and key in API_KEYS_NORMAL:
         return AccessTier.NORMAL
     return AccessTier.NONE
-
-
-def _notify_unauthenticated(path: str) -> None:
-    task = asyncio.create_task(notify_async(f"Call to {path} not authenticated."))
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
 
 
 async def verify_api_key(
@@ -122,7 +118,9 @@ async def verify_api_key(
             path=request.url.path,
         )
         if tier == AccessTier.NONE:
-            _notify_unauthenticated(request.url.path)
+            notify_auth_event(
+                request, None, "no valid API key, but ENFORCE_AUTH is unset"
+            )
         return
     if tier == AccessTier.NONE:
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -151,6 +149,10 @@ async def require_admin_key(
             method=request.method,
             path=request.url.path,
         )
+        if tier != AccessTier.ADMIN:
+            notify_auth_event(
+                request, None, "admin key required, but ENFORCE_AUTH is unset"
+            )
         return
     if tier != AccessTier.ADMIN:
         raise HTTPException(status_code=403, detail="Admin API key required")
@@ -211,6 +213,11 @@ def get_bracket_repo(session: Session = Depends(get_db_session)) -> BracketRepo:
     return BracketRepo(session)
 
 
+def get_tournament_repo(session: Session = Depends(get_db_session)) -> TournamentRepo:
+    """Dependency that provides a TournamentRepo instance."""
+    return TournamentRepo(session)
+
+
 def get_bracket_prediction_repo(
     session: Session = Depends(get_db_session),
 ) -> BracketPredictionRepo:
@@ -261,7 +268,7 @@ def require_admin_login(
     it would advertise APIKeyHeader as this route's security scheme in the
     OpenAPI spec, when the credential callers actually send is the cookie.
     """
-    if has_admin_access(request.headers.get("X-API-Key")):
+    if has_admin_access(request.headers.get(API_KEY_HEADER)):
         return
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")

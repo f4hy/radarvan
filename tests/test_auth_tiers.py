@@ -22,11 +22,14 @@ from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends as DependsParam
 from fastapi.routing import APIRoute
 from starlette.datastructures import Headers
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 
-from radarvan import dependencies, player_ids, routes
+from radarvan import dependencies, notify, player_ids, routes
+from radarvan.auth_notify import notify_auth_event
 from radarvan.db import User
+from radarvan.rate_limit import InMemoryRateLimitStore
 from radarvan.routes import admin
 from radarvan.dependencies import (
     AccessTier,
@@ -54,9 +57,17 @@ def keys(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _request(
-    path: str = "/api/reparse/1", method: str = "POST", key: str | None = None
+    path: str = "/api/reparse/1",
+    method: str = "POST",
+    key: str | None = None,
+    forwarded: str | None = None,
 ) -> Request:
-    headers = Headers({} if key is None else {"X-API-Key": key})
+    raw: dict[str, str] = {}
+    if key is not None:
+        raw["X-API-Key"] = key
+    if forwarded is not None:
+        raw["x-forwarded-for"] = forwarded
+    headers = Headers(raw)
     return Request(
         {
             "type": "http",
@@ -165,6 +176,7 @@ COOKIE_AUTH_MUTATIONS = {
     ("POST", "/api/bracket"),
     ("POST", "/api/bracket/reveal_at"),
     ("POST", "/api/bracket/{match_id}"),
+    ("POST", "/api/bracket_games/{match_id}"),
     ("POST", "/api/bracket_predictions/{match_id}"),
 }
 
@@ -330,3 +342,85 @@ def test_ui_admin_routes_are_not_behind_the_api_key() -> None:
         r.path for r in admin.session_router.routes if isinstance(r, APIRoute)
     }
     assert {path for _, path in ADMIN_LOGIN_MUTATIONS} == session_paths
+
+
+# --- notifying on rejection --------------------------------------------------
+
+
+@pytest.fixture
+def notices(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Capture webhook messages, and start each test with an empty throttle.
+
+    `notify_throttled` resolves `notify_background` through the notify module
+    namespace, so patching it there intercepts every path into the webhook.
+    """
+    sent: list[str] = []
+    monkeypatch.setattr(notify, "notify_background", sent.append)
+    monkeypatch.setattr(notify, "_throttle_store", InMemoryRateLimitStore())
+    return sent
+
+
+def test_auth_event_reports_who_was_rejected_and_where(notices: list[str]) -> None:
+    notify_auth_event(_request(forwarded="1.2.3.4"), 403, "Forbidden")
+    assert len(notices) == 1
+    assert "rejected 403" in notices[0]
+    assert "1.2.3.4" in notices[0]
+    assert "/api/reparse/1" in notices[0]
+    # No SessionMiddleware behind a bare Request: the message still builds.
+    assert "user_id=None" in notices[0]
+
+
+def test_repeat_rejections_are_throttled(notices: list[str]) -> None:
+    """A scanner sweeping one route must not flood the webhook."""
+    for _ in range(5):
+        notify_auth_event(_request(forwarded="1.2.3.4"), 403, "Forbidden")
+    assert len(notices) == 1
+
+
+def test_throttle_is_per_client_route_and_outcome(notices: list[str]) -> None:
+    notify_auth_event(_request(forwarded="1.2.3.4"), 403, "d")
+    notify_auth_event(_request(forwarded="5.6.7.8"), 403, "d")
+    notify_auth_event(_request(path="/api/other", forwarded="1.2.3.4"), 403, "d")
+    notify_auth_event(_request(forwarded="1.2.3.4"), 401, "d")
+    assert len(notices) == 4
+
+
+def test_a_scan_across_distinct_urls_is_capped(notices: list[str]) -> None:
+    """Per-key dedupe alone doesn't stop a sweep - every URL is a fresh key -
+    so the global budget is what bounds the damage."""
+    for i in range(200):
+        notify_auth_event(
+            _request(path=f"/api/probe/{i}", forwarded="1.2.3.4"), 403, "d"
+        )
+    assert len(notices) == notify.THROTTLE_BUDGET_PER_WINDOW
+
+
+@pytest.mark.parametrize(("status", "expected"), [(401, 1), (403, 1), (404, 0)])
+def test_handler_notifies_only_on_auth_rejections(
+    notices: list[str], status: int, expected: int
+) -> None:
+    """Catching this centrally is what makes it total - no gate has to remember
+    to notify, whichever module raised. The handler owns every other status
+    too, so a 404 must still get its normal response and no webhook call.
+    """
+    from radarvan.main import handle_http_exception
+
+    response = run(
+        handle_http_exception(
+            _request(forwarded="1.2.3.4"),
+            StarletteHTTPException(status_code=status, detail="Nope"),
+        )
+    )
+    assert response.status_code == status
+    assert len(notices) == expected
+
+
+def test_unenforced_missing_key_notifies_without_rejecting(
+    keys: None, monkeypatch: pytest.MonkeyPatch, notices: list[str]
+) -> None:
+    """Observe-only mode is the one case that notifies about a request it let
+    through - knowing what *would* have been blocked is the point of it."""
+    monkeypatch.setattr(dependencies, "ENFORCE_AUTH", False)
+    run(verify_api_key(_request(forwarded="1.2.3.4"), Response(), None))
+    assert len(notices) == 1
+    assert "allowed" in notices[0]
