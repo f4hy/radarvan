@@ -2361,7 +2361,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get report for a specific tournament.  Round-robin only. ``tournament_games`` now yields bracket slugs too (it reads the persisted links), but the report builder derives team records from ``tournament.TOURNAMENT_MAP`` and would raise a KeyError partway through a background task for anything else.
+     * Get report for a specific tournament (round-robin only).
      * Get Tournament Report
      */
     async getTournamentReportApiTournamentReportTournamentNameGetRaw(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TournamentReport>> {
@@ -2372,7 +2372,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get report for a specific tournament.  Round-robin only. ``tournament_games`` now yields bracket slugs too (it reads the persisted links), but the report builder derives team records from ``tournament.TOURNAMENT_MAP`` and would raise a KeyError partway through a background task for anything else.
+     * Get report for a specific tournament (round-robin only).
      * Get Tournament Report
      */
     async getTournamentReportApiTournamentReportTournamentNameGet(requestParameters: GetTournamentReportApiTournamentReportTournamentNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TournamentReport> {
