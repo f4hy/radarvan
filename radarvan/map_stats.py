@@ -1,10 +1,12 @@
 """Compute map stats: player and general win rates by map."""
 
 from collections import defaultdict
+from collections.abc import Iterable
 from .api_types import (
     General,
     MapData,
     MapGeneralWL,
+    MapPlayerRecords,
     MapPlayerWL,
     MapStatsResponse,
     MapSummaryDuration,
@@ -19,7 +21,7 @@ from .api_types import (
     Team,
 )
 from . import game_composition
-from .replay_files import map_basename
+from .replay_files import map_basename, map_key
 from . import general_stats as general_stats_module
 from .player_ids import resolve_player_name
 import structlog
@@ -98,6 +100,49 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
 
     logger.info("map stats", maps=len(maps), min_games=MIN_GAMES)
     return MapStatsResponse(maps=maps)
+
+
+def map_player_records(games: Iterable[MatchInfo]) -> list[MapPlayerRecords]:
+    """Per-map, per-player win-loss over exactly the games handed in.
+
+    Unlike ``get_map_stats`` this applies no competitive filter and no
+    minimum-games cutoff: the caller has already chosen the game set (e.g.
+    one tournament's linked games), so every decided game in it counts.
+    Maps are ordered by games played, and each map's players likewise.
+    """
+    records: dict[str, dict[str, list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    names_by_key: dict[str, str] = {}
+    games_by_key: dict[str, int] = defaultdict(int)
+
+    for game in games:
+        if game.incomplete or game.winning_team < 1:
+            continue
+        key = map_key(game.map)
+        names_by_key.setdefault(key, map_basename(game.map))
+        games_by_key[key] += 1
+        for player in game.roster().participants:
+            name = resolve_player_name(player.name, player.color)
+            records[key][name][0 if player.won else 1] += 1
+
+    by_map = []
+    for key, by_player in records.items():
+        players = [
+            MapPlayerWL(player=name, wins=wl[0], losses=wl[1])
+            for name, wl in by_player.items()
+        ]
+        players.sort(key=lambda p: (-(p.wins + p.losses), -p.wins, p.player))
+        by_map.append(
+            MapPlayerRecords(
+                map_key=key,
+                map_name=names_by_key[key],
+                total_games=games_by_key[key],
+                players=players,
+            )
+        )
+    by_map.sort(key=lambda m: (-m.total_games, m.map_name))
+    return by_map
 
 
 def _win_rate(wins: int, losses: int) -> float:
