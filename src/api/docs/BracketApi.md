@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost*
 | [**eligiblePlayersApiBracketEligiblePlayersGet**](BracketApi.md#eligibleplayersapibracketeligibleplayersget) | **GET** /api/bracket_eligible_players | Eligible Players |
 | [**getBracketApiBracketGet**](BracketApi.md#getbracketapibracketget) | **GET** /api/bracket | Get Bracket |
 | [**getBracketGamesApiBracketGamesMatchIdGet**](BracketApi.md#getbracketgamesapibracketgamesmatchidget) | **GET** /api/bracket_games/{match_id} | Get Bracket Games |
+| [**getBracketMapRecordsApiBracketMapRecordsGet**](BracketApi.md#getbracketmaprecordsapibracketmaprecordsget) | **GET** /api/bracket_map_records | Get Bracket Map Records |
 | [**getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet**](BracketApi.md#getbracketpredictionleaderboardapibracketpredictionleaderboardget) | **GET** /api/bracket_prediction_leaderboard | Get Bracket Prediction Leaderboard |
 | [**getBracketPredictionsApiBracketPredictionsGet**](BracketApi.md#getbracketpredictionsapibracketpredictionsget) | **GET** /api/bracket_predictions | Get Bracket Predictions |
 | [**setBracketGamesApiBracketGamesMatchIdPost**](BracketApi.md#setbracketgamesapibracketgamesmatchidpost) | **POST** /api/bracket_games/{match_id} | Set Bracket Games |
@@ -218,7 +219,7 @@ No authorization required
 
 Get Bracket Games
 
-The games actually played for one bracket match.  A distinct top-level path rather than &#x60;&#x60;/api/bracket/{match_id}/games&#x60;&#x60; for the same reason &#x60;&#x60;/api/bracket_eligible_players&#x60;&#x60; is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Public: seeing which games were played is the same information the Matches page already shows. Only editing the links is admin-gated.
+The games actually played for one bracket match.  A distinct top-level path rather than &#x60;&#x60;/api/bracket/{match_id}/games&#x60;&#x60; for the same reason &#x60;&#x60;/api/bracket_eligible_players&#x60;&#x60; is - the OpenAPI generator merges sibling paths sharing a parameterized prefix.  Readable without an account once the bracket is revealed - which games were played is what the Matches page already shows. Before &#x60;&#x60;reveal_at&#x60;&#x60; it returns nothing: both the linked MatchInfos and the detector candidates name the two players, which is exactly what &#x60;&#x60;_redact&#x60;&#x60; withholds from &#x60;&#x60;GET /api/bracket&#x60;&#x60;. Editing is admin-gated below.
 
 ### Example
 
@@ -276,6 +277,65 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getBracketMapRecordsApiBracketMapRecordsGet
+
+> Array&lt;MapPlayerRecords&gt; getBracketMapRecordsApiBracketMapRecordsGet()
+
+Get Bracket Map Records
+
+Each map\&#39;s per-player records across every game linked to the bracket.  Derived from the same persisted links &#x60;&#x60;/api/bracket_games&#x60;&#x60; reads, so an admin\&#39;s manual link or exclusion is reflected here too. Empty before &#x60;&#x60;reveal_at&#x60;&#x60; for the same reason &#x60;&#x60;get_bracket_games&#x60;&#x60; is: the records name who played whom.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BracketApi,
+} from '';
+import type { GetBracketMapRecordsApiBracketMapRecordsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BracketApi();
+
+  try {
+    const data = await api.getBracketMapRecordsApiBracketMapRecordsGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;MapPlayerRecords&gt;**](MapPlayerRecords.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
