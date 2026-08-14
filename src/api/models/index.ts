@@ -62,6 +62,7 @@ export * from './MapEventOutput';
 export * from './MapExtent';
 export * from './MapGeneralWL';
 export * from './MapMatchCount';
+export * from './MapPlayerRecords';
 export * from './MapPlayerStart';
 export * from './MapPlayerWL';
 export * from './MapPoint';

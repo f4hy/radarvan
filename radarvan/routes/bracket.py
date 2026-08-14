@@ -18,7 +18,7 @@ import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import bracket, discord_events, player_ids, tournament_membership
+from .. import bracket, discord_events, map_stats, player_ids, tournament_membership
 from ..api_types import (
     BracketMatchGames,
     BracketMatchOutput,
@@ -29,6 +29,7 @@ from ..api_types import (
     LoserOfSource,
     MatchInfo,
     BracketMatchPrediction,
+    MapPlayerRecords,
     MatchSource,
     SeedSource,
     SetBracketGamesRequest,
@@ -530,6 +531,38 @@ def set_bracket_games(
     # would make the response build re-derive every MatchInfo in the DB.
     invalidate_match_caches()
     return response
+
+
+@router.get("/api/bracket_map_records")
+def get_bracket_map_records(
+    user: User | None = Depends(get_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    tournament_repo: TournamentRepo = Depends(get_tournament_repo),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[MapPlayerRecords]:
+    """Each map's per-player records across every game linked to the bracket.
+
+    Derived from the same persisted links ``/api/bracket_games`` reads, so an
+    admin's manual link or exclusion is reflected here too. Empty before
+    ``reveal_at`` for the same reason ``get_bracket_games`` is: the records
+    name who played whom.
+    """
+    tournament_row = repo.get_active()
+    if tournament_row is None:
+        return []
+    is_admin = user is not None and player_ids.is_tournament_admin(user.player_name)
+    if not _is_revealed(tournament_row, allow_preview=is_admin):
+        return []
+    parent = _tournament_for_bracket(tournament_row, tournament_repo)
+    if parent is None:
+        return []
+    known = sorted_deduped_matches(replay_manager)
+    games = [
+        known[link.match_id]
+        for link in tournament_repo.list_links(parent.id)
+        if link.match_id in known
+    ]
+    return map_stats.map_player_records(games)
 
 
 def _prediction_is_open(
