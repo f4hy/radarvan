@@ -145,11 +145,14 @@ class ProcessGamesResult(NamedTuple):
 
 
 def _collect_all_players(games: list[MatchInfo]) -> set[str]:
-    return {
-        player_ids.resolve_player_name(p.name, p.color)
-        for game in games
-        for p in game.players
-    }
+    """Everyone who needs a starting rating: the competitors, not the lobby.
+
+    ``build_teams`` looks up participants, a subset of these - seeding the
+    whole competitor set costs nothing and keeps this in step with
+    ``filter_for_rating``, which judges the same slots. Seeding a *spectator*
+    did buy something wrong: a rating entry for someone who never played.
+    """
+    return {name for game in games for name in game.roster().competitor_names()}
 
 
 def build_teams(game: MatchInfo) -> TeamBuildResult | None:
@@ -318,26 +321,58 @@ def filter_for_rating(game: MatchInfo) -> bool:
         return False
     if not game.composition.is_balanced:
         return False
-    for p in game.players:
-        resolved = player_ids.resolve_player_name(p.name)
-        if resolved in NON_COMPETITIVE:
-            return False
-        if resolved not in player_ids.PLAYER_NAMES:
-            return False
-    return True
+    # Who *played*, never who watched. Whether a game is ratable is a property
+    # of the game, so adding or removing a spectator must not change the
+    # answer - bracket 1v1s are streamed from accounts named after the matchup
+    # ("Gorn.v.131"), which are in nobody's roster, and reading every slot here
+    # made 23 otherwise-competitive games unratable.
+    names = game.roster().competitor_names()
+    if names & NON_COMPETITIVE:
+        return False
+    return names <= player_ids.PLAYER_NAMES
+
+
+def is_tournament_1v1(game: MatchInfo) -> bool:
+    """A 1v1 that counted toward a tournament.
+
+    The one kind of 1v1 that moves ratings. A tournament link is only ever
+    written by ``tournament_membership.sync_links`` (scheduled bracket slot,
+    right two players, right game night) or by an admin, so it can't be earned
+    by a practice game - which is what the rest of the 1v1s are.
+    """
+    comp = game.composition
+    if comp is None or not comp.is_1v1:
+        return False
+    if game.tournament is None:
+        return False
+    return game_composition.competitive_game_filter(comp) and filter_for_rating(game)
 
 
 def is_ratable_team_game(game: MatchInfo) -> bool:
-    """True for a competitive, balanced, non-1v1 two-team game eligible for rating.
+    """True for a competitive, balanced two-team game eligible for rating.
 
     Single source of truth for "should this game move ratings / count for synergy",
     shared by the rating pass and the synergy model.
+
+    1v1s are delegated to ``is_tournament_1v1`` rather than re-tested here, so
+    there is one definition of "a 1v1 that counts" for the gate, the manifest
+    counter, and the docs to share. A bracket game is a real result between two
+    people and belongs in their ratings; a casual 1v1 usually isn't - people
+    play them to drill a matchup or try an off-meta build - and they're wildly
+    concentrated, one pair accounting for over half of them, so letting them in
+    would rate that rivalry rather than the ladder.
+
+    Ordered cheapest-first: the composition checks are attribute reads, while
+    ``filter_for_rating`` resolves every competitor's name.
     """
-    if not filter_for_rating(game):
+    comp = game.composition
+    if comp is None:
         return False
-    if game.composition is None or game.composition.is_1v1:
+    if comp.is_1v1:
+        return is_tournament_1v1(game)
+    if not game_composition.competitive_game_filter(comp):
         return False
-    return game_composition.competitive_game_filter(game.composition)
+    return filter_for_rating(game)
 
 
 @locked_cached(

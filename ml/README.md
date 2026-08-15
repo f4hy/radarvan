@@ -21,17 +21,34 @@ Everything below assumes that venv's `python` (with `PYTHONPATH` at the repo
 root) for the training/export/ensemble steps; the snapshot/split steps don't
 need torch and can run in the normal project env (`uv run python -m ...`).
 
+On this machine that venv is `.venv-ml/` at the repo root, so the training
+steps read:
+
+```bash
+PYTHONPATH=$PWD .venv-ml/bin/python -m ml.train ...
+```
+
+Because it runs 3.13, every `radarvan/` module `ml/` imports has to stay
+3.13-parseable — notably no unparenthesized `except A, B:` (PEP 758 makes that
+valid on the app's 3.14, and it is a SyntaxError here; it broke `ml.train` at
+`player_role.py` once). `tests/test_ml_venv_imports.py` guards it.
+
 ## Pipeline
 
 Steps 1-2 (snapshot, split) and 5 (export) are torch-free; 3/4/6/7 need the
 3.13 ml venv above.
 
 ```bash
-# 1. Snapshot competitive matches from the DB into a frozen, versioned file.
+# 1. Snapshot the trainable matches from the DB into a frozen file: the games
+#    that move ratings, i.e. team games + tournament 1v1s. Casual 1v1s are out
+#    (measured - see model_design.md). ml.snapshot.is_training_match.
 DATABASE_URL=... uv run python -m ml.snapshot
 #   -> ml/data/snapshot-<date>.jsonl.gz (+ .manifest.json)
 
-# 2. Split into train/dev and freeze the vocab from train only.
+# 2. Split into train/dev and freeze the vocab from train only. 1v1s always go
+#    to train (they're recent, so a plain temporal cut puts them all in dev and
+#    "1v1" never reaches the vocab); --holdout-1v1 opts out. split.json records
+#    n_train_1v1/n_dev_1v1.
 uv run python -m ml.split ml/data/snapshot-<date>.jsonl.gz --mode temporal
 #   -> ml/data/split-<date>-temporal/{train,dev}.jsonl.gz, vocab.json, split.json
 
