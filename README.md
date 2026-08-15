@@ -26,7 +26,21 @@ predictor — to a React single-page app.
 
 ## Quick Start
 
-Install both Python and Node dependencies:
+The fastest path is the containerized dev stack — Postgres, backend and
+frontend, all hot-reloading, against a local database you can safely break:
+
+```bash
+cp .env.example .env   # fill in AWS / cncstats / Discord keys
+make up                # frontend :5173, api :8000, postgres :5433
+make db-snapshot       # optional: pull production data down...
+make db-restore        # ...and load it locally
+```
+
+See [LOCAL_DEV.md](LOCAL_DEV.md) for the full workflow, including how to test a
+migration before it reaches production.
+
+To run the servers directly on the host instead, install both Python and Node
+dependencies:
 
 ```bash
 make install        # uv sync + npm install

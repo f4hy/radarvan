@@ -1,0 +1,102 @@
+# Local development stack: Postgres + FastAPI + Vite.
+#
+#   docker compose up            # everything, hot-reloading both sides
+#   make up / make down / make logs
+#
+# Secrets (AWS, cncstats, Discord, LLM keys) come from your existing .env.
+# DATABASE_URL is deliberately overridden below so nothing here can ever reach
+# production Postgres -- to hydrate the local DB from prod, use
+# `make db-snapshot && make db-restore` (see scripts/db_*.sh).
+#
+# Host ports default to the same ones the manual `fastapi dev` / `npm start`
+# workflow uses, so stop those first (or override API_PORT / WEB_PORT in .env).
+name: radarvan
+
+# `backend` and `migrate` are the same image with different commands. Sharing
+# the build block *and* the tag means compose builds it once instead of once
+# per service.
+x-backend-image: &backend-image
+  image: radarvan-backend-dev
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.backend
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: radarvan
+      POSTGRES_PASSWORD: radarvan
+      POSTGRES_DB: radarvan
+      # Snapshots are restored with --no-owner; keep the locale/encoding
+      # matching prod (RDS default) so text sorts the same way locally.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # 5433 by default: never collide with a Postgres already on the host.
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radarvan -d radarvan"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  # One-shot: brings the schema up to head before the backend starts. Runs on
+  # every `up` and is a no-op when there's nothing to apply. See
+  # scripts/bootstrap_db.py for why this isn't a bare `alembic upgrade head`.
+  migrate:
+    <<: *backend-image
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://radarvan:radarvan@db:5432/radarvan
+    command: ["python", "scripts/bootstrap_db.py"]
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    <<: *backend-image
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://radarvan:radarvan@db:5432/radarvan
+      # No scheduler, ops routes in the OpenAPI spec.
+      DEV: "1"
+      # Empty by default so local runs can't post to the real Discord webhook.
+      # Set LOCAL_NOTIFY_WEB_HOOK in .env if you're specifically testing notify().
+      NOTIFY_WEB_HOOK: "${LOCAL_NOTIFY_WEB_HOOK-}"
+    command:
+      ["fastapi", "dev", "radarvan/main.py", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    environment:
+      # vite.config.ts reads this; inside the compose network the API is
+      # reachable as `backend`, not localhost.
+      VITE_API_PROXY_TARGET: http://backend:8000
+    command: ["npm", "start", "--", "--host", "0.0.0.0", "--port", "5173"]
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - .:/app
+      # Named volume wins over the bind mount at this path: the container keeps
+      # the linux node_modules built by `npm ci` in the image.
+      - node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  node_modules:

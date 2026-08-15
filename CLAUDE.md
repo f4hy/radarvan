@@ -8,7 +8,7 @@ Radarvan is a statistics tracker for Command & Conquer: Generals Zero Hour. A Fa
 
 ## Commands
 
-The `Makefile` is the canonical entry point; `make help` lists every target.
+The `Makefile` is the canonical entry point; `make help` lists every target. Local dev stack targets (`up`, `down`, `logs`, `db-shell`, `db-snapshot`, `db-restore`, `db-reset`) are documented in `LOCAL_DEV.md`.
 
 - `make all` — format + auto-fix lint + type-check **both** Python and TypeScript (run before pushing)
 - `make check` — Python ruff + mypy (no formatting) · `make ts-check` — TS format-check + Biome lint + tsc
@@ -24,7 +24,9 @@ The `Makefile` is the canonical entry point; `make help` lists every target.
 
 ### Dev workflow
 
-- The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones (confirm with `curl`/`ss -ltnp` if unsure). Never run broad `pkill -f vite` / `pkill -f fastapi`; if a stray process must be killed, target the exact PID.
+- The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones (confirm with `curl`/`ss -ltnp` if unsure). Never run broad `pkill -f vite` / `pkill -f fastapi`; if a stray process must be killed, target the exact PID. Those hand-run servers use the `DATABASE_URL` from `.env`, which points at **production** Postgres — treat writes through them accordingly.
+- **`docker compose up` (`make up`) is the alternative: the same two servers plus a local Postgres**, documented in `LOCAL_DEV.md`. Compose overrides `DATABASE_URL` to its own container, so it is the safe place to try schema changes. `make db-snapshot` + `make db-restore` hydrate it from production (read-only `pg_dump`, skipping `match_details_cache` rows, which the app regenerates from S3). It binds the same 8000/5173 by default, so it and the hand-run servers can't both be up unless `API_PORT`/`WEB_PORT` are set in `.env`.
+- **The migration chain cannot build the schema from an empty database** — the initial revision is an empty `pass` (alembic was stamped onto the pre-existing prod DB), so later revisions ALTER tables nothing ever created. `scripts/bootstrap_db.py` (what the compose `migrate` service runs) branches on this: `alembic upgrade head` when `alembic_version` exists, `Base.metadata.create_all()` + `alembic stamp head` when the database is empty. A new migration is therefore tested against a *restored snapshot*, not an empty database.
 - Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree — the user manages commits.
 - **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.** The service is always running; it's the intended read path and matches what the frontend actually sees. Reserve direct `DatabaseManager`/`replay_files` scripting for cases the API genuinely can't express.
 - **When exploring code, read the source file directly (`Read` tool) rather than chaining several `grep`/`sed`/`awk` shell commands.** Use `grep`/`Bash` only for repo-wide searches (finding *where* something is defined/used across many files) — once you know the file, read it.
