@@ -1,6 +1,8 @@
 .PHONY: help format lint lint-fix typecheck check \
         ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check \
-        build clean install test all
+        build clean install test all \
+        up up-build down logs ps shell db-shell db-snapshot db-snapshot-full \
+        db-restore db-reset migrate
 
 # Default target
 .DEFAULT_GOAL := help
@@ -75,6 +77,49 @@ clean: ## Clean build artifacts and cache files
 
 test: ## Run tests
 	uv run pytest
+
+# ── Local dev stack (docker compose) ──────────────────────────────────────────
+# Postgres + backend + frontend, all hot-reloading. See LOCAL_DEV.md.
+
+up: ## Start the local stack (db + backend + frontend) in the background
+	docker compose up -d --wait
+	@echo "✓ frontend http://localhost:$${WEB_PORT:-5173}  api http://localhost:$${API_PORT:-8000}"
+
+up-build: ## Rebuild the dev images, then start the stack
+	docker compose up -d --build --wait
+
+down: ## Stop the local stack (keeps the database volume)
+	docker compose down
+
+logs: ## Tail logs from the local stack
+	docker compose logs -f
+
+ps: ## Show local stack status
+	docker compose ps
+
+shell: ## Open a shell in the backend container
+	docker compose exec backend bash
+
+db-shell: ## Open psql against the local database
+	docker compose exec db psql -U radarvan -d radarvan
+
+migrate: ## Run alembic upgrade head against the local database
+	docker compose run --rm migrate
+
+db-snapshot: ## Dump production into db_snapshots/ (skips match_details_cache rows)
+	./scripts/db_snapshot.sh
+
+db-snapshot-full: ## Dump production including the match_details_cache rows
+	./scripts/db_snapshot.sh --full
+
+db-restore: ## Load the newest snapshot into the local database
+	./scripts/db_restore.sh
+
+db-reset: ## Destroy the local database volume and re-run migrations from scratch
+	docker compose down -v
+	docker compose up -d --wait db
+	docker compose run --rm migrate
+	@echo "✓ empty local database at head"
 
 ci: clean install all build ## Run full CI pipeline
 	@echo "✓ CI pipeline complete!"
