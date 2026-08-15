@@ -49,6 +49,8 @@ yarn-error.log*
 # Dependency directories (remove the comment below to include it)
 # vendor/
 /.env
+# Production database snapshots (scripts/db_snapshot.sh) - real user data.
+/db_snapshots/
 /jsons/
 /replays/
 /reps/
