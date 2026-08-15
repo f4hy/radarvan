@@ -287,6 +287,20 @@ class MatchRoster:
             resolve_player_name(s.name, s.color) for s in self._human_participants
         )
 
+    def competitor_names(self) -> frozenset[str]:
+        """Canonical names of everyone who played - AI included, spectators not.
+
+        The counterpart to ``human_participant_names`` for callers that must
+        judge the *match* by who played it: is every name known, is anyone
+        disqualifying. Asking over ``slots`` instead is how "who played here"
+        silently becomes "who was in the lobby" - a spectator under an account
+        named for the matchup ("Gorn.v.131") is nobody in ``PLAYER_NAMES``, and
+        it used to make the whole game unratable.
+        """
+        return frozenset(
+            resolve_player_name(s.name, s.color) for s in self._competitors
+        )
+
     def all_teams_have_group_player(self) -> bool:
         """True if every team has at least one player from PLAYER_NAMES.
 

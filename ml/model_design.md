@@ -97,10 +97,43 @@ prediction. That is exactly what we want.
 
 ### Data hygiene / filtering
 
-Snapshot includes only games where `player_rating.is_ratable_team_game` is true:
-competitive, balanced, non-comp-stomp, decided winner, not `incomplete`, and every
-team has a known player. This is the same gate the rating model uses, so the ML
-model is trained and evaluated on the same population we care about.
+Snapshot membership is `ml.snapshot.is_training_match`, which today is exactly
+`player_rating.is_ratable_team_game`: competitive, balanced, non-comp-stomp,
+decided winner, not `incomplete`, every team has a known player — **team games
+plus tournament 1v1s**. It stays a separate name because there is no rule
+saying the model must train on precisely the games that move a rating.
+
+A bracket 1v1 is a real result between two people and the only place the model
+sees a player's strength with no teammates confounding it. Casual 1v1s are
+excluded, which was a measured decision, not an assumption:
+
+| training set | 1v1s | logloss | acc | auc | ρ vs openskill |
+|---|---|---|---|---|---|
+| tournament 1v1s only | 15 | **0.6890** | **0.539** | **0.556** | +0.81 |
+| \+ casual, minus the top pairing | 102 | 0.6908 | 0.522 | 0.538 | **+0.89** |
+| \+ all casual | 227 | 0.6954 | 0.500 | 0.517 | +0.84 |
+
+All three were scored on the **identical** 178-game held-out team dev set (the
+temporal cut is over non-1v1 games, so adding 1v1s to train leaves dev
+byte-identical — that is what makes the rows comparable). Every batch of casual
+1v1s costs team-game accuracy, monotonically; the full set pushes logloss past
+coin-flip (0.6931) and AUC to near-random. Consistent across all 30 bootstrap
+replicates (median val_loss 0.6927 / 0.6925 / 0.6932).
+
+Why: the 1v1 corpus is pathologically concentrated. Of 227 competitive 1v1s,
+**125 are one pairing (CoreDawg vs Syn, 115–10)** — the next largest is 18, and
+7 of the 21 pairings are a single day's session. The damage is *not* a distorted
+strength estimate for the pair (a same-general probe moved CoreDawg +0.6pp, and
+the spread across players narrowed); it is dilution — 16% off-distribution data
+flattening the signal. Excluding that one pairing recovered most of it and gave
+the best agreement with openskill's ordering, but still did not beat
+tournament-only on the headline metric, so the simpler rule won.
+
+Worth re-measuring when the 1v1 population changes shape — another bracket, or
+casual play that spreads across more pairings. To reproduce: widen
+`is_training_match` to accept 1v1s passing `filter_for_rating` +
+`competitive_game_filter`, snapshot to its own `--out-dir`, and score against
+`ml/data/split-<date>-temporal/dev.jsonl.gz`.
 
 ## Model architecture
 
@@ -207,7 +240,8 @@ cosine schedule, batch size 256, early-stop on val log-loss. All in
 
 ### Snapshot → split → train
 
-1. **Snapshot** (`ml/snapshot.py`): pull all ratable competitive matches from the
+1. **Snapshot** (`ml/snapshot.py`): pull every match passing `is_training_match`
+   (ratable team games + tournament 1v1s) from the
    DB via `DATABASE_URL`, write a *versioned, immutable* `snapshot-<date>.jsonl.gz`
    plus a `manifest.json` (git SHA, row count, filter params, schema version).
    Training never touches the live DB — it reads a frozen snapshot for
@@ -218,6 +252,13 @@ cosine schedule, batch size 256, early-stop on val log-loss. All in
      - `random`: stratified random — measures raw capacity / overfitting gap.
    The **vocab is frozen from the train split only**; players/maps unseen in
    train map to `UNK` at dev time (mirrors production, where new players appear).
+   **Tournament 1v1s are routed into train regardless of date** (`--holdout-1v1`
+   opts out). They're the newest games in the snapshot, so a plain temporal cut
+   held out all 15 of them: the model saw no 1v1 at all and `1v1` never entered
+   the train-frozen vocab, so serving one fell back to the UNK format embedding.
+   15 games can't measure 1v1 skill in a dev set either, so they buy more as
+   training signal. The dev fraction applies to the games that *can* land in dev,
+   so this grows train rather than shrinking dev.
 3. **Train** (`ml/train.py`): PyTorch + **PyTorch Lightning** `LightningModule` /
    `Trainer(accelerator="auto")` → uses the GPU automatically. BCE-with-logits
    primary loss (+ down-weighted aux MSE heads when enabled). Saves the best
