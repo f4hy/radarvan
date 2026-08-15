@@ -67,7 +67,11 @@ def start_position_from_header(player_header: HeaderPlayer) -> int | None:
     """Header start position is 0-based; everything downstream is 1-based."""
     try:
         return int(player_header.starting_position or "") + 1
-    except ValueError, TypeError:
+    # Parens pinned, and the formatter told to leave them: PEP 758 makes the
+    # bare form valid on the app's 3.14 (ruff rewrites to it unprompted), but
+    # ml/ imports this module under the 3.13 training venv - no torch wheel for
+    # 3.14 - where it is a SyntaxError that kills `ml.train` on import.
+    except (ValueError, TypeError):  # fmt: skip
         return None
 
 
