@@ -1,0 +1,37 @@
+# Development image for the FastAPI backend.
+#
+# Deliberately NOT a production image (prod is Heroku's buildpack, see Procfile).
+# It exists so `docker compose up` gives you a working Python 3.14 + uv.lock
+# environment without touching the host .venv.
+#
+# The venv lives at /opt/venv, *outside* /app, because compose bind-mounts the
+# repo over /app -- a venv at /app/.venv would be shadowed by the host's.
+FROM python:3.14-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_PYTHON=/usr/local/bin/python3.14 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PATH=/opt/venv/bin:$PATH \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Only the lockfile inputs, so `docker compose build` re-resolves deps solely
+# when they actually change. radarvan has no [build-system]: uv treats it as a
+# virtual project and installs dependencies only, running the code from the
+# bind-mounted source.
+COPY pyproject.toml uv.lock .python-version README.md ./
+RUN uv sync --frozen
+
+# The source is bind-mounted at /app, and radarvan isn't pip-installed (virtual
+# project). Without this, `python scripts/foo.py` puts /app/scripts on sys.path
+# rather than /app and can't import radarvan.
+ENV PYTHONPATH=/app
+
+# fastapi dev's reloader; the actual command comes from docker-compose.yml.
+EXPOSE 8000
+CMD ["fastapi", "dev", "radarvan/main.py", "--host", "0.0.0.0", "--port", "8000"]
