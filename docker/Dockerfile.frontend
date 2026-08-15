@@ -1,0 +1,15 @@
+# Development image for the Vite dev server.
+#
+# node_modules is installed into the image and then kept in a named volume
+# (see docker-compose.yml) so the /app bind mount can't shadow it and the
+# container's linux-native binaries (esbuild, rollup, biome) never fight with
+# the host's node_modules.
+FROM node:26-slim
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+EXPOSE 5173
+CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "5173"]
