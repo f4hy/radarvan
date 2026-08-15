@@ -5,9 +5,9 @@
     "2": 3
   },
   "fmt": {
-    "2v2": 1,
-    "2v2v2": 2,
-    "2v2v2v2": 3,
+    "1v1": 1,
+    "2v2": 2,
+    "2v2v2": 3,
     "3v3": 4,
     "4v4": 5
   },
@@ -28,131 +28,131 @@
   "map": {
     "maps/bear town beatdown": 1,
     "maps/dark mountain": 2,
-    "maps/dark night": 3,
-    "maps/death valley": 4,
-    "maps/defcon6": 5,
-    "maps/destruction station": 6,
-    "maps/dogsofwar": 7,
-    "maps/floodedplains": 8,
-    "maps/fortress avalanche": 9,
-    "maps/free fire zone": 10,
-    "maps/golden oasis": 11,
-    "maps/green pastures": 12,
-    "maps/hostile dawn": 13,
-    "maps/iron dragon": 14,
-    "maps/lights out": 15,
-    "maps/lone eagle": 16,
-    "maps/overland": 17,
-    "maps/red rock": 18,
-    "maps/team tropical warfare": 19,
-    "maps/tournament island": 20,
-    "maps/tournament lake": 21,
-    "maps/tournamenta": 22,
-    "maps/tournamentb": 23,
-    "maps/twilight flame": 24,
-    "maps/victory valley": 25,
-    "userdata/maps/2v2 tournament desert": 26,
-    "userdata/maps/8p_make make": 27,
-    "userdata/maps/8p_oil rampage": 28,
-    "userdata/maps/[mod] casino 2v2 - resurrection two v2": 29,
-    "userdata/maps/[mod] ctf - armored fury v2": 30,
-    "userdata/maps/[rank] [nmc 2x2] coastline wold": 31,
-    "userdata/maps/[rank] [nmc 2x2] ghostly rocks": 32,
-    "userdata/maps/[rank] [nmc 2x2] maguso": 33,
-    "userdata/maps/[rank] aeon of excalibur zh v1": 34,
-    "userdata/maps/[rank] alterac pass zh v1": 35,
-    "userdata/maps/[rank] archaic meltdown zh v1": 36,
+    "maps/death valley": 3,
+    "maps/defcon6": 4,
+    "maps/destruction station": 5,
+    "maps/dogsofwar": 6,
+    "maps/floodedplains": 7,
+    "maps/fortress avalanche": 8,
+    "maps/free fire zone": 9,
+    "maps/golden oasis": 10,
+    "maps/green pastures": 11,
+    "maps/hostile dawn": 12,
+    "maps/iron dragon": 13,
+    "maps/lights out": 14,
+    "maps/lone eagle": 15,
+    "maps/overland": 16,
+    "maps/red rock": 17,
+    "maps/team tropical warfare": 18,
+    "maps/tournament island": 19,
+    "maps/tournament lake": 20,
+    "maps/tournamenta": 21,
+    "maps/tournamentb": 22,
+    "maps/twilight flame": 23,
+    "maps/victory valley": 24,
+    "userdata/maps/2v2 tournament desert": 25,
+    "userdata/maps/8p_make make": 26,
+    "userdata/maps/8p_oil rampage": 27,
+    "userdata/maps/[mod] casino 2v2 - resurrection two v2": 28,
+    "userdata/maps/[mod] ctf - armored fury v2": 29,
+    "userdata/maps/[rank] [nmc 2x2] coastline wold": 30,
+    "userdata/maps/[rank] [nmc 2x2] ghostly rocks": 31,
+    "userdata/maps/[rank] [nmc 2x2] maguso": 32,
+    "userdata/maps/[rank] aeon of excalibur zh v1": 33,
+    "userdata/maps/[rank] alterac pass zh v1": 34,
+    "userdata/maps/[rank] archaic meltdown zh v1": 35,
+    "userdata/maps/[rank] arctic lagoon zh v2": 36,
     "userdata/maps/[rank] aztec empire zh v1": 37,
-    "userdata/maps/[rank] battle for reach zh v1": 38,
-    "userdata/maps/[rank] burning deadline zh v1": 39,
-    "userdata/maps/[rank] combat encounter zh v1": 40,
-    "userdata/maps/[rank] conflict zone zh v2": 41,
-    "userdata/maps/[rank] cursed hollows zh v1": 42,
-    "userdata/maps/[rank] defcon balanced zh v1": 43,
-    "userdata/maps/[rank] district 10 zh v1": 44,
-    "userdata/maps/[rank] dominion zh v1": 45,
-    "userdata/maps/[rank] drowning horses zh v1": 46,
-    "userdata/maps/[rank] dusty rampage zh v1": 47,
-    "userdata/maps/[rank] epsilon 6 zh v1": 48,
-    "userdata/maps/[rank] final departure zh v1": 49,
-    "userdata/maps/[rank] forgotten factory zh v1": 50,
-    "userdata/maps/[rank] freezing bursa zh v1": 51,
-    "userdata/maps/[rank] frontier rails zh v1": 52,
-    "userdata/maps/[rank] garden of terror zh v1": 53,
-    "userdata/maps/[rank] hell on rails zh v1": 54,
-    "userdata/maps/[rank] icy frontier zh v1": 55,
-    "userdata/maps/[rank] lion heart zh v1": 56,
-    "userdata/maps/[rank] maguso zh v3": 57,
-    "userdata/maps/[rank] make make 4 zh v2": 58,
-    "userdata/maps/[rank] medieval era zh v1": 59,
-    "userdata/maps/[rank] mojave desert zh v1": 60,
-    "userdata/maps/[rank] morning dew zh v1": 61,
-    "userdata/maps/[rank] mountain path zh v4": 62,
-    "userdata/maps/[rank] naval port reyes zh v1": 63,
-    "userdata/maps/[rank] nocky mountains zh v1": 64,
-    "userdata/maps/[rank] oil carnage zh v1": 65,
-    "userdata/maps/[rank] pagasa fortress zh v1": 66,
-    "userdata/maps/[rank] philippine highlands zh v1": 67,
-    "userdata/maps/[rank] rubies and pearls zh v1": 68,
-    "userdata/maps/[rank] spiders island zh v1": 69,
-    "userdata/maps/[rank] subjugation zh v1": 70,
-    "userdata/maps/[rank] temperate woods zh v1": 71,
-    "userdata/maps/[rank] territorial dispute zh v1": 72,
-    "userdata/maps/[rank] tournament a zh v1": 73,
-    "userdata/maps/[rank] tournament c zh v1": 74,
-    "userdata/maps/[rank] tournament d zh v1": 75,
-    "userdata/maps/[rank] twisted treeline zh v1": 76,
-    "userdata/maps/[rank] unity a zh v2": 77,
-    "userdata/maps/[rank] volcanoe zh v1": 78,
-    "userdata/maps/[rank] whispering woods zh v1": 79,
-    "userdata/maps/[wbc winner] subjugation mk 14": 80,
-    "userdata/maps/[wbc2020] subjugation": 81,
-    "userdata/maps/beijing uprise v4": 82,
-    "userdata/maps/castle wolfenstein": 83,
-    "userdata/maps/clutha river": 84,
-    "userdata/maps/conflict zone zh v2": 85,
-    "userdata/maps/coral islands [wbc2020]": 86,
-    "userdata/maps/cp 4v4 ob32 paranoid": 87,
-    "userdata/maps/death con homefront 2": 88,
-    "userdata/maps/defcon the last storm": 89,
-    "userdata/maps/desert trap": 90,
-    "userdata/maps/district 10 v5": 91,
-    "userdata/maps/dry plague": 92,
-    "userdata/maps/exkalibur_zh": 93,
-    "userdata/maps/fata morgana": 94,
-    "userdata/maps/fertile lowlands v2": 95,
-    "userdata/maps/frozen vanguard v2": 96,
-    "userdata/maps/glacial breeze v2": 97,
-    "userdata/maps/icy frontier zh v1": 98,
-    "userdata/maps/lagoon zh ffa": 99,
-    "userdata/maps/malibu cliffs": 100,
-    "userdata/maps/massive attack": 101,
-    "userdata/maps/military encounter": 102,
-    "userdata/maps/morning dew": 103,
-    "userdata/maps/mountain aggression": 104,
-    "userdata/maps/mountain path zh v3": 105,
-    "userdata/maps/mountolympus": 106,
-    "userdata/maps/mt pinatubo [wbc2022]": 107,
-    "userdata/maps/naval port reyes v2 [wbc2020]": 108,
-    "userdata/maps/no man's land v3": 109,
-    "userdata/maps/obsolete overgrown v1": 110,
-    "userdata/maps/philippine highlands zh": 111,
-    "userdata/maps/preemptive strike (zh)": 112,
-    "userdata/maps/qayyarah airport": 113,
-    "userdata/maps/raiders of the lost acropolis": 114,
-    "userdata/maps/rail replacement transport v2": 115,
-    "userdata/maps/sandy punishment": 116,
-    "userdata/maps/schneegestoeber": 117,
-    "userdata/maps/shallow grave": 118,
-    "userdata/maps/siberia": 119,
-    "userdata/maps/sin city": 120,
-    "userdata/maps/snow bound (4)": 121,
-    "userdata/maps/snow wars": 122,
-    "userdata/maps/snowy island (te)": 123,
-    "userdata/maps/snowy sea": 124,
-    "userdata/maps/spearhead": 125,
-    "userdata/maps/strongholds (4)": 126,
-    "userdata/maps/swamp matrix": 127,
+    "userdata/maps/[rank] barren badlands balanced zh v2": 38,
+    "userdata/maps/[rank] battle for reach zh v1": 39,
+    "userdata/maps/[rank] burning deadline zh v1": 40,
+    "userdata/maps/[rank] canyon of the dead zh v2": 41,
+    "userdata/maps/[rank] combat encounter zh v1": 42,
+    "userdata/maps/[rank] conflict zone zh v2": 43,
+    "userdata/maps/[rank] cursed hollows zh v1": 44,
+    "userdata/maps/[rank] defcon balanced zh v1": 45,
+    "userdata/maps/[rank] district 10 zh v1": 46,
+    "userdata/maps/[rank] drowning horses zh v1": 47,
+    "userdata/maps/[rank] dusty rampage zh v1": 48,
+    "userdata/maps/[rank] epsilon 6 zh v1": 49,
+    "userdata/maps/[rank] final departure zh v1": 50,
+    "userdata/maps/[rank] forgotten factory zh v1": 51,
+    "userdata/maps/[rank] freezing bursa zh v1": 52,
+    "userdata/maps/[rank] frontier rails zh v1": 53,
+    "userdata/maps/[rank] garden of terror zh v1": 54,
+    "userdata/maps/[rank] hell on rails zh v1": 55,
+    "userdata/maps/[rank] icy frontier zh v1": 56,
+    "userdata/maps/[rank] lion heart zh v1": 57,
+    "userdata/maps/[rank] maguso zh v3": 58,
+    "userdata/maps/[rank] make make 4 zh v2": 59,
+    "userdata/maps/[rank] medieval era zh v1": 60,
+    "userdata/maps/[rank] mojave desert zh v1": 61,
+    "userdata/maps/[rank] morning dew zh v1": 62,
+    "userdata/maps/[rank] mountain path zh v4": 63,
+    "userdata/maps/[rank] naval port reyes zh v1": 64,
+    "userdata/maps/[rank] nocky mountains zh v1": 65,
+    "userdata/maps/[rank] oil carnage zh v1": 66,
+    "userdata/maps/[rank] pagasa fortress zh v1": 67,
+    "userdata/maps/[rank] philippine highlands zh v1": 68,
+    "userdata/maps/[rank] rubies and pearls zh v1": 69,
+    "userdata/maps/[rank] snowy drought zh v5": 70,
+    "userdata/maps/[rank] spiders island zh v1": 71,
+    "userdata/maps/[rank] subjugation zh v1": 72,
+    "userdata/maps/[rank] td nobugscars zh v1": 73,
+    "userdata/maps/[rank] temperate woods zh v1": 74,
+    "userdata/maps/[rank] territorial dispute zh v1": 75,
+    "userdata/maps/[rank] tournament a zh v1": 76,
+    "userdata/maps/[rank] tournament c zh v1": 77,
+    "userdata/maps/[rank] tournament d zh v1": 78,
+    "userdata/maps/[rank] twisted treeline zh v1": 79,
+    "userdata/maps/[rank] unity a zh v2": 80,
+    "userdata/maps/[rank] vendetta zh v1": 81,
+    "userdata/maps/[rank] volcanoe zh v1": 82,
+    "userdata/maps/[rank] whispering woods zh v1": 83,
+    "userdata/maps/[wbc winner] subjugation mk 14": 84,
+    "userdata/maps/[wbc2020] subjugation": 85,
+    "userdata/maps/beijing uprise v4": 86,
+    "userdata/maps/castle wolfenstein": 87,
+    "userdata/maps/clutha river": 88,
+    "userdata/maps/conflict zone zh v2": 89,
+    "userdata/maps/coral islands [wbc2020]": 90,
+    "userdata/maps/death con homefront 2": 91,
+    "userdata/maps/defcon the last storm": 92,
+    "userdata/maps/desert trap": 93,
+    "userdata/maps/district 10 v5": 94,
+    "userdata/maps/dry plague": 95,
+    "userdata/maps/exkalibur_zh": 96,
+    "userdata/maps/fata morgana": 97,
+    "userdata/maps/fertile lowlands v2": 98,
+    "userdata/maps/frozen vanguard v2": 99,
+    "userdata/maps/glacial breeze v2": 100,
+    "userdata/maps/icy frontier zh v1": 101,
+    "userdata/maps/lagoon zh ffa": 102,
+    "userdata/maps/malibu cliffs": 103,
+    "userdata/maps/massive attack": 104,
+    "userdata/maps/military encounter": 105,
+    "userdata/maps/morning dew": 106,
+    "userdata/maps/mountain aggression": 107,
+    "userdata/maps/mountain path zh v3": 108,
+    "userdata/maps/mountolympus": 109,
+    "userdata/maps/naval port reyes v2 [wbc2020]": 110,
+    "userdata/maps/no man's land v3": 111,
+    "userdata/maps/obsolete overgrown v1": 112,
+    "userdata/maps/philippine highlands zh": 113,
+    "userdata/maps/preemptive strike (zh)": 114,
+    "userdata/maps/qayyarah airport": 115,
+    "userdata/maps/raiders of the lost acropolis": 116,
+    "userdata/maps/rail replacement transport v2": 117,
+    "userdata/maps/sandy punishment": 118,
+    "userdata/maps/schneegestoeber": 119,
+    "userdata/maps/shallow grave": 120,
+    "userdata/maps/siberia": 121,
+    "userdata/maps/sin city": 122,
+    "userdata/maps/snow bound (4)": 123,
+    "userdata/maps/snow wars": 124,
+    "userdata/maps/snowy island (te)": 125,
+    "userdata/maps/spearhead": 126,
+    "userdata/maps/strongholds (4)": 127,
     "userdata/maps/team plateaus": 128,
     "userdata/maps/team tropical warfare": 129,
     "userdata/maps/terra fantastica": 130,
@@ -195,9 +195,9 @@
     "userdata/maps/winter defcon  for 3vs2 by philip morris": 167
   },
   "map_feat_mean": [
-    16.240053335780427,
-    1.840367063426547,
-    1.1827501734961432
+    16.208554039066076,
+    1.8418963456928594,
+    1.1204942692061266
   ],
   "map_feat_raw": {
     "(zh) da usa stronghold": [
@@ -505,6 +505,16 @@
       2.302585092994046,
       1.7047480922384253
     ],
+    "[mod] casino 2v2 - resurrection two v2": [
+      16.012735135300492,
+      0.0,
+      0.0
+    ],
+    "[mod] ctf - armored fury v2": [
+      16.35503164769215,
+      2.0794415416798357,
+      0.0
+    ],
     "[mod] ctf - coral islands v2": [
       16.823665351516823,
       1.6094379124341003,
@@ -590,10 +600,35 @@
       0.6931471805599453,
       1.1786549963416462
     ],
+    "[rank] [nmc 2x2] aftermath": [
+      15.903118662310504,
+      1.8718021769015913,
+      1.0986122886681096
+    ],
+    "[rank] [nmc 2x2] coastline wold": [
+      16.06680235657077,
+      1.791759469228055,
+      0.8109302162163288
+    ],
+    "[rank] [nmc 2x2] ghostly rocks": [
+      15.761420707019587,
+      1.7047480922384253,
+      0.0
+    ],
     "[rank] [nmc 2x2] maguso": [
       15.648092021712584,
       2.0149030205422647,
       0.5596157879354227
+    ],
+    "[rank] [nmc] battle on the river": [
+      15.566448032672074,
+      2.302585092994046,
+      1.3862943611198906
+    ],
+    "[rank] [nmc] blasted lands": [
+      15.538277155705378,
+      2.3978952727983707,
+      0.9162907318741551
     ],
     "[rank] a new tragedy zh v1": [
       16.286994187420134,
@@ -864,6 +899,11 @@
       15.64649074034561,
       2.1972245773362196,
       0.6931471805599453
+    ],
+    "[rank] desolated district zh v1": [
+      15.60727002719233,
+      2.0794415416798357,
+      1.3862943611198906
     ],
     "[rank] devastated oasis zh v2": [
       15.520258650202699,
@@ -1179,6 +1219,11 @@
       16.32103649495501,
       1.5040773967762742,
       1.3217558399823195
+    ],
+    "[rank] liquid gold zh v2": [
+      15.58706731987481,
+      2.4849066497880004,
+      1.8718021769015913
     ],
     "[rank] lost cause zh v1": [
       16.203355494909143,
@@ -2275,6 +2320,11 @@
       1.3217558399823195,
       1.749199854809259
     ],
+    "blizzardofwar": [
+      15.633587335509702,
+      0.9808292530117262,
+      0.9162907318741551
+    ],
     "blizzrd badlands zhv1": [
       15.648092021712584,
       1.9459101490553132,
@@ -2760,6 +2810,16 @@
       1.252762968495368,
       1.252762968495368
     ],
+    "dark mountain": [
+      16.588099280204055,
+      1.3862943611198906,
+      0.0
+    ],
+    "dark night": [
+      16.32103649495501,
+      1.791759469228055,
+      0.0
+    ],
     "das paradies": [
       17.034386382832476,
       1.0986122886681096,
@@ -3215,6 +3275,11 @@
       0.8109302162163288,
       0.6931471805599453
     ],
+    "eastern everglades": [
+      16.141812177575638,
+      1.749199854809259,
+      0.0
+    ],
     "echo isle [wbc2023]": [
       16.32103649495501,
       2.3978952727983707,
@@ -3294,6 +3359,11 @@
       16.70588231586044,
       1.7272209480904839,
       1.252762968495368
+    ],
+    "fallout 6": [
+      16.166885815127753,
+      2.120263536200091,
+      1.3437347467010947
     ],
     "fata morgana": [
       16.588099280204055,
@@ -3570,11 +3640,6 @@
       2.662587827025453,
       1.4663370687934272
     ],
-    "gc_airgeneral": [
-      15.651286912609104,
-      2.0794415416798357,
-      2.0794415416798357
-    ],
     "gc_chemgeneral": [
       15.789591583986283,
       1.3862943611198906,
@@ -3590,11 +3655,6 @@
       1.791759469228055,
       2.5649493574615367
     ],
-    "gc_nukegeneral": [
-      15.984564258333798,
-      3.091042453358316,
-      1.791759469228055
-    ],
     "gc_stealth": [
       15.702580206996654,
       2.772588722239781,
@@ -3604,11 +3664,6 @@
       15.830413578506539,
       1.791759469228055,
       2.3978952727983707
-    ],
-    "gc_tankgeneral": [
-      16.300417207752275,
-      3.9318256327243257,
-      1.791759469228055
     ],
     "gdi vs nod - the final strike": [
       15.60727002719233,
@@ -3664,6 +3719,11 @@
       15.567853294828538,
       2.70805020110221,
       1.3862943611198906
+    ],
+    "golden oasis": [
+      16.732740603363307,
+      1.55814461804655,
+      0.0
     ],
     "goldfish arena": [
       16.3773782488884,
@@ -4345,6 +4405,11 @@
       1.8325814637483102,
       1.6094379124341003
     ],
+    "malibu cliffs": [
+      16.588099280204055,
+      2.2335922215070942,
+      0.0
+    ],
     "manic aggression": [
       16.012735135300492,
       0.6931471805599453,
@@ -4829,6 +4894,11 @@
       16.263061421208505,
       1.9459101490553132,
       0.9162907318741551
+    ],
+    "oxygen 1": [
+      15.60727002719233,
+      3.367295829986474,
+      1.7047480922384253
     ],
     "p-u-b-g": [
       17.974393641323946,
@@ -5435,6 +5505,11 @@
       2.70805020110221,
       1.3862943611198906
     ],
+    "snowflake": [
+      16.012735135300492,
+      1.0986122886681096,
+      0.0
+    ],
     "snowheaven": [
       16.823665351516823,
       1.749199854809259,
@@ -5464,6 +5539,11 @@
       15.538277155705378,
       2.3978952727983707,
       1.5040773967762742
+    ],
+    "snowy sea": [
+      16.32103649495501,
+      1.8718021769015913,
+      0.6061358035703156
     ],
     "something to fight for": [
       17.05428704453881,
@@ -5935,6 +6015,11 @@
       1.2039728043259361,
       1.7635885922613586
     ],
+    "tournament archipelago": [
+      17.014183675514957,
+      1.6582280766035324,
+      1.252762968495368
+    ],
     "tournament blizzard [shw]": [
       15.501909511534503,
       2.1972245773362196,
@@ -6209,6 +6294,11 @@
       15.201804919084164,
       0.6931471805599453,
       0.6931471805599453
+    ],
+    "tropical warfare": [
+      15.648092021712584,
+      1.6094379124341003,
+      1.0986122886681096
     ],
     "tropicaldesert": [
       16.166885815127753,
@@ -7012,9 +7102,9 @@
     ]
   },
   "map_feat_std": [
-    0.3947291157568157,
-    0.6039429453954256,
-    0.3769261978296305
+    0.40626443238968013,
+    0.6101212655424016,
+    0.43326855007451626
   ],
   "player": {
     "CoreDawg": 1,

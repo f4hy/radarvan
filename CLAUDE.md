@@ -72,6 +72,16 @@ React + MUI + recharts, entry `index.tsx` → `App.tsx` → `Menu.tsx`; views ma
 
 **The two match sets.** `cache.sorted_deduped_matches` = all games (use for counts/listings); `cache.competitive_matches` = complete + `competitive_game_filter` (balanced, non-comp-stomp, team game, ≤1 CPU) + every team has a known player (use for W/L, ratings, records). Both are keyed on `latest_match_ts` so they refresh when new matches land. `filter_by_format` lives in `matches.py` (it operates on `list[MatchInfo]`), not `game_composition.py`.
 
+**Which 1v1s count, and for what.**
+
+| set | rule | 1v1s included |
+|---|---|---|
+| ratings + synergy | `player_rating.is_ratable_team_game` | tournament only (`is_tournament_1v1`) |
+| ML training | `ml.snapshot.is_training_match` | same — it delegates to the rule above |
+| `competitive_matches` (W/L, records) | `competitive_game_filter` | all of them — a 1v1 has `is_team_game=True` |
+
+A tournament link is the only "played to win" signal available: it's written by `tournament_membership.sync_links` for a scheduled bracket slot, or by an admin, so a practice game can't earn one. Casual 1v1s stay out of both ratings and training — that was measured, not assumed: the corpus is 55% one pairing (CoreDawg vs Syn, 115–10 over 125 games), and adding casual 1v1s cost held-out team-game AUC monotonically (0.556 → 0.538 with that pairing dropped, → 0.517 with everything). Full numbers in `ml/model_design.md`. Measure before widening any of these — the temporal split cuts over non-1v1 games, so the dev set stays byte-identical across variants and ensembles are directly comparable.
+
 **Player roles — never re-derive them.** Whether a slot is a human, an AI, or a spectator comes from the replay header (`type == "C"` for AI; a spectator is a type-`"H"` slot with `playerTemplate` `-2`) and is persisted as `match_players.role` (`player_role.PlayerRole`). There is exactly **one** way to ask, and adding a second is a bug: build a `game_composition.MatchRoster` and read its partitions.
 
 - `MatchInfo.roster()` — from a match (the common case; build once per match, it materializes everything up front)
@@ -79,6 +89,10 @@ React + MUI + recharts, entry `index.tsx` → `App.tsx` → `Menu.tsx`; views ma
 - `MatchRoster.from_header_players(header.metadata.players)` — at parse time, before anything is in the DB
 
 Partitions: `.observers`, `.competitors` (played; teamless slots included), `.participants` (competitors with `team > 0`), `.humans`, `.cpus`, `.human_participants`, `.teams`. `RosterSlot.has_known_general` is separate on purpose — that's parse quality, not role, and conflating the two is what the old `is_real()` did.
+
+Name-set questions go through the roster's own methods — `human_participant_names()` (the humans who played) and `competitor_names()` (humans + AI, no spectators) — for the same reason `all_teams_have_group_player` is a method: taking the partition from `self` is what stops a call site from asking over `slots`.
+
+**Observers must never change an answer about the match.** Categorization, ratability, and per-player stats are properties of who *played*, so adding or removing a spectator has to be a no-op — the one exception is `GameComposition.total_players`, which counts every slot by design. This has broken twice: `filter_for_rating` read every slot, so a caster account named for the matchup (`Gorn.v.131`, not in `PLAYER_NAMES`) made 23 real games unratable; and the win-streak pass counted a spectator's `won=False` slot as a loss. `tests/test_observer_invariance.py` asserts the property directly (same answer with and without the observer, rather than a fixed expected value) — extend it when you add a filter.
 
 Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check against a CPU list at a call site. The codebase previously spelled the observer test three inconsistent ways and carried four disagreeing CPU detectors; AI slots named outside a five-entry list (Tactical AI, EasyArmy, MediumArmy) were counted as humans in 417 matches, which put comp-stomps on the competitive leaderboards. Guessing from the player's *name* survives only as `player_role.resolve_role`'s fallback for un-backfilled rows — the header is authoritative, and an AI's header name is empty. `role` is still nullable; tighten to NOT NULL once `list_matches_with_unset_roles` returns empty (blocked on one match — see the `Team` enum note below).
 
@@ -94,6 +108,8 @@ Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check agains
 
 ## Python conventions
 
+- **This is Python 3.14 (`requires-python = ">=3.14"`, ruff `py314`, mypy 3.14).** Unparenthesized `except ValueError, TypeError:` is valid — [PEP 758](https://peps.python.org/pep-0758/) — and so is `except* A, B:`. `ruff format` actively rewrites the parenthesized form to it. That is correct, current code: do not "fix" it back, and never report it as a syntax error.
+- **Exception: any `radarvan/` module reachable from `ml/` must stay parseable by Python 3.13**, because torch has no 3.14 wheel and training runs in `.venv-ml` (3.13) with the repo on `PYTHONPATH`. There, PEP 758's bare form *is* a SyntaxError — keep those `except` clauses parenthesized **and tagged `# fmt: skip`**, or `make format` silently rewrites them back and breaks training (`player_role.py` is the live example). Same constraint as the `from __future__ import annotations` at the top of `player_rating.py`. `tests/test_ml_venv_imports.py` catches a break wherever `.venv-ml` exists.
 - **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types (e.g. `locked_cached` lives in `utils.py` because `cache.py` imports `player_rating`).
 - **Never mutate function inputs** — return new values (`model_copy(update=...)` for Pydantic).
 - camelCase wire aliases with `populate_by_name`. (Do not add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — pydantic v2's `ConfigDict` has no such key for `BaseModel`; it's silently ignored. Real slots require `pydantic.dataclasses.dataclass(..., slots=True)`, which isn't compatible with `api_types.py`'s OpenAPI/TS-codegen role.)
