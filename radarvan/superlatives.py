@@ -238,7 +238,10 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
     best: dict[str, StreakRecord] = {}
     for game in sorted_games:
         game_date = game.date
-        for player in game.players:
+        # Competitors only: a spectator's slot has won=False, so watching a
+        # game used to land in the `else` branch below and break the streak of
+        # whoever was casting it.
+        for player in game.roster().competitors:
             name = resolve_player_name(player.name, player.color)
             if name in EXCLUDED_PLAYERS:
                 continue
@@ -926,7 +929,9 @@ def get_monthly_stats(
 
     wl: dict[str, tuple[int, int]] = {}
     for g in recent_games:
-        for p in g.players:
+        # Competitors only, for the same reason as get_win_streak_stats: a
+        # spectator's slot has won=False and would book them a loss.
+        for p in g.roster().competitors:
             name = resolve_player_name(p.name, p.color)
             if name in EXCLUDED_PLAYERS:
                 continue
