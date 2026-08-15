@@ -1,0 +1,11 @@
+# Frontend (`src/`)
+
+- `Client.ts` configures the generated client (localhost:8000 in dev, Heroku in prod). MUI for components, recharts for charts. The generated client points at an **absolute** base URL, so it never sends the session cookie (cross-origin in dev) — anything cookie-authenticated uses a relative `fetch(..., {credentials: "same-origin"})` through the Vite proxy instead: `auth.ts`, `bracketApi.ts`, `voting.ts`, `mapUpload.ts`, `adminApi.ts`.
+- The map component is named `GameMap` (from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor. Pass `eventDots?: EventDot[]` to overlay dots in game-space coordinates.
+- `ShowMatchDetails.tsx:EventChart` is pure MUI (no recharts); event types are driven by one `EVENT_TYPES` array (label, row, icon) — `EVENT_TYPE_BY_KEY` and `ROW_ORDER` are both derived from it, so adding an event type only means adding an entry there.
+- recharts Sankey `nodePadding` is uniform across columns; `node`/`link` accept custom elements receiving layout props; `payload.sourceLinks` detects leaf nodes.
+- Use `getColorHex`/`buildPlayerColorMap` from `src/utils.ts` for player-color maps; `WinRateRadar` is the shared radar chart (`data: {name, winRate}[]`).
+- Format toggles: `FORMAT_OPTIONS` arrays drive ToggleButtonGroups; selected format goes up as the `gameFormat` query param; reset dependent state on format change.
+- Static serving: `serve_index()` returns `index.html` with `Cache-Control: no-cache` (so deploys revalidate), then a `StaticFiles` mount.
+- `Bracket.tsx`'s `shortMatchLabel`/`ROUND_CODE` maps backend `round_name` strings (e.g. `"Winners Semifinal"`) to short card labels (`WSF-a`) — adding or renaming a round name in `bracket.py` (or a new `bracket_type`) needs a matching `ROUND_CODE` entry or it silently falls back to the raw name. `matchesById` and the hover-to-show-connector-lines callback are read via `useBracketData()` (`BracketDataContext`, mirroring `PlayerColorsContext`'s pattern) rather than threaded as props through `BracketNodeView`/`BracketTreeSection`/`LosersBracketColumns` — read from context in `MatchBox`, don't re-add prop drilling for a new cross-cutting concern there.
+- `DebugData` is only reachable with `?debug=True`.
