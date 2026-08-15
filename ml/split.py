@@ -31,17 +31,36 @@ from radarvan.api_types import MatchInfo
 
 from .config import DATA_DIR
 from .features import build_vocab
-from .snapshot import load_snapshot
+from .snapshot import is_1v1, load_snapshot
 
 logger = structlog.get_logger(__name__)
 
 
 def temporal_split(
-    matches: list[MatchInfo], dev_frac: float
+    matches: list[MatchInfo], dev_frac: float, *, holdout_1v1: bool = False
 ) -> tuple[list[MatchInfo], list[MatchInfo]]:
+    """Oldest games train, the most recent ``dev_frac`` are dev.
+
+    1v1s are routed into train by default, whatever their date. Nearly every
+    1v1 in the snapshot was played in the last few months, so a plain temporal
+    cut puts most of them in dev: the model then trains on almost no 1v1s,
+    "1v1" barely reaches the train-only vocab, and serving one falls back
+    toward the UNK format embedding - exactly the state that including them was
+    meant to fix. They're worth more as signal than as a held-out set at this
+    volume. Pass ``holdout_1v1`` for the plain cut.
+
+    The dev fraction applies to the games that can land in dev, so holding the
+    1v1s back grows train rather than shrinking dev.
+    """
     ordered = sorted(matches, key=lambda m: m.timestamp)
-    n_dev = max(1, round(len(ordered) * dev_frac))
-    return ordered[:-n_dev], ordered[-n_dev:]
+    if holdout_1v1:
+        reserved, splittable = [], ordered
+    else:
+        reserved = [m for m in ordered if is_1v1(m)]
+        splittable = [m for m in ordered if not is_1v1(m)]
+    n_dev = max(1, round(len(splittable) * dev_frac))
+    train = sorted([*splittable[:-n_dev], *reserved], key=lambda m: m.timestamp)
+    return train, splittable[-n_dev:]
 
 
 def random_split(
@@ -68,6 +87,12 @@ def main() -> None:
     parser.add_argument("--dev-frac", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--out-dir", type=Path, default=None)
+    parser.add_argument(
+        "--holdout-1v1",
+        action="store_true",
+        help="temporal mode: let 1v1s fall into dev by date like anything else "
+        "(default: route them into train - see temporal_split)",
+    )
     args = parser.parse_args()
 
     matches = load_snapshot(args.snapshot)
@@ -75,7 +100,9 @@ def main() -> None:
         raise SystemExit(f"Too few matches to split: {len(matches)}")
 
     if args.mode == "temporal":
-        train, dev = temporal_split(matches, args.dev_frac)
+        train, dev = temporal_split(
+            matches, args.dev_frac, holdout_1v1=args.holdout_1v1
+        )
     else:
         train, dev = random_split(matches, args.dev_frac, args.seed)
 
@@ -105,8 +132,11 @@ def main() -> None:
         "mode": args.mode,
         "dev_frac": args.dev_frac,
         "seed": args.seed,
+        "holdout_1v1": args.holdout_1v1,
         "n_train": len(train),
         "n_dev": len(dev),
+        "n_train_1v1": sum(1 for m in train if is_1v1(m)),
+        "n_dev_1v1": sum(1 for m in dev if is_1v1(m)),
         "n_players": vocab.n_players,
         "n_maps": vocab.n_maps,
     }
