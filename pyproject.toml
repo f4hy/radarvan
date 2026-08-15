@@ -33,7 +33,7 @@ dependencies = [
 ]
 [dependency-groups]
 dev = [
-  "alembic>=1.18.5",
+  "alembic>=1.19.1",
   "boto3-stubs[s3]>=1.43.56",
   "click>=8.4.2",
   "mypy>=2.3.0",
@@ -47,7 +47,7 @@ dev = [
   "tqdm>=4.68.4",
   "types-cachetools>=7.0.0.20260713",
   "types-tqdm>=4.68.0.20260608",
-  "datamodel-code-generator>=0.68.1",
+  "datamodel-code-generator>=0.72.3",
   "pg-activity>=3.6.2",
 ]
 
