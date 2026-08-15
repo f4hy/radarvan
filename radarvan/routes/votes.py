@@ -74,7 +74,7 @@ def _match_map_index(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
         agg.game_count += 1
         if agg.last_played is None or match.timestamp > agg.last_played:
             agg.last_played = match.timestamp
-        real_players = sum(1 for p in match.players if p.team >= 1)
+        real_players = len(match.roster().participants)
         if real_players > 0:
             agg.counts.add(real_players)
     return index
