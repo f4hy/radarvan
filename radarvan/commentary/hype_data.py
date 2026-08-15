@@ -18,10 +18,14 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
 from ..api_types import (
+    BracketMatchOutput,
+    BracketTournamentOutput,
     FavoriteObject,
+    General,
     GeneralProfileStat,
     HeadToHeadDetail,
     HeadToHeadGeneralRecord,
+    MatchInfo,
     OpponentProfileStat,
     PlayerProfile,
     PlayerRatings,
@@ -29,6 +33,8 @@ from ..api_types import (
     TeammateProfileStat,
     UnitDamageStat,
 )
+from ..player_ids import resolve_player_name
+from ..replay_files import map_basename
 
 _SLOTS = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -220,6 +226,277 @@ def build_hype_player_data(
             computed.superweapons_built_per_game if computed else None
         ),
         superweapon_percentile=computed.superweapon_percentile if computed else None,
+    )
+
+
+# --- Tournament-so-far context ---
+
+
+class HypeTournamentGame(BaseModel):
+    """One replay played inside the tournament, resolved to canonical names.
+
+    ``winner_general == loser_general`` marks the mirror decider the rules
+    call for when a set is level going into its last game - worth saying out
+    loud, since a mirror is the one game where the draw gives neither player
+    anything.
+    """
+
+    model_config = _SLOTS
+
+    series_index: int | None
+    map: str
+    winner: str
+    loser: str
+    winner_general: str
+    loser_general: str
+    duration_minutes: float
+
+    @property
+    def is_mirror(self) -> bool:
+        return self.winner_general == self.loser_general
+
+
+class HypeReversePair(BaseModel):
+    """The two games one draw produces under "random reverse for armies".
+
+    The tournament randomizes the general matchup and then plays it twice
+    with the players swapped, so a pair is the only place the data separates
+    *player* from *draw*: taking both sides of the same matchup on the same
+    map is a real result, while a 1-1 split says the draw decided those two
+    games and neither player did. This is the one derived fact worth handing
+    the model - it cannot reconstruct it from a flat game list without
+    knowing the format.
+    """
+
+    model_config = _SLOTS
+
+    map: str
+    general_a: str
+    general_b: str
+    # None means the pair split 1-1.
+    swept_by: str | None
+
+
+class HypeTournamentSeries(BaseModel):
+    """One bracket match (a best-of set) and whatever games it produced.
+
+    ``games`` can be empty while ``score_a``/``score_b`` are set - an admin
+    records the set result directly, and the replays only link once the
+    detector has run (see ``tournament_membership.sync_links``).
+    """
+
+    model_config = _SLOTS
+
+    stage: str
+    round_name: str
+    player_a: str
+    player_b: str
+    score_a: int | None
+    score_b: int | None
+    winner: str | None
+    games: list[HypeTournamentGame]
+    reverse_pairs: list[HypeReversePair]
+
+
+class HypeTournamentRun(BaseModel):
+    """One player's completed sets in this tournament, oldest first."""
+
+    model_config = _SLOTS
+
+    player: str
+    series: list[HypeTournamentSeries]
+
+
+class HypeTournamentContext(BaseModel):
+    """What has already happened in the tournament these two are playing in.
+
+    Sets where *both* of them played are pulled out into ``prior_meetings``
+    rather than repeated in each run - a rematch is the single most
+    interesting thing this block can surface, and duplicating it under both
+    players buries that.
+    """
+
+    model_config = _SLOTS
+
+    player1: str
+    player2: str
+    run1: HypeTournamentRun
+    run2: HypeTournamentRun
+    prior_meetings: list[HypeTournamentSeries]
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.run1.series or self.run2.series or self.prior_meetings)
+
+
+def _tournament_game(match: MatchInfo) -> HypeTournamentGame | None:
+    """One linked replay as a winner/loser pair, or None if it isn't one.
+
+    Anything that isn't a clean two-human decided 1v1 is dropped rather than
+    guessed at: a game with an unparsed general or no recorded winner would
+    otherwise render as an authoritative-looking line the model would quote.
+    """
+    slots = [s for s in match.roster().human_participants if s.has_known_general]
+    if len(slots) != 2:
+        return None
+    winners = [s for s in slots if s.won]
+    losers = [s for s in slots if not s.won]
+    if len(winners) != 1 or len(losers) != 1:
+        return None
+    won, lost = winners[0], losers[0]
+    return HypeTournamentGame(
+        series_index=match.tournament.series_index if match.tournament else None,
+        map=map_basename(match.map),
+        winner=resolve_player_name(won.name, won.color),
+        loser=resolve_player_name(lost.name, lost.color),
+        winner_general=General(won.general).name,
+        loser_general=General(lost.general).name,
+        duration_minutes=match.duration_minutes,
+    )
+
+
+def _reverse_pairs(games: list[HypeTournamentGame]) -> list[HypeReversePair]:
+    """Group a set's games into the reversed pairs the format produces.
+
+    Two games pair up when they share a map and both players swapped
+    generals between them. Mirrors are excluded - both players on one general
+    cannot be "reversed", and the decider is already visible per-game.
+    Anything that doesn't pair cleanly (an odd game, a map played more than
+    twice) is simply left out; the flat game list still carries it.
+    """
+    by_draw: dict[tuple[str, frozenset[str]], list[HypeTournamentGame]] = {}
+    order: list[tuple[str, frozenset[str]]] = []
+    for game in games:
+        if game.is_mirror:
+            continue
+        key = (game.map, frozenset({game.winner_general, game.loser_general}))
+        if key not in by_draw:
+            by_draw[key] = []
+            order.append(key)
+        by_draw[key].append(game)
+
+    pairs = []
+    for key in order:
+        group = by_draw[key]
+        if len(group) != 2:
+            continue
+        first, second = group
+        generals_first = {
+            first.winner: first.winner_general,
+            first.loser: first.loser_general,
+        }
+        generals_second = {
+            second.winner: second.winner_general,
+            second.loser: second.loser_general,
+        }
+        if set(generals_first) != set(generals_second):
+            continue
+        if any(generals_first[p] == generals_second[p] for p in generals_first):
+            # Same player kept the same general - the sides never reversed, so
+            # this is two games of one draw, not a reversed pair.
+            continue
+        general_a, general_b = sorted(key[1])
+        pairs.append(
+            HypeReversePair(
+                map=key[0],
+                general_a=general_a,
+                general_b=general_b,
+                swept_by=first.winner if first.winner == second.winner else None,
+            )
+        )
+    return pairs
+
+
+def _series_for(
+    match: BracketMatchOutput, games_by_stage: dict[str, list[MatchInfo]]
+) -> HypeTournamentSeries | None:
+    """A completed bracket match as a series, or None if it isn't usable.
+
+    Only completed sets with both players known are kept: an unplayed or
+    in-progress set has nothing to say about form, and a redacted
+    (pre-reveal) bracket has no names to say it about.
+    """
+    if match.status != "completed" or match.winner is None:
+        return None
+    if match.player_a is None or match.player_b is None:
+        return None
+    games = [
+        game
+        for game in (
+            _tournament_game(m)
+            for m in sorted(
+                games_by_stage.get(match.match_id, []), key=lambda m: m.timestamp
+            )
+        )
+        if game is not None
+    ]
+    return HypeTournamentSeries(
+        stage=match.match_id,
+        round_name=match.round_name,
+        player_a=match.player_a,
+        player_b=match.player_b,
+        score_a=match.score_a,
+        score_b=match.score_b,
+        winner=match.winner,
+        games=games,
+        reverse_pairs=_reverse_pairs(games),
+    )
+
+
+def build_hype_tournament_context(
+    bracket_output: BracketTournamentOutput | None,
+    tournament_games: list[MatchInfo],
+    player1: str,
+    player2: str,
+) -> HypeTournamentContext:
+    """Both players' tournament so far, from the resolved bracket + linked games.
+
+    ``bracket_output`` is whatever ``routes.bracket.get_bracket`` returned, so
+    a redacted pre-reveal bracket (player names nulled out) yields an empty
+    context rather than leaking placements into generated text.
+    """
+    empty1 = HypeTournamentRun(player=player1, series=[])
+    empty2 = HypeTournamentRun(player=player2, series=[])
+    if bracket_output is None or not bracket_output.revealed:
+        return HypeTournamentContext(
+            player1=player1,
+            player2=player2,
+            run1=empty1,
+            run2=empty2,
+            prior_meetings=[],
+        )
+
+    games_by_stage: dict[str, list[MatchInfo]] = {}
+    for match in tournament_games:
+        stage = match.tournament.stage if match.tournament else None
+        if stage is not None:
+            games_by_stage.setdefault(stage, []).append(match)
+
+    # Bracket order is already the order they were played in closely enough
+    # for a narrative (round 1 before round 2); scheduled_at is not, since an
+    # admin can schedule a later round earlier in wall-clock time.
+    series = [
+        s
+        for s in (_series_for(m, games_by_stage) for m in bracket_output.matches)
+        if s is not None
+    ]
+
+    def runs_for(player: str) -> list[HypeTournamentSeries]:
+        return [
+            s
+            for s in series
+            if player in (s.player_a, s.player_b)
+            and {s.player_a, s.player_b} != {player1, player2}
+        ]
+
+    return HypeTournamentContext(
+        player1=player1,
+        player2=player2,
+        run1=HypeTournamentRun(player=player1, series=runs_for(player1)),
+        run2=HypeTournamentRun(player=player2, series=runs_for(player2)),
+        prior_meetings=[
+            s for s in series if {s.player_a, s.player_b} == {player1, player2}
+        ],
     )
 
 
@@ -433,6 +710,85 @@ def render_player_data(data: HypePlayerData) -> str:
         )
 
     return "\n".join(lines)
+
+
+def _render_series(series: HypeTournamentSeries) -> list[str]:
+    """One completed set: the headline score, then its games."""
+    winner_is_a = series.winner == series.player_a
+    loser = series.player_b if winner_is_a else series.player_a
+    # Always written from the winner's side, so the first number is the
+    # bigger one - "beat X 2-3" reads as a typo.
+    if series.score_a is None or series.score_b is None:
+        score = ""
+    elif winner_is_a:
+        score = f" {series.score_a}-{series.score_b}"
+    else:
+        score = f" {series.score_b}-{series.score_a}"
+    lines = [f"- {series.round_name}: {series.winner} beat {loser}{score}"]
+
+    for game in series.games:
+        label = f"g{game.series_index}" if game.series_index else "game"
+        mirror = (
+            " [mirror decider - both on the same general]" if game.is_mirror else ""
+        )
+        lines.append(
+            f"  - {label} on {game.map}: {game.winner} ({game.winner_general}) "
+            f"beat {game.loser} ({game.loser_general}), "
+            f"{game.duration_minutes:.1f} min{mirror}"
+        )
+    for pair in series.reverse_pairs:
+        verdict = (
+            f"{pair.swept_by} won both sides"
+            if pair.swept_by
+            else "split 1-1, each winning their turn on it"
+        )
+        lines.append(
+            f"  - Reversed pair on {pair.map} ({pair.general_a} vs "
+            f"{pair.general_b}): {verdict}"
+        )
+    if not series.games:
+        lines.append("  - (result recorded; individual replays not linked)")
+    return lines
+
+
+def render_tournament_context(ctx: HypeTournamentContext) -> str:
+    """Plain labeled text for what's already happened in this tournament.
+
+    Returns "" when there's nothing to say, so the caller can drop the whole
+    block rather than hand the model an empty section to reason about.
+    """
+    if ctx.is_empty:
+        return ""
+
+    lines = [
+        "What has already happened in THIS tournament. Generals here are "
+        "randomized and then played both ways (see the format note in your "
+        "instructions), so treat a general as a draw, not a choice - the "
+        "reversed-pair lines are where a result actually belongs to the "
+        "player rather than the draw.",
+        "",
+    ]
+
+    if ctx.prior_meetings:
+        lines.append(
+            f"{ctx.player1} and {ctx.player2} have ALREADY met in this tournament:"
+        )
+        for series in ctx.prior_meetings:
+            lines.extend(_render_series(series))
+        lines.append("")
+
+    for run in (ctx.run1, ctx.run2):
+        if run.series:
+            lines.append(f"{run.player}'s run so far:")
+            for series in run.series:
+                lines.extend(_render_series(series))
+        else:
+            lines.append(
+                f"{run.player} has not completed a match in this tournament yet."
+            )
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
 
 
 def render_head_to_head(h2h: HypeHeadToHead) -> str:
