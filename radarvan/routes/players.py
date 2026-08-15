@@ -101,11 +101,17 @@ def get_player_team_game_counts(
 def get_player_game_counts(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[PlayerGameCount]:
-    """Get all player names with their total game count, sorted by count descending."""
+    """Get all player names with their total game count, sorted by count descending.
+
+    Counts games *played*: spectating is not playing, and the sibling
+    ``/api/player_team_game_counts/`` already counts competitors (via
+    ``player_stats.get_player_stats``), so reading every slot here made the two
+    endpoints answer the same question differently.
+    """
     all_matches = sorted_deduped_matches(replay_manager)
     counts: dict[str, int] = {}
     for game in all_matches.values():
-        for player in game.players:
+        for player in game.roster().competitors:
             name = player_ids.resolve_player_name(player.name, player.color)
             counts[name] = counts.get(name, 0) + 1
     return [
