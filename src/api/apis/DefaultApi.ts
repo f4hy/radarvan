@@ -1594,7 +1594,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all player names with their total game count, sorted by count descending.
+     * Get all player names with their total game count, sorted by count descending.  Counts games *played*: spectating is not playing, and the sibling ``/api/player_team_game_counts/`` already counts competitors (via ``player_stats.get_player_stats``), so reading every slot here made the two endpoints answer the same question differently.
      * Get Player Game Counts
      */
     async getPlayerGameCountsApiPlayerGameCountsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PlayerGameCount>>> {
@@ -1605,7 +1605,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all player names with their total game count, sorted by count descending.
+     * Get all player names with their total game count, sorted by count descending.  Counts games *played*: spectating is not playing, and the sibling ``/api/player_team_game_counts/`` already counts competitors (via ``player_stats.get_player_stats``), so reading every slot here made the two endpoints answer the same question differently.
      * Get Player Game Counts
      */
     async getPlayerGameCountsApiPlayerGameCountsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerGameCount>> {

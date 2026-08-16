@@ -20,6 +20,7 @@ from .db_utils import DatabaseManager, ReplayManager
 from .repositories import (
     BracketPredictionRepo,
     BracketRepo,
+    BracketSummaryRepo,
     MapVoteRepo,
     TournamentRepo,
     UserRepo,
@@ -211,6 +212,13 @@ def get_map_vote_repo(session: Session = Depends(get_db_session)) -> MapVoteRepo
 def get_bracket_repo(session: Session = Depends(get_db_session)) -> BracketRepo:
     """Dependency that provides a BracketRepo instance."""
     return BracketRepo(session)
+
+
+def get_bracket_summary_repo(
+    session: Session = Depends(get_db_session),
+) -> BracketSummaryRepo:
+    """Dependency that provides a BracketSummaryRepo instance."""
+    return BracketSummaryRepo(session)
 
 
 def get_tournament_repo(session: Session = Depends(get_db_session)) -> TournamentRepo:

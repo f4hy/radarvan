@@ -16,6 +16,7 @@ from radarvan.commentary import (
     anthropic_client,
     gemini_client,
     hype_data,
+    llm,
     matchup_commentary,
 )
 from radarvan.db_utils import ReplayManager
@@ -315,7 +316,7 @@ def test_known_round_names_covers_every_bracket_round() -> None:
 def test_generate_with_anthropic_logs_usage_and_duration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """_generate_with_anthropic must read response.usage/duration without
+    """llm._generate_with_anthropic must read response.usage/duration without
     raising (see the logger.info call) and still return the extracted text."""
     captured_kwargs: dict[str, object] = {}
     final_message = SimpleNamespace(
@@ -344,8 +345,8 @@ def test_generate_with_anthropic_logs_usage_and_duration(
 
     monkeypatch.setattr(anthropic_client, "anthropic_client", lambda: _StubClient())
 
-    prompt = matchup_commentary.MatchupPrompt(system="sys", user_message="user")
-    text = matchup_commentary._generate_with_anthropic(prompt, "Alice", "Bob")
+    prompt = llm.Prompt(system="sys", user_message="user")
+    text = llm._generate_with_anthropic(prompt, "Matchup commentary", "Alice vs Bob")
     assert text == "**Hype.**"
     assert captured_kwargs["system"] == "sys"
 
@@ -353,7 +354,7 @@ def test_generate_with_anthropic_logs_usage_and_duration(
 def test_generate_with_gemini_logs_usage_and_duration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """_generate_with_gemini must read interaction.usage/duration without
+    """llm._generate_with_gemini must read interaction.usage/duration without
     raising and still return the extracted text."""
     captured_kwargs: dict[str, object] = {}
     stub_interaction = SimpleNamespace(
@@ -376,8 +377,8 @@ def test_generate_with_gemini_logs_usage_and_duration(
 
     monkeypatch.setattr(gemini_client, "gemini_client", lambda: _StubClient())
 
-    prompt = matchup_commentary.MatchupPrompt(system="sys", user_message="user")
-    text = matchup_commentary._generate_with_gemini(prompt, "Alice", "Bob")
+    prompt = llm.Prompt(system="sys", user_message="user")
+    text = llm._generate_with_gemini(prompt, "Matchup commentary", "Alice vs Bob")
     assert text == "**Hype.**"
     assert captured_kwargs["system_instruction"] == "sys"
     assert captured_kwargs["input"] == "user"
@@ -405,9 +406,9 @@ def test_generate_with_gemini_raises_on_empty_text(
 
     monkeypatch.setattr(gemini_client, "gemini_client", lambda: _StubClient())
 
-    prompt = matchup_commentary.MatchupPrompt(system="sys", user_message="user")
+    prompt = llm.Prompt(system="sys", user_message="user")
     with pytest.raises(matchup_commentary.CommentaryGenerationError):
-        matchup_commentary._generate_with_gemini(prompt, "Alice", "Bob")
+        llm._generate_with_gemini(prompt, "Matchup commentary", "Alice vs Bob")
 
 
 def test_generate_commentary_dispatches_by_provider(
@@ -421,14 +422,14 @@ def test_generate_commentary_dispatches_by_provider(
         ),
     )
     monkeypatch.setattr(
-        matchup_commentary,
+        llm,
         "_generate_with_anthropic",
-        lambda prompt, player1, player2: "anthropic-text",
+        lambda prompt, kind, label: "anthropic-text",
     )
     monkeypatch.setattr(
-        matchup_commentary,
+        llm,
         "_generate_with_gemini",
-        lambda prompt, player1, player2: "gemini-text",
+        lambda prompt, kind, label: "gemini-text",
     )
 
     monkeypatch.delenv(matchup_commentary.PROVIDER_ENV, raising=False)

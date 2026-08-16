@@ -1816,7 +1816,7 @@ This endpoint does not need any parameter.
 
 Get Player Game Counts
 
-Get all player names with their total game count, sorted by count descending.
+Get all player names with their total game count, sorted by count descending.  Counts games *played*: spectating is not playing, and the sibling &#x60;&#x60;/api/player_team_game_counts/&#x60;&#x60; already counts competitors (via &#x60;&#x60;player_stats.get_player_stats&#x60;&#x60;), so reading every slot here made the two endpoints answer the same question differently.
 
 ### Example
 

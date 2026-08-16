@@ -74,7 +74,7 @@ def _to_api_source(source: bracket.Source) -> MatchSource:
     return LoserOfSource(match_id=source.match_id)
 
 
-def _load_match(
+def load_match(
     repo: BracketRepo, match_id: str
 ) -> tuple[
     BracketTournament,
@@ -98,7 +98,7 @@ def _load_match(
     return tournament, raw_states, result, resolved_match
 
 
-def _is_revealed(tournament: BracketTournament, *, allow_preview: bool) -> bool:
+def is_revealed(tournament: BracketTournament, *, allow_preview: bool) -> bool:
     """True once the bracket's placements/matchups may be shown.
 
     ``reveal_at`` is compared against the server clock only - a client can
@@ -177,7 +177,7 @@ def _build_output_from_states(
         champion=result.champion,
         runner_up=result.runner_up,
         needs_reset=result.needs_reset,
-        revealed=_is_revealed(tournament, allow_preview=allow_preview),
+        revealed=is_revealed(tournament, allow_preview=allow_preview),
         reveal_at=tournament.reveal_at,
     )
     return output if output.revealed else _redact(output)
@@ -271,7 +271,7 @@ def set_bracket_match(
     # raw_states is fetched once here and reused for both the pre-write
     # validation resolve and the post-write response, patched in place below
     # instead of re-querying.
-    tournament, raw_states, before, resolved_match = _load_match(repo, match_id)
+    tournament, raw_states, before, resolved_match = load_match(repo, match_id)
     existing = raw_states.get(match_id)
 
     def merged[T](field: str, current: T) -> T:
@@ -364,7 +364,7 @@ def set_bracket_match(
     return _build_output_from_states(tournament, raw_states, allow_preview=True)
 
 
-def _tournament_for_bracket(
+def tournament_for_bracket(
     tournament: BracketTournament, tournament_repo: TournamentRepo
 ) -> Tournament | None:
     """The durable Tournament row this bracket writes its game links to."""
@@ -446,11 +446,11 @@ def get_bracket_games(
     candidates name the two players, which is exactly what ``_redact``
     withholds from ``GET /api/bracket``. Editing is admin-gated below.
     """
-    tournament_row, raw_states, _result, resolved = _load_match(repo, match_id)
+    tournament_row, raw_states, _result, resolved = load_match(repo, match_id)
     is_admin = user is not None and player_ids.is_tournament_admin(user.player_name)
-    if not _is_revealed(tournament_row, allow_preview=is_admin):
+    if not is_revealed(tournament_row, allow_preview=is_admin):
         return BracketMatchGames(match_id=match_id)
-    parent = _tournament_for_bracket(tournament_row, tournament_repo)
+    parent = tournament_for_bracket(tournament_row, tournament_repo)
     raw = raw_states.get(match_id)
     return _games_response(
         match_id,
@@ -479,8 +479,8 @@ def set_bracket_games(
     later detector run doesn't just put it back.
     """
     _require_tournament_admin(user)
-    tournament_row, raw_states, _result, resolved = _load_match(repo, match_id)
-    parent = _tournament_for_bracket(tournament_row, tournament_repo)
+    tournament_row, raw_states, _result, resolved = load_match(repo, match_id)
+    parent = tournament_for_bracket(tournament_row, tournament_repo)
     if parent is None:
         raise HTTPException(
             status_code=409,
@@ -551,9 +551,9 @@ def get_bracket_map_records(
     if tournament_row is None:
         return []
     is_admin = user is not None and player_ids.is_tournament_admin(user.player_name)
-    if not _is_revealed(tournament_row, allow_preview=is_admin):
+    if not is_revealed(tournament_row, allow_preview=is_admin):
         return []
-    parent = _tournament_for_bracket(tournament_row, tournament_repo)
+    parent = tournament_for_bracket(tournament_row, tournament_repo)
     if parent is None:
         return []
     known = sorted_deduped_matches(replay_manager)
@@ -588,7 +588,7 @@ def get_bracket_predictions(
     revealed, same as player placements.
     """
     tournament = repo.get_active()
-    if tournament is None or not _is_revealed(tournament, allow_preview=False):
+    if tournament is None or not is_revealed(tournament, allow_preview=False):
         return []
 
     raw_states = repo.get_match_states(tournament.id)
@@ -679,7 +679,7 @@ def get_bracket_prediction_leaderboard(
     ``get_bracket_predictions``.
     """
     tournament = repo.get_active()
-    if tournament is None or not _is_revealed(tournament, allow_preview=False):
+    if tournament is None or not is_revealed(tournament, allow_preview=False):
         return []
 
     raw_states = repo.get_match_states(tournament.id)
@@ -697,7 +697,7 @@ def set_bracket_prediction(
     prediction_repo: BracketPredictionRepo = Depends(get_bracket_prediction_repo),
 ) -> BracketMatchPrediction:
     """Set (or clear, with null) the caller's prediction for a match."""
-    tournament, raw_states, _result, m = _load_match(repo, match_id)
+    tournament, raw_states, _result, m = load_match(repo, match_id)
     if m.player_a is None or m.player_b is None:
         raise HTTPException(
             status_code=400, detail="This match's players aren't determined yet"

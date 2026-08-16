@@ -329,7 +329,7 @@ class HypeTournamentContext(BaseModel):
         return not (self.run1.series or self.run2.series or self.prior_meetings)
 
 
-def _tournament_game(match: MatchInfo) -> HypeTournamentGame | None:
+def tournament_game(match: MatchInfo) -> HypeTournamentGame | None:
     """One linked replay as a winner/loser pair, or None if it isn't one.
 
     Anything that isn't a clean two-human decided 1v1 is dropped rather than
@@ -355,7 +355,7 @@ def _tournament_game(match: MatchInfo) -> HypeTournamentGame | None:
     )
 
 
-def _reverse_pairs(games: list[HypeTournamentGame]) -> list[HypeReversePair]:
+def reverse_pairs(games: list[HypeTournamentGame]) -> list[HypeReversePair]:
     """Group a set's games into the reversed pairs the format produces.
 
     Two games pair up when they share a map and both players swapped
@@ -423,7 +423,7 @@ def _series_for(
     games = [
         game
         for game in (
-            _tournament_game(m)
+            tournament_game(m)
             for m in sorted(
                 games_by_stage.get(match.match_id, []), key=lambda m: m.timestamp
             )
@@ -439,7 +439,7 @@ def _series_for(
         score_b=match.score_b,
         winner=match.winner,
         games=games,
-        reverse_pairs=_reverse_pairs(games),
+        reverse_pairs=reverse_pairs(games),
     )
 
 

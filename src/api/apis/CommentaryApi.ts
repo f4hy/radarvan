@@ -15,11 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
+  BracketSummaryResponse,
   HTTPValidationError,
   MatchupCommentaryPromptPreview,
   MatchupCommentaryResponse,
 } from '../models/index';
 import {
+    BracketSummaryResponseFromJSON,
+    BracketSummaryResponseToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
     MatchupCommentaryPromptPreviewFromJSON,
@@ -27,6 +30,16 @@ import {
     MatchupCommentaryResponseFromJSON,
     MatchupCommentaryResponseToJSON,
 } from '../models/index';
+
+export interface GetBracketSummaryApiBracketSummaryMatchIdGetRequest {
+    matchId: string;
+    bypassCache?: boolean;
+    forceRefresh?: boolean;
+}
+
+export interface GetBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRequest {
+    matchId: string;
+}
 
 export interface GetMatchupCommentaryApiMatchupCommentaryGetRequest {
     player1: string;
@@ -46,6 +59,116 @@ export interface GetMatchupCommentaryPromptPreviewApiMatchupCommentaryPromptPrev
  * 
  */
 export class CommentaryApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getBracketSummaryApiBracketSummaryMatchIdGet without sending the request
+     */
+    async getBracketSummaryApiBracketSummaryMatchIdGetRequestOpts(requestParameters: GetBracketSummaryApiBracketSummaryMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getBracketSummaryApiBracketSummaryMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['bypassCache'] != null) {
+            queryParameters['bypass_cache'] = requestParameters['bypassCache'];
+        }
+
+        if (requestParameters['forceRefresh'] != null) {
+            queryParameters['force_refresh'] = requestParameters['forceRefresh'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/bracket_summary/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Generate (or return the cached) post-game recap of one bracket set.  A GET, for the same reason the pre-game commentary route is one: the bracket UI shows this to everyone and a cache hit is free. A cache *miss* still triggers a real, billed LLM call, so the same two fences apply:  - The key is (tournament, bracket stage), both of which the server   resolves itself from ``match_id`` - a caller can\'t mint fresh keys, and   ``_recappable_set`` refuses everything that isn\'t a finished set with   all of its games on record. ``ready=false`` is the \"nothing to say yet\"   answer, and costs nothing. - ``bypass_cache``/``force_refresh`` always call the LLM, so they need   the admin-tier key. They differ in whether the result is then   persisted: ``force_refresh`` overwrites the cached row, ``bypass_cache``   does not touch it. If both are set, ``bypass_cache`` wins (no write).   ``force_refresh`` is the answer to a recap whose games an admin   relinked afterwards.
+     * Get Bracket Summary
+     */
+    async getBracketSummaryApiBracketSummaryMatchIdGetRaw(requestParameters: GetBracketSummaryApiBracketSummaryMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BracketSummaryResponse>> {
+        const requestOptions = await this.getBracketSummaryApiBracketSummaryMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BracketSummaryResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Generate (or return the cached) post-game recap of one bracket set.  A GET, for the same reason the pre-game commentary route is one: the bracket UI shows this to everyone and a cache hit is free. A cache *miss* still triggers a real, billed LLM call, so the same two fences apply:  - The key is (tournament, bracket stage), both of which the server   resolves itself from ``match_id`` - a caller can\'t mint fresh keys, and   ``_recappable_set`` refuses everything that isn\'t a finished set with   all of its games on record. ``ready=false`` is the \"nothing to say yet\"   answer, and costs nothing. - ``bypass_cache``/``force_refresh`` always call the LLM, so they need   the admin-tier key. They differ in whether the result is then   persisted: ``force_refresh`` overwrites the cached row, ``bypass_cache``   does not touch it. If both are set, ``bypass_cache`` wins (no write).   ``force_refresh`` is the answer to a recap whose games an admin   relinked afterwards.
+     * Get Bracket Summary
+     */
+    async getBracketSummaryApiBracketSummaryMatchIdGet(requestParameters: GetBracketSummaryApiBracketSummaryMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BracketSummaryResponse> {
+        const response = await this.getBracketSummaryApiBracketSummaryMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGet without sending the request
+     */
+    async getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRequestOpts(requestParameters: GetBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/bracket_summary_preview/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Dev-only: assemble the exact system + user content that would be sent to the active LLM provider for this set\'s recap, without calling the API.  A distinct top-level path rather than a sibling of ``/api/bracket_summary/{match_id}`` - the OpenAPI generator merges a static route with a parameterized sibling sharing its prefix (see CLAUDE.md).
+     * Get Bracket Summary Prompt Preview
+     */
+    async getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRaw(requestParameters: GetBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchupCommentaryPromptPreview>> {
+        const requestOptions = await this.getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchupCommentaryPromptPreviewFromJSON(jsonValue));
+    }
+
+    /**
+     * Dev-only: assemble the exact system + user content that would be sent to the active LLM provider for this set\'s recap, without calling the API.  A distinct top-level path rather than a sibling of ``/api/bracket_summary/{match_id}`` - the OpenAPI generator merges a static route with a parameterized sibling sharing its prefix (see CLAUDE.md).
+     * Get Bracket Summary Prompt Preview
+     */
+    async getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGet(requestParameters: GetBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchupCommentaryPromptPreview> {
+        const response = await this.getBracketSummaryPromptPreviewApiBracketSummaryPreviewMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getMatchupCommentaryApiMatchupCommentaryGet without sending the request

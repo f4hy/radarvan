@@ -798,11 +798,38 @@ function UnlinkedGames({
   )
 }
 
+// The tinted panel both AI blurbs render in - the pre-game hype and, once
+// the set has been played, the post-game recap. Same shape either way so the
+// two read as the same feature at different times.
+function CommentaryPanel({ label, text }: { label: string; text: string }) {
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        p: 1.5,
+        borderRadius: 1,
+        backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.08),
+        border: "1px solid",
+        borderColor: (theme) => alpha(theme.palette.secondary.main, 0.3),
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
+      >
+        {label}
+      </Typography>
+      {renderHypeText(text)}
+    </Box>
+  )
+}
+
 // The everyone-gets-this popup a match card click opens (admins reach the
 // score editor via the edit icon instead - see MatchBox). Links to each
-// player's profile and their head-to-head record, an AI-generated pre-game
-// hype blurb (see radarvan/commentary/), plus whatever 1v1 games were
-// actually played between them on the match's scheduled date.
+// player's profile and their head-to-head record, the AI-generated pre-game
+// hype blurb and - once the set is over and every game of it is on record -
+// the post-game recap (see radarvan/commentary/), plus whatever 1v1 games
+// were actually played between them on the match's scheduled date.
 function MatchupPopup({
   match,
   onClose,
@@ -826,6 +853,8 @@ function MatchupPopup({
   const games = gamesData?.linked ?? []
   const [commentary, setCommentary] = React.useState<string | null>(null)
   const [commentaryLoading, setCommentaryLoading] = React.useState(false)
+  const [summary, setSummary] = React.useState<string | null>(null)
+  const [summaryLoading, setSummaryLoading] = React.useState(false)
   const [factionMatchup, setFactionMatchup] = React.useState<
     FactionMatchupOption[] | null
   >(null)
@@ -889,6 +918,35 @@ function MatchupPopup({
       cancelled = true
     }
   }, [playerA, playerB, match.round_name])
+
+  // The recap only exists once the set is finished AND every game of it is
+  // linked; the backend decides that and answers `ready: false` (free, no
+  // model call) until then, so this just asks whenever the set is scored.
+  // Re-asks on a score edit, since that changes what "all the games" means.
+  const isCompleted = match.status === "completed"
+  React.useEffect(() => {
+    if (!isCompleted) {
+      setSummary(null)
+      return
+    }
+    let cancelled = false
+    setSummaryLoading(true)
+    CommentaryClient.getBracketSummaryApiBracketSummaryMatchIdGet({
+      matchId: match.match_id,
+    })
+      .then((res) => {
+        if (!cancelled) setSummary(res.summary ?? null)
+      })
+      .catch(() => {
+        // Best-effort like the hype above - a 502/503 hides the section
+        // rather than erroring the popup.
+        if (!cancelled) setSummary(null)
+      })
+      .finally(() => !cancelled && setSummaryLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [isCompleted, match.match_id, match.score_a, match.score_b])
 
   // The games played are a stored fact (the tournament_games link table), not
   // something the client re-derives. The previous version guessed by fetching
@@ -1000,6 +1058,17 @@ function MatchupPopup({
             />
           </Box>
         )}
+        {summaryLoading && (
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", display: "block", mb: 2 }}
+          >
+            📝 Writing the recap…
+          </Typography>
+        )}
+        {!summaryLoading && summary && (
+          <CommentaryPanel label="📝 AI-generated recap" text={summary} />
+        )}
         {commentaryLoading && (
           <Typography
             variant="caption"
@@ -1008,26 +1077,21 @@ function MatchupPopup({
             ✨ Generating hype…
           </Typography>
         )}
-        {!commentaryLoading && commentary && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: 1,
-              backgroundColor: (theme) =>
-                alpha(theme.palette.secondary.main, 0.08),
-              border: "1px solid",
-              borderColor: (theme) => alpha(theme.palette.secondary.main, 0.3),
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
-            >
-              ✨ AI-generated hype
-            </Typography>
-            {renderHypeText(commentary)}
-          </Box>
+        {/* Once the recap exists the hype is history - still worth keeping
+            (it's what everyone read beforehand), but folded away so the
+            popup leads with what actually happened. */}
+        {!commentaryLoading && commentary && summary && (
+          <Accordion disableGutters sx={{ mb: 2 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                ✨ The pre-game hype
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>{renderHypeText(commentary)}</AccordionDetails>
+          </Accordion>
+        )}
+        {!commentaryLoading && commentary && !summary && (
+          <CommentaryPanel label="✨ AI-generated hype" text={commentary} />
         )}
         {loading && <Loading />}
         {!loading && games.length === 0 && (

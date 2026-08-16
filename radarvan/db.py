@@ -492,6 +492,42 @@ class MatchupCommentaryCache(Base):
         )
 
 
+class BracketSummaryCache(Base):
+    """Durable cache of the AI-generated post-game recap of one bracket set.
+
+    Keyed on (tournament_id, stage) - the *durable* Tournament the bracket
+    writes its game links to, plus the bracket match id ("WB1-1"). Not the
+    BracketTournament row: that one is deleted and recreated on every bracket
+    reset, which would throw away recaps of sets that were actually played.
+    The pair is also exactly the key TournamentGame links use, so a row and
+    the games it describes are identified the same way.
+
+    Generation is a real, billed LLM call (radarvan.commentary), so once a
+    row exists it's served on every later request. Same no-version policy as
+    MatchupCommentaryCache: if the prompt changes and old recaps should be
+    regenerated, delete the affected rows (or use the route's admin-only
+    force_refresh).
+    """
+
+    __tablename__ = "bracket_summary_cache"
+
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("tournaments.id", ondelete="CASCADE"), primary_key=True
+    )
+    stage: Mapped[str] = mapped_column(String(16), primary_key=True)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<BracketSummaryCache(tournament_id={self.tournament_id}, "
+            f"stage={self.stage!r})>"
+        )
+
+
 class User(Base):
     """A community member authenticated via Discord OAuth2.
 

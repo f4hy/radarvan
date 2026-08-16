@@ -14,9 +14,10 @@
 
 import { mapValues } from '../runtime';
 /**
- * The exact system + user content that would be sent to Anthropic for a
- * matchup, plus character counts - for inspecting/trimming payload size
- * without spending a real API call. Dev-only, see routes/commentary.py.
+ * The exact system + user content that would be sent to the active LLM
+ * provider, plus character counts - for inspecting/trimming payload size
+ * without spending a real API call. Shared by both dev-only preview
+ * endpoints (pre-game matchup, post-game recap); see routes/commentary.py.
  * @export
  * @interface MatchupCommentaryPromptPreview
  */

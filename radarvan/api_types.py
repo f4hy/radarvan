@@ -1355,10 +1355,27 @@ class MatchupCommentaryResponse(BaseModel):
     commentary: str
 
 
+class BracketSummaryResponse(BaseModel):
+    """The AI-generated post-game recap of one completed bracket set.
+
+    ``summary`` is null while the set isn't recappable yet - not finished, or
+    finished but with fewer replays linked than games played. ``ready`` says
+    which of those it is, so the UI can promise a recap that's coming instead
+    of showing nothing.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: str = Field(alias="matchId")
+    ready: bool
+    summary: str | None = None
+
+
 class MatchupCommentaryPromptPreview(BaseModel):
-    """The exact system + user content that would be sent to Anthropic for a
-    matchup, plus character counts - for inspecting/trimming payload size
-    without spending a real API call. Dev-only, see routes/commentary.py.
+    """The exact system + user content that would be sent to the active LLM
+    provider, plus character counts - for inspecting/trimming payload size
+    without spending a real API call. Shared by both dev-only preview
+    endpoints (pre-game matchup, post-game recap); see routes/commentary.py.
     """
 
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]

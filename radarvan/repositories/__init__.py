@@ -8,7 +8,7 @@ together via the `ReplayManager` facade in `radarvan.db_utils`.
 from .base import BaseRepo
 from .bracket import BracketRepo
 from .bracket_predictions import BracketPredictionRepo
-from .commentary import MatchupCommentaryRepo
+from .commentary import BracketSummaryRepo, MatchupCommentaryRepo
 from .details import MatchDetailsRepo
 from .maps import MapRepo
 from .matches import MatchDebugData, MatchRepo
@@ -24,6 +24,7 @@ __all__ = [
     "BaseRepo",
     "BracketPredictionRepo",
     "BracketRepo",
+    "BracketSummaryRepo",
     "FileListing",
     "MapRepo",
     "MapVoteRepo",
