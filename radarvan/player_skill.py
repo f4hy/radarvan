@@ -120,6 +120,43 @@ def _sigmoid(x: np.ndarray) -> np.ndarray:
     return np.asarray(1.0 / (1.0 + np.exp(-x)))
 
 
+def _solve_symmetric_tridiagonal(
+    diag: np.ndarray, off: np.ndarray, rhs: np.ndarray
+) -> np.ndarray:
+    """Solve ``T x = rhs`` for symmetric tridiagonal ``T`` (Thomas algorithm).
+
+    ``diag`` is T's main diagonal (length n), ``off`` both off-diagonals
+    (length n-1). O(n) time and memory - the whole point of the tridiagonal
+    Hessian this module's docstring describes. Materializing T as a dense
+    ``np.diag(...)`` and calling ``np.linalg.solve`` instead costs three
+    n x n allocations and an O(n^3) factorization, per inner Newton step, per
+    player, per outer iteration - and n is a player's number of distinct game
+    dates, which grows without bound as the history does.
+
+    No pivoting: T is the Hessian of a convex objective with strictly positive
+    diagonal contributions (the ridge term alone guarantees it), so it is
+    symmetric positive definite and diagonally dominant, where Thomas is stable.
+    """
+    n = diag.size
+    if n == 1:
+        return np.asarray(rhs / diag)
+    c = np.empty(n - 1, dtype=np.float64)  # modified super-diagonal
+    d = np.empty(n, dtype=np.float64)  # modified rhs
+    beta = diag[0]
+    c[0] = off[0] / beta
+    d[0] = rhs[0] / beta
+    for i in range(1, n):
+        beta = diag[i] - off[i - 1] * c[i - 1]
+        if i < n - 1:
+            c[i] = off[i] / beta
+        d[i] = (rhs[i] - off[i - 1] * d[i - 1]) / beta
+    x = np.empty(n, dtype=np.float64)
+    x[n - 1] = d[n - 1]
+    for i in range(n - 2, -1, -1):
+        x[i] = d[i] - c[i] * x[i + 1]
+    return x
+
+
 def _update_player(
     p: int, prep: _Prepared, w2: float, l2: float, max_inner: int, tol: float
 ) -> float:
@@ -175,12 +212,7 @@ def _update_player(
         g += 2.0 * l2 * skills_p
         diag += 2.0 * l2
 
-        if n == 1:
-            delta = g / diag
-        else:
-            off = -prior_inv
-            T = np.diag(diag) + np.diag(off, 1) + np.diag(off, -1)
-            delta = np.linalg.solve(T, g).astype(np.float64, copy=False)
+        delta = _solve_symmetric_tridiagonal(diag, -prior_inv, g)
 
         skills_p -= delta
         last_max = float(np.max(np.abs(delta)))

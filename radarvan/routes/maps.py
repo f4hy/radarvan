@@ -27,7 +27,12 @@ from ..api_types import (
     ReparseMapResult,
     ReparseMapsResponse,
 )
-from ..cache import competitive_matches, resolve_map_name_cached, sorted_deduped_matches
+from ..cache import (
+    competitive_matches,
+    maps_by_player_count,
+    resolve_map_name_cached,
+    sorted_deduped_matches,
+)
 from ..db_utils import ReplayManager
 from ..dependencies import (
     ADMIN_ONLY,
@@ -104,7 +109,10 @@ def get_maps_by_player_count(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[MapsByPlayerCount]:
     """Return all maps grouped by number of player starting positions."""
-    grouped = replay_manager.list_maps_by_player_count()
+    # Through the cache: the underlying query loads every MapData row *and* its
+    # JSON geometry blob. cache.maps_by_player_count exists for exactly this
+    # (see its docstring); calling the repo directly re-scanned per request.
+    grouped = maps_by_player_count(replay_manager)
     return [MapsByPlayerCount(player_count=k, maps=v) for k, v in grouped.items()]
 
 

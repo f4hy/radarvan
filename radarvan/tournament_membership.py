@@ -168,10 +168,11 @@ def detect_round_robin_links(matches: Iterable[MatchInfo]) -> list[ProposedLink]
     for match in matches:
         # Cheap date gate first: is_tournament_game builds a roster and
         # resolves every name before it checks the window, so without this
-        # most of the match table pays for a lookup it can't pass.
+        # most of the match table pays for a lookup it can't pass. Must read
+        # the same date field is_tournament_game does (the game-night date, not
+        # the raw UTC one) or this gate rejects games that rule would accept.
         if not any(
-            t.start_date <= match.timestamp.date() <= t.end_date
-            for t in tournament.TOURNAMENTS
+            t.start_date <= match.date <= t.end_date for t in tournament.TOURNAMENTS
         ):
             continue
         slug = tournament.is_tournament_game(match)

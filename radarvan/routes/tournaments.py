@@ -126,7 +126,9 @@ async def save_report(name: str, save: bool = True) -> TournamentReport:
     """
     async with _report_semaphore:
         with db_manager.get_replay_manager() as rm:
-            replays = sorted_deduped_matches(rm)
+            # Blocking DB work on a cache miss (the whole match listing) - keep
+            # it off the event loop, same as routes/superlatives._do_recompute.
+            replays = await asyncio.to_thread(sorted_deduped_matches, rm)
         tournament_games = tournament.tournament_games(list(replays.values())).get(
             name, []
         )
@@ -136,7 +138,11 @@ async def save_report(name: str, save: bool = True) -> TournamentReport:
             [g.id for g in tournament_games], db_manager
         )
         logger.info("finished details", count=len(details))
-    results = tournament.tournament_report(name, tournament_games, details)
+    # Pure computation, but heavy (it scans every player summary of every
+    # match) - also off the event loop.
+    results = await asyncio.to_thread(
+        tournament.tournament_report, name, tournament_games, details
+    )
     if save:
         with db_manager.get_replay_manager() as rm:
             rm.save_tournament_report(results)

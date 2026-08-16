@@ -3,11 +3,15 @@ matches."""
 
 import asyncio
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from typing import NamedTuple
+
 from pydantic import BaseModel
 
 from .api_types import (
+    FirstBlood,
     MatchDetails,
     MatchInfo,
     SuperlativeData,
@@ -217,6 +221,37 @@ def get_match_duration_extremes(
     return stats
 
 
+class ResolvedFirstBlood(NamedTuple):
+    """One match's first-blood event with its attacker already alias-resolved.
+
+    Resolving scans the match's player list, so it happens once per match here
+    rather than at each of the four places below that need the name.
+    """
+
+    data: SuperlativeData
+    event: FirstBlood
+    attacker: str
+
+
+def _resolved_first_bloods(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    pick: Callable[[SuperlativeData], FirstBlood | None],
+) -> list[ResolvedFirstBlood]:
+    """Every match's first blood (unit or building, per ``pick``), attacker
+    resolved, excluded players dropped."""
+    out: list[ResolvedFirstBlood] = []
+    for d in details:
+        event = pick(d)
+        if event is None:
+            continue
+        attacker = _resolve_attacker(match_info_by_id, d, event.attacker)
+        if attacker in EXCLUDED_PLAYERS:
+            continue
+        out.append(ResolvedFirstBlood(data=d, event=event, attacker=attacker))
+    return out
+
+
 def _resolve_attacker(
     match_info_by_id: dict[int, MatchInfo], d: SuperlativeData, attacker: str
 ) -> str:
@@ -342,42 +377,34 @@ def get_first_blood_stats(
     computed_at: date,
 ) -> list[Statistic]:
     """Stats derived from first blood events across all matches."""
-    bloods = [
-        (d, d.first_blood)
-        for d in details
-        if d.first_blood is not None
-        and _resolve_attacker(match_info_by_id, d, d.first_blood.attacker)
-        not in EXCLUDED_PLAYERS
-    ]
+    bloods = _resolved_first_bloods(match_info_by_id, details, lambda d: d.first_blood)
     if not bloods:
         return []
 
     stats: list[Statistic] = []
 
-    fastest = min(bloods, key=lambda x: x[1].atMinute)
-    latest = max(bloods, key=lambda x: x[1].atMinute)
+    fastest = min(bloods, key=lambda b: b.event.atMinute)
+    latest = max(bloods, key=lambda b: b.event.atMinute)
     stats.append(
         Statistic(
             stat_name="🩸 Fastest First Blood",
             date_computed=computed_at,
-            value=_fmt_duration(fastest[1].atMinute),
-            player=_resolve_attacker(match_info_by_id, fastest[0], fastest[1].attacker),
-            match_id=fastest[0].match_id,
+            value=_fmt_duration(fastest.event.atMinute),
+            player=fastest.attacker,
+            match_id=fastest.data.match_id,
         )
     )
     stats.append(
         Statistic(
             stat_name="Latest First Blood",
             date_computed=computed_at,
-            value=_fmt_duration(latest[1].atMinute),
-            player=_resolve_attacker(match_info_by_id, latest[0], latest[1].attacker),
-            match_id=latest[0].match_id,
+            value=_fmt_duration(latest.event.atMinute),
+            player=latest.attacker,
+            match_id=latest.data.match_id,
         )
     )
 
-    player_counts: Counter[str] = Counter(
-        _resolve_attacker(match_info_by_id, d, fb.attacker) for d, fb in bloods
-    )
+    player_counts: Counter[str] = Counter(b.attacker for b in bloods)
     top_player, top_count = player_counts.most_common(1)[0]
     stats.append(
         Statistic(
@@ -389,14 +416,12 @@ def get_first_blood_stats(
     )
 
     general_counts: Counter[str] = Counter()
-    for d, fb in bloods:
-        match_info = match_info_by_id.get(d.match_id)
+    for blood in bloods:
+        match_info = match_info_by_id.get(blood.data.match_id)
         if match_info is None:
             continue
         for p in match_info.players:
-            if resolve_player_name(p.name, p.color) == _resolve_attacker(
-                match_info_by_id, d, fb.attacker
-            ):
+            if resolve_player_name(p.name, p.color) == blood.attacker:
                 general_counts[p.general.name] += 1
                 break
     if general_counts:
@@ -419,29 +444,23 @@ def get_building_first_blood_stats(
     computed_at: date,
 ) -> list[Statistic]:
     """Fastest building kill and player with most building first bloods."""
-    bfbs = [
-        (d, d.building_first_blood)
-        for d in details
-        if d.building_first_blood is not None
-        and _resolve_attacker(match_info_by_id, d, d.building_first_blood.attacker)
-        not in EXCLUDED_PLAYERS
-    ]
+    bfbs = _resolved_first_bloods(
+        match_info_by_id, details, lambda d: d.building_first_blood
+    )
     if not bfbs:
         return []
     stats: list[Statistic] = []
-    fastest = min(bfbs, key=lambda x: x[1].atMinute)
+    fastest = min(bfbs, key=lambda b: b.event.atMinute)
     stats.append(
         Statistic(
             stat_name="💥 Fastest Building First Blood",
             date_computed=computed_at,
-            value=_fmt_duration(fastest[1].atMinute),
-            player=_resolve_attacker(match_info_by_id, fastest[0], fastest[1].attacker),
-            match_id=fastest[0].match_id,
+            value=_fmt_duration(fastest.event.atMinute),
+            player=fastest.attacker,
+            match_id=fastest.data.match_id,
         )
     )
-    player_counts: Counter[str] = Counter(
-        _resolve_attacker(match_info_by_id, d, bfb.attacker) for d, bfb in bfbs
-    )
+    player_counts: Counter[str] = Counter(b.attacker for b in bfbs)
     top_player, top_count = player_counts.most_common(1)[0]
     stats.append(
         Statistic(
