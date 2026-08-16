@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
-import _ from "lodash"
+import orderBy from "lodash/orderBy"
 import * as React from "react"
 import {
   Area,
@@ -121,7 +121,7 @@ function MoneyChart(props: {
                 key={n}
                 dataKey={n}
                 strokeWidth={2.5}
-                stroke={_.get(colors, n)}
+                stroke={colors[n]}
                 dot={false}
               />
             ))}
@@ -501,7 +501,7 @@ function ApmChart(props: {
               key={n}
               dataKey={n}
               strokeWidth={2}
-              stroke={_.get(colors, n)}
+              stroke={colors[n]}
               dot={false}
             />
           ))}
@@ -512,14 +512,14 @@ function ApmChart(props: {
               <ReferenceLine
                 key={`avg-${n}`}
                 y={avg}
-                stroke={_.get(colors, n)}
+                stroke={colors[n]}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
                 ifOverflow="hidden"
                 label={{
                   value: `${n} avg ${avg.toFixed(1)}`,
                   position: "right",
-                  fill: _.get(colors, n),
+                  fill: colors[n],
                   fontSize: 11,
                 }}
               />
@@ -759,7 +759,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   }, [props.matchDetails])
 
   const sortedData = React.useMemo(
-    () => _.orderBy(data, [sortBy], [sortDir]),
+    () => orderBy(data, [sortBy], [sortDir]),
     [data, sortBy, sortDir],
   )
 

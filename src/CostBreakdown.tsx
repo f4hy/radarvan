@@ -1,6 +1,8 @@
 import { blue, lightGreen, purple, red } from "@mui/material/colors"
 import Container from "@mui/material/Container"
-import _ from "lodash"
+import sortBy from "lodash/sortBy"
+import uniq from "lodash/uniq"
+import without from "lodash/without"
 import * as React from "react"
 import {
   Bar,
@@ -32,7 +34,7 @@ const COLORS = [
 ]
 
 function formatCosts(data: CostsBuiltObject[], name: string) {
-  const sorted = _.sortBy(data, (d) => -d.totalSpent)
+  const sorted = sortBy(data, (d) => -d.totalSpent)
   function reducer(acc: Record<string, unknown>, d: CostsBuiltObject) {
     return { ...acc, [d.name]: d.totalSpent }
   }
@@ -41,8 +43,8 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
 }
 
 function extractNames(data: object[]): string[] {
-  return _.without(
-    _.uniq(
+  return without(
+    uniq(
       data.reduce<string[]>((names, n) => [...names, ...Object.keys(n)], []),
     ),
     "name",

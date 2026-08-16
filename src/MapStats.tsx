@@ -386,7 +386,6 @@ const MapCard = React.memo(function MapCard(props: {
   const { map } = props
   const debug = useIsAdmin()
   const [tab, setTab] = React.useState<"players" | "generals">("generals")
-  const [everExpanded, setEverExpanded] = React.useState(props.expanded)
 
   return (
     <Accordion
@@ -394,9 +393,12 @@ const MapCard = React.memo(function MapCard(props: {
       expanded={props.expanded}
       onChange={(_, isExpanded) => props.onToggle(map.mapName, isExpanded)}
       slotProps={{
+        // unmountOnExit: with ~80 maps on the page, keeping every collapsed
+        // map's win-rate tables and general icons mounted put >13k nodes in the
+        // DOM (and ~850 <img>s) for the handful actually expanded, which made
+        // every layout on this page cost tens of ms.
         transition: {
-          unmountOnExit: false,
-          onEnter: () => React.startTransition(() => setEverExpanded(true)),
+          unmountOnExit: true,
           onExit: () => setTab("generals"),
         },
       }}
@@ -431,7 +433,7 @@ const MapCard = React.memo(function MapCard(props: {
             alignItems: "flex-start",
           }}
         >
-          {everExpanded && <GameMap mapname={map.mapName} />}
+          <GameMap mapname={map.mapName} />
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
               <Tab value="generals" label="Generals" />
