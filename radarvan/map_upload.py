@@ -18,6 +18,7 @@ import structlog
 from . import missing_maps
 from .api_types import MapUploadItem
 from .db_utils import ReplayManager
+from typing import NamedTuple
 
 logger = structlog.get_logger(__name__)
 
@@ -85,13 +86,20 @@ def _data_url(webp: bytes) -> str:
     return "data:image/webp;base64," + base64.b64encode(webp).decode("ascii")
 
 
+class ProcessedUploads(NamedTuple):
+    """Per-map results plus the human-readable failures for the rest."""
+
+    items: list[MapUploadItem]
+    errors: list[str]
+
+
 def process(
     uploads: list[MapUpload],
     commit: bool,
     replay_manager: ReplayManager,
     is_admin: bool,
-) -> tuple[list[MapUploadItem], list[str]]:
-    """Convert (and, when committing, save) each map. Returns (items, errors).
+) -> ProcessedUploads:
+    """Convert (and, when committing, save) each map.
 
     Preview (commit=False): convert tga->webp, parse geometry if the mapparse
     binary is available, and return the image - no writes. Commit: also upload
@@ -154,4 +162,4 @@ def process(
                 pushed_to_cncstats=pushed,
             )
         )
-    return items, errors
+    return ProcessedUploads(items=items, errors=errors)

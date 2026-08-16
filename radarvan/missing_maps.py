@@ -40,6 +40,7 @@ from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db import MapData, Match, ParsedReplayJson
 from .db_utils import ReplayManager
 from . import replay_files
+from typing import NamedTuple
 
 logger = structlog.get_logger(__name__)
 
@@ -315,9 +316,16 @@ async def push_map_to_cncstats_async(
     return crc_hex
 
 
+class MapSyncResult(NamedTuple):
+    """Outcome of making sure cncstats has one of our S3-hosted maps."""
+
+    crc_hex: str
+    pushed: bool
+
+
 async def sync_stored_map_to_cncstats(
     base_name: str, crc_hint: str | None = None
-) -> tuple[str, bool]:
+) -> MapSyncResult:
     """Ensure cncstats has an S3-hosted map; push it only if missing.
 
     Returns ``(crc_hex, pushed)`` - ``pushed`` is False when cncstats already had
@@ -329,21 +337,21 @@ async def sync_stored_map_to_cncstats(
     client = cncstats_client.cncstats_client()
     # Fast path: known CRC already on cncstats -> nothing to read or push.
     if crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hint)):
-        return crc_hint, False
+        return MapSyncResult(crc_hex=crc_hint, pushed=False)
 
     fs = replay_files.get_fs()
     map_uri = s3_uri_for(base_name, "map")
     map_bytes: bytes = await asyncio.to_thread(fs.read_bytes, map_uri)
     crc_hex = crc_hint or compute_map_crc_hex(map_bytes)
     if not crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hex)):
-        return crc_hex, False
+        return MapSyncResult(crc_hex=crc_hex, pushed=False)
 
     tga: bytes | None = None
     tga_uri = s3_uri_for(base_name, "tga")
     if await asyncio.to_thread(fs.exists, tga_uri):
         tga = await asyncio.to_thread(fs.read_bytes, tga_uri)
     await _post_map_assets_async(hex_crc_to_decimal(crc_hex), map_bytes, tga, base_name)
-    return crc_hex, True
+    return MapSyncResult(crc_hex=crc_hex, pushed=True)
 
 
 def fetch_map_zip(hex_crc: str) -> bytes:
@@ -517,11 +525,23 @@ def parse_map_file(map_bytes: bytes) -> MapDataPayload:
         raise
 
 
+class FetchedMapForMatch(NamedTuple):
+    """What ``fetch_and_upload_for_match`` produced.
+
+    ``payload`` is None when geometry parsing was skipped (mapparse absent or
+    ``parse_and_save=False``), which is distinct from a failed fetch - that
+    raises.
+    """
+
+    fetched: FetchedMap
+    payload: MapDataPayload | None
+
+
 def fetch_and_upload_for_match(
     match_id: int,
     replay_manager: ReplayManager,
     parse_and_save: bool = True,
-) -> tuple[FetchedMap, MapDataPayload | None]:
+) -> FetchedMapForMatch:
     """Fetch and upload the map for a single match by reading its JSON for the CRC.
 
     When `parse_and_save` is True and the mapparse binary is available, the
@@ -563,7 +583,7 @@ def fetch_and_upload_for_match(
                 supply=len(payload.supply),
                 tech=len(payload.tech),
             )
-    return fetched, payload
+    return FetchedMapForMatch(fetched=fetched, payload=payload)
 
 
 def reparse_stored_map(map_name: str, replay_manager: ReplayManager) -> MapDataPayload:

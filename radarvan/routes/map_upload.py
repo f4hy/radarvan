@@ -51,14 +51,16 @@ def upload_maps(
             status_code=400,
             detail="No valid maps found (each needs both a .map and a .tga)",
         )
-    items, errors = map_upload_module.process(
+    processed = map_upload_module.process(
         uploads, commit, replay_manager, player_ids.is_admin(user.player_name)
     )
     logger.info(
         "map upload",
         user_id=user.id,
         commit=commit,
-        count=len(items),
-        errors=len(errors),
+        count=len(processed.items),
+        errors=len(processed.errors),
     )
-    return MapUploadResponse(committed=commit, maps=items, errors=errors)
+    return MapUploadResponse(
+        committed=commit, maps=processed.items, errors=processed.errors
+    )

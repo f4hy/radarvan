@@ -20,8 +20,9 @@ mis-attributed to every pair containing that player). L2 penalties shrink
 thinly-observed pairs toward zero.
 """
 
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import NamedTuple
 
 import numpy as np
 import structlog
@@ -147,14 +148,22 @@ def _collect_rows(
     return rows
 
 
+class RidgeFit(NamedTuple):
+    """Fitted coefficients and their covariance.
+
+    ``covariance`` is the inverse penalized Hessian at the optimum (Laplace
+    approximation), which is where the standard errors come from. Both are
+    ``np.ndarray``, so naming them is what stops a swap from type-checking.
+    """
+
+    beta: np.ndarray
+    covariance: np.ndarray
+
+
 def _fit_ridge_logistic(
     X: np.ndarray, y: np.ndarray, offset: np.ndarray, penalty: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
-    """Newton-Raphson (IRLS) for L2-penalized logistic regression.
-
-    Returns (coefficients, covariance) where covariance is the inverse penalized
-    Hessian at the optimum (Laplace approximation), used for standard errors.
-    """
+) -> RidgeFit:
+    """Newton-Raphson (IRLS) for L2-penalized logistic regression."""
     n_features = X.shape[1]
     beta = np.zeros(n_features)
     P = np.diag(penalty)
@@ -169,8 +178,7 @@ def _fit_ridge_logistic(
         beta = beta + step
         if np.max(np.abs(step)) < _NEWTON_TOL:
             break
-    cov = np.linalg.inv(hessian)
-    return beta, cov
+    return RidgeFit(beta=beta, covariance=np.linalg.inv(hessian))
 
 
 @locked_cached(

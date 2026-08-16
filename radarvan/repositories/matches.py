@@ -8,6 +8,7 @@ fields; reset_match deletes across all four.
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import NamedTuple
 import structlog
 
 from sqlalchemy import or_, select, func
@@ -31,6 +32,13 @@ from .base import BaseRepo
 logger = structlog.get_logger(__name__)
 
 
+class RegisteredMatch(NamedTuple):
+    """The stored Match plus whether this call is the one that inserted it."""
+
+    match: Match
+    created: bool
+
+
 @dataclass(frozen=True)
 class MatchDebugData:
     matches: Match | None
@@ -52,7 +60,7 @@ class MatchRepo(BaseRepo):
     def get_match(self, match_id: int) -> Match | None:
         return self.session.get(Match, match_id)
 
-    def register_match(self, db_match: Match) -> tuple[Match, bool]:
+    def register_match(self, db_match: Match) -> RegisteredMatch:
         """Insert a new Match; return (match, created).
 
         created is False when a match with this match_id already exists,
@@ -64,7 +72,7 @@ class MatchRepo(BaseRepo):
         existing = self.session.get(Match, db_match.match_id)
         if existing is not None:
             logger.warning("match already exists", match_id=db_match.match_id)
-            return existing, False
+            return RegisteredMatch(match=existing, created=False)
         self.session.add(db_match)
         try:
             self.session.flush()
@@ -75,10 +83,10 @@ class MatchRepo(BaseRepo):
             if existing is None:
                 raise
             logger.warning("match registered concurrently", match_id=db_match.match_id)
-            return existing, False
+            return RegisteredMatch(match=existing, created=False)
         if self.notify:
             notify(f"Registered Match {db_match}")
-        return db_match, True
+        return RegisteredMatch(match=db_match, created=True)
 
     def update_match(self, new_match: Match) -> Match | None:
         """Replace the existing match record with data from new_match."""
