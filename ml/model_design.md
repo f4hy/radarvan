@@ -264,6 +264,81 @@ cosine schedule, batch size 256, early-stop on val log-loss. All in
    primary loss (+ down-weighted aux MSE heads when enabled). Saves the best
    checkpoint and the vocab JSON together as a self-contained bundle.
 
+### Rolling-origin evaluation — the protocol we report
+
+**A single dev slice cannot measure this model, and the numbers it gives are not
+reproducible.** The temporal split leaves ~178 dev games; the bootstrap 95% CI on
+AUC over that slice spans **0.470–0.637**, so it cannot separate the model from a
+coin flip. Worse, per-block AUC ranges from 0.54 to 0.79 across the corpus — which
+fortnight the cut lands on moves the headline number more than any modelling
+change does, and the most recent block (the one `ml.split` hands you) happens to
+be one of the bad ones.
+
+`ml/rolling_eval.py` walks the cut across the snapshot instead — train up to the
+cut with the vocab frozen there, predict the block immediately after, pool every
+block — for 420 test games out of the same 1,205-match corpus. Same data, 2.4×
+the measurement, and no single fortnight dominates. It is what step 4c of the
+README runs, and what any claim about model quality should quote:
+
+| protocol | test games | log-loss | acc | AUC |
+|---|---|---|---|---|
+| single dev slice (what `ml.predict --eval` gives) | 178 | 0.6890 | 0.539 | **0.556** |
+| rolling origin, 5 cuts × 3 seeds — single model | 420 | 0.6522 | 0.623 | 0.688 |
+| rolling origin — 3-seed bagged | 420 | **0.6342** | 0.629 | **0.698** |
+| rolling origin — openskill on the same blocks | 420 | 0.7486 | 0.595 | 0.646 |
+
+The model is a good deal better than the number in the old write-up said; the old
+number was a measurement artifact, not a model failure.
+
+### Recency weighting
+
+Training games are down-weighted by age, `w = 0.5 ** (age_days/half_life)`,
+anchored to the newest game *in the training block* and renormalised to mean 1.0
+(`features.recency_weighted`; `TrainConfig.recency_half_life_days`, default
+**730 days**). Dev is always left uniform — `val_loss` drives early stopping and
+cross-run comparison, so it has to keep meaning the same thing.
+
+Players drift: the median regular's yearly win rate moves ~10 points, and Skip's
+went 31% → 45% across five years. A four-year-old game is evidence about a
+different player. Swept under rolling origin (bagged, 420 games):
+
+| half-life | log-loss | Brier | AUC |
+|---|---|---|---|
+| none (uniform) | 0.6359 | 0.2224 | 0.687 |
+| 1095 d | 0.6356 | 0.2224 | 0.692 |
+| **730 d** | **0.6342** | **0.2215** | 0.698 |
+| 545 d | 0.6381 | 0.2222 | **0.701** |
+| 365 d | 0.6423 | 0.2231 | 0.699 |
+
+730d wins log-loss (the primary metric) and Brier; 365–545d rank a hair higher on
+AUC but calibrate worse. The whole effect is ~+0.011 AUC — worth more than the
+next 16,000 matches would buy (see the data-budget note below), and free.
+
+### How much more data would help (measured, 2026-08)
+
+Asked directly, with the learning curve run under the rolling protocol:
+
+- **The curve is saturating.** AUC by training size: 80→0.572, 300→0.640,
+  700→0.663, 1118→0.666. A saturating fit `auc(n) = 0.678 − 4.62·n^-0.85`
+  (χ²=3.7, 4 dof) puts this feature set's asymptote at **0.678** — the next
+  +0.01 AUC needs ~17,800 matches, about 23 years at the current 59/month.
+- **There is a ceiling, and we are near it.** A beta-binomial fit over 255
+  repeated fixtures gives sd(true p) = 0.234 (CI 0.197–0.260) → a perfect
+  forecaster scores AUC ≈ 0.77. A model-free leave-one-out fixture oracle reaches
+  0.725. Roughly a quarter of outcomes are decided by things no pre-game feature
+  sees.
+- **Capacity, not volume, is the live constraint.** 6,859 parameters against
+  1,027 training labels; a 31-parameter logistic (signed player indicators +
+  signed general counts) scores AUC 0.666 under the identical protocol.
+- **The 144-cell general matrix is not supported.** Adding general-vs-general
+  pair terms moves rolling AUC 0.667 → 0.644 and log-loss 0.643 → 0.700 — pure
+  overfitting. General *main* effects are worth +0.0164 AUC (95% CI −0.0006 to
+  +0.0338; they beat a shuffled-generals control at 0.6445 ± 0.0073), so they are
+  probably real but not yet significant: confirming them needs ~990 test games,
+  i.e. a corpus around 6,600. Resolving a 5pp edge in every cell needs ~782 games
+  *per cell* → ~12,500 matches. Treat `predict_faction_matchup` output as
+  illustrative until then.
+
 ### Baselines (must beat, in order)
 
 1. coin flip (log-loss = ln 2 ≈ 0.693);
@@ -276,7 +351,9 @@ cosine schedule, batch size 256, early-stop on val log-loss. All in
 
 Log-loss (primary), accuracy, ROC-AUC, and **calibration** (Brier score +
 reliability curve) — a win-probability model that isn't calibrated is misleading
-even if its accuracy is fine.
+even if its accuracy is fine. Report them from `ml.rolling_eval`, not from a
+single dev slice; at this corpus size the slice-to-slice spread is larger than
+any effect we are trying to measure.
 
 ### GPU train / CPU infer
 
@@ -306,7 +383,8 @@ ml/
   dataset.py        # torch Dataset / collate / DataModule
   model.py          # DeepSet+synergy+matchup model + LightningModule
   train.py          # training CLI (GPU)
-  predict.py        # CPU inference + baseline/metric harness
+  predict.py        # CPU inference + baseline/metric harness (single split)
+  rolling_eval.py   # rolling-origin evaluation - the numbers we report
   data/             # snapshots, splits, checkpoints (git-ignored)
 ```
 

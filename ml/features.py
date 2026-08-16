@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from radarvan import player_ids
@@ -236,6 +236,40 @@ class EncodedMatch:
     team_b: list[EncodedPlayer]
     label: int
     duration_minutes: float
+    # Proleptic-Gregorian ordinal of the match date, kept so training can weight
+    # by age (see ml.dataset.recency_weighted). Encoding stays date-agnostic;
+    # nothing reads this unless recency weighting is on.
+    date_ordinal: int = 0
+    # Per-match loss weight. 1.0 (uniform) unless recency weighting is applied.
+    weight: float = 1.0
+
+
+def recency_weighted(
+    matches: list[EncodedMatch], half_life_days: float | None
+) -> list[EncodedMatch]:
+    """Copy of ``matches`` with loss weights decaying by age:
+    ``w = 0.5 ** (age_days / half_life_days)``.
+
+    Age is measured from the newest match *in this list*, so a training block
+    never dates itself against games it hasn't seen — the same weights come out
+    whether the block is scored today or a year from now. Weights are
+    renormalised to mean 1.0, so the loss keeps its scale (and the learning rate
+    its meaning) whatever the half-life is.
+
+    ``half_life_days=None`` returns the input unchanged (uniform weights). Only
+    ever applied to training data: dev has to stay uniform or val_loss stops
+    being comparable across runs.
+    """
+    if half_life_days is None or not matches:
+        return matches
+    if half_life_days <= 0:
+        raise ValueError(f"half_life_days must be positive, got {half_life_days}")
+    newest = max(m.date_ordinal for m in matches)
+    raw = [0.5 ** ((newest - m.date_ordinal) / half_life_days) for m in matches]
+    scale = len(raw) / sum(raw)
+    return [
+        replace(m, weight=w * scale) for m, w in zip(matches, raw, strict=True)
+    ]
 
 
 def _start_pos_idx(pos: int | None) -> int:
@@ -278,4 +312,5 @@ def encode_match(match: MatchInfo, vocab: Vocab) -> EncodedMatch | None:
         team_b=teams[b_id],
         label=1 if winner == a_id else 0,
         duration_minutes=match.duration_minutes,
+        date_ordinal=match.date.toordinal(),
     )

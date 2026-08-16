@@ -67,6 +67,13 @@ class TrainConfig:
     # Auxiliary regression heads (duration, etc.); weight 0 disables.
     aux_duration_weight: float = 0.0
     seed: int = 1234
+    # Exponential down-weighting of old training games (half-life in days); None
+    # weights every game equally. Players drift — the median regular's win rate
+    # moves ~10 points between years, Skip's went 31% -> 45% across five — so a
+    # four-year-old game is evidence about a different player. 730d won the sweep
+    # under ml.rolling_eval on both log-loss and Brier (see model_design.md);
+    # 365-545d rank marginally higher on AUC but calibrate worse.
+    recency_half_life_days: float | None = 730.0
 
 
 @dataclass(slots=True)

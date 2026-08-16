@@ -178,13 +178,28 @@ def promote_ensemble(split_dir: Path, ensemble_dir: Path = DEFAULT_ENSEMBLE_DIR)
     serves from. Replaces whatever was there before (stale ``model-*.onnx``
     from a smaller/older ensemble are removed first) so ``ensemble_dir``
     always reflects exactly this split's replicates, not a mix of two runs.
+
+    **One model per replicate: the newest run.** Re-running ``--k N`` against a
+    split that already has a ``bootstrap/`` rewrites each ``boot-NNN``'s data but
+    ``train()`` writes a *new* timestamped run dir beside the old one, so a
+    replicate that has been retrained holds several. Taking them all shipped a
+    2N-model ensemble, half of it trained under the previous config - which is
+    silent, because the count is the only visible symptom. Run dirs are
+    ``%Y%m%d-%H%M%S``, so the last by name is the newest.
     """
     boot_dirs = sorted((split_dir / "bootstrap").glob("boot-*"))
-    model_paths = [
-        p
-        for boot_dir in boot_dirs
-        for p in sorted(boot_dir.glob("runs/*/model.onnx"))
-    ]
+    model_paths = []
+    stale = 0
+    for boot_dir in boot_dirs:
+        runs = sorted(boot_dir.glob("runs/*/model.onnx"), key=lambda p: p.parent.name)
+        if runs:
+            model_paths.append(runs[-1])
+            stale += len(runs) - 1
+    if stale:
+        logger.warning(
+            "ignoring older run bundles; promoting the newest per replicate",
+            n_ignored=stale, n_replicates=len(model_paths),
+        )
     if not model_paths:
         raise SystemExit(
             f"no replicate models found under {split_dir / 'bootstrap'} "

@@ -14,7 +14,7 @@ import lightning as L
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from .features import EncodedMatch, Vocab, encode_match
+from .features import EncodedMatch, Vocab, encode_match, recency_weighted
 from .snapshot import load_snapshot
 
 
@@ -36,6 +36,7 @@ class Batch:
     fmt: torch.Tensor  # [B]
     label: torch.Tensor  # [B] float (1 == team_a won)
     duration: torch.Tensor  # [B] float
+    weight: torch.Tensor  # [B] float per-match loss weight (1.0 == uniform)
 
     def to(self, device: torch.device) -> Batch:
         return Batch(
@@ -97,6 +98,7 @@ def collate(matches: list[EncodedMatch]) -> Batch:
         duration=torch.tensor(
             [m.duration_minutes for m in matches], dtype=torch.float32
         ),
+        weight=torch.tensor([m.weight for m in matches], dtype=torch.float32),
     )
 
 
@@ -106,19 +108,34 @@ def encode_all(matches_path: Path, vocab: Vocab) -> list[EncodedMatch]:
 
 
 class MatchDataModule(L.LightningDataModule):
-    """Loads a ``split-*`` directory (train/dev jsonl + vocab)."""
+    """Loads a ``split-*`` directory (train/dev jsonl + vocab).
 
-    def __init__(self, split_dir: Path, batch_size: int, num_workers: int = 0):
+    ``recency_half_life_days`` down-weights older *training* games. Dev is always
+    left uniform: val_loss drives early stopping and cross-run comparison, so it
+    has to keep meaning the same thing whatever the half-life is.
+    """
+
+    def __init__(
+        self,
+        split_dir: Path,
+        batch_size: int,
+        num_workers: int = 0,
+        recency_half_life_days: float | None = None,
+    ):
         super().__init__()
         self.split_dir = Path(split_dir)
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.recency_half_life_days = recency_half_life_days
         self.vocab = Vocab.load(self.split_dir / "vocab.json")
         self._train: list[EncodedMatch] = []
         self._dev: list[EncodedMatch] = []
 
     def setup(self, stage: str | None = None) -> None:
-        self._train = encode_all(self.split_dir / "train.jsonl.gz", self.vocab)
+        self._train = recency_weighted(
+            encode_all(self.split_dir / "train.jsonl.gz", self.vocab),
+            self.recency_half_life_days,
+        )
         self._dev = encode_all(self.split_dir / "dev.jsonl.gz", self.vocab)
 
     def train_dataloader(self) -> DataLoader[EncodedMatch]:

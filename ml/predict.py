@@ -4,6 +4,11 @@ Loads a run bundle on CPU and reports log-loss / accuracy / AUC / Brier on the
 dev split, alongside the baselines the model must beat: coin flip and the repo's
 openskill ``predict_win`` (ratings fit on the *train* split, evaluated on dev).
 
+``--eval`` scores **one** dev slice, which at this corpus size is ~180 games -
+enough for a quick sanity check on a run, not enough to report: the bootstrap CI
+on that AUC spans 0.470-0.637, and per-block AUC ranges 0.54-0.79 across the
+corpus. Use ``ml.rolling_eval`` for any number that leaves this directory.
+
 Usage::
 
     uv run python -m ml.predict ml/data/split-*/runs/<ts>/ --eval
