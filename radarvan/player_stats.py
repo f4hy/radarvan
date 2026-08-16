@@ -2,6 +2,7 @@
 
 from collections import Counter, defaultdict
 from datetime import date
+from typing import NamedTuple
 
 from .api_types import (
     MatchInfo,
@@ -25,9 +26,19 @@ NEEDED_GAMES = 8
 RECENT_COLOR_MONTHS = 6
 
 
-def _color_counts(
-    games: list[MatchInfo], recent_cutoff: date
-) -> tuple[defaultdict[str, Counter[str]], defaultdict[str, Counter[str]]]:
+class ColorCounts(NamedTuple):
+    """Per-player colour tallies over two windows.
+
+    Named rather than a bare pair: both fields have the same type, so swapping
+    them would type-check and silently make every player's "current" colour
+    their all-time one.
+    """
+
+    all_time: defaultdict[str, Counter[str]]
+    recent: defaultdict[str, Counter[str]]
+
+
+def _color_counts(games: list[MatchInfo], recent_cutoff: date) -> ColorCounts:
     """All-time and recent-only (``date >= recent_cutoff``) color counts, in
     one pass over ``games`` rather than filtering-then-counting twice."""
     all_time: defaultdict[str, Counter[str]] = defaultdict(Counter)
@@ -44,7 +55,7 @@ def _color_counts(
             all_time[name][p.color] += 1
             if game.date >= recent_cutoff:
                 recent[name][p.color] += 1
-    return all_time, recent
+    return ColorCounts(all_time=all_time, recent=recent)
 
 
 def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
@@ -58,14 +69,12 @@ def most_common_colors(games: list[MatchInfo]) -> dict[str, str]:
     and not yet resolved into it) fall back to their full history instead of
     losing a color entirely.
     """
-    all_time_counts, recent_counts = _color_counts(
-        games, months_back_cutoff(RECENT_COLOR_MONTHS)
-    )
-    for name, color_counts in all_time_counts.items():
-        recent_counts.setdefault(name, color_counts)
+    counts = _color_counts(games, months_back_cutoff(RECENT_COLOR_MONTHS))
+    for name, color_counts in counts.all_time.items():
+        counts.recent.setdefault(name, color_counts)
     return {
         name: color_counts.most_common(1)[0][0]
-        for name, color_counts in recent_counts.items()
+        for name, color_counts in counts.recent.items()
     }
 
 

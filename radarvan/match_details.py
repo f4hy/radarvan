@@ -391,9 +391,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
             )
     map_events.sort(key=lambda e: e.at_minute)
 
-    time_to_rank_5, time_to_search_destroy = milestone_timings_from_replay(
-        replay, name_by_idx
-    )
+    milestones = milestone_timings_from_replay(replay, name_by_idx)
     build_orders = build_order_from_replay(replay, name_by_idx, upgrades)
     timeline_events = timeline_events_from_replay(replay, upgrades, name_by_idx)
 
@@ -420,8 +418,8 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         ),
         kill_events=kill_events,
         map_events=map_events,
-        time_to_rank_5=time_to_rank_5,
-        time_to_search_destroy=time_to_search_destroy,
+        time_to_rank_5=milestones.time_to_rank_5,
+        time_to_search_destroy=milestones.time_to_search_destroy,
         build_orders=build_orders,
         apm_over_time=apm_over_time(replay),
         timeline_events=timeline_events,

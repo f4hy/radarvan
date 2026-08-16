@@ -13,6 +13,7 @@ prefix (see CLAUDE.md gotcha re: ``/api/map_data/by_player_count`` vs.
 """
 
 from datetime import UTC, datetime
+from typing import NamedTuple
 
 import structlog
 
@@ -74,14 +75,16 @@ def _to_api_source(source: bracket.Source) -> MatchSource:
     return LoserOfSource(match_id=source.match_id)
 
 
-def load_match(
-    repo: BracketRepo, match_id: str
-) -> tuple[
-    BracketTournament,
-    dict[str, BracketMatchState],
-    bracket.BracketResult,
-    bracket.ResolvedMatch,
-]:
+class LoadedMatch(NamedTuple):
+    """The active bracket, its raw rows, the resolution, and one match in it."""
+
+    tournament: BracketTournament
+    raw_states: dict[str, BracketMatchState]
+    result: bracket.BracketResult
+    resolved_match: bracket.ResolvedMatch
+
+
+def load_match(repo: BracketRepo, match_id: str) -> LoadedMatch:
     """Shared preamble for every single-match bracket write/read: fetch the
     active tournament, validate ``match_id``, resolve the whole bracket, and
     locate that match within it. 404s on no active tournament or an unknown
@@ -95,7 +98,12 @@ def load_match(
     raw_states = repo.get_match_states(tournament.id)
     result = resolve_from_states(tournament, raw_states)
     resolved_match = next(m for m in result.matches if m.match_id == match_id)
-    return tournament, raw_states, result, resolved_match
+    return LoadedMatch(
+        tournament=tournament,
+        raw_states=raw_states,
+        result=result,
+        resolved_match=resolved_match,
+    )
 
 
 def is_revealed(tournament: BracketTournament, *, allow_preview: bool) -> bool:
@@ -597,9 +605,9 @@ def get_bracket_predictions(
     my_picks = prediction_repo.get_user_picks(tournament.id, user.id) if user else {}
     now = datetime.now(UTC)
 
-    correct_names_by_match, _ = _resolved_predictions(
+    correct_names_by_match = _resolved_predictions(
         prediction_repo, tournament, result
-    )
+    ).correct_by_match
 
     predictions = []
     for m in result.matches:
@@ -623,11 +631,18 @@ def get_bracket_predictions(
     return predictions
 
 
+class ResolvedPredictions(NamedTuple):
+    """Per-match "who called it" name lists, plus the overall leaderboard."""
+
+    correct_by_match: dict[str, list[str]]
+    leaderboard: list[BracketPredictionLeaderboardEntry]
+
+
 def _resolved_predictions(
     prediction_repo: BracketPredictionRepo,
     tournament: BracketTournament,
     result: bracket.BracketResult,
-) -> tuple[dict[str, list[str]], list[BracketPredictionLeaderboardEntry]]:
+) -> ResolvedPredictions:
     """Walks every prediction once and derives both per-match "who called
     it" name lists and the overall per-user leaderboard, restricted to
     matches that have completed (winners come from the already-resolved
@@ -663,7 +678,9 @@ def _resolved_predictions(
         for name, counts in tallies.items()
     ]
     leaderboard.sort(key=lambda e: (-e.correct, -e.total, e.user_name))
-    return correct_by_match, leaderboard
+    return ResolvedPredictions(
+        correct_by_match=correct_by_match, leaderboard=leaderboard
+    )
 
 
 @router.get("/api/bracket_prediction_leaderboard")
@@ -684,8 +701,7 @@ def get_bracket_prediction_leaderboard(
 
     raw_states = repo.get_match_states(tournament.id)
     result = resolve_from_states(tournament, raw_states)
-    _, leaderboard = _resolved_predictions(prediction_repo, tournament, result)
-    return leaderboard
+    return _resolved_predictions(prediction_repo, tournament, result).leaderboard
 
 
 @router.post("/api/bracket_predictions/{match_id}")

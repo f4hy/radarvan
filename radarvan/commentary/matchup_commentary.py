@@ -54,6 +54,7 @@ from ..routes import profile as profile_routes
 from ..routes import tournaments as tournaments_routes
 from . import hype_data, llm
 from .commentary_prompts import GUIDELINES
+from typing import NamedTuple
 
 logger = structlog.get_logger(__name__)
 
@@ -118,9 +119,16 @@ def build_user_message(
     )
 
 
+class TournamentInputs(NamedTuple):
+    """The resolved (possibly redacted) bracket and the games linked to it."""
+
+    bracket_output: BracketTournamentOutput | None
+    tournament_games: list[MatchInfo]
+
+
 def _tournament_inputs(
     replay_manager: ReplayManager,
-) -> tuple[BracketTournamentOutput | None, list[MatchInfo]]:
+) -> TournamentInputs:
     """The resolved bracket and every game linked to it.
 
     Both come from the existing route handlers for the same reason the
@@ -138,23 +146,25 @@ def _tournament_inputs(
         preview=False, user=None, repo=bracket_repo
     )
     if bracket_output is None:
-        return None, []
+        return TournamentInputs(bracket_output=None, tournament_games=[])
 
     active = bracket_repo.get_active()
     if active is None or active.tournament_id is None:
         # A bracket that has never been through sync_links has no registry
         # row, so no games are linked to it yet - the set results on the
         # bracket itself are still worth having.
-        return bracket_output, []
+        return TournamentInputs(bracket_output=bracket_output, tournament_games=[])
     parent = replay_manager.get_tournament_by_id(active.tournament_id)
     if parent is None:
-        return bracket_output, []
+        return TournamentInputs(bracket_output=bracket_output, tournament_games=[])
     games = tournaments_routes.tournament_games_for(
         slug=parent.slug,
         replay_manager=replay_manager,
         tournament_repo=replay_manager,
     )
-    return bracket_output, games.matches
+    return TournamentInputs(
+        bracket_output=bracket_output, tournament_games=games.matches
+    )
 
 
 def build_prompt(

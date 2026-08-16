@@ -2,7 +2,7 @@
 
 import statistics
 import time
-from typing import Any
+from typing import Any, NamedTuple
 
 import structlog
 from cachetools import LRUCache
@@ -48,7 +48,15 @@ _UNKNOWN_PLAYER_A = "Unknown Player A"
 _UNKNOWN_PLAYER_B = "Unknown Player B"
 
 
-def _percentile_stats(vals: list[float]) -> tuple[float, float, bool]:
+class PercentileStats(NamedTuple):
+    """Ensemble summary for one matchup cell."""
+
+    mean: float
+    std: float
+    significant: bool
+
+
+def _percentile_stats(vals: list[float]) -> PercentileStats:
     """mean, std, significant (90% empirical CI across the ensemble excludes
     0.5) - the same percentile method ``ml.bootstrap_matrix`` validated. A
     normal approximation from mean+std alone under-detects here: per-cell
@@ -61,7 +69,7 @@ def _percentile_stats(vals: list[float]) -> tuple[float, float, bool]:
     std = statistics.stdev(vals) if n > 1 else 0.0
     lo = vals[max(0, int(n * 0.05))]
     hi = vals[min(n - 1, int(n * 0.95))]
-    return mean, std, (lo > 0.5 or hi < 0.5)
+    return PercentileStats(mean=mean, std=std, significant=(lo > 0.5 or hi < 0.5))
 
 
 # 144 combos x the full N-model ensemble takes ~1.3s, and Bracket.tsx's
@@ -71,13 +79,22 @@ def _percentile_stats(vals: list[float]) -> tuple[float, float, bool]:
 # and vocab, none of which change within a process, so an unbounded-lifetime
 # LRU is correct here - no TTL needed, unlike the match-derived caches in
 # cache.py that must follow new games landing.
-type _GridRow = tuple[General, General, float, float, bool, int]
+class GridCell(NamedTuple):
+    """One (general1, general2) cell of the 12x12 matchup grid."""
 
-_FACTION_GRID_CACHE: LRUCache[tuple[Any, ...], list[_GridRow]] = LRUCache(maxsize=256)
+    general1: General
+    general2: General
+    prob_player1_wins: float
+    std: float
+    significant: bool
+    ensemble_size: int
+
+
+_FACTION_GRID_CACHE: LRUCache[tuple[Any, ...], list[GridCell]] = LRUCache(maxsize=256)
 
 
 @locked_cached(cache=_FACTION_GRID_CACHE, key=hashkey)
-def _faction_grid(map_name: str, player1: str, player2: str) -> list[_GridRow]:
+def _faction_grid(map_name: str, player1: str, player2: str) -> list[GridCell]:
     """(general1, general2, prob_player1_wins, std, significant, ensemble_size)
     for every general combination - the 144-call loop shared by
     faction_matchup and faction_matrix. Each cell runs the full N-model
@@ -86,14 +103,23 @@ def _faction_grid(map_name: str, player1: str, player2: str) -> list[_GridRow]:
     Cached (see ``_FACTION_GRID_CACHE``); callers must treat the returned list
     as read-only - it's the shared cached object, not a fresh copy.
     """
-    results = []
+    results: list[GridCell] = []
     for gen1 in _RECOGNIZED_GENERALS:
         for gen2 in _RECOGNIZED_GENERALS:
             probs = ml_inference.predict_features_raw(
                 map_name, [(player1, gen1, 1), (player2, gen2, 2)]
             )
-            mean, std, significant = _percentile_stats(probs)
-            results.append((gen1, gen2, mean, std, significant, len(probs)))
+            stats = _percentile_stats(probs)
+            results.append(
+                GridCell(
+                    general1=gen1,
+                    general2=gen2,
+                    prob_player1_wins=stats.mean,
+                    std=stats.std,
+                    significant=stats.significant,
+                    ensemble_size=len(probs),
+                )
+            )
     return results
 
 
@@ -194,16 +220,16 @@ def predict_faction_matchup(
     grid = _faction_grid(resolved_map, player1, player2)
     options = [
         FactionMatchupOption(
-            player1_general=gen1,
-            player2_general=gen2,
-            prob_player1_wins=prob,
-            prob_player1_wins_std=std,
+            player1_general=cell.general1,
+            player2_general=cell.general2,
+            prob_player1_wins=cell.prob_player1_wins,
+            prob_player1_wins_std=cell.std,
         )
-        for gen1, gen2, prob, std, _significant, _n in grid
+        for cell in grid
     ]
     options.sort(key=lambda o: o.prob_player1_wins, reverse=True)
     compute_ms = (time.monotonic() - start) * 1000
-    ensemble_size = grid[0][5] if grid else 1
+    ensemble_size = grid[0].ensemble_size if grid else 1
     logger.info(
         "faction matchup grid computed",
         player1=player1,
@@ -236,19 +262,19 @@ def predict_faction_matrix() -> FactionMatrix:
     grid = _faction_grid(_UNKNOWN_MAP_PLACEHOLDER, _UNKNOWN_PLAYER_A, _UNKNOWN_PLAYER_B)
     cells = [
         FactionMatrixCell(
-            general_a=gen1,
-            general_b=gen2,
-            prob_a_wins=prob,
-            prob_a_wins_std=std,
-            significant=significant,
+            general_a=cell.general1,
+            general_b=cell.general2,
+            prob_a_wins=cell.prob_player1_wins,
+            prob_a_wins_std=cell.std,
+            significant=cell.significant,
         )
-        for gen1, gen2, prob, std, significant, _n in grid
+        for cell in grid
     ]
     probs = sorted(c.prob_a_wins for c in cells)
     mid = len(probs) // 2
     median = (probs[mid - 1] + probs[mid]) / 2 if len(probs) % 2 == 0 else probs[mid]
     compute_ms = (time.monotonic() - start) * 1000
-    ensemble_size = grid[0][5] if grid else 1
+    ensemble_size = grid[0].ensemble_size if grid else 1
     logger.info(
         "faction matrix computed",
         n_cells=len(cells),

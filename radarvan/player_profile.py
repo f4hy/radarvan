@@ -468,9 +468,20 @@ class ScoredObject:
         )
 
 
+class SmoothedRates(NamedTuple):
+    """A player's per-game rate and their peers', both shrunk to the same prior.
+
+    Named rather than a bare pair: the scorer divides one by the other, and
+    silently swapping two floats would invert every favorite into an aversion.
+    """
+
+    player: float
+    peer: float
+
+
 def _smoothed_rates(
     c_p: int, n_p: int, c_q: int, n_q: int, pseudo_games: float
-) -> tuple[float, float]:
+) -> SmoothedRates:
     """Per-game rates shrunk toward the pooled rate by ``pseudo_games``.
 
     The pooled prior keeps both denominators positive whenever anyone built
@@ -480,7 +491,7 @@ def _smoothed_rates(
     r0 = (c_p + c_q) / (n_p + n_q)
     player = (c_p + pseudo_games * r0) / (n_p + pseudo_games)
     peer = (c_q + pseudo_games * r0) / (n_q + pseudo_games)
-    return player, peer
+    return SmoothedRates(player=player, peer=peer)
 
 
 _CATEGORY_CLEANERS: dict[ObjectCategory, Callable[[str], str]] = {
@@ -598,9 +609,14 @@ def _is_foreign_faction(
     return dominant != faction
 
 
-def _peer_totals(
-    agg: CategoryAggregate,
-) -> tuple[dict[tuple[General, str], int], dict[General, int]]:
+class PeerTotals(NamedTuple):
+    """Population-wide totals a single player is scored against."""
+
+    count_by_general_object: dict[tuple[General, str], int]
+    games_by_general: dict[General, int]
+
+
+def _peer_totals(agg: CategoryAggregate) -> PeerTotals:
     """Total counts per (general, object) and total games per general."""
     count_by_go: dict[tuple[General, str], int] = defaultdict(int)
     games_by_general: dict[General, int] = defaultdict(int)
@@ -608,7 +624,10 @@ def _peer_totals(
         count_by_go[(general, obj)] += count
     for (_, general), n in agg.games.items():
         games_by_general[general] += n
-    return dict(count_by_go), dict(games_by_general)
+    return PeerTotals(
+        count_by_general_object=dict(count_by_go),
+        games_by_general=dict(games_by_general),
+    )
 
 
 # A favorite must be something the player builds regularly, not a novelty:
@@ -633,8 +652,7 @@ def compute_favorites(
     pseudo_games: float = _DEFAULT_PSEUDO_GAMES,
     min_score: float = 1.25,
     min_rate: float | None = None,
-    peer_totals: tuple[dict[tuple[General, str], int], dict[General, int]]
-    | None = None,
+    peer_totals: PeerTotals | None = None,
     usage_factions: dict[str, str] | None = None,
 ) -> dict[str, ScoredObject]:
     """Each player's signature object: highest peer-normalized build rate.
@@ -888,8 +906,7 @@ def compute_aversions(
     min_peer_rate: float = 0.5,
     pseudo_games: float = _DEFAULT_PSEUDO_GAMES,
     max_ratio: float = 0.5,
-    peer_totals: tuple[dict[tuple[General, str], int], dict[General, int]]
-    | None = None,
+    peer_totals: PeerTotals | None = None,
     usage_factions: dict[str, str] | None = None,
 ) -> dict[str, list[ScoredObject]]:
     """Objects peers build regularly on a shared general that a player avoids.

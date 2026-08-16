@@ -1,6 +1,7 @@
 """Map stats, geometry, render, and image endpoints."""
 
 import asyncio
+from typing import NamedTuple
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -191,18 +192,18 @@ def fetch_map_for_match(
     parse the .map and store the geometry payload in `MapData`.
     """
     try:
-        fetched, payload = missing_maps_module.fetch_and_upload_for_match(
+        result = missing_maps_module.fetch_and_upload_for_match(
             match_id, replay_manager, parse_and_save=parse_map
         )
     except Exception as e:
         return FetchMissingMapResult(map_name=str(match_id), error=str(e))
     return FetchMissingMapResult(
-        map_name=fetched.base_name,
-        base_name=fetched.base_name,
-        tga_s3_uri=fetched.tga_s3_uri,
-        webp_s3_uri=fetched.webp_s3_uri,
-        map_s3_uri=fetched.map_s3_uri,
-        map_data_saved=payload is not None,
+        map_name=result.fetched.base_name,
+        base_name=result.fetched.base_name,
+        tga_s3_uri=result.fetched.tga_s3_uri,
+        webp_s3_uri=result.fetched.webp_s3_uri,
+        map_s3_uri=result.fetched.map_s3_uri,
+        map_data_saved=result.payload is not None,
     )
 
 
@@ -330,6 +331,15 @@ def reparse_maps(
 _PUSH_CONCURRENCY = 8
 
 
+class _SyncOutcome(NamedTuple):
+    """One map's push attempt. ``error`` set means the other fields are moot."""
+
+    map_name: str
+    crc: str | None
+    pushed: bool
+    error: str | None
+
+
 @router.post("/api/push_maps_to_cncstats", dependencies=ADMIN_ONLY)
 async def push_maps_to_cncstats(
     max_to_update: int = 10,
@@ -350,41 +360,40 @@ async def push_maps_to_cncstats(
     pending = replay_manager.unsynced_maps(limit=max_to_update)
     sem = asyncio.Semaphore(_PUSH_CONCURRENCY)
 
-    async def sync_one(
-        name: str, crc: str | None
-    ) -> tuple[str, str | None, bool, str | None]:
+    async def sync_one(name: str, crc: str | None) -> _SyncOutcome:
         async with sem:
             try:
-                (
-                    resolved,
-                    pushed,
-                ) = await missing_maps_module.sync_stored_map_to_cncstats(name, crc)
-                return name, resolved, pushed, None
+                result = await missing_maps_module.sync_stored_map_to_cncstats(
+                    name, crc
+                )
+                return _SyncOutcome(
+                    map_name=name, crc=result.crc_hex, pushed=result.pushed, error=None
+                )
             except Exception as e:
-                return name, None, False, str(e)
+                return _SyncOutcome(map_name=name, crc=None, pushed=False, error=str(e))
 
     rows = await asyncio.gather(*(sync_one(name, crc) for name, crc in pending))
 
     results: list[PushMapResult] = []
     pushed = 0
     already_present = 0
-    for name, crc, was_pushed, error in rows:
-        if error is not None:
-            results.append(PushMapResult(map_name=name, error=error))
+    for row in rows:
+        if row.error is not None:
+            results.append(PushMapResult(map_name=row.map_name, error=row.error))
             continue
-        if crc:
+        if row.crc:
             # Record CRC + synced mark in one update (single DB session, serialized).
-            replay_manager.record_cncstats_sync(name, crc)
-        if was_pushed:
+            replay_manager.record_cncstats_sync(row.map_name, row.crc)
+        if row.pushed:
             pushed += 1
         else:
             already_present += 1
         results.append(
             PushMapResult(
-                map_name=name,
-                crc=crc,
-                pushed=was_pushed,
-                already_present=not was_pushed,
+                map_name=row.map_name,
+                crc=row.crc,
+                pushed=row.pushed,
+                already_present=not row.pushed,
             )
         )
     return PushMapsResponse(

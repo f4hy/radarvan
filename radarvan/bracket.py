@@ -43,7 +43,7 @@ exactly one loss, and a double-elim bracket for N entrants needs exactly
 import itertools
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, NamedTuple
 
 BracketType = Literal["W", "L", "GF"]
 MatchStatus = Literal["pending", "ready", "completed", "not_applicable"]
@@ -169,12 +169,25 @@ def _pair_safely(
     return pool_b
 
 
+class RoundBuild(NamedTuple):
+    """What one construction step produced.
+
+    ``sources`` is what carries forward into the next step (the survivors /
+    winners of the matches just built); ``matches`` is the matches themselves.
+    Both are lists, so naming them is what keeps a call site from feeding the
+    match list forward as if it were the survivor list.
+    """
+
+    sources: list[Source]
+    matches: list[MatchDef]
+
+
 def _reduce_to(
     pool: list[Source],
     target: int,
     round_counter: list[int],
     matches_by_id: dict[str, MatchDef],
-) -> tuple[list[Source], list[MatchDef]]:
+) -> RoundBuild:
     """Repeatedly self-pair ``pool`` down to exactly ``target`` (0+ rounds).
 
     Each round pairs off just enough entrants to reach `target` in one more
@@ -207,7 +220,7 @@ def _reduce_to(
         leftover = pool[k : length - k]
         pool = [WinnerOf(m.match_id) for m in matches] + leftover
         all_matches += matches
-    return pool, all_matches
+    return RoundBuild(sources=pool, matches=all_matches)
 
 
 def _merge_droppers(
@@ -216,7 +229,7 @@ def _merge_droppers(
     round_counter: list[int],
     matches_by_id: dict[str, MatchDef],
     final_round_name: str | None = None,
-) -> tuple[list[Source], list[MatchDef]]:
+) -> RoundBuild:
     """Level ``survivors`` (the losers bracket's current survivors) and
     ``incoming`` (droppers newly available at this depth) to the same size
     via ``_reduce_to``, then pair them 1:1 (order chosen by
@@ -242,7 +255,9 @@ def _merge_droppers(
     ]
     matches_by_id.update({m.match_id: m for m in merge_matches})
     matches += merge_matches
-    return [WinnerOf(m.match_id) for m in merge_matches], matches
+    return RoundBuild(
+        sources=[WinnerOf(m.match_id) for m in merge_matches], matches=matches
+    )
 
 
 def _match_depths(wb_matches: list[MatchDef]) -> dict[str, int]:
@@ -276,7 +291,7 @@ def _match_depths(wb_matches: list[MatchDef]) -> dict[str, int]:
 
 def _pair_round(
     sources: list[Source], round_number: int, round_name: str, id_prefix: str
-) -> tuple[list[Source], list[MatchDef]]:
+) -> RoundBuild:
     """Pair up consecutive `sources` into one clean (bye-free) winners-bracket
     round - shared by rounds 2, 3, and the final, which only ever differ in
     round number/name and id prefix."""
@@ -286,7 +301,7 @@ def _pair_round(
             zip(sources[0::2], sources[1::2], strict=True), start=1
         )
     ]
-    return [WinnerOf(m.match_id) for m in matches], matches
+    return RoundBuild(sources=[WinnerOf(m.match_id) for m in matches], matches=matches)
 
 
 @lru_cache(maxsize=1)
