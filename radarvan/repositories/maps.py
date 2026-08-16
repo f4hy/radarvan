@@ -137,7 +137,11 @@ class MapRepo(BaseRepo):
         return MapDataPayload.model_validate(row.data)
 
     def _find_map_data_row(self, map_name: str) -> MapData | None:
-        stmt = select(MapData).where(MapData.map_name.ilike(map_name))
+        # Case-insensitive *equality*, not ILIKE: map names routinely contain
+        # "_" (and can contain "%"), which ILIKE would treat as wildcards and
+        # so match a different map (e.g. "Tournament_Desert" matching
+        # "TournamentXDesert").
+        stmt = select(MapData).where(func.lower(MapData.map_name) == map_name.lower())
         row = self.session.scalar(stmt)
         if row is not None:
             return row

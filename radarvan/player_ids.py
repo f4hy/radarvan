@@ -87,6 +87,13 @@ NAME_MAPPING = PLAYER_NAME_MAPPING | CPU_NAME_MAPPING
 
 PLAYER_NAMES = set(NAME_MAPPING.values())
 
+# Canonical (resolved) names on each side of the mapping. Built once at import:
+# `is_cpu_name` sits under `role_from_name`, which runs per player per match
+# across the whole corpus, so rebuilding the set per call showed up in the
+# rating/stats passes.
+CPU_NAMES: frozenset[str] = frozenset(CPU_NAME_MAPPING.values())
+HUMAN_NAMES: frozenset[str] = frozenset(PLAYER_NAME_MAPPING.values())
+
 # Players (by claimed in-game name) with admin privileges. Hard-coded for now;
 # add names here to grant admin.
 ADMIN_PLAYERS: set[str] = {"Modus", "OneThree111"}
@@ -129,4 +136,4 @@ def resolve_player_name(name: str, color: str = "") -> str:
 
 def is_cpu_name(name: str, color: str = "") -> bool:
     """True if the resolved name is a known CPU/AI opponent (any CPU_NAME_MAPPING side)."""
-    return resolve_player_name(name, color) in set(CPU_NAME_MAPPING.values())
+    return resolve_player_name(name, color) in CPU_NAMES

@@ -60,18 +60,9 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+import { useFetch } from "./useFetch"
 import { buildPlayerColorMap, formatCash, getColorHex } from "./utils"
 import { BRAND_COLOR } from "./theme"
-
-function getDetails(
-  id: number,
-  callback: (m: MatchDetails) => void,
-  onError = console.error,
-) {
-  Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: id })
-    .then(callback)
-    .catch(onError)
-}
 
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
@@ -1739,14 +1730,18 @@ function DetailViewSelector(props: {
 }
 
 export default function ShowMatchDetails(props: { id: number }) {
-  const [details, setDetails] = React.useState<MatchDetails | null>(null)
   const [selectedDisplay, setSelectedDisplay] = React.useState<Displays | null>(
     null,
   )
   const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    getDetails(props.id, setDetails, showError)
-  }, [props.id, showError])
+  // useFetch, not a hand-rolled effect: switching matches has to clear the old
+  // details (otherwise the previous match's charts stay on screen under the
+  // new id) and drop a response that lands after the id already moved on.
+  const details = useFetch(
+    () => Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: props.id }),
+    [props.id],
+    showError,
+  )
   if (details === null) {
     return (
       <>

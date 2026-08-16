@@ -95,26 +95,29 @@ export function displayMapName(name: string): string {
   return (name.split("/").pop() ?? name).replace(/\.map$/i, "")
 }
 
+// Module scope, not rebuilt per call: getColorHex runs once per player per
+// chart series on every render.
+const COLOR_MAP: { [key: string]: string } = {
+  pink: "#FFC0CB",
+  red: "#FF0000",
+  blue: "#0000FF",
+  skyblue: "#87CEEB",
+  green: "#00FF00",
+  yellow: "#FFFF00",
+  purple: "#800080",
+  orange: "#FFA500",
+  gold: "#FFD700",
+  black: "#212121",
+  lime: "#BFFF00",
+  silver: "#C0C0C0",
+  maroon: "#800000",
+  metallicgrey: "#808080",
+  violet: "#7F00FF",
+}
+
 export function getColorHex(colorName: string): string {
-  const colorMap: { [key: string]: string } = {
-    pink: "#FFC0CB",
-    red: "#FF0000",
-    blue: "#0000FF",
-    skyblue: "#87CEEB",
-    green: "#00FF00",
-    yellow: "#FFFF00",
-    purple: "#800080",
-    orange: "#FFA500",
-    gold: "#FFD700",
-    black: "#212121",
-    lime: "#BFFF00",
-    silver: "#C0C0C0",
-    maroon: "#800000",
-    metallicgrey: "#808080",
-    violet: "#7F00FF",
-  }
   if (colorName === "-1") return "#000000"
-  const mapped = colorMap[colorName.toLowerCase()]
+  const mapped = COLOR_MAP[colorName.toLowerCase()]
   if (mapped) return mapped
   if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(colorName)) return colorName
   if (/^(rgb|rgba|hsl|hsla|color)\(/i.test(colorName)) return colorName

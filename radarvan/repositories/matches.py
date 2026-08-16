@@ -86,7 +86,8 @@ class MatchRepo(BaseRepo):
         if existing is None:
             return None
         if (
-            new_match.winning_team_id is not None
+            self.notify
+            and new_match.winning_team_id is not None
             and existing.winning_team_id != new_match.winning_team_id
         ):
             notify(

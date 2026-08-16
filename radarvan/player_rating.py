@@ -61,7 +61,7 @@ class NamedRating:
 
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     r = model.rating(name=name)
-    known_players = set(player_ids.PLAYER_NAME_MAPPING.values())
+    known_players = player_ids.HUMAN_NAMES
     if name in NON_COMPETITIVE:
         return NamedRating(name=name, mu=0.5, sigma=r.sigma / 2.0)
     if player_ids.is_cpu_name(name):
@@ -243,8 +243,37 @@ def _detect_upset(
     )
 
 
+class _RatableGame(NamedTuple):
+    """A game that passed the rating gate, with its teams already resolved.
+
+    ``compute_player_ratings`` runs ITERATIONS passes over the same games, and
+    neither the gate nor ``build_teams`` depends on the current ratings - both
+    resolve every competitor's alias, so redoing them per pass tripled the
+    name-resolution work for no change in result.
+    """
+
+    game: MatchInfo
+    teams: dict[int, list[str]]
+    counts: dict[str, int]
+
+
+def _ratable_games(games: list[MatchInfo]) -> list[_RatableGame]:
+    """Gate + team-build every game once, in chronological order."""
+    prepared: list[_RatableGame] = []
+    for game in sorted(games, key=lambda x: x.timestamp):
+        if not is_ratable_team_game(game):
+            continue
+        result = build_teams(game)
+        if result is None:
+            continue
+        prepared.append(
+            _RatableGame(game=game, teams=result.teams, counts=result.counts)
+        )
+    return prepared
+
+
 def _process_games(
-    games: list[MatchInfo],
+    games: list[_RatableGame],
     initial_players: dict[str, NamedRating],
     model: PlackettLuce,
 ) -> ProcessGamesResult:
@@ -253,13 +282,7 @@ def _process_games(
     rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in players}
     match_changes: dict[str, list[RatingMatchChange]] = {name: [] for name in players}
     upsets: list[GameUpset] = []
-    for game in sorted(games, key=lambda x: x.timestamp):
-        if not is_ratable_team_game(game):
-            continue
-        result = build_teams(game)
-        if result is None:
-            continue
-        teams, counts = result
+    for game, teams, counts in games:
         for name, count in counts.items():
             game_counts[name] += count
         pre_ordinals = {
@@ -386,10 +409,13 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     player_ratings = {name: initialize_player(name, model) for name in all_players}
     logger.debug("initial players", players=player_ratings)
 
+    # Gate + resolve teams once, then reuse across every pass (see _RatableGame).
+    prepared = _ratable_games(filtered_games)
+
     for i in range(ITERATIONS):
         min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
         player_ratings, game_counts, rating_over_time, match_changes, upsets = (
-            _process_games(filtered_games, min_sigmaed, model)
+            _process_games(prepared, min_sigmaed, model)
         )
         logger.debug("pass", iteration=i)
         _log_sorted_ratings(

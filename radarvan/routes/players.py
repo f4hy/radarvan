@@ -395,11 +395,17 @@ async def get_player_head_to_head(
     games = list(competitive_matches(replay_manager).values())
     game_list = matches.filter_by_format(games, game_format)
 
+    # Ask the roster, not every slot: a spectator whose account resolves to one
+    # of these names would otherwise make a game they never played a candidate.
+    # `participants` matches what compute_head_to_head itself reads.
     candidate_games = [
         g
         for g in game_list
         if {player1, player2}
-        <= {player_ids.resolve_player_name(p.name, p.color) for p in g.players}
+        <= {
+            player_ids.resolve_player_name(p.name, p.color)
+            for p in g.roster().participants
+        }
     ]
     candidate_games.sort(key=lambda g: g.timestamp, reverse=True)
     candidate_ids = [g.id for g in candidate_games[:_H2H_VALUE_WINDOW]]

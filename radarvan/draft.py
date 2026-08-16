@@ -82,9 +82,13 @@ def compute_draft(
 
     skip = next((a for a in assignments if a.player_name == "Skip"), None)
     if skip is not None and skip.team != teams[0]:
-        team_swap = {teams[0]: teams[1], teams[1]: teams[0]}
+        # Swap Skip's team with the first team, whichever it is - hardcoding
+        # teams[0] <-> teams[1] KeyErrors on any player of a third team (and
+        # doesn't move Skip at all when he's on one).
+        team_swap = {teams[0]: skip.team, skip.team: teams[0]}
         assignments = [
-            a.model_copy(update={"team": team_swap[a.team]}) for a in assignments
+            a.model_copy(update={"team": team_swap.get(a.team, a.team)})
+            for a in assignments
         ]
 
     return ComputedDraft(assignments=assignments, randomized_at=datetime.now(UTC))

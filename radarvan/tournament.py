@@ -13,6 +13,7 @@ from .api_types import (
     MatchDetails,
     MatchInfo,
     Matchup,
+    ObjectSummary,
     Team,
     General,
     Tournament,
@@ -85,7 +86,11 @@ def is_tournament_game(match_info: MatchInfo) -> str | None:
         return None
     if match_info.composition and not match_info.composition.is_team_game:
         return None
-    gamedate = match_info.timestamp.date()
+    # The game-night date (already Eastern with the 5am rollover), not the raw
+    # UTC calendar date: anything played after 8pm Eastern is already the next
+    # UTC day, so a game on the tournament's final evening fell outside the
+    # window. Same reason tournament_membership matches brackets on MatchInfo.date.
+    gamedate = match_info.date
     team_map: defaultdict[Team, set[str]] = defaultdict(set)
     for p in match_info.roster().participants:
         if not p.has_known_general:
@@ -389,10 +394,28 @@ def faction_stats(matches: list[MatchInfo], computed_at: date) -> list[Statistic
     ]
 
 
+def _object_totals(
+    per_player: list[dict[str, ObjectSummary]],
+) -> Counter[str]:
+    """Total count per (suffix-stripped) object name across every player-summary dict.
+
+    One Counter accumulated in place. The old form built a single-entry
+    ``Counter`` per (player, object) pair and ``sum()``-ed them, which
+    reallocates the whole accumulated dict once per pair - tens of thousands
+    of times over a tournament. ``Counter.__add__`` also drops non-positive
+    totals, so that filter is re-applied at the end to keep the output
+    identical.
+    """
+    totals: Counter[str] = Counter()
+    for by_object in per_player:
+        for raw_name, summary in by_object.items():
+            totals[raw_name.split("_")[-1]] += summary.Count
+    return Counter({name: n for name, n in totals.items() if n > 0})
+
+
 def unit_stats(matches: list[MatchDetails], computed_at: date) -> list[Statistic]:
     units_created = [s.UnitsCreated for m in matches for s in m.player_summary]
-    mapped = [{c.split("_")[-1]: v.Count} for d in units_created for c, v in d.items()]
-    unit_counts = sum((Counter(d) for d in mapped), Counter())
+    unit_counts = _object_totals(units_created)
 
     return [
         Statistic(
@@ -407,10 +430,7 @@ def unit_stats(matches: list[MatchDetails], computed_at: date) -> list[Statistic
 
 def building_stats(matches: list[MatchDetails], computed_at: date) -> list[Statistic]:
     buildings_created = [s.BuildingsBuilt for m in matches for s in m.player_summary]
-    mapped = [
-        {c.split("_")[-1]: v.Count} for d in buildings_created for c, v in d.items()
-    ]
-    building_counts = sum((Counter(d) for d in mapped), Counter())
+    building_counts = _object_totals(buildings_created)
 
     return [
         Statistic(
@@ -474,14 +494,19 @@ def min_max_stats(matches: list[MatchDetails], computed_at: date) -> list[Statis
     ]
     stats: list[Statistic] = []
     for dt in data_types:
+        # .get, not [dt]: stats_data is a plain dict whose keys depend on what
+        # the extractor produced, and a missing series raised KeyError rather
+        # than being skipped like the empty case right beside it.
         counter = sum(
             (
-                Counter(last_val(m.stats_data[dt]))
+                Counter(last_val(series))
                 for m in matches
-                if m.stats_data and m.stats_data[dt]
+                if m.stats_data and (series := m.stats_data.get(dt))
             ),
             Counter(),
         )
+        if not counter:
+            continue
         most, most_count = counter.most_common(1)[0]
         fewest, min_count = min(counter.items(), key=lambda x: x[1])
         txt = " ".join(dt.split("_")).title()

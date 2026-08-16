@@ -106,7 +106,10 @@ def events_from_replay(replay: EnhancedReplayV2) -> dict[str, Upgrades]:
             cost=detail_cost or 0,
             at_minute=chunk.time_code * scale,
         )
-        upgrades[chunk.player_name].append(event)
+        # setdefault, not [..]: the body's player names come from the order
+        # stream, and a name the header never listed would otherwise raise a
+        # KeyError that takes the whole MatchDetails computation down.
+        upgrades.setdefault(chunk.player_name, []).append(event)
 
     return {name: Upgrades(upgrades=values) for name, values in upgrades.items()}
 
