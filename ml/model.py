@@ -293,7 +293,13 @@ class OutcomeLitModule(L.LightningModule):
 
     def _loss(self, batch: Batch) -> tuple[torch.Tensor, torch.Tensor]:
         logit = self.model(batch)
-        loss = F.binary_cross_entropy_with_logits(logit, batch.label)
+        # batch.weight is all-ones unless recency weighting is on, and is
+        # normalised to mean 1.0 by ml.dataset.recency_weighted, so the loss keeps
+        # its scale either way (BCE's `weight` scales per-sample terms before the
+        # mean, it does not divide by the weight sum).
+        loss = F.binary_cross_entropy_with_logits(
+            logit, batch.label, weight=batch.weight
+        )
         w = self.cfg.train.aux_duration_weight
         if w > 0:
             pred_dur = self.model.predict_duration(batch)

@@ -24,7 +24,7 @@ import torch
 import torch.nn.functional as F
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 
-from .config import Config
+from .config import Config, TrainConfig
 from .dataset import MatchDataModule, collate
 from .features import EncodedMatch
 from .model import OutcomeLitModule
@@ -124,11 +124,16 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
     L.seed_everything(cfg.train.seed, workers=True)
     accelerator = select_accelerator(accelerator)
     logger.info("accelerator", using=accelerator)
-    dm = MatchDataModule(split_dir, batch_size=cfg.train.batch_size)
+    dm = MatchDataModule(
+        split_dir,
+        batch_size=cfg.train.batch_size,
+        recency_half_life_days=cfg.train.recency_half_life_days,
+    )
     dm.setup()
     logger.info(
         "data", n_players=dm.vocab.n_players, n_maps=dm.vocab.n_maps,
         n_train=len(dm._train), n_dev=len(dm._dev),
+        recency_half_life_days=cfg.train.recency_half_life_days,
     )
 
     module = OutcomeLitModule(dm.vocab, cfg)
@@ -195,6 +200,18 @@ def main() -> None:
     )
     parser.add_argument("--aux-duration-weight", type=float, default=None)
     parser.add_argument(
+        "--recency-half-life",
+        type=float,
+        default=None,
+        help="Half-life in days for down-weighting old training games "
+        f"(default {TrainConfig().recency_half_life_days}).",
+    )
+    parser.add_argument(
+        "--no-recency",
+        action="store_true",
+        help="Weight every training game equally, however old.",
+    )
+    parser.add_argument(
         "--accelerator",
         choices=("auto", "cpu", "gpu"),
         default="auto",
@@ -207,6 +224,10 @@ def main() -> None:
         cfg.train.max_epochs = args.max_epochs
     if args.aux_duration_weight is not None:
         cfg.train.aux_duration_weight = args.aux_duration_weight
+    if args.no_recency:
+        cfg.train.recency_half_life_days = None
+    elif args.recency_half_life is not None:
+        cfg.train.recency_half_life_days = args.recency_half_life
     cfg.model.use_mlp = not args.no_mlp
     cfg.model.use_synergy = not args.no_synergy
     cfg.model.use_matchup = not args.no_matchup

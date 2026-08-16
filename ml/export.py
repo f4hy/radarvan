@@ -77,7 +77,9 @@ class _ExportWrapper(nn.Module):
         fmt: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         b = a_player.shape[0]
-        unused = torch.zeros(b)  # label/duration are not model inputs
+        # label/duration/weight are training-time fields, not model inputs, so they
+        # never became ONNX inputs; fill them with values the forward pass ignores.
+        unused = torch.zeros(b)
         # `map_` carries whichever representation this model uses; the other is a
         # zero placeholder the model ignores.
         if self.use_map_features:
@@ -92,6 +94,7 @@ class _ExportWrapper(nn.Module):
             b_player=b_player, b_general=b_general, b_faction=b_faction,
             b_start=b_start, b_mask=b_mask,
             map=map_idx, map_feat=map_feat, fmt=fmt, label=unused, duration=unused,
+            weight=torch.ones(b),
         )
         terms = self.model.explain(batch)
         prob, raw = terms["prob_team_a"], terms["raw_logit"]
