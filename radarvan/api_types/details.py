@@ -1,0 +1,232 @@
+"""``MatchDetails`` - the per-match derived projection - and its component shapes."""
+
+# See radarvan/api_types/__init__.py for why this package is split by context.
+# Needed so forward/self references resolve under Python < 3.14 (PEP 649 defers
+# by default on 3.14+); required for the ml/ 3.13 training venv.
+from __future__ import annotations
+
+from pydantic import BaseModel, Field, ConfigDict
+from .common import (
+    Minute,
+    Rate,
+)
+from .matches import Player
+
+
+class KillEventOutput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: Minute = Field(alias="atMinute")
+    killer_player: str = Field(alias="killerPlayer")
+    victim_player: str = Field(alias="victimPlayer")
+    x: float
+    y: float
+    killer: str
+    victim: str
+    damage_type: str = Field(alias="damageType")
+    # Build cost of the destroyed object (0 when unknown). Used to size kill
+    # markers in the replay view by value destroyed.
+    value: int = 0
+
+
+class MapEventOutput(BaseModel):
+    """A single map-positioned, time-stamped event for replay playback.
+
+    `kind` is one of "build" (structure completed) or "capture" (neutral/enemy
+    structure taken). `player_name` is the owner after the event; `name` is the
+    cleaned object name. Kill events are served separately via `kill_events`.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: Minute = Field(alias="atMinute")
+    x: float
+    y: float
+    player_name: str = Field(alias="playerName")
+    kind: str
+    name: str
+
+
+class CostsBuiltObject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    count: int
+    total_spent: int = Field(alias="totalSpent")
+
+
+class Costs(BaseModel):
+    player: Player | None
+    buildings: list[CostsBuiltObject]
+    units: list[CostsBuiltObject]
+    upgrades: list[CostsBuiltObject]
+
+
+class APM(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_name: str = Field(alias="playerName")
+    action_count: int = Field(alias="actionCount")
+    minutes: Minute
+    apm: Rate
+
+
+class UpgradeEvent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_name: str = Field(alias="playerName")
+    timecode: int = 0
+    upgrade_name: str = Field(alias="upgradeName")
+    cost: int
+    at_minute: Minute = Field(alias="atMinute")
+
+
+class Spent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_name: str = Field(alias="playerName")
+    acc_cost: int = Field(alias="accCost")
+    at_minute: float = Field(alias="atMinute")
+
+
+class Upgrades(BaseModel):
+    upgrades: list[UpgradeEvent]
+
+
+class ObjectSummary(BaseModel):
+    Count: int
+    TotalSpent: int
+
+
+class AcademyStats(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    cleared_garrisoned_buildings: int = Field(alias="clearedGarrisonedBuildings")
+    control_groups_used: int = Field(alias="controlGroupsUsed")
+    double_click_attack_move_orders_given: int = Field(
+        alias="doubleClickAttackMoveOrdersGiven"
+    )
+    firestorms_created: int = Field(alias="firestormsCreated")
+    gatherers_built: int = Field(alias="gatherersBuilt")
+    generals_points_spent: int = Field(alias="generalsPointsSpent")
+    guard_ability_used_count: int = Field(alias="guardAbilityUsedCount")
+    heroes_built: int = Field(alias="heroesBuilt")
+    mines_cleared: int = Field(alias="minesCleared")
+    peons_built: int = Field(alias="peonsBuilt")
+    salvage_collected: int = Field(alias="salvageCollected")
+    secondary_income_units_built: int = Field(alias="secondaryIncomeUnitsBuilt")
+    special_powers_used: int = Field(alias="specialPowersUsed")
+    structures_captured: int = Field(alias="structuresCaptured")
+    structures_garrisoned: int = Field(alias="structuresGarrisoned")
+    supply_centers_built: int = Field(alias="supplyCentersBuilt")
+    upgrades_purchased: int = Field(alias="upgradesPurchased")
+    vehicles_disguised: int = Field(alias="vehiclesDisguised")
+
+
+class PlayerSummary(BaseModel):
+    Name: str
+    Side: str
+    Team: int
+    Win: bool
+    Color: str
+    UnitsCreated: dict[str, ObjectSummary]
+    BuildingsBuilt: dict[str, ObjectSummary]
+    UpgradesBuilt: dict[str, ObjectSummary]
+    PowersUsed: dict[str, int]
+    UnitsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
+    BuildingsDestroyed: dict[str, ObjectSummary] = Field(default_factory=dict)
+    UnitsLost: dict[str, ObjectSummary] = Field(default_factory=dict)
+    BuildingsLost: dict[str, ObjectSummary] = Field(default_factory=dict)
+    Academy: AcademyStats | None = None
+
+
+class FirstBlood(BaseModel):
+    attacker: str
+    victim: str
+    atMinute: Minute
+
+
+class TimelineEvent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    player_name: str = Field(alias="playerName")
+    at_minute: Minute = Field(alias="atMinute")
+    event_name: str = Field(alias="eventName")
+    # One of: "upgrade", "rank_up", "generals_power",
+    # "superweapon_built", "superweapon_activated".
+    event_type: str = Field(alias="eventType")
+    cost: int = 0
+
+
+class BuildOrderEntry(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: Minute = Field(alias="atMinute")
+    name: str
+    cost: int
+    # Number of consecutive identical builds collapsed into this row (>=1).
+    count: int = 1
+    # End of the collapsed run; None for single (count==1) entries.
+    end_minute: Minute | None = Field(default=None, alias="endMinute")
+    # Economy/non-combat unit (worker, dozer, supply). UI dims these. Always
+    # False for buildings and upgrades.
+    is_economy: bool = Field(default=False, alias="isEconomy")
+
+
+class BuildOrder(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    buildings: list[BuildOrderEntry]
+    units: list[BuildOrderEntry]
+    upgrades: list[BuildOrderEntry]
+
+
+class MatchDetails(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    match_id: int = Field(alias="matchId")
+    game_version: str | None = Field(None)
+    costs: list[Costs]
+    apms: list[APM]
+    upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
+    stats_data: dict[str, dict[Minute, dict[str, int]]] = Field(
+        description="at a time map each player to xp"
+    )
+    # Cumulative income broken down by source ("supply", "oil_derrick", ...),
+    # as {source: {minute: {player: value}}}. Sparse: an all-zero source, a
+    # player who never earned from a source, and unchanged timesteps are all
+    # omitted - absent means "zero"/"unchanged". Empty for replays predating
+    # cncstats incomeBySource support.
+    income_by_source: dict[str, dict[Minute, dict[str, int]]] = Field(
+        default_factory=dict, alias="incomeBySource"
+    )
+    map_name: str = Field(default="", alias="mapName")
+    first_blood: FirstBlood | None = None
+    building_first_blood: FirstBlood | None = None
+    player_summary: list[PlayerSummary]
+    kill_events: list[KillEventOutput] = Field(default_factory=list, alias="killEvents")
+    # Map-positioned structure builds & captures, sorted by time, for the
+    # replay-playback view (kills are in `kill_events`).
+    map_events: list[MapEventOutput] = Field(default_factory=list, alias="mapEvents")
+    player_money_spent: dict[str, int] = Field(default_factory=dict)
+    player_money_collected: dict[str, int] = Field(default_factory=dict)
+    # Minute at which each player first hit generals rank 5.
+    time_to_rank_5: dict[str, Minute] = Field(default_factory=dict, alias="timeToRank5")
+    # Minute at which each player first activated USA Search & Destroy battle plan.
+    time_to_search_destroy: dict[str, Minute] = Field(
+        default_factory=dict, alias="timeToSearchDestroy"
+    )
+    # Per-player first-10 build order: buildings, units, upgrades.
+    build_orders: dict[str, BuildOrder] = Field(
+        default_factory=dict, alias="buildOrders"
+    )
+    # Per-minute APM time series: {minute: {player_name: apm}}.
+    apm_over_time: dict[Minute, dict[str, Rate]] = Field(
+        default_factory=dict, alias="apmOverTime"
+    )
+    # All player-driven timeline markers (upgrades, rank ups, generals
+    # powers, superweapon builds & activations). Front-end renders them as
+    # per-player horizontal-lane scatter dots with per-type shapes.
+    timeline_events: list[TimelineEvent] = Field(
+        default_factory=list, alias="timelineEvents"
+    )
