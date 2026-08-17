@@ -4,7 +4,6 @@ import Box from "@mui/material/Box"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import DownloadIcon from "@mui/icons-material/Download"
-import html2canvas from "html2canvas"
 import * as React from "react"
 import { MapClient } from "./Client"
 import { formatCash, getColorHex, totalMapSupply } from "./utils"
@@ -128,8 +127,12 @@ export default function GameMap(props: {
   const [dataRequested, setDataRequested] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
+  // html2canvas is ~194 kB and only the Draft page's download button (the one
+  // showDownload call site) ever reaches it, so it is imported on click rather
+  // than at module scope — GameMap itself renders on the landing page.
   async function downloadScreenshot() {
     if (!containerRef.current) return
+    const { default: html2canvas } = await import("html2canvas")
     const canvas = await html2canvas(containerRef.current, { useCORS: true })
     const link = document.createElement("a")
     link.download = `${props.mapname}.png`
