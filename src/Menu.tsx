@@ -32,9 +32,8 @@ import ListItemText from "@mui/material/ListItemText"
 import Toolbar from "@mui/material/Toolbar"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
-import { useAuth, useIsTournamentAdmin } from "./AuthContext"
+import { useAuth } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
-import { BRACKET_VISIBLE_TO_ALL } from "./bracketVisibility"
 import radarvanLogo from "./img/radarvan_logo.webp"
 import Loading from "./Loading"
 
@@ -124,11 +123,6 @@ export default function Menu() {
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
-  // BRACKET_VISIBLE_TO_ALL (bracketVisibility.ts) controls whether the tab is public;
-  // it also stays visible for tournament admins even if that's ever flipped
-  // back off, since they need to manage the bracket regardless.
-  const isTournamentAdmin = useIsTournamentAdmin()
-  const showBracketTab = BRACKET_VISIBLE_TO_ALL || isTournamentAdmin
 
   // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
   const navigate = React.useCallback((s: Selection) => {
@@ -194,15 +188,7 @@ export default function Menu() {
       },
       { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
       { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
-      ...(showBracketTab
-        ? [
-            {
-              value: "Bracket" as const,
-              text: "1v1 Bracket",
-              icon: <AccountTreeIcon />,
-            },
-          ]
-        : []),
+      { value: "Bracket", text: "1v1 Bracket", icon: <AccountTreeIcon /> },
       { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
       { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
       { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },

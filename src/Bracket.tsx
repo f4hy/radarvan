@@ -90,7 +90,6 @@ import {
   WIN_COLOR,
 } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { BRACKET_VISIBLE_TO_ALL } from "./bracketVisibility"
 
 const DEFAULT_SEEDS = [
   "Modus",
@@ -2161,31 +2160,6 @@ export default function DisplayBracket({
     observer.observe(container)
     return () => observer.disconnect()
   }, [dropConnections])
-
-  if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
-    return (
-      <Paper sx={{ p: 2 }}>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            alignItems: "center",
-            mb: 1,
-          }}
-        >
-          <EmojiEventsIcon color="primary" />
-          <Typography variant="h4">1v1 Tournament Bracket</Typography>
-        </Stack>
-        <Typography
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          This page isn&apos;t open yet — check back soon.
-        </Typography>
-      </Paper>
-    )
-  }
 
   if (loading) {
     return (
