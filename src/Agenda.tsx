@@ -14,7 +14,7 @@ import Stack from "@mui/material/Stack"
 import { alpha, keyframes, Theme } from "@mui/material/styles"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
+import DateTimeField from "./DateTimeField"
 import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
 import { useAuth, useIsTournamentAdmin } from "./AuthContext"
@@ -133,7 +133,8 @@ export function AgendaCountdown({ scheduledAt }: { scheduledAt: string }) {
 // than a labelled button) so it reads as an admin affordance at a glance,
 // same idiom as MatchBox's edit-pencil icon in Bracket.tsx, which is also
 // only ever rendered for admins. Opens a popover with a full calendar +
-// clock DateTimePicker (see App.tsx's LocalizationProvider) rather than the
+// clock picker (DateTimeField, which carries its own LocalizationProvider)
+// rather than the
 // bare native datetime-local input the removed MatchEditor date field and
 // the tournament reveal-time dialog used to rely on.
 function ScheduleMatchButton({
@@ -178,7 +179,7 @@ function ScheduleMatchButton({
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Stack spacing={1.5} sx={{ p: 2, minWidth: 260 }}>
-          <DateTimePicker
+          <DateTimeField
             label="Scheduled date/time"
             value={value}
             onChange={(newValue) => setValue(newValue)}

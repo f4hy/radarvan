@@ -44,7 +44,7 @@ import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
+import DateTimeField from "./DateTimeField"
 import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
@@ -90,17 +90,6 @@ import {
   WIN_COLOR,
 } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-
-// The bracket page (and its nav tab, see Menu.tsx) is open to everyone,
-// including logged-out visitors — the reveal_at gate on individual
-// placements (see routes/bracket.py) is what keeps the tournament a secret
-// pre-reveal, not this flag. Flip PRODUCTION_BRACKET_VISIBLE_TO_ALL back to
-// false to lock the whole page down to tournament admins again (e.g. before
-// a future tournament is ready to announce at all).
-const PRODUCTION_BRACKET_VISIBLE_TO_ALL = true
-export const BRACKET_VISIBLE_TO_ALL =
-  PRODUCTION_BRACKET_VISIBLE_TO_ALL ||
-  import.meta.env.VITE_BRACKET_VISIBLE_TO_ALL === "true"
 
 const DEFAULT_SEEDS = [
   "Modus",
@@ -2172,31 +2161,6 @@ export default function DisplayBracket({
     return () => observer.disconnect()
   }, [dropConnections])
 
-  if (!BRACKET_VISIBLE_TO_ALL && !isTournamentAdmin) {
-    return (
-      <Paper sx={{ p: 2 }}>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            alignItems: "center",
-            mb: 1,
-          }}
-        >
-          <EmojiEventsIcon color="primary" />
-          <Typography variant="h4">1v1 Tournament Bracket</Typography>
-        </Stack>
-        <Typography
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          This page isn&apos;t open yet — check back soon.
-        </Typography>
-      </Paper>
-    )
-  }
-
   if (loading) {
     return (
       <>
@@ -2333,7 +2297,7 @@ export default function DisplayBracket({
               (server clock). Leave blank to show the bracket immediately.
             </Typography>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <DateTimePicker
+              <DateTimeField
                 value={revealAtInput}
                 onChange={(newValue) => setRevealAtInput(newValue)}
                 slotProps={{ textField: { size: "small" } }}

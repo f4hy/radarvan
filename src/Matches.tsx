@@ -20,12 +20,11 @@ import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 
-import _ from "lodash"
+import groupBy from "lodash/groupBy"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
 import { toGeneralName } from "./general_utils"
-import ShowMatchDetails from "./ShowMatchDetails"
 import { Client } from "./Client"
 import {
   MatchInfo,
@@ -41,6 +40,18 @@ import { ActivityCalendar } from "react-activity-calendar"
 import { getColorHex, isCompetitor, isObserver } from "./utils"
 import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+
+// ShowMatchDetails drags in recharts, and this is the landing page — most
+// visits never expand a match, so it is split out and only fetched on demand.
+const ShowMatchDetails = React.lazy(() => import("./ShowMatchDetails"))
+
+function LazyMatchDetails(props: { id: number }) {
+  return (
+    <React.Suspense fallback={<MatchRowLoading />}>
+      <ShowMatchDetails id={props.id} />
+    </React.Suspense>
+  )
+}
 
 function getDates(
   callback: (m: { [key: string]: number }) => void,
@@ -381,7 +392,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
       </Stack>
       <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
       <Collapse in={details} unmountOnExit>
-        <ShowMatchDetails id={match.id} />
+        <LazyMatchDetails id={match.id} />
       </Collapse>
     </Paper>
   )
@@ -432,7 +443,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
   // historically they sit on team 0 and only re-parsed matches have -1, so
   // grouping on `team` alone splits them across cards (and labels the team-0
   // ones "Unknown Team").
-  const teams = _.groupBy(props.match.players, (p) =>
+  const teams = groupBy(props.match.players, (p) =>
     isObserver(p) ? "observers" : p.team,
   )
 
@@ -496,7 +507,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
       </Stack>
       <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
       <Collapse in={details} unmountOnExit>
-        <ShowMatchDetails id={props.match.id} />
+        <LazyMatchDetails id={props.match.id} />
       </Collapse>
     </Paper>
   )
@@ -543,7 +554,7 @@ function MatchDateSummary(props: {
   const categoryChips =
     props.matches.length > 0
       ? Object.entries(
-          _.groupBy(props.matches, (m) =>
+          groupBy(props.matches, (m) =>
             m.composition?.isFfa ? "FFA" : (m.composition?.category ?? "?"),
           ),
         ).map(([cat, ms]) => (

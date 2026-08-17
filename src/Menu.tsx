@@ -32,29 +32,39 @@ import ListItemText from "@mui/material/ListItemText"
 import Toolbar from "@mui/material/Toolbar"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
-import Account from "./Account"
-import { useAuth, useIsTournamentAdmin } from "./AuthContext"
+import { useAuth } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
-import DisplayBalanceTeams from "./BalanceTeams"
-import DisplayBracket, { BRACKET_VISIBLE_TO_ALL } from "./Bracket"
-import ChooseMap from "./ChooseMap"
-import DisplayDebugData from "./DebugData"
-import DisplayDraft from "./Draft"
-import DisplayFFAStats from "./FFA"
-import DisplayGeneralStats from "./GeneralStats"
-import HeadToHead from "./HeadToHead"
 import radarvanLogo from "./img/radarvan_logo.webp"
-import DisplayMapStats from "./MapStats"
-import MapUpload from "./MapUpload"
-import MapVoting from "./MapVoting"
-import DisplayMatches from "./Matches"
-import DisplayPlayerProfile from "./PlayerProfile"
-import DisplayPlayerRatings, { DisplayPlayerRatingTrend } from "./PlayerRatings"
-import DisplayPlayerStats from "./PlayerStats"
-import DisplayPlayerSynergy from "./PlayerSynergy"
-import DisplaySuperlatives from "./Superlatives"
-import DisplayTeamStats from "./TeamStats"
-import DisplayTournamentResults from "./Tournaments"
+import Loading from "./Loading"
+
+// Every page is code-split: the initial bundle would otherwise carry all of
+// them (recharts, the bracket, html2canvas, …) just to render the default
+// Matches list. Keep new pages lazy too.
+const Account = React.lazy(() => import("./Account"))
+const DisplayBalanceTeams = React.lazy(() => import("./BalanceTeams"))
+const DisplayBracket = React.lazy(() => import("./Bracket"))
+const ChooseMap = React.lazy(() => import("./ChooseMap"))
+const DisplayDebugData = React.lazy(() => import("./DebugData"))
+const DisplayDraft = React.lazy(() => import("./Draft"))
+const DisplayFFAStats = React.lazy(() => import("./FFA"))
+const DisplayGeneralStats = React.lazy(() => import("./GeneralStats"))
+const HeadToHead = React.lazy(() => import("./HeadToHead"))
+const DisplayMapStats = React.lazy(() => import("./MapStats"))
+const MapUpload = React.lazy(() => import("./MapUpload"))
+const MapVoting = React.lazy(() => import("./MapVoting"))
+const DisplayMatches = React.lazy(() => import("./Matches"))
+const DisplayPlayerProfile = React.lazy(() => import("./PlayerProfile"))
+const DisplayPlayerRatings = React.lazy(() => import("./PlayerRatings"))
+const DisplayPlayerRatingTrend = React.lazy(() =>
+  import("./PlayerRatings").then((m) => ({
+    default: m.DisplayPlayerRatingTrend,
+  })),
+)
+const DisplayPlayerStats = React.lazy(() => import("./PlayerStats"))
+const DisplayPlayerSynergy = React.lazy(() => import("./PlayerSynergy"))
+const DisplaySuperlatives = React.lazy(() => import("./Superlatives"))
+const DisplayTeamStats = React.lazy(() => import("./TeamStats"))
+const DisplayTournamentResults = React.lazy(() => import("./Tournaments"))
 
 const drawerWidth = 190
 
@@ -113,11 +123,6 @@ export default function Menu() {
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
-  // BRACKET_VISIBLE_TO_ALL (Bracket.tsx) controls whether the tab is public;
-  // it also stays visible for tournament admins even if that's ever flipped
-  // back off, since they need to manage the bracket regardless.
-  const isTournamentAdmin = useIsTournamentAdmin()
-  const showBracketTab = BRACKET_VISIBLE_TO_ALL || isTournamentAdmin
 
   // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
   const navigate = React.useCallback((s: Selection) => {
@@ -183,15 +188,7 @@ export default function Menu() {
       },
       { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
       { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
-      ...(showBracketTab
-        ? [
-            {
-              value: "Bracket" as const,
-              text: "1v1 Bracket",
-              icon: <AccountTreeIcon />,
-            },
-          ]
-        : []),
+      { value: "Bracket", text: "1v1 Bracket", icon: <AccountTreeIcon /> },
       { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
       { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
       { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
@@ -353,11 +350,13 @@ export default function Menu() {
       >
         <Toolbar />
         <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
-          <Main
-            selection={selection}
-            goToPlayerProfile={goToPlayerProfile}
-            goToHeadToHead={goToHeadToHead}
-          />
+          <React.Suspense fallback={<Loading />}>
+            <Main
+              selection={selection}
+              goToPlayerProfile={goToPlayerProfile}
+              goToHeadToHead={goToHeadToHead}
+            />
+          </React.Suspense>
         </Box>
       </Box>
     </Box>
