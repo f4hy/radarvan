@@ -2,7 +2,7 @@
 
 import threading
 from collections import defaultdict
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from enum import Enum
 
 from cachetools import TTLCache
@@ -12,8 +12,6 @@ from fastapi import APIRouter, Depends, Query
 
 from .. import (
     create_teams,
-    head_to_head,
-    match_details,
     matches,
     player_ids,
     player_rating,
@@ -26,18 +24,24 @@ from ..api_types import (
     HeadToHeadDetail,
     PlayerGameCount,
     PlayerName,
-    PlayerRatings,
     PlayerRatingData,
     PlayerRatingDailyChange,
     PlayerSkill,
     PlayerStats,
     PlayerSynergy,
     RatingUpset,
-    ShortPlayerRating,
 )
-from ..cache import competitive_matches, sorted_deduped_matches
+from .. import queries
+from ..cache import competitive_matches
+from ..queries import players as query_players
+from ..queries import (
+    AllGames,
+    CompetitiveGames,
+    UnfilteredCompetitiveGames,
+    WindowedCompetitiveGames,
+)
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, db_manager, get_replay_manager
+from ..dependencies import cache_short, get_replay_manager
 
 router = APIRouter()
 
@@ -60,35 +64,29 @@ class SelectedPlayers(BaseModel):
 
 @router.get("/api/playerstats", dependencies=[Depends(cache_short)])
 def get_player_stats(
-    game_format: str | None = Query(
-        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
-    ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
+    games: AllGames,
+    game_format: str | None = Query(None, description=queries.FORMAT_DESCRIPTION),
 ) -> PlayerStats:
-    """Get player stats."""
-    all_games = sorted_deduped_matches(replay_manager)
-    return player_stats.get_player_stats(
-        list(all_games.values()), game_format=game_format
-    )
+    """Get player stats.
+
+    `game_format` stays a parameter here rather than coming from the corpus
+    dependency: `player_stats.get_player_stats` filters per game *category*
+    internally, which is finer-grained than `filter_by_format`.
+    """
+    return player_stats.get_player_stats(games, game_format=game_format)
 
 
 @router.get("/api/player_colors/", dependencies=[Depends(cache_short)])
-def get_player_colors(
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, str]:
+def get_player_colors(games: AllGames) -> dict[str, str]:
     """Each player's most common actual in-game color, keyed by player name -
     used as their primary identity color in the UI (see PlayerChip)."""
-    all_games = sorted_deduped_matches(replay_manager)
-    return player_stats.most_common_colors(list(all_games.values()))
+    return player_stats.most_common_colors(games)
 
 
 @router.get("/api/player_game_counts/team/", dependencies=[Depends(cache_short)])
-def get_player_team_game_counts(
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> list[PlayerGameCount]:
+def get_player_team_game_counts(games: AllGames) -> list[PlayerGameCount]:
     """Get player names with their total team game count, sorted by count descending."""
-    all_games = sorted_deduped_matches(replay_manager)
-    stats = player_stats.get_player_stats(list(all_games.values()))
+    stats = player_stats.get_player_stats(games)
     counts = [
         PlayerGameCount(
             name=stat.player_name,
@@ -100,9 +98,7 @@ def get_player_team_game_counts(
 
 
 @router.get("/api/player_game_counts/", dependencies=[Depends(cache_short)])
-def get_player_game_counts(
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> list[PlayerGameCount]:
+def get_player_game_counts(games: AllGames) -> list[PlayerGameCount]:
     """Get all player names with their total game count, sorted by count descending.
 
     Counts games *played*: spectating is not playing, and the sibling
@@ -110,9 +106,8 @@ def get_player_game_counts(
     ``player_stats.get_player_stats``), so reading every slot here made the two
     endpoints answer the same question differently.
     """
-    all_matches = sorted_deduped_matches(replay_manager)
     counts: dict[str, int] = {}
-    for game in all_matches.values():
+    for game in games:
         for player in game.roster().competitors:
             name = player_ids.resolve_player_name(player.name, player.color)
             counts[name] = counts.get(name, 0) + 1
@@ -123,83 +118,14 @@ def get_player_game_counts(
 
 
 @router.get("/api/player_ratings/", dependencies=[Depends(cache_short)])
-def get_player_ratings(
-    game_format: str | None = Query(
-        None, description="Filter by game format: 2v2, 3v3, 4v4"
-    ),
-    months_back: int | None = Query(
-        None,
-        ge=1,
-        description="Only use matches from the last N months to compute ratings",
-    ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> PlayerRatingData:
-    games = competitive_matches(replay_manager)
-    game_list = matches.filter_by_format(list(games.values()), game_format)
-    game_list = matches.filter_by_months_back(game_list, months_back)
-
-    ratings_and_counts = player_rating.compute_player_ratings(game_list)
-    counts = ratings_and_counts.game_counts
-
-    today = datetime.now(UTC).date()
-    seven_days_ago = today - timedelta(days=7)
-    fourteen_days_ago = today - timedelta(days=14)
-    thirty_days_ago = today - timedelta(days=30)
-
-    cutoffs = [(7, seven_days_ago), (14, fourteen_days_ago), (30, thirty_days_ago)]
-
-    def convert(rating: player_rating.NamedRating) -> PlayerRatings:
-        deltas: dict[int, float] = {7: 0.0, 14: 0.0, 30: 0.0}
-        for c in ratings_and_counts.daily_changes.get(rating.name, []):
-            for days, cutoff in cutoffs:
-                if c.date >= cutoff:
-                    deltas[days] += c.delta
-        return PlayerRatings(
-            name=rating.name,
-            ordinal=rating.ordinal(),
-            mu=rating.mu,
-            sigma=rating.sigma,
-            atdate=rating.at_date,
-            game_count=counts.get(rating.name),
-            recent_deltas={k: v for k, v in deltas.items() if v != 0},
-            high_ordinal=ratings_and_counts.ordinal_high.get(rating.name),
-            low_ordinal=ratings_and_counts.ordinal_low.get(rating.name),
-        )
-
-    def convert_short(rating: player_rating.NamedRating) -> ShortPlayerRating:
-        return ShortPlayerRating(
-            mu=rating.mu,
-            sigma=rating.sigma,
-            atdate=rating.at_date,
-        )
-
-    player_results: dict[str, list[bool]] = defaultdict(list)
-    for game in sorted(game_list, key=lambda g: g.timestamp):
-        for p in game.roster().participants:
-            player_results[player_ids.resolve_player_name(p.name, p.color)].append(
-                p.won
-            )
-    rated_names = {r.name for r in ratings_and_counts.ratings}
-    player_form = {
-        name: results[-10:]
-        for name, results in player_results.items()
-        if name in rated_names
-    }
-
-    converted = [convert(r) for r in ratings_and_counts.ratings]
-    over_time = {
-        name: [convert_short(r) for r in ratings]
-        for name, ratings in ratings_and_counts.over_time.items()
-    }
-    return PlayerRatingData(
-        player_rating=converted,
-        player_rating_overtime=over_time,
-        player_form=player_form,
-    )
+def get_player_ratings(game_list: WindowedCompetitiveGames) -> PlayerRatingData:
+    """Ratings, rating history and recent form for every rated player."""
+    return query_players.player_ratings_payload(game_list)
 
 
 @router.get("/api/player_ratings/upsets/", dependencies=[Depends(cache_short)])
 def get_rating_upsets(
+    game_list: CompetitiveGames,
     limit: int = Query(20, ge=1, le=200, description="Number of top upsets to return"),
     within_days: int | None = Query(
         None, ge=1, description="Only include upsets from the last N days"
@@ -210,10 +136,6 @@ def get_rating_upsets(
         le=1.0,
         description="Only include upsets with at least this surprise (0-1)",
     ),
-    game_format: str | None = Query(
-        None, description="Filter by game format: 2v2, 3v3, 4v4"
-    ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[RatingUpset]:
     """Upsets: games where the model's favored team lost.
 
@@ -221,8 +143,6 @@ def get_rating_upsets(
     winner) descending. Optionally restricted to the last ``within_days`` days
     and to a ``min_surprise`` threshold; the top ``limit`` are returned.
     """
-    games = competitive_matches(replay_manager)
-    game_list = matches.filter_by_format(list(games.values()), game_format)
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     upsets = matches.filter_since(
         ratings_and_counts.upsets, within_days, key=lambda u: u.at_date
@@ -247,9 +167,7 @@ def get_rating_upsets(
 
 @router.get("/api/player_ratings/synergy/", dependencies=[Depends(cache_short)])
 def get_player_synergy(
-    game_format: str | None = Query(
-        None, description="Filter by game format: 2v2, 3v3, 4v4"
-    ),
+    game_list: CompetitiveGames,
     min_games_together: int = Query(
         player_synergy.DEFAULT_MIN_GAMES_TOGETHER,
         ge=1,
@@ -266,7 +184,6 @@ def get_player_synergy(
         description="L2 shrinkage for per-player main effects; raise to stop strong "
         "players' main effects running away and saturating pair synergy",
     ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[PlayerSynergy]:
     """Pairwise synergy: do two players win more/less as teammates than their ratings predict.
 
@@ -274,8 +191,6 @@ def get_player_synergy(
     fixed offset, player main effects, and pairwise interaction terms. Sorted by
     synergy descending. See ``SYNERGY_METHODOLOGY.md``.
     """
-    games = competitive_matches(replay_manager)
-    game_list = matches.filter_by_format(list(games.values()), game_format)
     pairs = player_synergy.compute_player_synergy(
         game_list,
         lambda_pair=regularization,
@@ -286,20 +201,13 @@ def get_player_synergy(
 
 
 @router.get("/api/player_skills/", dependencies=[Depends(cache_short)])
-def get_player_skills(
-    game_format: str | None = Query(
-        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
-    ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> list[PlayerSkill]:
+def get_player_skills(game_list: CompetitiveGames) -> list[PlayerSkill]:
     """Alternative skill estimate via Whole-History Rating (Coulom 2008).
 
     Each player's skill is a function of time (one rating per date played) with a
     Gaussian random-walk prior on changes; team Bradley-Terry likelihood for outcomes.
     Returns each player's rating at their most recent game, mean-centered across players.
     """
-    games = competitive_matches(replay_manager)
-    game_list = matches.filter_by_format(list(games.values()), game_format)
     skills = player_skill.compute_player_skills(game_list)
     return [
         PlayerSkill(name=s.name, skill=s.skill, game_count=s.game_count) for s in skills
@@ -309,10 +217,9 @@ def get_player_skills(
 @router.get("/api/player_ratings/daily_changes/", dependencies=[Depends(cache_short)])
 def get_player_rating_daily_changes(
     for_date: date,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
+    game_list: UnfilteredCompetitiveGames,
 ) -> list[PlayerRatingDailyChange]:
     """Return each player's ordinal rating change for the given date."""
-    game_list = list(competitive_matches(replay_manager).values())
     ratings_and_counts = player_rating.compute_player_ratings(game_list)
     result = []
     for name, changes in ratings_and_counts.daily_changes.items():
@@ -325,14 +232,15 @@ def get_player_rating_daily_changes(
 
 @router.get("/api/player_ratings/head_to_head/", dependencies=[Depends(cache_short)])
 def get_head_to_head(
-    game_format: str | None = Query(None),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
+    all_games: UnfilteredCompetitiveGames,
+    game_format: str | None = Query(None, description=queries.FORMAT_DESCRIPTION),
 ) -> dict[str, dict[str, HeadToHead]]:
     """Win/loss record for every rated player against every other rated player."""
-    all_games = list(competitive_matches(replay_manager).values())
     game_list = matches.filter_by_format(all_games, game_format)
 
-    # Use unfiltered games for rated_players so the cache key matches other endpoints.
+    # Rated players come from the *unfiltered* corpus on purpose: it is the same
+    # argument every other ratings endpoint passes, so this shares their cached
+    # derivation instead of forcing a second one per format.
     rated_players = {
         r.name for r in player_rating.compute_player_ratings(all_games).ratings
     }
@@ -375,51 +283,17 @@ def get_head_to_head(
 async def get_player_head_to_head(
     player1: PlayerName,
     player2: PlayerName,
-    game_format: str | None = Query(
-        None, description="Filter by game format: 1v1, 2v2, 3v3, 4v4"
-    ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
+    game_list: CompetitiveGames,
 ) -> HeadToHeadDetail:
     """Detailed head-to-head record between two players (opposite-team games only).
 
     Considers competitive games where both players took part on *different* teams;
     the winner of each game is the side whose team won. Aggregates the overall
     record, each player's record by the general they piloted, and the record by
-    map, plus the full game list (most recent first).
-
-    Also loads kill data for the most recent `_H2H_VALUE_WINDOW` games
-    featuring both players to compute value destroyed between them. Windowed
-    (not the full history) because for the handful of extremely long-running
-    pairs (600+ shared games), even a single batched query transfers enough
-    kill-event JSON over the (remote) DB connection to take several seconds -
-    every other pair has few enough games this never matters.
+    map, plus the full game list (most recent first), and the value destroyed
+    between them over their most recent shared games.
     """
-    games = list(competitive_matches(replay_manager).values())
-    game_list = matches.filter_by_format(games, game_format)
-
-    # Ask the roster, not every slot: a spectator whose account resolves to one
-    # of these names would otherwise make a game they never played a candidate.
-    # `participants` matches what compute_head_to_head itself reads.
-    candidate_games = [
-        g
-        for g in game_list
-        if {player1, player2}
-        <= {
-            player_ids.resolve_player_name(p.name, p.color)
-            for p in g.roster().participants
-        }
-    ]
-    candidate_games.sort(key=lambda g: g.timestamp, reverse=True)
-    candidate_ids = [g.id for g in candidate_games[:_H2H_VALUE_WINDOW]]
-    kill_data_by_match = await match_details.load_many_kill_data(
-        candidate_ids, db_manager
-    )
-    value_by_match = head_to_head.value_destroyed_by_match(
-        kill_data_by_match, player1, player2
-    )
-    return head_to_head.compute_head_to_head(
-        game_list, player1, player2, value_by_match
-    )
+    return await query_players.player_head_to_head_detail(game_list, player1, player2)
 
 
 # A deliberately frozen answer, which is why it is a wall clock and not a
@@ -478,13 +352,12 @@ def balance_teams(
 
 @router.get("/api/partition_teams/{team_size}")
 def partition_teams(
+    games: UnfilteredCompetitiveGames,
     team_size: int = 2,
     players: SelectedPlayers = Query(
         default_factory=lambda: SelectedPlayers(players=[])
     ),
-    replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> list[list[str]]:
-    games = list(competitive_matches(replay_manager).values())
     return create_teams.create_balanced_teams(
         games, player_list={str(p.value) for p in players.players}, team_size=team_size
     )

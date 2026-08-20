@@ -48,8 +48,9 @@ import structlog
 from ..api_types import BracketTournamentOutput, MatchInfo
 from ..db_utils import ReplayManager
 from ..repositories import BracketRepo
+from .. import queries
+from ..queries import players as query_players
 from ..routes import bracket as bracket_routes
-from ..routes import players as players_routes
 from ..routes import profile as profile_routes
 from ..routes import tournaments as tournaments_routes
 from . import hype_data, llm
@@ -188,30 +189,28 @@ def build_prompt(
     # themselves go into one whole-population calibration block instead of
     # being embedded per-player - see hype_data.HypeRatingsContext's
     # docstring for why.
-    ratings = players_routes.get_player_ratings(
-        game_format=None, months_back=None, replay_manager=replay_manager
+    ratings = query_players.player_ratings_payload(
+        queries.competitive_games(replay_manager)
     )
     ratings_context = hype_data.build_hype_ratings_context(
         ratings.player_rating, player1, player2
     )
-    # get_player_head_to_head is async (it loads kill data for value
+    # player_head_to_head_detail is async (it loads kill data for value
     # destroyed) but build_prompt is always called from a sync context (a
     # sync FastAPI route runs in starlette's threadpool, with no event loop
     # of its own) - asyncio.run() bridges that safely here.
     h2h_1v1 = asyncio.run(
-        players_routes.get_player_head_to_head(
-            player1=player1,
-            player2=player2,
-            game_format="1v1",
-            replay_manager=replay_manager,
+        query_players.player_head_to_head_detail(
+            queries.competitive_games(replay_manager, game_format="1v1"),
+            player1,
+            player2,
         )
     )
     h2h_all = asyncio.run(
-        players_routes.get_player_head_to_head(
-            player1=player1,
-            player2=player2,
-            game_format=None,
-            replay_manager=replay_manager,
+        query_players.player_head_to_head_detail(
+            queries.competitive_games(replay_manager),
+            player1,
+            player2,
         )
     )
     bracket_output, tournament_games = _tournament_inputs(replay_manager)

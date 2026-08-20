@@ -25,8 +25,18 @@ Ordered so each step makes the next one cheaper. Nothing here is a rewrite; no s
       deleted; a ratchet test fails any new bare cachetools cache *or* `functools` memo over a
       keyed function. Derivations are single-flighted now (8 racing threads → 1 computation).
       Boot warm unchanged (3.1s).
-- [ ] **05** — `queries/` layer; move logic out of handlers as you touch them _(incremental · low risk)_
-- [ ] **06** — Narrow `Depends` providers; freeze `ReplayManager` _(incremental · low risk)_
+- [~] **05** — `queries/` layer; move logic out of handlers as you touch them _(incremental · low risk)_
+- [~] **06** — Narrow `Depends` providers; freeze `ReplayManager` _(incremental · low risk)_
+      → **slice 1 of 3 done** (the stats cluster: `players`, `generals`, `teams`, `ffa`). Taken
+      together because they edit the same lines. `queries/games.py` owns corpus selection and
+      exposes it as FastAPI dependencies, so a handler declares `games: CompetitiveGames` and takes
+      no `ReplayManager` at all — 06 arrived at from the other direction: not a smaller repository,
+      but none. `Depends(get_replay_manager)` in `routes/`: 90 → 76. `queries/players.py` holds the
+      two read models `commentary` used to get by calling route handlers as functions. OpenAPI spec
+      verified **structurally identical** (description-only diffs), and corpus selection proven
+      identity against the old expressions for every filter combination.
+      Remaining: slice 2 `admin`/`maps`/`matches` (needs a by-id lookup query, not a corpus scan),
+      slice 3 the rest, then freeze `ReplayManager` when the count hits zero.
 - [x] **07** — Fixture coverage for `ffa_stats`, `general_stats`, `team_stats`, `create_teams` _(a day · no risk)_
       → +65 tests, 100% statement coverage on all four (was 0 direct tests; the smoke test only
       checked the endpoints returned a valid shape). `tests/corpus.py` gained the shapes they
