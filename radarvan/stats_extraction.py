@@ -355,7 +355,7 @@ def milestone_timings_from_replay(
     # produce one). Sorted because we want the *first* flip and the event
     # stream carries un-hunted flips interleaved; a player who rebuilds and
     # goes hunted again keeps their earliest time.
-    for hev in sorted(replay.stats.hunted_events, key=lambda e: e.frame):
+    for hev in sorted(replay.stats.hunted_events or [], key=lambda e: e.frame):
         if not hev.hunted or is_initial_seed_frame(hev.frame):
             continue
         name = name_by_idx.get(hev.player)

@@ -96,11 +96,7 @@ import type { BackfillMatchCompositionApiBackfillCompositionPostRequest } from '
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -132,7 +128,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -168,11 +164,7 @@ import type { BackfillPlayerRolesApiBackfillPlayerRolesPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -207,7 +199,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -243,11 +235,7 @@ import type { BackfillTournamentGamesApiBackfillTournamentGamesPostRequest } fro
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   try {
     const data = await api.backfillTournamentGamesApiBackfillTournamentGamesPost();
@@ -271,7 +259,7 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -378,11 +366,7 @@ import type { ClearDetailsCacheApiClearDetailsCachePostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   try {
     const data = await api.clearDetailsCacheApiClearDetailsCachePost();
@@ -406,7 +390,7 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -441,11 +425,7 @@ import type { ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest } f
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number
@@ -477,7 +457,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -585,11 +565,7 @@ import type { DeleteOverrideApiOverrideMatchIdDeleteRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number
@@ -621,7 +597,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -655,11 +631,7 @@ import type { FixIncompleteApiFixIncompletePostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -691,7 +663,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -725,11 +697,7 @@ import type { FixUnkPlayersApiFixUnkPlayerPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -761,7 +729,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -795,11 +763,7 @@ import type { GenerateTournamentReportApiGenerateTournamentReportTournamentNameP
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // string
@@ -831,7 +795,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -3858,11 +3822,7 @@ import type { RecomputePlayerProfilesApiPlayerProfileRecomputePostRequest } from
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   try {
     const data = await api.recomputePlayerProfilesApiPlayerProfileRecomputePost();
@@ -3886,7 +3846,7 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -3921,11 +3881,7 @@ import type { RecomputeSuperlativesApiSuperlativesRecomputePostRequest } from ''
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   try {
     const data = await api.recomputeSuperlativesApiSuperlativesRecomputePost();
@@ -3949,7 +3905,7 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -3984,11 +3940,7 @@ import type { RefreshMatchesFromJsonApiRefreshMatchesFromJsonPostRequest } from 
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -4020,7 +3972,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4056,11 +4008,7 @@ import type { RegisterMatchesApiRegisterMatchesPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -4092,7 +4040,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4128,11 +4076,7 @@ import type { RegisterReplayUrlApiRegisterReplayUrlPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // string
@@ -4164,7 +4108,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4268,11 +4212,7 @@ import type { ReparseBeforeDateApiReparseBeforeDatePostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // Date
@@ -4307,7 +4247,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4343,11 +4283,7 @@ import type { ReparseNonV2ApiReparseNonV2PostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -4382,7 +4318,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4418,11 +4354,7 @@ import type { ReparseRecentApiReparseRecentPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number (optional)
@@ -4454,7 +4386,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4560,11 +4492,7 @@ import type { ResetMatchApiMatchMatchIdDeleteRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number
@@ -4596,7 +4524,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4630,11 +4558,7 @@ import type { ScrapeApiScrapeDaysPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number
@@ -4666,7 +4590,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -4702,11 +4626,7 @@ import type { SetOverrideApiSetOverridePostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // number
@@ -4744,7 +4664,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 

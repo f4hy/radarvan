@@ -121,10 +121,6 @@ export class MapApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/backfill_map_crcs`;
 
@@ -225,10 +221,6 @@ export class MapApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/fetch_map_for_match/{match_id}`;
@@ -650,10 +642,6 @@ export class MapApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/push_maps_to_cncstats`;
 
@@ -753,10 +741,6 @@ export class MapApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/reparse_maps`;

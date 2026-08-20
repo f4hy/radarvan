@@ -13,6 +13,7 @@ Name | Type
 `needsPlayerSelection` | boolean
 `isAdmin` | boolean
 `isTournamentAdmin` | boolean
+`isOpsAdmin` | boolean
 
 ## Example
 
@@ -28,6 +29,7 @@ const example = {
   "needsPlayerSelection": null,
   "isAdmin": null,
   "isTournamentAdmin": null,
+  "isOpsAdmin": null,
 } satisfies CurrentUser
 
 console.log(example)

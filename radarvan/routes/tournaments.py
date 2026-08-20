@@ -11,6 +11,7 @@ from ..cache import sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import (
     ADMIN_ONLY,
+    OPS_ADMIN,
     cache_short,
     db_manager,
     get_replay_manager,
@@ -21,6 +22,11 @@ from ..repositories import TournamentRepo
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Operational routes the admin control panel drives. Cookie-authenticated, so
+# included in main.py without the API-key dependency; every route here carries
+# `dependencies=OPS_ADMIN`.
+session_router = APIRouter()
 
 
 _report_semaphore = asyncio.Semaphore(value=1)
@@ -170,8 +176,8 @@ async def get_tournament_report(
     return existing
 
 
-@router.post(
-    "/api/generate_tournament_report/{tournament_name}", dependencies=ADMIN_ONLY
+@session_router.post(
+    "/api/generate_tournament_report/{tournament_name}", dependencies=OPS_ADMIN
 )
 async def generate_tournament_report(
     background_tasks: BackgroundTasks,

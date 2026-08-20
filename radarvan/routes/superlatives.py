@@ -10,12 +10,17 @@ from .. import general_stats, player_rating, superlatives
 from ..api_types import Statistic
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
-from ..dependencies import ADMIN_ONLY, cache_short, db_manager, get_replay_manager
+from ..dependencies import OPS_ADMIN, cache_short, db_manager, get_replay_manager
 from ..notify import notify_async
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Operational routes the admin control panel drives. Cookie-authenticated, so
+# included in main.py without the API-key dependency; every route here carries
+# `dependencies=OPS_ADMIN`.
+session_router = APIRouter()
 
 
 _recompute_lock = asyncio.Lock()
@@ -102,7 +107,7 @@ async def _do_recompute_bg() -> None:
             session.commit()
 
 
-@router.post("/api/superlatives/recompute", dependencies=ADMIN_ONLY)
+@session_router.post("/api/superlatives/recompute", dependencies=OPS_ADMIN)
 async def recompute_superlatives(
     background_tasks: BackgroundTasks,
 ) -> dict[str, str]:

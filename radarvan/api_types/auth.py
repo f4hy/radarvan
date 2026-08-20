@@ -8,6 +8,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, computed_field
 from ..player_ids import (
     is_admin as _is_admin_player,
+    is_ops_admin as _is_ops_admin_player,
     is_tournament_admin as _is_tournament_admin_player,
 )
 from .common import _FROM_ATTRIBUTES
@@ -38,6 +39,16 @@ class CurrentUser(BaseModel):
     def is_tournament_admin(self) -> bool:
         """True if the claimed in-game name is in player_ids.TOURNAMENT_ADMINS."""
         return _is_tournament_admin_player(self.player_name)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def is_ops_admin(self) -> bool:
+        """True if the claimed in-game name is in player_ids.OPS_ADMINS.
+
+        Gates the admin control panel - narrower than `is_admin`, which only
+        unlocks the debug views.
+        """
+        return _is_ops_admin_player(self.player_name)
 
 
 class AuthStatus(BaseModel):

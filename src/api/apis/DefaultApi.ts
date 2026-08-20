@@ -382,10 +382,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/backfill/composition`;
 
@@ -433,10 +429,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/backfill_player_roles/`;
 
@@ -475,10 +467,6 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/backfill/tournament_games`;
@@ -566,10 +554,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/clear_details_cache/`;
 
@@ -615,10 +599,6 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/matches/{match_id}/composition`;
@@ -718,10 +698,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/override/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
@@ -766,10 +742,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/fix_incomplete/`;
 
@@ -810,10 +782,6 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/fix_unk_player/`;
@@ -858,10 +826,6 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/generate_tournament_report/{tournament_name}`;
@@ -3037,10 +3001,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/player_profile/recompute`;
 
@@ -3079,10 +3039,6 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/superlatives/recompute`;
@@ -3127,10 +3083,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/refresh_matches_from_json/`;
 
@@ -3173,10 +3125,6 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/register_matches/`;
@@ -3227,10 +3175,6 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/register_replay_url`;
@@ -3333,10 +3277,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/reparse_before_date/`;
 
@@ -3384,10 +3324,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/reparse_non_v2/`;
 
@@ -3430,10 +3366,6 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/reparse_recent/`;
@@ -3526,10 +3458,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
 
         let urlPath = `/api/match/{match_id}`;
         urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
@@ -3576,10 +3504,6 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/scrape/{days}`;
@@ -3637,10 +3561,6 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
 
 
         let urlPath = `/api/set_override/`;

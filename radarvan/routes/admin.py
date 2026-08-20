@@ -1,17 +1,19 @@
 """Admin / operational / debug endpoints.
 
-These are mostly write or backfill operations; many are excluded from the
-OpenAPI schema in production.
-
 Two routers, because there are two kinds of caller:
 
-- ``router`` - operational endpoints run by scripts/curl. Every mutating route
-  carries ``dependencies=ADMIN_ONLY`` (admin-tier X-API-Key). The read-only
-  debug/override *listings* stay at the normal tier so the DebugData page can
-  reach them with the key the browser ships.
-- ``session_router`` - admin actions the UI drives, gated with
-  ``dependencies=ADMIN_LOGIN`` on a logged-in ``ADMIN_PLAYERS`` user. Included
-  in main.py without the API-key dependency.
+- ``router`` - the read-only debug/override *listings*, at the normal tier so
+  the DebugData page can reach them with the key the browser ships.
+- ``session_router`` - every mutating operation, included in main.py *without*
+  the API-key dependency because the credential is a signed session cookie.
+  The reparse button on the DebugData page carries ``ADMIN_LOGIN``
+  (``ADMIN_PLAYERS``); everything else - scrape, backfill, bulk reparse,
+  override, delete - carries ``OPS_ADMIN`` (``OPS_ADMINS``), which is what the
+  admin control panel drives.
+
+These used to sit on ``router`` behind an admin-tier ``X-API-Key``, which no
+browser can hold: the frontend ships one normal-tier key to every visitor. The
+gates still accept an admin key, so curl and ops scripts are unaffected.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,8 +31,7 @@ from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import (
     ADMIN_LOGIN,
-    ADMIN_ONLY,
-    IS_DEV,
+    OPS_ADMIN,
     db_manager,
     get_bracket_repo,
     get_replay_manager,
@@ -44,7 +45,8 @@ router = APIRouter()
 
 # Admin actions driven from the UI. Included in main.py *without* the API-key
 # dependency: the browser sends a session cookie, not an admin key. Every route
-# here must carry `dependencies=ADMIN_LOGIN`.
+# here must carry `dependencies=OPS_ADMIN` (or `ADMIN_LOGIN` for the DebugData
+# reparse button) - the router itself has no gate of its own.
 session_router = APIRouter()
 
 
@@ -68,7 +70,7 @@ def _debug_data_to_dict(data: MatchDebugData) -> dict[str, Any]:
     }
 
 
-@router.post("/api/scrape/{days}", dependencies=ADMIN_ONLY)
+@session_router.post("/api/scrape/{days}", dependencies=OPS_ADMIN)
 def scrape(
     background_tasks: BackgroundTasks,
     days: int = 1,
@@ -106,7 +108,7 @@ def get_match_json_url(
     return {"url": replay_files.presigned_url(match.json_s3_uri)}
 
 
-@router.post("/api/matches/{match_id}/composition", dependencies=ADMIN_ONLY)
+@session_router.post("/api/matches/{match_id}/composition", dependencies=OPS_ADMIN)
 def compute_match_composition(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -118,9 +120,7 @@ def compute_match_composition(
     return result
 
 
-@router.post(
-    "/api/backfill/composition", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/backfill/composition", dependencies=OPS_ADMIN)
 def backfill_match_composition(
     max_to_update: int = 100,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -162,9 +162,7 @@ def reparse(
     return replay
 
 
-@router.post(
-    "/api/clear_details_cache/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/clear_details_cache/", dependencies=OPS_ADMIN)
 def clear_details_cache(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int]:
@@ -184,7 +182,7 @@ def clear_details_cache(
     return {"deleted": deleted}
 
 
-@router.post("/api/reparse_recent/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
+@session_router.post("/api/reparse_recent/", dependencies=OPS_ADMIN)
 def reparse_recent(
     days: int = 3,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -208,9 +206,7 @@ def reparse_recent(
     }
 
 
-@router.post(
-    "/api/reparse_before_date/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/reparse_before_date/", dependencies=OPS_ADMIN)
 def reparse_before_date(
     before: date,
     max_to_update: int = 10,
@@ -241,7 +237,7 @@ def reparse_before_date(
     }
 
 
-@router.post("/api/reparse_non_v2/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
+@session_router.post("/api/reparse_non_v2/", dependencies=OPS_ADMIN)
 async def reparse_non_v2(
     max_to_update: int = 10,
     max_concurrent: int = 8,
@@ -309,7 +305,7 @@ def get_overrides(
     ]
 
 
-@router.post("/api/set_override/", dependencies=ADMIN_ONLY)
+@session_router.post("/api/set_override/", dependencies=OPS_ADMIN)
 def set_override(
     match_id: int,
     winner: Team | None = None,
@@ -328,7 +324,7 @@ def set_override(
     )
 
 
-@router.delete("/api/match/{match_id}", dependencies=ADMIN_ONLY)
+@session_router.delete("/api/match/{match_id}", dependencies=OPS_ADMIN)
 def reset_match(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -343,7 +339,7 @@ def reset_match(
     return counts
 
 
-@router.delete("/api/override/{match_id}", dependencies=ADMIN_ONLY)
+@session_router.delete("/api/override/{match_id}", dependencies=OPS_ADMIN)
 def delete_override(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -358,9 +354,7 @@ def delete_override(
     return {"status": "deleted", "match_id": str(match_id)}
 
 
-@router.post(
-    "/api/backfill/tournament_games", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/backfill/tournament_games", dependencies=OPS_ADMIN)
 def backfill_tournament_games(
     replay_manager: ReplayManager = Depends(get_replay_manager),
     bracket_repo: BracketRepo = Depends(get_bracket_repo),
@@ -394,9 +388,7 @@ def _roles_from_json(json_s3_uri: str) -> list[tuple[PlayerKey, int]]:
     ]
 
 
-@router.post(
-    "/api/backfill_player_roles/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/backfill_player_roles/", dependencies=OPS_ADMIN)
 def backfill_player_roles(
     max_to_update: int = 100,
     max_concurrent: int = 16,
@@ -463,9 +455,7 @@ def _fetch_and_parse(json_s3_uri: str, replay_file_url: str) -> Match:
     return matches.replay_to_db_match(replay, json_s3_uri)
 
 
-@router.post(
-    "/api/refresh_matches_from_json/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/refresh_matches_from_json/", dependencies=OPS_ADMIN)
 def refresh_matches_from_json(
     max_to_update: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -526,9 +516,7 @@ def refresh_matches_from_json(
     return {"updated": updated_count, "checked": len(parsed)}
 
 
-@router.post(
-    "/api/register_matches/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY
-)
+@session_router.post("/api/register_matches/", dependencies=OPS_ADMIN)
 def register_matches(
     max_to_update: int = 100,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -540,7 +528,7 @@ def register_matches(
     return {"updated": updated}
 
 
-@router.post("/api/fix_incomplete/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
+@session_router.post("/api/fix_incomplete/", dependencies=OPS_ADMIN)
 def fix_incomplete(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -568,7 +556,7 @@ def fix_incomplete(
     return {"updated": updated_count}
 
 
-@router.post("/api/fix_unk_player/", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
+@session_router.post("/api/fix_unk_player/", dependencies=OPS_ADMIN)
 def fix_unk_players(
     max_to_update: int = 1,
     replay_manager: ReplayManager = Depends(get_replay_manager),

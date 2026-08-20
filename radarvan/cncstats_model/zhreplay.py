@@ -127,9 +127,13 @@ class EnrichedStats(BaseModel):
     capture_events: Annotated[list[EnrichedCaptureEvent], Field(alias="captureEvents")]
     death_events: Annotated[list[statsfile.DeathEvent], Field(alias="deathEvents")]
     energy_events: Annotated[list[statsfile.EnergyEvent], Field(alias="energyEvents")]
+    # Nullable, not just defaulted: cncstats is Go, so a nil slice marshals to
+    # `null` rather than `[]` or an absent key, and a default only fires for a
+    # *missing* key. huntedEvents is nil for every replay whose stats predate
+    # statsVersion 3, so read it as `hunted_events or []`.
     hunted_events: Annotated[
-        list[statsfile.HuntedEvent], Field(alias="huntedEvents")
-    ] = []
+        list[statsfile.HuntedEvent] | None, Field(alias="huntedEvents")
+    ] = None
     kill_events: Annotated[list[EnrichedKillEvent], Field(alias="killEvents")]
     radar_events: Annotated[list[statsfile.RadarEvent], Field(alias="radarEvents")]
     rank_events: Annotated[list[statsfile.RankEvent], Field(alias="rankEvents")]

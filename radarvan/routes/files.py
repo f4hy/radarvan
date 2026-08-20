@@ -26,11 +26,16 @@ from ..api_types import (
 )
 from ..cache import invalidate_match_caches
 from ..db_utils import ReplayManager
-from ..dependencies import ADMIN_ONLY, get_replay_manager
+from ..dependencies import OPS_ADMIN, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Operational routes the admin control panel drives. Cookie-authenticated, so
+# included in main.py without the API-key dependency; every route here carries
+# `dependencies=OPS_ADMIN`.
+session_router = APIRouter()
 
 MAX_REPLAY_UPLOAD_BYTES = 5 * 1024 * 1024
 
@@ -175,7 +180,7 @@ def upload_replay(
     return match_info
 
 
-@router.post("/api/register_replay_url", dependencies=ADMIN_ONLY)
+@session_router.post("/api/register_replay_url", dependencies=OPS_ADMIN)
 def register_replay_url(
     url_of_replay: str,
     replay_manager: ReplayManager = Depends(get_replay_manager),

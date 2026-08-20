@@ -123,6 +123,19 @@ def is_tournament_admin(player_name: str | None) -> bool:
     return player_name is not None and player_name in TOURNAMENT_ADMINS
 
 
+# Admins for the operational control panel (scrape, reparse, backfill,
+# override, delete) - a third, narrower set than ADMIN_PLAYERS, for the same
+# reason TOURNAMENT_ADMINS is narrower: these actions rewrite stored data and
+# spend real work, so being trusted with the debug views (ADMIN_PLAYERS) does
+# not imply being trusted to reparse the corpus.
+OPS_ADMINS: set[str] = {"Modus"}
+
+
+def is_ops_admin(player_name: str | None) -> bool:
+    """True if the given claimed in-game name can run operational admin tasks."""
+    return player_name is not None and player_name in OPS_ADMINS
+
+
 def resolve_player_name(name: str, color: str = "") -> str:
     """Resolve a player name from their in-game name and optional color."""
     if name.lower() == "pc":

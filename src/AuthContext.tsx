@@ -56,3 +56,11 @@ export function useIsAdmin(): boolean {
 export function useIsTournamentAdmin(): boolean {
   return useAuth().status?.user?.is_tournament_admin ?? false
 }
+
+// True if the logged-in user can run the operational admin tasks behind the
+// Admin panel (player_ids.OPS_ADMINS) — narrower again than useIsAdmin, which
+// only unlocks the debug views. The backend gates every one of those routes on
+// the same set, so this is presentation only, not the security boundary.
+export function useIsOpsAdmin(): boolean {
+  return useAuth().status?.user?.is_ops_admin ?? false
+}

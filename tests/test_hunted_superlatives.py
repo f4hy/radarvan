@@ -38,7 +38,7 @@ _DURATION_MINUTES = 10.0
 # --- milestone extraction --------------------------------------------------
 
 
-def _replay(events: list[HuntedEvent]) -> EnhancedReplayV2:
+def _replay(events: list[HuntedEvent] | None) -> EnhancedReplayV2:
     stats = EnrichedStats.model_construct(
         battle_plan_events=[],
         build_events=[],
@@ -70,10 +70,16 @@ def _replay(events: list[HuntedEvent]) -> EnhancedReplayV2:
     )
 
 
-def _time_to_hunted(events: list[HuntedEvent]) -> dict[str, float]:
+def _time_to_hunted(events: list[HuntedEvent] | None) -> dict[str, float]:
     replay = _replay(events)
     name_by_idx = {p.index: p.name for p in replay.summary}
     return milestone_timings_from_replay(replay, name_by_idx).time_to_hunted
+
+
+def test_absent_hunted_stream_has_no_milestones() -> None:
+    """Replays predating statsVersion 3 parse with `hunted_events` None; the
+    milestone pass must read that as "nobody went hunted" rather than raise."""
+    assert _time_to_hunted(None) == {}
 
 
 def test_time_to_hunted_records_the_minute_per_player() -> None:

@@ -41,11 +41,7 @@ import type { BackfillMapCrcsApiBackfillMapCrcsPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new MapApi(config);
+  const api = new MapApi();
 
   const body = {
     // number (optional)
@@ -77,7 +73,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -185,11 +181,7 @@ import type { FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new MapApi(config);
+  const api = new MapApi();
 
   const body = {
     // number
@@ -224,7 +216,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -794,11 +786,7 @@ import type { PushMapsToCncstatsApiPushMapsToCncstatsPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new MapApi(config);
+  const api = new MapApi();
 
   const body = {
     // number (optional)
@@ -830,7 +818,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 
@@ -938,11 +926,7 @@ import type { ReparseMapsApiReparseMapsPostRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new MapApi(config);
+  const api = new MapApi();
 
   const body = {
     // number (optional)
@@ -974,7 +958,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[APIKeyHeader](../README.md#APIKeyHeader)
+No authorization required
 
 ### HTTP request headers
 

@@ -6,9 +6,12 @@ Two things are pinned here:
    `has_admin_access`) resolve a presented key to the right tier, and enforce
    only when ENFORCE_AUTH is set.
 2. Which routes are elevated. Every mutating route in `radarvan.routes` must
-   be admin-tagged or listed below, so adding an ops endpoint without
-   `dependencies=ADMIN_ONLY` fails this test instead of silently shipping
-   reachable by any key.
+   pick one of the three elevated gates or be listed below, so adding an ops
+   endpoint without `dependencies=ADMIN_ONLY` / `ADMIN_LOGIN` / `OPS_ADMIN`
+   fails this test instead of silently shipping reachable by any key.
+3. That the two cookie gates and the routers carrying them stay consistent:
+   a route gated on a session cookie must not also sit behind the API key,
+   and vice versa.
 """
 
 import asyncio
@@ -30,12 +33,12 @@ from radarvan import dependencies, notify, player_ids, routes
 from radarvan.auth_notify import notify_auth_event
 from radarvan.db import User
 from radarvan.rate_limit import InMemoryRateLimitStore
-from radarvan.routes import admin
 from radarvan.dependencies import (
     AccessTier,
     has_admin_access,
     require_admin_key,
     require_admin_login,
+    require_ops_admin,
     verify_api_key,
 )
 
@@ -157,16 +160,10 @@ NORMAL_TIER_MUTATIONS = {
     ("POST", "/api/predict"),  # win prediction from raw features
 }
 
-# Admin actions the UI drives: gated on a logged-in ADMIN_PLAYERS user
-# (dependencies=ADMIN_LOGIN) rather than an admin key, because the browser only
-# ever ships a normal-tier key.
-ADMIN_LOGIN_MUTATIONS = {
-    ("POST", "/api/reparse/{match_id}"),
-}
-
-# Mutating routes on the cookie-session routers (not behind X-API-Key at all).
-# Their privilege check is a logged-in user, done inside the handler - see
-# player_ids.ADMIN_PLAYERS / TOURNAMENT_ADMINS.
+# Mutating routes on the cookie-session routers whose privilege check is done
+# *inside* the handler rather than as a route dependency - see
+# player_ids.ADMIN_PLAYERS / TOURNAMENT_ADMINS. The admin/ops routes are not
+# listed here: they carry ADMIN_LOGIN / OPS_ADMIN, which `_is_elevated` sees.
 COOKIE_AUTH_MUTATIONS = {
     ("POST", "/api/auth/select_player"),
     ("POST", "/api/auth/logout"),
@@ -205,6 +202,30 @@ def _is_admin_tagged(route: APIRoute) -> bool:
     return _tagged_with(route, require_admin_key)
 
 
+# The three elevated gates. ADMIN_ONLY wants an admin-tier key; the other two
+# want a logged-in admin (and accept an admin key), and so must live on a
+# session router - see `_session_routes`.
+ELEVATED_GATES = (require_admin_key, require_admin_login, require_ops_admin)
+COOKIE_GATES = (require_admin_login, require_ops_admin)
+
+
+def _is_elevated(route: APIRoute) -> bool:
+    """True if the route opts into any gate above the baseline API key."""
+    return any(_tagged_with(route, gate) for gate in ELEVATED_GATES)
+
+
+def _session_routes() -> set[str]:
+    """Paths on every module's ``session_router`` - the routers main.py
+    includes *without* ``verify_api_key``, because the credential is a cookie."""
+    paths = set()
+    for info in pkgutil.iter_modules(routes.__path__):
+        module = importlib.import_module(f"{routes.__name__}.{info.name}")
+        session_router = getattr(module, "session_router", None)
+        if isinstance(session_router, APIRouter):
+            paths |= {r.path for r in session_router.routes if isinstance(r, APIRoute)}
+    return paths
+
+
 def _mutations() -> set[tuple[str, str]]:
     return {
         (method, route.path)
@@ -220,24 +241,22 @@ def test_routes_were_actually_collected() -> None:
 
 
 def test_every_mutating_route_picks_a_tier() -> None:
-    untagged = {
+    ungated = {
         (method, route.path)
         for _, route in _all_routes()
         for method in route.methods
-        if method not in ("GET", "HEAD", "OPTIONS") and not _is_admin_tagged(route)
+        if method not in ("GET", "HEAD", "OPTIONS") and not _is_elevated(route)
     }
-    assert (
-        untagged
-        == NORMAL_TIER_MUTATIONS | COOKIE_AUTH_MUTATIONS | ADMIN_LOGIN_MUTATIONS
-    ), (
-        "a mutating route is neither admin-tagged nor listed as normal-tier; "
-        "add dependencies=ADMIN_ONLY, or add it to NORMAL_TIER_MUTATIONS"
+    assert ungated == NORMAL_TIER_MUTATIONS | COOKIE_AUTH_MUTATIONS, (
+        "a mutating route picks none of the elevated gates and isn't listed as "
+        "normal-tier; add dependencies=ADMIN_ONLY (scripts/curl) or OPS_ADMIN "
+        "(the admin panel), or add it to NORMAL_TIER_MUTATIONS"
     )
 
 
 def test_listed_exceptions_still_exist() -> None:
     """The allowlists shouldn't outlive the routes they name."""
-    listed = NORMAL_TIER_MUTATIONS | COOKIE_AUTH_MUTATIONS | ADMIN_LOGIN_MUTATIONS
+    listed = NORMAL_TIER_MUTATIONS | COOKIE_AUTH_MUTATIONS
     assert listed <= _mutations()
 
 
@@ -252,9 +271,9 @@ def test_listed_exceptions_still_exist() -> None:
         "/api/register_replay_url",
     ],
 )
-def test_known_ops_routes_are_admin(path: str) -> None:
+def test_known_ops_routes_are_elevated(path: str) -> None:
     route = next(r for _, r in _all_routes() if r.path == path)
-    assert _is_admin_tagged(route)
+    assert _is_elevated(route)
 
 
 @pytest.mark.parametrize(
@@ -271,7 +290,7 @@ def test_reads_stay_normal_tier(path: str) -> None:
     """Read-only routes are never elevated - including the debug listings the
     DebugData page loads with the browser's normal-tier key."""
     route = next(r for _, r in _all_routes() if r.path == path)
-    assert not _is_admin_tagged(route)
+    assert not _is_elevated(route)
 
 
 # --- admin actions the UI drives -------------------------------------------
@@ -317,31 +336,104 @@ def test_require_admin_login_open_in_dev(monkeypatch: pytest.MonkeyPatch) -> Non
     require_admin_login(_request(), None)
 
 
-def test_ui_admin_routes_are_login_tagged() -> None:
-    for _, path in ADMIN_LOGIN_MUTATIONS:
-        route = next(r for _, r in _all_routes() if r.path == path)
-        assert _tagged_with(route, require_admin_login)
+# --- the ops-admin gate (the control panel) ---------------------------------
 
 
-def test_ui_admin_routes_advertise_no_api_key_security() -> None:
+def _ops_admin_name() -> str:
+    return next(iter(player_ids.OPS_ADMINS))
+
+
+def test_require_ops_admin_accepts_ops_admin_user(keys: None) -> None:
+    require_ops_admin(_request(), User(player_name=_ops_admin_name()))
+
+
+def test_require_ops_admin_rejects_a_plain_admin(keys: None) -> None:
+    """The whole point of the third set: ADMIN_PLAYERS unlocks the debug
+    *views*, not scrape/reparse/backfill/delete. An ADMIN_PLAYERS user who is
+    not in OPS_ADMINS must be turned away."""
+    non_ops_admins = player_ids.ADMIN_PLAYERS - player_ids.OPS_ADMINS
+    assert non_ops_admins, "no admin outside OPS_ADMINS left to test the split with"
+    for name in non_ops_admins:
+        with pytest.raises(HTTPException) as exc:
+            require_ops_admin(_request(), User(player_name=name))
+        assert exc.value.status_code == 403
+
+
+def test_require_ops_admin_rejects_non_admin_user(keys: None) -> None:
+    with pytest.raises(HTTPException) as exc:
+        require_ops_admin(_request(), User(player_name="SomeRandomPlayer"))
+    assert exc.value.status_code == 403
+
+
+def test_require_ops_admin_401s_when_logged_out(keys: None) -> None:
+    with pytest.raises(HTTPException) as exc:
+        require_ops_admin(_request(), None)
+    assert exc.value.status_code == 401
+
+
+def test_require_ops_admin_rejects_normal_key_without_session(keys: None) -> None:
+    """The key the browser ships is normal-tier - it must not be enough."""
+    with pytest.raises(HTTPException) as exc:
+        require_ops_admin(_request(key=NORMAL_KEY), None)
+    assert exc.value.status_code == 401
+
+
+def test_require_ops_admin_accepts_admin_key_for_scripts(keys: None) -> None:
+    """These paths moved off the API-key router; curl with an admin key must
+    still reach them, or every ops script breaks."""
+    require_ops_admin(_request(key=ADMIN_KEY), None)
+
+
+def test_ops_admin_is_narrower_than_admin() -> None:
+    assert player_ids.OPS_ADMINS < player_ids.ADMIN_PLAYERS
+
+
+# --- cookie gates and session routers stay in step --------------------------
+
+
+def _cookie_gated_routes() -> list[tuple[str, APIRoute]]:
+    return [
+        (module, route)
+        for module, route in _all_routes()
+        if any(_tagged_with(route, gate) for gate in COOKIE_GATES)
+    ]
+
+
+def test_cookie_gated_routes_exist() -> None:
+    """Guard the sweep itself - an empty one would pass the tests below."""
+    assert len(_cookie_gated_routes()) > 20
+
+
+def test_cookie_gated_routes_are_not_behind_the_api_key() -> None:
+    """A route gated on the session cookie must live on a ``session_router``,
+    which main.py includes without verify_api_key - a browser sends the
+    cookie, not an admin key, and would be rejected by the baseline gate
+    before its own gate ever ran."""
+    session_paths = _session_routes()
+    for module, route in _cookie_gated_routes():
+        assert route.path in session_paths, f"{module}: {route.path}"
+
+
+def test_session_routes_all_carry_a_cookie_gate() -> None:
+    """The converse: ``session_router`` has no gate of its own, so a route
+    parked there without ADMIN_LOGIN/OPS_ADMIN would be wide open."""
+    gated = {route.path for _, route in _cookie_gated_routes()}
+    assert _session_routes() == gated
+
+
+def test_cookie_gated_routes_advertise_no_api_key_security() -> None:
     """The cookie is the credential these routes expect, so the OpenAPI spec
     must not name APIKeyHeader as their security scheme (which is what
     declaring the header as a Security param would do)."""
     from radarvan.main import app
 
     spec = app.openapi()
-    for method, path in ADMIN_LOGIN_MUTATIONS:
-        operation = spec["paths"][path][method.lower()]
-        assert operation.get("security") is None, path
-
-
-def test_ui_admin_routes_are_not_behind_the_api_key() -> None:
-    """They must live on admin.session_router, which main.py includes without
-    verify_api_key - a browser sends the cookie, not an admin key."""
-    session_paths = {
-        r.path for r in admin.session_router.routes if isinstance(r, APIRoute)
-    }
-    assert {path for _, path in ADMIN_LOGIN_MUTATIONS} == session_paths
+    for module, route in _cookie_gated_routes():
+        for method in route.methods:
+            operation = spec["paths"][route.path].get(method.lower())
+            if operation is None:
+                continue
+            assert operation.get("security") is None, f"{module}: {route.path}"
 
 
 # --- notifying on rejection --------------------------------------------------

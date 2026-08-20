@@ -17,12 +17,17 @@ from .. import player_profile, player_stats, player_synergy
 from ..api_types import PlayerName, PlayerProfile
 from ..cache import competitive_matches, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import ADMIN_ONLY, cache_short, db_manager, get_replay_manager
+from ..dependencies import OPS_ADMIN, cache_short, db_manager, get_replay_manager
 from ..notify import notify_async
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Operational routes the admin control panel drives. Cookie-authenticated, so
+# included in main.py without the API-key dependency; every route here carries
+# `dependencies=OPS_ADMIN`.
+session_router = APIRouter()
 
 
 _recompute_lock = asyncio.Lock()
@@ -82,7 +87,7 @@ async def _do_recompute_bg() -> None:
     await notify_async(f"Recomputed {count} player profiles")
 
 
-@router.post("/api/player_profile/recompute", dependencies=ADMIN_ONLY)
+@session_router.post("/api/player_profile/recompute", dependencies=OPS_ADMIN)
 async def recompute_player_profiles(
     background_tasks: BackgroundTasks,
 ) -> dict[str, str]:

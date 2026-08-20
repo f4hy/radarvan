@@ -164,7 +164,7 @@ _HUNT_FRAME_COUNT = 600
 _HUNT_DURATION_MINUTES = 10.0
 
 
-def _hunt_replay(events: list[HuntedEvent]) -> EnhancedReplayV2:
+def _hunt_replay(events: list[HuntedEvent] | None) -> EnhancedReplayV2:
     """A two-player replay carrying only `hunted_events`.
 
     frame_count/duration are chosen so `minutes_per_step` is exactly 1/60 -
@@ -201,7 +201,7 @@ def _hunt_replay(events: list[HuntedEvent]) -> EnhancedReplayV2:
     )
 
 
-def _hunt_timeline(events: list[HuntedEvent]) -> list[TimelineEvent]:
+def _hunt_timeline(events: list[HuntedEvent] | None) -> list[TimelineEvent]:
     replay = _hunt_replay(events)
     name_by_idx = {p.index: p.name for p in replay.summary}
     out = timeline_events_from_replay(replay, {}, name_by_idx)
@@ -278,22 +278,39 @@ def test_hunted_defaults_false_when_omitted_on_the_wire() -> None:
     assert event.hunted is False
 
 
-def test_hunted_events_default_empty_for_pre_statsversion_3_replays() -> None:
-    """Replay JSON parsed before statsVersion 3 has no `huntedEvents` key at
-    all; it must validate to an empty list rather than fail."""
-    stats = EnrichedStats.model_validate(
-        {
-            "battlePlanEvents": [],
-            "buildEvents": [],
-            "captureEvents": [],
-            "deathEvents": [],
-            "energyEvents": [],
-            "killEvents": [],
-            "radarEvents": [],
-            "rankEvents": [],
-            "sciencePointsEvents": [],
-            "skillPointsEvents": [],
-            "timeSeries": {"players": []},
-        }
-    )
-    assert stats.hunted_events == []
+_PRE_V3_STATS: dict[str, object] = {
+    "battlePlanEvents": [],
+    "buildEvents": [],
+    "captureEvents": [],
+    "deathEvents": [],
+    "energyEvents": [],
+    "killEvents": [],
+    "radarEvents": [],
+    "rankEvents": [],
+    "sciencePointsEvents": [],
+    "skillPointsEvents": [],
+    "timeSeries": {"players": []},
+}
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param(_PRE_V3_STATS, id="key absent"),
+        pytest.param({**_PRE_V3_STATS, "huntedEvents": None}, id="explicit null"),
+    ],
+)
+def test_pre_statsversion_3_hunted_events_parse(payload: dict[str, object]) -> None:
+    """Stats predating statsVersion 3 carry no hunted stream, in either of two
+    shapes: the key missing, or an explicit `null` (cncstats is Go, so a nil
+    slice marshals to `null` rather than `[]`). Both must validate - the null
+    shape raised ValidationError and killed the parse for those replays."""
+    stats = EnrichedStats.model_validate(payload)
+
+    assert stats.hunted_events is None
+
+
+def test_absent_hunted_stream_yields_no_markers() -> None:
+    """The consumer side of the same thing: `hunted_events` being None must
+    read as "no hunted flips", not blow up building the timeline."""
+    assert _hunt_timeline(None) == []

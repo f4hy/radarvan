@@ -186,7 +186,7 @@ def timeline_events_from_replay(
         # stream can repeat a state, so emit only on an actual flip (and skip
         # a frame-0 seed, which is always the un-hunted starting state).
         was_hunted: dict[int, bool] = {}
-        for hev in sorted(replay.stats.hunted_events, key=lambda e: e.frame):
+        for hev in sorted(replay.stats.hunted_events or [], key=lambda e: e.frame):
             prev_hunted = was_hunted.get(hev.player, False)
             was_hunted[hev.player] = hev.hunted
             if hev.hunted == prev_hunted or is_initial_seed_frame(hev.frame):

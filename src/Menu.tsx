@@ -1,4 +1,5 @@
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import BadgeIcon from "@mui/icons-material/Badge"
 import BalanceIcon from "@mui/icons-material/Balance"
@@ -41,6 +42,7 @@ import Loading from "./Loading"
 // them (recharts, the bracket, html2canvas, …) just to render the default
 // Matches list. Keep new pages lazy too.
 const Account = React.lazy(() => import("./Account"))
+const AdminPanel = React.lazy(() => import("./AdminPanel"))
 const DisplayBalanceTeams = React.lazy(() => import("./BalanceTeams"))
 const DisplayBracket = React.lazy(() => import("./Bracket"))
 const ChooseMap = React.lazy(() => import("./ChooseMap"))
@@ -90,6 +92,7 @@ const ALL_SELECTIONS = [
   "ChooseMap",
   "MapUpload",
   "Account",
+  "AdminPanel",
 ] as const
 
 type Selection = (typeof ALL_SELECTIONS)[number]
@@ -123,6 +126,7 @@ export default function Menu() {
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
   const debug = status?.user?.is_admin ?? false
+  const opsAdmin = status?.user?.is_ops_admin ?? false
 
   // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
   const navigate = React.useCallback((s: Selection) => {
@@ -219,6 +223,15 @@ export default function Menu() {
               icon: <GroupsIcon />,
             },
             { value: "DebugData", text: "Debug Matchid", icon: <TableView /> },
+          ] as const)
+        : []),
+      ...(opsAdmin
+        ? ([
+            {
+              value: "AdminPanel",
+              text: "Admin",
+              icon: <AdminPanelSettingsIcon />,
+            },
           ] as const)
         : []),
     ]
@@ -425,6 +438,8 @@ function Main(props: {
       return <Account />
     case "DebugData":
       return <DisplayDebugData />
+    case "AdminPanel":
+      return <AdminPanel />
     default:
       return <div>{props.selection}</div>
   }

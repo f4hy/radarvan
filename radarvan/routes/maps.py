@@ -38,6 +38,7 @@ from ..db_utils import ReplayManager
 from ..dependencies import (
     ADMIN_ONLY,
     IS_DEV,
+    OPS_ADMIN,
     cache_short,
     get_replay_manager,
     require_dev,
@@ -50,6 +51,11 @@ router = APIRouter(tags=["map"])
 # Routes that must be reachable without an API key (e.g. <img src> loads, which
 # cannot send the X-API-Key header). Included without auth deps in main.py.
 public_router = APIRouter(tags=["map"])
+
+# Map maintenance the admin control panel drives. Cookie-authenticated, so
+# included in main.py without the API-key dependency; every route here carries
+# `dependencies=OPS_ADMIN`.
+session_router = APIRouter(tags=["map"])
 
 # Map images are static. Presign for the S3 max (7 days) and let browsers cache
 # the redirect - max-age must stay under the presign TTL. We keep the cache to
@@ -180,7 +186,7 @@ def list_missing_maps_endpoint(
     ]
 
 
-@router.post("/api/fetch_map_for_match/{match_id}", dependencies=ADMIN_ONLY)
+@session_router.post("/api/fetch_map_for_match/{match_id}", dependencies=OPS_ADMIN)
 def fetch_map_for_match(
     match_id: int,
     parse_map: bool = True,
@@ -207,7 +213,7 @@ def fetch_map_for_match(
     )
 
 
-@router.post("/api/backfill_map_crcs", dependencies=ADMIN_ONLY)
+@session_router.post("/api/backfill_map_crcs", dependencies=OPS_ADMIN)
 def backfill_map_crcs(
     max_to_update: int = 50,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -255,7 +261,7 @@ def map_reparse_status(
     )
 
 
-@router.post("/api/reparse_maps", include_in_schema=IS_DEV, dependencies=ADMIN_ONLY)
+@session_router.post("/api/reparse_maps", dependencies=OPS_ADMIN)
 def reparse_maps(
     max_to_update: int = 20,
     replay_manager: ReplayManager = Depends(get_replay_manager),
@@ -340,7 +346,7 @@ class _SyncOutcome(NamedTuple):
     error: str | None
 
 
-@router.post("/api/push_maps_to_cncstats", dependencies=ADMIN_ONLY)
+@session_router.post("/api/push_maps_to_cncstats", dependencies=OPS_ADMIN)
 async def push_maps_to_cncstats(
     max_to_update: int = 10,
     replay_manager: ReplayManager = Depends(get_replay_manager),

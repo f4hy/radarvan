@@ -61,6 +61,15 @@ export interface CurrentUser {
      * @memberof CurrentUser
      */
     readonly isTournamentAdmin: boolean;
+    /**
+     * True if the claimed in-game name is in player_ids.OPS_ADMINS.
+     * 
+     * Gates the admin control panel - narrower than `is_admin`, which only
+     * unlocks the debug views.
+     * @type {boolean}
+     * @memberof CurrentUser
+     */
+    readonly isOpsAdmin: boolean;
 }
 
 /**
@@ -72,6 +81,7 @@ export function instanceOfCurrentUser(value: object): value is CurrentUser {
     if (!('needsPlayerSelection' in value) || value['needsPlayerSelection'] === undefined) return false;
     if (!('isAdmin' in value) || value['isAdmin'] === undefined) return false;
     if (!('isTournamentAdmin' in value) || value['isTournamentAdmin'] === undefined) return false;
+    if (!('isOpsAdmin' in value) || value['isOpsAdmin'] === undefined) return false;
     return true;
 }
 
@@ -92,6 +102,7 @@ export function CurrentUserFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'needsPlayerSelection': json['needs_player_selection'],
         'isAdmin': json['is_admin'],
         'isTournamentAdmin': json['is_tournament_admin'],
+        'isOpsAdmin': json['is_ops_admin'],
     };
 }
 
@@ -99,7 +110,7 @@ export function CurrentUserToJSON(json: any): CurrentUser {
     return CurrentUserToJSONTyped(json, false);
 }
 
-export function CurrentUserToJSONTyped(value?: Omit<CurrentUser, 'needs_player_selection'|'is_admin'|'is_tournament_admin'> | null, ignoreDiscriminator: boolean = false): any {
+export function CurrentUserToJSONTyped(value?: Omit<CurrentUser, 'needs_player_selection'|'is_admin'|'is_tournament_admin'|'is_ops_admin'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

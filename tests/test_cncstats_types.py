@@ -164,3 +164,59 @@ def test_new_output_header_players(new_output_replay: EnhancedReplayV2) -> None:
     assert hplayers["Skip"].type == "H"
     assert hplayers["Skip"].color == "ColorGold"
     assert hplayers["131"].team == "2"
+
+
+# --- nil slices on the wire --------------------------------------------------
+
+
+def test_hunted_events_null_parses(new_output_data: dict) -> None:
+    """cncstats sends `"huntedEvents": null` for pre-statsVersion-3 stats.
+
+    Go marshals a nil slice to `null`, so a `[]` default would never fire -
+    pydantic only falls back to a default for a *missing* key, and `null` is a
+    present value that fails `list` validation. Parsing every older replay
+    raised ValidationError until the field was made nullable.
+    """
+    payload = {
+        **new_output_data,
+        "stats": {**new_output_data["stats"], "huntedEvents": None},
+    }
+
+    replay = EnhancedReplayV2.model_validate(payload)
+
+    assert replay.stats is not None
+    assert replay.stats.hunted_events is None
+
+
+def test_hunted_events_absent_parses(new_output_data: dict) -> None:
+    """The other shape for the same thing: an omitted key."""
+    assert "huntedEvents" not in new_output_data["stats"]
+
+    replay = EnhancedReplayV2.model_validate(new_output_data)
+
+    assert replay.stats is not None
+    assert replay.stats.hunted_events is None
+
+
+def test_hunted_events_are_still_parsed_when_present(new_output_data: dict) -> None:
+    """Making the field nullable must not weaken parsing of a real stream."""
+    payload = {
+        **new_output_data,
+        "stats": {
+            **new_output_data["stats"],
+            "huntedEvents": [
+                {"frame": 600, "player": 1, "hunted": True},
+                {"frame": 900, "player": 1},
+            ],
+        },
+    }
+
+    replay = EnhancedReplayV2.model_validate(payload)
+
+    assert replay.stats is not None
+    assert replay.stats.hunted_events is not None
+    assert [(e.frame, e.player, e.hunted) for e in replay.stats.hunted_events] == [
+        (600, 1, True),
+        # `hunted` is omitempty on the wire, so an un-hunted flip omits it.
+        (900, 1, False),
+    ]

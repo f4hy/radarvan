@@ -184,10 +184,18 @@ app.include_router(map_upload.router)
 # the route handlers), so not behind the API key.
 app.include_router(bracket.router)
 
-# Admin actions the UI drives (reparse) - gated on a logged-in admin via
-# ADMIN_LOGIN rather than an API key, since the browser only ships a
-# normal-tier key. Not behind the API key for the same reason.
+# Admin actions the UI drives - the DebugData reparse button (ADMIN_LOGIN) and
+# every operational task the admin control panel runs (OPS_ADMIN). Gated on a
+# logged-in admin rather than an API key, since the browser only ships a
+# normal-tier key, and so included *without* verify_api_key for the same reason.
+# An admin-tier key still satisfies both gates, so curl and ops scripts keep
+# working against these paths unchanged.
 app.include_router(admin.session_router)
+app.include_router(files.session_router)
+app.include_router(maps.session_router)
+app.include_router(profile.session_router)
+app.include_router(superlatives.session_router)
+app.include_router(tournaments.session_router)
 
 
 @app.get("/", include_in_schema=False)

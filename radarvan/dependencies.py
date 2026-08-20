@@ -4,7 +4,7 @@ Imported by all routers. Keep this module side-effect free aside from the
 single DB engine + sessionmaker created at import time.
 """
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from enum import StrEnum
 import secrets
 import structlog
@@ -255,6 +255,27 @@ def require_current_user(
     return user
 
 
+def _require_logged_in_admin(
+    request: Request,
+    user: db.User | None,
+    allowed: Callable[[str | None], bool],
+) -> None:
+    """Shared body of the cookie-session admin gates.
+
+    ``allowed`` is the membership test for the claimed in-game name - the only
+    thing that differs between ``require_admin_login`` (ADMIN_PLAYERS) and
+    ``require_ops_admin`` (OPS_ADMINS). Kept as one function so the *order* of
+    the checks - key short-circuit, then 401, then 403 - can't drift apart
+    between them; the status codes are what the auth-notify webhook reports.
+    """
+    if has_admin_access(request.headers.get(API_KEY_HEADER)):
+        return
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not allowed(user.player_name):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
 def require_admin_login(
     request: Request,
     user: db.User | None = Depends(get_current_user),
@@ -276,16 +297,33 @@ def require_admin_login(
     it would advertise APIKeyHeader as this route's security scheme in the
     OpenAPI spec, when the credential callers actually send is the cookie.
     """
-    if has_admin_access(request.headers.get(API_KEY_HEADER)):
-        return
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    if not player_ids.is_admin(user.player_name):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    _require_logged_in_admin(request, user, player_ids.is_admin)
 
 
 # Tag for admin routes driven from the UI: `dependencies=ADMIN_LOGIN`.
 ADMIN_LOGIN = [Depends(require_admin_login)]
+
+
+def require_ops_admin(
+    request: Request,
+    user: db.User | None = Depends(get_current_user),
+) -> None:
+    """Gate for the operational control panel: the caller must be logged in as
+    a ``player_ids.OPS_ADMINS`` user.
+
+    The same shape as ``require_admin_login`` (cookie session, admin-tier key
+    still accepted for curl/ops) against a narrower set. It is deliberately
+    *not* ``require_admin_login``: these routes scrape, reparse, backfill,
+    override and delete, and ADMIN_PLAYERS is the set that unlocks the debug
+    *views*. Routes carrying this must be on a session router included without
+    ``verify_api_key``, since the browser sends a cookie and a normal-tier key.
+    """
+    _require_logged_in_admin(request, user, player_ids.is_ops_admin)
+
+
+# Tag for operational routes driven from the admin panel:
+# `@session_router.post(..., dependencies=OPS_ADMIN)`.
+OPS_ADMIN = [Depends(require_ops_admin)]
 
 
 def require_dev() -> None:
