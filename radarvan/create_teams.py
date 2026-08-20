@@ -41,18 +41,32 @@ def balance_teams(
     corpus like every other derivation. The hold is a product decision and lives
     where it is visible - `routes/players.balance_teams`, six hours per roster.
     """
-    team_size = len(player_list) // 2
     ratings = compute_player_ratings(games).ratings
 
     player_ratings = {r.name: r for r in ratings}
 
     model = get_model()
-    day_players = [player_ids.resolve_player_name(n) for n in player_list]
+    # Sorted, and de-duplicated after resolution. Sorted because the team tuples
+    # below take their element order from this list, and iterating the frozenset
+    # directly made that order depend on PYTHONHASHSEED - so the same roster came
+    # back as "Skip,Syn" on one dyno and "Syn,Skip" after a restart. De-duplicated
+    # because two aliases for one player ("skp" and "Skip") would otherwise both
+    # land here and be treated as two people.
+    day_players = sorted({player_ids.resolve_player_name(n) for n in player_list})
+    team_size = len(day_players) // 2
+
     team_win_pct = {}
+    seen_matchups: set[frozenset[tuple[str, ...]]] = set()
     for team1 in combinations(day_players, team_size):
-        if tuple(team1) in team_win_pct:
+        team2 = tuple(p for p in day_players if p not in team1)
+        # A matchup, not a team: for an even split, `combinations` yields each
+        # pairing twice (once from either side). Keying on the team alone only
+        # caught that when the same side happened to be stored first.
+        matchup = frozenset({team1, team2})
+        if matchup in seen_matchups:
             continue
-        team2 = [p for p in day_players if p not in team1]
+        seen_matchups.add(matchup)
+
         team1_ratings = [
             player_ratings[p].to_rating(model) for p in team1 if p in player_ratings
         ]
@@ -67,9 +81,12 @@ def balance_teams(
         logger.debug(
             "team matchup", team1=team1, team2=team2, win1=win1_prop, win2=win2_prop
         )
-        if win1_prop >= 0.5:
+        # Exactly one entry per matchup - the favoured side, or team1 when the
+        # two are level. Storing every side at >= 0.5 listed both halves of a
+        # dead-even matchup as if they were separate options.
+        if win1_prop >= win2_prop:
             team_win_pct[tuple(team1)] = win1_prop
-        if win2_prop >= 0.5:
+        else:
             team_win_pct[tuple(team2)] = win2_prop
     logger.debug("team win probs", count=len(team_win_pct))
     return dict(sorted(team_win_pct.items(), key=lambda x: x[1]))

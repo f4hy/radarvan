@@ -139,7 +139,9 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
             win_rate=gen_wins[general] / games_played,
         )
         for general, games_played in gen_games.items()
-        if general != General.UNRECOGNIZED and games_played > 0
+        # No UNRECOGNIZED check: `entries` above already drops any slot failing
+        # has_known_general (general < 0), so one can never reach gen_games.
+        if games_played > 0
     ]
     general_stats.sort(key=lambda s: s.general)
 
