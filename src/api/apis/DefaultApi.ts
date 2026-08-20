@@ -238,10 +238,10 @@ export interface GetPlayerStatsApiPlayerstatsGetRequest {
 }
 
 export interface GetPlayerSynergyApiPlayerRatingsSynergyGetRequest {
-    gameFormat?: string | null;
     minGamesTogether?: number;
     regularization?: number;
     mainRegularization?: number;
+    gameFormat?: string | null;
 }
 
 export interface GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest {
@@ -539,6 +539,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Win probability for every way of splitting `players` into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation.
      * Balance Teams
      */
     async balanceTeamsApiBalanceTeamsGetRaw(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
@@ -549,6 +550,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Win probability for every way of splitting `players` into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation.
      * Balance Teams
      */
     async balanceTeamsApiBalanceTeamsGet(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
@@ -580,7 +582,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Drop every row of the durable MatchDetails cache and the in-process LRU fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.
+     * Drop every row of the durable MatchDetails cache and the in-process derivation fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.  Invalidating the corpus is a wider hammer than `details_from_id` alone, and deliberately so: reaching for a single cache by name is the vocabulary the registry exists to remove, and this also kicks the re-warm that emptying the durable tier makes worth doing.
      * Clear Details Cache
      */
     async clearDetailsCacheApiClearDetailsCachePostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
@@ -591,7 +593,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Drop every row of the durable MatchDetails cache and the in-process LRU fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.
+     * Drop every row of the durable MatchDetails cache and the in-process derivation fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.  Invalidating the corpus is a wider hammer than `details_from_id` alone, and deliberately so: reaching for a single cache by name is the vocabulary the registry exists to remove, and this also kicks the re-warm that emptying the durable tier makes worth doing.
      * Clear Details Cache
      */
     async clearDetailsCacheApiClearDetailsCachePost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
@@ -1054,7 +1056,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Stats scoped to human free-for-all games (player wins, general win rates, …).
+     * Stats scoped to human free-for-all games (player wins, general win rates, ...).
      * Get Ffa Stats
      */
     async getFfaStatsApiFfastatsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FFAStats>> {
@@ -1065,7 +1067,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Stats scoped to human free-for-all games (player wins, general win rates, …).
+     * Stats scoped to human free-for-all games (player wins, general win rates, ...).
      * Get Ffa Stats
      */
     async getFfaStatsApiFfastatsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FFAStats> {
@@ -1155,7 +1157,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get generals stats.
+     * Get generals stats.  Still takes a `ReplayManager` alongside the corpus: the value-destroyed totals are read from the `Statistic` rows the nightly superlatives recompute persists, which is a stored projection rather than something derived from the match list.
      * Get Generals Stats
      */
     async getGeneralsStatsApiGeneralstatsGetRaw(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralStats>> {
@@ -1166,7 +1168,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get generals stats.
+     * Get generals stats.  Still takes a `ReplayManager` alongside the corpus: the value-destroyed totals are read from the `Statistic` rows the nightly superlatives recompute persists, which is a stored projection rather than something derived from the match list.
      * Get Generals Stats
      */
     async getGeneralsStatsApiGeneralstatsGet(requestParameters: GetGeneralsStatsApiGeneralstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralStats> {
@@ -1663,7 +1665,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads kill data for the most recent `_H2H_VALUE_WINDOW` games featuring both players to compute value destroyed between them. Windowed (not the full history) because for the handful of extremely long-running pairs (600+ shared games), even a single batched query transfers enough kill-event JSON over the (remote) DB connection to take several seconds - every other pair has few enough games this never matters.
+     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first), and the value destroyed between them over their most recent shared games.
      * Get Player Head To Head
      */
     async getPlayerHeadToHeadApiPlayerHeadToHeadGetRaw(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HeadToHeadDetail>> {
@@ -1674,7 +1676,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads kill data for the most recent `_H2H_VALUE_WINDOW` games featuring both players to compute value destroyed between them. Windowed (not the full history) because for the handful of extremely long-running pairs (600+ shared games), even a single batched query transfers enough kill-event JSON over the (remote) DB connection to take several seconds - every other pair has few enough games this never matters.
+     * Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\'s record by the general they piloted, and the record by map, plus the full game list (most recent first), and the value destroyed between them over their most recent shared games.
      * Get Player Head To Head
      */
     async getPlayerHeadToHeadApiPlayerHeadToHeadGet(requestParameters: GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeadToHeadDetail> {
@@ -1822,6 +1824,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Ratings, rating history and recent form for every rated player.
      * Get Player Ratings
      */
     async getPlayerRatingsApiPlayerRatingsGetRaw(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerRatingData>> {
@@ -1832,6 +1835,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Ratings, rating history and recent form for every rated player.
      * Get Player Ratings
      */
     async getPlayerRatingsApiPlayerRatingsGet(requestParameters: GetPlayerRatingsApiPlayerRatingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerRatingData> {
@@ -1914,7 +1918,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.
+     * Get player stats.  `game_format` stays a parameter here rather than coming from the corpus dependency: `player_stats.get_player_stats` filters per game *category* internally, which is finer-grained than `filter_by_format`.
      * Get Player Stats
      */
     async getPlayerStatsApiPlayerstatsGetRaw(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
@@ -1925,7 +1929,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.
+     * Get player stats.  `game_format` stays a parameter here rather than coming from the corpus dependency: `player_stats.get_player_stats` filters per game *category* internally, which is finer-grained than `filter_by_format`.
      * Get Player Stats
      */
     async getPlayerStatsApiPlayerstatsGet(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
@@ -1939,10 +1943,6 @@ export class DefaultApi extends runtime.BaseAPI {
     async getPlayerSynergyApiPlayerRatingsSynergyGetRequestOpts(requestParameters: GetPlayerSynergyApiPlayerRatingsSynergyGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
 
-        if (requestParameters['gameFormat'] != null) {
-            queryParameters['game_format'] = requestParameters['gameFormat'];
-        }
-
         if (requestParameters['minGamesTogether'] != null) {
             queryParameters['min_games_together'] = requestParameters['minGamesTogether'];
         }
@@ -1953,6 +1953,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
         if (requestParameters['mainRegularization'] != null) {
             queryParameters['main_regularization'] = requestParameters['mainRegularization'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -2757,7 +2761,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Backs the \"best possible draws\" section of Bracket.tsx\'s MatchupPopup, which calls this on every popup open - hence the grid cache (see ``_FACTION_GRID_CACHE``); ``compute_ms`` is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Backs the \"best possible draws\" section of Bracket.tsx\'s MatchupPopup, which calls this on every popup open - hence ``_faction_grid`` being a derivation; ``compute_ms`` is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
      * Predict Faction Matchup
      */
     async predictFactionMatchupApiPredictFactionMatchupGetRaw(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FactionMatchupPrediction>> {
@@ -2768,7 +2772,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Backs the \"best possible draws\" section of Bracket.tsx\'s MatchupPopup, which calls this on every popup open - hence the grid cache (see ``_FACTION_GRID_CACHE``); ``compute_ms`` is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
+     * Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 = 144 calls.  Backs the \"best possible draws\" section of Bracket.tsx\'s MatchupPopup, which calls this on every popup open - hence ``_faction_grid`` being a derivation; ``compute_ms`` is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \"unknown\" (see ``_UNKNOWN_MAP_PLACEHOLDER``), or pass a real map name to fix it.
      * Predict Faction Matchup
      */
     async predictFactionMatchupApiPredictFactionMatchupGet(requestParameters: PredictFactionMatchupApiPredictFactionMatchupGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FactionMatchupPrediction> {

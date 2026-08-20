@@ -55,6 +55,19 @@ class EnergyEvent(BaseModel):
     production: int
 
 
+class HuntedEvent(BaseModel):
+    """A player's "hunted" flag flipping on or off.
+
+    `hunted` is `omitempty` on the wire, so an *un*-hunted event arrives as
+    just `{"frame": ..., "player": ...}` - hence the `False` default rather
+    than a required field.
+    """
+
+    frame: int
+    hunted: bool = False
+    player: int
+
+
 class IncomeBySource(BaseModel):
     black_market: Annotated[list[int], Field(alias="blackMarket")]
     bounty: list[int]

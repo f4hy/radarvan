@@ -1,9 +1,9 @@
 """Per-player timeline markers for the match-details Event Chart.
 
 Aggregates upgrades, rank ups, generals powers, superweapon builds and
-activations, search & destroy activations, low-power transitions, player
-eliminations, tech-building captures, and first-radar acquisitions into a
-single chronological `list[TimelineEvent]`.
+activations, search & destroy activations, low-power transitions, hunted
+flips, player eliminations, tech-building captures, and first-radar
+acquisitions into a single chronological `list[TimelineEvent]`.
 """
 
 from __future__ import annotations
@@ -178,6 +178,28 @@ def timeline_events_from_replay(
                     at_minute=eev.frame * scale,
                     event_name=f"Low Power ({eev.consumption} > {eev.production})",
                     event_type="low_power",
+                    cost=0,
+                )
+            )
+
+        # Hunted flips. The engine emits an event per transition, but the
+        # stream can repeat a state, so emit only on an actual flip (and skip
+        # a frame-0 seed, which is always the un-hunted starting state).
+        was_hunted: dict[int, bool] = {}
+        for hev in sorted(replay.stats.hunted_events, key=lambda e: e.frame):
+            prev_hunted = was_hunted.get(hev.player, False)
+            was_hunted[hev.player] = hev.hunted
+            if hev.hunted == prev_hunted or is_initial_seed_frame(hev.frame):
+                continue
+            name = name_by_idx.get(hev.player)
+            if name is None:
+                continue
+            events.append(
+                TimelineEvent(
+                    player_name=name,
+                    at_minute=hev.frame * scale,
+                    event_name="Hunted" if hev.hunted else "No Longer Hunted",
+                    event_type="hunted" if hev.hunted else "unhunted",
                     cost=0,
                 )
             )

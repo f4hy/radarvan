@@ -50,6 +50,8 @@ import CancelIcon from "@mui/icons-material/Cancel"
 import FlagIcon from "@mui/icons-material/Flag"
 import RadarIcon from "@mui/icons-material/Radar"
 import MovieIcon from "@mui/icons-material/Movie"
+import CrisisAlertIcon from "@mui/icons-material/CrisisAlert"
+import ShieldIcon from "@mui/icons-material/Shield"
 import Loading from "./Loading"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
@@ -190,6 +192,18 @@ const EVENT_TYPES = [
     label: "Tech Capture",
     row: "captures",
     icon: FlagIcon,
+  },
+  {
+    type: "hunted",
+    label: "Hunted",
+    row: "hunted",
+    icon: CrisisAlertIcon,
+  },
+  {
+    type: "unhunted",
+    label: "No Longer Hunted",
+    row: "hunted",
+    icon: ShieldIcon,
   },
   {
     type: "player_eliminated",

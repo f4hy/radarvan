@@ -14,7 +14,13 @@ from pathlib import Path
 import pytest
 
 from radarvan.api_types import TimelineEvent
-from radarvan.cncstats_model.zhreplay import EnhancedReplayV2
+from radarvan.cncstats_model.header import GeneralsHeader, Metadata
+from radarvan.cncstats_model.statsfile import HuntedEvent, TimeSeries
+from radarvan.cncstats_model.zhreplay import (
+    EnhancedReplayV2,
+    EnrichedStats,
+    PlayerSummaryV2,
+)
 from radarvan.replay_helpers import clean_object_name
 from radarvan.timeline_events import clean_power_name, timeline_events_from_replay
 
@@ -140,7 +146,154 @@ def test_timeline_stats_event_player_names_are_resolved(
         "player_eliminated",
         "tech_capture",
         "first_radar",
+        "hunted",
+        "unhunted",
     }
     for e in events:
         if e.event_type in stats_types:
             assert e.player_name in known_names
+
+
+# --- hunted / unhunted markers (synthetic) ---------------------------------
+#
+# Built from the model classes rather than the gitignored fixture so these run
+# in a fresh clone. `stats.huntedEvents` arrived with cncstats statsVersion 3,
+# so most committed replay JSON predates it.
+
+_HUNT_FRAME_COUNT = 600
+_HUNT_DURATION_MINUTES = 10.0
+
+
+def _hunt_replay(events: list[HuntedEvent]) -> EnhancedReplayV2:
+    """A two-player replay carrying only `hunted_events`.
+
+    frame_count/duration are chosen so `minutes_per_step` is exactly 1/60 -
+    one frame is one second, so frame 60 lands on minute 1.0.
+    """
+    stats = EnrichedStats.model_construct(
+        battle_plan_events=[],
+        build_events=[],
+        capture_events=[],
+        death_events=[],
+        energy_events=[],
+        hunted_events=events,
+        kill_events=[],
+        radar_events=[],
+        rank_events=[],
+        science_points_events=[],
+        skill_points_events=[],
+        time_series=TimeSeries.model_construct(players=[]),
+    )
+    header = GeneralsHeader.model_construct(
+        frame_count=_HUNT_FRAME_COUNT,
+        time_stamp_begin=0,
+        time_stamp_end=int(_HUNT_DURATION_MINUTES * 60),
+        metadata=Metadata.model_construct(players=[]),
+    )
+    return EnhancedReplayV2.model_construct(
+        header=header,
+        body=[],
+        summary=[
+            PlayerSummaryV2.model_construct(name="Alice", index=1),
+            PlayerSummaryV2.model_construct(name="Bob", index=2),
+        ],
+        stats=stats,
+    )
+
+
+def _hunt_timeline(events: list[HuntedEvent]) -> list[TimelineEvent]:
+    replay = _hunt_replay(events)
+    name_by_idx = {p.index: p.name for p in replay.summary}
+    out = timeline_events_from_replay(replay, {}, name_by_idx)
+    return [e for e in out if e.event_type in ("hunted", "unhunted")]
+
+
+def test_hunted_event_becomes_a_timeline_marker() -> None:
+    events = _hunt_timeline([HuntedEvent(frame=60, player=1, hunted=True)])
+    assert len(events) == 1
+    (e,) = events
+    assert e.player_name == "Alice"
+    assert e.event_type == "hunted"
+    assert e.event_name == "Hunted"
+    assert e.at_minute == pytest.approx(1.0)
+
+
+def test_hunted_then_unhunted_emits_both_directions() -> None:
+    events = _hunt_timeline(
+        [
+            HuntedEvent(frame=60, player=1, hunted=True),
+            HuntedEvent(frame=120, player=1, hunted=False),
+        ]
+    )
+    assert [(e.event_type, e.at_minute) for e in events] == [
+        ("hunted", pytest.approx(1.0)),
+        ("unhunted", pytest.approx(2.0)),
+    ]
+    assert events[1].event_name == "No Longer Hunted"
+
+
+def test_hunted_state_is_tracked_per_player() -> None:
+    """Alice going hunted must not suppress Bob's own hunted marker."""
+    events = _hunt_timeline(
+        [
+            HuntedEvent(frame=60, player=1, hunted=True),
+            HuntedEvent(frame=120, player=2, hunted=True),
+        ]
+    )
+    assert [(e.player_name, e.event_type) for e in events] == [
+        ("Alice", "hunted"),
+        ("Bob", "hunted"),
+    ]
+
+
+def test_repeated_hunted_state_emits_only_the_flip() -> None:
+    events = _hunt_timeline(
+        [
+            HuntedEvent(frame=60, player=1, hunted=True),
+            HuntedEvent(frame=90, player=1, hunted=True),
+            HuntedEvent(frame=120, player=1, hunted=True),
+        ]
+    )
+    assert [e.at_minute for e in events] == [pytest.approx(1.0)]
+
+
+def test_leading_unhunted_event_is_not_a_flip() -> None:
+    """Players start un-hunted, so a hunted=False event before any hunted=True
+    one is a restatement of the starting state, not a transition."""
+    assert _hunt_timeline([HuntedEvent(frame=60, player=1, hunted=False)]) == []
+
+
+def test_seed_frame_hunted_event_is_dropped() -> None:
+    assert _hunt_timeline([HuntedEvent(frame=0, player=1, hunted=True)]) == []
+
+
+def test_hunted_event_for_unknown_player_index_is_dropped() -> None:
+    assert _hunt_timeline([HuntedEvent(frame=60, player=99, hunted=True)]) == []
+
+
+def test_hunted_defaults_false_when_omitted_on_the_wire() -> None:
+    """`hunted` is `omitempty` in the Go encoder, so an un-hunted event arrives
+    with the key missing entirely."""
+    event = HuntedEvent.model_validate({"frame": 60, "player": 1})
+    assert event.hunted is False
+
+
+def test_hunted_events_default_empty_for_pre_statsversion_3_replays() -> None:
+    """Replay JSON parsed before statsVersion 3 has no `huntedEvents` key at
+    all; it must validate to an empty list rather than fail."""
+    stats = EnrichedStats.model_validate(
+        {
+            "battlePlanEvents": [],
+            "buildEvents": [],
+            "captureEvents": [],
+            "deathEvents": [],
+            "energyEvents": [],
+            "killEvents": [],
+            "radarEvents": [],
+            "rankEvents": [],
+            "sciencePointsEvents": [],
+            "skillPointsEvents": [],
+            "timeSeries": {"players": []},
+        }
+    )
+    assert stats.hunted_events == []

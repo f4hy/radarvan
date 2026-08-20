@@ -293,6 +293,8 @@ This endpoint does not need any parameter.
 
 Balance Teams
 
+Win probability for every way of splitting &#x60;players&#x60; into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation.
+
 ### Example
 
 ```ts
@@ -363,7 +365,7 @@ example().catch(console.error);
 
 Clear Details Cache
 
-Drop every row of the durable MatchDetails cache and the in-process LRU fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.
+Drop every row of the durable MatchDetails cache and the in-process derivation fronting it. A debugging hatch - normal invalidation is per-match (reparse) or implicit via DETAILS_VERSION, and derivation changes should bump the version rather than lean on this.  Invalidating the corpus is a wider hammer than &#x60;details_from_id&#x60; alone, and deliberately so: reaching for a single cache by name is the vocabulary the registry exists to remove, and this also kicks the re-warm that emptying the durable tier makes worth doing.
 
 ### Example
 
@@ -1048,7 +1050,7 @@ This endpoint does not need any parameter.
 
 Get Ffa Stats
 
-Stats scoped to human free-for-all games (player wins, general win rates, …).
+Stats scoped to human free-for-all games (player wins, general win rates, ...).
 
 ### Example
 
@@ -1183,7 +1185,7 @@ example().catch(console.error);
 
 Get Generals Stats
 
-Get generals stats.
+Get generals stats.  Still takes a &#x60;ReplayManager&#x60; alongside the corpus: the value-destroyed totals are read from the &#x60;Statistic&#x60; rows the nightly superlatives recompute persists, which is a stored projection rather than something derived from the match list.
 
 ### Example
 
@@ -1275,7 +1277,7 @@ async function example() {
   const api = new DefaultApi(config);
 
   const body = {
-    // string (optional)
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
     gameFormat: gameFormat_example,
   } satisfies GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest;
 
@@ -1296,7 +1298,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **gameFormat** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -1879,7 +1881,7 @@ This endpoint does not need any parameter.
 
 Get Player Head To Head
 
-Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first).  Also loads kill data for the most recent &#x60;_H2H_VALUE_WINDOW&#x60; games featuring both players to compute value destroyed between them. Windowed (not the full history) because for the handful of extremely long-running pairs (600+ shared games), even a single batched query transfers enough kill-event JSON over the (remote) DB connection to take several seconds - every other pair has few enough games this never matters.
+Detailed head-to-head record between two players (opposite-team games only).  Considers competitive games where both players took part on *different* teams; the winner of each game is the side whose team won. Aggregates the overall record, each player\&#39;s record by the general they piloted, and the record by map, plus the full game list (most recent first), and the value destroyed between them over their most recent shared games.
 
 ### Example
 
@@ -2101,6 +2103,8 @@ example().catch(console.error);
 
 Get Player Ratings
 
+Ratings, rating history and recent form for every rated player.
+
 ### Example
 
 ```ts
@@ -2119,9 +2123,9 @@ async function example() {
   const api = new DefaultApi(config);
 
   const body = {
-    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
     gameFormat: gameFormat_example,
-    // number | Only use matches from the last N months to compute ratings (optional)
+    // number | Only use matches from the last N months (optional)
     monthsBack: 56,
   } satisfies GetPlayerRatingsApiPlayerRatingsGetRequest;
 
@@ -2142,8 +2146,8 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
-| **monthsBack** | `number` | Only use matches from the last N months to compute ratings | [Optional] [Defaults to `undefined`] |
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+| **monthsBack** | `number` | Only use matches from the last N months | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -2246,7 +2250,7 @@ example().catch(console.error);
 
 Get Player Stats
 
-Get player stats.
+Get player stats.  &#x60;game_format&#x60; stays a parameter here rather than coming from the corpus dependency: &#x60;player_stats.get_player_stats&#x60; filters per game *category* internally, which is finer-grained than &#x60;filter_by_format&#x60;.
 
 ### Example
 
@@ -2314,7 +2318,7 @@ example().catch(console.error);
 
 ## getPlayerSynergyApiPlayerRatingsSynergyGet
 
-> Array&lt;PlayerSynergy&gt; getPlayerSynergyApiPlayerRatingsSynergyGet(gameFormat, minGamesTogether, regularization, mainRegularization)
+> Array&lt;PlayerSynergy&gt; getPlayerSynergyApiPlayerRatingsSynergyGet(minGamesTogether, regularization, mainRegularization, gameFormat)
 
 Get Player Synergy
 
@@ -2338,14 +2342,14 @@ async function example() {
   const api = new DefaultApi(config);
 
   const body = {
-    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
-    gameFormat: gameFormat_example,
     // number | Only return pairs that have played at least this many games together (optional)
     minGamesTogether: 56,
     // number | L2 shrinkage for pair synergy; higher = more conservative (optional)
     regularization: 8.14,
     // number | L2 shrinkage for per-player main effects; raise to stop strong players\' main effects running away and saturating pair synergy (optional)
     mainRegularization: 8.14,
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
   } satisfies GetPlayerSynergyApiPlayerRatingsSynergyGetRequest;
 
   try {
@@ -2365,10 +2369,10 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 | **minGamesTogether** | `number` | Only return pairs that have played at least this many games together | [Optional] [Defaults to `3`] |
 | **regularization** | `number` | L2 shrinkage for pair synergy; higher &#x3D; more conservative | [Optional] [Defaults to `10.0`] |
 | **mainRegularization** | `number` | L2 shrinkage for per-player main effects; raise to stop strong players\&#39; main effects running away and saturating pair synergy | [Optional] [Defaults to `25.0`] |
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -2560,7 +2564,7 @@ async function example() {
     withinDays: 56,
     // number | Only include upsets with at least this surprise (0-1) (optional)
     minSurprise: 8.14,
-    // string | Filter by game format: 2v2, 3v3, 4v4 (optional)
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
     gameFormat: gameFormat_example,
   } satisfies GetRatingUpsetsApiPlayerRatingsUpsetsGetRequest;
 
@@ -2584,7 +2588,7 @@ example().catch(console.error);
 | **limit** | `number` | Number of top upsets to return | [Optional] [Defaults to `20`] |
 | **withinDays** | `number` | Only include upsets from the last N days | [Optional] [Defaults to `undefined`] |
 | **minSurprise** | `number` | Only include upsets with at least this surprise (0-1) | [Optional] [Defaults to `0.0`] |
-| **gameFormat** | `string` | Filter by game format: 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -3414,7 +3418,7 @@ example().catch(console.error);
 
 Predict Faction Matchup
 
-Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 &#x3D; 144 calls.  Backs the \&quot;best possible draws\&quot; section of Bracket.tsx\&#39;s MatchupPopup, which calls this on every popup open - hence the grid cache (see &#x60;&#x60;_FACTION_GRID_CACHE&#x60;&#x60;); &#x60;&#x60;compute_ms&#x60;&#x60; is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \&quot;unknown\&quot; (see &#x60;&#x60;_UNKNOWN_MAP_PLACEHOLDER&#x60;&#x60;), or pass a real map name to fix it.
+Rank every general-vs-general draw for a hypothetical 1v1 between player1 and player2, by running the win-prediction model once per (player1_general, player2_general) combination - 12x12 &#x3D; 144 calls.  Backs the \&quot;best possible draws\&quot; section of Bracket.tsx\&#39;s MatchupPopup, which calls this on every popup open - hence &#x60;&#x60;_faction_grid&#x60;&#x60; being a derivation; &#x60;&#x60;compute_ms&#x60;&#x60; is near-zero on a cache hit.  No map is known before the draw; omit map_name to use a placeholder the model treats as \&quot;unknown\&quot; (see &#x60;&#x60;_UNKNOWN_MAP_PLACEHOLDER&#x60;&#x60;), or pass a real map name to fix it.
 
 ### Example
 

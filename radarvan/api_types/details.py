@@ -216,6 +216,12 @@ class MatchDetails(BaseModel):
     time_to_search_destroy: dict[str, Minute] = Field(
         default_factory=dict, alias="timeToSearchDestroy"
     )
+    # Minute at which each player first went "hunted" - the engine state a
+    # player enters with no dozer/worker left and no way to produce one.
+    # Absent for every replay parsed before cncstats statsVersion 3.
+    time_to_hunted: dict[str, Minute] = Field(
+        default_factory=dict, alias="timeToHunted"
+    )
     # Per-player first-10 build order: buildings, units, upgrades.
     build_orders: dict[str, BuildOrder] = Field(
         default_factory=dict, alias="buildOrders"

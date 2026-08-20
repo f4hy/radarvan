@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from .cncstats_model.statsfile import IncomeBySource
 from .cncstats_model.zhreplay import EnhancedReplayV2
+from .replay_helpers import is_initial_seed_frame
 from .utils import minutes_per_step
 
 
@@ -312,26 +313,29 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
 class MilestoneTimings(NamedTuple):
     """Minutes to each milestone, keyed by player name.
 
-    Named rather than a bare pair: both fields are ``dict[str, float]``, so
-    swapping them at a call site would type-check and silently mislabel every
+    Named rather than a bare tuple: every field is ``dict[str, float]``, so
+    swapping two at a call site would type-check and silently mislabel every
     rank-5 time as a search-and-destroy time.
     """
 
     time_to_rank_5: dict[str, float]
     time_to_search_destroy: dict[str, float]
+    time_to_hunted: dict[str, float]
 
 
 def milestone_timings_from_replay(
     replay: EnhancedReplayV2, name_by_idx: dict[int, str]
 ) -> MilestoneTimings:
-    """Minutes to rank 5 and to Search & Destroy, keyed by player name.
+    """Minutes to rank 5, to Search & Destroy, and to going hunted, keyed by
+    player name.
 
     Each map only contains entries for players who actually reached the milestone.
     """
     time_to_rank_5: dict[str, float] = {}
     time_to_search_destroy: dict[str, float] = {}
+    time_to_hunted: dict[str, float] = {}
     if replay.stats is None:
-        return MilestoneTimings(time_to_rank_5, time_to_search_destroy)
+        return MilestoneTimings(time_to_rank_5, time_to_search_destroy, time_to_hunted)
     scale = minutes_per_step(replay)
     for rev in replay.stats.rank_events:
         if rev.rank_level < 5:
@@ -347,4 +351,15 @@ def milestone_timings_from_replay(
         if name is None or name in time_to_search_destroy:
             continue
         time_to_search_destroy[name] = bpev.frame * scale
-    return MilestoneTimings(time_to_rank_5, time_to_search_destroy)
+    # First time each player went hunted (no dozer/worker left and no way to
+    # produce one). Sorted because we want the *first* flip and the event
+    # stream carries un-hunted flips interleaved; a player who rebuilds and
+    # goes hunted again keeps their earliest time.
+    for hev in sorted(replay.stats.hunted_events, key=lambda e: e.frame):
+        if not hev.hunted or is_initial_seed_frame(hev.frame):
+            continue
+        name = name_by_idx.get(hev.player)
+        if name is None or name in time_to_hunted:
+            continue
+        time_to_hunted[name] = hev.frame * scale
+    return MilestoneTimings(time_to_rank_5, time_to_search_destroy, time_to_hunted)

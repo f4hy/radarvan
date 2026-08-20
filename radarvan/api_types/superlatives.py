@@ -39,3 +39,4 @@ class SuperlativeData(BaseModel):
     player_xp_final: dict[str, int] = Field(default_factory=dict)
     time_to_rank_5: dict[str, Minute] = Field(default_factory=dict)
     time_to_search_destroy: dict[str, Minute] = Field(default_factory=dict)
+    time_to_hunted: dict[str, Minute] = Field(default_factory=dict)

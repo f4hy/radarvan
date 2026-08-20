@@ -64,6 +64,15 @@ class PlayerSummaryV2(BaseModel):
     ]
     color: str
     faction: str
+    # Whether the player was still flagged "hunted" when the game ended, and
+    # the frames of the latest flip in each direction. All three are
+    # `omitempty` on the wire (absent when false / zero), so they default.
+    hunted: bool = False
+    hunted_frame: Annotated[int | None, Field(alias="huntedFrame")] = None
+    unhunted_frame: Annotated[int | None, Field(alias="unhuntedFrame")] = None
+    income_by_source: Annotated[
+        dict[str, int] | None, Field(alias="incomeBySource")
+    ] = None
     index: int
     money: int
     money_earned: Annotated[int, Field(alias="moneyEarned")]
@@ -118,6 +127,9 @@ class EnrichedStats(BaseModel):
     capture_events: Annotated[list[EnrichedCaptureEvent], Field(alias="captureEvents")]
     death_events: Annotated[list[statsfile.DeathEvent], Field(alias="deathEvents")]
     energy_events: Annotated[list[statsfile.EnergyEvent], Field(alias="energyEvents")]
+    hunted_events: Annotated[
+        list[statsfile.HuntedEvent], Field(alias="huntedEvents")
+    ] = []
     kill_events: Annotated[list[EnrichedKillEvent], Field(alias="killEvents")]
     radar_events: Annotated[list[statsfile.RadarEvent], Field(alias="radarEvents")]
     rank_events: Annotated[list[statsfile.RankEvent], Field(alias="rankEvents")]
@@ -136,6 +148,7 @@ class EnhancedReplayV2(BaseModel):
     header: header_1.GeneralsHeader
     offset: int
     stats: EnrichedStats | None
+    stats_version: Annotated[int | None, Field(alias="statsVersion")] = None
     summary: list[PlayerSummaryV2]
     version: int
     win_estimation: Annotated[WinEstimation | None, Field(alias="winEstimation")] = None

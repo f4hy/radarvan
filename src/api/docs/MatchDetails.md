@@ -23,6 +23,7 @@ Name | Type
 `playerMoneyCollected` | { [key: string]: number; }
 `timeToRank5` | { [key: string]: number; }
 `timeToSearchDestroy` | { [key: string]: number; }
+`timeToHunted` | { [key: string]: number; }
 `buildOrders` | [{ [key: string]: BuildOrder; }](BuildOrder.md)
 `apmOverTime` | { [key: string]: { [key: string]: number; }; }
 `timelineEvents` | [Array&lt;TimelineEvent&gt;](TimelineEvent.md)
@@ -51,6 +52,7 @@ const example = {
   "playerMoneyCollected": null,
   "timeToRank5": null,
   "timeToSearchDestroy": null,
+  "timeToHunted": null,
   "buildOrders": null,
   "apmOverTime": null,
   "timelineEvents": null,

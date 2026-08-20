@@ -63,7 +63,9 @@ logger = structlog.get_logger(__name__)
 # v6: player_summary excludes spectators. The old `s.team == Team.OBSERVER`
 # test only caught the few whose summary team was -1, so cached rows carry
 # observer entries with empty stats.
-_DETAILS_LOGIC_VERSION = 6
+# v7: timeline_events emits hunted / unhunted markers and MatchDetails gained
+# time_to_hunted (cncstats statsVersion 3 added stats.huntedEvents).
+_DETAILS_LOGIC_VERSION = 7
 
 
 def _compute_details_version() -> str:
@@ -420,6 +422,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         map_events=map_events,
         time_to_rank_5=milestones.time_to_rank_5,
         time_to_search_destroy=milestones.time_to_search_destroy,
+        time_to_hunted=milestones.time_to_hunted,
         build_orders=build_orders,
         apm_over_time=apm_over_time(replay),
         timeline_events=timeline_events,

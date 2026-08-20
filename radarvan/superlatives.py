@@ -116,6 +116,7 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
         player_xp_final=_last_per_player("xp"),
         time_to_rank_5=dict(d.time_to_rank_5),
         time_to_search_destroy=dict(d.time_to_search_destroy),
+        time_to_hunted=dict(d.time_to_hunted),
     )
 
 
@@ -739,6 +740,100 @@ def get_fastest_search_destroy_stats(
     ]
 
 
+class HuntedOccurrence(NamedTuple):
+    """One player going hunted in one match, alias-resolved.
+
+    `general` is None when the match's player list carries no entry for the
+    summary name, which keeps the per-player count usable even on a row the
+    per-general count has to skip.
+    """
+
+    data: SuperlativeData
+    player: str
+    general: str | None
+    at_minute: float
+
+
+def _hunted_occurrences(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+) -> list[HuntedOccurrence]:
+    """Every (player, match) pair where the player went hunted.
+
+    One entry per player per match - `time_to_hunted` only holds each player's
+    *first* hunted flip - so a player who gets hunted, rebuilds a dozer, and
+    gets hunted again still counts once. Name and general are resolved
+    together here because both need the same scan of the match's player list.
+    """
+    out: list[HuntedOccurrence] = []
+    for d in details:
+        match_info = match_info_by_id.get(d.match_id)
+        players = match_info.players if match_info is not None else []
+        for raw_name, minute in d.time_to_hunted.items():
+            entry = next((p for p in players if p.name == raw_name), None)
+            resolved = (
+                resolve_player_name(raw_name, entry.color)
+                if entry is not None
+                else resolve_player_name(raw_name)
+            )
+            if resolved in EXCLUDED_PLAYERS:
+                continue
+            out.append(
+                HuntedOccurrence(
+                    data=d,
+                    player=resolved,
+                    general=entry.general.name if entry is not None else None,
+                    at_minute=minute,
+                )
+            )
+    return out
+
+
+def get_hunted_stats(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    computed_at: date,
+) -> list[Statistic]:
+    """Who - and which general - gets production-locked most often.
+
+    "Hunted" is the engine state a player enters when they have no dozer or
+    worker left and no way to produce one: they can still fight with what they
+    have but cannot rebuild, which is usually decisive in a 1v1.
+    """
+    occurrences = _hunted_occurrences(match_info_by_id, details)
+    if not occurrences:
+        return []
+
+    stats: list[Statistic] = []
+
+    player_counts: Counter[str] = Counter(o.player for o in occurrences)
+    top_player, top_count = player_counts.most_common(1)[0]
+    stats.append(
+        Statistic(
+            stat_name="🚜 Most Hunted",
+            date_computed=computed_at,
+            value=top_count,
+            player=top_player,
+        )
+    )
+
+    general_counts: Counter[str] = Counter(
+        o.general for o in occurrences if o.general is not None
+    )
+    if general_counts:
+        top_general, gen_count = general_counts.most_common(1)[0]
+        stats.append(
+            Statistic(
+                stat_name="Most Hunted by General",
+                date_computed=computed_at,
+                value=gen_count,
+                player=top_general,
+            )
+        )
+
+    return stats
+
+
 @dataclass(slots=True)
 class _XpTotals:
     xp: int = 0
@@ -1053,6 +1148,7 @@ def get_superlatives(
             (get_efficiency_stats, details, computed_at),
             (get_fastest_rank_5_stats, match_info_by_id, details, computed_at),
             (get_fastest_search_destroy_stats, match_info_by_id, details, computed_at),
+            (get_hunted_stats, match_info_by_id, details, computed_at),
             (get_xp_rate_stats, match_info_by_id, details, computed_at),
         ]:
             stats.extend(_safe_compute(fn, *args))

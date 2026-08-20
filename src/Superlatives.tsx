@@ -21,6 +21,7 @@ const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
   { label: "Maps", keywords: ["Map"] },
   { label: "Match Duration", keywords: ["Longest", "Shortest"] },
   { label: "First Blood", keywords: ["First Blood"] },
+  { label: "Hunted", keywords: ["Hunted"] },
   { label: "APM", keywords: ["APM"] },
   { label: "Money", keywords: ["Money"] },
   {
