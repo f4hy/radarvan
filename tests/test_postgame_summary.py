@@ -27,7 +27,7 @@ from radarvan.api_types import (
     TimelineEvent,
     TournamentTag,
 )
-from radarvan.commentary import postgame_summary, summary_data
+from radarvan.commentary import postgame_summary, summary_data, summary_prompts
 from radarvan.db_utils import ReplayManager
 from radarvan.player_role import PlayerRole
 from radarvan.repositories import BracketRepo, BracketSummaryRepo, TournamentRepo
@@ -285,6 +285,70 @@ def test_player_ledger_is_derived_from_details() -> None:
         "Barracks @ 0.5min",
         "SupplyStash x2 @ 0.7min",
     ]
+
+
+def test_hunted_is_absent_for_a_game_that_never_recorded_it() -> None:
+    """The normal case by far: `time_to_hunted` is empty for every replay
+    parsed before cncstats statsVersion 3, so the recap must simply omit the
+    line rather than render an empty or zero one."""
+    match = _match(
+        1, 1, "tournament desert", ("Gorn", General.GLA), ("Neo", General.NUKE)
+    )
+    game = summary_data.build_summary_game(match, _details(1, "Gorn", "Neo"))
+    assert game is not None
+
+    assert [p.hunted_minute for p in game.players] == [None, None]
+    assert "Hunted" not in summary_data.render_summary_set(
+        summary_data.build_summary_set(_bracket_match(), [game])
+    )
+
+
+def test_hunted_minute_reaches_the_prompt_spelled_out() -> None:
+    """When it *is* present it's the most decisive thing in a game, so it gets
+    its own rendered line and says what it means - "hunted" is engine jargon
+    the model has no reason to know."""
+    match = _match(
+        1, 1, "tournament desert", ("Gorn", General.GLA), ("Neo", General.NUKE)
+    )
+    details = _details(1, "Gorn", "Neo").model_copy(
+        update={"time_to_hunted": {"Neo": 14.25}}
+    )
+    game = summary_data.build_summary_game(match, details)
+    assert game is not None
+
+    winner, loser = game.players
+    assert winner.hunted_minute is None
+    assert loser.hunted_minute == 14.25
+
+    rendered = summary_data.render_summary_set(
+        summary_data.build_summary_set(_bracket_match(), [game])
+    )
+    assert "Hunted: production-locked at 14.2min" in rendered
+    assert "no dozer or worker left" in rendered
+
+
+def test_hunted_label_is_the_same_word_in_the_data_and_the_guidelines() -> None:
+    """The guidelines tell the model what the "Hunted" line means, so they have
+    to name the label the renderer actually emits - renaming one without the
+    other leaves the prompt describing a line that never appears."""
+    match = _match(
+        1, 1, "tournament desert", ("Gorn", General.GLA), ("Neo", General.NUKE)
+    )
+    details = _details(1, "Gorn", "Neo").model_copy(
+        update={"time_to_hunted": {"Neo": 14.25}}
+    )
+    game = summary_data.build_summary_game(match, details)
+    assert game is not None
+    rendered = summary_data.render_summary_set(
+        summary_data.build_summary_set(_bracket_match(), [game])
+    )
+
+    label = next(
+        line.strip().split(":")[0]
+        for line in rendered.splitlines()
+        if line.strip().startswith("Hunted")
+    )
+    assert label in summary_prompts.RECAP_GUIDELINES
 
 
 def test_render_summary_set_is_not_json_and_covers_every_game() -> None:

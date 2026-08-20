@@ -87,6 +87,15 @@ class SummaryPlayerGame(BaseModel):
     highest_rank: int | None
     rank_5_minute: float | None
     search_destroy_minute: float | None
+    # Minute this player went "hunted" - no dozer/worker left and no way to
+    # build one. Usually None simply because it usually doesn't happen: a
+    # recap only ever covers a just-played set, and those replays are parsed
+    # at cncstats statsVersion 3, which always carries the stream. (Replays
+    # parsed before that have no stream at all, so a *historical* match can
+    # read as None for the other reason - but nothing here looks at those.)
+    # Rare enough, and decisive enough, to get its own rendered line rather
+    # than joining the milestone list - see `_render_player_game`.
+    hunted_minute: float | None
     opening_buildings: list[str]
     opening_units: list[str]
     upgrades: list[str]
@@ -250,6 +259,7 @@ def _build_player_game(
         highest_rank=max(ranks) if ranks else None,
         rank_5_minute=details.time_to_rank_5.get(raw_name),
         search_destroy_minute=details.time_to_search_destroy.get(raw_name),
+        hunted_minute=details.time_to_hunted.get(raw_name),
         opening_buildings=_entries(
             build_order.buildings if build_order else [], MAX_OPENING_BUILDINGS
         ),
@@ -417,6 +427,17 @@ def _render_player_game(player: SummaryPlayerGame) -> list[str]:
         )
     if progression:
         lines.append(f"    Progression: {'; '.join(progression)}")
+
+    # Deliberately its own line rather than another entry in `progression`:
+    # going hunted is not a milestone on the way to something, it is the point
+    # where this player stopped being able to rebuild. Spelled out in full
+    # because "hunted" is engine jargon the model has no reason to know.
+    if player.hunted_minute is not None:
+        lines.append(
+            f"    Hunted: production-locked at {player.hunted_minute:.1f}min - "
+            "no dozer or worker left and no way to build one, so nothing "
+            "lost after this point could be replaced"
+        )
 
     if player.opening_buildings:
         lines.append(f"    Opening buildings: {', '.join(player.opening_buildings)}")

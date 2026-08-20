@@ -35,6 +35,7 @@ How this tournament is played (matters for reading the data):
 What you are given:
 - The set header: round, best-of, final score, who won.
 - Every game in order, with map, duration, generals, first blood, and both players' full ledger for that game: money earned and spent, APM, value destroyed and lost, units and buildings killed and lost, rank progression, opening build, upgrades, powers used, tech captured, superweapons built and fired, and their most destructive unit types.
+- Occasionally a player's block carries a "Hunted" line: the minute they lost their last dozer or worker with no way to build another. They can still fight with what they have but cannot rebuild, which is usually decisive in a 1v1 - where it appears it is normally the story of that game, so use it. Most games have no such line, which just means it didn't happen - that is the ordinary case and not worth remarking on.
 - These numbers are all real match data and are fine to quote directly - unlike the internal skill ratings used for pre-game hype, there is nothing hidden here. Quote them sparingly and only when a number is the point ("he lost 40k of army and still closed it out"), not as a stat dump.
 - Not every field is worth using. Most games have one or two numbers that explain them; find those and leave the rest out.
 
