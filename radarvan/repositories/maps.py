@@ -1,6 +1,7 @@
 """MapData repository."""
 
 from datetime import UTC, datetime
+from typing import NamedTuple
 
 from sqlalchemy import ColumnElement, func, select
 
@@ -8,6 +9,17 @@ from ..api_types import MapDataPayload
 from ..db import MapData
 
 from .base import BaseRepo
+
+
+class MapRegistryRevision(NamedTuple):
+    """Cheap identity of the map_data table's current contents.
+
+    `rows` rather than `count`: NamedTuple inherits tuple.count, and shadowing it
+    with an int field is a mypy error.
+    """
+
+    rows: int
+    updated_at: datetime | None
 
 
 def normalize_map_name(name: str) -> str:
@@ -72,6 +84,19 @@ class MapRepo(BaseRepo):
     def list_map_names(self) -> list[str]:
         """Return every stored map_name."""
         return list(self.session.scalars(select(MapData.map_name)).all())
+
+    def map_registry_revision(self) -> MapRegistryRevision:
+        """Cheap revision marker for the whole map_data table.
+
+        Row count plus the newest `updated_at`, which carries `onupdate=func.now()`
+        - so this moves when a map is added, deleted, or re-parsed, but costs a
+        single aggregate rather than loading every row and its JSON blob. Backs
+        `derived.MAPS`; see radarvan/derived/versions.py.
+        """
+        row = self.session.execute(
+            select(func.count(MapData.map_name), func.max(MapData.updated_at))
+        ).one()
+        return MapRegistryRevision(rows=row[0] or 0, updated_at=row[1])
 
     def unsynced_maps(self, limit: int | None = None) -> list[tuple[str, str | None]]:
         """(map_name, crc) for maps not yet known to be on cncstats, by name.

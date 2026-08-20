@@ -238,7 +238,7 @@ def sync_links(
     bracket is rescheduled). Manual links are left alone entirely.
 
     Callers must invalidate the match caches afterwards - ``MatchInfo`` is
-    cached on ``latest_match_ts``, which doesn't move when a link is written
+    keyed on the corpus probe, which doesn't move when a link is written
     for a match that already existed.
     """
     proposals: list[ProposedLink] = []

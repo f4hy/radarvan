@@ -21,12 +21,11 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 import numpy as np
-from cachetools import TTLCache
 
 from . import game_composition
 from . import player_ids
 from .api_types import MatchInfo
-from .utils import locked_cached
+from .derived import CORPUS, derived
 
 logger = structlog.get_logger(__name__)
 
@@ -243,10 +242,7 @@ def _fit(
             break
 
 
-_skills_cache: TTLCache[frozenset[int], list[NamedSkill]] = TTLCache(maxsize=8, ttl=600)
-
-
-@locked_cached(cache=_skills_cache, key=lambda games: frozenset(g.id for g in games))
+@derived(on=CORPUS, maxsize=8)
 def compute_player_skills(games: list[MatchInfo]) -> list[NamedSkill]:
     prep = _prepare(games)
     if not prep.games:

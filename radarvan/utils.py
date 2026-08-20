@@ -1,11 +1,9 @@
 """Shared logic about replay computing."""
 
 import datetime
-import threading
-from collections.abc import Callable, MutableMapping
+from collections.abc import Callable
 from typing import Any, cast
 from zoneinfo import ZoneInfo
-from cachetools import cached
 from .api_types import Player, General, Team
 from .cncstats_model.zhreplay import EnhancedReplayV2, PlayerSummaryV2
 from .cncstats_model.header import Player as HeaderPlayer
@@ -21,20 +19,6 @@ import time
 import functools
 
 logger = structlog.get_logger(__name__)
-
-
-def locked_cached[F: Callable[..., Any]](
-    cache: MutableMapping[Any, Any], key: Callable[..., Any]
-) -> Callable[[F], F]:
-    """cachetools ``@cached`` with a dedicated lock baked in.
-
-    cachetools caches are not thread-safe, and sync endpoints run in uvicorn's
-    threadpool, so every process-global cache must be locked. Using this
-    helper instead of a bare ``@cached`` makes the lock impossible to forget.
-    (Caches that need ``cache_clear()`` coordination keep explicit locks in
-    ``radarvan.cache``.)
-    """
-    return cast(Callable[[F], F], cached(cache=cache, key=key, lock=threading.Lock()))
 
 
 def log_duration[F: Callable[..., Any]](func: F) -> F:

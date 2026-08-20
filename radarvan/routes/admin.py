@@ -24,7 +24,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from .. import matches, replay_files, schedule, tournament_membership, utils
 from ..api_types import MatchInfo, Team, WinnerOverride
-from ..cache import details_from_id, invalidate_match_caches, sorted_deduped_matches
+from ..cache import invalidate_match_caches, sorted_deduped_matches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
 from ..dependencies import (
@@ -154,8 +154,11 @@ def reparse(
     """
     replay = matches.reparse_replay(match_id, replay_manager)
     replay_manager.compute_and_save_composition(match_id)
+    # No details_from_id.cache_clear() needed: details_from_id is keyed on CORPUS,
+    # which this bumps, so the pre-reparse entry is unreachable. The durable row is
+    # deleted inside reparse_replay - that tier is keyed on DETAILS_VERSION, which
+    # a reparse does not move.
     invalidate_match_caches()
-    details_from_id.cache_clear()
     return replay
 
 
@@ -165,13 +168,18 @@ def reparse(
 def clear_details_cache(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, int]:
-    """Drop every row of the durable MatchDetails cache and the in-process LRU
-    fronting it. A debugging hatch - normal invalidation is per-match
+    """Drop every row of the durable MatchDetails cache and the in-process
+    derivation fronting it. A debugging hatch - normal invalidation is per-match
     (reparse) or implicit via DETAILS_VERSION, and derivation changes should
     bump the version rather than lean on this.
+
+    Invalidating the corpus is a wider hammer than `details_from_id` alone, and
+    deliberately so: reaching for a single cache by name is the vocabulary the
+    registry exists to remove, and this also kicks the re-warm that emptying the
+    durable tier makes worth doing.
     """
     deleted = replay_manager.delete_all_cached_details()
-    details_from_id.cache_clear()
+    invalidate_match_caches()
     logger.info("cleared details cache", deleted=deleted)
     return {"deleted": deleted}
 

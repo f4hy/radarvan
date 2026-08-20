@@ -1,86 +1,55 @@
-"""In-process match caches, cache warming, and invalidation.
+"""Match-derived values, cache warming, and invalidation.
 
-The cachetools LRUCaches here are process-global singletons; they MUST be
-defined once (here) so that `cache_clear()` from one router invalidates the
-same cache that another router reads.
+The derivations here are declared with `radarvan.derived.derived`, which supplies
+the bound and the lock and folds the dependency's version token into every key.
+That is why there is no lock or `LRUCache` in this file any more, and why
+`invalidate_match_caches()` no longer names a single cache: it bumps two version
+tokens, and every derivation over them - here and in the seven other modules that
+declare one - stops being addressable. See `radarvan/derived/__init__.py`.
 
-Cache-warming runs on a single long-lived background thread driven by
-threading.Event. We must not spawn a fresh worker per invalidation:
-cachetools caches are not thread-safe, and concurrent writes corrupt them.
+Cache-warming still runs on a single long-lived background thread driven by
+threading.Event. We must not spawn a fresh worker per invalidation: a burst of
+warms would waste the dyno's one core recomputing the same thing. (Thread *safety*
+is no longer the reason - the decorator locks every cache and single-flights
+concurrent misses of the same key.)
 """
 
 import structlog
 import threading
-
-from cachetools import LRUCache, TTLCache, cached
 
 from . import game_composition, matches, player_rating
 from .api_types import MatchInfo, MatchDetails
 from .db_utils import ReplayManager
 from . import match_details
 from .dependencies import db_manager
+from .derived import CORPUS, MAPS, derived, invalidate
 from .repositories.maps import normalize_map_name
 
 logger = structlog.get_logger(__name__)
 
 
-# cachetools caches are not thread-safe; sync endpoints run in uvicorn's
-# threadpool, so concurrent access can corrupt LRU bookkeeping. Each @cached
-# below gets its own lock. cachetools holds the lock only around the cache
-# get/set (and cache_clear), never around the wrapped call, so there is no
-# deadlock even when one cached function calls another.
-_latest_ts_lock = threading.Lock()
-_sorted_lock = threading.Lock()
-_competitive_lock = threading.Lock()
-_details_lock = threading.Lock()
-_maps_by_count_lock = threading.Lock()
-_map_name_index_lock = threading.Lock()
-
-
-@cached(
-    cache=TTLCache(maxsize=1, ttl=60),
-    key=lambda replay_manager: "v",
-    lock=_latest_ts_lock,
-)
-def latest_match_ts(replay_manager: ReplayManager) -> str:
-    ts = replay_manager.latest_match_created_at()
-    return ts.isoformat() if ts else ""
-
-
-def details_key(match_id: int, replay_manager: ReplayManager) -> str:
-    return str(match_id)
-
-
-@cached(
-    cache=TTLCache(maxsize=1, ttl=600),
-    key=lambda replay_manager: "maps",
-    lock=_maps_by_count_lock,
-)
+@derived(on=MAPS, maxsize=1)
 def maps_by_player_count(replay_manager: ReplayManager) -> dict[int, list[str]]:
     """Maps grouped by start-position count.
 
-    Map geometry changes rarely (only when maps are added), but the underlying
-    query loads every MapData row + its JSON blob, so this short-TTL cache keeps
-    the voting endpoints from re-scanning the table on every request. Cleared by
-    invalidate_match_caches() as well, so a re-scrape surfaces new maps promptly.
+    Map geometry changes rarely, but the underlying query loads every MapData row
+    plus its JSON blob, so caching keeps the voting endpoints from re-scanning the
+    table on every request. Keyed on MAPS, whose probe is a single aggregate over
+    `map_data.updated_at` - so a re-parsed or newly fetched map surfaces without
+    the 10-minute TTL this used to carry.
     """
     return replay_manager.list_maps_by_player_count()
 
 
-@cached(
-    cache=TTLCache(maxsize=1, ttl=600),
-    key=lambda replay_manager: "map_names",
-    lock=_map_name_index_lock,
-)
+@derived(on=MAPS, maxsize=1)
 def map_name_index(replay_manager: ReplayManager) -> dict[str, str]:
     """{normalized map name -> canonical MapData.map_name}, loaded once and cached.
 
-    Every played map has (at most) one MapData row, and `map_name` is stored
-    with the exact case/punctuation of the S3-hosted asset - resolving through
-    this index is how map-image serving (routes/maps.py) finds the right S3
-    object without guessing at case variants. Loading the full (small) table
-    once beats a per-request query; same TTL/invalidation shape as
-    `maps_by_player_count`.
+    Every played map has (at most) one MapData row, and `map_name` is stored with
+    the exact case/punctuation of the S3-hosted asset - resolving through this
+    index is how map-image serving (routes/maps.py) finds the right S3 object
+    without guessing at case variants. Loading the full (small) table once beats a
+    per-request query.
     """
     return {normalize_map_name(name): name for name in replay_manager.list_map_names()}
 
@@ -90,7 +59,7 @@ def resolve_map_name_cached(replay_manager: ReplayManager, map_name: str) -> str
     return map_name_index(replay_manager).get(normalize_map_name(map_name))
 
 
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_sorted_lock)
+@derived(on=CORPUS, maxsize=1)
 def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     match_infos = matches.get_match_infos(replay_manager)
     deduped = {i.id: i for i in match_infos if i}
@@ -100,7 +69,7 @@ def sorted_deduped_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo
     )
 
 
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_competitive_lock)
+@derived(on=CORPUS, maxsize=1)
 def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     all_matches = sorted_deduped_matches(replay_manager)
     return {
@@ -115,20 +84,25 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     }
 
 
-@cached(cache=LRUCache(maxsize=30), key=details_key, lock=_details_lock)
+@derived(on=CORPUS, maxsize=30)
 def details_from_id(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
     """Resolve MatchDetails through a two-tier cache.
 
-    This in-process LRU (the decorator) fronts the durable, versioned DB cache
-    implemented in `match_details.load_match_details` (`MatchDetailsCache`): a
-    DB hit at the current DETAILS_VERSION skips re-reading + re-validating the
-    multi-MB raw replay from S3; a miss recomputes and writes the small derived
-    projection back. The same loader backs the superlatives / bulk paths, so
-    every caller shares one warm cache. Reparse explicitly deletes the row (raw
-    replay changed but version did not); a DETAILS_VERSION bump invalidates all
-    rows implicitly.
+    This in-process LRU fronts the durable, versioned DB cache implemented in
+    `match_details.load_match_details` (`MatchDetailsCache`): a DB hit at the
+    current DETAILS_VERSION skips re-reading + re-validating the multi-MB raw
+    replay from S3; a miss recomputes and writes the small derived projection
+    back. The same loader backs the superlatives / bulk paths, so every caller
+    shares one warm cache.
+
+    The two tiers invalidate on different things and both are needed. This tier is
+    keyed on CORPUS, so a reparse or override makes the old entry unreachable
+    without anyone clearing it. The durable tier is keyed on DETAILS_VERSION,
+    which survives restarts and covers a derivation-logic change; a reparse
+    additionally deletes its row explicitly, because the raw replay changed while
+    the version did not.
     """
     return match_details.load_match_details(match_id, replay_manager)
 
@@ -174,12 +148,20 @@ def warm_caches() -> None:
 
 
 def invalidate_match_caches() -> None:
-    """Drop all match-related caches and request a background re-warm."""
-    latest_match_ts.cache_clear()
-    sorted_deduped_matches.cache_clear()
-    competitive_matches.cache_clear()
-    details_from_id.cache_clear()
-    maps_by_player_count.cache_clear()
-    map_name_index.cache_clear()
+    """Mark the match corpus and map registry as changed; request a re-warm.
+
+    No cache is named. Bumping the two version tokens moves the key of every
+    derivation over them - including the ones in player_rating, player_synergy,
+    player_skill, create_teams, missing_maps and routes/votes, none of which the
+    old hand-maintained clear list reached. (`routes/predict._faction_grid` is on
+    MODEL and is deliberately *not* reached: new games must not evict it.) The
+    registry additionally empties what it just superseded, so a stale generation
+    does not sit in memory waiting to be evicted.
+
+    Both tokens are bumped together because the operations that call this - a
+    scrape, a register, a reparse, an override - land matches and fetch the maps
+    they were played on in the same pass.
+    """
+    invalidate(CORPUS, MAPS)
     _ensure_warm_thread()
     _warm_event.set()

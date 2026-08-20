@@ -26,10 +26,10 @@ from typing import NamedTuple
 
 import numpy as np
 import structlog
-from cachetools import LRUCache
 from openskill.models import PlackettLuce
 
 from .api_types import MatchInfo
+from .derived import CORPUS, derived
 from .player_rating import (
     NamedRating,
     build_teams,
@@ -37,7 +37,6 @@ from .player_rating import (
     get_model,
     is_ratable_team_game,
 )
-from .utils import locked_cached
 
 logger = structlog.get_logger(__name__)
 
@@ -181,15 +180,7 @@ def _fit_ridge_logistic(
     return RidgeFit(beta=beta, covariance=np.linalg.inv(hessian))
 
 
-@locked_cached(
-    cache=LRUCache(maxsize=_SYNERGY_CACHE_MAXSIZE),
-    key=lambda games, lambda_pair=DEFAULT_LAMBDA_PAIR, lambda_main=DEFAULT_LAMBDA_MAIN, min_games_together=DEFAULT_MIN_GAMES_TOGETHER: (
-        frozenset(g.id for g in games),
-        lambda_pair,
-        lambda_main,
-        min_games_together,
-    ),
-)
+@derived(on=CORPUS, maxsize=_SYNERGY_CACHE_MAXSIZE)
 def compute_player_synergy(
     games: list[MatchInfo],
     lambda_pair: float = DEFAULT_LAMBDA_PAIR,

@@ -534,7 +534,7 @@ def set_bracket_games(
         tournament_repo,
     )
     # Last, and after the response is built off `known`: MatchInfo is cached on
-    # latest_match_ts, which doesn't move when a link is written for a match
+    # the corpus probe, which doesn't move when a link is written for a match
     # that already existed, so the tags need dropping - but invalidating first
     # would make the response build re-derive every MatchInfo in the DB.
     invalidate_match_caches()

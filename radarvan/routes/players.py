@@ -1,9 +1,11 @@
 """Player stats, ratings, skills, balance, partitioning endpoints."""
 
+import threading
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 
+from cachetools import TTLCache
 from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, Query
@@ -420,19 +422,54 @@ async def get_player_head_to_head(
     )
 
 
+# A deliberately frozen answer, which is why it is a wall clock and not a
+# derivation. `create_teams.balance_teams` is @derived(on=CORPUS): it follows the
+# ratings, so on its own this endpoint would re-rank the splits every time a game
+# landed. Some of the group want exactly that; the rest want the teams they were
+# given at the start of the evening to still be the teams an hour later. This is
+# where that call gets made, in the route that makes the promise - the derivation
+# underneath stays honest about tracking the corpus.
+#
+# Six hours covers a game night. Allow-listed in tests/test_derived_registry.py
+# for the same reason routes/draft.py is: a version token cannot express "hold
+# this steady until the evening is over".
+_BALANCE_HOLD = timedelta(hours=6)
+_balance_cache: TTLCache[frozenset[str], dict[tuple[str, ...], float]] = TTLCache(
+    maxsize=64, ttl=_BALANCE_HOLD.total_seconds()
+)
+_balance_cache_lock = threading.Lock()
+
+
 @router.get("/api/balance_teams/")
 def balance_teams(
     players: list[str] = Query(default=[]),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, float]:
+    """Win probability for every way of splitting `players` into two teams.
+
+    Held for six hours per roster: ask again with the same players and you get
+    the same numbers back, even if games have landed in between. Change the
+    roster and you get a fresh computation.
+    """
     if len(players) < 4:
         return {}
+    # Keyed on the *resolved* roster, so "skp" and "Skip" are one entry rather
+    # than two. The raw spellings stay out of the cache and are re-applied per
+    # request below, so the caller still sees the names they sent.
     resolved_to_raw = {player_ids.resolve_player_name(n): n for n in players}
-    games = competitive_matches(replay_manager)
+    roster = frozenset(resolved_to_raw)
 
-    team_scores = create_teams.balance_teams(
-        list(games.values()), player_list=frozenset(players)
-    )
+    # One lookup, not `in` + `[]`: an entry can expire between the two, which
+    # would raise KeyError on a cache that just reported a hit.
+    with _balance_cache_lock:
+        team_scores = _balance_cache.get(roster)
+    if team_scores is None:
+        games = competitive_matches(replay_manager)
+        team_scores = create_teams.balance_teams(
+            list(games.values()), player_list=frozenset(players)
+        )
+        with _balance_cache_lock:
+            _balance_cache[roster] = team_scores
     return {
         ",".join(resolved_to_raw.get(p, p) for p in team): score
         for team, score in team_scores.items()

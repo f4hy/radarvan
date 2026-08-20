@@ -38,8 +38,9 @@ from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
 
-from radarvan import cache, dependencies as deps, matches as matches_mod
+from radarvan import derived, dependencies as deps, matches as matches_mod
 from radarvan.main import app
+from radarvan.repositories.maps import MapRegistryRevision
 
 import corpus
 
@@ -180,6 +181,11 @@ class _StubRepo:
     def list_map_names(self) -> list[str]:
         return list(corpus.MAPS)
 
+    def map_registry_revision(self) -> MapRegistryRevision:
+        # Backs derived.MAPS. Fixed, so the map derivations key stably across the
+        # module rather than re-deriving per request.
+        return MapRegistryRevision(rows=len(corpus.MAPS), updated_at=corpus.LATEST)
+
     @property
     def session(self):
         raise AssertionError(
@@ -236,21 +242,15 @@ def client() -> TestClient:
 
 
 def _clear_caches() -> None:
-    """Drop the corpus-derived caches.
+    """Empty every registered derivation.
 
-    Deliberately not ``cache.invalidate_match_caches()``: that kicks the
-    background warm thread, which opens its own session against the real
-    database.
+    ``derived.clear_all()`` rather than ``cache.invalidate_match_caches()``: the
+    latter kicks the background warm thread, which opens its own session against
+    the real database. This used to enumerate six caches by name and so missed
+    the ten declared in other modules - which is the problem the registry exists
+    to remove, so it would be a poor place to keep reproducing it.
     """
-    for cached in (
-        cache.latest_match_ts,
-        cache.sorted_deduped_matches,
-        cache.competitive_matches,
-        cache.details_from_id,
-        cache.maps_by_player_count,
-        cache.map_name_index,
-    ):
-        cached.cache_clear()
+    derived.clear_all()
 
 
 # --- tests -------------------------------------------------------------------

@@ -23,19 +23,17 @@ import os
 import shutil
 import subprocess
 import tempfile
-import threading
 import zipfile
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 
-from cachetools import LRUCache, cached
 from PIL import Image
 from sqlalchemy import func, select
 
 from . import cncstats_client
 from .api_types import MapDataPayload
-from .cache import latest_match_ts
+from .derived import CORPUS, derived
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db import MapData, Match, ParsedReplayJson
 from .db_utils import ReplayManager
@@ -137,16 +135,13 @@ def get_map_crc_from_match(match_id: int, replay_manager: ReplayManager) -> str 
     return replay.header.metadata.map_crc
 
 
-_crc_index_lock = threading.Lock()
-
-
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_crc_index_lock)
+@derived(on=CORPUS, maxsize=1)
 def _sample_match_by_map_key(replay_manager: ReplayManager) -> dict[str, int]:
     """{normalized map -> a representative match_id} over all match history.
 
     Uses MIN(match_id) so the choice is stable. The parsed replay for any of
-    these matches carries the map's CRC (header.metadata.mapCrc). Cached on the
-    latest-match timestamp so the full GROUP BY runs once per match-history rev.
+    these matches carries the map's CRC (header.metadata.mapCrc). Keyed on
+    CORPUS so the full GROUP BY runs once per match-history revision.
     """
     rows = replay_manager.session.execute(
         select(Match.map, func.min(Match.match_id))

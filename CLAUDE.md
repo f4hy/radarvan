@@ -68,9 +68,22 @@ React + MUI + recharts, entry `index.tsx` → `App.tsx` → `Menu.tsx`; views ma
 
 **Event loop.** Async handlers and scheduler jobs must push blocking work (cncstats HTTP, S3 I/O, heavy computation) through `asyncio.to_thread`. Sequential `to_thread` calls may share one session; concurrent ones must not.
 
-**Caches.** cachetools caches are not thread-safe and sync endpoints run in uvicorn's threadpool: every process-global cache must be locked. For new caches use `utils.locked_cached(cache=..., key=...)`; the caches in `cache.py` keep explicit locks because they coordinate `cache_clear()`. Call `cache.invalidate_match_caches()` after anything that changes match data (registers, reparses, overrides, resets) — it clears all match caches and triggers a background re-warm on the single warm thread.
+**Derivations, not caches.** Every in-process memoization goes through `@derived` (`radarvan/derived/`). Do not reach for `cachetools` directly — `tests/test_derived_registry.py` fails on a new `LRUCache`/`TTLCache`/`@cached` anywhere in `radarvan/`, against a three-entry allowlist.
 
-**The two match sets.** `cache.sorted_deduped_matches` = all games (use for counts/listings); `cache.competitive_matches` = complete + `competitive_game_filter` (balanced, non-comp-stomp, team game, ≤1 CPU) + every team has a known player (use for W/L, ratings, records). Both are keyed on `latest_match_ts` so they refresh when new matches land. `filter_by_format` lives in `matches.py` (it operates on `list[MatchInfo]`), not `game_composition.py`.
+```python
+@derived(on=CORPUS, maxsize=6)    # def compute_player_ratings(games)
+@derived(on=MAPS, maxsize=1)      # def map_name_index(replay_manager)
+```
+
+`@derived(on=…, maxsize=…)` is the entire vocabulary — there is no `key=`, no `revision=`, and deliberately no `ttl=` (a TTL is a guess at a version token, and the registry has the real one). `maxsize` is required and the lock is supplied, so an unbounded or unlocked cache cannot be declared.
+
+`on=` names the input (`CORPUS`, `MAPS`, `MODEL`); its version token is folded into every key, so a stale entry becomes *unreachable* rather than something somebody has to remember to clear. **Every other parameter is the per-call key**, read off the signature at decoration time — forgetting a key would give *wrong* answers rather than stale ones, so it isn't something a call site gets to declare.
+
+A token is `(epoch, revision)` and needs both halves. The epoch is a process-local counter bumped by `invalidate()`, which is what catches a reparse or a `WinnerOverride` (they change match *content* without moving `matches.created_at`). The revision is how *this call* reveals its generation, and `CORPUS` offers two ways: a `replay_manager` parameter (probed on a 60s DB poll, which also catches new matches landing outside this process) or a `games` parameter (the `list[MatchInfo]` itself, reduced to its ids). Which one applies is decided from the signature — so those two parameter names are load-bearing, and a rename fails on import rather than at runtime.
+
+Call `cache.invalidate_match_caches()` after anything that changes match data (registers, reparses, overrides, resets). It bumps `CORPUS` and `MAPS` and triggers a background re-warm on the single warm thread — it names no cache, so a derivation added tomorrow is covered without editing it.
+
+**The two match sets.** `cache.sorted_deduped_matches` = all games (use for counts/listings); `cache.competitive_matches` = complete + `competitive_game_filter` (balanced, non-comp-stomp, team game, ≤1 CPU) + every team has a known player (use for W/L, ratings, records). Both are `@derived(on=CORPUS)` over `replay_manager`, so they refresh when new matches land. `filter_by_format` lives in `matches.py` (it operates on `list[MatchInfo]`), not `game_composition.py`.
 
 **Which 1v1s count, and for what.**
 
@@ -110,7 +123,7 @@ Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check agains
 
 - **This is Python 3.14 (`requires-python = ">=3.14"`, ruff `py314`, mypy 3.14).** Unparenthesized `except ValueError, TypeError:` is valid — [PEP 758](https://peps.python.org/pep-0758/) — and so is `except* A, B:`. `ruff format` actively rewrites the parenthesized form to it. That is correct, current code: do not "fix" it back, and never report it as a syntax error.
 - **Exception: any `radarvan/` module reachable from `ml/` must stay parseable by Python 3.13**, because torch has no 3.14 wheel and training runs in `.venv-ml` (3.13) with the repo on `PYTHONPATH`. There, PEP 758's bare form *is* a SyntaxError — keep those `except` clauses parenthesized **and tagged `# fmt: skip`**, or `make format` silently rewrites them back and breaks training (`player_role.py` is the live example). Same constraint as the `from __future__ import annotations` at the top of `player_rating.py`. `tests/test_ml_venv_imports.py` catches a break wherever `.venv-ml` exists.
-- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types (e.g. `locked_cached` lives in `utils.py` because `cache.py` imports `player_rating`).
+- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types (e.g. `derived/` imports only `api_types` and `db_utils`, so `cache.py` and `player_rating.py` can both depend on it).
 - **Never mutate function inputs** — return new values (`model_copy(update=...)` for Pydantic).
 - camelCase wire aliases with `populate_by_name`. (Do not add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — pydantic v2's `ConfigDict` has no such key for `BaseModel`; it's silently ignored. Real slots require `pydantic.dataclasses.dataclass(..., slots=True)`, which isn't compatible with `api_types.py`'s OpenAPI/TS-codegen role.)
 
@@ -158,8 +171,8 @@ Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check agains
 
 ### Caching / scheduling specifics
 
-- `_draft_cache` in `routes/draft.py` uses a manual dict-style TTLCache (not `@cached`) because `replay_manager` is a Depends parameter that can't pass through the decorator key.
-- `balance_teams` is TTL-cached on the player set only (12h) — ratings staleness there is accepted.
+- `_draft_cache` in `routes/draft.py` stays a manual TTLCache (allow-listed in `tests/test_derived_registry.py`) — not because the registry couldn't bind it, but because a draft is a *random* result held steady, not a value derived from the corpus: version-keying would re-randomize everyone's teams the moment a game landed.
+- **`/api/balance_teams/` has two layers, on purpose.** `create_teams.balance_teams` is `@derived(on=CORPUS, maxsize=128)` (`games` binds the corpus, `player_list` is the key) and so tracks the ratings. The *route* (`routes/players.py`) then holds its answer for **6 hours per roster** in a plain `TTLCache`, keyed on the alias-resolved player set — so asking again with the same players during a game night returns the same teams even after games land. That hold is a product decision (the group is split on whether teams should reshuffle mid-night), which is why it lives at the route rather than in the derivation, and why it is a wall clock rather than a version token. Raw spellings are re-applied per request, so the hold does not freeze one caller's aliases onto another's response. Before this split, the 12h TTL sat on the derivation and silently served stale *ratings* — the same visible effect, but by accident of a cache key, and it made `/api/partition_teams/` (never held) disagree with it.
 - Scheduler (`schedule.py`): scrape+register every 6h, superlatives recompute at 04:00; both take `db_manager` and are also triggerable via `POST /api/scrape/{days}` and `POST /api/superlatives/recompute`.
 
 ## Reference fixtures (`references/`)

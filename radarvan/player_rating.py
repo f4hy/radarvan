@@ -8,13 +8,13 @@ tracking per-day/per-match rating changes and upsets."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import NamedTuple
-from cachetools import cached, LRUCache
 from openskill.models import PlackettLuce, PlackettLuceRating
 from collections import defaultdict
 from . import player_ids
 from . import game_composition
-from .utils import locked_cached
+from .derived import CORPUS, derived
 from radarvan.api_types import (
     MatchInfo,
 )
@@ -71,8 +71,11 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     return NamedRating(name=name, mu=r.mu, sigma=r.sigma * 8)
 
 
-@cached(cache={})
+@lru_cache(maxsize=1)
 def get_model() -> PlackettLuce:
+    # A nullary constant, not a derivation: nothing versions it and nothing
+    # invalidates it. lru_cache(1) rather than the registry, which would add a
+    # dependency token and a lock to a call that has neither.
     # return PlackettLuce(beta=(25.0/3.0), tau=(25.0 / 200.0))
     return PlackettLuce(beta=(25.0 / 4.0))
 
@@ -398,11 +401,15 @@ def is_ratable_team_game(game: MatchInfo) -> bool:
     return filter_for_rating(game)
 
 
-@locked_cached(
-    cache=LRUCache(maxsize=6),
-    key=lambda games: frozenset(g.id for g in games),
-)
+@derived(on=CORPUS, maxsize=6)
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
+    """Ratings over the supplied games.
+
+    Keyed on the ids in `games` *and* the corpus epoch. The ids alone would be
+    wrong: a reparse or a WinnerOverride changes a match's winner while leaving
+    its id untouched, so `competitive_matches` would hand this a corrected list
+    and get the pre-correction ratings back. See derived/versions.py.
+    """
     model = get_model()
     filtered_games = [g for g in games if filter_for_rating(g)]
     all_players = _collect_all_players(filtered_games)

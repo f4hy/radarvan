@@ -5,12 +5,10 @@ behind the X-API-Key dependency - the frontend calls them same-origin so the
 session cookie identifies the voter. Reads are open; casting requires login.
 """
 
-import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 import structlog
-from cachetools import LRUCache, cached
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import map_choice
@@ -22,7 +20,8 @@ from ..api_types import (
     MapVotePage,
     SetMapVoteRequest,
 )
-from ..cache import latest_match_ts, maps_by_player_count, sorted_deduped_matches
+from ..cache import maps_by_player_count, sorted_deduped_matches
+from ..derived import CORPUS, derived
 from ..db import User
 from ..db_utils import ReplayManager
 from ..dependencies import (
@@ -41,9 +40,6 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/map_vote", tags=["map_vote"])
 
 
-_index_lock = threading.Lock()
-
-
 @dataclass
 class _MapAgg:
     """Per-map aggregate backing the voting list."""
@@ -56,13 +52,13 @@ class _MapAgg:
     counts: set[int] = field(default_factory=set)
 
 
-@cached(cache=LRUCache(maxsize=2), key=latest_match_ts, lock=_index_lock)
+@derived(on=CORPUS, maxsize=1)
 def _match_map_index(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
     """{normalized map -> aggregate} over every map in match history.
 
     The voting list is sourced from games we've actually played (not just maps
     with parsed MapData geometry), so a played map appears even if its geometry
-    was never fetched. Cached on the latest-match timestamp.
+    was never fetched. Keyed on CORPUS.
     """
     index: dict[str, _MapAgg] = {}
     for match in sorted_deduped_matches(replay_manager).values():

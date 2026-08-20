@@ -56,7 +56,7 @@ async def update_games(
         # may not.
         await asyncio.to_thread(_sync_tournament_links, replay_manager)
     # Once, at the end: covers both the new matches and the links just written
-    # (a link doesn't move latest_match_ts, which is what the caches key on).
+    # (a link doesn't move the corpus probe, which is what derivations key on).
     invalidate_match_caches()
     logger.info("done updating", found=len(paths))
     if do_notify:

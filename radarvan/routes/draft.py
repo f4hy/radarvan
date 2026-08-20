@@ -14,11 +14,15 @@ from ..dependencies import get_replay_manager
 router = APIRouter()
 
 
-# Manual dict-style TTLCache (not @cached) because replay_manager is a FastAPI
-# Depends parameter that can't pass through a decorator. Dropping @cached does
-# not drop the lock: this is a sync endpoint, so it runs in uvicorn's
-# threadpool and concurrent access would corrupt the cache's LRU/TTL
-# bookkeeping (see cache.py's module docstring).
+# Deliberately NOT a @derived derivation, and the reason is not the mechanism -
+# the registry could bind `replay_manager` by name perfectly well. A draft is a
+# *random* result held steady for a while, not a value derived from the corpus:
+# keying it on a version token would re-randomize everyone's teams the moment a
+# game landed, mid-game-night. A wall-clock TTL is the honest expression of
+# "keep this stable for 30 minutes", so this stays a manual TTLCache and is
+# allow-listed in tests/test_derived_registry.py. Dropping @cached does not drop
+# the lock: this is a sync endpoint, so it runs in uvicorn's threadpool and
+# concurrent access would corrupt the cache's LRU/TTL bookkeeping.
 _draft_cache: TTLCache[str, DraftResult] = TTLCache(maxsize=100, ttl=1800)
 _draft_cache_lock = threading.Lock()
 

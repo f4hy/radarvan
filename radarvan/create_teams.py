@@ -6,11 +6,8 @@ from itertools import combinations
 from . import player_ids
 from radarvan.api_types import MatchInfo
 import structlog
+from .derived import CORPUS, derived
 from .player_rating import get_model, compute_player_ratings, NamedRating
-from .utils import locked_cached
-from cachetools import TTLCache
-from cachetools.keys import hashkey
-from typing import Any
 
 logger = structlog.get_logger(__name__)
 
@@ -31,16 +28,19 @@ def _apply_fudge(win_pct: float, team1: Iterable[str], team2: Iterable[str]) -> 
     return win_pct
 
 
-def balance_teams_key(
-    games: list[MatchInfo], player_list: frozenset[str]
-) -> tuple[Any, ...]:
-    return hashkey(player_list)
-
-
-@locked_cached(cache=TTLCache(maxsize=128, ttl=43200), key=balance_teams_key)
+@derived(on=CORPUS, maxsize=128)
 def balance_teams(
     games: list[MatchInfo], player_list: frozenset[str]
 ) -> dict[tuple[str, ...], float]:
+    """Win probability for every way of splitting `player_list` into two teams.
+
+    This used to key on `player_list` alone behind a 12h TTL, which meant it
+    silently answered from ratings up to half a day stale. That conflated two
+    different things: *deriving* the numbers, and *holding* an answer steady for
+    a game night. Deriving them is this function's job and it now tracks the
+    corpus like every other derivation. The hold is a product decision and lives
+    where it is visible - `routes/players.balance_teams`, six hours per roster.
+    """
     team_size = len(player_list) // 2
     ratings = compute_player_ratings(games).ratings
 
