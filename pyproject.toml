@@ -5,49 +5,52 @@ description = "Tracking generals stats"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "anthropic>=0.120.2",
+    "anthropic>=1.0.0,<2",
     "apscheduler>=3.11.3",
     "beautifulsoup4>=4.15.0",
-    "boto3>=1.43.0",
-    "cachetools>=7.1.6",
+    # Capped in practice by s3fs -> aiobotocore, which pins a narrow botocore
+    # range (aiobotocore 3.9.0 allows botocore <1.43.57). Raising this past the
+    # matching boto3 makes the lock unsolvable; bump it when aiobotocore does.
+    "boto3>=1.43.56",
+    "cachetools>=7.1.7",
     "cachetools-async>=0.0.5",
     "fastapi[standard]>=0.141.1",
-    "fsspec[s3]>=2026.6.0",
-    "google-genai>=2.16.0",
+    "fsspec[s3]>=2026.7.0",
+    "google-genai>=2.19.0",
     "httpx>=0.28.1",
     "itsdangerous>=2.2.0",
-    "numpy>=2.5.1",
-    "onnxruntime>=1.28.0",
+    "numpy>=2.5.2",
+    "onnxruntime>=1.29.0",
     "openskill>=6.2.0",
-    "opentelemetry-api>=1.43.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.43.0",
+    "opentelemetry-api>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
     "opentelemetry-instrumentation-fastapi>=0.65b0",
-    "opentelemetry-instrumentation-httpx>=0.64b0",
-    "opentelemetry-sdk>=1.43.0",
+    "opentelemetry-instrumentation-httpx>=0.65b0",
+    "opentelemetry-sdk>=1.44.0",
     "pillow>=12.3.0",
     "psycopg2-binary>=2.9.12",
     "pydantic>=2.13.4",
-    "s3fs>=2026.6.0",
-    "sqlalchemy>=2.0.51",
+    "s3fs>=2026.7.0",
+    "sqlalchemy>=2.0.52",
     "structlog>=26.1.0",
 ]
 [dependency-groups]
 dev = [
   "alembic>=1.19.1",
-  "boto3-stubs[s3]>=1.43.64",
+  "boto3-stubs[s3]>=1.43.78",
   "click>=8.4.2",
-  "mypy>=2.3.0",
+  "mypy>=2.3.1",
   "pylsp-mypy>=0.8.0",
   "pytest>=9.1.1,<10",
-  "python-lsp-ruff>=2.3.1",
+  "python-lsp-ruff>=2.3.3",
   "python-lsp-server[all]>=1.15.0",
-  "ruff>=0.16.0",
+  "ruff>=0.16.4",
   "s3cmd>=2.4.0",
   "sqlalchemy[mypy]>=2.0.52",
-  "tqdm>=4.68.4",
+  "tqdm>=4.70.0",
   "types-cachetools>=7.0.0.20260713",
-  "types-tqdm>=4.68.0.20260608",
-  "datamodel-code-generator>=0.72.3",
+  "types-tqdm>=4.70.0.20260805",
+  "datamodel-code-generator>=0.74.0",
   "pg-activity>=3.6.2",
 ]
 
@@ -65,14 +68,14 @@ ml = [
   # now that the main app targets 3.14. Run ML training in a separate 3.13
   # venv (`uv sync --group ml --python 3.13`) until upstream ships one.
   "torch==2.6.0; python_version < '3.14'",
-  "lightning>=2.4.0; python_version < '3.14'",
-  "torchmetrics>=1.5.0; python_version < '3.14'",
-  "scikit-learn>=1.5.0",
-  "pandas>=2.2.0",
+  "lightning>=2.6.5; python_version < '3.14'",
+  "torchmetrics>=1.9.0; python_version < '3.14'",
+  "scikit-learn>=1.9.0",
+  "pandas>=3.0.5",
   "pyarrow>=25.0.1",
   # ONNX export + a torch-free CPU runtime for serving the exported model.
-  "onnx>=1.17.0",
-  "onnxruntime>=1.28.0",
+  "onnx>=1.22.0",
+  "onnxruntime>=1.29.0",
 ]
 
 [tool.black]
