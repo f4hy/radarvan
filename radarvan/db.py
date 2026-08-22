@@ -14,6 +14,7 @@ from enum import IntEnum
 from sqlalchemy import (
     ARRAY,
     CheckConstraint,
+    Date,
     Enum,
     ForeignKey,
     Index,
@@ -757,3 +758,39 @@ class BracketPrediction(Base):
             unique=True,
         ),
     )
+
+
+class GameNightSummaryCache(Base):
+    """Durable store of the once-a-night, LLM-written game-night recap.
+
+    Keyed on the game-night date (``utils.game_night_date``, US Eastern with a
+    5am rollover) - not a calendar UTC date, so a row lines up with exactly the
+    set of matches the recap page shows for that night.
+
+    Unlike every other cache table here, this one is never populated to serve a
+    request. The nightly scheduler job writes at most one row per run, for the
+    most recently *closed* night, and the read path returns null on a miss (see
+    routes/game_night.py). That is what keeps the spend bounded and predictable:
+    a night that predates the feature has no row and never gets one, so browsing
+    back through the archive can't trigger generation.
+
+    ``match_count`` records how many matches the summary was written from, so a
+    row can be recognised as describing a night that has since gained games
+    (a late upload) without re-reading the text.
+    """
+
+    __tablename__ = "game_night_summary_cache"
+
+    night_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    match_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<GameNightSummaryCache(night_date={self.night_date!r}, "
+            f"match_count={self.match_count!r})>"
+        )

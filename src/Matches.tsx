@@ -12,6 +12,7 @@ import Chip from "@mui/material/Chip"
 import Card from "@mui/material/Card"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
+import Link from "@mui/material/Link"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
 import Grid from "@mui/material/Grid"
@@ -631,6 +632,19 @@ function MatchDateSummary(props: {
         >
           {props.count} {props.count === 1 ? "game" : "games"}
         </Typography>
+        {/* Straight to that night's recap page. A plain link rather than a
+            navigate() callback so it is copyable and opens in a new tab -
+            sharing one night in chat is what the recap page is for. Clicks are
+            stopped from reaching the AccordionSummary, which would otherwise
+            toggle the row open on the way out. */}
+        <Link
+          href={`?page=game-night&date=${props.date}`}
+          underline="hover"
+          variant="body2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Recap
+        </Link>
         {categoryChips.length > 0 && (
           <Stack
             direction="row"

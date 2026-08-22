@@ -52,7 +52,12 @@ import RadarIcon from "@mui/icons-material/Radar"
 import MovieIcon from "@mui/icons-material/Movie"
 import CrisisAlertIcon from "@mui/icons-material/CrisisAlert"
 import ShieldIcon from "@mui/icons-material/Shield"
+import Accordion from "@mui/material/Accordion"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import AccordionSummary from "@mui/material/AccordionSummary"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Loading from "./Loading"
+import MatchNarrative from "./MatchNarrative"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
@@ -1781,6 +1786,19 @@ export default function ShowMatchDetails(props: { id: number }) {
   return (
     <Paper>
       <Divider />
+      {/* The deterministic retelling of the match (radarvan/match_narrative.py):
+          every beat is a fact from the parsed replay, no model call involved.
+          Collapsible because it repeats a few things the charts below also
+          show, open by default because it is the fastest way to find out what
+          actually happened in a game. */}
+      <Accordion defaultExpanded disableGutters elevation={0}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography sx={{ fontWeight: 600 }}>What happened</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <MatchNarrative matchId={props.id} showHeadline={false} />
+        </AccordionDetails>
+      </Accordion>
       <DisplayFirstBlood
         first_blood={details.firstBlood ?? undefined}
         building_first_blood={details.buildingFirstBlood ?? undefined}

@@ -8,6 +8,13 @@ Imports go one way: `routes` -> `queries` -> `cache`/`repositories`. Nothing her
 may import from `routes`.
 """
 
+from .game_night import (
+    NightGames,
+    build_night_recap,
+    latest_closed_night,
+    night_narratives,
+    on_night,
+)
 from .games import (
     FORMAT_DESCRIPTION,
     MONTHS_BACK_DESCRIPTION,
@@ -24,8 +31,13 @@ __all__ = [
     "MONTHS_BACK_DESCRIPTION",
     "AllGames",
     "CompetitiveGames",
+    "NightGames",
     "UnfilteredCompetitiveGames",
     "WindowedCompetitiveGames",
     "all_games",
+    "build_night_recap",
     "competitive_games",
+    "latest_closed_night",
+    "night_narratives",
+    "on_night",
 ]

@@ -239,6 +239,8 @@ No authorization required
 
 Get Map Data
 
+Stored geometry for one map.  Short browser hold only - an upload or a re-parse rewrites geometry in place.
+
 ### Example
 
 ```ts

@@ -17,7 +17,7 @@ Two properties are worth keeping:
   endpoint in ``NOT_EXERCISED`` - which ``test_excused_list_does_not_grow``
   turns into a visible decision rather than a quiet one.
 
-Of the 105 ``/api`` routes: 43 GETs run here, 25 are excused with a reason, and
+Of the 111 ``/api`` routes: 47 GETs run here, 26 are excused with a reason, and
 the rest are mutating (checked for a usable response model, not executed).
 """
 
@@ -82,6 +82,9 @@ PATH_VALUES = {
     "match_id": str(corpus.A_MATCH.id),
     "map_name": corpus.A_MAP,
     "date": corpus.A_MATCH.date.isoformat(),
+    # The game-night recap routes name their path param "night" to keep the
+    # distinction from a calendar date visible at the call site.
+    "night": corpus.A_MATCH.date.isoformat(),
     "player_count": "4",
     "team_size": "2",
     "tournament_name": "spring-cup",
@@ -114,6 +117,7 @@ NOT_EXERCISED = {
     "/api/replay": "fetches a replay over HTTP from an external URL",
     "/api/details/{match_id}": "reads the multi-MB raw replay from S3",
     "/api/build_orders/{match_id}": "reads the raw replay from S3",
+    "/api/narrative/{match_id}": "projects the same details, read from S3",
     "/api/replay_url/{match_id}": "needs a real S3 object to presign",
     "/api/debug/json_url/{match_id}": "needs a real S3 object to presign",
     "/api/debug/match/{match_id}": "returns raw parsed JSON read from S3",
@@ -181,6 +185,12 @@ class _StubRepo:
     def list_map_names(self) -> list[str]:
         return list(corpus.MAPS)
 
+    def get_night_summary(self, night_date: object) -> None:
+        # Spelled out rather than left to __getattr__: "no LLM recap stored for
+        # this night" is None, not an empty list, and it is the branch the
+        # game-night routes take for every night that predates the feature.
+        return None
+
     def map_registry_revision(self) -> MapRegistryRevision:
         # Backs derived.MAPS. Fixed, so the map derivations key stably across the
         # module rather than re-deriving per request.
@@ -219,6 +229,7 @@ def client() -> TestClient:
         deps.get_map_vote_repo,
         deps.get_bracket_repo,
         deps.get_bracket_prediction_repo,
+        deps.get_game_night_summary_repo,
     ):
         app.dependency_overrides[provider] = lambda: stub
 
@@ -280,7 +291,7 @@ def test_get_endpoint_returns_a_valid_response(
 # lose coverage is to add an entry to NOT_EXERCISED. This ceiling is what makes
 # that a deliberate act: lower it as endpoints become testable, and treat raising
 # it as a change worth justifying in review.
-MAX_EXCUSED = 25
+MAX_EXCUSED = 26
 
 
 def test_excused_list_does_not_grow() -> None:

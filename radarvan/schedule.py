@@ -9,7 +9,9 @@ process-lifetime session would poison every later run.
 from .db_utils import DatabaseManager, ReplayManager
 from .cache import competitive_matches, invalidate_match_caches
 from .matches import get_match_infos, register_matches
-from .repositories import BracketRepo
+from .repositories import BracketRepo, GameNightSummaryRepo
+from . import queries
+from .commentary import llm, night_summary
 from . import tournament_membership
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
@@ -144,6 +146,69 @@ async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
         await notify_async(f"Saved {len(profiles)} player profiles, took {duration}.")
 
 
+# A single game is a match, not a game night. Below this the deterministic
+# recap already says everything there is to say, and spending a real LLM call
+# on it isn't worth it - most one-match "nights" are a stray upload.
+MIN_MATCHES_FOR_SUMMARY = 2
+
+
+async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
+    """Write the LLM game-night recap for the most recent *closed* night.
+
+    **The only scheduled job in this app that spends money**, so what it will
+    and won't do is deliberately narrow:
+
+    - It looks at one night: the latest whose game-night key is behind the one
+      currently in progress (``latest_closed_night``). Nothing older is ever
+      revisited, so deploying this does not backfill years of history - it
+      writes at most one row per run, and none at all once that night has one.
+    - A night still being played is never summarized. The row is permanent
+      (nothing regenerates), so summarizing at 1am would freeze a half-finished
+      evening as *the* recap of it.
+    - A missed run costs the skipped night its recap rather than queueing up
+      several calls; the deterministic recap still renders for every night.
+
+    Scheduled well after the 5am US Eastern game-night rollover for that
+    reason - see ``get_scheduler``.
+    """
+    if not llm.commentary_available():
+        logger.info("skipping game night summary: no LLM provider configured")
+        return
+    with db_manager.get_replay_manager() as replay_manager:
+        all_games = await asyncio.to_thread(queries.all_games, replay_manager)
+        night = queries.latest_closed_night(all_games)
+        if night is None:
+            logger.info("no closed game night to summarize")
+            return
+        summaries = GameNightSummaryRepo(replay_manager.session)
+        if summaries.has_night_summary(night):
+            logger.info("game night already summarized", night=str(night))
+            return
+        played = [game for game in all_games if game.date == night]
+        if len(played) < MIN_MATCHES_FOR_SUMMARY:
+            logger.info(
+                "skipping game night summary: too few games",
+                night=str(night),
+                games=len(played),
+            )
+            return
+        competitive = await asyncio.to_thread(queries.competitive_games, replay_manager)
+        logger.info(
+            "generating game night summary", night=str(night), games=len(played)
+        )
+        try:
+            night_games = await queries.build_night_recap(
+                night, all_games, competitive, db_manager
+            )
+            await night_summary.generate_and_store(
+                night_games.recap, queries.night_narratives(night_games), summaries
+            )
+        except Exception:
+            logger.exception("game night summary generation failed", night=str(night))
+            return
+    await notify_async(f"Wrote the game night recap for {night} ({len(played)} games).")
+
+
 def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
     """Get the scheduler with the tasks on it."""
 
@@ -179,6 +244,22 @@ def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
         minute=30,
         args=[db_manager],
         id="compute_player_profiles",
+    )
+    # The one billed job. 11:00 in the process timezone (UTC on Heroku) is
+    # after the 5am US Eastern game-night rollover in both EST and EDT, which
+    # is what makes "the most recent closed night" mean last night rather than
+    # the one still being played - see compute_game_night_summary. Running it
+    # with the 4am jobs instead would summarize an evening mid-session, or (if
+    # it skipped that one) leave every recap a full day late. It also lands
+    # after the superlatives pass, so the match details it needs are already in
+    # match_details_cache.
+    scheduler.add_job(
+        compute_game_night_summary,
+        "cron",
+        hour=11,
+        minute=0,
+        args=[db_manager],
+        id="compute_game_night_summary",
     )
     logger.info("Setup scheduler.")
     return scheduler
