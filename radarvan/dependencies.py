@@ -21,6 +21,7 @@ from .repositories import (
     BracketPredictionRepo,
     BracketRepo,
     BracketSummaryRepo,
+    GameNightSummaryRepo,
     MapVoteRepo,
     TournamentRepo,
     UserRepo,
@@ -219,6 +220,13 @@ def get_bracket_summary_repo(
 ) -> BracketSummaryRepo:
     """Dependency that provides a BracketSummaryRepo instance."""
     return BracketSummaryRepo(session)
+
+
+def get_game_night_summary_repo(
+    session: Session = Depends(get_db_session),
+) -> GameNightSummaryRepo:
+    """Dependency that provides a GameNightSummaryRepo instance."""
+    return GameNightSummaryRepo(session)
 
 
 def get_tournament_repo(session: Session = Depends(get_db_session)) -> TournamentRepo:

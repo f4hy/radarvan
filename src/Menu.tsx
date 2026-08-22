@@ -7,6 +7,7 @@ import CasinoIcon from "@mui/icons-material/Casino"
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import GroupsIcon from "@mui/icons-material/Groups"
+import HistoryToggleOffIcon from "@mui/icons-material/HistoryToggleOff"
 import HowToVoteIcon from "@mui/icons-material/HowToVote"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import ListIcon from "@mui/icons-material/List"
@@ -14,6 +15,7 @@ import LoginIcon from "@mui/icons-material/Login"
 import MapIcon from "@mui/icons-material/Map"
 import MenuIcon from "@mui/icons-material/Menu"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
+import NightlightRoundIcon from "@mui/icons-material/NightlightRound"
 import PersonIcon from "@mui/icons-material/Person"
 import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import TableView from "@mui/icons-material/TableView"
@@ -46,6 +48,8 @@ const AdminPanel = React.lazy(() => import("./AdminPanel"))
 const DisplayBalanceTeams = React.lazy(() => import("./BalanceTeams"))
 const DisplayBracket = React.lazy(() => import("./Bracket"))
 const ChooseMap = React.lazy(() => import("./ChooseMap"))
+const GameLength = React.lazy(() => import("./GameLength"))
+const GameNight = React.lazy(() => import("./GameNight"))
 const DisplayDebugData = React.lazy(() => import("./DebugData"))
 const DisplayDraft = React.lazy(() => import("./Draft"))
 const DisplayFFAStats = React.lazy(() => import("./FFA"))
@@ -72,6 +76,8 @@ const drawerWidth = 190
 
 const ALL_SELECTIONS = [
   "Matches",
+  "GameNight",
+  "GameLength",
   "GeneralStats",
   "PlayerStats",
   "PlayerProfile",
@@ -174,6 +180,11 @@ export default function Menu() {
   const navItems: { value: Selection; text: string; icon: React.ReactNode }[] =
     [
       { value: "Matches", text: "Matches", icon: <ListIcon /> },
+      {
+        value: "GameNight",
+        text: "Game Night",
+        icon: <NightlightRoundIcon />,
+      },
       { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
       {
         value: "PlayerProfile",
@@ -196,6 +207,11 @@ export default function Menu() {
       { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
       { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
       { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
+      {
+        value: "GameLength",
+        text: "Game Length",
+        icon: <HistoryToggleOffIcon />,
+      },
       {
         value: "Superlatives",
         text: "Records",
@@ -393,6 +409,10 @@ function Main(props: {
   switch (props.selection) {
     case "Matches":
       return <DisplayMatches />
+    case "GameNight":
+      return <GameNight />
+    case "GameLength":
+      return <GameLength />
     case "PlayerStats":
       return <DisplayPlayerStats />
     case "PlayerProfile":

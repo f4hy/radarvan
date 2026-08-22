@@ -5,12 +5,23 @@ from datetime import date
 import structlog
 from typing import Any
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
-from ..api_types import BuildOrder, MatchDetails, MatchInfo, Matches, Team
+from .. import durations as durations_module
+from .. import match_narrative
+from ..api_types import (
+    BuildOrder,
+    DurationDistribution,
+    MatchDetails,
+    MatchInfo,
+    MatchNarrative,
+    Matches,
+    Team,
+)
 from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
+from ..queries import CompetitiveGames
 
 logger = structlog.get_logger(__name__)
 
@@ -134,3 +145,56 @@ def get_build_orders(
         response.headers["Cache-Control"] = "no-cache"
         return {}
     return details.build_orders
+
+
+@router.get("/api/narrative/{match_id}", dependencies=[Depends(cache_short)])
+def get_match_narrative(
+    match_id: int,
+    response: Response,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> MatchNarrative:
+    """The match retold as an ordered list of beats.
+
+    A projection of the cached ``MatchDetails`` (see ``match_narrative``), so
+    it shares the durable, versioned details cache and runs no extra
+    computation - the same arrangement as ``get_build_orders`` above. Entirely
+    deterministic: no model call, identical on every request.
+
+    A match that isn't in the corpus returns an empty narrative uncached; one
+    whose replay hasn't been parsed yet returns the headline with no beats, and
+    picks up the rest once details exist.
+    """
+    match = sorted_deduped_matches(replay_manager).get(match_id)
+    if match is None:
+        response.headers["Cache-Control"] = "no-cache"
+        return MatchNarrative(match_id=match_id, headline="", beats=[])
+    details = details_from_id(match_id, replay_manager)
+    if details is None:
+        response.headers["Cache-Control"] = "no-cache"
+    return match_narrative.build_narrative(match, details)
+
+
+@router.get("/api/duration_distribution/", dependencies=[Depends(cache_short)])
+def get_duration_distribution(
+    games: CompetitiveGames,
+    bucket_minutes: float = Query(
+        durations_module.DEFAULT_BUCKET_MINUTES,
+        ge=0.5,
+        le=30.0,
+        description="Width of each histogram bar, in minutes",
+    ),
+    max_minutes: float = Query(
+        durations_module.DEFAULT_MAX_MINUTES,
+        ge=10.0,
+        le=360.0,
+        description="Games at or beyond this land in the overflow bar",
+    ),
+) -> DurationDistribution:
+    """How long our games run: a histogram plus per-format order statistics.
+
+    Computed over the competitive corpus, so it excludes comp-stomps and
+    unfinished games - a disconnect at minute two is not a two-minute game, and
+    a spike of them in the first bar would hide the real distribution. The
+    ``game_format`` filter comes with the corpus dependency.
+    """
+    return durations_module.duration_distribution(games, bucket_minutes, max_minutes)

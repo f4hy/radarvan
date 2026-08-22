@@ -2,6 +2,7 @@ import {
   BracketApi,
   CommentaryApi,
   DefaultApi,
+  GameNightApi,
   MapApi,
   Configuration,
 } from "./api"
@@ -64,6 +65,9 @@ const config = getConfig()
 export const Client = new DefaultApi(config)
 export const CommentaryClient = new CommentaryApi(config)
 export const MapClient = new MapApi(config)
+// Reads only. The one game-night *write* (generating a night's LLM recap) is
+// ops-admin-gated and goes through src/adminApi.ts' same-origin fetch.
+export const GameNightClient = new GameNightApi(config)
 // Reads only. Bracket *writes* go through src/bracketApi.ts' same-origin
 // fetch, which carries the session cookie this cross-origin client can't.
 export const BracketClient = new BracketApi(config)

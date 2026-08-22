@@ -14,9 +14,11 @@ All URIs are relative to *http://localhost*
 | [**deleteOverrideApiOverrideMatchIdDelete**](DefaultApi.md#deleteoverrideapioverridematchiddelete) | **DELETE** /api/override/{match_id} | Delete Override |
 | [**fixIncompleteApiFixIncompletePost**](DefaultApi.md#fixincompleteapifixincompletepost) | **POST** /api/fix_incomplete/ | Fix Incomplete |
 | [**fixUnkPlayersApiFixUnkPlayerPost**](DefaultApi.md#fixunkplayersapifixunkplayerpost) | **POST** /api/fix_unk_player/ | Fix Unk Players |
+| [**generateGameNightSummaryApiGenerateGameNightSummaryNightPost**](DefaultApi.md#generategamenightsummaryapigenerategamenightsummarynightpost) | **POST** /api/generate_game_night_summary/{night} | Generate Game Night Summary |
 | [**generateTournamentReportApiGenerateTournamentReportTournamentNamePost**](DefaultApi.md#generatetournamentreportapigeneratetournamentreporttournamentnamepost) | **POST** /api/generate_tournament_report/{tournament_name} | Generate Tournament Report |
 | [**getBuildOrdersApiBuildOrdersMatchIdGet**](DefaultApi.md#getbuildordersapibuildordersmatchidget) | **GET** /api/build_orders/{match_id} | Get Build Orders |
 | [**getDatesApiDatesGet**](DefaultApi.md#getdatesapidatesget) | **GET** /api/dates/ | Get Dates |
+| [**getDurationDistributionApiDurationDistributionGet**](DefaultApi.md#getdurationdistributionapidurationdistributionget) | **GET** /api/duration_distribution/ | Get Duration Distribution |
 | [**getEligiblePlayersApiPlayerProfileEligiblePlayersGet**](DefaultApi.md#geteligibleplayersapiplayerprofileeligibleplayersget) | **GET** /api/player_profile/eligible_players | Get Eligible Players |
 | [**getFfaStatsApiFfastatsGet**](DefaultApi.md#getffastatsapiffastatsget) | **GET** /api/ffastats | Get Ffa Stats |
 | [**getFilesForMatchIdApiFilesForMatchGet**](DefaultApi.md#getfilesformatchidapifilesformatchget) | **GET** /api/files_for_match | Get Files For Match Id |
@@ -25,6 +27,7 @@ All URIs are relative to *http://localhost*
 | [**getMatchByIdApiMatchMatchIdGet**](DefaultApi.md#getmatchbyidapimatchmatchidget) | **GET** /api/match/{match_id} | Get Match By Id |
 | [**getMatchDetailsApiDetailsMatchIdGet**](DefaultApi.md#getmatchdetailsapidetailsmatchidget) | **GET** /api/details/{match_id} | Get Match Details |
 | [**getMatchJsonUrlApiDebugJsonUrlMatchIdGet**](DefaultApi.md#getmatchjsonurlapidebugjsonurlmatchidget) | **GET** /api/debug/json_url/{match_id} | Get Match Json Url |
+| [**getMatchNarrativeApiNarrativeMatchIdGet**](DefaultApi.md#getmatchnarrativeapinarrativematchidget) | **GET** /api/narrative/{match_id} | Get Match Narrative |
 | [**getMatchReplayUrlApiReplayUrlMatchIdGet**](DefaultApi.md#getmatchreplayurlapireplayurlmatchidget) | **GET** /api/replay_url/{match_id} | Get Match Replay Url |
 | [**getMatchesByDateApiMatchesByDateDateGet**](DefaultApi.md#getmatchesbydateapimatchesbydatedateget) | **GET** /api/matches/by_date/{date} | Get Matches By Date |
 | [**getOverridesApiOverridesGet**](DefaultApi.md#getoverridesapioverridesget) | **GET** /api/overrides | Get Overrides |
@@ -746,6 +749,77 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## generateGameNightSummaryApiGenerateGameNightSummaryNightPost
+
+> GameNightSummaryStatus generateGameNightSummaryApiGenerateGameNightSummaryNightPost(night, force)
+
+Generate Game Night Summary
+
+Write (or rewrite) one game night\&#39;s LLM recap by hand.  A real, billed LLM call - which is why this is the only way to reach the generator outside the nightly job, why it is ops-admin gated, and why it refuses by default when a row already exists. &#x60;&#x60;force&#x3D;true&#x60;&#x60; overwrites.  Unlike the nightly job this does not require the night to be closed, so it can be used to see what tonight would read like; the row it writes is then the one the page serves, so re-run it with &#x60;&#x60;force&#x60;&#x60; once the night ends.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // Date
+    night: 2013-10-20,
+    // boolean (optional)
+    force: true,
+  } satisfies GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest;
+
+  try {
+    const data = await api.generateGameNightSummaryApiGenerateGameNightSummaryNightPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **night** | `Date` |  | [Defaults to `undefined`] |
+| **force** | `boolean` |  | [Optional] [Defaults to `false`] |
+
+### Return type
+
+[**GameNightSummaryStatus**](GameNightSummaryStatus.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## generateTournamentReportApiGenerateTournamentReportTournamentNamePost
 
 > string generateTournamentReportApiGenerateTournamentReportTournamentNamePost(tournamentName)
@@ -941,6 +1015,84 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getDurationDistributionApiDurationDistributionGet
+
+> DurationDistribution getDurationDistributionApiDurationDistributionGet(bucketMinutes, maxMinutes, gameFormat)
+
+Get Duration Distribution
+
+How long our games run: a histogram plus per-format order statistics.  Computed over the competitive corpus, so it excludes comp-stomps and unfinished games - a disconnect at minute two is not a two-minute game, and a spike of them in the first bar would hide the real distribution. The &#x60;&#x60;game_format&#x60;&#x60; filter comes with the corpus dependency.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetDurationDistributionApiDurationDistributionGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number | Width of each histogram bar, in minutes (optional)
+    bucketMinutes: 8.14,
+    // number | Games at or beyond this land in the overflow bar (optional)
+    maxMinutes: 8.14,
+    // string | Filter by game format: 1v1, 2v2, 3v3, 4v4 (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetDurationDistributionApiDurationDistributionGetRequest;
+
+  try {
+    const data = await api.getDurationDistributionApiDurationDistributionGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **bucketMinutes** | `number` | Width of each histogram bar, in minutes | [Optional] [Defaults to `2.0`] |
+| **maxMinutes** | `number` | Games at or beyond this land in the overflow bar | [Optional] [Defaults to `60.0`] |
+| **gameFormat** | `string` | Filter by game format: 1v1, 2v2, 3v3, 4v4 | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**DurationDistribution**](DurationDistribution.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1365,7 +1517,7 @@ example().catch(console.error);
 
 Get Match Details
 
-Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Existing details are immutable until reparse, so we also let the browser cache them; an unparsed match returns empty and is not cached so it picks up data once processed.
+Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Short browser hold only - a reparse or a WinnerOverride rewrites these details behind an unchanged URL. An unparsed match returns empty and is not cached, so it picks up data once processed.
 
 ### Example
 
@@ -1483,6 +1635,78 @@ example().catch(console.error);
 ### Return type
 
 **{ [key: string]: string | null; }**
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getMatchNarrativeApiNarrativeMatchIdGet
+
+> MatchNarrative getMatchNarrativeApiNarrativeMatchIdGet(matchId)
+
+Get Match Narrative
+
+The match retold as an ordered list of beats.  A projection of the cached &#x60;&#x60;MatchDetails&#x60;&#x60; (see &#x60;&#x60;match_narrative&#x60;&#x60;), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as &#x60;&#x60;get_build_orders&#x60;&#x60; above. Entirely deterministic: no model call, identical on every request.  A match that isn\&#39;t in the corpus returns an empty narrative uncached; one whose replay hasn\&#39;t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetMatchNarrativeApiNarrativeMatchIdGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // number
+    matchId: 56,
+  } satisfies GetMatchNarrativeApiNarrativeMatchIdGetRequest;
+
+  try {
+    const data = await api.getMatchNarrativeApiNarrativeMatchIdGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **matchId** | `number` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MatchNarrative**](MatchNarrative.md)
 
 ### Authorization
 

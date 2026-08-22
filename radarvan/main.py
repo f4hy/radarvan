@@ -33,6 +33,7 @@ from .routes import (
     draft,
     ffa,
     files,
+    game_night,
     generals,
     map_upload,
     maps,
@@ -167,6 +168,7 @@ app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)
 app.include_router(predict.router, dependencies=PROTECTED)
 app.include_router(commentary.router, dependencies=PROTECTED)
+app.include_router(game_night.router, dependencies=PROTECTED)
 
 # Public asset routes - reachable without an API key (browser <img> loads).
 app.include_router(maps.public_router)
@@ -194,6 +196,7 @@ app.include_router(admin.session_router)
 app.include_router(files.session_router)
 app.include_router(maps.session_router)
 app.include_router(profile.session_router)
+app.include_router(game_night.session_router)
 app.include_router(superlatives.session_router)
 app.include_router(tournaments.session_router)
 

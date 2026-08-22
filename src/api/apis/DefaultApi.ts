@@ -18,10 +18,12 @@ import type {
   BuildOrder,
   DraftRequest,
   DraftResult,
+  DurationDistribution,
   FFAStats,
   FactionMatchupPrediction,
   FactionMatrix,
   GameComposition,
+  GameNightSummaryStatus,
   GameRecord,
   GeneralStats,
   HTTPValidationError,
@@ -29,6 +31,7 @@ import type {
   HeadToHeadDetail,
   MatchDetails,
   MatchInfo,
+  MatchNarrative,
   MatchPrediction,
   Matches,
   PlayerEnum,
@@ -62,6 +65,8 @@ import {
     DraftRequestToJSON,
     DraftResultFromJSON,
     DraftResultToJSON,
+    DurationDistributionFromJSON,
+    DurationDistributionToJSON,
     FFAStatsFromJSON,
     FFAStatsToJSON,
     FactionMatchupPredictionFromJSON,
@@ -70,6 +75,8 @@ import {
     FactionMatrixToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
+    GameNightSummaryStatusFromJSON,
+    GameNightSummaryStatusToJSON,
     GameRecordFromJSON,
     GameRecordToJSON,
     GeneralStatsFromJSON,
@@ -84,6 +91,8 @@ import {
     MatchDetailsToJSON,
     MatchInfoFromJSON,
     MatchInfoToJSON,
+    MatchNarrativeFromJSON,
+    MatchNarrativeToJSON,
     MatchPredictionFromJSON,
     MatchPredictionToJSON,
     MatchesFromJSON,
@@ -169,12 +178,23 @@ export interface FixUnkPlayersApiFixUnkPlayerPostRequest {
     maxToUpdate?: number;
 }
 
+export interface GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest {
+    night: Date;
+    force?: boolean;
+}
+
 export interface GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest {
     tournamentName: string;
 }
 
 export interface GetBuildOrdersApiBuildOrdersMatchIdGetRequest {
     matchId: number;
+}
+
+export interface GetDurationDistributionApiDurationDistributionGetRequest {
+    bucketMinutes?: number;
+    maxMinutes?: number;
+    gameFormat?: string | null;
 }
 
 export interface GetFilesForMatchIdApiFilesForMatchGetRequest {
@@ -198,6 +218,10 @@ export interface GetMatchDetailsApiDetailsMatchIdGetRequest {
 }
 
 export interface GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest {
+    matchId: number;
+}
+
+export interface GetMatchNarrativeApiNarrativeMatchIdGetRequest {
     matchId: number;
 }
 
@@ -813,6 +837,61 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for generateGameNightSummaryApiGenerateGameNightSummaryNightPost without sending the request
+     */
+    async generateGameNightSummaryApiGenerateGameNightSummaryNightPostRequestOpts(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['night'] == null) {
+            throw new runtime.RequiredError(
+                'night',
+                'Required parameter "night" was null or undefined when calling generateGameNightSummaryApiGenerateGameNightSummaryNightPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['force'] != null) {
+            queryParameters['force'] = requestParameters['force'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/generate_game_night_summary/{night}`;
+        if (requestParameters['night'] instanceof Date) {
+            urlPath = urlPath.replace(`{${"night"}}`, encodeURIComponent(requestParameters['night'].toISOString().substring(0,10)));
+        } else {
+            urlPath = urlPath.replace(`{${"night"}}`, encodeURIComponent(String(requestParameters['night'])));
+        }
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Write (or rewrite) one game night\'s LLM recap by hand.  A real, billed LLM call - which is why this is the only way to reach the generator outside the nightly job, why it is ops-admin gated, and why it refuses by default when a row already exists. ``force=true`` overwrites.  Unlike the nightly job this does not require the night to be closed, so it can be used to see what tonight would read like; the row it writes is then the one the page serves, so re-run it with ``force`` once the night ends.
+     * Generate Game Night Summary
+     */
+    async generateGameNightSummaryApiGenerateGameNightSummaryNightPostRaw(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameNightSummaryStatus>> {
+        const requestOptions = await this.generateGameNightSummaryApiGenerateGameNightSummaryNightPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GameNightSummaryStatusFromJSON(jsonValue));
+    }
+
+    /**
+     * Write (or rewrite) one game night\'s LLM recap by hand.  A real, billed LLM call - which is why this is the only way to reach the generator outside the nightly job, why it is ops-admin gated, and why it refuses by default when a row already exists. ``force=true`` overwrites.  Unlike the nightly job this does not require the night to be closed, so it can be used to see what tonight would read like; the row it writes is then the one the page serves, so re-run it with ``force`` once the night ends.
+     * Generate Game Night Summary
+     */
+    async generateGameNightSummaryApiGenerateGameNightSummaryNightPost(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameNightSummaryStatus> {
+        const response = await this.generateGameNightSummaryApiGenerateGameNightSummaryNightPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for generateTournamentReportApiGenerateTournamentReportTournamentNamePost without sending the request
      */
     async generateTournamentReportApiGenerateTournamentReportTournamentNamePostRequestOpts(requestParameters: GenerateTournamentReportApiGenerateTournamentReportTournamentNamePostRequest): Promise<runtime.RequestOpts> {
@@ -950,6 +1029,61 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.getDatesApiDatesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getDurationDistributionApiDurationDistributionGet without sending the request
+     */
+    async getDurationDistributionApiDurationDistributionGetRequestOpts(requestParameters: GetDurationDistributionApiDurationDistributionGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['bucketMinutes'] != null) {
+            queryParameters['bucket_minutes'] = requestParameters['bucketMinutes'];
+        }
+
+        if (requestParameters['maxMinutes'] != null) {
+            queryParameters['max_minutes'] = requestParameters['maxMinutes'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/duration_distribution/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * How long our games run: a histogram plus per-format order statistics.  Computed over the competitive corpus, so it excludes comp-stomps and unfinished games - a disconnect at minute two is not a two-minute game, and a spike of them in the first bar would hide the real distribution. The ``game_format`` filter comes with the corpus dependency.
+     * Get Duration Distribution
+     */
+    async getDurationDistributionApiDurationDistributionGetRaw(requestParameters: GetDurationDistributionApiDurationDistributionGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DurationDistribution>> {
+        const requestOptions = await this.getDurationDistributionApiDurationDistributionGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DurationDistributionFromJSON(jsonValue));
+    }
+
+    /**
+     * How long our games run: a histogram plus per-format order statistics.  Computed over the competitive corpus, so it excludes comp-stomps and unfinished games - a disconnect at minute two is not a two-minute game, and a spike of them in the first bar would hide the real distribution. The ``game_format`` filter comes with the corpus dependency.
+     * Get Duration Distribution
+     */
+    async getDurationDistributionApiDurationDistributionGet(requestParameters: GetDurationDistributionApiDurationDistributionGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DurationDistribution> {
+        const response = await this.getDurationDistributionApiDurationDistributionGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1270,7 +1404,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Existing details are immutable until reparse, so we also let the browser cache them; an unparsed match returns empty and is not cached so it picks up data once processed.
+     * Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Short browser hold only - a reparse or a WinnerOverride rewrites these details behind an unchanged URL. An unparsed match returns empty and is not cached, so it picks up data once processed.
      * Get Match Details
      */
     async getMatchDetailsApiDetailsMatchIdGetRaw(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchDetails>> {
@@ -1281,7 +1415,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Existing details are immutable until reparse, so we also let the browser cache them; an unparsed match returns empty and is not cached so it picks up data once processed.
+     * Get details about a particular match.  Result is cached in-process (see cache.details_from_id, invalidated on reparse/upload). Short browser hold only - a reparse or a WinnerOverride rewrites these details behind an unchanged URL. An unparsed match returns empty and is not cached, so it picks up data once processed.
      * Get Match Details
      */
     async getMatchDetailsApiDetailsMatchIdGet(requestParameters: GetMatchDetailsApiDetailsMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchDetails> {
@@ -1337,6 +1471,57 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getMatchJsonUrlApiDebugJsonUrlMatchIdGet(requestParameters: GetMatchJsonUrlApiDebugJsonUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
         const response = await this.getMatchJsonUrlApiDebugJsonUrlMatchIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getMatchNarrativeApiNarrativeMatchIdGet without sending the request
+     */
+    async getMatchNarrativeApiNarrativeMatchIdGetRequestOpts(requestParameters: GetMatchNarrativeApiNarrativeMatchIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['matchId'] == null) {
+            throw new runtime.RequiredError(
+                'matchId',
+                'Required parameter "matchId" was null or undefined when calling getMatchNarrativeApiNarrativeMatchIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/narrative/{match_id}`;
+        urlPath = urlPath.replace(`{${"match_id"}}`, encodeURIComponent(String(requestParameters['matchId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The match retold as an ordered list of beats.  A projection of the cached ``MatchDetails`` (see ``match_narrative``), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as ``get_build_orders`` above. Entirely deterministic: no model call, identical on every request.  A match that isn\'t in the corpus returns an empty narrative uncached; one whose replay hasn\'t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
+     * Get Match Narrative
+     */
+    async getMatchNarrativeApiNarrativeMatchIdGetRaw(requestParameters: GetMatchNarrativeApiNarrativeMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchNarrative>> {
+        const requestOptions = await this.getMatchNarrativeApiNarrativeMatchIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchNarrativeFromJSON(jsonValue));
+    }
+
+    /**
+     * The match retold as an ordered list of beats.  A projection of the cached ``MatchDetails`` (see ``match_narrative``), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as ``get_build_orders`` above. Entirely deterministic: no model call, identical on every request.  A match that isn\'t in the corpus returns an empty narrative uncached; one whose replay hasn\'t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
+     * Get Match Narrative
+     */
+    async getMatchNarrativeApiNarrativeMatchIdGet(requestParameters: GetMatchNarrativeApiNarrativeMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchNarrative> {
+        const response = await this.getMatchNarrativeApiNarrativeMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -286,6 +286,7 @@ export class MapApi extends runtime.BaseAPI {
     }
 
     /**
+     * Stored geometry for one map.  Short browser hold only - an upload or a re-parse rewrites geometry in place.
      * Get Map Data
      */
     async getMapDataApiMapDataMapNameGetRaw(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDataPayload>> {
@@ -296,6 +297,7 @@ export class MapApi extends runtime.BaseAPI {
     }
 
     /**
+     * Stored geometry for one map.  Short browser hold only - an upload or a re-parse rewrites geometry in place.
      * Get Map Data
      */
     async getMapDataApiMapDataMapNameGet(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDataPayload> {

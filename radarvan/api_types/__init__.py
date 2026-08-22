@@ -65,6 +65,11 @@ from .details import (
     UpgradeEvent,
     Upgrades,
 )
+from .durations import (
+    DurationBucket,
+    DurationDistribution,
+    DurationStats,
+)
 from .draft import (
     DraftAssignment,
     DraftPlayerRequest,
@@ -77,6 +82,12 @@ from .ffa import (
     FFAPlayerStat,
     FFARecentMatch,
     FFAStats,
+)
+from .game_night import (
+    GameNightHighlight,
+    GameNightPlayerLine,
+    GameNightRecap,
+    GameNightSummaryStatus,
 )
 from .generals import (
     GeneralStat,
@@ -139,6 +150,10 @@ from .matches import (
     ReplayWithoutPlayerStats,
     TournamentTag,
     WinnerOverride,
+)
+from .narrative import (
+    MatchNarrative,
+    NarrativeBeat,
 )
 from .players import (
     GeneralWL,
@@ -244,6 +259,9 @@ __all__ = [
     "DraftPlayerRequest",
     "DraftRequest",
     "DraftResult",
+    "DurationBucket",
+    "DurationDistribution",
+    "DurationStats",
     "FFAGeneralStat",
     "FFAMapStat",
     "FFAPlayerStat",
@@ -257,6 +275,10 @@ __all__ = [
     "FavoriteObject",
     "FetchMissingMapResult",
     "FirstBlood",
+    "GameNightHighlight",
+    "GameNightPlayerLine",
+    "GameNightRecap",
+    "GameNightSummaryStatus",
     "GameRecord",
     "General",
     "GeneralProfileStat",
@@ -309,6 +331,7 @@ __all__ = [
     "MatchDetails",
     "MatchInfo",
     "MatchListing",
+    "MatchNarrative",
     "MatchPrediction",
     "MatchSource",
     "Matches",
@@ -318,6 +341,7 @@ __all__ = [
     "MatchupResult",
     "Minute",
     "MissingMapInfo",
+    "NarrativeBeat",
     "ObjectSummary",
     "ObjectUsageStat",
     "OpponentProfileStat",

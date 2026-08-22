@@ -48,6 +48,7 @@ import DateTimeField from "./DateTimeField"
 import dayjs, { Dayjs } from "dayjs"
 import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
+import { renderAiText, renderBoldSegments } from "./aiText"
 import { useIsTournamentAdmin } from "./AuthContext"
 import { BracketMatchGames, FactionMatchupOption } from "./api"
 import {
@@ -598,37 +599,6 @@ function SliderField({
   )
 }
 
-// Splits on **bold** markers (a lightweight markdown subset) into <strong>
-// spans - shared by renderHypeText (AI commentary) and the tournament rules
-// list, neither of which need a full markdown parser, just inline emphasis.
-function renderBoldSegments(text: string): React.ReactNode {
-  return text
-    .split(/(\*\*[^*]+\*\*)/g)
-    .map((chunk, i) =>
-      chunk.startsWith("**") && chunk.endsWith("**") ? (
-        <strong key={i}>{chunk.slice(2, -2)}</strong>
-      ) : (
-        <React.Fragment key={i}>{chunk}</React.Fragment>
-      ),
-    )
-}
-
-// The commentary guidelines produce plain paragraphs (blank-line separated)
-// with a single **bolded** hook line - not general markdown - so a tiny
-// hand-rolled renderer covers it without pulling in a markdown dependency.
-function renderHypeText(text: string): React.ReactNode {
-  const paragraphs = text.split("\n\n").filter((p) => p.trim().length > 0)
-  return paragraphs.map((paragraph, pIdx) => (
-    <Typography
-      key={pIdx}
-      variant="body2"
-      sx={{ mb: pIdx === paragraphs.length - 1 ? 0 : 1 }}
-    >
-      {renderBoldSegments(paragraph)}
-    </Typography>
-  ))
-}
-
 type RankedDraw = {
   playerAGeneral: number
   playerBGeneral: number
@@ -808,7 +778,7 @@ function CommentaryPanel({ label, text }: { label: string; text: string }) {
       >
         {label}
       </Typography>
-      {renderHypeText(text)}
+      {renderAiText(text)}
     </Box>
   )
 }
@@ -1076,7 +1046,7 @@ function MatchupPopup({
                 ✨ The pre-game hype
               </Typography>
             </AccordionSummary>
-            <AccordionDetails>{renderHypeText(commentary)}</AccordionDetails>
+            <AccordionDetails>{renderAiText(commentary)}</AccordionDetails>
           </Accordion>
         )}
         {!commentaryLoading && commentary && !summary && (
