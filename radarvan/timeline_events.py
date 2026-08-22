@@ -25,14 +25,24 @@ _SUPERWEAPON_STRUCTURES = (
     "ScudStorm",
 )
 
-# Substrings inside SpecialPower order names that mark a *base* superweapon
-# launch (as opposed to a generals-panel power that the engine also tags
-# "Superweapon*").
-_SUPERWEAPON_ACTIVATION_KEYWORDS = (
+# The three base-bound superweapons, as their cleaned activation names appear
+# on a "superweapon_activated" event. China's nuke fires as NeutronMissile in
+# most replays and NuclearMissile in some, so both spellings are listed.
+BASE_SUPERWEAPON_LAUNCHES = (
     "NeutronMissile",
     "NuclearMissile",
     "ParticleCannon",
     "ScudStorm",
+)
+
+# Substrings inside SpecialPower order names that mark a *base* superweapon
+# launch (as opposed to a generals-panel power that the engine also tags
+# "Superweapon*"). Wider than BASE_SUPERWEAPON_LAUNCHES on purpose: the timeline
+# chart wants the big generals-panel powers marked too, so EMP/anthrax/gunship
+# also produce a "superweapon_activated" event. Anything counting *actual*
+# superweapon launches must filter on BASE_SUPERWEAPON_LAUNCHES instead.
+_SUPERWEAPON_ACTIVATION_KEYWORDS = (
+    *BASE_SUPERWEAPON_LAUNCHES,
     "EMPPulse",
     "AnthraxBomb",
     "SpectreGunship",

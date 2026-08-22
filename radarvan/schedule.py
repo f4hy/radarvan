@@ -94,7 +94,7 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
             superlatives_module.get_superlatives,
             competitive,
             details,
-            ratings_and_counts.daily_changes,
+            ratings_and_counts,
         )
         replay_manager.clear_computed_stats()
         replay_manager.save_computed_stats(result.stats)

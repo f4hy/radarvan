@@ -24,6 +24,13 @@ class SuperlativePlayerSummary(BaseModel):
     value_lost: int = 0
 
 
+class SuperweaponLaunch(BaseModel):
+    """A player's first base-superweapon launch in one match."""
+
+    weapon: str
+    at_minute: Minute
+
+
 class SuperlativeData(BaseModel):
     match_id: int
     first_blood: FirstBlood | None = None
@@ -40,3 +47,12 @@ class SuperlativeData(BaseModel):
     time_to_rank_5: dict[str, Minute] = Field(default_factory=dict)
     time_to_search_destroy: dict[str, Minute] = Field(default_factory=dict)
     time_to_hunted: dict[str, Minute] = Field(default_factory=dict)
+    # Base-superweapon launches per player (the three big base-bound powers
+    # only - the timeline also tags EMP/anthrax/gunship "superweapon_activated",
+    # and those are generals-panel powers, not superweapons).
+    superweapon_launches: dict[str, int] = Field(default_factory=dict)
+    # Each player's first base-superweapon launch in the match.
+    first_superweapon: dict[str, SuperweaponLaunch] = Field(default_factory=dict)
+    # Tech-building captures (oil derricks, hospitals, artillery platforms, …)
+    # per player.
+    tech_captures: dict[str, int] = Field(default_factory=dict)

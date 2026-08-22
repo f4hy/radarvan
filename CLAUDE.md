@@ -56,6 +56,14 @@ Read the module you need — the layout is self-describing. What isn't:
    `test_auth_tiers.py` sweeps this structurally rather than by allowlist: every cookie-gated route must sit on a `session_router`, every `session_router` route must carry one of the two cookie gates, and neither may advertise APIKeyHeader. Adding a `session_router` to a new module means including it in `main.py` **without** `PROTECTED`.
 3. `maps.public_router` (map images) — no auth, because browsers load them via `<img src>`.
 
+**Rating *levels* are not public.** A player's rating number — `NamedRating.ordinal()`, and anything derived from it: `ordinal_high`, `ordinal_low`, `mu`, a leaderboard position — is deliberately kept off every page a normal visitor sees. "Player Ratings" and "Player Synergy" are hidden from the sidebar behind `status.user.is_admin` (`src/Menu.tsx`) for exactly this reason. It is a soft gate — the route is still reachable by URL and `/api/player_ratings/` is normal-tier — so **the gate is the page, and a rating that escapes onto another page defeats it entirely**. Do not surface a rating level on the Records page, a player profile, a match view, commentary, or anything else public, however it is scaled or framed ("all-time peak", "career high", "rank #1 at 330").
+
+What *is* fine, and already shipped: a rating **change** (`📈 Biggest Rating Gain (30d)` is `round(delta * 10)`), a **win probability** (`🐍 Biggest Upset`), and plain W-L records. Those say who is playing well without publishing the ladder. The distinction is level vs. delta — if a number would let someone reconstruct the leaderboard, it is a level.
+
+This is not a new rule — commentary reached the same conclusion independently. `commentary_prompts.py` tells the model the ratings block is "internal - never seen by users anywhere else in the app - so never state them, or a derived rank/position, in the output", and `HypeRatingsContext` exists because embedding the two players' own ordinals let the model quote one. `queries/players.player_ratings_payload` is the one place a level is meant to reach the wire, and it feeds only the admin-gated ratings page.
+
+`tests/test_superlatives_records.py::test_no_record_exposes_a_rating_level` guards the records path by feeding `ordinal_high`/`ordinal_low` a sentinel and asserting it reaches no card, so a new record reaching for them fails there rather than in review. Nothing enforces it on the other surfaces — check by hand when you add one.
+
 ### Data flow
 
 1. Replays arrive by scheduled gentool scrape or `POST /api/upload_replay`.

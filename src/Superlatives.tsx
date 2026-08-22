@@ -15,20 +15,28 @@ import Typography from "@mui/material/Typography"
 import SportsScoreIcon from "@mui/icons-material/SportsScore"
 import { PlayerChip } from "./PlayerChip"
 
+// First match wins, so the order is load-bearing: a more specific bucket has
+// to sit above one whose keywords are substrings of the same stat names.
+// "Efficiency" used to sit below "Combat & Activity" and "Money", which made it
+// unreachable - every "… to Win" record matched "Units"/"Buildings"/"Money"
+// first, and the section never rendered.
 const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
   { label: "Overview", keywords: ["Games"] },
-  { label: "Streaks", keywords: ["Streak"] },
+  { label: "Ratings", keywords: ["Rating", "Record", "Upset"] },
+  { label: "Streaks", keywords: ["Streak", "Game Night"] },
   { label: "Maps", keywords: ["Map"] },
   { label: "Match Duration", keywords: ["Longest", "Shortest"] },
   { label: "First Blood", keywords: ["First Blood"] },
   { label: "Hunted", keywords: ["Hunted"] },
   { label: "APM", keywords: ["APM"] },
+  { label: "Superweapons & Tech", keywords: ["Superweapon", "Tech Captures"] },
+  { label: "Efficiency", keywords: ["to Win"] },
   { label: "Money", keywords: ["Money"] },
   {
     label: "Combat & Activity",
-    keywords: ["Units", "Buildings", "XP", "Upgrades"],
+    keywords: ["Units", "Buildings", "XP", "Upgrades", "Rank 5", "Destroy"],
   },
-  { label: "Efficiency", keywords: ["to Win"] },
+  { label: "Teamwork", keywords: ["Duo"] },
   { label: "Activity", keywords: ["Day"] },
 ]
 

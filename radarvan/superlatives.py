@@ -2,7 +2,7 @@
 matches."""
 
 import asyncio
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -16,17 +16,31 @@ from .api_types import (
     MatchInfo,
     SuperlativeData,
     SuperlativePlayerSummary,
+    SuperweaponLaunch,
     Statistic,
 )
 from .db_utils import DatabaseManager
-from .player_ids import resolve_player_name
-from .player_rating import RatingDailyChange
+from .player_ids import HUMAN_NAMES, resolve_player_name
+from .player_rating import GameUpset, RatingDailyChange, RatingsAndCounts
 from .replay_files import map_basename
+from .timeline_events import BASE_SUPERWEAPON_LAUNCHES
 import structlog
 
 logger = structlog.get_logger(__name__)
 
-EXCLUDED_PLAYERS: frozenset[str] = frozenset({"HardArmy"})
+
+def holds_records(resolved_name: str) -> bool:
+    """True if a resolved name is eligible to hold a record.
+
+    A membership test against the known *humans* rather than a blocklist,
+    because both things it has to reject are open-ended. AI slots: a
+    name-based blocklist of one ("HardArmy") let "Tactical AI" take "Worst
+    Record (30d)". Strangers: scraped pickup games pass the competitive filter
+    as long as each team has one group member, and two passers-by held
+    "Highest APM" and "Fastest to Rank 5". A canonical name outside
+    ``HUMAN_NAMES`` is one or the other.
+    """
+    return resolved_name in HUMAN_NAMES
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +111,22 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
         for ps in d.player_summary
     ]
 
+    launch_counts: Counter[str] = Counter()
+    first_launch: dict[str, SuperweaponLaunch] = {}
+    tech_captures: Counter[str] = Counter()
+    for e in d.timeline_events:
+        if e.event_type == "tech_capture":
+            tech_captures[e.player_name] += 1
+        elif e.event_type == "superweapon_activated" and any(
+            kw in e.event_name for kw in BASE_SUPERWEAPON_LAUNCHES
+        ):
+            launch_counts[e.player_name] += 1
+            prev = first_launch.get(e.player_name)
+            if prev is None or e.at_minute < prev.at_minute:
+                first_launch[e.player_name] = SuperweaponLaunch(
+                    weapon=e.event_name, at_minute=e.at_minute
+                )
+
     return SuperlativeData(
         match_id=d.match_id,
         first_blood=d.first_blood,
@@ -117,6 +147,9 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
         time_to_rank_5=dict(d.time_to_rank_5),
         time_to_search_destroy=dict(d.time_to_search_destroy),
         time_to_hunted=dict(d.time_to_hunted),
+        superweapon_launches=dict(launch_counts),
+        first_superweapon=first_launch,
+        tech_captures=dict(tech_captures),
     )
 
 
@@ -247,7 +280,7 @@ def _resolved_first_bloods(
         if event is None:
             continue
         attacker = _resolve_attacker(match_info_by_id, d, event.attacker)
-        if attacker in EXCLUDED_PLAYERS:
+        if not holds_records(attacker):
             continue
         out.append(ResolvedFirstBlood(data=d, event=event, attacker=attacker))
     return out
@@ -265,35 +298,51 @@ def _resolve_attacker(
     return resolve_player_name(attacker)
 
 
+def _extend_streaks(
+    current: dict[str, StreakRecord],
+    best: dict[str, StreakRecord],
+    name: str,
+    game_date: date,
+) -> None:
+    """Continue ``name``'s run through ``game_date``, keeping their best."""
+    prev = current.get(name)
+    current[name] = (
+        StreakRecord(count=1, start=game_date, end=game_date)
+        if prev is None
+        else StreakRecord(count=prev.count + 1, start=prev.start, end=game_date)
+    )
+    streak = current[name]
+    if name not in best or streak.count > best[name].count:
+        best[name] = streak
+
+
 def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:
-    """All-time longest win streak and current longest active streak."""
+    """Longest win streak, longest active streak, and longest losing streak.
+
+    One pass keeps all three: a result that extends the win run is the same
+    result that ends the loss run, so they can't be computed independently
+    without walking the corpus twice.
+    """
     sorted_games = sorted(
         (g for g in games if not g.incomplete), key=lambda g: g.timestamp
     )
     current: dict[str, StreakRecord] = {}
     best: dict[str, StreakRecord] = {}
+    current_loss: dict[str, StreakRecord] = {}
+    best_loss: dict[str, StreakRecord] = {}
     for game in sorted_games:
         game_date = game.date
         # Competitors only: a spectator's slot has won=False, so watching a
-        # game used to land in the `else` branch below and break the streak of
-        # whoever was casting it.
+        # game used to book a loss against whoever was casting it.
         for player in game.roster().competitors:
             name = resolve_player_name(player.name, player.color)
-            if name in EXCLUDED_PLAYERS:
+            if not holds_records(name):
                 continue
             if player.won:
-                prev = current.get(name)
-                current[name] = (
-                    StreakRecord(count=1, start=game_date, end=game_date)
-                    if prev is None
-                    else StreakRecord(
-                        count=prev.count + 1, start=prev.start, end=game_date
-                    )
-                )
-                streak = current[name]
-                if name not in best or streak.count > best[name].count:
-                    best[name] = streak
+                _extend_streaks(current, best, name, game_date)
+                current_loss.pop(name, None)
             else:
+                _extend_streaks(current_loss, best_loss, name, game_date)
                 current.pop(name, None)
     stats: list[Statistic] = []
     if best:
@@ -318,6 +367,19 @@ def get_win_streak_stats(games: list[MatchInfo], computed_at: date) -> list[Stat
                 date_computed=computed_at,
                 value=streak.count,
                 player=current_leader,
+            )
+        )
+    if best_loss:
+        worst_player = max(best_loss, key=lambda n: best_loss[n].count)
+        streak = best_loss[worst_player]
+        stats.append(
+            Statistic(
+                stat_name=(
+                    f"🧊 Longest Losing Streak ({streak.start} to {streak.end})"
+                ),
+                date_computed=computed_at,
+                value=streak.count,
+                player=worst_player,
             )
         )
     return stats
@@ -372,6 +434,122 @@ def get_calendar_stats(games: list[MatchInfo], computed_at: date) -> list[Statis
     return stats
 
 
+# A night shorter than this is a coin flip, not a run.
+MIN_GAME_NIGHT_GAMES = 4
+
+# Enough games together that a pair's record is about the pair rather than one
+# lucky evening. 48 pairs clear it in the current corpus.
+MIN_DUO_GAMES = 20
+
+
+def get_attendance_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:
+    """Who turns up most, and the best undefeated game night anyone has had.
+
+    ``MatchInfo.date`` is already the game-night date (``utils.game_night_date``
+    rolls over at 5am Eastern), so a run that ends at 1am counts toward the
+    evening it started.
+    """
+    played: Counter[str] = Counter()
+    per_night: dict[tuple[str, date], list[bool]] = defaultdict(list)
+    for g in games:
+        for p in g.roster().human_participants:
+            name = resolve_player_name(p.name, p.color)
+            if not holds_records(name):
+                continue
+            played[name] += 1
+            per_night[(name, g.date)].append(p.won)
+
+    stats: list[Statistic] = []
+    if played:
+        top_name, top_count = played.most_common(1)[0]
+        stats.append(
+            Statistic(
+                stat_name="📊 Most Games Played",
+                date_computed=computed_at,
+                value=top_count,
+                player=top_name,
+            )
+        )
+
+    perfect = [
+        (len(results), night, name)
+        for (name, night), results in per_night.items()
+        if len(results) >= MIN_GAME_NIGHT_GAMES and all(results)
+    ]
+    if perfect:
+        # Most wins first; a tie goes to whoever got there first.
+        wins, night, name = max(perfect, key=lambda p: (p[0], -p[1].toordinal()))
+        stats.append(
+            Statistic(
+                stat_name=f"🌙 Best Game Night ({night})",
+                date_computed=computed_at,
+                value=f"{wins}-0",
+                player=name,
+            )
+        )
+    return stats
+
+
+def get_duo_stats(games: list[MatchInfo], computed_at: date) -> list[Statistic]:
+    """The teammate pairing with the best raw record together.
+
+    Raw wins and losses, not ``player_synergy`` - synergy asks whether a pair
+    beats the sum of its parts, which is a different (and less quotable)
+    question than who wins most when they are on the same side.
+    """
+    pair_results: dict[tuple[str, str], list[bool]] = defaultdict(list)
+    for g in games:
+        by_team: dict[int, list[tuple[str, bool]]] = defaultdict(list)
+        for p in g.roster().human_participants:
+            name = resolve_player_name(p.name, p.color)
+            if not holds_records(name):
+                continue
+            by_team[p.team].append((name, p.won))
+        for members in by_team.values():
+            for i, (a, won) in enumerate(members):
+                for b, _ in members[i + 1 :]:
+                    pair_results[tuple(sorted((a, b)))].append(won)  # type: ignore[index]
+
+    eligible = {
+        pair: results
+        for pair, results in pair_results.items()
+        if len(results) >= MIN_DUO_GAMES
+    }
+    if not eligible:
+        return []
+    best = max(eligible, key=lambda pair: sum(eligible[pair]) / len(eligible[pair]))
+    results = eligible[best]
+    wins = sum(results)
+    return [
+        Statistic(
+            stat_name=f"🤝 Best Duo ({best[0]} & {best[1]})",
+            date_computed=computed_at,
+            value=f"{wins}-{len(results) - wins}",
+        )
+    ]
+
+
+def get_upset_stats(upsets: list[GameUpset], computed_at: date) -> list[Statistic]:
+    """The unlikeliest win the rating model has ever been shown.
+
+    ``upsets`` arrives sorted by surprise, so the head is the record. The
+    probability shown is the *winners'* pre-game chance.
+    """
+    if not upsets:
+        return []
+    top = upsets[0]
+    winners = " & ".join(top.winner_players)
+    favored = " & ".join(top.favored_players)
+    return [
+        Statistic(
+            stat_name=f"🐍 Biggest Upset ({winners} over {favored})",
+            date_computed=computed_at,
+            value=f"{top.winner_win_prob * 100:.2f}% to win",
+            match_id=top.match_id,
+        )
+    ]
+
+
 def get_first_blood_stats(
     match_info_by_id: dict[int, MatchInfo],
     details: list[SuperlativeData],
@@ -416,26 +594,6 @@ def get_first_blood_stats(
         )
     )
 
-    general_counts: Counter[str] = Counter()
-    for blood in bloods:
-        match_info = match_info_by_id.get(blood.data.match_id)
-        if match_info is None:
-            continue
-        for p in match_info.players:
-            if resolve_player_name(p.name, p.color) == blood.attacker:
-                general_counts[p.general.name] += 1
-                break
-    if general_counts:
-        top_general, gen_count = general_counts.most_common(1)[0]
-        stats.append(
-            Statistic(
-                stat_name="Most First Bloods by General",
-                date_computed=computed_at,
-                value=gen_count,
-                player=top_general,
-            )
-        )
-
     return stats
 
 
@@ -479,11 +637,10 @@ def _fmt_money(amount: int) -> str:
 
 
 def get_apm_stats(
-    match_info_by_id: dict[int, MatchInfo],
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Match with highest average APM, player with highest APM, and APM by general."""
+    """Match with the highest average APM, best single-match APM, best career rate."""
     if not details:
         return []
 
@@ -506,24 +663,14 @@ def get_apm_stats(
 
     best: ApmRecord | None = None
     player_totals: dict[str, ApmTotals] = {}
-    general_totals: dict[str, ApmTotals] = {}
     for d in details:
         color_map = {ps.name: ps.color for ps in d.player_summary}
-        match_info = match_info_by_id.get(d.match_id)
-        general_map = (
-            {
-                resolve_player_name(p.name, p.color): p.general.name
-                for p in match_info.players
-            }
-            if match_info
-            else {}
-        )
         for a in d.apms:
             if a.minutes >= 3.0 and a.apm > 0:
                 resolved = resolve_player_name(
                     a.player_name, color_map.get(a.player_name, "")
                 )
-                if resolved in EXCLUDED_PLAYERS:
+                if not holds_records(resolved):
                     continue
                 if best is None or a.apm > best.apm:
                     best = ApmRecord(player=resolved, apm=a.apm, match_id=d.match_id)
@@ -533,14 +680,6 @@ def get_apm_stats(
                     total_minutes=prev.total_minutes + a.minutes,
                     game_count=prev.game_count + 1,
                 )
-                general_name = general_map.get(resolved)
-                if general_name:
-                    prev_gen = general_totals.get(general_name, ApmTotals(0, 0.0, 0))
-                    general_totals[general_name] = ApmTotals(
-                        total_actions=prev_gen.total_actions + a.action_count,
-                        total_minutes=prev_gen.total_minutes + a.minutes,
-                        game_count=prev_gen.game_count + 1,
-                    )
     if best is not None:
         stats.append(
             Statistic(
@@ -566,31 +705,6 @@ def get_apm_stats(
                 date_computed=computed_at,
                 value=round(eligible[top_name], 1),
                 player=top_name,
-            )
-        )
-
-    eligible_generals = {
-        name: t.total_actions / t.total_minutes
-        for name, t in general_totals.items()
-        if t.game_count >= MIN_GAMES and t.total_minutes > 0
-    }
-    if eligible_generals:
-        top_gen = max(eligible_generals, key=eligible_generals.__getitem__)
-        bot_gen = min(eligible_generals, key=eligible_generals.__getitem__)
-        stats.append(
-            Statistic(
-                stat_name="🚀 Highest APM General",
-                date_computed=computed_at,
-                value=round(eligible_generals[top_gen], 1),
-                player=top_gen,
-            )
-        )
-        stats.append(
-            Statistic(
-                stat_name="🐢 Lowest APM General",
-                date_computed=computed_at,
-                value=round(eligible_generals[bot_gen], 1),
-                player=bot_gen,
             )
         )
 
@@ -696,7 +810,7 @@ def get_fastest_rank_5_stats(
     for d in details:
         for name, minute in d.time_to_rank_5.items():
             resolved = _resolve_attacker(match_info_by_id, d, name)
-            if resolved in EXCLUDED_PLAYERS:
+            if not holds_records(resolved):
                 continue
             if fastest is None or minute < fastest[2]:
                 fastest = (d, resolved, minute)
@@ -723,7 +837,7 @@ def get_fastest_search_destroy_stats(
     for d in details:
         for name, minute in d.time_to_search_destroy.items():
             resolved = _resolve_attacker(match_info_by_id, d, name)
-            if resolved in EXCLUDED_PLAYERS:
+            if not holds_records(resolved):
                 continue
             if fastest is None or minute < fastest[2]:
                 fastest = (d, resolved, minute)
@@ -741,16 +855,10 @@ def get_fastest_search_destroy_stats(
 
 
 class HuntedOccurrence(NamedTuple):
-    """One player going hunted in one match, alias-resolved.
-
-    `general` is None when the match's player list carries no entry for the
-    summary name, which keeps the per-player count usable even on a row the
-    per-general count has to skip.
-    """
+    """One player going hunted in one match, alias-resolved."""
 
     data: SuperlativeData
     player: str
-    general: str | None
     at_minute: float
 
 
@@ -762,30 +870,15 @@ def _hunted_occurrences(
 
     One entry per player per match - `time_to_hunted` only holds each player's
     *first* hunted flip - so a player who gets hunted, rebuilds a dozer, and
-    gets hunted again still counts once. Name and general are resolved
-    together here because both need the same scan of the match's player list.
+    gets hunted again still counts once.
     """
     out: list[HuntedOccurrence] = []
     for d in details:
-        match_info = match_info_by_id.get(d.match_id)
-        players = match_info.players if match_info is not None else []
         for raw_name, minute in d.time_to_hunted.items():
-            entry = next((p for p in players if p.name == raw_name), None)
-            resolved = (
-                resolve_player_name(raw_name, entry.color)
-                if entry is not None
-                else resolve_player_name(raw_name)
-            )
-            if resolved in EXCLUDED_PLAYERS:
+            resolved = _resolve_attacker(match_info_by_id, d, raw_name)
+            if not holds_records(resolved):
                 continue
-            out.append(
-                HuntedOccurrence(
-                    data=d,
-                    player=resolved,
-                    general=entry.general.name if entry is not None else None,
-                    at_minute=minute,
-                )
-            )
+            out.append(HuntedOccurrence(data=d, player=resolved, at_minute=minute))
     return out
 
 
@@ -794,7 +887,7 @@ def get_hunted_stats(
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Who - and which general - gets production-locked most often.
+    """Who gets production-locked most often.
 
     "Hunted" is the engine state a player enters when they have no dozer or
     worker left and no way to produce one: they can still fight with what they
@@ -817,21 +910,90 @@ def get_hunted_stats(
         )
     )
 
-    general_counts: Counter[str] = Counter(
-        o.general for o in occurrences if o.general is not None
-    )
-    if general_counts:
-        top_general, gen_count = general_counts.most_common(1)[0]
+    return stats
+
+
+def get_superweapon_stats(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    computed_at: date,
+) -> list[Statistic]:
+    """Base-superweapon launches: most in one match, and the earliest ever.
+
+    Only the three base-bound superweapons count - see
+    ``timeline_events.BASE_SUPERWEAPON_LAUNCHES``. Roughly half the corpus
+    carries any, so both records come from the half that does.
+    """
+    most: PlayerMatchRecord | None = None
+    earliest: tuple[SuperlativeData, str, SuperweaponLaunch] | None = None
+    for d in details:
+        for raw_name, count in d.superweapon_launches.items():
+            resolved = _resolve_attacker(match_info_by_id, d, raw_name)
+            if not holds_records(resolved):
+                continue
+            if most is None or count > most.value:
+                most = PlayerMatchRecord(
+                    player=resolved, value=count, match_id=d.match_id
+                )
+        for raw_name, launch in d.first_superweapon.items():
+            resolved = _resolve_attacker(match_info_by_id, d, raw_name)
+            if not holds_records(resolved):
+                continue
+            if earliest is None or launch.at_minute < earliest[2].at_minute:
+                earliest = (d, resolved, launch)
+
+    stats: list[Statistic] = []
+    if most is not None:
         stats.append(
             Statistic(
-                stat_name="Most Hunted by General",
+                stat_name="☢️ Most Superweapons Launched",
                 date_computed=computed_at,
-                value=gen_count,
-                player=top_general,
+                value=most.value,
+                player=most.player,
+                match_id=most.match_id,
             )
         )
-
+    if earliest is not None:
+        data, player, launch = earliest
+        stats.append(
+            Statistic(
+                stat_name=f"☢️ Fastest Superweapon Launch ({launch.weapon})",
+                date_computed=computed_at,
+                value=_fmt_duration(launch.at_minute),
+                player=player,
+                match_id=data.match_id,
+            )
+        )
     return stats
+
+
+def get_tech_capture_stats(
+    match_info_by_id: dict[int, MatchInfo],
+    details: list[SuperlativeData],
+    computed_at: date,
+) -> list[Statistic]:
+    """Most tech buildings (oil derricks, hospitals, …) captured in one match."""
+    best: PlayerMatchRecord | None = None
+    for d in details:
+        for raw_name, count in d.tech_captures.items():
+            resolved = _resolve_attacker(match_info_by_id, d, raw_name)
+            if not holds_records(resolved):
+                continue
+            if best is None or count > best.value:
+                best = PlayerMatchRecord(
+                    player=resolved, value=count, match_id=d.match_id
+                )
+    if best is None:
+        return []
+    return [
+        Statistic(
+            stat_name="🛢️ Most Tech Captures",
+            date_computed=computed_at,
+            value=best.value,
+            player=best.player,
+            match_id=best.match_id,
+        )
+    ]
 
 
 @dataclass(slots=True)
@@ -862,7 +1024,7 @@ def get_xp_rate_stats(
             if xp <= 0:
                 continue
             resolved = _resolve_attacker(match_info_by_id, d, name)
-            if resolved in EXCLUDED_PLAYERS:
+            if not holds_records(resolved):
                 continue
             entry = totals.setdefault(resolved, _XpTotals())
             entry.xp += xp
@@ -886,21 +1048,38 @@ def get_xp_rate_stats(
     ]
 
 
+# A win short enough to be a rage-quit says nothing about efficiency. Every
+# efficiency record was one before this floor existed: "Fewest Units to Win"
+# was 2 units in the same match as "⚡ Shortest 4v4" (2m01s), and "Fewest
+# Buildings to Win" was 3 in a 3m36s game. Ten minutes is past the point where
+# the loser is still choosing to play.
+MIN_EFFICIENCY_MINUTES = 10.0
+
+
 def get_efficiency_stats(
+    match_info_by_id: dict[int, MatchInfo],
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Winning player records: fewest units, fewest buildings, least money spent."""
+    """Winning player records: fewest units, fewest buildings, least money spent.
+
+    Restricted to complete wins of at least ``MIN_EFFICIENCY_MINUTES``.
+    """
     best_units: PlayerMatchRecord | None = None
     best_buildings: PlayerMatchRecord | None = None
     best_money: PlayerMatchRecord | None = None
 
     for d in details:
+        match_info = match_info_by_id.get(d.match_id)
+        if match_info is None or match_info.incomplete:
+            continue
+        if match_info.duration_minutes < MIN_EFFICIENCY_MINUTES:
+            continue
         for ps in d.player_summary:
             if not ps.won:
                 continue
             name = resolve_player_name(ps.name, ps.color)
-            if name in EXCLUDED_PLAYERS:
+            if not holds_records(name):
                 continue
             best_units = _min_candidate(
                 best_units,
@@ -954,7 +1133,13 @@ def get_money_stats(
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Match with most and least total money spent."""
+    """Match with the most total money spent.
+
+    There is deliberately no "least spent" counterpart: it read $12,200 across
+    a 42-minute 2v2, which is not a frugal game but a replay whose per-player
+    `moneySpent` never populated. A floor can't separate the two, so the
+    minimum is measuring data coverage rather than play.
+    """
     if not details:
         return []
 
@@ -963,7 +1148,6 @@ def get_money_stats(
         return []
 
     most = max(valued, key=lambda x: x[1])
-    least = min(valued, key=lambda x: x[1])
 
     return [
         Statistic(
@@ -972,12 +1156,6 @@ def get_money_stats(
             value=_fmt_money(most[1]),
             match_id=most[0].match_id,
         ),
-        Statistic(
-            stat_name="Least Money Spent",
-            date_computed=computed_at,
-            value=_fmt_money(least[1]),
-            match_id=least[0].match_id,
-        ),
     ]
 
 
@@ -985,51 +1163,32 @@ def get_player_money_stats(
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Top 3 players by total money collected and total money spent across all games."""
+    """Top 3 players by career money collected.
+
+    Career money *spent* used to get its own podium beside this one and always
+    named the same three players in the same order - you spend what you
+    collect, so the two rank identically. One podium says everything both did.
+    """
     player_collected: Counter[str] = Counter()
-    player_spent: Counter[str] = Counter()
 
     for d in details:
         color_map = {ps.name: ps.color for ps in d.player_summary}
-
         for player_name, amount in d.player_money_collected.items():
             resolved = resolve_player_name(player_name, color_map.get(player_name, ""))
-            if resolved in EXCLUDED_PLAYERS:
+            if not holds_records(resolved):
                 continue
             player_collected[resolved] += amount
 
-        for ps in d.player_summary:
-            if ps.money_spent <= 0:
-                continue
-            resolved = resolve_player_name(ps.name, ps.color)
-            if resolved in EXCLUDED_PLAYERS:
-                continue
-            player_spent[resolved] += ps.money_spent
-
     MEDALS = ["🥇", "🥈", "🥉"]
-    stats: list[Statistic] = []
-
-    for i, (name, amount) in enumerate(player_collected.most_common(3)):
-        stats.append(
-            Statistic(
-                stat_name=f"💰 Most Money Collected {MEDALS[i]}",
-                date_computed=computed_at,
-                value=_fmt_money(amount),
-                player=name,
-            )
+    return [
+        Statistic(
+            stat_name=f"💰 Most Money Collected {MEDALS[i]}",
+            date_computed=computed_at,
+            value=_fmt_money(amount),
+            player=name,
         )
-
-    for i, (name, amount) in enumerate(player_spent.most_common(3)):
-        stats.append(
-            Statistic(
-                stat_name=f"💸 Most Money Spent Overall {MEDALS[i]}",
-                date_computed=computed_at,
-                value=_fmt_money(amount),
-                player=name,
-            )
-        )
-
-    return stats
+        for i, (name, amount) in enumerate(player_collected.most_common(3))
+    ]
 
 
 def get_monthly_stats(
@@ -1047,7 +1206,7 @@ def get_monthly_stats(
         # spectator's slot has won=False and would book them a loss.
         for p in g.roster().competitors:
             name = resolve_player_name(p.name, p.color)
-            if name in EXCLUDED_PLAYERS:
+            if not holds_records(name):
                 continue
             w, l = wl.get(name, (0, 0))
             wl[name] = (w + 1, l) if p.won else (w, l + 1)
@@ -1082,7 +1241,7 @@ def get_monthly_stats(
     monthly_deltas: dict[str, float] = {
         name: sum(c.delta for c in changes if c.date >= thirty_days_ago)
         for name, changes in daily_changes.items()
-        if name not in EXCLUDED_PLAYERS
+        if holds_records(name)
     }
     monthly_deltas = {n: d for n, d in monthly_deltas.items() if d != 0.0}
 
@@ -1121,8 +1280,16 @@ def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
 def get_superlatives(
     games: list[MatchInfo],
     details: list[SuperlativeData] | None = None,
-    daily_changes: dict[str, list[RatingDailyChange]] | None = None,
+    ratings: RatingsAndCounts | None = None,
 ) -> Superlatives:
+    """Every record, from the corpus plus whatever derived inputs are available.
+
+    ``ratings`` carries both things the rating pass already computed that a
+    record needs (30-day deltas and the upset list); recomputing either here
+    would mean a second pass over the corpus. Note that ``ordinal_high`` /
+    ``ordinal_low`` are deliberately *not* read - see the rating-privacy note
+    in CLAUDE.md.
+    """
     computed_at = datetime.now(UTC).date()
 
     stats: list[Statistic] = [
@@ -1131,25 +1298,31 @@ def get_superlatives(
         *_safe_compute(get_map_duration_stats, games, computed_at),
         *_safe_compute(get_match_duration_extremes, games, computed_at),
         *_safe_compute(get_calendar_stats, games, computed_at),
+        *_safe_compute(get_attendance_stats, games, computed_at),
+        *_safe_compute(get_duo_stats, games, computed_at),
     ]
-    if daily_changes is not None:
-        stats.extend(
-            _safe_compute(get_monthly_stats, games, daily_changes, computed_at)
-        )
+    if ratings is not None:
+        for rating_fn, *rating_args in [
+            (get_monthly_stats, games, ratings.daily_changes, computed_at),
+            (get_upset_stats, ratings.upsets, computed_at),
+        ]:
+            stats.extend(_safe_compute(rating_fn, *rating_args))
     if details:
         match_info_by_id = {g.id: g for g in games}
         for fn, *args in [
             (get_first_blood_stats, match_info_by_id, details, computed_at),
             (get_building_first_blood_stats, match_info_by_id, details, computed_at),
-            (get_apm_stats, match_info_by_id, details, computed_at),
+            (get_apm_stats, details, computed_at),
             (get_money_stats, details, computed_at),
             (get_player_money_stats, details, computed_at),
             (get_activity_stats, details, computed_at),
-            (get_efficiency_stats, details, computed_at),
+            (get_efficiency_stats, match_info_by_id, details, computed_at),
             (get_fastest_rank_5_stats, match_info_by_id, details, computed_at),
             (get_fastest_search_destroy_stats, match_info_by_id, details, computed_at),
             (get_hunted_stats, match_info_by_id, details, computed_at),
             (get_xp_rate_stats, match_info_by_id, details, computed_at),
+            (get_superweapon_stats, match_info_by_id, details, computed_at),
+            (get_tech_capture_stats, match_info_by_id, details, computed_at),
         ]:
             stats.extend(_safe_compute(fn, *args))
 

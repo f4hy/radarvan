@@ -185,6 +185,7 @@ from .ratings import (
 from .superlatives import (
     SuperlativeData,
     SuperlativePlayerSummary,
+    SuperweaponLaunch,
 )
 from .teams import (
     PairFactionWinLoss,
@@ -365,6 +366,7 @@ __all__ = [
     "Statistic",
     "SuperlativeData",
     "SuperlativePlayerSummary",
+    "SuperweaponLaunch",
     "Team",
     "TeamPairs",
     "TeamRecord",

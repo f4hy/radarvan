@@ -3,8 +3,8 @@
 "Hunted" is the engine state a player enters when they have no dozer or worker
 left and no way to produce one. cncstats reports it as `stats.huntedEvents`
 (statsVersion 3); `milestone_timings_from_replay` reduces the stream to each
-player's *first* hunted flip, and `get_hunted_stats` counts those across the
-corpus, per player and per general.
+player's *first* hunted flip, and `get_hunted_stats` counts those per player
+across the corpus.
 """
 
 from datetime import date
@@ -167,23 +167,6 @@ def test_most_hunted_counts_matches_per_player() -> None:
     assert top.value == 3
 
 
-def test_most_hunted_by_general_uses_the_match_roster() -> None:
-    """corpus.match assigns General(i % 12) by roster position, so team one's
-    first slot carries the same general in every match."""
-    games = [match(1, day=5), match(2, day=6)]
-    first_slot = games[0].players[0]
-    details = [
-        _details(1, {first_slot.name: 1.0}),
-        _details(2, {games[1].players[0].name: 2.0}),
-    ]
-    stats = get_hunted_stats({g.id: g for g in games}, details, COMPUTED_AT)
-
-    by_general = _stat(stats, "Most Hunted by General")
-    assert by_general is not None
-    assert by_general.player == first_slot.general.name
-    assert by_general.value == 2
-
-
 def test_hunted_stats_empty_when_nothing_is_hunted() -> None:
     games = [match(1, day=5)]
     assert get_hunted_stats({g.id: g for g in games}, [_details(1, {})], COMPUTED_AT) == []
@@ -213,8 +196,26 @@ def test_hunted_player_names_are_alias_resolved() -> None:
 
 def test_hunted_row_without_a_match_info_still_counts_the_player() -> None:
     """A details row whose match isn't in the corpus has no roster to read a
-    general from - the player count must survive it, the general count skips it."""
+    color from - the name still resolves and the player count must survive it."""
     stats = get_hunted_stats({}, [_details(999, {"Skip": 1.0})], COMPUTED_AT)
 
-    assert _stat(stats, "🚜 Most Hunted") is not None
-    assert _stat(stats, "Most Hunted by General") is None
+    top = _stat(stats, "🚜 Most Hunted")
+    assert top is not None
+    assert top.player == "Skip"
+
+
+def test_a_cpu_never_holds_the_hunted_record() -> None:
+    """Eligibility is a membership test against the known humans, so an AI slot
+    is dropped whatever it is called - "Tactical AI" held "Worst Record (30d)"
+    while the check was a one-name blocklist of "HardArmy"."""
+    games = [match(1, day=5), match(2, day=6)]
+    details = [
+        _details(1, {"Tactical AI": 1.0, "Skip": 2.0}),
+        _details(2, {"Tactical AI": 3.0}),
+    ]
+    stats = get_hunted_stats({g.id: g for g in games}, details, COMPUTED_AT)
+
+    top = _stat(stats, "🚜 Most Hunted")
+    assert top is not None
+    # The AI went hunted twice to Skip's once and still must not take it.
+    assert top.player == "Skip"

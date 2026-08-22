@@ -55,11 +55,10 @@ from .api_types import (
 )
 from .build_order import is_economy_unit
 from .db_utils import DatabaseManager
-from .player_ids import resolve_player_name
+from .player_ids import CPU_NAMES, resolve_player_name
 from .player_synergy import PairSynergy
 from .replay_files import map_basename
 from .replay_helpers import clean_object_name
-from .superlatives import EXCLUDED_PLAYERS
 from .timeline_events import clean_power_name
 
 logger = structlog.get_logger(__name__)
@@ -141,10 +140,11 @@ def _compute_profile_version() -> str:
 
 PROFILE_VERSION = _compute_profile_version()
 
-# Resolved names never profiled nor used as peer baselines.
-# Only the deliberately-excluded *humans*: AI slots are already gone, dropped
-# by the roster partition (roster().humans / .human_participants).
-_NON_HUMAN_PLAYERS: frozenset[str] = EXCLUDED_PLAYERS
+# Resolved names never profiled nor used as peer baselines. AI slots are
+# already gone by this point, dropped by the roster partition
+# (roster().humans / .human_participants); this is the backstop for a row that
+# reached us by name rather than by role.
+_NON_HUMAN_PLAYERS: frozenset[str] = CPU_NAMES
 
 # Deep stats need enough games for peer-normalized rates to mean anything.
 DEFAULT_MIN_PROFILE_GAMES = 60

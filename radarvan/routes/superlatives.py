@@ -69,7 +69,7 @@ async def _do_recompute(
         superlatives.get_superlatives,
         game_list,
         details,
-        ratings_and_counts.daily_changes,
+        ratings_and_counts,
     )
     value_stats = await asyncio.to_thread(
         general_stats.general_value_stats, game_list, details
