@@ -11,8 +11,31 @@ from radarvan.db import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-db_url = os.environ["DATABASE_URL"]
-print("using db url", db_url)
+# Heroku's addon-managed DATABASE_URL uses the legacy ``postgres://`` scheme,
+# which SQLAlchemy 2.x refuses to load a dialect for. `db_utils` and
+# `scripts/bootstrap_db.py` both normalize it; this file has to do it too
+# rather than rely on them, because `alembic upgrade` re-reads the raw
+# environment variable in its own process - normalizing before shelling out to
+# alembic does nothing for the subprocess.
+db_url = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://")
+
+
+def _redacted(url: str) -> str:
+    """The URL with its password masked.
+
+    This line lands in the Heroku release-phase log on every deploy, which is
+    readable by anyone with access to the app - a full DSN there is a leaked
+    database credential.
+    """
+    scheme, _, rest = url.partition("://")
+    if "@" not in rest:
+        return url
+    creds, _, host = rest.partition("@")
+    user, _, password = creds.partition(":")
+    return f"{scheme}://{user}{':***' if password else ''}@{host}"
+
+
+print("using db url", _redacted(db_url))
 config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
