@@ -54,6 +54,8 @@ docs/FetchMissingMapResult.md
 docs/FirstBlood.md
 docs/GameComposition.md
 docs/GameNightApi.md
+docs/GameNightBackfill.md
+docs/GameNightBackfillNight.md
 docs/GameNightHighlight.md
 docs/GameNightPlayerLine.md
 docs/GameNightRecap.md
@@ -222,6 +224,8 @@ models/FavoriteObject.ts
 models/FetchMissingMapResult.ts
 models/FirstBlood.ts
 models/GameComposition.ts
+models/GameNightBackfill.ts
+models/GameNightBackfillNight.ts
 models/GameNightHighlight.ts
 models/GameNightPlayerLine.ts
 models/GameNightRecap.ts

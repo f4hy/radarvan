@@ -15,6 +15,7 @@ returns null there and the page simply omits that section.
 from __future__ import annotations
 
 from datetime import date as date_type, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -107,3 +108,48 @@ class GameNightSummaryStatus(BaseModel):
     has_summary: bool = Field(alias="hasSummary")
     provider: str | None = None
     computed_at: datetime | None = Field(default=None, alias="computedAt")
+
+
+# generated: a real LLM call was spent and a row written.
+# already_summarized: a stored recap existed; the backfill never overwrites.
+# too_few_games: below the floor a night has to clear to be worth a call.
+# not_attempted: eligible, but this run's max_to_update was already used up.
+# failed: the provider errored on this night, which stops the run.
+GameNightBackfillOutcome = Literal[
+    "generated",
+    "already_summarized",
+    "too_few_games",
+    "not_attempted",
+    "failed",
+]
+
+
+class GameNightBackfillNight(BaseModel):
+    """What the backfill did about one night in the window, and why.
+
+    Every night considered gets a row, including the ones left alone - the
+    point of the report is to show what a run *would* have spent on, so the
+    operator can widen the budget deliberately rather than by rerunning
+    blind.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    date: date_type
+    # Games played that night (all of them, matching GameNightRecap.matchCount).
+    matches: int
+    outcome: GameNightBackfillOutcome
+
+
+class GameNightBackfill(BaseModel):
+    """The result of one backfill run over the last N game nights."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    days: int
+    # Nights written this run - i.e. how many LLM calls this run billed.
+    generated: int
+    # Eligible nights left unwritten (budget exhausted, or the run stopped on
+    # an error). Re-run to pick them up.
+    remaining: int
+    nights: list[GameNightBackfillNight] = Field(default_factory=list)

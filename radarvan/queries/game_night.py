@@ -13,7 +13,7 @@ Nothing here spends an LLM call; generation is ``commentary/night_summary``.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from .. import game_night, match_details, match_narrative, player_rating, utils
 from ..api_types import GameNightRecap, MatchDetails, MatchInfo, MatchNarrative
@@ -106,3 +106,17 @@ def latest_closed_night(all_games: list[MatchInfo]) -> date | None:
     tonight = utils.game_night_date_of(datetime.now(UTC))
     played = [game.date for game in all_games if game.date < tonight]
     return max(played) if played else None
+
+
+def closed_nights_within(all_games: list[MatchInfo], days: int) -> list[date]:
+    """The finished game nights of the last ``days``, newest first.
+
+    The window is counted in game-night keys back from the night currently in
+    progress, which is excluded for the same reason ``latest_closed_night``
+    excludes it: a stored recap is permanent, so an evening still being played
+    must never be summarized. Nights with no games simply aren't in the list.
+    """
+    tonight = utils.game_night_date_of(datetime.now(UTC))
+    earliest = tonight - timedelta(days=days)
+    nights = {game.date for game in all_games if earliest <= game.date < tonight}
+    return sorted(nights, reverse=True)

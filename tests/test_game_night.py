@@ -7,9 +7,9 @@ surface a rating level (only a win probability, which is allowed - see the
 ratings note in CLAUDE.md).
 """
 
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
-from radarvan import game_night, match_narrative
+from radarvan import game_night, match_narrative, queries, schedule, utils
 from radarvan.api_types import APM, FirstBlood, MatchDetails, Team, TimelineEvent
 from radarvan.commentary import night_summary
 from radarvan.player_rating import GameUpset
@@ -406,3 +406,31 @@ def test_the_prompt_frames_win_probability_as_a_model_projection() -> None:
     """It is our own (imperfect) rating model, not objective odds."""
     assert "not a fact" in night_summary.SYSTEM_PROMPT
     assert "never as objective odds" in night_summary.SYSTEM_PROMPT
+
+
+def _night(match_id: int, night: date) -> object:
+    """A corpus match keyed to a given game night."""
+    return corpus.match(match_id, day=5).model_copy(update={"date": night})
+
+
+def test_the_backfill_window_never_includes_the_live_night() -> None:
+    """The same rule the nightly job follows: a stored recap is permanent, so
+    an evening still being played must stay out of reach of the backfill."""
+    tonight = utils.game_night_date_of(datetime.now(UTC))
+    games = [_night(1, tonight), _night(2, tonight - timedelta(days=1))]
+    assert queries.closed_nights_within(games, 7) == [tonight - timedelta(days=1)]  # type: ignore[arg-type]
+
+
+def test_the_backfill_window_is_counted_in_game_night_keys() -> None:
+    """``days`` back from tonight, inclusive at the far end, newest first."""
+    tonight = utils.game_night_date_of(datetime.now(UTC))
+    inside = [tonight - timedelta(days=n) for n in (1, 3, 7)]
+    outside = tonight - timedelta(days=8)
+    games = [_night(i, night) for i, night in enumerate([*inside, outside])]
+    assert queries.closed_nights_within(games, 7) == inside  # type: ignore[arg-type]
+
+
+def test_one_stray_upload_is_not_a_game_night_for_either_caller() -> None:
+    """The floor lives with the generator so the job and the backfill share it."""
+    assert night_summary.MIN_MATCHES_FOR_SUMMARY > 1
+    assert schedule.MIN_MATCHES_FOR_SUMMARY == night_summary.MIN_MATCHES_FOR_SUMMARY

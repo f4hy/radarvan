@@ -8,7 +8,8 @@ stored row returns ``ai_summary: null`` and the page omits that section.
 
 **No read path here generates.** Generation happens once a night in the
 scheduler (``schedule.compute_game_night_summary``), and by hand through the
-ops endpoint below. A date is an unbounded key, so a route that filled the
+two ops endpoints below (one night by hand, or a bounded backfill of the
+last N). A date is an unbounded key, so a route that filled the
 cache on a miss would bill an LLM call for every night anybody scrolled back
 to - the opposite of the bracket blurbs, whose keys are enumerable and so can
 safely generate on demand (see routes/commentary.py).
@@ -20,7 +21,13 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import queries
-from ..api_types import GameNightRecap, GameNightSummaryStatus
+from ..api_types import (
+    GameNightBackfill,
+    GameNightBackfillNight,
+    GameNightBackfillOutcome,
+    GameNightRecap,
+    GameNightSummaryStatus,
+)
 from ..commentary import llm, night_summary
 from ..dependencies import (
     OPS_ADMIN,
@@ -152,3 +159,92 @@ async def generate_game_night_summary(
         logger.error("game night summary generation failed", exc_info=e)
         raise HTTPException(status_code=502, detail="summary generation failed") from e
     return summary_status(night, summaries)
+
+
+@session_router.post("/api/backfill_game_night_summaries", dependencies=OPS_ADMIN)
+async def backfill_game_night_summaries(
+    all_games: AllGames,
+    competitive: UnfilteredCompetitiveGames,
+    days: int = 7,
+    max_to_update: int = 1,
+    summaries: GameNightSummaryRepo = Depends(get_game_night_summary_repo),
+) -> GameNightBackfill:
+    """Fill in missing LLM recaps for the last ``days`` game nights.
+
+    **Every night this writes is a real, billed LLM call**, which is what
+    shapes the two knobs. ``days`` says how far back to *look*;
+    ``max_to_update`` says how many calls this run may *spend* (the backfill
+    endpoint pattern - default 1, run it again to continue). Nights are taken
+    newest first, so a small budget buys the recaps people are most likely to
+    read.
+
+    Never overwrites: a night with a stored row is reported
+    ``already_summarized`` and skipped, because the stored text is the
+    delivery mechanism rather than a cache. Use
+    ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite
+    one deliberately. Nights below the floor the nightly job uses
+    (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night
+    currently in progress is never in the window - see
+    ``queries.closed_nights_within``.
+
+    The report lists every night considered, so a run with the default budget
+    doubles as a dry run of the next one.
+    """
+    if days < 1:
+        raise HTTPException(status_code=400, detail="days must be at least 1")
+    if max_to_update < 1:
+        raise HTTPException(status_code=400, detail="max_to_update must be at least 1")
+    if night_summary.generation_lock.locked():
+        raise HTTPException(
+            status_code=409, detail="a game night summary is already being generated"
+        )
+    if not llm.commentary_available():
+        raise HTTPException(
+            status_code=503,
+            detail="LLM generation is not available on this server",
+        )
+
+    nights: list[GameNightBackfillNight] = []
+    generated = 0
+    # A provider error is not per-night bad luck - it will hit every remaining
+    # night the same way, so the first one stops the run rather than burning
+    # the budget on repeats. Already-written rows are kept and reported.
+    stopped = False
+    outcome: GameNightBackfillOutcome
+    for night in queries.closed_nights_within(all_games, days):
+        played = queries.on_night(all_games, night)
+        if summaries.has_night_summary(night):
+            outcome = "already_summarized"
+        elif len(played) < night_summary.MIN_MATCHES_FOR_SUMMARY:
+            outcome = "too_few_games"
+        elif stopped or generated >= max_to_update:
+            outcome = "not_attempted"
+        else:
+            logger.info(
+                "backfilling game night summary", night=str(night), games=len(played)
+            )
+            night_games = await queries.build_night_recap(
+                night, all_games, competitive, db_manager
+            )
+            try:
+                await night_summary.generate_and_store(
+                    night_games.recap, queries.night_narratives(night_games), summaries
+                )
+            except llm.CommentaryGenerationError as e:
+                logger.error(
+                    "game night summary generation failed",
+                    night=str(night),
+                    exc_info=e,
+                )
+                outcome = "failed"
+                stopped = True
+            else:
+                generated += 1
+                outcome = "generated"
+        nights.append(
+            GameNightBackfillNight(date=night, matches=len(played), outcome=outcome)
+        )
+    remaining = sum(1 for n in nights if n.outcome in {"not_attempted", "failed"})
+    return GameNightBackfill(
+        days=days, generated=generated, remaining=remaining, nights=nights
+    )

@@ -51,6 +51,13 @@ SYSTEM_PROMPT = NIGHT_GUIDELINES
 # than at either call site so neither can forget it.
 generation_lock = asyncio.Lock()
 
+# A single game is a match, not a game night. Below this the deterministic
+# recap already says everything there is to say, and spending a real LLM call
+# on it isn't worth it - most one-match "nights" are a stray upload. Lives
+# here rather than at either call site for the reason in the module docstring:
+# the nightly job and the ops backfill must refuse the same nights.
+MIN_MATCHES_FOR_SUMMARY = 2
+
 # A night is normally under fifteen games. The cap is for the pathological
 # case - a marathon, or a backlog of uploads all landing on one night key -
 # where the beat list would otherwise dominate the prompt without telling the

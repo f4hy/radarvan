@@ -42,6 +42,8 @@ export * from './FavoriteObject';
 export * from './FetchMissingMapResult';
 export * from './FirstBlood';
 export * from './GameComposition';
+export * from './GameNightBackfill';
+export * from './GameNightBackfillNight';
 export * from './GameNightHighlight';
 export * from './GameNightPlayerLine';
 export * from './GameNightRecap';
