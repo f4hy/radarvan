@@ -5,6 +5,10 @@ description = "Tracking generals stats"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    # Runtime, not tooling: the Procfile's release phase runs
+    # `alembic upgrade head` on every deploy, and Heroku's buildpack
+    # installs only [project] dependencies (uv sync --no-dev).
+    "alembic>=1.19.1",
     "anthropic>=1.0.0,<2",
     "apscheduler>=3.11.3",
     "beautifulsoup4>=4.15.0",
@@ -36,7 +40,6 @@ dependencies = [
 ]
 [dependency-groups]
 dev = [
-  "alembic>=1.19.1",
   "boto3-stubs[s3]>=1.43.78",
   "click>=8.4.2",
   "mypy>=2.3.1",
