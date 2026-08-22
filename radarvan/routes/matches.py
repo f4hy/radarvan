@@ -81,7 +81,7 @@ def get_team_games_without_winner(
     ]
 
 
-@router.get("/api/match/{match_id}")
+@router.get("/api/match/{match_id}", dependencies=[Depends(cache_short)])
 def get_match_by_id(
     match_id: int,
     response: Response,
@@ -92,11 +92,10 @@ def get_match_by_id(
     if match is None:
         response.headers["Cache-Control"] = "no-cache"
         return None
-    response.headers["Cache-Control"] = "private, max-age=3600"
     return match
 
 
-@router.get("/api/details/{match_id}")
+@router.get("/api/details/{match_id}", dependencies=[Depends(cache_short)])
 def get_match_details(
     match_id: int,
     response: Response,
@@ -105,19 +104,18 @@ def get_match_details(
     """Get details about a particular match.
 
     Result is cached in-process (see cache.details_from_id, invalidated on
-    reparse/upload). Existing details are immutable until reparse, so we also
-    let the browser cache them; an unparsed match returns empty and is not
-    cached so it picks up data once processed.
+    reparse/upload). Short browser hold only - a reparse or a WinnerOverride
+    rewrites these details behind an unchanged URL. An unparsed match returns
+    empty and is not cached, so it picks up data once processed.
     """
     details = details_from_id(match_id, replay_manager)
     if details is None:
         response.headers["Cache-Control"] = "no-cache"
         return empty_match_details(match_id)
-    response.headers["Cache-Control"] = "private, max-age=3600"
     return details
 
 
-@router.get("/api/build_orders/{match_id}")
+@router.get("/api/build_orders/{match_id}", dependencies=[Depends(cache_short)])
 def get_build_orders(
     match_id: int,
     response: Response,
@@ -135,5 +133,4 @@ def get_build_orders(
     if details is None:
         response.headers["Cache-Control"] = "no-cache"
         return {}
-    response.headers["Cache-Control"] = "private, max-age=3600"
     return details.build_orders

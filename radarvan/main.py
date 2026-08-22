@@ -13,8 +13,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
@@ -23,6 +22,7 @@ from . import cncstats_client, middleware, replay_files, schedule
 from .auth_notify import notify_auth_event
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
+from .http_cache import CachedStaticFiles
 from .logging_config import configure_logging
 from .notify import notify_async
 from .routes import (
@@ -198,12 +198,6 @@ app.include_router(superlatives.session_router)
 app.include_router(tournaments.session_router)
 
 
-@app.get("/", include_in_schema=False)
-def serve_index() -> FileResponse:
-    return FileResponse(
-        "dist/index.html",
-        headers={"Cache-Control": "no-cache"},
-    )
-
-
-app.mount("/", StaticFiles(directory="dist", html=True), name="dist")
+# html=True serves dist/index.html for "/". Cache-Control rules for the built
+# frontend live in radarvan.http_cache.
+app.mount("/", CachedStaticFiles(directory="dist", html=True), name="dist")

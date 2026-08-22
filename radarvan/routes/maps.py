@@ -133,16 +133,18 @@ def save_map_data(
     return payload
 
 
-@router.get("/api/map_data/{map_name}")
+@router.get("/api/map_data/{map_name}", dependencies=[Depends(cache_short)])
 def get_map_data(
     map_name: str,
-    response: Response,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> MapDataPayload:
+    """Stored geometry for one map.
+
+    Short browser hold only - an upload or a re-parse rewrites geometry in place.
+    """
     result = replay_manager.get_map_data(map_name)
     if result is None:
         raise HTTPException(status_code=404, detail=f"No map data for '{map_name}'")
-    response.headers["Cache-Control"] = "private, max-age=86400"
     return result
 
 
