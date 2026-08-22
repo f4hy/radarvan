@@ -30,6 +30,7 @@ from .api_types import (
     Team,
 )
 from .durations import summarize
+from .match_narrative import is_base_superweapon
 from .player_ids import resolve_player_name
 from .replay_files import map_basename
 from .player_rating import GameUpset
@@ -140,7 +141,13 @@ def _duration_highlights(counted: list[MatchInfo]) -> list[GameNightHighlight]:
 def _upset_highlight(
     counted: list[MatchInfo], upsets: list[GameUpset]
 ) -> list[GameNightHighlight]:
-    """The night's unlikeliest win, as a win probability.
+    """The night's unlikeliest win, as the rating model saw it beforehand.
+
+    Worded as a *projection* on purpose. The number is ``player_rating``'s
+    pre-game estimate - not an observed frequency and not a fact about the
+    players. The model is a rating system fitted to this group's own games and
+    it is wrong regularly, so a flat "30% to win" reads as a harder claim than
+    the data supports.
 
     A probability, never a rating level - see the ratings note in CLAUDE.md.
     ``upsets`` is the whole corpus's list (the rating model only produces it
@@ -158,7 +165,8 @@ def _upset_highlight(
             kind="upset",
             title="Biggest upset",
             detail=(
-                f"{winners} beat {favored} at {top.winner_win_prob * 100:.0f}% to win"
+                f"{winners} beat {favored} - our model projected them "
+                f"{top.winner_win_prob * 100:.0f}% to win"
             ),
             match_id=top.match_id,
         )
@@ -174,6 +182,7 @@ def _detail_highlights(
     best_apm: tuple[float, str, int] | None = None
     launches: Counter[str] = Counter()
     first_launch: tuple[float, str, str, int] | None = None
+    powers: Counter[str] = Counter()
     hunted: list[tuple[float, str, int]] = []
 
     for match in counted:
@@ -194,6 +203,12 @@ def _detail_highlights(
             if event.event_type != "superweapon_activated":
                 continue
             name = canonical.get(event.player_name, event.player_name)
+            # The engine tags several generals-panel powers "Superweapon*" too,
+            # so this split is what stops a Spectre Gunship being reported as a
+            # superweapon launch - see match_narrative.is_base_superweapon.
+            if not is_base_superweapon(event.event_name):
+                powers[name] += 1
+                continue
             launches[name] += 1
             if first_launch is None or event.at_minute < first_launch[0]:
                 first_launch = (event.at_minute, name, event.event_name, match.id)
@@ -226,7 +241,9 @@ def _detail_highlights(
             GameNightHighlight(
                 kind="superweapon",
                 title="First superweapon",
-                detail=f"{name} fired {weapon} at {minute:.1f} min",
+                # "launched"/"called in" match the narrative's verbs, so the
+                # two surfaces don't describe the same event differently.
+                detail=f"{name} launched {weapon} at {minute:.1f} min",
                 match_id=match_id,
             )
         )
@@ -238,6 +255,16 @@ def _detail_highlights(
                     kind="superweapon",
                     title="Most superweapons",
                     detail=f"{name} launched {count}",
+                )
+            )
+    if powers:
+        name, count = powers.most_common(1)[0]
+        if count > 1:
+            highlights.append(
+                GameNightHighlight(
+                    kind="power",
+                    title="Most generals powers",
+                    detail=f"{name} called in {count}",
                 )
             )
     if hunted:

@@ -25,8 +25,8 @@ import {
  * A match retold as an ordered list of beats.
  * 
  * ``beats`` is empty when the match has no parsed details yet; ``headline``
- * is still populated from the match row, so the UI always has something to
- * show.
+ * and the match metadata are still populated from the match row, so the UI
+ * always has something to show.
  * @export
  * @interface MatchNarrative
  */
@@ -49,6 +49,18 @@ export interface MatchNarrative {
      * @memberof MatchNarrative
      */
     beats?: Array<NarrativeBeat>;
+    /**
+     * 
+     * @type {Date}
+     * @memberof MatchNarrative
+     */
+    startedAt?: Date | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof MatchNarrative
+     */
+    tournament?: string | null;
 }
 
 /**
@@ -73,6 +85,8 @@ export function MatchNarrativeFromJSONTyped(json: any, ignoreDiscriminator: bool
         'matchId': json['matchId'],
         'headline': json['headline'],
         'beats': json['beats'] == null ? undefined : ((json['beats'] as Array<any>).map(NarrativeBeatFromJSON)),
+        'startedAt': json['startedAt'] == null ? undefined : (new Date(json['startedAt'])),
+        'tournament': json['tournament'] == null ? undefined : json['tournament'],
     };
 }
 
@@ -90,6 +104,8 @@ export function MatchNarrativeToJSONTyped(value?: MatchNarrative | null, ignoreD
         'matchId': value['matchId'],
         'headline': value['headline'],
         'beats': value['beats'] == null ? undefined : ((value['beats'] as Array<any>).map(NarrativeBeatToJSON)),
+        'startedAt': value['startedAt'] == null ? value['startedAt'] : value['startedAt'].toISOString(),
+        'tournament': value['tournament'],
     };
 }
 

@@ -30,12 +30,14 @@ written from.
 
 from __future__ import annotations
 
-import structlog
-
 import asyncio
+from datetime import datetime
+
+import structlog
 
 from ..api_types import GameNightRecap, MatchNarrative
 from ..repositories import GameNightSummaryRepo
+from ..utils import GAME_NIGHT_TZ
 from . import llm
 from .night_prompts import NIGHT_GUIDELINES
 
@@ -56,14 +58,27 @@ generation_lock = asyncio.Lock()
 MAX_GAMES_RENDERED = 20
 
 
+def _local(when: datetime) -> str:
+    """Wall-clock time as the group experienced it.
+
+    Everything is stored UTC, but a game night *is* a US Eastern evening (the
+    date key rolls over at 5am there), so UTC times would put the whole night
+    on the wrong side of midnight and read as nonsense to the model.
+    """
+    return f"{when.astimezone(GAME_NIGHT_TZ):%-I:%M%p}".replace("AM", "am").replace(
+        "PM", "pm"
+    )
+
+
 def _render_clock(recap: GameNightRecap) -> str | None:
     if recap.started_at is None or recap.ended_at is None:
         return None
     span = recap.ended_at - recap.started_at
     hours = span.total_seconds() / 3600
     return (
-        f"{recap.started_at:%H:%M} to {recap.ended_at:%H:%M} UTC "
-        f"({hours:.1f}h elapsed, {recap.total_minutes:.0f} min of game time)"
+        f"first game {_local(recap.started_at)}, last game ended "
+        f"{_local(recap.ended_at)} ({hours:.1f}h wall clock, "
+        f"{recap.total_minutes:.0f} min of it actually in game)"
     )
 
 
@@ -82,7 +97,9 @@ def _render_standings(recap: GameNightRecap) -> list[str]:
 
 
 def _render_narrative(narrative: MatchNarrative) -> list[str]:
-    lines = [f"  {narrative.headline}"]
+    stamp = f"{_local(narrative.started_at)} - " if narrative.started_at else ""
+    label = f"[TOURNAMENT: {narrative.tournament}] " if narrative.tournament else ""
+    lines = [f"  {stamp}{label}{narrative.headline}"]
     for beat in narrative.beats:
         # The setup beat restates the lineup the headline already carries, and
         # the result beat restates the result - both are noise once the

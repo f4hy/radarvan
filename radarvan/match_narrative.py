@@ -32,9 +32,11 @@ from .game_composition import RosterSlot
 from .player_ids import resolve_player_name
 from .replay_files import map_basename
 from .replay_helpers import clean_object_name
+from .timeline_events import BASE_SUPERWEAPON_LAUNCHES
 
 # A superweapon launch is decisive enough to always be worth a line, but a
-# 40-minute game with three nuke silos would otherwise be nothing else.
+# 40-minute game with three nuke silos would otherwise be nothing else. The
+# same cap applies to the heavy generals powers, counted separately.
 MAX_SUPERWEAPON_BEATS = 6
 
 # Only call out a single kill when it's actually a moment - anything cheaper
@@ -241,18 +243,32 @@ class _Launches(NamedTuple):
     times: int
 
 
-def _superweapon_beats(
-    details: MatchDetails, canonical: dict[str, str]
-) -> list[NarrativeBeat]:
-    """One beat per (player, weapon), not per launch.
+def is_base_superweapon(event_name: str) -> bool:
+    """True for a launch from one of the three base-bound superweapons.
 
-    ``superweapon_activated`` also carries repeatable generals powers - a
-    Spectre Gunship fired six times is one recurring habit, and rendered a
-    launch at a time it crowds every other beat out of the timeline.
+    The engine tags several generals-panel powers ``Superweapon*`` too, so
+    ``event_type == "superweapon_activated"`` alone is far wider than "a
+    superweapon fired" - a Spectre Gunship is a star power off the generals
+    panel, not a Scud Storm. ``timeline_events`` says so explicitly and
+    ``superlatives`` filters the same way; this is that filter, named.
+    """
+    return any(kw in event_name for kw in BASE_SUPERWEAPON_LAUNCHES)
+
+
+def _grouped_activations(
+    details: MatchDetails, *, base_superweapons: bool
+) -> list[tuple[tuple[str, str], _Launches]]:
+    """Activations grouped by (player, weapon) and ordered by first use.
+
+    Grouped rather than listed one per firing: a Spectre Gunship called in six
+    times is one recurring habit, and rendered a line at a time it crowds every
+    other beat out of the timeline.
     """
     grouped: dict[tuple[str, str], _Launches] = {}
     for event in details.timeline_events:
         if event.event_type != "superweapon_activated":
+            continue
+        if is_base_superweapon(event.event_name) != base_superweapons:
             continue
         key = (event.player_name, event.event_name)
         seen = grouped.get(key)
@@ -264,16 +280,49 @@ def _superweapon_beats(
             ),
             times=1 if seen is None else seen.times + 1,
         )
-    ordered = sorted(grouped.items(), key=lambda item: item[1].first_minute)
+    return sorted(grouped.items(), key=lambda item: item[1].first_minute)
+
+
+def _superweapon_beats(
+    details: MatchDetails, canonical: dict[str, str]
+) -> list[NarrativeBeat]:
+    """Launches from the three base-bound superweapons - the game-deciding ones."""
     beats = []
-    for (raw, weapon), launches in ordered[:MAX_SUPERWEAPON_BEATS]:
+    for (raw, weapon), launches in _grouped_activations(
+        details, base_superweapons=True
+    )[:MAX_SUPERWEAPON_BEATS]:
         repeat = f" (x{launches.times})" if launches.times > 1 else ""
         beats.append(
             NarrativeBeat(
                 kind="superweapon",
                 at_minute=launches.first_minute,
                 player_name=_name(canonical, raw),
-                text=f"{_name(canonical, raw)} fired {weapon}{repeat}.",
+                text=f"{_name(canonical, raw)} launched {weapon}{repeat}.",
+            )
+        )
+    return beats
+
+
+def _power_beats(
+    details: MatchDetails, canonical: dict[str, str]
+) -> list[NarrativeBeat]:
+    """The heavy generals-panel powers: EMP, anthrax, gunships and the like.
+
+    Narrowed to the ones the engine itself tags ``Superweapon*`` - the rest of
+    the generals panel (spy drones, single artillery barrages) is ordinary play
+    and would bury the timeline.
+    """
+    beats = []
+    for (raw, power), launches in _grouped_activations(
+        details, base_superweapons=False
+    )[:MAX_SUPERWEAPON_BEATS]:
+        repeat = f" (x{launches.times})" if launches.times > 1 else ""
+        beats.append(
+            NarrativeBeat(
+                kind="power",
+                at_minute=launches.first_minute,
+                player_name=_name(canonical, raw),
+                text=f"{_name(canonical, raw)} called in {power}{repeat}.",
             )
         )
     return beats
@@ -378,6 +427,14 @@ def _result_beat(match: MatchInfo, canonical: dict[str, str]) -> NarrativeBeat:
     )
 
 
+def _tournament_label(match: MatchInfo) -> str | None:
+    """ "spring-cup - Winners Semifinal", or None for a casual game."""
+    tag = match.tournament
+    if tag is None:
+        return None
+    return f"{tag.slug} - {tag.round_name}" if tag.round_name else tag.slug
+
+
 def build_narrative(match: MatchInfo, details: MatchDetails | None) -> MatchNarrative:
     """The match as an ordered story: setup, then the timeline, then the ledger.
 
@@ -387,13 +444,21 @@ def build_narrative(match: MatchInfo, details: MatchDetails | None) -> MatchNarr
     """
     canonical = _canonical_names(match)
     headline = _headline(match, canonical)
+    tournament = _tournament_label(match)
     if details is None:
-        return MatchNarrative(match_id=match.id, headline=headline, beats=[])
+        return MatchNarrative(
+            match_id=match.id,
+            headline=headline,
+            beats=[],
+            started_at=match.timestamp,
+            tournament=tournament,
+        )
 
     timed = [
         *_first_blood_beats(details, canonical),
         *_milestone_beats(details, canonical),
         *_superweapon_beats(details, canonical),
+        *_power_beats(details, canonical),
         *_collapse_beats(details, canonical),
     ]
     big_kill = _biggest_kill_beat(details, canonical)
@@ -409,4 +474,10 @@ def build_narrative(match: MatchInfo, details: MatchDetails | None) -> MatchNarr
         *_ledger_beats(details, canonical),
         _result_beat(match, canonical),
     ]
-    return MatchNarrative(match_id=match.id, headline=headline, beats=beats)
+    return MatchNarrative(
+        match_id=match.id,
+        headline=headline,
+        beats=beats,
+        started_at=match.timestamp,
+        tournament=tournament,
+    )

@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box"
+import Chip from "@mui/material/Chip"
 import Paper from "@mui/material/Paper"
 import Skeleton from "@mui/material/Skeleton"
 import Stack from "@mui/material/Stack"
@@ -26,11 +27,25 @@ const BEAT_ICONS: { [key: string]: string } = {
   first_blood: "🩸",
   milestone: "🎖️",
   superweapon: "☢️",
+  // A generals-panel power (gunship, EMP, anthrax) is not a superweapon —
+  // separate icon so the two never read as the same event.
+  power: "✴️",
   collapse: "🚜",
   damage: "💥",
   economy: "💰",
   tempo: "🚀",
   result: "🏁",
+}
+
+// Wall-clock start, in the viewer's own timezone. Shown next to the headline
+// because a "game night" is a date key, not a single sitting — two disjoint
+// sessions on one evening are only visible from the clock.
+function startedLabel(started: Date | null | undefined): string | null {
+  if (!started) return null
+  return started.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  })
 }
 
 function minuteLabel(minute: number | null | undefined): string {
@@ -124,9 +139,26 @@ export default function MatchNarrative(props: {
     <Paper variant="outlined" sx={{ p: 1.5, textAlign: "left" }}>
       {errorSnackbar}
       {props.showHeadline !== false && (
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-          {narrative.headline}
-        </Typography>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: "baseline", flexWrap: "wrap", mb: 1 }}
+        >
+          {startedLabel(narrative.startedAt) && (
+            <Typography variant="caption" color="text.secondary">
+              {startedLabel(narrative.startedAt)}
+            </Typography>
+          )}
+          <Typography variant="subtitle2">{narrative.headline}</Typography>
+          {narrative.tournament && (
+            <Chip
+              label={narrative.tournament}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          )}
+        </Stack>
       )}
       <NarrativeBody narrative={narrative} />
     </Paper>

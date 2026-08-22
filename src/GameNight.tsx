@@ -43,6 +43,7 @@ const HIGHLIGHT_ICONS: { [key: string]: string } = {
   first_blood: "🩸",
   apm: "🚀",
   superweapon: "☢️",
+  power: "✴️",
   hunted: "🚜",
 }
 

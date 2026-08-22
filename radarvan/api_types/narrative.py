@@ -18,6 +18,8 @@ the once-a-night game-night summary.
 # by default on 3.14+); required for the ml/ 3.13 training venv.
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from .common import Minute
@@ -47,8 +49,8 @@ class MatchNarrative(BaseModel):
     """A match retold as an ordered list of beats.
 
     ``beats`` is empty when the match has no parsed details yet; ``headline``
-    is still populated from the match row, so the UI always has something to
-    show.
+    and the match metadata are still populated from the match row, so the UI
+    always has something to show.
     """
 
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
@@ -56,3 +58,12 @@ class MatchNarrative(BaseModel):
     match_id: int = Field(alias="matchId")
     headline: str
     beats: list[NarrativeBeat] = Field(default_factory=list)
+    # When the game started (UTC). Carried because a "game night" is a date
+    # key, not a session: an evening can be two disjoint sittings, and only the
+    # clock times show that.
+    started_at: datetime | None = Field(default=None, alias="startedAt")
+    # The tournament this game counted toward, as "slug" or "slug - Round
+    # Name", or null for a casual game. A tournament link is the only
+    # "played to win" signal in the data (see CLAUDE.md), so it changes how a
+    # result should be read.
+    tournament: str | None = None

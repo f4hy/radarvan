@@ -6,6 +6,8 @@ rules that stop an 8-player game becoming a log - first-to-reach only for the
 shared milestones, but every collapse.
 """
 
+import pytest
+
 from radarvan import match_narrative
 from radarvan.api_types import (
     APM,
@@ -104,52 +106,84 @@ def test_every_collapse_is_named_not_just_the_first() -> None:
     assert [b.player_name for b in collapses] == ["Syn", "Pancake"]
 
 
+def _activation(player: str, name: str, minute: float) -> TimelineEvent:
+    return TimelineEvent(
+        player_name=player,
+        at_minute=minute,
+        event_name=name,
+        event_type="superweapon_activated",
+    )
+
+
+def test_a_generals_power_is_not_reported_as_a_superweapon() -> None:
+    """A Spectre Gunship is a generals-panel star power, not a Scud Storm.
+
+    The engine tags several panel powers ``Superweapon*``, so ``event_type``
+    alone is far wider than "a superweapon fired" - see
+    ``timeline_events.BASE_SUPERWEAPON_LAUNCHES``.
+    """
+    narrative = match_narrative.build_narrative(
+        corpus.A_MATCH,
+        _details(timeline_events=[_activation("Skip", "SpectreGunship", 9.9)]),
+    )
+    assert not [b for b in narrative.beats if b.kind == "superweapon"]
+    power = next(b for b in narrative.beats if b.kind == "power")
+    assert power.text == "Skip called in SpectreGunship."
+
+
+def test_the_two_are_reported_side_by_side_not_merged() -> None:
+    narrative = match_narrative.build_narrative(
+        corpus.A_MATCH,
+        _details(
+            timeline_events=[
+                _activation("Skip", "SpectreGunship", 9.9),
+                _activation("Syn", "ScudStorm", 20.0),
+                _activation("CoreDawg", "EMPPulse", 12.0),
+                _activation("Pancake", "NeutronMissile", 22.0),
+            ]
+        ),
+    )
+    assert {b.player_name for b in narrative.beats if b.kind == "superweapon"} == {
+        "Syn",
+        "Pancake",
+    }
+    assert {b.player_name for b in narrative.beats if b.kind == "power"} == {
+        "Skip",
+        "CoreDawg",
+    }
+
+
+@pytest.mark.parametrize("name", match_narrative.BASE_SUPERWEAPON_LAUNCHES)
+def test_every_base_superweapon_is_recognised(name: str) -> None:
+    assert match_narrative.is_base_superweapon(name)
+
+
 def test_repeated_launches_of_one_weapon_collapse_to_a_single_beat() -> None:
-    """A Spectre Gunship fired six times is one habit, not six beats."""
+    """A Spectre Gunship called in six times is one habit, not six beats."""
     events = [
-        TimelineEvent(
-            player_name="Skip",
-            at_minute=minute,
-            event_name="SpectreGunship",
-            event_type="superweapon_activated",
-        )
-        for minute in (14.0, 7.2, 10.8)
+        _activation("Skip", "SpectreGunship", minute) for minute in (14.0, 7.2, 10.8)
     ]
     narrative = match_narrative.build_narrative(
         corpus.A_MATCH, _details(timeline_events=events)
     )
-    launches = [b for b in narrative.beats if b.kind == "superweapon"]
-    assert len(launches) == 1
-    assert launches[0].at_minute == 7.2
-    assert "(x3)" in launches[0].text
+    powers = [b for b in narrative.beats if b.kind == "power"]
+    assert len(powers) == 1
+    assert powers[0].at_minute == 7.2
+    assert "(x3)" in powers[0].text
 
 
 def test_a_single_launch_is_not_annotated_with_a_count() -> None:
     narrative = match_narrative.build_narrative(
         corpus.A_MATCH,
-        _details(
-            timeline_events=[
-                TimelineEvent(
-                    player_name="Skip",
-                    at_minute=20.0,
-                    event_name="Scud Storm",
-                    event_type="superweapon_activated",
-                )
-            ]
-        ),
+        _details(timeline_events=[_activation("Skip", "ScudStorm", 20.0)]),
     )
     launch = next(b for b in narrative.beats if b.kind == "superweapon")
-    assert launch.text == "Skip fired Scud Storm."
+    assert launch.text == "Skip launched ScudStorm."
 
 
 def test_superweapon_launches_are_capped_and_time_ordered() -> None:
     events = [
-        TimelineEvent(
-            player_name="Skip",
-            at_minute=float(30 - i),
-            event_name=f"Nuke {i}",
-            event_type="superweapon_activated",
-        )
+        _activation("Skip", f"ScudStorm {i}", float(30 - i))
         for i in range(match_narrative.MAX_SUPERWEAPON_BEATS + 4)
     ]
     narrative = match_narrative.build_narrative(
@@ -270,3 +304,40 @@ def test_the_map_is_shown_as_a_name_not_a_stored_path() -> None:
     assert "userdata/maps" not in narrative.headline
     assert "userdata/maps" not in narrative.beats[0].text
     assert ".map" not in narrative.headline
+
+
+# --- match metadata carried for the recap prompt ------------------------------
+
+
+def test_the_narrative_carries_the_wall_clock_start() -> None:
+    """A game night is a date key, not a sitting - only the clock shows a gap."""
+    match = corpus.match(1, day=5)
+    narrative = match_narrative.build_narrative(match, _details())
+    assert narrative.started_at == match.timestamp
+
+
+def test_a_casual_game_has_no_tournament_label() -> None:
+    assert match_narrative.build_narrative(corpus.A_MATCH, None).tournament is None
+
+
+def test_a_tournament_game_names_its_round() -> None:
+    from radarvan.api_types import TournamentTag
+
+    match = corpus.A_MATCH.model_copy(
+        update={
+            "tournament": TournamentTag(
+                slug="spring-cup", stage="WB2-1", round_name="Winners Semifinal"
+            )
+        }
+    )
+    narrative = match_narrative.build_narrative(match, None)
+    assert narrative.tournament == "spring-cup - Winners Semifinal"
+
+
+def test_a_round_robin_tournament_game_still_names_the_tournament() -> None:
+    from radarvan.api_types import TournamentTag
+
+    match = corpus.A_MATCH.model_copy(
+        update={"tournament": TournamentTag(slug="spring-cup")}
+    )
+    assert match_narrative.build_narrative(match, None).tournament == "spring-cup"

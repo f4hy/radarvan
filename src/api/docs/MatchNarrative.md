@@ -1,7 +1,7 @@
 
 # MatchNarrative
 
-A match retold as an ordered list of beats.  ``beats`` is empty when the match has no parsed details yet; ``headline`` is still populated from the match row, so the UI always has something to show.
+A match retold as an ordered list of beats.  ``beats`` is empty when the match has no parsed details yet; ``headline`` and the match metadata are still populated from the match row, so the UI always has something to show.
 
 ## Properties
 
@@ -10,6 +10,8 @@ Name | Type
 `matchId` | number
 `headline` | string
 `beats` | [Array&lt;NarrativeBeat&gt;](NarrativeBeat.md)
+`startedAt` | Date
+`tournament` | string
 
 ## Example
 
@@ -21,6 +23,8 @@ const example = {
   "matchId": null,
   "headline": null,
   "beats": null,
+  "startedAt": null,
+  "tournament": null,
 } satisfies MatchNarrative
 
 console.log(example)
