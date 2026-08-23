@@ -49,6 +49,21 @@ def duration_minutes(replay: EnhancedReplayV2) -> float:
     return (end - start).total_seconds() / 60.0
 
 
+# The one duration floor. A replay at or below this is a quit-out, a misclick or
+# a reconnect, not a game anyone played. It lives here, next to
+# `duration_minutes`, because every layer needs it - ingest, reparse, and the
+# listing query - and `utils` is the module they all already import. The four
+# call sites used to spell it independently ("< 2", "< 2", "< 2.0", "2.0") and
+# disagreed at the boundary: exactly 2.0 minutes registered a match row that
+# `list_matches`' `duration_minutes > cutoff` then hid from every listing.
+MIN_MATCH_MINUTES = 2.0
+
+
+def is_long_enough(replay: EnhancedReplayV2) -> bool:
+    """Whether this replay lasted long enough to count as a match at all."""
+    return duration_minutes(replay) > MIN_MATCH_MINUTES
+
+
 # The community plays in US Eastern; the "game night" view groups late sessions
 # onto the evening they started. We convert the match's UTC instant to Eastern
 # (ZoneInfo handles the EST/EDT switch automatically) and roll the day boundary

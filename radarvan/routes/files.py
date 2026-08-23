@@ -161,23 +161,23 @@ def upload_replay(
         source_tag=source_tag,
         zulu_build=x_zulu_build,
     )
-    is_dev = replay_files.is_dev_build(x_zulu_build)
-    db_match = matches.replay_to_db_match(
-        result.replay, result.json_path, is_dev=is_dev
+    # The .rep and .json are already saved above, so a replay this declines
+    # still leaves its artifact behind.
+    outcome = matches.register_parsed_replay(
+        result.replay,
+        result.json_path,
+        replay_manager,
+        is_dev=replay_files.is_dev_build(x_zulu_build),
     )
-    _, created = replay_manager.register_match(db_match)
-    replay_manager.compute_and_save_composition(db_match.match_id)
-    invalidate_match_caches()
-
-    match_info = matches.match_from_replay(result.replay)
-    if match_info is None:
+    if outcome.match_info is None:
         raise HTTPException(status_code=422, detail="Replay is too short or invalid")
+    invalidate_match_caches()
     # Best-effort win prediction for the uploaded match (notifies pred vs actual).
     # Only for the upload that actually created the match: the other player's
     # client uploads the same match moments later and would double-post.
-    if created:
-        ml_inference.predict_and_notify(match_info)
-    return match_info
+    if outcome.created:
+        ml_inference.predict_and_notify(outcome.match_info)
+    return outcome.match_info
 
 
 @session_router.post("/api/register_replay_url", dependencies=OPS_ADMIN)

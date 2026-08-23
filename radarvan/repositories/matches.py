@@ -11,17 +11,20 @@ from datetime import UTC, datetime
 from typing import NamedTuple
 import structlog
 
-from sqlalchemy import or_, select, func
+from sqlalchemy import delete as sa_delete, or_, select, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from ..db import (
     Match,
     PlayerKey,
     MatchCompostion,
+    MatchDetailsCache,
     MatchPlayer,
     ParsedReplayJson,
     ProcessingStatus,
     ReplayFile,
+    TournamentGame,
     WinnerOverride,
 )
 from ..game_composition import GameComposition, compute_match_composition
@@ -37,6 +40,15 @@ class RegisteredMatch(NamedTuple):
 
     match: Match
     created: bool
+
+
+class ShortMatchCleanup(NamedTuple):
+    """Result of one `delete_short_matches` pass."""
+
+    deleted: int
+    # Deletable short matches still in the table after this pass. Curated rows
+    # are not counted, so this reaches 0 even though they are never deleted.
+    remaining: int
 
 
 @dataclass(frozen=True)
@@ -375,6 +387,73 @@ class MatchRepo(BaseRepo):
 
         self._commit_if_auto()
         return counts
+
+    def delete_short_matches(self, cutoff: float, limit: int) -> ShortMatchCleanup:
+        """Drop match rows at or below the duration floor, newest first.
+
+        Cleans up rows written before `register_parsed_replay` existed, when
+        upload and the scrape registered a match and only then decided it was
+        too short. Such a row is in no listing (`list_matches` filters on the
+        same floor) but is still counted by anything reconciling this database
+        against cncstats.
+
+        Curated rows are left alone: a match someone set a `WinnerOverride` on,
+        or linked to a tournament, was judged by hand and is not ours to drop.
+        They are excluded from `remaining` too, so it still reaches 0.
+
+        Only the match row goes. The parsed JSON and the .rep stay, and nothing
+        is marked - if the next scrape re-reads one, `register_parsed_replay`
+        applies the same floor and declines it again, which is self-correcting.
+        Marking the ReplayFile here was not: copies of one game share a
+        match_id but have their own `time_stamp_end` (each client stops
+        recording when that player quits), so marking by match_id could retire
+        a copy that is over the floor and would have registered fine.
+        """
+        limit = max(1, limit)
+        curated = (
+            Match.match_id.not_in(select(WinnerOverride.match_id)),
+            Match.match_id.not_in(select(TournamentGame.match_id)),
+        )
+        remaining = self.session.scalar(
+            select(func.count())
+            .select_from(Match)
+            .where(Match.duration_minutes <= cutoff, *curated)
+        )
+        batch = list(
+            self.session.scalars(
+                select(Match)
+                # match_id is the replay seed, not a time-ordered id.
+                .where(Match.duration_minutes <= cutoff, *curated)
+                .order_by(Match.timestamp.desc())
+                # Both relationships the delete would otherwise lazy-load per
+                # match, loaded once for the whole batch instead.
+                .options(selectinload(Match.composition))
+                .options(selectinload(Match.players))
+                .limit(limit)
+            ).all()
+        )
+        match_ids = [match.match_id for match in batch]
+
+        # match_details_cache has no FK to matches, so it must be dropped here.
+        self.session.execute(
+            sa_delete(MatchDetailsCache).where(
+                MatchDetailsCache.match_id.in_(match_ids)
+            )
+        )
+        # Entity deletes, like `reset_match`: match_players goes with the match
+        # through its delete-orphan cascade, but `Match.composition` has no
+        # delete cascade, so the child has to go first or the unit of work
+        # tries to NULL its primary key. (`matches` predates alembic, so the
+        # model's ondelete="CASCADE" is not proof the live FK carries it.)
+        for match in batch:
+            if match.composition is not None:
+                self.session.delete(match.composition)
+            self.session.delete(match)
+
+        self._commit_if_auto()
+        return ShortMatchCleanup(
+            deleted=len(batch), remaining=(remaining or 0) - len(batch)
+        )
 
     def get_all_data_for_match(self, match_id: int) -> MatchDebugData:
         """Fetch every row related to a match_id across all tables."""

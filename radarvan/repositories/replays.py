@@ -13,7 +13,7 @@ import structlog
 from pydantic import BaseModel
 
 from sqlalchemy import and_, desc, func, nulls_last, or_, select, update
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 
 from ..cncstats_model.zhreplay import EnhancedReplayV2
 from ..db import Match, ParsedReplayJson, ProcessingStatus, ReplayFile
@@ -290,12 +290,43 @@ class ReplayRepo(BaseRepo):
         )
         return list(self.session.scalars(stmt))
 
-    def list_jsons_without_match(self) -> list[ParsedReplayJson]:
-        """Return ParsedReplayJson rows that have no corresponding Match row."""
-        stmt = select(ParsedReplayJson).where(
-            ParsedReplayJson.match_id.not_in(select(Match.match_id))
+    def list_jsons_awaiting_registration(self) -> list[ParsedReplayJson]:
+        """Return ParsedReplayJson rows still waiting to become a Match.
+
+        Not "every json without a match": rows marked SKIPPED are excluded,
+        because `register_parsed_replay` already looked at that replay and
+        declined it. Without that the scrape would re-read and re-validate every
+        declined replay's JSON from S3 on every run, forever, over a set that
+        only grows.
+
+        `contains_eager` populates `replay_file` from the join the filter needs
+        anyway, so the caller's `j.replay_file.is_dev` costs no extra query.
+        """
+        stmt = (
+            select(ParsedReplayJson)
+            .join(ParsedReplayJson.replay_file)
+            .options(contains_eager(ParsedReplayJson.replay_file))
+            .where(
+                ParsedReplayJson.match_id.not_in(select(Match.match_id)),
+                ReplayFile.status != ProcessingStatus.SKIPPED,
+            )
         )
         return list(self.session.scalars(stmt).all())
+
+    def mark_not_a_match(self, json_s3_uri: str) -> bool:
+        """Record that this parsed replay was judged not to be a match.
+
+        `reset_match` puts a ReplayFile back to PENDING, and a re-parse that
+        rewrites the JSON sets PARSED again, so either one puts the replay back
+        in front of `register_parsed_replay` for a fresh decision.
+        """
+        parsed = self.get_parsed_file(json_s3_uri)
+        if parsed is None:
+            return False
+        # `replay_file_url` is a non-null FK, so the relationship always loads.
+        parsed.replay_file.status = ProcessingStatus.SKIPPED
+        self._commit_if_auto()
+        return True
 
     def list_jsons_non_v2(self, limit: int) -> list[ParsedReplayJson]:
         stmt = (

@@ -169,7 +169,7 @@ def reparse(
     if existing.is_v2:
         existing_data = fs.read_text(json_path)
         existing_replay = EnhancedReplayV2.model_validate_json(existing_data)
-        if utils.duration_minutes(existing_replay) < 2.0:
+        if not utils.is_long_enough(existing_replay):
             logger.warning("Too short, skipping")
             return None
 

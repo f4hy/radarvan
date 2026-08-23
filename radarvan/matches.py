@@ -25,6 +25,7 @@ from .player_role import PlayerRole
 from .logging_config import configure_logging
 from dataclasses import dataclass
 from collections.abc import Callable
+from typing import NamedTuple
 
 logger = structlog.get_logger(__name__)
 
@@ -196,8 +197,7 @@ def is_incomplete(replay: EnhancedReplayV2) -> str | None:
         ) and not _every_multi_member_team_has_a_survivor(head):
             return "Disconnect"
 
-    duration_minutes = utils.duration_minutes(replay)
-    if duration_minutes < 2:
+    if not utils.is_long_enough(replay):
         return "Too Short"
     _winners = [p for p in (replay.summary or []) if p.win is True]
     if not _winners:
@@ -217,8 +217,12 @@ def match_from_replay(
     replay: EnhancedReplayV2, filter_short: bool = True
 ) -> MatchInfo | None:
     duration_minutes = utils.duration_minutes(replay)
-    if duration_minutes < 2 and filter_short:
-        logger.info("under 2 minutes, not a real game")
+    if filter_short and not utils.is_long_enough(replay):
+        logger.info(
+            "too short to be a real game",
+            replay_id=replay.replay_id,
+            minutes=duration_minutes,
+        )
         return None
     players = utils.players_from_replay(replay)
     winner_data = determine_winner(replay, players)
@@ -352,43 +356,102 @@ def match_to_matchinfo(
     )
 
 
+class RegisteredReplay(NamedTuple):
+    """What became of one parsed replay offered to `register_parsed_replay`."""
+
+    # None when the replay was too short to be a match; no row was written.
+    match_info: MatchInfo | None
+    # True only when this call is the one that inserted the row (both players'
+    # clients upload the same match, and the scrape can race an upload).
+    created: bool
+
+
+def register_parsed_replay(
+    replay: EnhancedReplayV2,
+    json_s3_uri: str,
+    replay_manager: ReplayManager,
+    is_dev: bool = False,
+) -> RegisteredReplay:
+    """Turn a parsed replay into a match row, or decline to.
+
+    The single place a `Match` is created from a replay, so the duration floor
+    cannot be applied by one ingest path and forgotten by the other. Upload and
+    the gentool scrape both come through here; reparse paths deliberately do
+    not, since they update a match that already exists and must not re-litigate
+    whether it should.
+
+    Declining writes nothing but the SKIPPED mark: the `.rep` and parsed
+    `.json` rows already exist, so the artifact survives and only the match row
+    is conditional. Registering first and validating afterwards left short
+    games with a committed row that no listing would show (`register_match`
+    commits on its own; the request-scoped rollback never sees it).
+    """
+    match_info = match_from_replay(replay)
+    if match_info is None:
+        replay_manager.mark_not_a_match(json_s3_uri)
+        return RegisteredReplay(match_info=None, created=False)
+    db_match = replay_to_db_match(replay, json_s3_uri, is_dev=is_dev)
+    registered = replay_manager.register_match(db_match)
+    replay_manager.compute_and_save_composition(db_match.match_id)
+    return RegisteredReplay(match_info=match_info, created=registered.created)
+
+
+class RegisterOutcome(NamedTuple):
+    """What one `register_matches` pass did."""
+
+    # Matches this pass actually inserted.
+    registered: int
+    # Replays read from S3, registered or declined. `max_to_update` bounds this
+    # rather than just `registered`, so a queue of short replays can't turn a
+    # capped ops call into an unbounded pile of S3 reads - which also means
+    # `registered == 0` no longer implies the queue is drained, so callers need
+    # this number to know whether to run again.
+    examined: int
+
+
 def register_matches(
     replay_manager: ReplayManager, max_to_update: int | None = None
-) -> int:
-    replay_jsons = replay_manager.list_jsons_without_match()
+) -> RegisterOutcome:
+    replay_jsons = replay_manager.list_jsons_awaiting_registration()
     logger.info("replay_jsons without matches", count=len(replay_jsons))
     seen: set[int] = set()
     registered = 0
+    examined = 0
     for j in replay_jsons:
-        if max_to_update is not None and registered >= max_to_update:
+        if max_to_update is not None and examined >= max_to_update:
             break
         if j.match_id in seen:
             continue
         parsed = replay_files.parse_replay(j.replay_file_url, replay_manager)
-        is_dev = j.replay_file.is_dev if j.replay_file is not None else False
-        db_match = replay_to_db_match(parsed, json_s3_uri=j.json_s3_uri, is_dev=is_dev)
+        is_dev = j.replay_file.is_dev
+        examined += 1
         try:
-            _, created = replay_manager.register_match(db_match)
-            seen.add(db_match.match_id)
-            replay_manager.compute_and_save_composition(db_match.match_id)
+            outcome = register_parsed_replay(
+                parsed, j.json_s3_uri, replay_manager, is_dev=is_dev
+            )
         except Exception as e:
             logger.warning("can not add match", error=repr(e))
             # A failed flush/commit leaves the session in an aborted
             # transaction; roll back so the remaining replays can proceed.
             replay_manager.session.rollback()
             continue
-        if not created:
+        if outcome.match_info is None:
+            # Declined. Deliberately *not* added to `seen`: both players'
+            # uploads and the gentool copy are separate rows for the same game,
+            # and each needs its own SKIPPED mark.
+            continue
+        seen.add(j.match_id)
+        if not outcome.created:
+            # Another upload, or an earlier pass, already registered it.
             continue
         registered += 1
         # Best-effort win prediction for the newly registered match (notifies
         # predicted vs actual). Never lets a prediction error affect ingestion.
         try:
-            mi = match_from_replay(parsed)
-            if mi is not None:
-                ml_inference.predict_and_notify(mi)
+            ml_inference.predict_and_notify(outcome.match_info)
         except Exception as e:
             logger.info("post-register prediction skipped", error=repr(e))
-    return registered
+    return RegisterOutcome(registered=registered, examined=examined)
 
 
 def reparse_replay(match_id: int, replay_manager: ReplayManager) -> MatchInfo | None:
@@ -491,7 +554,7 @@ def matches_differ(existing: db.Match, new: db.Match) -> bool:
 def get_match_infos(replay_manager: ReplayManager) -> list[MatchInfo]:
     """Faster but doesn't register missing. use once we always save matches to db."""
     with log_time("listing"):
-        listing = replay_manager.list_matches(2.0)
+        listing = replay_manager.list_matches(utils.MIN_MATCH_MINUTES)
     overrides = replay_manager.get_overrides()
     # One query for every tournament link, same as overrides above - the
     # alternative is a lookup per match across the whole listing.
