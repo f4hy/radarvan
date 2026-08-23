@@ -161,6 +161,19 @@ def upload_replay(
         source_tag=source_tag,
         zulu_build=x_zulu_build,
     )
+    # Decide whether this is a real match before writing anything about it.
+    # match_from_replay rejects anything under two minutes, and every read path
+    # already agrees: get_match_infos lists with a 2.0 minute floor, and
+    # competitive_matches drops incompletes on top of that. Registering first
+    # and only then raising 422 left such a match half-present, reachable
+    # through /api/details and /api/replays but absent from
+    # /api/matches/by_date, while the uploading client logged a plain failure.
+    # The parsed .rep and .json are already persisted by upload_and_parse
+    # above, so nothing is lost by declining to register the match itself.
+    match_info = matches.match_from_replay(result.replay)
+    if match_info is None:
+        raise HTTPException(status_code=422, detail="Replay is too short or invalid")
+
     is_dev = replay_files.is_dev_build(x_zulu_build)
     db_match = matches.replay_to_db_match(
         result.replay, result.json_path, is_dev=is_dev
@@ -169,9 +182,6 @@ def upload_replay(
     replay_manager.compute_and_save_composition(db_match.match_id)
     invalidate_match_caches()
 
-    match_info = matches.match_from_replay(result.replay)
-    if match_info is None:
-        raise HTTPException(status_code=422, detail="Replay is too short or invalid")
     # Best-effort win prediction for the uploaded match (notifies pred vs actual).
     # Only for the upload that actually created the match: the other player's
     # client uploads the same match moments later and would double-post.
