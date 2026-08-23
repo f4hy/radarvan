@@ -23,6 +23,7 @@ import type {
   FactionMatchupPrediction,
   FactionMatrix,
   GameComposition,
+  GameNightBackfill,
   GameNightSummaryStatus,
   GameRecord,
   GeneralStats,
@@ -75,6 +76,8 @@ import {
     FactionMatrixToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
+    GameNightBackfillFromJSON,
+    GameNightBackfillToJSON,
     GameNightSummaryStatusFromJSON,
     GameNightSummaryStatusToJSON,
     GameRecordFromJSON,
@@ -144,6 +147,11 @@ import {
     WinnerOverrideFromJSON,
     WinnerOverrideToJSON,
 } from '../models/index';
+
+export interface BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest {
+    days?: number;
+    maxToUpdate?: number;
+}
 
 export interface BackfillMatchCompositionApiBackfillCompositionPostRequest {
     maxToUpdate?: number;
@@ -393,6 +401,53 @@ export interface UploadReplayApiUploadReplayPostRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for backfillGameNightSummariesApiBackfillGameNightSummariesPost without sending the request
+     */
+    async backfillGameNightSummariesApiBackfillGameNightSummariesPostRequestOpts(requestParameters: BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['days'] != null) {
+            queryParameters['days'] = requestParameters['days'];
+        }
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/backfill_game_night_summaries`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Fill in missing LLM recaps for the last ``days`` game nights.  **Every night this writes is a real, billed LLM call**, which is what shapes the two knobs. ``days`` says how far back to *look*; ``max_to_update`` says how many calls this run may *spend* (the backfill endpoint pattern - default 1, run it again to continue). Nights are taken newest first, so a small budget buys the recaps people are most likely to read.  Never overwrites: a night with a stored row is reported ``already_summarized`` and skipped, because the stored text is the delivery mechanism rather than a cache. Use ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite one deliberately. Nights below the floor the nightly job uses (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night currently in progress is never in the window - see ``queries.closed_nights_within``.  The report lists every night considered, so a run with the default budget doubles as a dry run of the next one.
+     * Backfill Game Night Summaries
+     */
+    async backfillGameNightSummariesApiBackfillGameNightSummariesPostRaw(requestParameters: BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameNightBackfill>> {
+        const requestOptions = await this.backfillGameNightSummariesApiBackfillGameNightSummariesPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GameNightBackfillFromJSON(jsonValue));
+    }
+
+    /**
+     * Fill in missing LLM recaps for the last ``days`` game nights.  **Every night this writes is a real, billed LLM call**, which is what shapes the two knobs. ``days`` says how far back to *look*; ``max_to_update`` says how many calls this run may *spend* (the backfill endpoint pattern - default 1, run it again to continue). Nights are taken newest first, so a small budget buys the recaps people are most likely to read.  Never overwrites: a night with a stored row is reported ``already_summarized`` and skipped, because the stored text is the delivery mechanism rather than a cache. Use ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite one deliberately. Nights below the floor the nightly job uses (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night currently in progress is never in the window - see ``queries.closed_nights_within``.  The report lists every night considered, so a run with the default budget doubles as a dry run of the next one.
+     * Backfill Game Night Summaries
+     */
+    async backfillGameNightSummariesApiBackfillGameNightSummariesPost(requestParameters: BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameNightBackfill> {
+        const response = await this.backfillGameNightSummariesApiBackfillGameNightSummariesPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for backfillMatchCompositionApiBackfillCompositionPost without sending the request

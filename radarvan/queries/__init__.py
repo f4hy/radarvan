@@ -11,6 +11,7 @@ may import from `routes`.
 from .game_night import (
     NightGames,
     build_night_recap,
+    closed_nights_within,
     latest_closed_night,
     night_narratives,
     on_night,
@@ -36,6 +37,7 @@ __all__ = [
     "WindowedCompetitiveGames",
     "all_games",
     "build_night_recap",
+    "closed_nights_within",
     "competitive_games",
     "latest_closed_night",
     "night_narratives",

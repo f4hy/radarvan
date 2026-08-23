@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**backfillGameNightSummariesApiBackfillGameNightSummariesPost**](DefaultApi.md#backfillgamenightsummariesapibackfillgamenightsummariespost) | **POST** /api/backfill_game_night_summaries | Backfill Game Night Summaries |
 | [**backfillMatchCompositionApiBackfillCompositionPost**](DefaultApi.md#backfillmatchcompositionapibackfillcompositionpost) | **POST** /api/backfill/composition | Backfill Match Composition |
 | [**backfillPlayerRolesApiBackfillPlayerRolesPost**](DefaultApi.md#backfillplayerrolesapibackfillplayerrolespost) | **POST** /api/backfill_player_roles/ | Backfill Player Roles |
 | [**backfillTournamentGamesApiBackfillTournamentGamesPost**](DefaultApi.md#backfilltournamentgamesapibackfilltournamentgamespost) | **POST** /api/backfill/tournament_games | Backfill Tournament Games |
@@ -78,6 +79,77 @@ All URIs are relative to *http://localhost*
 | [**tournamentGamesForApiTournamentsSlugGamesGet**](DefaultApi.md#tournamentgamesforapitournamentssluggamesget) | **GET** /api/tournaments/{slug}/games | Tournament Games For |
 | [**uploadReplayApiUploadReplayPost**](DefaultApi.md#uploadreplayapiuploadreplaypost) | **POST** /api/upload_replay | Upload Replay |
 
+
+
+## backfillGameNightSummariesApiBackfillGameNightSummariesPost
+
+> GameNightBackfill backfillGameNightSummariesApiBackfillGameNightSummariesPost(days, maxToUpdate)
+
+Backfill Game Night Summaries
+
+Fill in missing LLM recaps for the last &#x60;&#x60;days&#x60;&#x60; game nights.  **Every night this writes is a real, billed LLM call**, which is what shapes the two knobs. &#x60;&#x60;days&#x60;&#x60; says how far back to *look*; &#x60;&#x60;max_to_update&#x60;&#x60; says how many calls this run may *spend* (the backfill endpoint pattern - default 1, run it again to continue). Nights are taken newest first, so a small budget buys the recaps people are most likely to read.  Never overwrites: a night with a stored row is reported &#x60;&#x60;already_summarized&#x60;&#x60; and skipped, because the stored text is the delivery mechanism rather than a cache. Use &#x60;&#x60;POST /api/generate_game_night_summary/{night}?force&#x3D;true&#x60;&#x60; to rewrite one deliberately. Nights below the floor the nightly job uses (&#x60;&#x60;night_summary.MIN_MATCHES_FOR_SUMMARY&#x60;&#x60;) are skipped too, and the night currently in progress is never in the window - see &#x60;&#x60;queries.closed_nights_within&#x60;&#x60;.  The report lists every night considered, so a run with the default budget doubles as a dry run of the next one.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    days: 56,
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest;
+
+  try {
+    const data = await api.backfillGameNightSummariesApiBackfillGameNightSummariesPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **days** | `number` |  | [Optional] [Defaults to `7`] |
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `1`] |
+
+### Return type
+
+[**GameNightBackfill**](GameNightBackfill.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## backfillMatchCompositionApiBackfillCompositionPost

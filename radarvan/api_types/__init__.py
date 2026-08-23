@@ -84,6 +84,9 @@ from .ffa import (
     FFAStats,
 )
 from .game_night import (
+    GameNightBackfill,
+    GameNightBackfillNight,
+    GameNightBackfillOutcome,
     GameNightHighlight,
     GameNightPlayerLine,
     GameNightRecap,
@@ -275,6 +278,9 @@ __all__ = [
     "FavoriteObject",
     "FetchMissingMapResult",
     "FirstBlood",
+    "GameNightBackfill",
+    "GameNightBackfillNight",
+    "GameNightBackfillOutcome",
     "GameNightHighlight",
     "GameNightPlayerLine",
     "GameNightRecap",

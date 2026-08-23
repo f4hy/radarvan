@@ -7,9 +7,10 @@
 // security boundary; hiding it from non-admins is presentation only.
 //
 // Tasks are data, not JSX: add an entry to SECTIONS and it renders, validates,
-// runs, and reports like the rest. A task that rewrites or destroys stored data
-// sets `confirmWord`, which arms its button only once the operator has typed
-// that exact string.
+// runs, and reports like the rest. A task whose effect cannot be taken back -
+// it rewrites or destroys stored data, or it bills an LLM call - sets
+// `confirmWord`, which arms its button only once the operator has typed that
+// exact string, and `confirmLabel` to say which kind it is.
 
 import * as React from "react"
 import Alert from "@mui/material/Alert"
@@ -61,6 +62,10 @@ interface AdminTask {
   // button. A function so it can demand the match id itself, which makes a
   // mis-typed id impossible to confirm rather than merely discouraged.
   confirmWord?: (v: Values) => string
+  // What the warning chip says. Defaults to "destructive"; a task that spends
+  // money rather than destroying data says so instead, because the operator is
+  // being warned about two different things.
+  confirmLabel?: string
 }
 
 interface TaskSection {
@@ -368,6 +373,56 @@ const SECTIONS: readonly TaskSection[] = [
     ],
   },
   {
+    title: "Game night recaps",
+    blurb:
+      "The LLM-written half of the game-night page. Every night generated is a real, billed call, so the budget is a separate number from the search window, and nothing here is free to re-run. The deterministic recap needs none of this - it renders for every night already.",
+    tasks: [
+      {
+        id: "backfill_game_night_summaries",
+        title: "Backfill missing recaps",
+        description:
+          "Write recaps for the last N closed game nights that have none, newest first, spending at most Max calls per run. Never overwrites an existing one, and never touches the night still being played. The report lists every night considered with what was done about it, so one run also shows what the next one would spend.",
+        method: "POST",
+        path: () => "/api/backfill_game_night_summaries",
+        query: ["days", "max_to_update"],
+        fields: [
+          num("days", "Days", "7"),
+          num("max_to_update", "Max calls", "1", 150),
+        ],
+        confirmWord: () => "SPEND",
+        confirmLabel: "spends money",
+      },
+      {
+        id: "generate_game_night_summary",
+        title: "Generate one night",
+        description:
+          "Write (or, with Overwrite, rewrite) a single night's recap. Unlike the backfill this does not require the night to be closed, so it can show what tonight would read like.",
+        method: "POST",
+        path: (v) => `/api/generate_game_night_summary/${v.night}`,
+        query: ["force"],
+        fields: [
+          {
+            name: "night",
+            label: "Game night",
+            type: "date",
+            defaultValue: "",
+            width: 170,
+          },
+          {
+            name: "force",
+            label: "Overwrite",
+            type: "text",
+            defaultValue: "false",
+            options: BOOL_OPTIONS,
+            width: 140,
+          },
+        ],
+        confirmWord: (v) => v.night,
+        confirmLabel: "spends money",
+      },
+    ],
+  },
+  {
     title: "Overrides and deletes",
     blurb:
       "These rewrite or destroy stored data. Each one stays disabled until you type its confirmation exactly.",
@@ -504,7 +559,7 @@ function TaskCard({ task }: { task: AdminTask }) {
                 color="warning"
                 variant="outlined"
                 icon={<WarningAmberIcon />}
-                label="destructive"
+                label={task.confirmLabel ?? "destructive"}
               />
             )}
           </Stack>

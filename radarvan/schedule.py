@@ -146,10 +146,8 @@ async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
         await notify_async(f"Saved {len(profiles)} player profiles, took {duration}.")
 
 
-# A single game is a match, not a game night. Below this the deterministic
-# recap already says everything there is to say, and spending a real LLM call
-# on it isn't worth it - most one-match "nights" are a stray upload.
-MIN_MATCHES_FOR_SUMMARY = 2
+# The floor on what is worth a call, shared with the ops backfill endpoint.
+MIN_MATCHES_FOR_SUMMARY = night_summary.MIN_MATCHES_FOR_SUMMARY
 
 
 async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
