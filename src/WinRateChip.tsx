@@ -1,7 +1,7 @@
 import * as React from "react"
 import Chip from "@mui/material/Chip"
 import Tooltip from "@mui/material/Tooltip"
-import { LOW_SAMPLE_GAMES, wilsonInterval } from "./utils"
+import { winRateTone } from "./utils"
 
 // A win-rate chip that is honest about uncertainty. Color is driven by the 95%
 // Wilson confidence interval rather than the raw rate:
@@ -17,14 +17,12 @@ export default function WinRateChip(props: {
   variant?: "outlined" | "filled"
 }) {
   const { wins, losses } = props
-  const { rate, low, high, n } = wilsonInterval(wins, losses)
-  const lowSample = n < LOW_SAMPLE_GAMES
+  const { rate, low, high, n, lowSample, tone } = winRateTone(wins, losses)
 
   const pct = (x: number) => `${(x * 100).toFixed(0)}%`
 
-  let color: "success" | "error" | "default" = "default"
-  if (n > 0 && low > 0.5) color = "success"
-  else if (n > 0 && high < 0.5) color = "error"
+  const color: "success" | "error" | "default" =
+    tone === "positive" ? "success" : tone === "negative" ? "error" : "default"
 
   const title =
     n === 0

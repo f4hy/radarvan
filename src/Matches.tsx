@@ -14,7 +14,9 @@ import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Link from "@mui/material/Link"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import Loading, { MatchesLoading, MatchRowLoading } from "./Loading"
+import Skeleton from "@mui/material/Skeleton"
+import { MatchesLoading, MatchRowLoading } from "./Loading"
+import Page from "./Page"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
@@ -37,8 +39,7 @@ import {
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
-import { ActivityCalendar } from "react-activity-calendar"
-import { getColorHex, isCompetitor, isObserver } from "./utils"
+import { getColorHex, isCompetitor, isObserver, winRateTone } from "./utils"
 import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -100,15 +101,6 @@ function buildPlayerPositions(
         },
       ]),
   )
-}
-
-function winRateColor(w: number, l: number): string {
-  const rate = w + l === 0 ? 0.5 : w / (w + l)
-  // interpolate muted red (rate=0) → muted green (rate=1)
-  const r = Math.round(200 - 118 * rate)
-  const g = Math.round(90 + 86 * rate)
-  const b = Math.round(90 + 37 * rate)
-  return `rgb(${r},${g},${b})`
 }
 
 // Win/loss is carried by a single colored status band at the top of an
@@ -586,7 +578,10 @@ function MatchDateSummary(props: {
         label={`${normalizePlayerName(name)}: ${w}-${l}`}
         size="small"
         variant="outlined"
-        sx={{ borderColor: winRateColor(w, l), borderWidth: 2 }}
+        // Shared verdict (utils.winRateTone) rather than a local red-to-green
+        // ramp: one night is a small sample, so most chips read neutral and the
+        // ones that don't actually mean something.
+        sx={{ borderColor: winRateTone(w, l).hex, borderWidth: 2 }}
       />
     ))
   })()
@@ -678,10 +673,10 @@ function MatchDateSummary(props: {
 function DisplayMatchesForDate(props: {
   dateStr: string // backend game-night date key, "YYYY-MM-DD"
   count: number
-  idx: number
-  selected: boolean
+  /** The most recent night opens on arrival; older ones are one click. */
+  openByDefault: boolean
 }) {
-  const [expanded, setExpanded] = React.useState<boolean>(props.idx === 0)
+  const [expanded, setExpanded] = React.useState<boolean>(props.openByDefault)
   const [matchList, setMatchList] = React.useState<Matches>(empty)
   const [ratingChanges, setRatingChanges] = React.useState<
     PlayerRatingDailyChange[]
@@ -709,16 +704,9 @@ function DisplayMatchesForDate(props: {
     },
     [],
   )
-  const borderProps = props.selected
-    ? { borderColor: "primary.main", borderWidth: 2, borderStyle: "solid" }
-    : {}
   return (
     <>
-      <Accordion
-        expanded={expanded === true}
-        onChange={handleChange}
-        sx={borderProps}
-      >
+      <Accordion expanded={expanded === true} onChange={handleChange}>
         <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
           <MatchDateSummary
             date={props.dateStr}
@@ -742,146 +730,8 @@ function DisplayMatchesForDate(props: {
   )
 }
 
-function groupByYear(
-  dateCounts: Record<string, number>,
-): Record<string, Record<string, number>> {
-  const years: Record<string, Record<string, number>> = {}
-  for (const [date, count] of Object.entries(dateCounts)) {
-    const year = date.slice(0, 4)
-    if (!years[year]) years[year] = {}
-    years[year][date] = count
-  }
-  return years
-}
-
-function getEndDate(date: Date): Date {
-  const now = new Date()
-  if (date.getUTCFullYear() === now.getUTCFullYear()) {
-    return now
-  }
-  return new Date(Date.UTC(date.getUTCFullYear(), 11, 31))
-}
-
-function toActivityData(dateCounts: Record<string, number>) {
-  const dates = Object.keys(dateCounts).sort()
-  if (dates.length === 0) return []
-  const first = dates[0]
-  const yearStart = new Date(`${first.slice(0, 4)}-01-01`)
-  const end = getEndDate(new Date(dates[dates.length - 1]))
-  const maxCount = Math.max(...Object.values(dateCounts))
-
-  const data = []
-  // Step in UTC: the date keys come from toISOString() (UTC), and yearStart is
-  // UTC midnight, so advancing by local days would let a DST shift knock every
-  // subsequent key off by one in some timezones.
-  for (
-    let d = new Date(yearStart);
-    d <= end;
-    d.setUTCDate(d.getUTCDate() + 1)
-  ) {
-    const dateStr = d.toISOString().split("T")[0]
-    const count = dateCounts[dateStr] ?? 0
-    const level =
-      count === 0 ? 0 : (Math.ceil((count / maxCount) * 4) as 0 | 1 | 2 | 3 | 4)
-    data.push({ date: dateStr, count, level })
-  }
-
-  return data
-}
-
-function MatchActivityCalendar(props: {
-  dataByYear: Record<string, Record<string, number>>
-  dates: Record<string, number>
-  itemRefs: React.MutableRefObject<(HTMLDivElement | null)[]>
-  onDateClick: (date: string) => void
-}) {
-  const activityDataByYear = React.useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(props.dataByYear).map(([year, yearData]) => [
-          year,
-          toActivityData(yearData),
-        ]),
-      ),
-    [props.dataByYear],
-  )
-
-  const renderBlock = React.useCallback(
-    (block: React.ReactElement, activity: { date: string }) => (
-      <g
-        onClick={() => {
-          const i = Object.keys(props.dates).indexOf(activity.date)
-          props.itemRefs.current[i]?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          })
-          props.onDateClick(activity.date)
-        }}
-        style={{ cursor: "pointer" }}
-      >
-        {block}
-      </g>
-    ),
-    [props.dates, props.itemRefs, props.onDateClick],
-  )
-
-  return (
-    <Grid container sx={{ width: "80%", margin: "0" }}>
-      {Object.entries(props.dataByYear).map(([year, yearData], idx) => (
-        <Grid key={year} size={6}>
-          <Box sx={{ overflowX: "auto", p: 2 }}>
-            <Typography>{year}</Typography>
-            {Object.keys(yearData).length > 0 ? (
-              <ActivityCalendar
-                data={activityDataByYear[year]}
-                weekStart={1}
-                showWeekdayLabels={["wed", "sat"]}
-                blockSize={10}
-                blockMargin={4}
-                showColorLegend={idx === 0}
-                labels={{
-                  totalCount: "{{count}} team games in {{year}}",
-                }}
-                colorScheme="light"
-                theme={{
-                  light: [
-                    "#ebedf0",
-                    "#9be9a8",
-                    "#40c463",
-                    "#30a14e",
-                    "#216e39",
-                  ],
-                }}
-                tooltips={{
-                  activity: {
-                    text: (activity) =>
-                      `  ${activity.count} team games on ${activity.date}`,
-                    placement: "bottom",
-                    offset: 6,
-                    hoverRestMs: 10,
-                    transitionStyles: {
-                      duration: 50,
-                      common: { fontFamily: "monospace" },
-                    },
-                    withArrow: true,
-                  },
-                }}
-                renderBlock={renderBlock}
-              />
-            ) : (
-              <Loading />
-            )}
-          </Box>
-        </Grid>
-      ))}
-    </Grid>
-  )
-}
-
 export default function DisplayMatches() {
   const [dates, setDates] = React.useState<{ [key: string]: number }>({})
-  const [selectedDate, setSelectedDate] = React.useState<string | null>(null)
-  const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
   const { showError, errorSnackbar } = useErrorSnackbar()
   React.useEffect(() => {
     getDates(setDates, showError)
@@ -889,49 +739,24 @@ export default function DisplayMatches() {
   if (Object.keys(dates).length === 0) {
     return <MatchesLoading />
   }
-  const dataByYear = groupByYear(dates)
 
   return (
-    <Stack>
-      <Accordion slotProps={{ transition: { unmountOnExit: true } }}>
-        <AccordionSummary
-          expandIcon={<ArrowDownwardIcon />}
-          sx={{ bgcolor: "action.hover" }}
-        >
-          <Typography
-            sx={{
-              fontWeight: 600,
-              color: "text.secondary",
-            }}
-          >
-            Activity Calendar (click to expand)
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <MatchActivityCalendar
-            dataByYear={dataByYear}
-            dates={dates}
-            itemRefs={itemRefs}
-            onDateClick={setSelectedDate}
-          />
-        </AccordionDetails>
-      </Accordion>
-      {Object.entries(dates).map(([date, count], idx) => (
-        <div
-          key={idx}
-          ref={(el) => {
-            itemRefs.current[idx] = el
-          }}
-        >
+    <Page
+      surface={false}
+      title="Matches"
+      description="Every game we have played, newest night first."
+    >
+      <Stack>
+        {Object.entries(dates).map(([date, count], idx) => (
           <DisplayMatchesForDate
+            key={date}
             dateStr={date}
             count={count}
-            idx={idx}
-            selected={date === selectedDate}
+            openByDefault={idx === 0}
           />
-        </div>
-      ))}
-      {errorSnackbar}
-    </Stack>
+        ))}
+        {errorSnackbar}
+      </Stack>
+    </Page>
   )
 }

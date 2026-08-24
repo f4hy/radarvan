@@ -2,12 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/webp" href="/img/radarvan_logo.webp" />
+    <link rel="apple-touch-icon" href="/img/radarvan_logo.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Radar Van" />
+    <!-- Matches the app bar (theme.ts APPBAR_BG) so mobile chrome blends into
+         the page instead of framing it in black. -->
+    <meta name="theme-color" content="#1f2733" />
+    <meta
+      name="description"
+      content="Match history, player and general stats for our Command &amp; Conquer: Generals Zero Hour games."
+    />
     <link rel="manifest" href="/manifest.json" />
-    <title>Radar Van</title>
+    <title>Radarvan</title>
+    <!-- The app ships shareable links by design (?page=game-night&date=… is
+         meant to be pasted into chat), so those pastes need a card rather than
+         a bare URL. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Radarvan" />
+    <meta property="og:title" content="Radarvan" />
+    <meta
+      property="og:description"
+      content="Match history, player and general stats for our Command &amp; Conquer: Generals Zero Hour games."
+    />
+    <meta property="og:image" content="/img/radarvan_logo.webp" />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

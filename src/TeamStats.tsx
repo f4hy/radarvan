@@ -10,9 +10,10 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "./api"
 import { Client } from "./Client"
+import Page from "./Page"
 import { PlayerChip } from "./PlayerChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { winRate } from "./utils"
+import { wilsonLowerBound, winRateTone } from "./utils"
 
 function getTeamStats(
   callback: (m: TeamStatsResponse) => void,
@@ -21,19 +22,14 @@ function getTeamStats(
   Client.getTeamStatsApiTeamStatsGet().then(callback).catch(onError)
 }
 
-const getRateColor = (rate: number): "success" | "warning" | "error" => {
-  if (rate >= 0.55) return "success"
-  if (rate >= 0.45) return "warning"
-  return "error"
-}
-
 function TeamRow(props: { team: TeamRecord }) {
   const { team } = props
-  const rate = winRate(team.wins, team.losses)
+  // One rule for the color, shared with every other page (utils.winRateTone):
+  // a 3-0 pairing reads neutral rather than triumphantly green. `confidence`
+  // also de-emphasizes small-sample rows — bars fade in as the sample grows.
+  const verdict = winRateTone(team.wins, team.losses)
+  const { rate, confidence } = verdict
   const total = team.wins + team.losses
-  // De-emphasize small-sample rows so a 100% (3 games) doesn't read as loudly
-  // as a 64% (22 games). Bars fade in as the sample grows toward ~15 games.
-  const confidence = Math.min(1, total / 15)
   return (
     <Paper elevation={1} sx={{ p: 1.5 }}>
       <Box
@@ -53,8 +49,11 @@ function TeamRow(props: { team: TeamRecord }) {
         <Box sx={{ textAlign: "right", whiteSpace: "nowrap" }}>
           <Typography
             component="span"
-            sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}
-            color={`${getRateColor(rate)}.main`}
+            sx={{
+              fontWeight: 700,
+              fontVariantNumeric: "tabular-nums",
+              color: verdict.hex,
+            }}
           >
             {(rate * 100).toFixed(0)}%
           </Typography>
@@ -72,16 +71,24 @@ function TeamRow(props: { team: TeamRecord }) {
       <LinearProgress
         variant="determinate"
         value={rate * 100}
-        color={getRateColor(rate)}
-        sx={{ height: 7, borderRadius: 4, opacity: 0.45 + 0.55 * confidence }}
+        sx={{
+          height: 7,
+          borderRadius: 4,
+          opacity: 0.45 + 0.55 * confidence,
+          bgcolor: "action.hover",
+          "& .MuiLinearProgress-bar": { bgcolor: verdict.hex },
+        }}
       />
     </Paper>
   )
 }
 
 function TeamSizeTab(props: { group: TeamSizeGroup }) {
+  // Ranked by the Wilson lower bound rather than the raw rate, so a 4-0 duo
+  // no longer outranks a 20-8 one — matching how the row's own bar is faded.
   const sorted = [...props.group.teams].sort(
-    (a, b) => winRate(b.wins, b.losses) - winRate(a.wins, a.losses),
+    (a, b) =>
+      wilsonLowerBound(b.wins, b.losses) - wilsonLowerBound(a.wins, a.losses),
   )
   return (
     <Stack
@@ -99,7 +106,10 @@ export default function DisplayTeamStats() {
   const [teamStats, setTeamStats] = React.useState<TeamStatsResponse | null>(
     null,
   )
-  const [tab, setTab] = React.useState<number>(2)
+  // null until the groups arrive: hardcoding 2v2 leaves the Tabs pointing at a
+  // value that may not exist, which renders no tab as selected while the
+  // content silently falls back to the first group.
+  const [tab, setTab] = React.useState<number | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
@@ -116,27 +126,26 @@ export default function DisplayTeamStats() {
   }
 
   const groups = teamStats.groups
-  const activeGroup = groups.find((g) => g.size === tab) ?? groups[0]
+  // Prefer 2v2 when it exists (the most common format), else the first group
+  // that does — and keep the Tabs value and the rendered group in agreement.
+  const activeGroup =
+    groups.find((g) => g.size === tab) ??
+    groups.find((g) => g.size === 2) ??
+    groups[0]
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
-      <Typography variant="h4">Team Stats</Typography>
-      <Typography
-        sx={{
-          color: "text.secondary",
-          mb: 2,
-        }}
-      >
-        Win rates for teams with more than 3 games together. Sorted by win rate.
-      </Typography>
+    <Page
+      title="Team Stats"
+      description="Which pairings actually work. A team needs more than 3 games together to show up here."
+    >
       <Divider sx={{ mb: 1 }} />
-      <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+      <Tabs value={activeGroup?.size ?? false} onChange={(_, v) => setTab(v)}>
         {groups.map((g) => (
           <Tab key={g.size} value={g.size} label={`${g.size}v${g.size}`} />
         ))}
       </Tabs>
       {activeGroup && <TeamSizeTab group={activeGroup} />}
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

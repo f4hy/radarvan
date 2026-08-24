@@ -90,6 +90,7 @@ import {
   NEUTRAL_COLOR,
   WIN_COLOR,
 } from "./theme"
+import Page from "./Page"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const DEFAULT_SEEDS = [
@@ -2150,41 +2151,35 @@ export default function DisplayBracket({
   const bracketAdminView = isTournamentAdmin && (bracketData?.revealed ?? false)
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <EmojiEventsIcon color="primary" />
-        <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          1v1 Tournament Bracket
-        </Typography>
-        {isTournamentAdmin && bracketData && !bracketData.revealed && (
-          <Button
-            size="small"
-            variant={previewActive ? "contained" : "outlined"}
-            startIcon={<VisibilityIcon />}
-            onClick={handleTogglePreview}
-          >
-            {previewActive
-              ? "Previewing (admin only)"
-              : "Preview bracket (admin only)"}
-          </Button>
-        )}
-        {isTournamentAdmin && (
-          <IconButton
-            size="small"
-            aria-label="Tournament admin tools"
-            onClick={handleOpenAdminTools}
-          >
-            <SettingsIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Stack>
+    <Page
+      title="1v1 Bracket"
+      description="Who plays who next, what has already been decided, and the rules."
+      actions={
+        <>
+          {isTournamentAdmin && bracketData && !bracketData.revealed && (
+            <Button
+              size="small"
+              variant={previewActive ? "contained" : "outlined"}
+              startIcon={<VisibilityIcon />}
+              onClick={handleTogglePreview}
+            >
+              {previewActive
+                ? "Previewing (admin only)"
+                : "Preview bracket (admin only)"}
+            </Button>
+          )}
+          {isTournamentAdmin && (
+            <IconButton
+              size="small"
+              aria-label="Tournament admin tools"
+              onClick={handleOpenAdminTools}
+            >
+              <SettingsIcon fontSize="small" />
+            </IconButton>
+          )}
+        </>
+      }
+    >
       <NextMatchBanner
         bracketData={bracketData}
         onClick={() => setPageTab("agenda")}
@@ -2500,6 +2495,6 @@ export default function DisplayBracket({
         )}
       </Dialog>
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

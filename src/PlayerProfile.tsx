@@ -64,6 +64,7 @@ import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
+import Page from "./Page"
 import PlayerChip from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
@@ -1290,10 +1291,10 @@ export default function DisplayPlayerProfile() {
   }, [player, showError])
 
   return (
-    <Paper sx={{ p: 2, maxWidth: 1400 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Player Profile
-      </Typography>
+    <Page
+      title="Player Profile"
+      description="What a player is known for. The units and powers they reach for more than anyone else, who they beat, who beats them, and how each general has gone over time."
+    >
       {errorSnackbar}
       <Autocomplete
         options={players}
@@ -1318,6 +1319,6 @@ export default function DisplayPlayerProfile() {
           Pick a player to see what they&apos;re known for.
         </Typography>
       )}
-    </Paper>
+    </Page>
   )
 }

@@ -1,5 +1,6 @@
 import type { MapPoint, Player } from "./api"
 import { PlayerRole, Team } from "./api"
+import { LOSS_COLOR, NEUTRAL_COLOR, WIN_COLOR } from "./theme"
 
 // The generated PlayerRole is NUMBER_0/1/2 - Python IntEnum member names don't
 // survive into the OpenAPI schema (same reason Team is NUMBER_MINUS_1). Alias
@@ -83,6 +84,78 @@ export function wilsonInterval(
 // because we're more confident it's genuinely good.
 export function wilsonLowerBound(wins: number, losses: number): number {
   return wilsonInterval(wins, losses).low
+}
+
+// Above this many games a record is treated as fully sampled — the point where
+// `confidence` below saturates at 1.
+const FULL_SAMPLE_GAMES = 15
+
+export type WinRateToneName = "positive" | "negative" | "inconclusive"
+
+export interface WinRateVerdict {
+  /** Which side of even the record is on, once uncertainty is accounted for. */
+  tone: WinRateToneName
+  /** MUI palette key, for `color=` on Chip / LinearProgress / Alert. */
+  muiColor: "success" | "error" | "inherit"
+  /** Solid hex, for sx values and recharts (which can't read the theme). */
+  hex: string
+  /** 0..1 by sample size — how loudly to render the verdict (opacity, alpha). */
+  confidence: number
+  /** 0..1 by distance from even — 0 at 50%, 1 at 0% or 100%. */
+  margin: number
+  rate: number
+  low: number
+  high: number
+  n: number
+  /** Too few games to read as anything; render dimmed. */
+  lowSample: boolean
+}
+
+/**
+ * The single rule for "is this win rate good?".
+ *
+ * Color comes from the 95% Wilson interval, not the raw rate: green only when
+ * we're confident the record is above even, red only when confident it's below,
+ * neutral when the sample can't tell us — which is exactly the case a naive
+ * threshold gets loudly wrong (a 3-0 record is not a 100% player).
+ *
+ * This used to be spelled four different ways across the app: a 0.55/0.45
+ * threshold copy-pasted into TeamStats and MapStats, an rgb() ramp in Matches,
+ * and an alpha tint in GameNight — so the same record read green on one page
+ * and grey on another. Everything routes through here now; `confidence` and
+ * `margin` are separate so a caller can pick which one drives its intensity
+ * without inventing a second rule.
+ */
+export function winRateTone(wins: number, losses: number): WinRateVerdict {
+  const { rate, low, high, n } = wilsonInterval(wins, losses)
+  const tone: WinRateToneName =
+    n > 0 && low > 0.5
+      ? "positive"
+      : n > 0 && high < 0.5
+        ? "negative"
+        : "inconclusive"
+  return {
+    tone,
+    muiColor:
+      tone === "positive"
+        ? "success"
+        : tone === "negative"
+          ? "error"
+          : "inherit",
+    hex:
+      tone === "positive"
+        ? WIN_COLOR
+        : tone === "negative"
+          ? LOSS_COLOR
+          : NEUTRAL_COLOR,
+    confidence: Math.min(1, n / FULL_SAMPLE_GAMES),
+    margin: Math.min(1, Math.abs(rate - 0.5) * 2),
+    rate,
+    low,
+    high,
+    n,
+    lowSample: n < LOW_SAMPLE_GAMES,
+  }
 }
 
 // Format a 0..1 fraction as a whole-number percent, e.g. 0.732 -> "73%".

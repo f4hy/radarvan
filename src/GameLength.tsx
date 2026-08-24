@@ -28,6 +28,7 @@ import {
 import { DurationDistribution, DurationStats } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import Page from "./Page"
 import { BRAND_COLOR, CHART_PALETTE, NEUTRAL_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -266,82 +267,83 @@ export default function GameLength() {
 
   const stats = distribution.stats
   return (
-    <Stack spacing={2}>
-      {errorSnackbar}
-      <Box>
-        <Typography variant="h5">Game Length</Typography>
-        <Typography variant="body2" color="text.secondary">
-          How long our games actually run. Comp-stomps and unfinished games are
-          excluded, so a two-minute disconnect isn&apos;t counted as a
-          two-minute game.
-        </Typography>
-      </Box>
-
-      <Stack
-        direction="row"
-        spacing={2}
-        useFlexGap
-        sx={{ flexWrap: "wrap", alignItems: "center" }}
-      >
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={gameFormat}
-          onChange={(_e, value) => value && setGameFormat(value)}
+    <Page
+      surface={false}
+      title="Game Length"
+      description="How long our games actually run. Comp-stomps and unfinished games are excluded, so a two-minute disconnect isn't counted as a two-minute game."
+      actions={
+        <>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={gameFormat}
+            onChange={(_e, value) => value && setGameFormat(value)}
+          >
+            {FORMAT_OPTIONS.map((option) => (
+              <ToggleButton key={option} value={option}>
+                {option}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={bucketMinutes}
+            onChange={(_e, value) => value && setBucketMinutes(value)}
+          >
+            {BUCKET_OPTIONS.map((option) => (
+              <ToggleButton key={option} value={option}>
+                {option} min bars
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </>
+      }
+    >
+      <Stack spacing={2}>
+        {errorSnackbar}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          useFlexGap
+          sx={{ flexWrap: "wrap" }}
         >
-          {FORMAT_OPTIONS.map((option) => (
-            <ToggleButton key={option} value={option}>
-              {option}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={bucketMinutes}
-          onChange={(_e, value) => value && setBucketMinutes(value)}
-        >
-          {BUCKET_OPTIONS.map((option) => (
-            <ToggleButton key={option} value={option}>
-              {option} min bars
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
+          <StatTile label="Games" value={stats.count.toLocaleString()} />
+          <StatTile
+            label="Median"
+            value={formatMinutes(stats.medianMinutes)}
+            hint="half are shorter"
+          />
+          <StatTile
+            label="Typical range"
+            value={`${formatMinutes(stats.p10Minutes)}–${formatMinutes(
+              stats.p90Minutes,
+            )}`}
+            hint="10th to 90th percentile"
+          />
+          <StatTile
+            label="Longest"
+            value={formatMinutes(stats.longestMinutes)}
+          />
+          <StatTile
+            label="Time played"
+            value={formatHours(stats.totalMinutes)}
+            hint="in-game, all together"
+          />
+        </Stack>
+
+        <Paper variant="outlined" sx={{ p: 1.5 }}>
+          <Histogram
+            distribution={distribution}
+            bucketMinutes={bucketMinutes}
+            isMobile={isMobile}
+          />
+        </Paper>
+
+        <Divider />
+        <Typography variant="h6">By format</Typography>
+        <FormatTable byFormat={distribution.byFormat ?? {}} />
       </Stack>
-
-      <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap" }}>
-        <StatTile label="Games" value={stats.count.toLocaleString()} />
-        <StatTile
-          label="Median"
-          value={formatMinutes(stats.medianMinutes)}
-          hint="half are shorter"
-        />
-        <StatTile
-          label="Typical range"
-          value={`${formatMinutes(stats.p10Minutes)}–${formatMinutes(
-            stats.p90Minutes,
-          )}`}
-          hint="10th to 90th percentile"
-        />
-        <StatTile label="Longest" value={formatMinutes(stats.longestMinutes)} />
-        <StatTile
-          label="Time played"
-          value={formatHours(stats.totalMinutes)}
-          hint="in-game, all together"
-        />
-      </Stack>
-
-      <Paper variant="outlined" sx={{ p: 1.5 }}>
-        <Histogram
-          distribution={distribution}
-          bucketMinutes={bucketMinutes}
-          isMobile={isMobile}
-        />
-      </Paper>
-
-      <Divider />
-      <Typography variant="h6">By format</Typography>
-      <FormatTable byFormat={distribution.byFormat ?? {}} />
-    </Stack>
+    </Page>
   )
 }

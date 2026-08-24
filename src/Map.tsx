@@ -218,11 +218,28 @@ export default function GameMap(props: {
             </Typography>
           </Box>
         ) : (
-          <Box ref={containerRef} sx={{ position: "relative", lineHeight: 0 }}>
+          <Box
+            ref={containerRef}
+            sx={{
+              position: "relative",
+              lineHeight: 0,
+              // Holds the card's height while the image is still in flight, so
+              // a list of matches doesn't reflow as each map lands. Not an
+              // aspect-ratio box on purpose: the overlay dots below are
+              // positioned as a percentage of *this* element, so forcing a
+              // ratio that differs from the image's own would move every dot.
+              minHeight: 300,
+            }}
+          >
             <img
               src={mapUrl}
               alt={"Map: " + mapname}
               onError={() => setImgError(true)}
+              // The landing page renders one of these per match; without this
+              // an expanded game night fires a dozen full-size image requests
+              // at once, all above the fold or not.
+              loading="lazy"
+              decoding="async"
               style={{ width: "100%", height: "auto", display: "block" }}
             />
             {mapData &&

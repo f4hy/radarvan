@@ -3,14 +3,17 @@ import type { MatchInfo, Statistic, Superlatives } from "./api"
 import { Client } from "./Client"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import Loading from "./Loading"
+import Page from "./Page"
 import { DisplayMatchInfo } from "./Matches"
 import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
 import Card from "@mui/material/Card"
 import CardContent from "@mui/material/CardContent"
 import Chip from "@mui/material/Chip"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import Paper from "@mui/material/Paper"
+import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
 import SportsScoreIcon from "@mui/icons-material/SportsScore"
 import { PlayerChip } from "./PlayerChip"
@@ -154,7 +157,19 @@ function CategorySection({
 export default function DisplaySuperlatives() {
   const [data, setData] = React.useState<Superlatives | null>(null)
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
+  const matchPanelRef = React.useRef<HTMLDivElement | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
+
+  // The panel renders above every category section, so a chip clicked from the
+  // Money section (hundreds of pixels down) would otherwise change the page
+  // entirely off-screen and read as a dead click.
+  React.useEffect(() => {
+    if (selectedMatch === null) return
+    matchPanelRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }, [selectedMatch])
 
   React.useEffect(() => {
     Client.getSuperlativesApiSuperlativesGet().then(setData).catch(showError)
@@ -191,46 +206,34 @@ export default function DisplaySuperlatives() {
 
   if (data.stats.length === 0) {
     return (
-      <Paper sx={{ p: 3, maxWidth: 600 }}>
-        <Typography variant="h6" gutterBottom>
-          No records yet
+      <Page title="Records" width="narrow">
+        <Typography sx={{ color: "text.secondary" }}>
+          Nothing here yet. Records are computed overnight, so they appear after
+          the next run.
         </Typography>
-        <Typography
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          Statistics are computed nightly. Use the recompute endpoint to
-          generate them now.
-        </Typography>
-      </Paper>
+      </Page>
     )
   }
 
   return (
-    <Paper sx={{ flexGrow: 1, p: 2, maxWidth: 1400 }}>
-      <Box sx={{ mb: 2 }}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: "bold",
-          }}
-        >
-          Records
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          Computed {data.computedAt.toLocaleDateString()}. From 2v2, 3v3 and 4v4
-          team matches
-        </Typography>
-      </Box>
+    <Page
+      title="Records"
+      description={`All-time bests across 2v2, 3v3 and 4v4 team games. Updated nightly, last on ${data.computedAt.toLocaleDateString()}.`}
+    >
       <Divider sx={{ mb: 3 }} />
       {selectedMatch !== null && (
-        <Box sx={{ mb: 3 }}>
+        <Box ref={matchPanelRef} sx={{ mb: 3, scrollMarginTop: 80 }}>
+          <Stack
+            direction="row"
+            sx={{ alignItems: "center", justifyContent: "space-between" }}
+          >
+            <Typography variant="subtitle2" sx={{ color: "text.secondary" }}>
+              Match #{selectedMatch}
+            </Typography>
+            <Button size="small" onClick={() => setSelectedMatch(null)}>
+              Close
+            </Button>
+          </Stack>
           <LoadAndShowMatch matchId={selectedMatch} />
           <Divider sx={{ mt: 2 }} />
         </Box>
@@ -244,6 +247,6 @@ export default function DisplaySuperlatives() {
         />
       ))}
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

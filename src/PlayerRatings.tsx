@@ -36,6 +36,7 @@ import {
 import { PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import Page from "./Page"
 import { useFetch } from "./useFetch"
 import { SimplePlayerSynergy } from "./PlayerSynergy"
 import { PlayerLabel } from "./PlayerChip"
@@ -995,19 +996,11 @@ export function DisplayPlayerRatingTrend() {
   ).sort((a, b) => a - b)
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 800, p: { xs: 1.5, sm: 2 } }}>
-      <Typography variant="h5" sx={{ mb: 0.5 }}>
-        Rating Trend
-      </Typography>
-      <Typography
-        variant="body2"
-        sx={{
-          color: "text.secondary",
-          mb: 2,
-        }}
-      >
-        Recent form and rating change over 7 / 14 / 30 days.
-      </Typography>
+    <Page
+      title="Rating Trend"
+      width="narrow"
+      description="Who has been on a run lately: recent results, and how far each player has climbed or slid over the last 7, 14 and 30 days."
+    >
       <FormatSelector format={format} onChange={setFormat} />
       <TableContainer>
         <Table size="small">
@@ -1057,7 +1050,7 @@ export function DisplayPlayerRatingTrend() {
       </Typography>
       <SimplePlayerSynergy />
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }
 

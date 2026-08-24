@@ -29,6 +29,8 @@ import {
 } from "recharts"
 
 import Loading from "./Loading"
+import Page from "./Page"
+import { PlayerLabel } from "./PlayerChip"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
 import DisplayGeneral from "./Generals"
@@ -198,14 +200,7 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
               <TableRow key={p.name} hover>
                 <TableCell>{i + 1}</TableCell>
                 <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: i < 3 ? 700 : 400,
-                    }}
-                  >
-                    {p.name}
-                  </Typography>
+                  <PlayerLabel name={p.name} bold={i < 3} />
                 </TableCell>
                 <TableCell align="right">{p.games}</TableCell>
                 <TableCell align="right">{p.wins}</TableCell>
@@ -432,7 +427,7 @@ export default function DisplayFFAStats() {
 
   if (stats.totalGames === 0) {
     return (
-      <Paper sx={{ p: 3 }}>
+      <Page title="Free-For-All" width="narrow">
         <Typography variant="h6">No FFA games found yet.</Typography>
         <Typography
           variant="body2"
@@ -443,24 +438,15 @@ export default function DisplayFFAStats() {
           Free-for-all games (3+ human players, every player for themselves)
           will show up here once they've been played.
         </Typography>
-      </Paper>
+      </Page>
     )
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant="h4" sx={{ mb: 0.5 }}>
-        Free-For-All
-      </Typography>
-      <Typography
-        variant="body2"
-        sx={{
-          color: "text.secondary",
-          mb: 2,
-        }}
-      >
-        Every player for themselves. Stats below cover human FFA games only.
-      </Typography>
+    <Page
+      title="Free-For-All"
+      description="Every player for themselves. Team games and comp-stomps are counted elsewhere."
+    >
       <SummaryCards stats={stats} />
       <Divider sx={{ mb: 2 }} />
       <PlayerLeaderboard players={stats.playerStats} />
@@ -469,6 +455,6 @@ export default function DisplayFFAStats() {
       <Divider sx={{ mb: 2 }} />
       <MapBreakdown stats={stats} />
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

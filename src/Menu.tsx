@@ -32,6 +32,7 @@ import List from "@mui/material/List"
 import ListItemButton from "@mui/material/ListItemButton"
 import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
+import ListSubheader from "@mui/material/ListSubheader"
 import Toolbar from "@mui/material/Toolbar"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
@@ -39,6 +40,7 @@ import { useAuth } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 import Loading from "./Loading"
+import { PlayerNavProvider, type PlayerNav } from "./PlayerNavContext"
 
 // Every page is code-split: the initial bundle would otherwise carry all of
 // them (recharts, the bracket, html2canvas, …) just to render the default
@@ -72,7 +74,7 @@ const DisplaySuperlatives = React.lazy(() => import("./Superlatives"))
 const DisplayTeamStats = React.lazy(() => import("./TeamStats"))
 const DisplayTournamentResults = React.lazy(() => import("./Tournaments"))
 
-const drawerWidth = 190
+const drawerWidth = 204
 
 const ALL_SELECTIONS = [
   "Matches",
@@ -157,6 +159,11 @@ export default function Menu() {
     [],
   )
 
+  const playerNav: PlayerNav = React.useMemo(
+    () => ({ goToPlayerProfile, goToHeadToHead }),
+    [goToPlayerProfile, goToHeadToHead],
+  )
+
   // Keep in sync with browser back/forward.
   React.useEffect(() => {
     const onPop = () => setSelection(selectionFromUrl())
@@ -177,80 +184,140 @@ export default function Menu() {
     setMobileOpen(!mobileOpen)
   }
 
-  const navItems: { value: Selection; text: string; icon: React.ReactNode }[] =
-    [
-      { value: "Matches", text: "Matches", icon: <ListIcon /> },
-      {
-        value: "GameNight",
-        text: "Game Night",
-        icon: <NightlightRoundIcon />,
-      },
-      { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
-      {
-        value: "PlayerProfile",
-        text: "Player Profile",
-        icon: <BadgeIcon />,
-      },
-      {
-        value: "HeadToHead",
-        text: "Head to Head",
-        icon: <CompareArrowsIcon />,
-      },
-      {
-        value: "GeneralStats",
-        text: "General Stats",
-        icon: <MilitaryTechIcon />,
-      },
-      { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
-      { value: "Tournaments", text: "Tournaments", icon: <EmojiEventsIcon /> },
-      { value: "Bracket", text: "1v1 Bracket", icon: <AccountTreeIcon /> },
-      { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
-      { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
-      { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
-      {
-        value: "GameLength",
-        text: "Game Length",
-        icon: <HistoryToggleOffIcon />,
-      },
-      {
-        value: "Superlatives",
-        text: "Records",
-        icon: <WorkspacePremiumIcon />,
-      },
-      { value: "Draft", text: "Skip In and Out", icon: <CasinoIcon /> },
-      { value: "MapVoting", text: "Map Voting", icon: <HowToVoteIcon /> },
-      { value: "ChooseMap", text: "Choose Map", icon: <CasinoIcon /> },
-      { value: "MapUpload", text: "Upload Map", icon: <UploadFileIcon /> },
-      {
-        value: "PlayerRatingTrend",
-        text: "Rating Trend",
-        icon: <LeaderboardIcon />,
-      },
-      ...(debug
-        ? ([
-            {
-              value: "PlayerRating",
-              text: "Player Ratings",
-              icon: <LeaderboardIcon />,
-            },
-            {
-              value: "PlayerSynergy",
-              text: "Player Synergy",
-              icon: <GroupsIcon />,
-            },
-            { value: "DebugData", text: "Debug Matchid", icon: <TableView /> },
-          ] as const)
-        : []),
-      ...(opsAdmin
-        ? ([
-            {
-              value: "AdminPanel",
-              text: "Admin",
-              icon: <AdminPanelSettingsIcon />,
-            },
-          ] as const)
-        : []),
-    ]
+  // Grouped rather than one flat list of nineteen: a newcomer scanning an
+  // undivided column has no way to tell "Choose Map" (draw tonight's map) from
+  // "Map Stats" (win rates per map). The split is by the question you arrived
+  // with: Games is the log of what happened, Stats is everything derived from
+  // it, Players is one person at a time, Maps is the map pool.
+  // Each item's `text` is also the page's own <h1>, so the nav and the page
+  // never disagree about what a page is called.
+  const navGroups: {
+    heading: string
+    items: { value: Selection; text: string; icon: React.ReactNode }[]
+  }[] = [
+    {
+      heading: "Games",
+      items: [
+        { value: "Matches", text: "Matches", icon: <ListIcon /> },
+        {
+          value: "GameNight",
+          text: "Game Night",
+          icon: <NightlightRoundIcon />,
+        },
+      ],
+    },
+    {
+      heading: "Competition",
+      items: [
+        {
+          value: "Tournaments",
+          text: "Tournaments",
+          icon: <EmojiEventsIcon />,
+        },
+        { value: "Bracket", text: "1v1 Bracket", icon: <AccountTreeIcon /> },
+      ],
+    },
+    {
+      heading: "Play tonight",
+      items: [
+        { value: "BalanceTeams", text: "Balance Teams", icon: <BalanceIcon /> },
+        // Was "Skip In and Out" in the nav while the page called itself "Map
+        // Draft" — one name now, and it says what the page does.
+        { value: "Draft", text: "Map Draft", icon: <CasinoIcon /> },
+      ],
+    },
+    {
+      heading: "Stats",
+      items: [
+        {
+          value: "Superlatives",
+          text: "Records",
+          icon: <WorkspacePremiumIcon />,
+        },
+        { value: "TeamStats", text: "Team Stats", icon: <GroupsIcon /> },
+        {
+          value: "GeneralStats",
+          text: "General Stats",
+          icon: <MilitaryTechIcon />,
+        },
+        {
+          value: "GameLength",
+          text: "Game Length",
+          icon: <HistoryToggleOffIcon />,
+        },
+        { value: "FFA", text: "Free-For-All", icon: <SportsKabaddiIcon /> },
+      ],
+    },
+    {
+      heading: "Players",
+      items: [
+        { value: "PlayerStats", text: "Player Stats", icon: <PersonIcon /> },
+        { value: "PlayerProfile", text: "Player Profile", icon: <BadgeIcon /> },
+        {
+          value: "HeadToHead",
+          text: "Head to Head",
+          icon: <CompareArrowsIcon />,
+        },
+        {
+          value: "PlayerRatingTrend",
+          text: "Rating Trend",
+          icon: <LeaderboardIcon />,
+        },
+        ...(debug
+          ? ([
+              {
+                value: "PlayerRating",
+                text: "Player Ratings",
+                icon: <LeaderboardIcon />,
+              },
+              {
+                value: "PlayerSynergy",
+                text: "Player Synergy",
+                icon: <GroupsIcon />,
+              },
+            ] as const)
+          : []),
+      ],
+    },
+    {
+      heading: "Maps",
+      items: [
+        { value: "MapStats", text: "Map Stats", icon: <MapIcon /> },
+        { value: "MapVoting", text: "Map Voting", icon: <HowToVoteIcon /> },
+        { value: "ChooseMap", text: "Choose Map", icon: <CasinoIcon /> },
+        { value: "MapUpload", text: "Upload Map", icon: <UploadFileIcon /> },
+      ],
+    },
+    ...(debug || opsAdmin
+      ? [
+          {
+            heading: "Admin",
+            items: [
+              ...(debug
+                ? ([
+                    {
+                      value: "DebugData",
+                      text: "Debug Matchid",
+                      icon: <TableView />,
+                    },
+                  ] as const)
+                : []),
+              ...(opsAdmin
+                ? ([
+                    {
+                      value: "AdminPanel",
+                      text: "Admin",
+                      icon: <AdminPanelSettingsIcon />,
+                    },
+                  ] as const)
+                : []),
+            ],
+          },
+        ]
+      : []),
+  ]
+
+  const navItems = navGroups.flatMap((g) => g.items)
 
   const drawer = (
     <div>
@@ -268,127 +335,153 @@ export default function Menu() {
         />
       </Toolbar>
       <Divider />
-      <List sx={{ px: 1 }}>
-        {navItems.map((item) => (
-          <MenuItem
-            key={item.value}
-            value={item.value}
-            text={item.text}
-            icon={item.icon}
-            selected={selection === item.value}
-            callback={(s) => {
-              navigate(s)
-              setMobileOpen(false)
-            }}
-          />
+      <List sx={{ px: 1, pb: 2 }}>
+        {navGroups.map((group) => (
+          <React.Fragment key={group.heading}>
+            <ListSubheader
+              disableSticky
+              sx={{
+                bgcolor: "transparent",
+                lineHeight: 1.9,
+                mt: 1,
+                px: 1.5,
+                fontSize: "0.7rem",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "text.secondary",
+              }}
+            >
+              {group.heading}
+            </ListSubheader>
+            {group.items.map((item) => (
+              <MenuItem
+                key={item.value}
+                value={item.value}
+                text={item.text}
+                icon={item.icon}
+                selected={selection === item.value}
+                callback={(s) => {
+                  navigate(s)
+                  setMobileOpen(false)
+                }}
+              />
+            ))}
+          </React.Fragment>
         ))}
       </List>
     </div>
   )
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: "none" } }}
+    <PlayerNavProvider value={playerNav}>
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
+        <AppBar
+          position="fixed"
+          sx={{
+            width: { sm: `calc(100% - ${drawerWidth}px)` },
+            ml: { sm: `${drawerWidth}px` },
+          }}
+        >
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{ flexGrow: 1 }}
+            >
+              {navItems.find((i) => i.value === selection)?.text ?? selection}
+            </Typography>
+            {status?.logged_in ? (
+              <Button
+                color="inherit"
+                startIcon={<AccountCircleIcon />}
+                onClick={() => navigate("Account")}
+              >
+                {status.user?.player_name ??
+                  status.user?.discord_username ??
+                  "Account"}
+              </Button>
+            ) : (
+              <Button
+                color="inherit"
+                startIcon={<LoginIcon />}
+                onClick={startDiscordLogin}
+              >
+                Login
+              </Button>
+            )}
+          </Toolbar>
+        </AppBar>
+        <Box
+          component="nav"
+          sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+          aria-label="Primary navigation"
+        >
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{
+              keepMounted: true, // Better open performance on mobile.
+            }}
+            sx={{
+              display: { xs: "block", sm: "none" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: drawerWidth,
+              },
+            }}
           >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navItems.find((i) => i.value === selection)?.text ?? selection}
-          </Typography>
-          {status?.logged_in ? (
-            <Button
-              color="inherit"
-              startIcon={<AccountCircleIcon />}
-              onClick={() => navigate("Account")}
-            >
-              {status.user?.player_name ??
-                status.user?.discord_username ??
-                "Account"}
-            </Button>
-          ) : (
-            <Button
-              color="inherit"
-              startIcon={<LoginIcon />}
-              onClick={startDiscordLogin}
-            >
-              Login
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="Primary navigation"
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
+            {drawer}
+          </Drawer>
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: "none", sm: "block" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: drawerWidth,
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+        <Box
+          component="main"
           sx={{
-            display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: drawerWidth,
-            },
+            flexGrow: 1,
+            p: { xs: 1.5, sm: 3 },
+            width: { sm: `calc(100% - ${drawerWidth}px)` },
+            minWidth: 0,
+            bgcolor: "background.default",
+            minHeight: "100vh",
           }}
         >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: drawerWidth,
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: { xs: 1.5, sm: 3 },
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          minWidth: 0,
-          bgcolor: "background.default",
-          minHeight: "100vh",
-        }}
-      >
-        <Toolbar />
-        <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
-          <React.Suspense fallback={<Loading />}>
-            <Main
-              selection={selection}
-              goToPlayerProfile={goToPlayerProfile}
-              goToHeadToHead={goToHeadToHead}
-            />
-          </React.Suspense>
+          <Toolbar />
+          <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
+            <React.Suspense fallback={<Loading />}>
+              <Main
+                selection={selection}
+                goToPlayerProfile={goToPlayerProfile}
+                goToHeadToHead={goToHeadToHead}
+              />
+            </React.Suspense>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </PlayerNavProvider>
   )
 }
 
@@ -472,7 +565,7 @@ function MenuItem(props: MenuItemProps) {
       disabled={props.disabled}
       selected={props.selected}
       sx={{
-        minHeight: 44,
+        minHeight: 38,
         borderRadius: 1.5,
         mb: 0.25,
         px: 1.5,
@@ -482,7 +575,7 @@ function MenuItem(props: MenuItemProps) {
       <ListItemIcon
         sx={{
           minWidth: 0,
-          mr: 2,
+          mr: 1.5,
           justifyContent: "center",
           color: props.selected ? "primary.main" : "text.secondary",
         }}

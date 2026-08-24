@@ -135,8 +135,7 @@ export default function MatchNarrative(props: {
   }
 
   return (
-    // App.css centers page text; a timeline of sentences must not inherit it.
-    <Paper variant="outlined" sx={{ p: 1.5, textAlign: "left" }}>
+    <Paper variant="outlined" sx={{ p: 1.5 }}>
       {errorSnackbar}
       {props.showHeadline !== false && (
         <Stack

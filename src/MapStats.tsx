@@ -19,9 +19,11 @@ import { MapData, MapStatsResponse } from "./api"
 import { MapClient } from "./Client"
 import { toGeneralName } from "./general_utils"
 import GameMap from "./Map"
+import Page from "./Page"
+import { PlayerLabel } from "./PlayerChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { useIsAdmin } from "./AuthContext"
-import { winRate } from "./utils"
+import { winRate, winRateTone } from "./utils"
 
 function getMapStats(
   callback: (m: MapStatsResponse) => void,
@@ -34,19 +36,17 @@ function mapId(mapName: string): string {
   return `map-${mapName.replace(/[^a-zA-Z0-9]/g, "-")}`
 }
 
-const getRateColor = (rate: number): "success" | "warning" | "error" => {
-  if (rate >= 0.55) return "success"
-  if (rate >= 0.45) return "warning"
-  return "error"
-}
-
 function WinRateRow(props: {
   label: React.ReactNode
   wins: number
   losses: number
   delta?: number
 }) {
-  const rate = winRate(props.wins, props.losses)
+  // Shared rule (utils.winRateTone) rather than a local 0.55/0.45 threshold —
+  // one game no longer paints a full-confidence green bar, and `confidence`
+  // fades the bar the way TeamStats does.
+  const verdict = winRateTone(props.wins, props.losses)
+  const { rate, confidence } = verdict
   const { delta } = props
   const deltaColor =
     delta === undefined || Math.abs(delta) < 0.01
@@ -92,8 +92,13 @@ function WinRateRow(props: {
       <LinearProgress
         variant="determinate"
         value={rate * 100}
-        color={getRateColor(rate)}
-        sx={{ height: 7, borderRadius: 4 }}
+        sx={{
+          height: 7,
+          borderRadius: 4,
+          opacity: 0.45 + 0.55 * confidence,
+          bgcolor: "action.hover",
+          "& .MuiLinearProgress-bar": { bgcolor: verdict.hex },
+        }}
       />
     </Box>
   )
@@ -122,7 +127,7 @@ function PlayerWinRates(props: { players: MapData["playerStats"] }) {
       {sorted.map((p) => (
         <WinRateRow
           key={p.player}
-          label={<Typography variant="body2">{p.player}</Typography>}
+          label={<PlayerLabel name={p.player} />}
           wins={p.wins}
           losses={p.losses}
         />
@@ -365,9 +370,9 @@ function PlayerBestWorstSummary(props: {
             bw={bw}
             onMapClick={props.onMapClick}
             label={
-              <Typography variant="body2" sx={{ minWidth: 80 }}>
-                {player}
-              </Typography>
+              <Box sx={{ minWidth: 110 }}>
+                <PlayerLabel name={player} />
+              </Box>
             }
           />
         ))}
@@ -503,17 +508,10 @@ export default function DisplayMapStats() {
   }
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
-      <Typography variant="h4">Map Stats</Typography>
-      <Typography
-        sx={{
-          color: "text.secondary",
-          mb: 2,
-        }}
-      >
-        Win rates from competitive games. Players shown with ≥3 games on map.
-        Maps sorted by total games played.
-      </Typography>
+    <Page
+      title="Map Stats"
+      description="Which generals and which players do well on each map. A player needs at least 3 games on a map to appear."
+    >
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={2}
@@ -541,6 +539,6 @@ export default function DisplayMapStats() {
         />
       ))}
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

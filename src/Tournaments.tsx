@@ -10,6 +10,7 @@ import TableRow from "@mui/material/TableRow"
 import Button from "@mui/material/Button"
 import Stack from "@mui/material/Stack"
 import Loading from "./Loading"
+import Page from "./Page"
 import LinearProgress from "@mui/material/LinearProgress"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -659,12 +660,14 @@ export default function DisplayTournamentResults() {
     )
   }
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-      <Typography variant="h4">Tournament Results!</Typography>
+    <Page
+      title="Tournaments"
+      description="Every tournament we have run, with its standings and the games that decided them."
+    >
       {touramentResults.map((r) => (
         <DisplayTournamentResult key={r.tournament.name} result={r} />
       ))}
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

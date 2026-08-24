@@ -27,6 +27,7 @@ import { Client, MapClient } from "./Client"
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
+import Page from "./Page"
 
 const VALID_PLAYER_NAMES = new Set<string>(Object.values(PlayerEnum))
 
@@ -248,12 +249,13 @@ export default function DisplayDraft() {
   )
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto" }}>
-      <Typography variant="h5" gutterBottom>
-        Map Draft
-      </Typography>
-      {mapsByCount.length > 0 && (
-        <Box sx={{ mb: 2 }}>
+    <Page
+      surface={false}
+      width="narrow"
+      title="Map Draft"
+      description="Set the roster and pick a map, then randomize starting positions and generals. You can auto-balance the teams first."
+      actions={
+        mapsByCount.length > 0 ? (
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -268,8 +270,9 @@ export default function DisplayDraft() {
               </ToggleButton>
             ))}
           </ToggleButtonGroup>
-        </Box>
-      )}
+        ) : undefined
+      }
+    >
       {selectedPlayerCount && (
         <>
           <Paper sx={{ p: 2, mb: 2 }}>
@@ -416,6 +419,6 @@ export default function DisplayDraft() {
           )}
         </>
       )}
-    </Box>
+    </Page>
   )
 }

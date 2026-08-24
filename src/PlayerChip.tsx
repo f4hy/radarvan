@@ -4,6 +4,7 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 import { usePlayerAccentColor, usePlayerColors } from "./PlayerColorsContext"
+import { usePlayerNav } from "./PlayerNavContext"
 import { playerColor } from "./utils"
 
 /**
@@ -40,9 +41,22 @@ function useAvatarColors(name: string): {
 export function PlayerChip(props: {
   name: string
   size?: "small" | "medium"
+  /** Overrides the default (open this player's profile). */
   onClick?: () => void
+  /** Opt out of navigation entirely — for a chip inside another control. */
+  disableNav?: boolean
 }) {
   const { bgcolor, textColor, ringColor } = useAvatarColors(props.name)
+  const nav = usePlayerNav()
+  // Navigating to the profile is the default, not something each call site has
+  // to remember: every chip in the app is a link to that player unless it's
+  // told otherwise, which is what makes the stats browsable rather than a set
+  // of unconnected reports.
+  const onClick =
+    props.onClick ??
+    (props.disableNav || !nav.enabled
+      ? undefined
+      : () => nav.goToPlayerProfile(props.name))
   return (
     <Chip
       avatar={
@@ -59,8 +73,8 @@ export function PlayerChip(props: {
       label={props.name}
       size={props.size ?? "small"}
       variant="outlined"
-      clickable={props.onClick != null}
-      onClick={props.onClick}
+      clickable={onClick != null}
+      onClick={onClick}
       sx={{ fontWeight: 600 }}
     />
   )
@@ -71,11 +85,35 @@ export function PlayerLabel(props: {
   name: string
   avatarSize?: number
   bold?: boolean
+  disableNav?: boolean
+  /** Type scale for the name — defaults to body2 for dense rows. */
+  variant?: "body2" | "subtitle1" | "h6"
 }) {
   const { bgcolor, textColor, ringColor } = useAvatarColors(props.name)
+  const nav = usePlayerNav()
   const s = props.avatarSize ?? 22
+  const clickable = !props.disableNav && nav.enabled
   return (
-    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+    <Box
+      component={clickable ? "button" : "span"}
+      type={clickable ? "button" : undefined}
+      onClick={clickable ? () => nav.goToPlayerProfile(props.name) : undefined}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.75,
+        ...(clickable && {
+          border: 0,
+          p: 0,
+          bgcolor: "transparent",
+          font: "inherit",
+          color: "inherit",
+          cursor: "pointer",
+          textAlign: "left",
+          "&:hover .MuiTypography-root": { textDecoration: "underline" },
+        }),
+      }}
+    >
       <Avatar
         sx={{
           width: s,
@@ -89,7 +127,7 @@ export function PlayerLabel(props: {
         {initial(props.name)}
       </Avatar>
       <Typography
-        variant="body2"
+        variant={props.variant ?? "body2"}
         component="span"
         sx={{ fontWeight: props.bold ? 700 : 500 }}
       >

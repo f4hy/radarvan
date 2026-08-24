@@ -3,6 +3,8 @@ import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Loading from "./Loading"
+import Page from "./Page"
+import { PlayerLabel } from "./PlayerChip"
 import { useFetch } from "./useFetch"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
@@ -21,6 +23,8 @@ import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
+import useMediaQuery from "@mui/material/useMediaQuery"
+import { useTheme } from "@mui/material/styles"
 import Typography from "@mui/material/Typography"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
@@ -158,7 +162,9 @@ function GameCountsTable(props: { playerStats: PlayerStats }) {
             <TableBody>
               {rows.map((s) => (
                 <TableRow key={s.playerName} hover>
-                  <TableCell>{s.playerName}</TableCell>
+                  <TableCell>
+                    <PlayerLabel name={s.playerName} />
+                  </TableCell>
                   {columns.map((fmt) => (
                     <TableCell key={fmt} align="right">
                       {s.gameCounts?.[fmt] ?? 0}
@@ -203,9 +209,9 @@ function PlayerBanner(props: {
         mb: 1,
       }}
     >
-      <Typography variant="h4" sx={{ minWidth: 120 }}>
-        {props.name}
-      </Typography>
+      <Box sx={{ minWidth: 140 }}>
+        <PlayerLabel name={props.name} avatarSize={34} bold variant="h6" />
+      </Box>
       {props.debug && (
         <Typography
           variant="body2"
@@ -254,6 +260,7 @@ function DisplayPlayerStat(props: {
   stat: PlayerStat
   max: number
   debug: boolean
+  isMobile: boolean
 }) {
   const { data, radarData, total_wins, total_games } = React.useMemo(() => {
     let total_wins = 0
@@ -302,19 +309,35 @@ function DisplayPlayerStat(props: {
           </List>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          <ResponsiveContainer width="99%">
-            <BarChart data={data} layout="horizontal">
+          {/* Explicit height, not the ResponsiveContainer default of "100%":
+              stacked on xs this Grid item's own height comes from its content,
+              so a percentage height resolves against zero and the chart
+              disappears on phones. */}
+          <ResponsiveContainer width="99%" height={props.isMobile ? 280 : 340}>
+            <BarChart
+              data={data}
+              layout="horizontal"
+              margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+            >
               <CartesianGrid strokeDasharray="5 5" vertical={false} />
-              <Bar dataKey="wins" fill={CHART_WIN} />
-              <Bar dataKey="losses" fill={CHART_LOSS} />
+              <Bar dataKey="wins" fill={CHART_WIN} name="Wins" />
+              <Bar dataKey="losses" fill={CHART_LOSS} name="Losses" />
+              {/* angle/textAnchor pair matches every other chart in the app —
+                  a positive angle with the default middle anchor drifts each
+                  label off the bar it belongs to. */}
               <XAxis
                 dataKey="general"
                 height="auto"
-                angle={60}
+                angle={-35}
+                textAnchor="end"
                 minTickGap={0}
                 interval={0}
+                tick={{ fontSize: props.isMobile ? 9 : 12 }}
               />
-              <YAxis domain={[0, props.max]} />
+              <YAxis
+                domain={[0, props.max]}
+                tick={{ fontSize: props.isMobile ? 9 : 12 }}
+              />
               <RechartsTooltip cursor={false} />
             </BarChart>
           </ResponsiveContainer>
@@ -762,6 +785,8 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
 }
 
 export default function DisplayPlayerStats() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const [format, setFormat] = React.useState<GameFormat>("All")
   const debug = useIsAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
@@ -790,29 +815,29 @@ export default function DisplayPlayerStats() {
     return <Loading />
   }
   return (
-    <Paper sx={{ p: 2 }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <Typography variant="h6">Game Format:</Typography>
-        <ToggleButtonGroup
-          value={format}
-          exclusive
-          onChange={(_, v) => v && setFormat(v)}
-          size="small"
-        >
-          {FORMAT_OPTIONS.map((f) => (
-            <ToggleButton key={f} value={f}>
-              {f}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
+    <Page
+      title="Player Stats"
+      description="How everyone does with each general, across competitive team games."
+      actions={
+        <>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Game format
+          </Typography>
+          <ToggleButtonGroup
+            value={format}
+            exclusive
+            onChange={(_, v) => v && setFormat(v)}
+            size="small"
+          >
+            {FORMAT_OPTIONS.map((f) => (
+              <ToggleButton key={f} value={f}>
+                {f}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </>
+      }
+    >
       <GameCountsTable playerStats={playerStats} />
       <Divider sx={{ mb: 2 }} />
       <BestPlayerPerGeneral playerStats={playerStats} />
@@ -823,11 +848,16 @@ export default function DisplayPlayerStats() {
       <Divider sx={{ mb: 2 }} />
       {playerStats.playerStats.map((m) => (
         <React.Fragment key={m.playerName}>
-          <DisplayPlayerStat stat={m} max={maxWinLoss} debug={debug} />
+          <DisplayPlayerStat
+            stat={m}
+            max={maxWinLoss}
+            debug={debug}
+            isMobile={isMobile}
+          />
           <Divider />
         </React.Fragment>
       ))}
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

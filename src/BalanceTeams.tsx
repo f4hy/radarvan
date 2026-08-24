@@ -1,4 +1,4 @@
-import { Chip, Typography } from "@mui/material"
+import { Typography } from "@mui/material"
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
 import Checkbox from "@mui/material/Checkbox"
@@ -8,6 +8,8 @@ import FormGroup from "@mui/material/FormGroup"
 import Grid from "@mui/material/Grid"
 import LinearProgress from "@mui/material/LinearProgress"
 import Loading from "./Loading"
+import Page from "./Page"
+import { PlayerChip } from "./PlayerChip"
 import Link from "@mui/material/Link"
 import Paper from "@mui/material/Paper"
 import Radio from "@mui/material/Radio"
@@ -19,6 +21,7 @@ import * as React from "react"
 import { PlayerEnum, PlayerEnumFromJSON } from "./api"
 import { Client } from "./Client"
 import { useIsAdmin } from "./AuthContext"
+import { CHART_PALETTE } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 interface TeamWinRating {
@@ -94,15 +97,42 @@ export function ScoreBar(props: {
           mb: 1,
         }}
       >
-        {team1.map((p) => (
-          <Chip key={p} label={p} color="primary" size="small" />
-        ))}
-        <Typography variant="body2" sx={{ mx: 0.5 }}>
+        {/* Player identity comes from PlayerChip (same avatar and color as
+            everywhere else); the two sides are told apart by their grouping
+            rather than by repainting every chip primary/secondary. */}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 0.5,
+            flexWrap: "wrap",
+            px: 0.75,
+            py: 0.5,
+            borderRadius: 1,
+            bgcolor: "action.hover",
+          }}
+        >
+          {team1.map((p) => (
+            <PlayerChip key={p} name={p} disableNav />
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mx: 0.5, color: "text.secondary" }}>
           vs
         </Typography>
-        {team2.map((p) => (
-          <Chip key={p} label={p} color="secondary" size="small" />
-        ))}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 0.5,
+            flexWrap: "wrap",
+            px: 0.75,
+            py: 0.5,
+            borderRadius: 1,
+            bgcolor: "action.hover",
+          }}
+        >
+          {team2.map((p) => (
+            <PlayerChip key={p} name={p} disableNav />
+          ))}
+        </Box>
       </Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <LinearProgress
@@ -165,7 +195,8 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   if (props.selectedPlayers.length % 2 !== 0) {
     return (
       <Alert severity="warning">
-        Not an even number of selected players. Try adding a HardArmy
+        An odd number of players can&apos;t be split into even teams. Pick one
+        more, or add HardArmy as a filler.
       </Alert>
     )
   }
@@ -220,7 +251,9 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
 
   if (props.selectedPlayers.length % 2 !== 0) {
     return (
-      <Alert severity="warning">Not an even number of selected players</Alert>
+      <Alert severity="warning">
+        An odd number of players can&apos;t be split into even teams.
+      </Alert>
     )
   }
   if (loading && teamPartition.length === 0) {
@@ -229,18 +262,14 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   if (!loading && teamPartition.length === 0) {
     return (
       <Alert severity="warning">
-        Need to select at least 6 players for a tournament
+        Pick at least 6 players to build tournament teams.
       </Alert>
     )
   }
-  const colors = [
-    "#FFB3BA",
-    "#FFDFBA",
-    "#FFFFBA",
-    "#BAFFC9",
-    "#BAE1FF",
-    "#E8BAFF",
-  ]
+  // Team cards are neutral surfaces with a colored top rule, matching how the
+  // rest of the app separates groups — the old hardcoded pastels carrying blue
+  // "primary" chips were the one place that ignored the theme entirely.
+  const teamAccents = CHART_PALETTE
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement>,
     value: string,
@@ -263,11 +292,24 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       <Grid container spacing={2}>
         {teamPartition.map((team, i) => (
           <Grid key={i}>
-            <Paper sx={{ padding: 2, background: colors[i] }}>
-              {team.map((t) => (
-                <Chip key={t} label={t} color="primary" sx={{ padding: 2 }} />
-              ))}
-              <Divider />
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderTop: `3px solid ${teamAccents[i % teamAccents.length]}`,
+              }}
+            >
+              <Typography
+                variant="overline"
+                sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
+              >
+                Team {i + 1}
+              </Typography>
+              <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
+                {team.map((t) => (
+                  <PlayerChip key={t} name={t} />
+                ))}
+              </Stack>
             </Paper>
           </Grid>
         ))}
@@ -282,19 +324,46 @@ function PlayerSelector(props: {
   selectedPlayers: PlayerEnum[]
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
 }) {
+  const count = props.selectedPlayers.length
+  // Parity is the constraint that decides whether this page can answer at all,
+  // so it is stated up front rather than as a warning after the fact.
+  const parity =
+    count === 0
+      ? "No one picked yet"
+      : count % 2 === 0
+        ? `${count} picked, even teams possible`
+        : `${count} picked, needs an even number`
   return (
     <FormGroup>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.5 }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color:
+              count > 0 && count % 2 !== 0 ? "warning.main" : "text.secondary",
+            fontWeight: 500,
+          }}
+        >
+          {parity}
+        </Typography>
+      </Stack>
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
           flexWrap: "wrap",
-          padding: 1,
+          gap: 0.5,
+          py: 1,
         }}
       >
         {props.players.map((option) => (
           <FormControlLabel
             key={option}
+            sx={{ mr: 0.5 }}
             control={
               <Checkbox
                 checked={props.selectedPlayers.includes(option)}
@@ -302,7 +371,9 @@ function PlayerSelector(props: {
                 value={option}
               />
             }
-            label={option}
+            // The same identity used everywhere else in the app; disableNav
+            // because the chip sits inside a control whose job is toggling.
+            label={<PlayerChip name={option} disableNav />}
           />
         ))}
       </Box>
@@ -336,12 +407,10 @@ export default function DisplayBalanceTeams() {
   }
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000 }}>
-      <Typography variant="h4">Determine Balanced Teams</Typography>
-      <Typography>
-        Select at least 4 players and the balance of each team combination will
-        be ranked
-      </Typography>
+    <Page
+      title="Balance Teams"
+      description="Pick who is playing, and every way of splitting them is ranked by how close the game should be."
+    >
       <PlayerSelector
         players={players}
         selectedPlayers={selectedPlayers}
@@ -369,14 +438,14 @@ export default function DisplayBalanceTeams() {
       {selectedTab === "partitionTeams" && (
         <PartitionTeams selectedPlayers={selectedPlayers} />
       )}
-      <Divider sx={{ height: 40 }} />
-      <Typography>
-        Results are computed using all recorded 2v2 3v3 4v4 games and the{" "}
+      <Divider sx={{ mt: 4, mb: 2 }} />
+      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+        Ratings use the{" "}
         <Link href="https://jmlr.org/papers/volume12/weng11a/weng11a.pdf">
-          Bayesian Plackett-Luce model by Weng and Lin
-        </Link>{" "}
-        which is an extension of the "TrueSkill" algorithm used by xbox-live.
+          Bayesian Plackett-Luce model of Weng and Lin
+        </Link>
+        , an extension of the TrueSkill algorithm Xbox Live uses.
       </Typography>
-    </Paper>
+    </Page>
   )
 }

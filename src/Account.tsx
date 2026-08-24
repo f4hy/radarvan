@@ -13,11 +13,12 @@ import LogoutIcon from "@mui/icons-material/Logout"
 import { useAuth } from "./AuthContext"
 import { logout, selectPlayer, startDiscordLogin } from "./auth"
 import Loading from "./Loading"
+import Page from "./Page"
 
 // Center a single card; the account flows are all narrow.
 function AccountCard({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+    <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
       <Card sx={{ maxWidth: 420, width: "100%" }}>
         <CardContent>{children}</CardContent>
       </Card>
@@ -151,19 +152,28 @@ function Profile({
 export default function Account() {
   const { status, loading } = useAuth()
 
-  if (loading || status === null) {
-    return <Loading />
+  const body = () => {
+    if (loading || status === null) return <Loading />
+    if (!status.logged_in || status.user === null) return <LoginPrompt />
+    if (status.user.needs_player_selection) {
+      return <PlayerSelection players={status.available_players} />
+    }
+    return (
+      <Profile
+        username={status.user.discord_username}
+        playerName={status.user.player_name ?? ""}
+      />
+    )
   }
-  if (!status.logged_in || status.user === null) {
-    return <LoginPrompt />
-  }
-  if (status.user.needs_player_selection) {
-    return <PlayerSelection players={status.available_players} />
-  }
+
   return (
-    <Profile
-      username={status.user.discord_username}
-      playerName={status.user.player_name ?? ""}
-    />
+    <Page
+      surface={false}
+      width="narrow"
+      title="Account"
+      description="Sign in with Discord and tell us which in-game name is yours, so your votes count toward your stats."
+    >
+      {body()}
+    </Page>
   )
 }

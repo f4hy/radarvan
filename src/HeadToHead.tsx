@@ -29,9 +29,11 @@ import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
+import Page from "./Page"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { displayMapName, formatPercent, playerColor } from "./utils"
+import { usePlayerAccentColor } from "./PlayerColorsContext"
+import { displayMapName, formatPercent } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinShareBar from "./WinShareBar"
 
@@ -58,8 +60,12 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
   } = props.data
   const total = player1Wins + player2Wins
   const share1 = total > 0 ? player1Wins / total : 0.5
-  const c1 = playerColor(player1)
-  const c2 = playerColor(player2)
+  // The player's real most-common in-game color, same as their PlayerChip and
+  // their profile — playerColor() is only the hash fallback for when we don't
+  // know it, so calling it directly made both players a different color here
+  // than everywhere else in the app.
+  const c1 = usePlayerAccentColor(player1)
+  const c2 = usePlayerAccentColor(player2)
   const v1 = player1ValueDestroyed ?? 0
   const v2 = player2ValueDestroyed ?? 0
   const valueTotal = v1 + v2
@@ -190,13 +196,11 @@ function GeneralBreakdown(props: {
   player: string
   records: HeadToHeadGeneralRecord[]
 }) {
+  const accent = usePlayerAccentColor(props.player)
   if (props.records.length === 0) return null
   return (
     <Box>
-      <Typography
-        variant="subtitle1"
-        sx={{ color: playerColor(props.player), mb: 1 }}
-      >
+      <Typography variant="subtitle1" sx={{ color: accent, mb: 1 }}>
         {props.player} by general
       </Typography>
       <Stack spacing={0.5}>
@@ -226,9 +230,9 @@ function MapBreakdown(props: {
   player1: string
   player2: string
 }) {
+  const c1 = usePlayerAccentColor(props.player1)
+  const c2 = usePlayerAccentColor(props.player2)
   if (props.records.length === 0) return null
-  const c1 = playerColor(props.player1)
-  const c2 = playerColor(props.player2)
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -275,15 +279,23 @@ function GameRow(props: {
 }) {
   const { game } = props
   const [open, setOpen] = React.useState(false)
+  // Both resolved unconditionally — hooks can't be called behind a branch.
+  const c1 = usePlayerAccentColor(props.player1)
+  const c2 = usePlayerAccentColor(props.player2)
   const winnerName = game.player1Won ? props.player1 : props.player2
-  const winnerColor = playerColor(winnerName)
+  const winnerColor = game.player1Won ? c1 : c2
   return (
     <>
       <TableRow
         hover
         sx={{ "& > *": { borderBottom: open ? "unset" : undefined } }}
       >
-        <TableCell>{game.date.toISOString().substring(0, 10)}</TableCell>
+        {/* Rendered in the viewer's own timezone, not UTC-truncated:
+            toISOString() dates a 9pm US game as the next day. Same reasoning as
+            Matches.tsx:MatchDateSummary and GameNight.tsx:localDate. */}
+        <TableCell sx={{ whiteSpace: "nowrap" }}>
+          {game.date.toLocaleDateString("en-CA")}
+        </TableCell>
         <TableCell>{displayMapName(game.map)}</TableCell>
         <TableCell>
           <Chip
@@ -439,10 +451,10 @@ export default function HeadToHead() {
   }, [player1, player2, format, showError])
 
   return (
-    <Paper sx={{ p: 2, maxWidth: 1400 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Head to Head
-      </Typography>
+    <Page
+      title="Head to Head"
+      description="Two players' record against each other, split by map and by general, with every game they have played on opposite sides."
+    >
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -542,6 +554,6 @@ export default function HeadToHead() {
         </>
       )}
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

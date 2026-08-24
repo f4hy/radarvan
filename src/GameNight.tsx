@@ -1,12 +1,15 @@
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos"
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome"
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
+import Collapse from "@mui/material/Collapse"
 import Divider from "@mui/material/Divider"
 import IconButton from "@mui/material/IconButton"
 import MenuItem from "@mui/material/MenuItem"
@@ -26,10 +29,13 @@ import { GameNightHighlight, GameNightRecap, MatchInfo } from "./api"
 import { renderAiText } from "./aiText"
 import { Client, GameNightClient } from "./Client"
 import Loading from "./Loading"
+import MatchActivityCalendar from "./MatchActivityCalendar"
 import MatchNarrative from "./MatchNarrative"
+import Page from "./Page"
 import PlayerChip from "./PlayerChip"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+import { winRateTone } from "./utils"
 
 // Emoji per highlight kind. `kind` is a stable backend slug; an unrecognised
 // one still renders (with the fallback), so adding a highlight server-side
@@ -137,6 +143,10 @@ function Standings(props: { recap: GameNightRecap }) {
         </TableHead>
         <TableBody>
           {players.map((line) => {
+            // Same verdict as everywhere else; `margin` (distance from even)
+            // drives the tint strength, so a 5-2 night still reads louder than
+            // a 4-3 one, and `confidence` keeps a 1-0 night from shouting.
+            const verdict = winRateTone(line.wins, line.losses)
             const rate = line.games > 0 ? line.wins / line.games : 0
             return (
               <TableRow key={line.player} hover>
@@ -154,9 +164,8 @@ function Standings(props: { recap: GameNightRecap }) {
                   sx={{
                     bgcolor: alpha(
                       rate >= 0.5 ? WIN_COLOR : LOSS_COLOR,
-                      // Tint strength tracks how far from even the record is,
-                      // so a 5-2 night reads louder than a 4-3 one.
-                      Math.min(0.35, Math.abs(rate - 0.5) * 0.7),
+                      Math.min(0.35, verdict.margin * 0.35) *
+                        (0.4 + 0.6 * verdict.confidence),
                     ),
                     fontWeight: 500,
                   }}
@@ -193,13 +202,10 @@ function AiSummary(props: { recap: GameNightRecap }) {
   return (
     <Paper
       variant="outlined"
-      // App.css centers page text; prose paragraphs have to opt back out or
-      // the recap reads as a poem.
       sx={{
         p: 2,
         borderColor: BRAND_COLOR,
         borderLeftWidth: 4,
-        textAlign: "left",
       }}
     >
       <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
@@ -299,6 +305,9 @@ export default function GameNight() {
     new URLSearchParams(window.location.search).get("date"),
   )
   const [recap, setRecap] = React.useState<GameNightRecap | null>(null)
+  // Same payload the night list comes from — the counts feed the calendar.
+  const [dateCounts, setDateCounts] = React.useState<Record<string, number>>({})
+  const [calendarOpen, setCalendarOpen] = React.useState(false)
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
@@ -306,6 +315,7 @@ export default function GameNight() {
       .then((dates) => {
         // Already newest-first from the API.
         const keys = Object.keys(dates)
+        setDateCounts(dates)
         setNights(keys)
         setSelected((current) => current ?? keys[0] ?? null)
       })
@@ -356,119 +366,154 @@ export default function GameNight() {
       <IconButton size="small" disabled={!goNewer} onClick={goNewer}>
         <ArrowForwardIosIcon fontSize="inherit" />
       </IconButton>
+      <Button
+        size="small"
+        startIcon={<CalendarMonthIcon />}
+        onClick={() => setCalendarOpen((open) => !open)}
+      >
+        {calendarOpen ? "Hide calendar" : "All nights"}
+      </Button>
     </Stack>
+  )
+
+  // The heatmap is the richer form of the picker above — scanning years of play
+  // for a busy evening beats scrolling a dropdown of every night we've had.
+  const calendar = (
+    <Collapse in={calendarOpen} unmountOnExit>
+      <Paper variant="outlined" sx={{ p: 2, mb: 1 }}>
+        <MatchActivityCalendar
+          dateCounts={dateCounts}
+          selected={selected}
+          onSelect={(date) => {
+            setSelected(date)
+            setCalendarOpen(false)
+          }}
+        />
+      </Paper>
+    </Collapse>
   )
 
   if (recap === null) {
     return (
-      <Stack spacing={2}>
+      <Page
+        surface={false}
+        title="Game Night"
+        description="How one evening went. The standings, the highlights, and every game retold."
+        actions={picker}
+      >
         {errorSnackbar}
-        {picker}
+        {calendar}
         <Loading />
-      </Stack>
+      </Page>
     )
   }
 
   const span = clockSpan(recap)
   return (
-    <Stack spacing={2}>
-      {errorSnackbar}
-      <Typography variant="h5">Game Night</Typography>
-      {picker}
-
-      {recap.matchCount === 0 ? (
-        <Typography color="text.secondary">
-          Nothing was played that night.
-        </Typography>
-      ) : (
-        <>
-          <Stack
-            direction="row"
-            spacing={1}
-            useFlexGap
-            sx={{ flexWrap: "wrap", alignItems: "center" }}
-          >
-            <Chip
-              label={`${recap.matchCount} ${
-                recap.matchCount === 1 ? "game" : "games"
-              }`}
-              color="primary"
-              size="small"
-            />
-            {Object.entries(recap.formats ?? {}).map(([format, count]) => (
-              <Chip
-                key={format}
-                label={`${count}× ${format}`}
-                size="small"
-                variant="outlined"
-              />
-            ))}
-            {span && (
-              <Typography variant="body2" color="text.secondary">
-                {span}
-              </Typography>
-            )}
-            {recap.medianMinutes != null && (
-              <Typography variant="body2" color="text.secondary">
-                median {recap.medianMinutes.toFixed(1)} min
-              </Typography>
-            )}
-          </Stack>
-
-          <AiSummary recap={recap} />
-
-          {(recap.highlights ?? []).length > 0 && (
+    <Page
+      surface={false}
+      title="Game Night"
+      description="How one evening went. The standings, the highlights, and every game retold."
+      actions={picker}
+    >
+      <Stack spacing={2}>
+        {errorSnackbar}
+        {calendar}
+        {recap.matchCount === 0 ? (
+          <Typography color="text.secondary">
+            Nothing was played that night.
+          </Typography>
+        ) : (
+          <>
             <Stack
               direction="row"
-              spacing={1.5}
+              spacing={1}
+              useFlexGap
+              sx={{ flexWrap: "wrap", alignItems: "center" }}
+            >
+              <Chip
+                label={`${recap.matchCount} ${
+                  recap.matchCount === 1 ? "game" : "games"
+                }`}
+                color="primary"
+                size="small"
+              />
+              {Object.entries(recap.formats ?? {}).map(([format, count]) => (
+                <Chip
+                  key={format}
+                  label={`${count}× ${format}`}
+                  size="small"
+                  variant="outlined"
+                />
+              ))}
+              {span && (
+                <Typography variant="body2" color="text.secondary">
+                  {span}
+                </Typography>
+              )}
+              {recap.medianMinutes != null && (
+                <Typography variant="body2" color="text.secondary">
+                  median {recap.medianMinutes.toFixed(1)} min
+                </Typography>
+              )}
+            </Stack>
+
+            <AiSummary recap={recap} />
+
+            {(recap.highlights ?? []).length > 0 && (
+              <Stack
+                direction="row"
+                spacing={1.5}
+                useFlexGap
+                sx={{ flexWrap: "wrap" }}
+              >
+                {(recap.highlights ?? []).map((highlight) => (
+                  <HighlightCard
+                    key={`${highlight.kind}-${highlight.title}`}
+                    highlight={highlight}
+                    onFocusMatch={setFocusedMatchId}
+                  />
+                ))}
+              </Stack>
+            )}
+
+            <Divider />
+            <Typography variant="h6">Standings</Typography>
+            {recap.countedMatches < recap.matchCount && (
+              <Typography variant="caption" color="text.secondary">
+                Records cover the {recap.countedMatches} decided competitive{" "}
+                {recap.countedMatches === 1 ? "game" : "games"}; the other{" "}
+                {recap.matchCount - recap.countedMatches}{" "}
+                {recap.matchCount - recap.countedMatches === 1 ? "was" : "were"}{" "}
+                unfinished, a comp-stomp, or a free-for-all.
+              </Typography>
+            )}
+            <Standings recap={recap} />
+
+            <Typography variant="h6">Maps played</Typography>
+            <Stack
+              direction="row"
+              spacing={1}
               useFlexGap
               sx={{ flexWrap: "wrap" }}
             >
-              {(recap.highlights ?? []).map((highlight) => (
-                <HighlightCard
-                  key={`${highlight.kind}-${highlight.title}`}
-                  highlight={highlight}
-                  onFocusMatch={setFocusedMatchId}
+              {Object.entries(recap.maps ?? {}).map(([name, count]) => (
+                <Chip
+                  key={name}
+                  label={count > 1 ? `${name} ×${count}` : name}
+                  size="small"
+                  variant="outlined"
                 />
               ))}
             </Stack>
-          )}
 
-          <Divider />
-          <Typography variant="h6">Standings</Typography>
-          {recap.countedMatches < recap.matchCount && (
-            <Typography variant="caption" color="text.secondary">
-              Records cover the {recap.countedMatches} decided competitive{" "}
-              {recap.countedMatches === 1 ? "game" : "games"}; the other{" "}
-              {recap.matchCount - recap.countedMatches}{" "}
-              {recap.matchCount - recap.countedMatches === 1 ? "was" : "were"}{" "}
-              unfinished, a comp-stomp, or a free-for-all.
-            </Typography>
-          )}
-          <Standings recap={recap} />
-
-          <Stack
-            direction="row"
-            spacing={1}
-            useFlexGap
-            sx={{ flexWrap: "wrap" }}
-          >
-            {Object.entries(recap.maps ?? {}).map(([name, count]) => (
-              <Chip
-                key={name}
-                label={count > 1 ? `${name} ×${count}` : name}
-                size="small"
-                variant="outlined"
-              />
-            ))}
-          </Stack>
-
-          <GameByGame
-            date={recap.date.toISOString().slice(0, 10)}
-            focusedMatchId={focusedMatchId}
-          />
-        </>
-      )}
-    </Stack>
+            <GameByGame
+              date={recap.date.toISOString().slice(0, 10)}
+              focusedMatchId={focusedMatchId}
+            />
+          </>
+        )}
+      </Stack>
+    </Page>
   )
 }

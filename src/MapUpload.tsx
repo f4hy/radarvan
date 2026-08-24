@@ -1,4 +1,5 @@
 import * as React from "react"
+import Page from "./Page"
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -170,120 +171,129 @@ export default function MapUpload() {
 
   if (!status?.logged_in) {
     return (
-      <Alert
-        severity="info"
-        action={
-          <Button
-            color="inherit"
-            size="small"
-            startIcon={<LoginIcon />}
-            onClick={startDiscordLogin}
-          >
-            Log in
-          </Button>
-        }
+      <Page
+        surface={false}
+        width="narrow"
+        title="Upload Map"
+        description="Add a map to the pool so it shows up in voting, the draw and map stats."
       >
-        Log in with Discord to upload maps.
-      </Alert>
+        <Alert
+          severity="info"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              startIcon={<LoginIcon />}
+              onClick={startDiscordLogin}
+            >
+              Log in
+            </Button>
+          }
+        >
+          Log in with Discord to upload maps.
+        </Alert>
+      </Page>
     )
   }
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h6">Upload a map</Typography>
-      <Typography
-        variant="body2"
-        sx={{
-          color: "text.secondary",
-        }}
-      >
-        Upload a <strong>.tga</strong> + <strong>.map</strong> pair, or a{" "}
-        <strong>.zip</strong> of folders that each contain a .map and a .tga
-        (other files ignored). You&apos;ll see a preview before anything is
-        saved.
-      </Typography>
-      <ToggleButtonGroup
-        exclusive
-        size="small"
-        value={mode}
-        onChange={(_, next: Mode | null) => {
-          if (next) setMode(next)
-        }}
-      >
-        <ToggleButton value="files">.tga + .map</ToggleButton>
-        <ToggleButton value="zip">.zip of folders</ToggleButton>
-      </ToggleButtonGroup>
-      <Stack
-        direction="row"
-        spacing={1}
-        useFlexGap
-        sx={{
-          flexWrap: "wrap",
-        }}
-      >
-        {mode === "files" ? (
-          <>
-            <FilePicker
-              label="Choose .tga"
-              accept=".tga"
-              file={tga}
-              onPick={setTga}
-            />
-            <FilePicker
-              label="Choose .map"
-              accept=".map"
-              file={map}
-              onPick={setMap}
-            />
-          </>
-        ) : (
-          <FilePicker
-            label="Choose .zip"
-            accept=".zip"
-            file={zip}
-            onPick={setZip}
-          />
-        )}
-      </Stack>
-      <Stack direction="row" spacing={1}>
-        <Button
-          variant="contained"
-          startIcon={<UploadFileIcon />}
-          disabled={!ready || busy}
-          onClick={() => run(false)}
+    <Page
+      surface={false}
+      width="narrow"
+      title="Upload Map"
+      description={
+        <>
+          Upload a <strong>.tga</strong> + <strong>.map</strong> pair, or a{" "}
+          <strong>.zip</strong> of folders that each contain a .map and a .tga
+          (other files ignored). You&apos;ll see a preview before anything is
+          saved.
+        </>
+      }
+    >
+      <Stack spacing={2}>
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={mode}
+          onChange={(_, next: Mode | null) => {
+            if (next) setMode(next)
+          }}
         >
-          Preview
-        </Button>
-        {result && !result.committed && result.maps.length > 0 && (
+          <ToggleButton value="files">.tga + .map</ToggleButton>
+          <ToggleButton value="zip">.zip of folders</ToggleButton>
+        </ToggleButtonGroup>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{
+            flexWrap: "wrap",
+          }}
+        >
+          {mode === "files" ? (
+            <>
+              <FilePicker
+                label="Choose .tga"
+                accept=".tga"
+                file={tga}
+                onPick={setTga}
+              />
+              <FilePicker
+                label="Choose .map"
+                accept=".map"
+                file={map}
+                onPick={setMap}
+              />
+            </>
+          ) : (
+            <FilePicker
+              label="Choose .zip"
+              accept=".zip"
+              file={zip}
+              onPick={setZip}
+            />
+          )}
+        </Stack>
+        <Stack direction="row" spacing={1}>
           <Button
             variant="contained"
-            color="success"
-            startIcon={<SaveIcon />}
-            disabled={busy}
-            onClick={() => run(true)}
+            startIcon={<UploadFileIcon />}
+            disabled={!ready || busy}
+            onClick={() => run(false)}
           >
-            Save {result.maps.length} map
-            {result.maps.length === 1 ? "" : "s"}
+            Preview
           </Button>
+          {result && !result.committed && result.maps.length > 0 && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<SaveIcon />}
+              disabled={busy}
+              onClick={() => run(true)}
+            >
+              Save {result.maps.length} map
+              {result.maps.length === 1 ? "" : "s"}
+            </Button>
+          )}
+        </Stack>
+        {error && <Alert severity="error">{error}</Alert>}
+        {result?.committed && (
+          <Alert severity={savedCount > 0 ? "success" : "warning"}>
+            Saved {savedCount} map{savedCount === 1 ? "" : "s"}.
+          </Alert>
+        )}
+        {result?.errors.map((e, i) => (
+          <Alert key={i} severity="warning">
+            {e}
+          </Alert>
+        ))}
+        {result && result.maps.length === 0 && !result.errors.length && (
+          <Alert severity="warning">No valid maps found in the upload.</Alert>
+        )}
+        {result && result.maps.length > 0 && (
+          <PreviewGrid result={result} isAdmin={isAdmin} />
         )}
       </Stack>
-      {error && <Alert severity="error">{error}</Alert>}
-      {result?.committed && (
-        <Alert severity={savedCount > 0 ? "success" : "warning"}>
-          Saved {savedCount} map{savedCount === 1 ? "" : "s"}.
-        </Alert>
-      )}
-      {result?.errors.map((e, i) => (
-        <Alert key={i} severity="warning">
-          {e}
-        </Alert>
-      ))}
-      {result && result.maps.length === 0 && !result.errors.length && (
-        <Alert severity="warning">No valid maps found in the upload.</Alert>
-      )}
-      {result && result.maps.length > 0 && (
-        <PreviewGrid result={result} isAdmin={isAdmin} />
-      )}
-    </Stack>
+    </Page>
   )
 }

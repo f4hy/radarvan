@@ -31,6 +31,7 @@ import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
+import Page from "./Page"
 import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { wilsonLowerBound, winRate } from "./utils"
@@ -351,29 +352,29 @@ export default function DisplayGeneralStats() {
   }
 
   return (
-    <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 2 }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <Typography variant="h6">Game Format:</Typography>
-        <ToggleButtonGroup
-          value={format}
-          exclusive
-          onChange={(_, v) => v && setFormat(v)}
-          size="small"
-        >
-          {FORMAT_OPTIONS.map((f) => (
-            <ToggleButton key={f} value={f}>
-              {f}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
+    <Page
+      title="General Stats"
+      description="How each general performs across our games, and which faction matchups genuinely favor one side."
+      actions={
+        <>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Game format
+          </Typography>
+          <ToggleButtonGroup
+            value={format}
+            exclusive
+            onChange={(_, v) => v && setFormat(v)}
+            size="small"
+          >
+            {FORMAT_OPTIONS.map((f) => (
+              <ToggleButton key={f} value={f}>
+                {f}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </>
+      }
+    >
       <DisplayOverallGeneralStat stats={generalStats} />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Grid
@@ -407,6 +408,6 @@ export default function DisplayGeneralStats() {
       <Divider sx={{ mt: 4, mb: 2 }} />
       <FactionMatrixSection />
       {errorSnackbar}
-    </Paper>
+    </Page>
   )
 }

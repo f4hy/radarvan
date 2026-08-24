@@ -12,6 +12,7 @@ import BlockIcon from "@mui/icons-material/Block"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import GameMap from "./Map"
+import Page from "./Page"
 import PlayerCountPicker from "./PlayerCountPicker"
 import { displayMapName } from "./utils"
 import {
@@ -224,19 +225,29 @@ export default function ChooseMap() {
   }
 
   if (error && counts === null) {
-    return <Alert severity="error">{error}</Alert>
+    return (
+      <Page title="Choose Map" width="narrow">
+        <Alert severity="error">{error}</Alert>
+      </Page>
+    )
   }
 
   if (phase === "pick" || selected === null) {
     return (
-      <PlayerCountPicker
-        title="Choose a map — how many players?"
-        counts={counts ?? []}
-        onPick={(c) => {
-          setSelected(c)
-          setPhase("ready")
-        }}
-      />
+      <Page
+        surface={false}
+        title="Choose Map"
+        description="Draw tonight's map from what everyone voted for."
+      >
+        <PlayerCountPicker
+          title="How many players?"
+          counts={counts ?? []}
+          onPick={(c) => {
+            setSelected(c)
+            setPhase("ready")
+          }}
+        />
+      </Page>
     )
   }
 
@@ -250,157 +261,155 @@ export default function ChooseMap() {
     : (result?.chosen_map ?? undefined)
 
   return (
-    <Stack spacing={2}>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          size="small"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => reset(true)}
-        >
-          Player count
-        </Button>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          {selected}-player map draw
-        </Typography>
+    <Page
+      surface={false}
+      title={`Choose Map — ${selected} players`}
+      description="More votes means better odds. A single veto takes a map out of the draw entirely."
+      actions={
+        <>
+          <Button
+            size="small"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => reset(true)}
+          >
+            Player count
+          </Button>
+          {phase === "ready" && (
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<CasinoIcon />}
+              onClick={draw}
+              disabled={participants.size === 0}
+            >
+              Reveal votes &amp; draw
+            </Button>
+          )}
+          {phase === "done" && (
+            <Button
+              variant="outlined"
+              startIcon={<CasinoIcon />}
+              onClick={() => reset(false)}
+            >
+              Draw again
+            </Button>
+          )}
+        </>
+      }
+    >
+      <Stack spacing={2}>
         {phase === "ready" && (
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<CasinoIcon />}
-            onClick={draw}
-            disabled={participants.size === 0}
-          >
-            Reveal votes &amp; draw
-          </Button>
+          <Stack spacing={1.5}>
+            <Alert severity="info">
+              Pick who’s playing — only their votes count. Then hit “Reveal
+              votes &amp; draw” to spin for a winner (weighted by votes; any
+              veto knocks a map out).
+            </Alert>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ mr: 1 }}>
+                Players ({participants.size}/{players.length})
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => setParticipants(new Set(players))}
+              >
+                All
+              </Button>
+              <Button size="small" onClick={() => setParticipants(new Set())}>
+                None
+              </Button>
+            </Stack>
+            {players.length === 0 ? (
+              <Alert severity="warning">
+                No players have signed in and claimed a name yet, so there are
+                no votes to draw from.
+              </Alert>
+            ) : (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {players.map((name) => {
+                  const on = participants.has(name)
+                  return (
+                    <Chip
+                      key={name}
+                      label={name}
+                      color={on ? "primary" : "default"}
+                      variant={on ? "filled" : "outlined"}
+                      onClick={() => toggleParticipant(name)}
+                    />
+                  )
+                })}
+              </Box>
+            )}
+          </Stack>
         )}
-        {phase === "done" && (
-          <Button
+        {error && <Alert severity="error">{error}</Alert>}
+        {(spinning || phase === "done") && spotlightName && (
+          <Paper
             variant="outlined"
-            startIcon={<CasinoIcon />}
-            onClick={() => reset(false)}
+            sx={{
+              p: 2,
+              textAlign: "center",
+              borderColor: phase === "done" ? "warning.main" : "primary.main",
+              borderWidth: 2,
+            }}
           >
-            Draw again
-          </Button>
+            <Typography
+              variant="overline"
+              sx={{
+                color: "text.secondary",
+              }}
+            >
+              {phase === "done" ? "Winner" : "Drawing…"}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+              {displayMapName(spotlightName)}
+            </Typography>
+            {phase === "done" && (
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <Box sx={{ maxWidth: 460, width: "100%" }}>
+                  <GameMap mapname={spotlightName} />
+                </Box>
+              </Box>
+            )}
+          </Paper>
+        )}
+        {phase === "done" && eligible.length === 0 && (
+          <Alert severity="warning">
+            No maps were eligible — every voted map was vetoed, or nobody has
+            voted yet for {selected} players.
+          </Alert>
+        )}
+        {revealed.length > 0 && (
+          <Stack spacing={1}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                color: "text.secondary",
+              }}
+            >
+              {phase === "reveal" ? "Revealing votes…" : "Votes & vetoes"}
+            </Typography>
+            {revealed.map((c) => (
+              <CandidateRow
+                key={c.map_name}
+                candidate={c}
+                highlighted={
+                  spinning && eligible[spinIndex]?.map_name === c.map_name
+                }
+                winner={phase === "done" && result?.chosen_map === c.map_name}
+              />
+            ))}
+          </Stack>
         )}
       </Stack>
-      {phase === "ready" && (
-        <Stack spacing={1.5}>
-          <Alert severity="info">
-            Pick who’s playing — only their votes count. Then hit “Reveal votes
-            &amp; draw” to spin for a winner (weighted by votes; any veto knocks
-            a map out).
-          </Alert>
-          <Stack
-            direction="row"
-            spacing={1}
-            useFlexGap
-            sx={{
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ mr: 1 }}>
-              Players ({participants.size}/{players.length})
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => setParticipants(new Set(players))}
-            >
-              All
-            </Button>
-            <Button size="small" onClick={() => setParticipants(new Set())}>
-              None
-            </Button>
-          </Stack>
-          {players.length === 0 ? (
-            <Alert severity="warning">
-              No players have signed in and claimed a name yet, so there are no
-              votes to draw from.
-            </Alert>
-          ) : (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {players.map((name) => {
-                const on = participants.has(name)
-                return (
-                  <Chip
-                    key={name}
-                    label={name}
-                    color={on ? "primary" : "default"}
-                    variant={on ? "filled" : "outlined"}
-                    onClick={() => toggleParticipant(name)}
-                  />
-                )
-              })}
-            </Box>
-          )}
-        </Stack>
-      )}
-      {error && <Alert severity="error">{error}</Alert>}
-      {(spinning || phase === "done") && spotlightName && (
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            textAlign: "center",
-            borderColor: phase === "done" ? "warning.main" : "primary.main",
-            borderWidth: 2,
-          }}
-        >
-          <Typography
-            variant="overline"
-            sx={{
-              color: "text.secondary",
-            }}
-          >
-            {phase === "done" ? "Winner" : "Drawing…"}
-          </Typography>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            {displayMapName(spotlightName)}
-          </Typography>
-          {phase === "done" && (
-            <Box sx={{ display: "flex", justifyContent: "center" }}>
-              <Box sx={{ maxWidth: 460, width: "100%" }}>
-                <GameMap mapname={spotlightName} />
-              </Box>
-            </Box>
-          )}
-        </Paper>
-      )}
-      {phase === "done" && eligible.length === 0 && (
-        <Alert severity="warning">
-          No maps were eligible — every voted map was vetoed, or nobody has
-          voted yet for {selected} players.
-        </Alert>
-      )}
-      {revealed.length > 0 && (
-        <Stack spacing={1}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: "text.secondary",
-            }}
-          >
-            {phase === "reveal" ? "Revealing votes…" : "Votes & vetoes"}
-          </Typography>
-          {revealed.map((c) => (
-            <CandidateRow
-              key={c.map_name}
-              candidate={c}
-              highlighted={
-                spinning && eligible[spinIndex]?.map_name === c.map_name
-              }
-              winner={phase === "done" && result?.chosen_map === c.map_name}
-            />
-          ))}
-        </Stack>
-      )}
-    </Stack>
+    </Page>
   )
 }

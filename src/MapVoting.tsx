@@ -18,6 +18,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import SearchIcon from "@mui/icons-material/Search"
 import GameMap from "./Map"
 import Loading from "./Loading"
+import Page from "./Page"
 import PlayerCountPicker from "./PlayerCountPicker"
 import { startDiscordLogin } from "./auth"
 import { displayMapName } from "./utils"
@@ -184,12 +185,20 @@ export default function MapVoting() {
   }
 
   if (counts !== null && counts.length === 0) {
-    return <Alert severity="info">No maps available to vote on yet.</Alert>
+    return (
+      <Page title="Map Voting" width="narrow">
+        <Alert severity="info">No maps available to vote on yet.</Alert>
+      </Page>
+    )
   }
 
   if (selected === null || page === null) {
     return (
-      <>
+      <Page
+        surface={false}
+        title="Map Voting"
+        description="Vote for the maps you want in the rotation and veto the ones you don't."
+      >
         {counts && (
           <PlayerCountPicker
             title="How many players?"
@@ -199,7 +208,7 @@ export default function MapVoting() {
           />
         )}
         {errorBar}
-      </>
+      </Page>
     )
   }
 
@@ -211,102 +220,99 @@ export default function MapVoting() {
   const hidden = filtered.length - visible.length
 
   return (
-    <Stack spacing={2}>
-      <Stack
-        direction="row"
-        spacing={1}
-        useFlexGap
-        sx={{
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          size="small"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => setSelected(null)}
-        >
-          Player count
-        </Button>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          {page.player_count}-player maps
-        </Typography>
-        <Chip
-          icon={<HowToVoteIcon />}
-          color="success"
-          variant="outlined"
-          label={`Votes ${page.votes_used}/${page.vote_limit}`}
-        />
-        <Chip
-          icon={<BlockIcon />}
-          color="error"
-          variant="outlined"
-          label={`Vetoes ${page.vetoes_used}/${page.veto_limit}`}
-        />
-      </Stack>
-      {!page.logged_in && (
-        <Alert
-          severity="info"
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              startIcon={<LoginIcon />}
-              onClick={startDiscordLogin}
-            >
-              Log in
-            </Button>
-          }
-        >
-          Log in with Discord to vote for and veto maps.
-        </Alert>
-      )}
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Search maps…"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value)
-          setShowAll(false)
-        }}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          },
-        }}
-      />
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 2,
-        }}
-      >
-        {visible.map((option) => (
-          <MapCard
-            key={option.map_name}
-            option={option}
-            disabled={!page.logged_in || pending}
-            onChoose={(choice) => choose(option.map_name, choice)}
+    <Page
+      surface={false}
+      title={`Map Voting — ${page.player_count} players`}
+      description="Vote for the maps you want in the rotation and veto the ones you don't. A veto takes a map out of the draw entirely."
+      actions={
+        <>
+          <Button
+            size="small"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => setSelected(null)}
+          >
+            Player count
+          </Button>
+          <Chip
+            icon={<HowToVoteIcon />}
+            color="success"
+            variant="outlined"
+            label={`Votes ${page.votes_used}/${page.vote_limit}`}
           />
-        ))}
-      </Box>
-      {hidden > 0 && (
-        <Button
-          variant="outlined"
+          <Chip
+            icon={<BlockIcon />}
+            color="error"
+            variant="outlined"
+            label={`Vetoes ${page.vetoes_used}/${page.veto_limit}`}
+          />
+        </>
+      }
+    >
+      <Stack spacing={2}>
+        {!page.logged_in && (
+          <Alert
+            severity="info"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<LoginIcon />}
+                onClick={startDiscordLogin}
+              >
+                Log in
+              </Button>
+            }
+          >
+            Log in with Discord to vote for and veto maps.
+          </Alert>
+        )}
+        <TextField
           fullWidth
-          onClick={() => setShowAll(true)}
-          sx={{ mt: 1 }}
+          size="small"
+          placeholder="Search maps…"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setShowAll(false)
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: 2,
+          }}
         >
-          Load all {filtered.length} maps ({hidden} more)
-        </Button>
-      )}
-      {errorBar}
-    </Stack>
+          {visible.map((option) => (
+            <MapCard
+              key={option.map_name}
+              option={option}
+              disabled={!page.logged_in || pending}
+              onChoose={(choice) => choose(option.map_name, choice)}
+            />
+          ))}
+        </Box>
+        {hidden > 0 && (
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => setShowAll(true)}
+            sx={{ mt: 1 }}
+          >
+            Load all {filtered.length} maps ({hidden} more)
+          </Button>
+        )}
+        {errorBar}
+      </Stack>
+    </Page>
   )
 }

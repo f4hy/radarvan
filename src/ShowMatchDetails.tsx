@@ -1697,7 +1697,11 @@ function DetailViewSelector(props: {
         ))}
       </ToggleButtonGroup>
       <Divider />
-      <Typography>{props.selectedDisplay}</Typography>
+      {props.selectedDisplay !== null && (
+        <Typography variant="h6" sx={{ mt: 1.5, mb: 1 }}>
+          {props.selectedDisplay}
+        </Typography>
+      )}
       {props.selectedDisplay === "Player Unit and spending breakdown" && (
         <ShowPlayerSummaries
           playerSummaries={props.details.playerSummary}
