@@ -210,7 +210,7 @@ function PlayerBanner(props: {
       }}
     >
       <Box sx={{ minWidth: 140 }}>
-        <PlayerLabel name={props.name} avatarSize={34} bold variant="h6" />
+        <PlayerLabel name={props.name} bold variant="h6" />
       </Box>
       {props.debug && (
         <Typography

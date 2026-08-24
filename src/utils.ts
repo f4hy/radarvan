@@ -232,3 +232,86 @@ export function buildPlayerColorMap(
     playerSummaries.map((ps) => [ps.name, transform(ps.color)]),
   )
 }
+
+// --- Player identity color ---------------------------------------------
+
+/** Hex -> HSL. Returns null for anything not a 3/6-digit hex. */
+function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim())
+  if (!m) return null
+  const raw = m[1]
+  const full =
+    raw.length === 3
+      ? raw
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : raw
+  const r = parseInt(full.slice(0, 2), 16) / 255
+  const g = parseInt(full.slice(2, 4), 16) / 255
+  const b = parseInt(full.slice(4, 6), 16) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  if (max === min) return { h: 0, s: 0, l: l * 100 }
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h: number
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+  else if (max === g) h = ((b - r) / d + 2) / 6
+  else h = ((r - g) / d + 4) / 6
+  return { h: h * 360, s: s * 100, l: l * 100 }
+}
+
+export interface PlayerPalette {
+  /** The player's actual in-game color, unmodified — the honest swatch. */
+  dot: string
+  /** Very light wash of that hue, for a chip background. */
+  tint: string
+  /** A deeper wash, for hover. */
+  tintStrong: string
+  /** Same hue darkened to stay readable as text on `tint`. */
+  ink: string
+  /** Same hue, for a hairline border. */
+  edge: string
+}
+
+/**
+ * Turn a raw in-game color into a set that can actually be used in the UI.
+ *
+ * The game's colors are pure hues — `#FF0000`, `#FFFF00`, `#00FF00` — which
+ * are unreadable as text and clash with the app's muted palette if used
+ * directly. Clamping saturation and pinning lightness per role keeps each
+ * player recognisably *their* color while letting twelve of them sit next to
+ * each other without the page turning into a bag of highlighters. The raw
+ * value still shows as `dot`, so the color someone actually plays isn't lost.
+ */
+export function playerPalette(color: string): PlayerPalette {
+  const hsl = hexToHsl(color)
+  if (hsl === null) {
+    // A color we can't parse (rgb()/hsl() strings): fall back to neutral
+    // surfaces and let `dot` carry it verbatim.
+    return {
+      dot: color,
+      tint: "rgba(26, 34, 48, 0.04)",
+      tintStrong: "rgba(26, 34, 48, 0.08)",
+      ink: "#1a2230",
+      edge: "rgba(26, 34, 48, 0.18)",
+    }
+  }
+  const { h } = hsl
+  // Near-greys (black, silver, metallicgrey) keep no hue at all; tinting them
+  // would invent a color the player doesn't play.
+  const s = hsl.s < 12 ? 0 : hsl.s
+  // Text lightness tracks the source's, so two players on the same hue at
+  // different lightness (red vs maroon, silver vs black) don't derive an
+  // identical chip and differ only by the swatch.
+  const ink = Math.round(22 + (hsl.l / 100) * 14)
+  return {
+    dot: color,
+    tint: `hsl(${h}, ${Math.min(s, 72)}%, 96%)`,
+    tintStrong: `hsl(${h}, ${Math.min(s, 72)}%, 91%)`,
+    ink: `hsl(${h}, ${Math.min(s, 55)}%, ${ink}%)`,
+    edge: `hsl(${h}, ${Math.min(s, 45)}%, 80%)`,
+  }
+}
