@@ -1,6 +1,5 @@
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
-import LinearProgress from "@mui/material/LinearProgress"
 import Loading from "./Loading"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
@@ -11,9 +10,10 @@ import * as React from "react"
 import { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "./api"
 import { Client } from "./Client"
 import Page from "./Page"
+import { WinRateBar } from "./WinRateChip"
 import { PlayerChip } from "./PlayerChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { wilsonLowerBound, winRateTone } from "./utils"
+import { formatPercent, wilsonLowerBound, winRateTone } from "./utils"
 
 function getTeamStats(
   callback: (m: TeamStatsResponse) => void,
@@ -25,10 +25,8 @@ function getTeamStats(
 function TeamRow(props: { team: TeamRecord }) {
   const { team } = props
   // One rule for the color, shared with every other page (utils.winRateTone):
-  // a 3-0 pairing reads neutral rather than triumphantly green. `confidence`
-  // also de-emphasizes small-sample rows — bars fade in as the sample grows.
+  // a 3-0 pairing reads neutral rather than triumphantly green.
   const verdict = winRateTone(team.wins, team.losses)
-  const { rate, confidence } = verdict
   const total = team.wins + team.losses
   return (
     <Paper elevation={1} sx={{ p: 1.5 }}>
@@ -55,7 +53,7 @@ function TeamRow(props: { team: TeamRecord }) {
               color: verdict.hex,
             }}
           >
-            {(rate * 100).toFixed(0)}%
+            {formatPercent(verdict.rate)}
           </Typography>
           <Typography
             variant="caption"
@@ -68,17 +66,7 @@ function TeamRow(props: { team: TeamRecord }) {
           </Typography>
         </Box>
       </Box>
-      <LinearProgress
-        variant="determinate"
-        value={rate * 100}
-        sx={{
-          height: 7,
-          borderRadius: 4,
-          opacity: 0.45 + 0.55 * confidence,
-          bgcolor: "action.hover",
-          "& .MuiLinearProgress-bar": { bgcolor: verdict.hex },
-        }}
-      />
+      <WinRateBar wins={team.wins} losses={team.losses} />
     </Paper>
   )
 }
@@ -86,9 +74,18 @@ function TeamRow(props: { team: TeamRecord }) {
 function TeamSizeTab(props: { group: TeamSizeGroup }) {
   // Ranked by the Wilson lower bound rather than the raw rate, so a 4-0 duo
   // no longer outranks a 20-8 one — matching how the row's own bar is faded.
-  const sorted = [...props.group.teams].sort(
-    (a, b) =>
-      wilsonLowerBound(b.wins, b.losses) - wilsonLowerBound(a.wins, a.losses),
+  // Keyed once per team rather than twice per comparison: the bound costs a
+  // sqrt and an object, and this list runs to ~80 teams.
+  const sorted = React.useMemo(
+    () =>
+      props.group.teams
+        .map((team) => ({
+          team,
+          key: wilsonLowerBound(team.wins, team.losses),
+        }))
+        .sort((a, b) => b.key - a.key)
+        .map((entry) => entry.team),
+    [props.group],
   )
   return (
     <Stack
@@ -128,10 +125,7 @@ export default function DisplayTeamStats() {
   const groups = teamStats.groups
   // Prefer 2v2 when it exists (the most common format), else the first group
   // that does — and keep the Tabs value and the rendered group in agreement.
-  const activeGroup =
-    groups.find((g) => g.size === tab) ??
-    groups.find((g) => g.size === 2) ??
-    groups[0]
+  const activeGroup = groups.find((g) => g.size === (tab ?? 2)) ?? groups[0]
 
   return (
     <Page

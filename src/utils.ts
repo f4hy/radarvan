@@ -1,6 +1,6 @@
 import type { MapPoint, Player } from "./api"
 import { PlayerRole, Team } from "./api"
-import { LOSS_COLOR, NEUTRAL_COLOR, WIN_COLOR } from "./theme"
+import { INK, LOSS_COLOR, NEUTRAL_COLOR, WIN_COLOR } from "./theme"
 
 // The generated PlayerRole is NUMBER_0/1/2 - Python IntEnum member names don't
 // survive into the OpenAPI schema (same reason Team is NUMBER_MINUS_1). Alias
@@ -95,8 +95,6 @@ export type WinRateToneName = "positive" | "negative" | "inconclusive"
 export interface WinRateVerdict {
   /** Which side of even the record is on, once uncertainty is accounted for. */
   tone: WinRateToneName
-  /** MUI palette key, for `color=` on Chip / LinearProgress / Alert. */
-  muiColor: "success" | "error" | "inherit"
   /** Solid hex, for sx values and recharts (which can't read the theme). */
   hex: string
   /** 0..1 by sample size — how loudly to render the verdict (opacity, alpha). */
@@ -136,12 +134,6 @@ export function winRateTone(wins: number, losses: number): WinRateVerdict {
         : "inconclusive"
   return {
     tone,
-    muiColor:
-      tone === "positive"
-        ? "success"
-        : tone === "negative"
-          ? "error"
-          : "inherit",
     hex:
       tone === "positive"
         ? WIN_COLOR
@@ -161,6 +153,17 @@ export function winRateTone(wins: number, losses: number): WinRateVerdict {
 // Format a 0..1 fraction as a whole-number percent, e.g. 0.732 -> "73%".
 export function formatPercent(fraction: number): string {
   return `${(fraction * 100).toFixed(0)}%`
+}
+
+/**
+ * Parse the backend's game-night date key ("YYYY-MM-DD") as a local calendar
+ * day. `new Date("YYYY-MM-DD")` parses as UTC midnight, which renders as the
+ * previous evening anywhere west of UTC — so every page showing a night key
+ * needs this, and each used to carry its own copy.
+ */
+export function localDate(key: string): Date {
+  const [year, month, day] = key.split("-").map(Number)
+  return new Date(year, month - 1, day)
 }
 
 // Strip the directory path and ".map" extension from a map name/path for display.
@@ -295,23 +298,24 @@ export function playerPalette(color: string): PlayerPalette {
       dot: color,
       tint: "rgba(26, 34, 48, 0.04)",
       tintStrong: "rgba(26, 34, 48, 0.08)",
-      ink: "#1a2230",
+      ink: INK,
       edge: "rgba(26, 34, 48, 0.18)",
     }
   }
-  const { h } = hsl
+  const h = Math.round(hsl.h)
   // Near-greys (black, silver, metallicgrey) keep no hue at all; tinting them
   // would invent a color the player doesn't play.
   const s = hsl.s < 12 ? 0 : hsl.s
   // Text lightness tracks the source's, so two players on the same hue at
   // different lightness (red vs maroon, silver vs black) don't derive an
   // identical chip and differ only by the swatch.
-  const ink = Math.round(22 + (hsl.l / 100) * 14)
+  const inkL = Math.round(22 + (hsl.l / 100) * 14)
+  const wash = Math.round(Math.min(s, 72))
   return {
     dot: color,
-    tint: `hsl(${h}, ${Math.min(s, 72)}%, 96%)`,
-    tintStrong: `hsl(${h}, ${Math.min(s, 72)}%, 91%)`,
-    ink: `hsl(${h}, ${Math.min(s, 55)}%, ${ink}%)`,
-    edge: `hsl(${h}, ${Math.min(s, 45)}%, 80%)`,
+    tint: `hsl(${h}, ${wash}%, 96%)`,
+    tintStrong: `hsl(${h}, ${wash}%, 91%)`,
+    ink: `hsl(${h}, ${Math.round(Math.min(s, 55))}%, ${inkL}%)`,
+    edge: `hsl(${h}, ${Math.round(Math.min(s, 45))}%, 80%)`,
   }
 }

@@ -76,6 +76,11 @@ const DisplayTournamentResults = React.lazy(() => import("./Tournaments"))
 
 const drawerWidth = 204
 
+interface NavGroup {
+  heading: string
+  items: { value: Selection; text: string; icon: React.ReactNode }[]
+}
+
 const ALL_SELECTIONS = [
   "Matches",
   "GameNight",
@@ -191,10 +196,7 @@ export default function Menu() {
   // it, Players is one person at a time, Maps is the map pool.
   // Each item's `text` is also the page's own <h1>, so the nav and the page
   // never disagree about what a page is called.
-  const navGroups: {
-    heading: string
-    items: { value: Selection; text: string; icon: React.ReactNode }[]
-  }[] = [
+  const allGroups: NavGroup[] = [
     {
       heading: "Games",
       items: [
@@ -288,34 +290,33 @@ export default function Menu() {
         { value: "MapUpload", text: "Upload Map", icon: <UploadFileIcon /> },
       ],
     },
-    ...(debug || opsAdmin
-      ? [
-          {
-            heading: "Admin",
-            items: [
-              ...(debug
-                ? ([
-                    {
-                      value: "DebugData",
-                      text: "Debug Matchid",
-                      icon: <TableView />,
-                    },
-                  ] as const)
-                : []),
-              ...(opsAdmin
-                ? ([
-                    {
-                      value: "AdminPanel",
-                      text: "Admin",
-                      icon: <AdminPanelSettingsIcon />,
-                    },
-                  ] as const)
-                : []),
-            ],
-          },
-        ]
-      : []),
+    {
+      heading: "Admin",
+      items: [
+        ...(debug
+          ? ([
+              {
+                value: "DebugData",
+                text: "Debug Matchid",
+                icon: <TableView />,
+              },
+            ] as const)
+          : []),
+        ...(opsAdmin
+          ? ([
+              {
+                value: "AdminPanel",
+                text: "Admin",
+                icon: <AdminPanelSettingsIcon />,
+              },
+            ] as const)
+          : []),
+      ],
+    },
   ]
+  // Any group whose items are all gated away drops out, heading included — so
+  // a new gated group gets this for free.
+  const navGroups = allGroups.filter((group) => group.items.length > 0)
 
   const navItems = navGroups.flatMap((g) => g.items)
 
@@ -472,11 +473,7 @@ export default function Menu() {
           <Toolbar />
           <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
             <React.Suspense fallback={<Loading />}>
-              <Main
-                selection={selection}
-                goToPlayerProfile={goToPlayerProfile}
-                goToHeadToHead={goToHeadToHead}
-              />
+              <Main selection={selection} />
             </React.Suspense>
           </Box>
         </Box>
@@ -494,11 +491,7 @@ interface MenuItemProps {
   disabled?: boolean
 }
 
-function Main(props: {
-  selection: Selection
-  goToPlayerProfile: (playerName: string) => void
-  goToHeadToHead: (player1: string, player2: string) => void
-}) {
+function Main(props: { selection: Selection }) {
   switch (props.selection) {
     case "Matches":
       return <DisplayMatches />
@@ -519,12 +512,7 @@ function Main(props: {
     case "Tournaments":
       return <DisplayTournamentResults />
     case "Bracket":
-      return (
-        <DisplayBracket
-          goToPlayerProfile={props.goToPlayerProfile}
-          goToHeadToHead={props.goToHeadToHead}
-        />
-      )
+      return <DisplayBracket />
     case "BalanceTeams":
       return <DisplayBalanceTeams />
     case "MapStats":

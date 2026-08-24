@@ -78,6 +78,26 @@ const getScoreStyle = (score: number) => {
   return "warning"
 }
 
+const SIDE_SX = {
+  display: "flex",
+  gap: 0.5,
+  flexWrap: "wrap",
+  px: 0.75,
+  py: 0.5,
+  borderRadius: 1,
+  bgcolor: "action.hover",
+} as const
+
+function Side(props: { players: string[] }) {
+  return (
+    <Box sx={SIDE_SX}>
+      {props.players.map((p) => (
+        <PlayerChip key={p} name={p} disableNav />
+      ))}
+    </Box>
+  )
+}
+
 export function ScoreBar(props: {
   team: string
   score: number
@@ -97,42 +117,14 @@ export function ScoreBar(props: {
           mb: 1,
         }}
       >
-        {/* Player identity comes from PlayerChip (same avatar and color as
+        {/* Player identity comes from PlayerChip (same swatch and color as
             everywhere else); the two sides are told apart by their grouping
             rather than by repainting every chip primary/secondary. */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 0.5,
-            flexWrap: "wrap",
-            px: 0.75,
-            py: 0.5,
-            borderRadius: 1,
-            bgcolor: "action.hover",
-          }}
-        >
-          {team1.map((p) => (
-            <PlayerChip key={p} name={p} disableNav />
-          ))}
-        </Box>
+        <Side players={team1} />
         <Typography variant="body2" sx={{ mx: 0.5, color: "text.secondary" }}>
           vs
         </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 0.5,
-            flexWrap: "wrap",
-            px: 0.75,
-            py: 0.5,
-            borderRadius: 1,
-            bgcolor: "action.hover",
-          }}
-        >
-          {team2.map((p) => (
-            <PlayerChip key={p} name={p} disableNav />
-          ))}
-        </Box>
+        <Side players={team2} />
       </Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <LinearProgress
@@ -269,7 +261,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   // Team cards are neutral surfaces with a colored top rule, matching how the
   // rest of the app separates groups — the old hardcoded pastels carrying blue
   // "primary" chips were the one place that ignored the theme entirely.
-  const teamAccents = CHART_PALETTE
+
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement>,
     value: string,
@@ -296,7 +288,7 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
               variant="outlined"
               sx={{
                 p: 2,
-                borderTop: `3px solid ${teamAccents[i % teamAccents.length]}`,
+                borderTop: `3px solid ${CHART_PALETTE[i % CHART_PALETTE.length]}`,
               }}
             >
               <Typography
@@ -335,22 +327,17 @@ function PlayerSelector(props: {
         : `${count} picked, needs an even number`
   return (
     <FormGroup>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.5 }}
+      <Typography
+        variant="body2"
+        sx={{
+          mb: 0.5,
+          color:
+            count > 0 && count % 2 !== 0 ? "warning.main" : "text.secondary",
+          fontWeight: 500,
+        }}
       >
-        <Typography
-          variant="body2"
-          sx={{
-            color:
-              count > 0 && count % 2 !== 0 ? "warning.main" : "text.secondary",
-            fontWeight: 500,
-          }}
-        >
-          {parity}
-        </Typography>
-      </Stack>
+        {parity}
+      </Typography>
       <Box
         sx={{
           display: "flex",

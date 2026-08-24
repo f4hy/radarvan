@@ -35,7 +35,7 @@ import Page from "./Page"
 import PlayerChip from "./PlayerChip"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { winRateTone } from "./utils"
+import { formatPercent, localDate, winRateTone } from "./utils"
 
 // Emoji per highlight kind. `kind` is a stable backend slug; an unrecognised
 // one still renders (with the fallback), so adding a highlight server-side
@@ -51,16 +51,6 @@ const HIGHLIGHT_ICONS: { [key: string]: string } = {
   superweapon: "☢️",
   power: "✴️",
   hunted: "🚜",
-}
-
-// The backend's game-night date key is "YYYY-MM-DD" (US Eastern, 5am
-// rollover). Build the Date in local time so it renders as that exact calendar
-// day everywhere — new Date("YYYY-MM-DD") parses as UTC midnight, which shows
-// as the previous evening anywhere west of UTC. Same reasoning as
-// Matches.tsx:MatchDateSummary.
-function localDate(key: string): Date {
-  const [year, month, day] = key.split("-").map(Number)
-  return new Date(year, month - 1, day)
 }
 
 function longDate(key: string): string {
@@ -143,11 +133,11 @@ function Standings(props: { recap: GameNightRecap }) {
         </TableHead>
         <TableBody>
           {players.map((line) => {
-            // Same verdict as everywhere else; `margin` (distance from even)
-            // drives the tint strength, so a 5-2 night still reads louder than
-            // a 4-3 one, and `confidence` keeps a 1-0 night from shouting.
+            // Same verdict as everywhere else, including its color: `margin`
+            // (distance from even) drives the tint strength so a 5-2 night
+            // reads louder than a 4-3 one, and `confidence` keeps a 1-0 night
+            // from shouting.
             const verdict = winRateTone(line.wins, line.losses)
-            const rate = line.games > 0 ? line.wins / line.games : 0
             return (
               <TableRow key={line.player} hover>
                 <TableCell>
@@ -163,14 +153,13 @@ function Standings(props: { recap: GameNightRecap }) {
                   align="right"
                   sx={{
                     bgcolor: alpha(
-                      rate >= 0.5 ? WIN_COLOR : LOSS_COLOR,
-                      Math.min(0.35, verdict.margin * 0.35) *
-                        (0.4 + 0.6 * verdict.confidence),
+                      verdict.hex,
+                      verdict.margin * 0.35 * (0.4 + 0.6 * verdict.confidence),
                     ),
                     fontWeight: 500,
                   }}
                 >
-                  {(rate * 100).toFixed(0)}%
+                  {formatPercent(verdict.rate)}
                 </TableCell>
                 <TableCell align="right">
                   {(line.bestStreak ?? 0) > 1 ? `${line.bestStreak}W` : "—"}
@@ -297,7 +286,6 @@ function GameByGame(props: {
 }
 
 export default function GameNight() {
-  const [nights, setNights] = React.useState<string[]>([])
   const [focusedMatchId, setFocusedMatchId] = React.useState<number | null>(
     null,
   )
@@ -314,10 +302,8 @@ export default function GameNight() {
     Client.getDatesApiDatesGet()
       .then((dates) => {
         // Already newest-first from the API.
-        const keys = Object.keys(dates)
         setDateCounts(dates)
-        setNights(keys)
-        setSelected((current) => current ?? keys[0] ?? null)
+        setSelected((current) => current ?? Object.keys(dates)[0] ?? null)
       })
       .catch(showError)
   }, [showError])
@@ -338,6 +324,7 @@ export default function GameNight() {
       .catch(showError)
   }, [selected, showError])
 
+  const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])
   const index = selected ? nights.indexOf(selected) : -1
   // nights is newest-first, so the *later* night is at a lower index.
   const goNewer = index > 0 ? () => setSelected(nights[index - 1]) : undefined
@@ -393,22 +380,7 @@ export default function GameNight() {
     </Collapse>
   )
 
-  if (recap === null) {
-    return (
-      <Page
-        surface={false}
-        title="Game Night"
-        description="How one evening went. The standings, the highlights, and every game retold."
-        actions={picker}
-      >
-        {errorSnackbar}
-        {calendar}
-        <Loading />
-      </Page>
-    )
-  }
-
-  const span = clockSpan(recap)
+  const span = recap === null ? null : clockSpan(recap)
   return (
     <Page
       surface={false}
@@ -419,7 +391,9 @@ export default function GameNight() {
       <Stack spacing={2}>
         {errorSnackbar}
         {calendar}
-        {recap.matchCount === 0 ? (
+        {recap === null ? (
+          <Loading />
+        ) : recap.matchCount === 0 ? (
           <Typography color="text.secondary">
             Nothing was played that night.
           </Typography>

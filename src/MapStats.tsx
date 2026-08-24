@@ -6,7 +6,6 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import Divider from "@mui/material/Divider"
-import LinearProgress from "@mui/material/LinearProgress"
 import Loading from "./Loading"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
@@ -20,10 +19,11 @@ import { MapClient } from "./Client"
 import { toGeneralName } from "./general_utils"
 import GameMap from "./Map"
 import Page from "./Page"
+import { WinRateBar } from "./WinRateChip"
 import { PlayerLabel } from "./PlayerChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { useIsAdmin } from "./AuthContext"
-import { winRate, winRateTone } from "./utils"
+import { winRate } from "./utils"
 
 function getMapStats(
   callback: (m: MapStatsResponse) => void,
@@ -42,11 +42,7 @@ function WinRateRow(props: {
   losses: number
   delta?: number
 }) {
-  // Shared rule (utils.winRateTone) rather than a local 0.55/0.45 threshold —
-  // one game no longer paints a full-confidence green bar, and `confidence`
-  // fades the bar the way TeamStats does.
-  const verdict = winRateTone(props.wins, props.losses)
-  const { rate, confidence } = verdict
+  const rate = winRate(props.wins, props.losses)
   const { delta } = props
   const deltaColor =
     delta === undefined || Math.abs(delta) < 0.01
@@ -89,17 +85,7 @@ function WinRateRow(props: {
           </Typography>
         </Box>
       </Box>
-      <LinearProgress
-        variant="determinate"
-        value={rate * 100}
-        sx={{
-          height: 7,
-          borderRadius: 4,
-          opacity: 0.45 + 0.55 * confidence,
-          bgcolor: "action.hover",
-          "& .MuiLinearProgress-bar": { bgcolor: verdict.hex },
-        }}
-      />
+      <WinRateBar wins={props.wins} losses={props.losses} />
     </Box>
   )
 }

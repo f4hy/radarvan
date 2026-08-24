@@ -14,10 +14,8 @@ import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Link from "@mui/material/Link"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import Skeleton from "@mui/material/Skeleton"
 import { MatchesLoading, MatchRowLoading } from "./Loading"
 import Page from "./Page"
-import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -39,7 +37,15 @@ import {
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
-import { getColorHex, isCompetitor, isObserver, winRateTone } from "./utils"
+import { PlayerDot } from "./PlayerChip"
+import {
+  getColorHex,
+  isCompetitor,
+  isObserver,
+  localDate,
+  playerPalette,
+  winRateTone,
+} from "./utils"
 import { useIsAdmin } from "./AuthContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -178,12 +184,13 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
             }}
           >
             <DisplayGeneral general={p.general} />
+            <PlayerDot color={getColorHex(p.color)} size={10} />
             <Typography
               variant="h6"
               noWrap
               sx={{
                 fontWeight: 700,
-                color: getColorHex(p.color),
+                color: playerPalette(getColorHex(p.color)).ink,
               }}
             >
               {normalizePlayerName(p.name)}
@@ -213,16 +220,19 @@ function FfaPlayerCard(props: { player: Player }) {
         }}
       >
         <DisplayGeneral general={player.general} />
-        <Typography
-          variant="subtitle1"
-          noWrap
-          sx={{
-            fontWeight: 700,
-            color: getColorHex(player.color),
-          }}
-        >
-          {normalizePlayerName(player.name)}
-        </Typography>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <PlayerDot color={getColorHex(player.color)} size={10} />
+          <Typography
+            variant="subtitle1"
+            noWrap
+            sx={{
+              fontWeight: 700,
+              color: playerPalette(getColorHex(player.color)).ink,
+            }}
+          >
+            {normalizePlayerName(player.name)}
+          </Typography>
+        </Stack>
       </Stack>
     </Card>
   )
@@ -538,12 +548,7 @@ function MatchDateSummary(props: {
   matches: MatchInfo[]
   ratingChanges?: PlayerRatingDailyChange[]
 }) {
-  // props.date is the backend's game-night date key ("YYYY-MM-DD"). Construct
-  // it in local time so it renders as that exact calendar day in every
-  // timezone — new Date("YYYY-MM-DD") parses as UTC midnight, which displays
-  // as the previous evening anywhere west of UTC.
-  const [year, month, day] = props.date.split("-").map(Number)
-  const date = new Date(year, month - 1, day)
+  const date = localDate(props.date)
   const categoryChips =
     props.matches.length > 0
       ? Object.entries(

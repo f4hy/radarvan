@@ -1,6 +1,5 @@
 import Box from "@mui/material/Box"
 import Grid from "@mui/material/Grid"
-import Skeleton from "@mui/material/Skeleton"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { ActivityCalendar } from "react-activity-calendar"
@@ -38,8 +37,9 @@ function getEndDate(date: Date): Date {
 }
 
 function toActivityData(dateCounts: Record<string, number>) {
+  // groupByYear only creates a year key once a date lands in it, so this is
+  // never called with an empty map.
   const dates = Object.keys(dateCounts).sort()
-  if (dates.length === 0) return []
   const first = dates[0]
   const yearStart = new Date(`${first.slice(0, 4)}-01-01`)
   const end = getEndDate(new Date(dates[dates.length - 1]))
@@ -72,19 +72,13 @@ export default function MatchActivityCalendar(props: {
   selected?: string | null
 }) {
   const { onSelect, selected } = props
-  const byYear = React.useMemo(
-    () => groupByYear(props.dateCounts),
-    [props.dateCounts],
-  )
-  const activityByYear = React.useMemo(
+  // Newest year first, matching every other listing in the app.
+  const years = React.useMemo(
     () =>
-      Object.fromEntries(
-        Object.entries(byYear).map(([year, yearData]) => [
-          year,
-          toActivityData(yearData),
-        ]),
-      ),
-    [byYear],
+      Object.entries(groupByYear(props.dateCounts))
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([year, counts]) => ({ year, data: toActivityData(counts) })),
+    [props.dateCounts],
   )
 
   const renderBlock = React.useCallback(
@@ -108,56 +102,44 @@ export default function MatchActivityCalendar(props: {
     [onSelect, selected],
   )
 
-  const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a))
-
   return (
     <Grid container spacing={2}>
-      {years.map((year, idx) => (
+      {years.map(({ year, data }, idx) => (
         <Grid key={year} size={{ xs: 12, lg: 6 }}>
           <Box sx={{ overflowX: "auto", pb: 1 }}>
             <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
               {year}
             </Typography>
-            {activityByYear[year].length > 0 ? (
-              <ActivityCalendar
-                data={activityByYear[year]}
-                weekStart={1}
-                showWeekdayLabels={["wed", "sat"]}
-                blockSize={10}
-                blockMargin={4}
-                showColorLegend={idx === 0}
-                labels={{ totalCount: "{{count}} games in {{year}}" }}
-                colorScheme="light"
-                theme={{
-                  light: [
-                    "#ebedf0",
-                    "#9be9a8",
-                    "#40c463",
-                    "#30a14e",
-                    "#216e39",
-                  ],
-                }}
-                tooltips={{
-                  activity: {
-                    text: (activity) =>
-                      activity.count > 0
-                        ? `${activity.count} games on ${activity.date}. Click to open.`
-                        : `Nothing played on ${activity.date}`,
-                    placement: "bottom",
-                    offset: 6,
-                    hoverRestMs: 10,
-                    transitionStyles: {
-                      duration: 50,
-                      common: { fontFamily: "monospace" },
-                    },
-                    withArrow: true,
+            <ActivityCalendar
+              data={data}
+              weekStart={1}
+              showWeekdayLabels={["wed", "sat"]}
+              blockSize={10}
+              blockMargin={4}
+              showColorLegend={idx === 0}
+              labels={{ totalCount: "{{count}} games in {{year}}" }}
+              colorScheme="light"
+              theme={{
+                light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
+              }}
+              tooltips={{
+                activity: {
+                  text: (activity) =>
+                    activity.count > 0
+                      ? `${activity.count} games on ${activity.date}. Click to open.`
+                      : `Nothing played on ${activity.date}`,
+                  placement: "bottom",
+                  offset: 6,
+                  hoverRestMs: 10,
+                  transitionStyles: {
+                    duration: 50,
+                    common: { fontFamily: "monospace" },
                   },
-                }}
-                renderBlock={renderBlock}
-              />
-            ) : (
-              <Skeleton variant="rounded" height={120} animation="wave" />
-            )}
+                  withArrow: true,
+                },
+              }}
+              renderBlock={renderBlock}
+            />
           </Box>
         </Grid>
       ))}

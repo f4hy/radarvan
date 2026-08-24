@@ -664,7 +664,7 @@ function NotAuthorized() {
   const { status, loading } = useAuth()
   if (loading) return null
   return (
-    <Box sx={{ maxWidth: 560, textAlign: "left" }}>
+    <Box sx={{ maxWidth: 560 }}>
       <Alert severity="warning" sx={{ mb: 2 }}>
         {status?.logged_in
           ? "Your account isn't an operations admin, so these tasks aren't available to you."
@@ -688,7 +688,7 @@ export default function AdminPanel() {
   if (!isOpsAdmin) return <NotAuthorized />
 
   return (
-    <Stack spacing={4} sx={{ maxWidth: 1100, textAlign: "left" }}>
+    <Stack spacing={4} sx={{ maxWidth: 1100 }}>
       <Alert severity="info">
         Every task here runs against the live database. Batch sizes default to
         something small on purpose — the reparse tasks call cncstats once per

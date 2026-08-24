@@ -22,13 +22,14 @@ export interface PlayerNav {
 
 // A no-op default rather than null, so a component rendered outside the
 // provider (a test, a Storybook-style harness) still renders — it just doesn't
-// navigate. `enabled` is what callers check before showing a link affordance.
+// navigate. Being the context default also keeps the hook a bare useContext,
+// so it returns a referentially stable object to every chip on the page.
 const NO_NAV: PlayerNav = {
   goToPlayerProfile: () => {},
   goToHeadToHead: () => {},
 }
 
-const PlayerNavContext = React.createContext<PlayerNav | null>(null)
+const PlayerNavContext = React.createContext<PlayerNav>(NO_NAV)
 
 export function PlayerNavProvider(props: {
   value: PlayerNav
@@ -41,7 +42,6 @@ export function PlayerNavProvider(props: {
   )
 }
 
-export function usePlayerNav(): PlayerNav & { enabled: boolean } {
-  const nav = React.useContext(PlayerNavContext)
-  return { ...(nav ?? NO_NAV), enabled: nav !== null }
+export function usePlayerNav(): PlayerNav {
+  return React.useContext(PlayerNavContext)
 }

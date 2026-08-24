@@ -19,13 +19,13 @@ import * as React from "react"
  * and what it excludes is hiding that from the reader.
  */
 
-// Matches the Menu content cap; `narrow` is for form-shaped pages (a picker and
-// a result) where a full-width column just spreads two controls apart.
-const MAX_WIDTH = { default: undefined, narrow: 960 } as const
+// `narrow` is for form-shaped pages (a picker and a result) where the full
+// column just spreads two controls apart; the default inherits Menu's cap.
+const NARROW_WIDTH = 960
 
-export type PageWidth = keyof typeof MAX_WIDTH
+type PageWidth = "default" | "narrow"
 
-export function PageHeader(props: {
+function PageHeader(props: {
   title: string
   description?: React.ReactNode
   /** Filters, toggles or actions — sits under the description, above content. */
@@ -71,27 +71,19 @@ export default function Page(props: {
   surface?: boolean
   children: React.ReactNode
 }) {
-  const maxWidth = MAX_WIDTH[props.width ?? "default"]
-  const header = (
-    <PageHeader
-      title={props.title}
-      description={props.description}
-      actions={props.actions}
-    />
-  )
-
-  if (props.surface === false) {
-    return (
-      <Box sx={{ maxWidth }}>
-        {header}
-        {props.children}
-      </Box>
-    )
-  }
+  const maxWidth = props.width === "narrow" ? NARROW_WIDTH : undefined
+  // A surface-less page sits straight on the canvas so it can compose its own
+  // cards; otherwise it gets the single white surface most pages still use.
+  const bare = props.surface === false
+  const Surface = bare ? Box : Paper
   return (
-    <Paper sx={{ p: { xs: 1.5, sm: 2 }, maxWidth }}>
-      {header}
+    <Surface sx={{ maxWidth, ...(bare ? {} : { p: { xs: 1.5, sm: 2 } }) }}>
+      <PageHeader
+        title={props.title}
+        description={props.description}
+        actions={props.actions}
+      />
       {props.children}
-    </Paper>
+    </Surface>
   )
 }

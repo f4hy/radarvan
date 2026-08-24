@@ -14,8 +14,6 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TextField from "@mui/material/TextField"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import {
@@ -29,22 +27,17 @@ import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
+import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import ShowMatchDetails from "./ShowMatchDetails"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { usePlayerAccentColor } from "./PlayerColorsContext"
-import { displayMapName, formatPercent } from "./utils"
+import { usePlayerPalette } from "./PlayerColorsContext"
+import { displayMapName, formatCash, formatPercent } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinShareBar from "./WinShareBar"
 
-const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
+const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
-
-const compactCash = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-})
-const formatValue = (n: number) => `$${compactCash.format(n)}`
 
 // The big "12 — 7" scoreboard with a win-share bar colored per player.
 function Scoreboard(props: { data: HeadToHeadDetail }) {
@@ -60,12 +53,13 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
   } = props.data
   const total = player1Wins + player2Wins
   const share1 = total > 0 ? player1Wins / total : 0.5
-  // The player's real most-common in-game color, same as their PlayerChip and
-  // their profile — playerColor() is only the hash fallback for when we don't
-  // know it, so calling it directly made both players a different color here
-  // than everywhere else in the app.
-  const c1 = usePlayerAccentColor(player1)
-  const c2 = usePlayerAccentColor(player2)
+  // Their real in-game color, same as their PlayerChip and their profile — but
+  // through the palette, so a yellow player's name is legible on white. The
+  // raw hue stays on the win-share bar, where it is a fill and not text.
+  const p1Palette = usePlayerPalette(player1)
+  const p2Palette = usePlayerPalette(player2)
+  const c1 = p1Palette.ink
+  const c2 = p2Palette.ink
   const v1 = player1ValueDestroyed ?? 0
   const v2 = player2ValueDestroyed ?? 0
   const valueTotal = v1 + v2
@@ -125,8 +119,8 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
       <Box sx={{ mt: 1.5 }}>
         <WinShareBar
           fraction={share1}
-          leftColor={c1}
-          rightColor={c2}
+          leftColor={p1Palette.dot}
+          rightColor={p2Palette.dot}
           height={16}
         />
       </Box>
@@ -163,7 +157,7 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
             }}
           >
             <Typography variant="body2" sx={{ color: c1, fontWeight: "bold" }}>
-              {formatValue(v1)} destroyed
+              {formatCash(v1)} destroyed
             </Typography>
             <Typography
               variant="caption"
@@ -174,14 +168,14 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
               Value destroyed (recent games)
             </Typography>
             <Typography variant="body2" sx={{ color: c2, fontWeight: "bold" }}>
-              {formatValue(v2)} destroyed
+              {formatCash(v2)} destroyed
             </Typography>
           </Stack>
           <Box sx={{ mt: 0.5 }}>
             <WinShareBar
               fraction={valueShare1}
-              leftColor={c1}
-              rightColor={c2}
+              leftColor={p1Palette.dot}
+              rightColor={p2Palette.dot}
               height={8}
             />
           </Box>
@@ -196,11 +190,11 @@ function GeneralBreakdown(props: {
   player: string
   records: HeadToHeadGeneralRecord[]
 }) {
-  const accent = usePlayerAccentColor(props.player)
+  const { ink } = usePlayerPalette(props.player)
   if (props.records.length === 0) return null
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ color: accent, mb: 1 }}>
+      <Typography variant="subtitle1" sx={{ color: ink, mb: 1 }}>
         {props.player} by general
       </Typography>
       <Stack spacing={0.5}>
@@ -230,8 +224,8 @@ function MapBreakdown(props: {
   player1: string
   player2: string
 }) {
-  const c1 = usePlayerAccentColor(props.player1)
-  const c2 = usePlayerAccentColor(props.player2)
+  const c1 = usePlayerPalette(props.player1).ink
+  const c2 = usePlayerPalette(props.player2).ink
   if (props.records.length === 0) return null
   return (
     <Box>
@@ -276,14 +270,13 @@ function GameRow(props: {
   game: HeadToHeadGame
   player1: string
   player2: string
+  color1: string
+  color2: string
 }) {
   const { game } = props
   const [open, setOpen] = React.useState(false)
-  // Both resolved unconditionally — hooks can't be called behind a branch.
-  const c1 = usePlayerAccentColor(props.player1)
-  const c2 = usePlayerAccentColor(props.player2)
   const winnerName = game.player1Won ? props.player1 : props.player2
-  const winnerColor = game.player1Won ? c1 : c2
+  const winnerColor = game.player1Won ? props.color1 : props.color2
   return (
     <>
       <TableRow
@@ -353,6 +346,9 @@ export function GamesTable(props: {
   player1: string
   player2: string
 }) {
+  // Constant for the whole table, so they are resolved here rather than per row.
+  const color1 = usePlayerPalette(props.player1).ink
+  const color2 = usePlayerPalette(props.player2).ink
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -387,6 +383,8 @@ export function GamesTable(props: {
                 game={g}
                 player1={props.player1}
                 player2={props.player2}
+                color1={color1}
+                color2={color2}
               />
             ))}
           </TableBody>
@@ -489,18 +487,11 @@ export default function HeadToHead() {
             <TextField {...params} label="Player 2" size="small" />
           )}
         />
-        <ToggleButtonGroup
+        <FormatToggle
+          options={FORMAT_OPTIONS}
           value={format}
-          exclusive
-          onChange={(_, v) => v && setFormat(v)}
-          size="small"
-        >
-          {FORMAT_OPTIONS.map((f) => (
-            <ToggleButton key={f} value={f}>
-              {f}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
+          onChange={setFormat}
+        />
       </Stack>
       {player1 && player2 && player1 === player2 && (
         <Typography

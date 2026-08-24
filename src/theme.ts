@@ -43,12 +43,18 @@ export const CHART_PALETTE = [
   "#3949ab",
 ]
 
+// Page ink and hairline borders. Exported because non-MUI code needs them too
+// (utils.playerPalette derives player chips from INK; recharts can't read the
+// theme) — the alternative is re-spelling `rgba(26, 34, 48, …)` per call site.
+export const INK = "#1a2230"
+export const BORDER_COLOR = "rgba(26, 34, 48, 0.10)"
+
 // App chrome.
 const APPBAR_BG = "#1f2733"
 // Deepened a touch from near-white so the white cards read as distinct surfaces
 // floating on the canvas rather than blending into it.
 const PAGE_BG = "#e9ecf1"
-const BORDER = "rgba(26, 34, 48, 0.10)"
+const BORDER = BORDER_COLOR
 
 const FONT_STACK = [
   "-apple-system",
@@ -70,7 +76,7 @@ let theme = createTheme({
       paper: "#ffffff",
     },
     text: {
-      primary: "#1a2230",
+      primary: INK,
       secondary: "#5b6675",
     },
     divider: BORDER,

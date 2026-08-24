@@ -1,4 +1,3 @@
-import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
@@ -28,11 +27,12 @@ import {
 import { DurationDistribution, DurationStats } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import { BRAND_COLOR, CHART_PALETTE, NEUTRAL_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
-const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
+const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
 // Bar widths the histogram offers. Two minutes is the default the API picks;
@@ -273,18 +273,11 @@ export default function GameLength() {
       description="How long our games actually run. Comp-stomps and unfinished games are excluded, so a two-minute disconnect isn't counted as a two-minute game."
       actions={
         <>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
+          <FormatToggle
+            options={FORMAT_OPTIONS}
             value={gameFormat}
-            onChange={(_e, value) => value && setGameFormat(value)}
-          >
-            {FORMAT_OPTIONS.map((option) => (
-              <ToggleButton key={option} value={option}>
-                {option}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+            onChange={setGameFormat}
+          />
           <ToggleButtonGroup
             size="small"
             exclusive

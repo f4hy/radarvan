@@ -2,7 +2,6 @@ import { Typography, useTheme } from "@mui/material"
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
-import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import { alpha } from "@mui/material/styles"
 import Table from "@mui/material/Table"
@@ -11,8 +10,6 @@ import TableCell from "@mui/material/TableCell"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import MuiTooltip from "@mui/material/Tooltip"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import * as React from "react"
@@ -31,21 +28,16 @@ import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
+import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { wilsonLowerBound, winRate } from "./utils"
+import { formatCash, wilsonLowerBound, winRate } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
 
-const FORMAT_OPTIONS = ["All", "1v1", "2v2", "3v3", "4v4"] as const
+const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
-
-const compactCash = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-})
-const formatValue = (n: number) => `$${compactCash.format(n)}`
 
 function getGeneralStats(
   gameFormat: GameFormat,
@@ -167,8 +159,7 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
       </Stack>
       {(valueDestroyed > 0 || valueLost > 0) && (
         <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          {formatValue(valueDestroyed)} destroyed · {formatValue(valueLost)}{" "}
-          lost
+          {formatCash(valueDestroyed)} destroyed · {formatCash(valueLost)} lost
           {tradeRatio !== undefined && ` · ${tradeRatio.toFixed(2)}x trade`}
         </Typography>
       )}
@@ -356,23 +347,12 @@ export default function DisplayGeneralStats() {
       title="General Stats"
       description="How each general performs across our games, and which faction matchups genuinely favor one side."
       actions={
-        <>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Game format
-          </Typography>
-          <ToggleButtonGroup
-            value={format}
-            exclusive
-            onChange={(_, v) => v && setFormat(v)}
-            size="small"
-          >
-            {FORMAT_OPTIONS.map((f) => (
-              <ToggleButton key={f} value={f}>
-                {f}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </>
+        <FormatToggle
+          label="Game format"
+          options={FORMAT_OPTIONS}
+          value={format}
+          onChange={setFormat}
+        />
       }
     >
       <DisplayOverallGeneralStat stats={generalStats} />

@@ -81,7 +81,7 @@ import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import GameMap from "./Map"
 import { DisplayMatchInfo } from "./Matches"
-import { PlayerChip } from "./PlayerChip"
+import { PlayerChip, PlayerDot } from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import {
   BRAND_COLOR,
@@ -91,6 +91,7 @@ import {
   WIN_COLOR,
 } from "./theme"
 import Page from "./Page"
+import { usePlayerNav } from "./PlayerNavContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const DEFAULT_SEEDS = [
@@ -474,23 +475,11 @@ function buildNode(
   }
 }
 
-// The player's most-played in-game color (via usePlayerAccentColor, backed
-// by /api/player_colors/) as a small identity dot — same data PlayerChip
-// uses for its avatar fill, just without the avatar's initial-letter chrome
-// (too cramped for a dense bracket row).
+// The same identity dot PlayerChip uses, without the chip around it (too
+// cramped for a dense bracket row). Shared so the hairline that keeps a pale
+// color visible can't be present on one and missing on the other.
 function ColorDot({ name }: { name: string }) {
-  const color = usePlayerAccentColor(name)
-  return (
-    <Box
-      sx={{
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        bgcolor: color,
-        flexShrink: 0,
-      }}
-    />
-  )
+  return <PlayerDot color={usePlayerAccentColor(name)} size={10} />
 }
 
 function PlayerRow({
@@ -793,14 +782,11 @@ function CommentaryPanel({ label, text }: { label: string; text: string }) {
 function MatchupPopup({
   match,
   onClose,
-  goToPlayerProfile,
-  goToHeadToHead,
 }: {
   match: BracketMatchOutput
   onClose: () => void
-  goToPlayerProfile: (playerName: string) => void
-  goToHeadToHead: (player1: string, player2: string) => void
 }) {
+  const nav = usePlayerNav()
   const playerA = match.player_a
   const playerB = match.player_b
   const scheduledAt = match.scheduled_at
@@ -946,12 +932,12 @@ function MatchupPopup({
 
   const handleGoToPlayer = (playerName: string) => {
     onClose()
-    goToPlayerProfile(playerName)
+    nav.goToPlayerProfile(playerName)
   }
   const handleGoToHeadToHead = () => {
     if (!playerA || !playerB) return
     onClose()
-    goToHeadToHead(playerA, playerB)
+    nav.goToHeadToHead(playerA, playerB)
   }
 
   return (
@@ -1687,13 +1673,7 @@ function LosersBracketColumns({
 // PlayerChip) - replaces the old admin-only seed-picking panel as the thing
 // everyone sees on this page. Who's *in* the tournament isn't a spoiler;
 // where they land in the bracket is (that's gated by reveal_at instead).
-function TournamentRoster({
-  names,
-  onSelectPlayer,
-}: {
-  names: string[]
-  onSelectPlayer: (playerName: string) => void
-}) {
+function TournamentRoster({ names }: { names: string[] }) {
   const sorted = React.useMemo(
     () => [...names].sort((a, b) => a.localeCompare(b)),
     [names],
@@ -1705,11 +1685,7 @@ function TournamentRoster({
       </Typography>
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
         {sorted.map((name) => (
-          <PlayerChip
-            key={name}
-            name={name}
-            onClick={() => onSelectPlayer(name)}
-          />
+          <PlayerChip key={name} name={name} />
         ))}
       </Stack>
     </Paper>
@@ -1800,13 +1776,7 @@ function NextMatchBanner({
   )
 }
 
-export default function DisplayBracket({
-  goToPlayerProfile,
-  goToHeadToHead,
-}: {
-  goToPlayerProfile: (playerName: string) => void
-  goToHeadToHead: (player1: string, player2: string) => void
-}) {
+export default function DisplayBracket() {
   const [bracketData, setBracketData] =
     React.useState<BracketTournamentOutput | null>(null)
   const [eligiblePlayers, setEligiblePlayers] = React.useState<string[]>([])
@@ -2231,10 +2201,7 @@ export default function DisplayBracket({
         </Typography>
       )}
       {pageTab === "bracket" && bracketData && (
-        <TournamentRoster
-          names={bracketData.participant_names}
-          onSelectPlayer={goToPlayerProfile}
-        />
+        <TournamentRoster names={bracketData.participant_names} />
       )}
       {pageTab === "bracket" &&
         revealPending &&
@@ -2489,8 +2456,6 @@ export default function DisplayBracket({
           <MatchupPopup
             match={detailsMatch}
             onClose={() => setDetailsMatchId(null)}
-            goToPlayerProfile={goToPlayerProfile}
-            goToHeadToHead={goToHeadToHead}
           />
         )}
       </Dialog>

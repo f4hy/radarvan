@@ -1,6 +1,11 @@
 import * as React from "react"
 import { Client } from "./Client"
-import { getColorHex, playerColor } from "./utils"
+import {
+  getColorHex,
+  type PlayerPalette,
+  playerColor,
+  playerPalette,
+} from "./utils"
 
 const PlayerColorsContext = React.createContext<Record<string, string>>({})
 
@@ -36,12 +41,21 @@ export function usePlayerColors(): Record<string, string> {
   return React.useContext(PlayerColorsContext)
 }
 
-/** A single primary identity color for a player: their actual most-common
- * in-game color when known, else the deterministic hash-per-name fallback.
- * For anything that just needs one accent color (borders, chart markers);
- * PlayerChip's avatar additionally rings this with the hash when it differs,
- * so a shared "actual" color doesn't make two players look identical. */
+/** A player's raw identity color: their actual most-common in-game color when
+ * known, else the deterministic hash-per-name fallback.
+ *
+ * This is the *unmodified* game hue, so it is only safe for swatches, borders
+ * and chart markers. Anything drawing text wants `usePlayerPalette().ink` —
+ * `#FFFF00` and `#BFFF00` are real player colors and neither is readable on
+ * white. */
 export function usePlayerAccentColor(name: string): string {
   const actual = usePlayerColors()[name]
   return actual != null ? getColorHex(actual) : playerColor(name)
+}
+
+/** The usable form of a player's color: a swatch (`dot`), a readable text
+ * color (`ink`), and the wash/border derived from the same hue. Lives here
+ * beside the raw hook so a call site picks between them deliberately. */
+export function usePlayerPalette(name: string): PlayerPalette {
+  return playerPalette(usePlayerAccentColor(name))
 }

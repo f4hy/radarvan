@@ -3,6 +3,7 @@ import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Loading from "./Loading"
+import FormatToggle, { TEAM_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import { PlayerLabel } from "./PlayerChip"
 import { useFetch } from "./useFetch"
@@ -20,8 +21,6 @@ import TableCell from "@mui/material/TableCell"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useTheme } from "@mui/material/styles"
@@ -58,7 +57,7 @@ import WinRateRadar from "./WinRateRadar"
 import WinRateChip from "./WinRateChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
-const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
+const FORMAT_OPTIONS = TEAM_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
 function fetchPlayerStats(gameFormat: GameFormat): Promise<PlayerStats> {
@@ -819,23 +818,12 @@ export default function DisplayPlayerStats() {
       title="Player Stats"
       description="How everyone does with each general, across competitive team games."
       actions={
-        <>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Game format
-          </Typography>
-          <ToggleButtonGroup
-            value={format}
-            exclusive
-            onChange={(_, v) => v && setFormat(v)}
-            size="small"
-          >
-            {FORMAT_OPTIONS.map((f) => (
-              <ToggleButton key={f} value={f}>
-                {f}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </>
+        <FormatToggle
+          label="Game format"
+          options={FORMAT_OPTIONS}
+          value={format}
+          onChange={setFormat}
+        />
       }
     >
       <GameCountsTable playerStats={playerStats} />
