@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 
 import structlog
 
-from sqlalchemy import delete as sa_delete, select
+from sqlalchemy import delete as sa_delete, func, select
 
 from ..api_types import MatchDetails
 from ..db import MatchDetailsCache
@@ -68,6 +68,53 @@ class MatchDetailsRepo(BaseRepo):
         return {
             match_id: (kill_events or [], player_summary or [])
             for match_id, kill_events, player_summary in rows
+        }
+
+    def count_cached_details(self, version: str) -> int:
+        """How many matches have a derived-details row at `version`.
+
+        A revision token for the durable projection, and the reason it exists:
+        a derivation over CORPUS alone re-runs when *matches* change, but a
+        cache warm changes what `match_details_cache` can answer without
+        touching a single match. Bumping DETAILS_VERSION starts that table
+        empty, so a corpus-keyed fold computed in the first minute after a
+        deploy would cache "no data" and hold it until the next game landed.
+        """
+        return (
+            self.session.execute(
+                select(func.count())
+                .select_from(MatchDetailsCache)
+                .where(MatchDetailsCache.version == version)
+            ).scalar_one()
+            or 0
+        )
+
+    def get_cached_powers_rows(
+        self, match_ids: list[int], version: str
+    ) -> dict[int, object]:
+        """Return the raw `powers` payload for whichever of `match_ids` have a
+        cached row at `version`, in one query.
+
+        Same reasoning as `get_cached_kill_data_rows`: the powers page
+        aggregates over the *whole* corpus, and pulling the full `data` blob for
+        two thousand matches to read one small key out of each would move tens
+        of megabytes across a remote connection. Never falls back to S3 - a
+        match with no cached row is omitted rather than triggering a recompute
+        of every uncached match in the corpus at once.
+        """
+        if not match_ids:
+            return {}
+        stmt = select(
+            MatchDetailsCache.match_id,
+            MatchDetailsCache.data["powers"],
+        ).where(
+            MatchDetailsCache.match_id.in_(match_ids),
+            MatchDetailsCache.version == version,
+        )
+        return {
+            match_id: powers
+            for match_id, powers in self.session.execute(stmt).all()
+            if powers is not None
         }
 
     def save_cached_details(

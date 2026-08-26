@@ -62,6 +62,7 @@ docs/GameNightRecap.md
 docs/GameNightSummaryStatus.md
 docs/GameRecord.md
 docs/General.md
+docs/GeneralPowers.md
 docs/GeneralProfileStat.md
 docs/GeneralStat.md
 docs/GeneralStatPlayerWL.md
@@ -107,6 +108,7 @@ docs/MatchDetails.md
 docs/MatchInfo.md
 docs/MatchListing.md
 docs/MatchNarrative.md
+docs/MatchPowers.md
 docs/MatchPrediction.md
 docs/Matches.md
 docs/MatchupCommentaryPromptPreview.md
@@ -122,6 +124,8 @@ docs/Player.md
 docs/PlayerEnum.md
 docs/PlayerGameCount.md
 docs/PlayerListing.md
+docs/PlayerPowerProfile.md
+docs/PlayerPowers.md
 docs/PlayerProfile.md
 docs/PlayerProfileComputed.md
 docs/PlayerRateOverTime.md
@@ -135,6 +139,10 @@ docs/PlayerStatFactionWL.md
 docs/PlayerStats.md
 docs/PlayerSummary.md
 docs/PlayerSynergy.md
+docs/PowerPick.md
+docs/PowerRow.md
+docs/PowerStats.md
+docs/PowerUse.md
 docs/PredictPlayer.md
 docs/PredictRequest.md
 docs/ProfileBadge.md
@@ -172,6 +180,7 @@ docs/TournamentReport.md
 docs/TournamentResult.md
 docs/TournamentTag.md
 docs/UnitDamageStat.md
+docs/UnusualPick.md
 docs/UpgradeEvent.md
 docs/Upgrades.md
 docs/ValidationError.md
@@ -232,6 +241,7 @@ models/GameNightRecap.ts
 models/GameNightSummaryStatus.ts
 models/GameRecord.ts
 models/General.ts
+models/GeneralPowers.ts
 models/GeneralProfileStat.ts
 models/GeneralStat.ts
 models/GeneralStatPlayerWL.ts
@@ -274,6 +284,7 @@ models/MatchDetails.ts
 models/MatchInfo.ts
 models/MatchListing.ts
 models/MatchNarrative.ts
+models/MatchPowers.ts
 models/MatchPrediction.ts
 models/Matches.ts
 models/MatchupCommentaryPromptPreview.ts
@@ -289,6 +300,8 @@ models/Player.ts
 models/PlayerEnum.ts
 models/PlayerGameCount.ts
 models/PlayerListing.ts
+models/PlayerPowerProfile.ts
+models/PlayerPowers.ts
 models/PlayerProfile.ts
 models/PlayerProfileComputed.ts
 models/PlayerRateOverTime.ts
@@ -302,6 +315,10 @@ models/PlayerStatFactionWL.ts
 models/PlayerStats.ts
 models/PlayerSummary.ts
 models/PlayerSynergy.ts
+models/PowerPick.ts
+models/PowerRow.ts
+models/PowerStats.ts
+models/PowerUse.ts
 models/PredictPlayer.ts
 models/PredictRequest.ts
 models/ProfileBadge.ts
@@ -339,6 +356,7 @@ models/TournamentReport.ts
 models/TournamentResult.ts
 models/TournamentTag.ts
 models/UnitDamageStat.ts
+models/UnusualPick.ts
 models/UpgradeEvent.ts
 models/Upgrades.ts
 models/ValidationError.ts

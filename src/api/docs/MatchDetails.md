@@ -27,6 +27,7 @@ Name | Type
 `buildOrders` | [{ [key: string]: BuildOrder; }](BuildOrder.md)
 `apmOverTime` | { [key: string]: { [key: string]: number; }; }
 `timelineEvents` | [Array&lt;TimelineEvent&gt;](TimelineEvent.md)
+`powers` | [MatchPowers](MatchPowers.md)
 
 ## Example
 
@@ -56,6 +57,7 @@ const example = {
   "buildOrders": null,
   "apmOverTime": null,
   "timelineEvents": null,
+  "powers": null,
 } satisfies MatchDetails
 
 console.log(example)

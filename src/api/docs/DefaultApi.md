@@ -43,6 +43,7 @@ All URIs are relative to *http://localhost*
 | [**getPlayerStatsApiPlayerstatsGet**](DefaultApi.md#getplayerstatsapiplayerstatsget) | **GET** /api/playerstats | Get Player Stats |
 | [**getPlayerSynergyApiPlayerRatingsSynergyGet**](DefaultApi.md#getplayersynergyapiplayerratingssynergyget) | **GET** /api/player_ratings/synergy/ | Get Player Synergy |
 | [**getPlayerTeamGameCountsApiPlayerGameCountsTeamGet**](DefaultApi.md#getplayerteamgamecountsapiplayergamecountsteamget) | **GET** /api/player_game_counts/team/ | Get Player Team Game Counts |
+| [**getPowerStatsApiPowerStatsGet**](DefaultApi.md#getpowerstatsapipowerstatsget) | **GET** /api/power_stats/ | Get Power Stats |
 | [**getPresignedForMatchIdApiPresignedUrlsForMatchGet**](DefaultApi.md#getpresignedformatchidapipresignedurlsformatchget) | **GET** /api/presigned_urls_for_match | Get Presigned For Match Id |
 | [**getRatingUpsetsApiPlayerRatingsUpsetsGet**](DefaultApi.md#getratingupsetsapiplayerratingsupsetsget) | **GET** /api/player_ratings/upsets/ | Get Rating Upsets |
 | [**getReplayByUrlApiReplayGet**](DefaultApi.md#getreplaybyurlapireplayget) | **GET** /api/replay | Get Replay By Url |
@@ -2811,6 +2812,78 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPowerStatsApiPowerStatsGet
+
+> PowerStats getPowerStatsApiPowerStatsGet(player)
+
+Get Power Stats
+
+One player\&#39;s generals-power habits, against the rest of the group.  Takes a &#x60;ReplayManager&#x60; rather than a corpus dependency: the whole answer comes from &#x60;queries.power_stats&#x60;, which folds the corpus once per corpus version and keeps only counters. Declaring &#x60;CompetitiveGames&#x60; here would build the match list on every request for a handler that never looks at it, and would key the fold by game format - four full passes over &#x60;match_details_cache&#x60; instead of one.  &#x60;player&#x60; is an &#x60;api_types.PlayerName&#x60;, so an in-game alias (\&quot;skp\&quot;) is resolved to the canonical name at validation, matching the names the projection stores.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { GetPowerStatsApiPowerStatsGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: APIKeyHeader
+    apiKey: "YOUR API KEY",
+  });
+  const api = new DefaultApi(config);
+
+  const body = {
+    // string (optional)
+    player: player_example,
+  } satisfies GetPowerStatsApiPowerStatsGetRequest;
+
+  try {
+    const data = await api.getPowerStatsApiPowerStatsGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **player** | `string` |  | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**PowerStats**](PowerStats.md)
+
+### Authorization
+
+[APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

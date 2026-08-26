@@ -10,11 +10,8 @@ from __future__ import annotations
 
 from .api_types import TimelineEvent, Upgrades
 from .cncstats_model.zhreplay import EnhancedReplayV2
-from .replay_helpers import (
-    FACTION_PREFIX_RE,
-    clean_object_name,
-    is_initial_seed_frame,
-)
+from .generals_powers import clean_power_name
+from .replay_helpers import clean_object_name, is_initial_seed_frame
 from .utils import minutes_per_step
 
 # Substrings on the cleaned object name that identify a true superweapon
@@ -47,24 +44,6 @@ _SUPERWEAPON_ACTIVATION_KEYWORDS = (
     "AnthraxBomb",
     "SpectreGunship",
 )
-
-_POWER_NAME_PREFIXES = ("SpecialAbility", "SpecialPower", "Superweapon")
-
-
-def clean_power_name(raw: str) -> str:
-    """Strip per-general/faction prefixes and the SpecialPower/Superweapon tag.
-
-    The faction strip runs twice: once in `clean_object_name` to handle a
-    leading `China`/`America`/`GLA`, and again after the power-tag strip in
-    case removing it exposes a faction prefix (e.g.
-    ``Early_SuperweaponChinaCarpetBomb`` → ``ChinaCarpetBomb`` → ``CarpetBomb``).
-    """
-    cleaned = clean_object_name(raw)
-    for prefix in _POWER_NAME_PREFIXES:
-        if cleaned.startswith(prefix):
-            cleaned = cleaned[len(prefix) :]
-            break
-    return FACTION_PREFIX_RE.sub("", cleaned)
 
 
 def timeline_events_from_replay(

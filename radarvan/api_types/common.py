@@ -56,6 +56,16 @@ Rate = Annotated[
 ]
 
 
+# A rate whose interesting range is 0..1: a pick rate, or activations per minute
+# of a power fired a handful of times a game. `Rate` above is calibrated for APM
+# (values in the hundreds), and its single decimal collapses everything here to
+# 0.0 or 0.1 - which is how "18 uses" ended up rendering next to "0.00 / min".
+SmallRate = Annotated[
+    float,
+    PlainSerializer(lambda v: round(v, 4), return_type=float, when_used="json"),
+]
+
+
 # Generic two-decimal-place float: per-game rates and percentiles (player
 # profile badges) don't need more precision than that on the wire.
 TwoDecimal = Annotated[

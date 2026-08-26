@@ -22,7 +22,8 @@ from radarvan.cncstats_model.zhreplay import (
     PlayerSummaryV2,
 )
 from radarvan.replay_helpers import clean_object_name
-from radarvan.timeline_events import clean_power_name, timeline_events_from_replay
+from radarvan.generals_powers import clean_power_name
+from radarvan.timeline_events import timeline_events_from_replay
 
 _FIXTURE = (
     Path(__file__).resolve().parents[1]

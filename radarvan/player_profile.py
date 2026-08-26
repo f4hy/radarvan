@@ -59,7 +59,7 @@ from .player_ids import CPU_NAMES, resolve_player_name
 from .player_synergy import PairSynergy
 from .replay_files import map_basename
 from .replay_helpers import clean_object_name
-from .timeline_events import clean_power_name
+from .generals_powers import clean_power_name
 
 logger = structlog.get_logger(__name__)
 

@@ -35,6 +35,7 @@ from .routes import (
     files,
     game_night,
     generals,
+    powers,
     map_upload,
     maps,
     matches,
@@ -159,6 +160,7 @@ app.include_router(matches.router, dependencies=PROTECTED)
 app.include_router(players.router, dependencies=PROTECTED)
 app.include_router(profile.router, dependencies=PROTECTED)
 app.include_router(generals.router, dependencies=PROTECTED)
+app.include_router(powers.router, dependencies=PROTECTED)
 app.include_router(ffa.router, dependencies=PROTECTED)
 app.include_router(teams.router, dependencies=PROTECTED)
 app.include_router(maps.router, dependencies=PROTECTED)
