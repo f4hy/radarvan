@@ -598,6 +598,31 @@ def filter_by_format(
     ]
 
 
+def filter_matches(
+    games: list[MatchInfo],
+    player: str | None = None,
+    map_name: str | None = None,
+    game_format: str | None = None,
+) -> list[MatchInfo]:
+    """Narrow a match list by player, map and format - the Matches page's filters.
+
+    Each argument is independent; None means "don't filter on that". The player
+    test goes through the roster rather than a bare name scan over ``players``,
+    so a spectator doesn't make a night show up under their name.
+
+    Applied cheapest-first: the format test reads one already-computed field,
+    the map test one string, and only what survives both pays for a roster.
+    """
+    filtered = filter_by_format(games, game_format)
+    if map_name is not None:
+        filtered = [g for g in filtered if g.map == map_name]
+    if player is not None:
+        filtered = [
+            g for g in filtered if player in g.roster().human_participant_names()
+        ]
+    return filtered
+
+
 def filter_since[T](
     items: list[T],
     days_back: int | None,

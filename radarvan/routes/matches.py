@@ -16,11 +16,13 @@ from ..api_types import (
     MatchInfo,
     MatchNarrative,
     Matches,
+    PlayerName,
     Team,
 )
 from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
+from ..matches import filter_matches
 from ..queries import CompetitiveGames
 
 logger = structlog.get_logger(__name__)
@@ -43,10 +45,26 @@ def empty_match_details(match_id: int) -> MatchDetails:
 
 @router.get("/api/dates/", dependencies=[Depends(cache_short)])
 def get_dates(
+    player: PlayerName | None = None,
+    map_name: str | None = None,
+    game_format: str | None = None,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[date, float]:
-    replays = sorted_deduped_matches(replay_manager)
-    dates = Counter(r.date for r in replays.values())
+    """Every game night we have matches for, with how many were played.
+
+    The three optional filters narrow which matches are counted, so a filtered
+    request returns only the nights that still have one and a count of what
+    survived. They are the same three that ``/api/matches/by_date`` takes, on
+    purpose: the Matches page sends its filter set to both, which is what keeps
+    a night's headline count equal to the number of matches it expands to.
+    """
+    replays = filter_matches(
+        list(sorted_deduped_matches(replay_manager).values()),
+        player=player,
+        map_name=map_name,
+        game_format=game_format,
+    )
+    dates = Counter(r.date for r in replays)
     return dict(sorted(dates.items(), reverse=True))
 
 
@@ -54,19 +72,28 @@ def get_dates(
 def get_matches_by_date(
     date: date,
     exclude_dev: bool = False,
+    player: PlayerName | None = None,
+    map_name: str | None = None,
+    game_format: str | None = None,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> Matches:
     """Get all matches for a specific date.
 
     When exclude_dev is set, matches sourced from a "dev-" zulu build are omitted.
+    The player/map/format filters match ``/api/dates`` - see the note there.
     """
     replays = sorted_deduped_matches(replay_manager)
     return Matches(
-        matches=[
-            r
-            for r in replays.values()
-            if r.date == date and not (exclude_dev and r.is_dev)
-        ]
+        matches=filter_matches(
+            [
+                r
+                for r in replays.values()
+                if r.date == date and not (exclude_dev and r.is_dev)
+            ],
+            player=player,
+            map_name=map_name,
+            game_format=game_format,
+        )
     )
 
 

@@ -10,20 +10,23 @@ import Loading from "./Loading"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import Tab from "@mui/material/Tab"
+import TextField from "@mui/material/TextField"
 import Tabs from "@mui/material/Tabs"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import { MapData, MapStatsResponse } from "./api"
 import { MapClient } from "./Client"
 import { toGeneralName } from "./general_utils"
-import GameMap from "./Map"
+import GameMap, { MapThumbnail } from "./Map"
 import Page from "./Page"
 import { WinRateBar } from "./WinRateChip"
 import { PlayerLabel } from "./PlayerChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { useIsAdmin } from "./AuthContext"
-import { winRate } from "./utils"
+import { displayMapName, winRate } from "./utils"
 
 function getMapStats(
   callback: (m: MapStatsResponse) => void,
@@ -240,7 +243,7 @@ function MapBadge(props: {
   onMapClick: (mapName: string) => void
 }) {
   const wr = winRate(props.entry.wins, props.entry.losses)
-  const displayName = props.entry.mapName.replace(/\.[^.]+$/, "")
+  const displayName = displayMapName(props.entry.mapName)
   const total = props.entry.wins + props.entry.losses
   return (
     <Tooltip
@@ -397,17 +400,20 @@ const MapCard = React.memo(function MapCard(props: {
       <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
         <Stack
           direction="row"
-          spacing={1}
+          spacing={1.5}
           sx={{
             alignItems: "center",
           }}
         >
+          {/* Eighty collapsed rows of map names read as eighty strings; the
+              picture is how anyone actually recognises a map. */}
+          <MapThumbnail mapname={map.mapName} />
           <Typography
             sx={{
               fontWeight: "bold",
             }}
           >
-            {map.mapName.replace(/\.[^.]+$/, "")}
+            {displayMapName(map.mapName)}
           </Typography>
           <Chip
             label={`${map.totalGames} games`}
@@ -441,9 +447,24 @@ const MapCard = React.memo(function MapCard(props: {
   )
 })
 
+// The backend already drops maps under 5 games (map_stats.MIN_GAMES), which
+// still leaves eighty of them, half sitting on a handful of games where every
+// win rate is noise. This is the reader's own floor on top of that: a browsing
+// aid, so it never applies to a search - if you typed a map's name you want
+// that map, however little we have on it.
+const MIN_GAMES_OPTIONS = [5, 10, 20] as const
+const DEFAULT_MIN_GAMES = 10
+
 export default function DisplayMapStats() {
   const [mapStats, setMapStats] = React.useState<MapStatsResponse | null>(null)
   const [expandedMaps, setExpandedMaps] = React.useState<Set<string>>(new Set())
+  const [search, setSearch] = React.useState("")
+  const [minGames, setMinGames] = React.useState<number>(DEFAULT_MIN_GAMES)
+  // Maps a best/worst badge sent us to, kept visible regardless of the floor -
+  // otherwise clicking "worst map" for a general scrolls to nothing whenever
+  // that map is one of the thin ones the floor is there to hide.
+  const [pinned, setPinned] = React.useState<Set<string>>(new Set())
+  const [scrollTo, setScrollTo] = React.useState<string | null>(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
@@ -470,10 +491,30 @@ export default function DisplayMapStats() {
 
   const handleMapClick = React.useCallback((mapName: string) => {
     setExpandedMaps((prev) => new Set([...prev, mapName]))
-    document
-      .getElementById(mapId(mapName))
-      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    setPinned((prev) => new Set([...prev, mapName]))
+    // Not an inline scrollIntoView: pinning may be what puts the row on the
+    // page at all, so the scroll has to wait for that render.
+    setScrollTo(mapName)
   }, [])
+
+  React.useEffect(() => {
+    if (scrollTo === null) return
+    document
+      .getElementById(mapId(scrollTo))
+      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    setScrollTo(null)
+  }, [scrollTo])
+
+  const query = search.trim().toLowerCase()
+  const visibleMaps = React.useMemo(() => {
+    const maps = mapStats?.maps ?? []
+    if (query !== "") {
+      return maps.filter((m) =>
+        displayMapName(m.mapName).toLowerCase().includes(query),
+      )
+    }
+    return maps.filter((m) => m.totalGames >= minGames || pinned.has(m.mapName))
+  }, [mapStats, query, minGames, pinned])
 
   const generalBestWorst = React.useMemo(
     () => (mapStats ? computeGeneralBestWorst(mapStats.maps) : []),
@@ -493,10 +534,47 @@ export default function DisplayMapStats() {
     )
   }
 
+  const hiddenCount = mapStats.maps.length - visibleMaps.length
+
   return (
     <Page
       title="Map Stats"
       description="Which generals and which players do well on each map. A player needs at least 3 games on a map to appear."
+      actions={
+        <>
+          <TextField
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search maps"
+            sx={{ width: 240 }}
+          />
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Min games
+          </Typography>
+          <ToggleButtonGroup
+            value={minGames}
+            exclusive
+            size="small"
+            disabled={query !== ""}
+            onChange={(_, next: number | null) =>
+              next !== null && setMinGames(next)
+            }
+          >
+            {MIN_GAMES_OPTIONS.map((n) => (
+              <ToggleButton key={n} value={n}>
+                {n}+
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {visibleMaps.length} of {mapStats.maps.length} maps
+            {query === "" && hiddenCount > 0
+              ? `, ${hiddenCount} below the floor`
+              : ""}
+          </Typography>
+        </>
+      }
     >
       <Stack
         direction={{ xs: "column", md: "row" }}
@@ -516,14 +594,20 @@ export default function DisplayMapStats() {
         />
       </Stack>
       <Divider sx={{ mb: 1 }} />
-      {mapStats.maps.map((m) => (
-        <MapCard
-          key={m.mapName}
-          map={m}
-          expanded={expandedMaps.has(m.mapName)}
-          onToggle={handleToggle}
-        />
-      ))}
+      {visibleMaps.length === 0 ? (
+        <Typography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
+          No maps match “{search}”.
+        </Typography>
+      ) : (
+        visibleMaps.map((m) => (
+          <MapCard
+            key={m.mapName}
+            map={m}
+            expanded={expandedMaps.has(m.mapName)}
+            onToggle={handleToggle}
+          />
+        ))
+      )}
       {errorSnackbar}
     </Page>
   )

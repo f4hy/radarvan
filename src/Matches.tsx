@@ -7,6 +7,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
+import Autocomplete from "@mui/material/Autocomplete"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Card from "@mui/material/Card"
@@ -15,10 +16,12 @@ import IconButton from "@mui/material/IconButton"
 import Link from "@mui/material/Link"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { MatchesLoading, MatchRowLoading } from "./Loading"
+import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
+import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 
 import groupBy from "lodash/groupBy"
@@ -26,7 +29,7 @@ import * as React from "react"
 import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
 import { toGeneralName } from "./general_utils"
-import { Client } from "./Client"
+import { Client, MapClient } from "./Client"
 import {
   MatchInfo,
   Matches,
@@ -38,7 +41,9 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { PlayerDot } from "./PlayerChip"
+import { usePlayerColors } from "./PlayerColorsContext"
 import {
+  displayMapName,
   getColorHex,
   isCompetitor,
   isObserver,
@@ -61,15 +66,51 @@ function LazyMatchDetails(props: { id: number }) {
   )
 }
 
+type GameFormat = (typeof ALL_FORMATS)[number]
+
+/** What the reader has narrowed the history down to. */
+interface MatchFilters {
+  player: string | null
+  mapName: string | null
+  format: GameFormat
+}
+
+const NO_FILTERS: MatchFilters = { player: null, mapName: null, format: "All" }
+
+function hasActiveFilters(filters: MatchFilters): boolean {
+  return (
+    filters.player !== null ||
+    filters.mapName !== null ||
+    filters.format !== "All"
+  )
+}
+
+/** The filters as query params, with "not filtering on this" left off entirely.
+ *
+ * Both endpoints below take the same three, which is the point: the night list
+ * and the matches inside a night are filtered by the same server-side rule, so
+ * a night's headline count always equals what it expands to. */
+function filterParams(filters: MatchFilters) {
+  return {
+    player: filters.player ?? undefined,
+    mapName: filters.mapName ?? undefined,
+    gameFormat: filters.format === "All" ? undefined : filters.format,
+  }
+}
+
 function getDates(
+  filters: MatchFilters,
   callback: (m: { [key: string]: number }) => void,
   onError = console.error,
 ) {
-  Client.getDatesApiDatesGet().then(callback).catch(onError)
+  Client.getDatesApiDatesGet(filterParams(filters))
+    .then(callback)
+    .catch(onError)
 }
 
 function getMatches(
   date: Date,
+  filters: MatchFilters,
   callback: (m: Matches) => void,
   excludeDev: boolean,
   onError = console.error,
@@ -78,6 +119,7 @@ function getMatches(
   Client.getMatchesByDateApiMatchesByDateDateGet({
     date: date,
     excludeDev: excludeDev,
+    ...filterParams(filters),
   })
     .then(callback)
     .catch(onError)
@@ -678,6 +720,7 @@ function MatchDateSummary(props: {
 function DisplayMatchesForDate(props: {
   dateStr: string // backend game-night date key, "YYYY-MM-DD"
   count: number
+  filters: MatchFilters
   /** The most recent night opens on arrival; older ones are one click. */
   openByDefault: boolean
 }) {
@@ -694,14 +737,21 @@ function DisplayMatchesForDate(props: {
   const apiDate = React.useMemo(() => new Date(props.dateStr), [props.dateStr])
   React.useEffect(() => {
     if (expanded && matchList.matches.length === 0) {
-      getMatches(apiDate, setMatchList, !isAdmin, showError)
+      getMatches(apiDate, props.filters, setMatchList, !isAdmin, showError)
       Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
         forDate: apiDate,
       })
         .then(setRatingChanges)
         .catch(showError)
     }
-  }, [expanded, matchList.matches.length, apiDate, showError, isAdmin])
+  }, [
+    expanded,
+    matchList.matches.length,
+    apiDate,
+    props.filters,
+    showError,
+    isAdmin,
+  ])
 
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -735,33 +785,143 @@ function DisplayMatchesForDate(props: {
   )
 }
 
+/** Player, map and format, as one row of controls.
+ *
+ * Players come from the colors already loaded at app startup rather than a
+ * request of their own; maps from the match-count endpoint, so the list is
+ * ordered by how often we actually play them and the value sent back is the
+ * stored map string the backend matches on, not a prettied-up display name.
+ */
+function MatchFilterBar(props: {
+  filters: MatchFilters
+  mapOptions: string[]
+  onChange: (filters: MatchFilters) => void
+}) {
+  const { filters, onChange } = props
+  const colors = usePlayerColors()
+  const playerOptions = React.useMemo(
+    () => Object.keys(colors).sort(),
+    [colors],
+  )
+  const cleared = !hasActiveFilters(filters)
+  return (
+    <>
+      <Autocomplete
+        options={playerOptions}
+        value={filters.player}
+        onChange={(_, player) => onChange({ ...filters, player })}
+        size="small"
+        sx={{ width: 200 }}
+        renderInput={(params) => <TextField {...params} label="Player" />}
+      />
+      <Autocomplete
+        options={props.mapOptions}
+        value={filters.mapName}
+        onChange={(_, mapName) => onChange({ ...filters, mapName })}
+        getOptionLabel={displayMapName}
+        size="small"
+        sx={{ width: 260 }}
+        renderInput={(params) => <TextField {...params} label="Map" />}
+      />
+      <FormatToggle
+        options={ALL_FORMATS}
+        value={filters.format}
+        onChange={(format) => onChange({ ...filters, format })}
+      />
+      <Button
+        size="small"
+        disabled={cleared}
+        onClick={() => onChange(NO_FILTERS)}
+      >
+        Clear
+      </Button>
+    </>
+  )
+}
+
+const NIGHTS_PER_PAGE = 25
+
 export default function DisplayMatches() {
-  const [dates, setDates] = React.useState<{ [key: string]: number }>({})
+  const [dates, setDates] = React.useState<{ [key: string]: number } | null>(
+    null,
+  )
+  const [filters, setFilters] = React.useState<MatchFilters>(NO_FILTERS)
+  const [visibleNights, setVisibleNights] = React.useState(NIGHTS_PER_PAGE)
+  const [mapOptions, setMapOptions] = React.useState<string[]>([])
   const { showError, errorSnackbar } = useErrorSnackbar()
+
   React.useEffect(() => {
-    getDates(setDates, showError)
-  }, [showError])
-  if (Object.keys(dates).length === 0) {
-    return <MatchesLoading />
-  }
+    setDates(null)
+    setVisibleNights(NIGHTS_PER_PAGE)
+    getDates(filters, setDates, showError)
+  }, [filters, showError])
+
+  React.useEffect(() => {
+    MapClient.getMapMatchCountsApiMapMatchCountsGet()
+      .then((counts) => setMapOptions(counts.map((c) => c.map)))
+      // Best-effort: without it the map filter is an empty picker, which is
+      // better than failing the page.
+      .catch(() => setMapOptions([]))
+  }, [])
+
+  const nights = Object.entries(dates ?? {})
+  const shown = nights.slice(0, visibleNights)
+  const totalGames = nights.reduce((sum, [, count]) => sum + count, 0)
+  const filtered = hasActiveFilters(filters)
+  // Remounts every night's row when the filters move, so a night that was
+  // already expanded refetches under the new filter instead of showing the
+  // matches it loaded under the old one.
+  const filterKey = `${filters.player ?? ""}|${filters.mapName ?? ""}|${filters.format}`
 
   return (
     <Page
       surface={false}
       title="Matches"
       description="Every game we have played, newest night first."
+      actions={
+        <MatchFilterBar
+          filters={filters}
+          mapOptions={mapOptions}
+          onChange={setFilters}
+        />
+      }
     >
-      <Stack>
-        {Object.entries(dates).map(([date, count], idx) => (
-          <DisplayMatchesForDate
-            key={date}
-            dateStr={date}
-            count={count}
-            openByDefault={idx === 0}
-          />
-        ))}
-        {errorSnackbar}
-      </Stack>
+      {dates === null ? (
+        <MatchesLoading />
+      ) : nights.length === 0 ? (
+        <Typography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
+          No games match these filters.
+        </Typography>
+      ) : (
+        <Stack>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary", mb: 1, px: 0.5 }}
+          >
+            {nights.length} {nights.length === 1 ? "night" : "nights"},{" "}
+            {totalGames} {totalGames === 1 ? "game" : "games"}
+            {filtered ? " matching" : ""}
+          </Typography>
+          {shown.map(([date, count], idx) => (
+            <DisplayMatchesForDate
+              key={`${date}|${filterKey}`}
+              dateStr={date}
+              count={count}
+              filters={filters}
+              openByDefault={idx === 0}
+            />
+          ))}
+          {nights.length > shown.length && (
+            <Button
+              onClick={() => setVisibleNights((v) => v + NIGHTS_PER_PAGE)}
+              sx={{ mt: 2, alignSelf: "center" }}
+            >
+              Show older nights ({nights.length - shown.length} left)
+            </Button>
+          )}
+        </Stack>
+      )}
+      {errorSnackbar}
     </Page>
   )
 }

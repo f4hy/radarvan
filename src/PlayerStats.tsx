@@ -5,7 +5,7 @@ import IconButton from "@mui/material/IconButton"
 import Loading from "./Loading"
 import FormatToggle, { TEAM_FORMATS } from "./FormatToggle"
 import Page from "./Page"
-import { PlayerLabel } from "./PlayerChip"
+import { PlayerChip, PlayerLabel } from "./PlayerChip"
 import { useFetch } from "./useFetch"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
@@ -22,22 +22,11 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Tooltip from "@mui/material/Tooltip"
-import useMediaQuery from "@mui/material/useMediaQuery"
-import { useTheme } from "@mui/material/styles"
 import Typography from "@mui/material/Typography"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import ExpandLessIcon from "@mui/icons-material/ExpandLess"
 import * as React from "react"
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 
@@ -50,11 +39,9 @@ import {
   WinLoss,
 } from "./api"
 import { Client } from "./Client"
-import { useIsAdmin } from "./AuthContext"
 import { winRate, wilsonLowerBound } from "./utils"
-import { CHART_WIN, CHART_LOSS } from "./theme"
 import WinRateRadar from "./WinRateRadar"
-import WinRateChip from "./WinRateChip"
+import WinRateChip, { WinLossVolumeBar } from "./WinRateChip"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = TEAM_FORMATS
@@ -73,11 +60,12 @@ function toGeneral(s: string | number): General {
   return General.NUMBER_MINUS_1
 }
 
-function roundUpNearestN(num: number, N: number) {
-  return Math.ceil(num / N) * N
-}
-
 const FORMAT_ORDER = ["total", "1v1", "2v2", "3v3", "4v4"]
+
+// Anchor for one player's section, shared by the section and the jump list.
+function playerSectionId(name: string): string {
+  return `player-${name.replace(/[^a-zA-Z0-9]/g, "-")}`
+}
 
 function GameCountsTable(props: { playerStats: PlayerStats }) {
   const [open, setOpen] = React.useState(false)
@@ -182,17 +170,12 @@ function GameCountsTable(props: { playerStats: PlayerStats }) {
 function PlayerBanner(props: {
   name: string
   counts: { [key: string]: number } | undefined
-  debug: boolean
   totalWins: number
-  totalGames: number
+  totalLosses: number
 }) {
   const entries = FORMAT_ORDER.filter(
     (k) => props.counts != null && props.counts[k] != null,
   ).map((k) => [k, props.counts![k]] as const)
-  const winRate =
-    props.totalGames > 0
-      ? ((props.totalWins / props.totalGames) * 100).toFixed(1)
-      : "0"
 
   return (
     <Box
@@ -211,16 +194,16 @@ function PlayerBanner(props: {
       <Box sx={{ minWidth: 140 }}>
         <PlayerLabel name={props.name} bold variant="h6" />
       </Box>
-      {props.debug && (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          {props.totalWins}/{props.totalGames} ({winRate}%)
-        </Typography>
-      )}
+      {/* Their record across the generals below. This was behind the admin
+          flag, which made the page's own subject unreadable to everyone else:
+          a W-L record is public (only rating *levels* are not - see the root
+          CLAUDE.md), and without it the section is twelve per-general rates
+          with nothing to compare them to. */}
+      <WinRateChip
+        wins={props.totalWins}
+        losses={props.totalLosses}
+        size="medium"
+      />
       <Stack
         direction="row"
         spacing={1}
@@ -241,107 +224,95 @@ function PlayerBanner(props: {
   )
 }
 
-function PlayerListItem(props: { general: General; winLoss: WinLoss }) {
+/** One general's row: who it is, how much they played it, how it went.
+ *
+ * The bar length is the sample. A plain win-rate list draws 100% the same
+ * whether it came from two games or fifty, and "great with this general" vs
+ * "has barely touched this general" is the distinction most worth seeing
+ * before the number underneath it means anything. */
+function GeneralRecordRow(props: {
+  general: General
+  winLoss: WinLoss
+  max: number
+}) {
   const wins = props.winLoss?.wins ?? 0
   const losses = props.winLoss?.losses ?? 0
   return (
-    <ListItem disableGutters dense>
-      <ListItemAvatar>
+    <ListItem disableGutters dense sx={{ gap: 1.5 }}>
+      <ListItemAvatar sx={{ minWidth: 0 }}>
         <DisplayGeneral general={props.general} />
       </ListItemAvatar>
-      <ListItemText primary={toGeneralName(props.general)} />
-      <WinRateChip wins={wins} losses={losses} />
+      <ListItemText
+        primary={toGeneralName(props.general)}
+        sx={{ flex: "0 0 5.5rem", m: 0 }}
+      />
+      <WinLossVolumeBar wins={wins} losses={losses} max={props.max} />
+      <Box sx={{ flexShrink: 0 }}>
+        <WinRateChip wins={wins} losses={losses} />
+      </Box>
     </ListItem>
   )
 }
 
-function DisplayPlayerStat(props: {
-  stat: PlayerStat
-  max: number
-  debug: boolean
-  isMobile: boolean
-}) {
-  const { data, radarData, total_wins, total_games } = React.useMemo(() => {
-    let total_wins = 0
-    let total_games = 0
-    const entries = Object.entries(props.stat.stats).map(
-      ([general, winLoss]) => {
-        const wins = winLoss?.wins ?? 0
-        total_wins += wins
-        const losses = winLoss?.losses ?? 0
-        total_games += wins + losses
-        const wr = winRate(wins, losses)
-        const name = toGeneralName(toGeneral(general))
-        return { name, wins, losses, wr }
-      },
-    )
-    const data = entries.map(({ name, wins, losses, wr }) => ({
-      general: `${name}:${(wr * 100).toFixed()}%`,
-      wins,
-      losses,
-    }))
-    const radarData = entries.map(({ name, wr }) => ({
-      name,
-      winRate: Math.round(wr * 100),
-    }))
-    return { data, radarData, total_wins, total_games }
-  }, [props.stat])
+/**
+ * One player's per-general record: how much of each, how it went, and the
+ * shape of the whole.
+ *
+ * Two panels, not the three this used to be. The old middle panel was a
+ * vertical wins/losses bar chart whose x labels already carried the win rate,
+ * so a general's rate appeared in the list, again on a bar label, and again on
+ * the radar. What that chart *did* carry alone was sample size, so the rows on
+ * the left now carry it instead: one bar per general, length by games played
+ * and split by result, which is the same fact in the place you were already
+ * reading the number.
+ */
+function DisplayPlayerStat(props: { stat: PlayerStat }) {
+  const { radarData, total_wins, total_losses, maxGames } =
+    React.useMemo(() => {
+      let total_wins = 0
+      let total_losses = 0
+      let maxGames = 0
+      const radarData = Object.entries(props.stat.stats).map(
+        ([general, winLoss]) => {
+          const wins = winLoss?.wins ?? 0
+          const losses = winLoss?.losses ?? 0
+          total_wins += wins
+          total_losses += losses
+          maxGames = Math.max(maxGames, wins + losses)
+          return {
+            name: toGeneralName(toGeneral(general)),
+            winRate: Math.round(winRate(wins, losses) * 100),
+          }
+        },
+      )
+      return { radarData, total_wins, total_losses, maxGames }
+    }, [props.stat])
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box id={playerSectionId(props.stat.playerName)} sx={{ flexGrow: 1 }}>
       <PlayerBanner
         name={props.stat.playerName}
         counts={props.stat.gameCounts}
-        debug={props.debug}
         totalWins={total_wins}
-        totalGames={total_games}
+        totalLosses={total_losses}
       />
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 2 }}>
+      <Grid container spacing={3} sx={{ alignItems: "center" }}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <List dense>
             {Object.entries(props.stat.stats).map(([general, winLoss]) => (
-              <PlayerListItem
+              <GeneralRecordRow
                 key={general}
                 general={toGeneral(general)}
                 winLoss={winLoss}
+                // Scaled to this player's busiest general rather than a scale
+                // shared across the page: per-general counts run from 110 games
+                // down to 3, so a global max leaves half the roster with
+                // slivers. Absolute counts are on every row's chip.
+                max={maxGames}
               />
             ))}
           </List>
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          {/* Explicit height, not the ResponsiveContainer default of "100%":
-              stacked on xs this Grid item's own height comes from its content,
-              so a percentage height resolves against zero and the chart
-              disappears on phones. */}
-          <ResponsiveContainer width="99%" height={props.isMobile ? 280 : 340}>
-            <BarChart
-              data={data}
-              layout="horizontal"
-              margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
-            >
-              <CartesianGrid strokeDasharray="5 5" vertical={false} />
-              <Bar dataKey="wins" fill={CHART_WIN} name="Wins" />
-              <Bar dataKey="losses" fill={CHART_LOSS} name="Losses" />
-              {/* angle/textAnchor pair matches every other chart in the app —
-                  a positive angle with the default middle anchor drifts each
-                  label off the bar it belongs to. */}
-              <XAxis
-                dataKey="general"
-                height="auto"
-                angle={-35}
-                textAnchor="end"
-                minTickGap={0}
-                interval={0}
-                tick={{ fontSize: props.isMobile ? 9 : 12 }}
-              />
-              <YAxis
-                domain={[0, props.max]}
-                tick={{ fontSize: props.isMobile ? 9 : 12 }}
-              />
-              <RechartsTooltip cursor={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <WinRateRadar data={radarData} />
         </Grid>
       </Grid>
@@ -783,32 +754,66 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
   )
 }
 
+/**
+ * Jump straight to a player's section.
+ *
+ * The page is one tall section per player in fixed order, so finding yourself
+ * on it meant scrolling past everyone above you. These are `PlayerChip`s with
+ * navigation turned off: the chip is the app's player identity everywhere
+ * else, and here it means "that player, on this page" rather than "that
+ * player's profile".
+ */
+function PlayerJumpList(props: { names: string[] }) {
+  return (
+    <Stack
+      direction="row"
+      spacing={0.75}
+      useFlexGap
+      sx={{ flexWrap: "wrap", alignItems: "center" }}
+    >
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        Jump to
+      </Typography>
+      {props.names.map((name) => (
+        // A real button, not a div with a handler: this is the page's
+        // navigation, so it has to be reachable by keyboard. The chip inside
+        // has its own nav turned off, which is what keeps it from being an
+        // interactive element nested in one.
+        <Box
+          component="button"
+          type="button"
+          key={name}
+          aria-label={`Jump to ${name}`}
+          onClick={() =>
+            document
+              .getElementById(playerSectionId(name))
+              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+          sx={{
+            border: 0,
+            p: 0,
+            bgcolor: "transparent",
+            font: "inherit",
+            cursor: "pointer",
+            borderRadius: 4,
+            display: "inline-flex",
+          }}
+        >
+          <PlayerChip name={name} disableNav />
+        </Box>
+      ))}
+    </Stack>
+  )
+}
+
 export default function DisplayPlayerStats() {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const [format, setFormat] = React.useState<GameFormat>("All")
-  const debug = useIsAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
   const playerStats = useFetch(
     () => fetchPlayerStats(format),
     [format],
     showError,
   )
-  const maxWinLoss = React.useMemo(() => {
-    const maxwl = (playerStats?.playerStats ?? []).reduce(
-      (acc, s) =>
-        Math.max(
-          acc,
-          s.factionStats.reduce(
-            (ac, x) =>
-              Math.max(ac, x.winLoss?.wins ?? 0, x.winLoss?.losses ?? 0),
-            0,
-          ),
-        ),
-      0,
-    )
-    return roundUpNearestN(maxwl + 1, 2)
-  }, [playerStats])
 
   if (!playerStats) {
     return <Loading />
@@ -826,6 +831,10 @@ export default function DisplayPlayerStats() {
         />
       }
     >
+      <PlayerJumpList
+        names={playerStats.playerStats.map((s) => s.playerName)}
+      />
+      <Divider sx={{ my: 2 }} />
       <GameCountsTable playerStats={playerStats} />
       <Divider sx={{ mb: 2 }} />
       <BestPlayerPerGeneral playerStats={playerStats} />
@@ -836,12 +845,7 @@ export default function DisplayPlayerStats() {
       <Divider sx={{ mb: 2 }} />
       {playerStats.playerStats.map((m) => (
         <React.Fragment key={m.playerName}>
-          <DisplayPlayerStat
-            stat={m}
-            max={maxWinLoss}
-            debug={debug}
-            isMobile={isMobile}
-          />
+          <DisplayPlayerStat stat={m} />
           <Divider />
         </React.Fragment>
       ))}

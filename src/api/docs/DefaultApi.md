@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost*
 | [**backfillPlayerRolesApiBackfillPlayerRolesPost**](DefaultApi.md#backfillplayerrolesapibackfillplayerrolespost) | **POST** /api/backfill_player_roles/ | Backfill Player Roles |
 | [**backfillTournamentGamesApiBackfillTournamentGamesPost**](DefaultApi.md#backfilltournamentgamesapibackfilltournamentgamespost) | **POST** /api/backfill/tournament_games | Backfill Tournament Games |
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
+| [**cleanupShortMatchesApiCleanupShortMatchesPost**](DefaultApi.md#cleanupshortmatchesapicleanupshortmatchespost) | **POST** /api/cleanup_short_matches/ | Cleanup Short Matches |
 | [**clearDetailsCacheApiClearDetailsCachePost**](DefaultApi.md#cleardetailscacheapicleardetailscachepost) | **POST** /api/clear_details_cache/ | Clear Details Cache |
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
 | [**debugMatchApiDebugMatchMatchIdGet**](DefaultApi.md#debugmatchapidebugmatchmatchidget) | **GET** /api/debug/match/{match_id} | Debug Match |
@@ -406,6 +407,74 @@ example().catch(console.error);
 ### Authorization
 
 [APIKeyHeader](../README.md#APIKeyHeader)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## cleanupShortMatchesApiCleanupShortMatchesPost
+
+> { [key: string]: number | null; } cleanupShortMatchesApiCleanupShortMatchesPost(maxToUpdate)
+
+Cleanup Short Matches
+
+Delete match rows below the duration floor left by the old ingest order.  Before &#x60;matches.register_parsed_replay&#x60;, both ingest paths registered a match and only then asked whether the replay was long enough, so short games kept a committed row that no listing shows. Deleting them is only stable now that the floor is applied before the write. Run it repeatedly until &#x60;remaining&#x60; is 0.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from '';
+import type { CleanupShortMatchesApiCleanupShortMatchesPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // number (optional)
+    maxToUpdate: 56,
+  } satisfies CleanupShortMatchesApiCleanupShortMatchesPostRequest;
+
+  try {
+    const data = await api.cleanupShortMatchesApiCleanupShortMatchesPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **maxToUpdate** | `number` |  | [Optional] [Defaults to `50`] |
+
+### Return type
+
+**{ [key: string]: number | null; }**
+
+### Authorization
+
+No authorization required
 
 ### HTTP request headers
 
@@ -1032,9 +1101,11 @@ example().catch(console.error);
 
 ## getDatesApiDatesGet
 
-> { [key: string]: number; } getDatesApiDatesGet()
+> { [key: string]: number; } getDatesApiDatesGet(player, mapName, gameFormat)
 
 Get Dates
+
+Every game night we have matches for, with how many were played.  The three optional filters narrow which matches are counted, so a filtered request returns only the nights that still have one and a count of what survived. They are the same three that &#x60;&#x60;/api/matches/by_date&#x60;&#x60; takes, on purpose: the Matches page sends its filter set to both, which is what keeps a night\&#39;s headline count equal to the number of matches it expands to.
 
 ### Example
 
@@ -1053,8 +1124,17 @@ async function example() {
   });
   const api = new DefaultApi(config);
 
+  const body = {
+    // string (optional)
+    player: player_example,
+    // string (optional)
+    mapName: mapName_example,
+    // string (optional)
+    gameFormat: gameFormat_example,
+  } satisfies GetDatesApiDatesGetRequest;
+
   try {
-    const data = await api.getDatesApiDatesGet();
+    const data = await api.getDatesApiDatesGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -1067,7 +1147,12 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **player** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **mapName** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **gameFormat** | `string` |  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -1087,6 +1172,7 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1873,11 +1959,11 @@ example().catch(console.error);
 
 ## getMatchesByDateApiMatchesByDateDateGet
 
-> Matches getMatchesByDateApiMatchesByDateDateGet(date, excludeDev)
+> Matches getMatchesByDateApiMatchesByDateDateGet(date, excludeDev, player, mapName, gameFormat)
 
 Get Matches By Date
 
-Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted.
+Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \&quot;dev-\&quot; zulu build are omitted. The player/map/format filters match &#x60;&#x60;/api/dates&#x60;&#x60; - see the note there.
 
 ### Example
 
@@ -1901,6 +1987,12 @@ async function example() {
     date: 2013-10-20,
     // boolean (optional)
     excludeDev: true,
+    // string (optional)
+    player: player_example,
+    // string (optional)
+    mapName: mapName_example,
+    // string (optional)
+    gameFormat: gameFormat_example,
   } satisfies GetMatchesByDateApiMatchesByDateDateGetRequest;
 
   try {
@@ -1922,6 +2014,9 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **date** | `Date` |  | [Defaults to `undefined`] |
 | **excludeDev** | `boolean` |  | [Optional] [Defaults to `false`] |
+| **player** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **mapName** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **gameFormat** | `string` |  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -4291,7 +4386,7 @@ No authorization required
 
 Register Matches
 
-Register Match rows for any ParsedReplayJson that has no corresponding Match.
+Register Match rows for any ParsedReplayJson that has no corresponding Match.  &#x60;checked&#x60; counts replays read from S3, including ones declined as too short - so &#x60;updated: 0&#x60; with a non-zero &#x60;checked&#x60; means \&quot;run me again\&quot;, not \&quot;queue drained\&quot;.
 
 ### Example
 

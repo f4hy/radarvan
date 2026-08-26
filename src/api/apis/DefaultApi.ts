@@ -166,6 +166,10 @@ export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<string>;
 }
 
+export interface CleanupShortMatchesApiCleanupShortMatchesPostRequest {
+    maxToUpdate?: number;
+}
+
 export interface ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest {
     matchId: number;
 }
@@ -197,6 +201,12 @@ export interface GenerateTournamentReportApiGenerateTournamentReportTournamentNa
 
 export interface GetBuildOrdersApiBuildOrdersMatchIdGetRequest {
     matchId: number;
+}
+
+export interface GetDatesApiDatesGetRequest {
+    player?: string | null;
+    mapName?: string | null;
+    gameFormat?: string | null;
 }
 
 export interface GetDurationDistributionApiDurationDistributionGetRequest {
@@ -240,6 +250,9 @@ export interface GetMatchReplayUrlApiReplayUrlMatchIdGetRequest {
 export interface GetMatchesByDateApiMatchesByDateDateGetRequest {
     date: Date;
     excludeDev?: boolean;
+    player?: string | null;
+    mapName?: string | null;
+    gameFormat?: string | null;
 }
 
 export interface GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest {
@@ -622,6 +635,49 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async balanceTeamsApiBalanceTeamsGet(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.balanceTeamsApiBalanceTeamsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for cleanupShortMatchesApiCleanupShortMatchesPost without sending the request
+     */
+    async cleanupShortMatchesApiCleanupShortMatchesPostRequestOpts(requestParameters: CleanupShortMatchesApiCleanupShortMatchesPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/cleanup_short_matches/`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Delete match rows below the duration floor left by the old ingest order.  Before `matches.register_parsed_replay`, both ingest paths registered a match and only then asked whether the replay was long enough, so short games kept a committed row that no listing shows. Deleting them is only stable now that the floor is applied before the write. Run it repeatedly until `remaining` is 0.
+     * Cleanup Short Matches
+     */
+    async cleanupShortMatchesApiCleanupShortMatchesPostRaw(requestParameters: CleanupShortMatchesApiCleanupShortMatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
+        const requestOptions = await this.cleanupShortMatchesApiCleanupShortMatchesPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Delete match rows below the duration floor left by the old ingest order.  Before `matches.register_parsed_replay`, both ingest paths registered a match and only then asked whether the replay was long enough, so short games kept a committed row that no listing shows. Deleting them is only stable now that the floor is applied before the write. Run it repeatedly until `remaining` is 0.
+     * Cleanup Short Matches
+     */
+    async cleanupShortMatchesApiCleanupShortMatchesPost(requestParameters: CleanupShortMatchesApiCleanupShortMatchesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
+        const response = await this.cleanupShortMatchesApiCleanupShortMatchesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1049,8 +1105,20 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Creates request options for getDatesApiDatesGet without sending the request
      */
-    async getDatesApiDatesGetRequestOpts(): Promise<runtime.RequestOpts> {
+    async getDatesApiDatesGetRequestOpts(requestParameters: GetDatesApiDatesGetRequest): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
+
+        if (requestParameters['player'] != null) {
+            queryParameters['player'] = requestParameters['player'];
+        }
+
+        if (requestParameters['mapName'] != null) {
+            queryParameters['map_name'] = requestParameters['mapName'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -1070,20 +1138,22 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Every game night we have matches for, with how many were played.  The three optional filters narrow which matches are counted, so a filtered request returns only the nights that still have one and a count of what survived. They are the same three that ``/api/matches/by_date`` takes, on purpose: the Matches page sends its filter set to both, which is what keeps a night\'s headline count equal to the number of matches it expands to.
      * Get Dates
      */
-    async getDatesApiDatesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
-        const requestOptions = await this.getDatesApiDatesGetRequestOpts();
+    async getDatesApiDatesGetRaw(requestParameters: GetDatesApiDatesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const requestOptions = await this.getDatesApiDatesGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
+     * Every game night we have matches for, with how many were played.  The three optional filters narrow which matches are counted, so a filtered request returns only the nights that still have one and a count of what survived. They are the same three that ``/api/matches/by_date`` takes, on purpose: the Matches page sends its filter set to both, which is what keeps a night\'s headline count equal to the number of matches it expands to.
      * Get Dates
      */
-    async getDatesApiDatesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
-        const response = await this.getDatesApiDatesGetRaw(initOverrides);
+    async getDatesApiDatesGet(requestParameters: GetDatesApiDatesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+        const response = await this.getDatesApiDatesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1648,6 +1718,18 @@ export class DefaultApi extends runtime.BaseAPI {
             queryParameters['exclude_dev'] = requestParameters['excludeDev'];
         }
 
+        if (requestParameters['player'] != null) {
+            queryParameters['player'] = requestParameters['player'];
+        }
+
+        if (requestParameters['mapName'] != null) {
+            queryParameters['map_name'] = requestParameters['mapName'];
+        }
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.apiKey) {
@@ -1671,7 +1753,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
+     * Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted. The player/map/format filters match ``/api/dates`` - see the note there.
      * Get Matches By Date
      */
     async getMatchesByDateApiMatchesByDateDateGetRaw(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Matches>> {
@@ -1682,7 +1764,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted.
+     * Get all matches for a specific date.  When exclude_dev is set, matches sourced from a \"dev-\" zulu build are omitted. The player/map/format filters match ``/api/dates`` - see the note there.
      * Get Matches By Date
      */
     async getMatchesByDateApiMatchesByDateDateGet(requestParameters: GetMatchesByDateApiMatchesByDateDateGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Matches> {
@@ -3378,7 +3460,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register Match rows for any ParsedReplayJson that has no corresponding Match.
+     * Register Match rows for any ParsedReplayJson that has no corresponding Match.  `checked` counts replays read from S3, including ones declined as too short - so `updated: 0` with a non-zero `checked` means \"run me again\", not \"queue drained\".
      * Register Matches
      */
     async registerMatchesApiRegisterMatchesPostRaw(requestParameters: RegisterMatchesApiRegisterMatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
@@ -3389,7 +3471,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register Match rows for any ParsedReplayJson that has no corresponding Match.
+     * Register Match rows for any ParsedReplayJson that has no corresponding Match.  `checked` counts replays read from S3, including ones declined as too short - so `updated: 0` with a non-zero `checked` means \"run me again\", not \"queue drained\".
      * Register Matches
      */
     async registerMatchesApiRegisterMatchesPost(requestParameters: RegisterMatchesApiRegisterMatchesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {

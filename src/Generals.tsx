@@ -35,28 +35,29 @@ function generalToSide(general: General): Side {
   }
 }
 
-export default function DisplayGeneral(props: { general: General }) {
-  let general: string | null = General[props.general]
-  let avatar = (
-    <Avatar
-      key={props.general}
-      src={sideImg[generalToSide(props.general)]}
-      sx={{ width: "2rem", height: "2.1rem" }}
-    />
+/** A general's faction logo on its own, sizable and with no name badge.
+ *
+ * `DisplayGeneral` below is this plus the badge, and is what most of the app
+ * wants. This bare form is for places that already write the name themselves
+ * and only need the icon to make a row scannable - a table's row labels, a
+ * matrix header - where a badge would collide with the text beside it. */
+export function GeneralAvatar(props: { general: General; size?: string }) {
+  const size = props.size ?? "2rem"
+  const known = General[props.general] !== "UNRECOGNIZED"
+  const sx = { width: size, height: size, fontSize: "0.75rem" }
+  return known ? (
+    <Avatar src={sideImg[generalToSide(props.general)]} sx={sx} />
+  ) : (
+    <Avatar sx={sx}>?</Avatar>
   )
-  if (general === "UNRECOGNIZED") {
-    general = null
-    avatar = (
-      <Avatar key={props.general} sx={{ width: "2rem", height: "2.1rem" }}>
-        ?
-      </Avatar>
-    )
-  }
+}
+
+export default function DisplayGeneral(props: { general: General }) {
+  const general: string | null =
+    General[props.general] === "UNRECOGNIZED" ? null : General[props.general]
   return (
-    <>
-      <Badge badgeContent={general} color="primary" sx={{ fontSize: 1 }}>
-        {avatar}
-      </Badge>
-    </>
+    <Badge badgeContent={general} color="primary" sx={{ fontSize: 1 }}>
+      <GeneralAvatar general={props.general} size="2rem" />
+    </Badge>
   )
 }

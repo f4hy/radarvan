@@ -1,5 +1,5 @@
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import Tab from "@mui/material/Tab"
+import Tabs from "@mui/material/Tabs"
 import { alpha } from "@mui/material/styles"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -1644,9 +1644,11 @@ type Displays =
   | "Academy"
   | "Build Order"
 
-// Decorated tab labels. The ToggleButton `value` stays the plain Displays string
-// (used by the switch); only the rendered label gets an icon/emoji.
+// The tab strip's labels. The `Displays` string stays the switch key below;
+// only the rendered label is shortened, because a tab has to fit in a row of
+// ten and "Player Unit and spending breakdown" is a sentence.
 const DISPLAY_LABELS: Partial<Record<Displays, React.ReactNode>> = {
+  "Player Unit and spending breakdown": "Units & Spending",
   AI: "🤖 AI",
   Replay: (
     <Stack
@@ -1662,46 +1664,39 @@ const DISPLAY_LABELS: Partial<Record<Displays, React.ReactNode>> = {
   ),
 }
 
+/**
+ * The detail views, as a tab strip with the first one already open.
+ *
+ * This was ten unselected toggle buttons over an empty panel: expanding a match
+ * showed a wall of options and nothing to read, so the reader had to guess
+ * which button held what they came for. A tab strip says the same thing but
+ * arrives already showing something, and scrolls rather than wrapping to three
+ * ragged rows on a narrow window.
+ */
 function DetailViewSelector(props: {
-  selectedDisplay: Displays | null
+  selectedDisplay: Displays
   choices: Displays[]
-  onChange: (display: Displays | null) => void
+  onChange: (display: Displays) => void
   details: MatchDetails
 }) {
   const handleChange = React.useCallback(
-    (_: React.MouseEvent<HTMLElement>, v: Displays | null) => props.onChange(v),
+    (_: React.SyntheticEvent, v: Displays) => props.onChange(v),
     [props.onChange],
   )
   return (
     <>
-      <Typography
-        variant="subtitle2"
-        sx={{
-          color: "text.secondary",
-          mb: 1,
-        }}
-      >
-        Select which detailed charts to show
-      </Typography>
-      <ToggleButtonGroup
-        exclusive
+      <Tabs
         value={props.selectedDisplay}
         onChange={handleChange}
-        color="primary"
-        sx={{ flexWrap: "wrap" }}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ borderBottom: 1, borderColor: "divider", mb: 1.5 }}
       >
         {props.choices.map((v) => (
-          <ToggleButton key={v} value={v}>
-            {DISPLAY_LABELS[v] ?? v}
-          </ToggleButton>
+          <Tab key={v} value={v} label={DISPLAY_LABELS[v] ?? v} />
         ))}
-      </ToggleButtonGroup>
-      <Divider />
-      {props.selectedDisplay !== null && (
-        <Typography variant="h6" sx={{ mt: 1.5, mb: 1 }}>
-          {props.selectedDisplay}
-        </Typography>
-      )}
+      </Tabs>
       {props.selectedDisplay === "Player Unit and spending breakdown" && (
         <ShowPlayerSummaries
           playerSummaries={props.details.playerSummary}
@@ -1753,8 +1748,10 @@ function DetailViewSelector(props: {
 }
 
 export default function ShowMatchDetails(props: { id: number }) {
-  const [selectedDisplay, setSelectedDisplay] = React.useState<Displays | null>(
-    null,
+  // Not `null`: a tab strip is always on something, and the panel that opens
+  // with the match is the one most people are here for.
+  const [selectedDisplay, setSelectedDisplay] = React.useState<Displays>(
+    "Player Unit and spending breakdown",
   )
   const { showError, errorSnackbar } = useErrorSnackbar()
   // useFetch, not a hand-rolled effect: switching matches has to clear the old

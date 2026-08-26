@@ -1,5 +1,6 @@
 import { Typography, useTheme } from "@mui/material"
 import Box from "@mui/material/Box"
+import Chip from "@mui/material/Chip"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
@@ -25,7 +26,7 @@ import {
 } from "recharts"
 import { FactionMatrix, GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
-import DisplayGeneral from "./Generals"
+import DisplayGeneral, { GeneralAvatar } from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
@@ -174,6 +175,32 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
 // the grid's own median (always ~50% by construction - see the backend's
 // antisymmetric-head note) rather than as an absolute win probability, same
 // convention as the bracket popup's "best draws" list.
+
+// The grid is 12x12 of four-character numbers, so both edges have to stay put
+// while it scrolls: without them a cell in the middle is a number with no idea
+// which pair it belongs to.
+const STICKY_ROW_LABEL = {
+  position: "sticky",
+  left: 0,
+  zIndex: 2,
+  bgcolor: "background.paper",
+  borderRight: 1,
+  borderColor: "divider",
+} as const
+
+function MatrixFact(props: { title: string; children: React.ReactNode }) {
+  return (
+    <MuiTooltip title={props.title}>
+      <Chip
+        size="small"
+        variant="outlined"
+        label={props.children}
+        sx={{ cursor: "default" }}
+      />
+    </MuiTooltip>
+  )
+}
+
 function FactionMatrixTable(props: { matrix: FactionMatrix }) {
   const { cells, medianProbAWins } = props.matrix
 
@@ -211,26 +238,40 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>
         Faction matchup matrix
       </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        Model-predicted advantage for the row general over the column general,
-        with both players and the map unknown - the faction matchup in
-        isolation. Each cell is percentage points above/below the grid's median
-        draw ({(medianProbAWins * 100).toFixed(0)}%), not an absolute win rate.
-        Faded cells ({cells.length - nSignificant} of {cells.length}) aren't
-        distinguishable from a coin flip across an {ensembleSize}-model ensemble
-        trained on this much data - only the {nSignificant} solid cells hold up.
+      <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+        How much the row general is favored over the column general, with both
+        players and the map unknown. A positive number means the row general has
+        the edge.
       </Typography>
-      <TableContainer sx={{ overflowX: "auto" }}>
-        <Table size="small">
+      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 1.5 }}>
+        <MatrixFact title="Every cell is percentage points above or below this, not an absolute win rate. The grid's median draw is ~50% by construction.">
+          Median draw {(medianProbAWins * 100).toFixed(0)}%
+        </MatrixFact>
+        <MatrixFact
+          title={`Agreed on across an ${ensembleSize}-model ensemble trained on this much data.`}
+        >
+          {nSignificant} of {cells.length} matchups hold up
+        </MatrixFact>
+        <MatrixFact title="The remaining cells aren't distinguishable from a coin flip, so read them as no edge either way.">
+          Faded = too close to call
+        </MatrixFact>
+      </Stack>
+      <TableContainer sx={{ overflowX: "auto", maxHeight: 640 }}>
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell />
+              <TableCell sx={{ ...STICKY_ROW_LABEL, zIndex: 3 }} />
               {generals.map((g) => (
-                <TableCell key={g} align="center" sx={{ fontWeight: 600 }}>
-                  {toGeneralName(g)}
+                <TableCell key={g} align="center" sx={{ px: 0.5 }}>
+                  <Stack spacing={0.25} sx={{ alignItems: "center" }}>
+                    <GeneralAvatar general={g} size="1.4rem" />
+                    <Box sx={{ fontWeight: 600, fontSize: "0.7rem" }}>
+                      {toGeneralName(g)}
+                    </Box>
+                  </Stack>
                 </TableCell>
               ))}
             </TableRow>
@@ -238,8 +279,17 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
           <TableBody>
             {generals.map((rowGeneral) => (
               <TableRow key={rowGeneral}>
-                <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-                  {toGeneralName(rowGeneral)}
+                <TableCell sx={{ ...STICKY_ROW_LABEL, whiteSpace: "nowrap" }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <GeneralAvatar general={rowGeneral} size="1.4rem" />
+                    <Box sx={{ fontWeight: 600 }}>
+                      {toGeneralName(rowGeneral)}
+                    </Box>
+                  </Stack>
                 </TableCell>
                 {generals.map((colGeneral) => {
                   const stats = statsByPair.get(`${rowGeneral}:${colGeneral}`)
@@ -256,7 +306,7 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
                     <TableCell
                       key={colGeneral}
                       align="center"
-                      title={`${(prob * 100).toFixed(1)}% ± ${(std * 100).toFixed(1)}pp across ${ensembleSize} models${significant ? "" : " - not significant"}`}
+                      title={`${toGeneralName(rowGeneral)} vs ${toGeneralName(colGeneral)}: ${(prob * 100).toFixed(1)}% ± ${(std * 100).toFixed(1)}pp across ${ensembleSize} models${significant ? "" : " - not significant"}`}
                       sx={{
                         bgcolor: alpha(
                           color,

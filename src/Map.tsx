@@ -48,6 +48,55 @@ function getMapImageApiUrl(mapname: string) {
   )
 }
 
+/** The map's image on its own, at list-row size.
+ *
+ * `GameMap` below is the full article - overlay dots, supply tooltip, a 300px
+ * floor - which is the wrong thing to put in a row of eighty collapsed
+ * accordions. This is just the picture, lazily loaded, so a list of map names
+ * is recognisable at a glance without eighty overlay fetches behind it. */
+export function MapThumbnail(props: { mapname: string; size?: number }) {
+  const [failed, setFailed] = React.useState(false)
+  const size = props.size ?? 44
+  const basename = props.mapname.split("/").slice(-1).pop() ?? ""
+  const sx = {
+    width: size,
+    height: size,
+    borderRadius: 1,
+    flexShrink: 0,
+    display: "block",
+    objectFit: "cover" as const,
+  }
+  React.useEffect(() => setFailed(false), [basename])
+  if (!basename || failed) {
+    return (
+      <Box
+        sx={{
+          ...sx,
+          bgcolor: "action.hover",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: size * 0.5,
+          lineHeight: 1,
+        }}
+      >
+        🗺️
+      </Box>
+    )
+  }
+  return (
+    <Box
+      component="img"
+      src={getMapImageApiUrl(basename)}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+      sx={sx}
+    />
+  )
+}
+
 const mapDataResolved: Record<string, MapDataPayload> = {}
 const mapDataInFlight: Record<string, Promise<MapDataPayload>> = {}
 

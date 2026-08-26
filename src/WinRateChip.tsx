@@ -1,7 +1,9 @@
 import * as React from "react"
+import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import Tooltip from "@mui/material/Tooltip"
 import LinearProgress from "@mui/material/LinearProgress"
+import { CHART_LOSS, CHART_WIN } from "./theme"
 import { formatPercent, winRateTone } from "./utils"
 
 // A win-rate chip that is honest about uncertainty. Color is driven by the 95%
@@ -66,5 +68,49 @@ export function WinRateBar(props: { wins: number; losses: number }) {
         "& .MuiLinearProgress-bar": { bgcolor: hex },
       }}
     />
+  )
+}
+
+/**
+ * Wins and losses as one bar whose *length* is how many games there were.
+ *
+ * `WinRateBar` above fills by rate, so 3-0 and 30-0 draw an identical bar.
+ * This one is for where the sample size is the point: the split says how the
+ * games went, the length says how many of them there were, so "great on this
+ * general" and "played it twice" can't look the same.
+ *
+ * `max` is the length a full-width bar means. Pick it from the set being
+ * compared — across a row of players a global max is right, but for one
+ * player's twelve generals it should be that player's own busiest, or a light
+ * player's whole chart collapses to slivers.
+ */
+export function WinLossVolumeBar(props: {
+  wins: number
+  losses: number
+  max: number
+}) {
+  const total = props.wins + props.losses
+  const length = props.max > 0 ? (total / props.max) * 100 : 0
+  const winShare = total > 0 ? (props.wins / total) * 100 : 0
+  return (
+    <Tooltip
+      title={`${total} game${total === 1 ? "" : "s"}: ${props.wins}W-${props.losses}L`}
+    >
+      <Box
+        sx={{
+          flexGrow: 1,
+          minWidth: 40,
+          height: 12,
+          borderRadius: 4,
+          bgcolor: "action.hover",
+          overflow: "hidden",
+        }}
+      >
+        <Box sx={{ display: "flex", width: `${length}%`, height: "100%" }}>
+          <Box sx={{ width: `${winShare}%`, bgcolor: CHART_WIN }} />
+          <Box sx={{ flexGrow: 1, bgcolor: CHART_LOSS }} />
+        </Box>
+      </Box>
+    </Tooltip>
   )
 }
