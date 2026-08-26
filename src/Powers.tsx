@@ -3,7 +3,6 @@ import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import Alert from "@mui/material/Alert"
-import Autocomplete from "@mui/material/Autocomplete"
 import Box from "@mui/material/Box"
 import Card from "@mui/material/Card"
 import CardContent from "@mui/material/CardContent"
@@ -15,7 +14,8 @@ import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
-import TextField from "@mui/material/TextField"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
@@ -25,8 +25,9 @@ import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import Page from "./Page"
+import { usePlayerColors } from "./PlayerColorsContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
-import { formatPercent } from "./utils"
+import { formatPercent, getColorHex, playerColor, playerPalette } from "./utils"
 
 // Below this the chip would read "0.00/min vs 0.00" - which is every China and
 // Infantry game, since neither has a scouting power to fire.
@@ -297,6 +298,66 @@ function SignatureCard(props: { unusual: UnusualPick[] }) {
   )
 }
 
+/** The roster, as a one-of-N button set in each player's own identity color.
+ *
+ * A dropdown for eleven fixed names hides the roster behind a click and makes
+ * comparing two people a two-step affair; the whole group fits on one row.
+ * `ToggleButtonGroup` clones its direct children to inject selection state, so
+ * the buttons are rendered inline rather than through a per-player wrapper
+ * component - which also means the palette is computed without a hook.
+ */
+function PlayerPicker(props: {
+  players: string[]
+  value: string | null
+  onChange: (value: string | null) => void
+}) {
+  const colors = usePlayerColors()
+  return (
+    <ToggleButtonGroup
+      exclusive
+      size="small"
+      value={props.value}
+      onChange={(_, value: string | null) => props.onChange(value)}
+      sx={{ flexWrap: "wrap" }}
+      aria-label="Player"
+    >
+      {props.players.map((name) => {
+        const raw = colors[name]
+        const palette = playerPalette(
+          raw != null ? getColorHex(raw) : playerColor(name),
+        )
+        return (
+          <ToggleButton
+            key={name}
+            value={name}
+            sx={{
+              textTransform: "none",
+              gap: 0.75,
+              "&.Mui-selected": {
+                bgcolor: palette.tint,
+                color: palette.ink,
+                borderColor: palette.edge,
+                "&:hover": { bgcolor: palette.tintStrong },
+              },
+            }}
+          >
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: palette.dot,
+                flexShrink: 0,
+              }}
+            />
+            {name}
+          </ToggleButton>
+        )
+      })}
+    </ToggleButtonGroup>
+  )
+}
+
 export default function Powers() {
   const [stats, setStats] = React.useState<PowerStats | null>(null)
   const [player, setPlayer] = React.useState<string | null>(playerFromUrl)
@@ -318,16 +379,13 @@ export default function Powers() {
       title="Generals Powers"
       description="What each player spends generals points on, and how often they fire what they bought. Picks come from the replay's PurchaseScience orders; activations are counted per minute the player was still alive. Every figure is compared against the rest of the group on the same general."
       actions={
-        <Autocomplete
-          options={stats?.players ?? []}
+        <PlayerPicker
+          players={stats?.players ?? []}
           value={player}
-          onChange={(_, value) => {
+          onChange={(value) => {
             setPlayer(value)
             setPlayerInUrl(value)
           }}
-          sx={{ minWidth: 260 }}
-          size="small"
-          renderInput={(params) => <TextField {...params} label="Player" />}
         />
       }
       surface={false}
