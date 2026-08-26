@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, ConfigDict
 from .common import (
+    General,
     Minute,
     Rate,
 )
@@ -158,6 +159,62 @@ class TimelineEvent(BaseModel):
     cost: int = 0
 
 
+class PowerPick(BaseModel):
+    """One `PurchaseScience` order: a generals point spent.
+
+    Deliberately just the raw id and when it was bought. The *name* of a
+    science is a property of the game's science list, not of this match, and
+    `generals_powers` resolves it at read time - so identifying an id we
+    currently can't name is a one-line table edit rather than a
+    DETAILS_VERSION bump and a re-derivation of every cached match.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    at_minute: Minute = Field(alias="atMinute")
+    science_id: int = Field(alias="scienceId")
+
+
+class PowerUse(BaseModel):
+    """How often one power was activated, by one player, in one match."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    name: str
+    count: int
+    # Absent when the replay ships no body stream to time the first activation.
+    first_minute: Minute | None = Field(default=None, alias="firstMinute")
+
+
+class PlayerPowers(BaseModel):
+    """One player's powers in one match: what they bought and what they fired."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    # Alias-resolved (see player_ids.resolve_player_name), so this is directly
+    # comparable to a name written canonically anywhere else in the app. The
+    # replay's raw spelling is not kept - nothing downstream wants it, and
+    # keeping both is how two rows for one player happen.
+    player_name: str = Field(alias="playerName")
+    # The replay's own spelling, e.g. "FactionAmericaLaserGeneral".
+    faction: str
+    general: General
+    # Minutes this player was in the game - their elimination if they were
+    # eliminated, else the match length. The denominator for a per-minute rate,
+    # so someone wiped out at 4 minutes isn't averaged over a 25-minute game.
+    minutes: Minute
+    picks: list[PowerPick] = Field(default_factory=list)
+    uses: list[PowerUse] = Field(default_factory=list)
+
+
+class MatchPowers(BaseModel):
+    """Per-player generals-power picks and activations for one match."""
+
+    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    players: list[PlayerPowers] = Field(default_factory=list)
+
+
 class BuildOrderEntry(BaseModel):
     model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
 
@@ -236,3 +293,8 @@ class MatchDetails(BaseModel):
     timeline_events: list[TimelineEvent] = Field(
         default_factory=list, alias="timelineEvents"
     )
+    # Generals-power picks and activations, per player. A compact projection so
+    # the powers page can aggregate the whole corpus from one JSONB column
+    # instead of pulling every match's timeline. None for replays that predate
+    # the field or carry no player summary.
+    powers: MatchPowers | None = None

@@ -7,6 +7,7 @@ pulling together the per-concern extractors:
 - time-series + first-blood → `radarvan.stats_extraction`
 - per-player build order → `radarvan.build_order`
 - timeline markers → `radarvan.timeline_events`
+- generals-power picks & activations → `radarvan.powers`
 - rank-5 / search-and-destroy timings → `radarvan.stats_extraction`
 
 Also owns the body-stream upgrade extraction (`events_from_replay`),
@@ -39,6 +40,7 @@ from .stats_extraction import (
     milestone_timings_from_replay,
     stats_data_from_replay,
 )
+from .powers import powers_from_replay
 from .timeline_events import timeline_events_from_replay
 from .game_composition import MatchRoster
 from .utils import minutes_per_step
@@ -426,4 +428,5 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         build_orders=build_orders,
         apm_over_time=apm_over_time(replay),
         timeline_events=timeline_events,
+        powers=powers_from_replay(replay),
     )

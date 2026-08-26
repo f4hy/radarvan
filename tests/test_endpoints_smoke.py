@@ -191,6 +191,19 @@ class _StubRepo:
         # game-night routes take for every night that predates the feature.
         return None
 
+    def count_cached_details(self, version: str) -> int:
+        # An int, not the catch-all's empty list: it is a *key* param of the
+        # power_index derivation, and a list would blow up as an unhashable
+        # cache key rather than as a wrong answer.
+        return 0
+
+    def get_cached_powers_rows(
+        self, match_ids: list[int], version: str
+    ) -> dict[int, object]:
+        # A mapping, not a list - "no match has derived details yet" is the real
+        # cold-cache answer the powers query has to handle.
+        return {}
+
     def map_registry_revision(self) -> MapRegistryRevision:
         # Backs derived.MAPS. Fixed, so the map derivations key stably across the
         # module rather than re-deriving per request.

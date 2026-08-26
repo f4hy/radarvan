@@ -3,6 +3,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import BadgeIcon from "@mui/icons-material/Badge"
 import BalanceIcon from "@mui/icons-material/Balance"
+import BoltIcon from "@mui/icons-material/Bolt"
 import CasinoIcon from "@mui/icons-material/Casino"
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
@@ -69,6 +70,7 @@ const DisplayPlayerRatingTrend = React.lazy(() =>
   })),
 )
 const DisplayPlayerStats = React.lazy(() => import("./PlayerStats"))
+const DisplayPowers = React.lazy(() => import("./Powers"))
 const DisplayPlayerSynergy = React.lazy(() => import("./PlayerSynergy"))
 const DisplaySuperlatives = React.lazy(() => import("./Superlatives"))
 const DisplayTeamStats = React.lazy(() => import("./TeamStats"))
@@ -86,6 +88,7 @@ const ALL_SELECTIONS = [
   "GameNight",
   "GameLength",
   "GeneralStats",
+  "Powers",
   "PlayerStats",
   "PlayerProfile",
   "FFA",
@@ -241,6 +244,11 @@ export default function Menu() {
           value: "GeneralStats",
           text: "General Stats",
           icon: <MilitaryTechIcon />,
+        },
+        {
+          value: "Powers",
+          text: "Generals Powers",
+          icon: <BoltIcon />,
         },
         {
           value: "GameLength",
@@ -507,6 +515,8 @@ function Main(props: { selection: Selection }) {
       return <HeadToHead />
     case "GeneralStats":
       return <DisplayGeneralStats />
+    case "Powers":
+      return <DisplayPowers />
     case "FFA":
       return <DisplayFFAStats />
     case "Tournaments":

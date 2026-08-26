@@ -38,7 +38,7 @@ from ..api_types import (
 )
 from ..player_ids import resolve_player_name
 from ..replay_helpers import clean_object_name
-from ..timeline_events import clean_power_name
+from ..generals_powers import clean_power_name
 from . import hype_data
 
 _SLOTS = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]

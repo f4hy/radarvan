@@ -43,6 +43,7 @@ import type {
   PlayerSkill,
   PlayerStats,
   PlayerSynergy,
+  PowerStats,
   PredictRequest,
   RatingUpset,
   ReplayFileSchema,
@@ -116,6 +117,8 @@ import {
     PlayerStatsToJSON,
     PlayerSynergyFromJSON,
     PlayerSynergyToJSON,
+    PowerStatsFromJSON,
+    PowerStatsToJSON,
     PredictRequestFromJSON,
     PredictRequestToJSON,
     RatingUpsetFromJSON,
@@ -287,6 +290,10 @@ export interface GetPlayerSynergyApiPlayerRatingsSynergyGetRequest {
     regularization?: number;
     mainRegularization?: number;
     gameFormat?: string | null;
+}
+
+export interface GetPowerStatsApiPowerStatsGetRequest {
+    player?: string | null;
 }
 
 export interface GetPresignedForMatchIdApiPresignedUrlsForMatchGetRequest {
@@ -2322,6 +2329,53 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getPlayerTeamGameCountsApiPlayerGameCountsTeamGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PlayerGameCount>> {
         const response = await this.getPlayerTeamGameCountsApiPlayerGameCountsTeamGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPowerStatsApiPowerStatsGet without sending the request
+     */
+    async getPowerStatsApiPowerStatsGetRequestOpts(requestParameters: GetPowerStatsApiPowerStatsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['player'] != null) {
+            queryParameters['player'] = requestParameters['player'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/power_stats/`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * One player\'s generals-power habits, against the rest of the group.  Takes a `ReplayManager` rather than a corpus dependency: the whole answer comes from `queries.power_stats`, which folds the corpus once per corpus version and keeps only counters. Declaring `CompetitiveGames` here would build the match list on every request for a handler that never looks at it, and would key the fold by game format - four full passes over `match_details_cache` instead of one.  `player` is an `api_types.PlayerName`, so an in-game alias (\"skp\") is resolved to the canonical name at validation, matching the names the projection stores.
+     * Get Power Stats
+     */
+    async getPowerStatsApiPowerStatsGetRaw(requestParameters: GetPowerStatsApiPowerStatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PowerStats>> {
+        const requestOptions = await this.getPowerStatsApiPowerStatsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PowerStatsFromJSON(jsonValue));
+    }
+
+    /**
+     * One player\'s generals-power habits, against the rest of the group.  Takes a `ReplayManager` rather than a corpus dependency: the whole answer comes from `queries.power_stats`, which folds the corpus once per corpus version and keeps only counters. Declaring `CompetitiveGames` here would build the match list on every request for a handler that never looks at it, and would key the fold by game format - four full passes over `match_details_cache` instead of one.  `player` is an `api_types.PlayerName`, so an in-game alias (\"skp\") is resolved to the canonical name at validation, matching the names the projection stores.
+     * Get Power Stats
+     */
+    async getPowerStatsApiPowerStatsGet(requestParameters: GetPowerStatsApiPowerStatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PowerStats> {
+        const response = await this.getPowerStatsApiPowerStatsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

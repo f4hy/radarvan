@@ -16,6 +16,12 @@ from .game_night import (
     night_narratives,
     on_night,
 )
+from .powers import (
+    PowerIndex,
+    power_index,
+    power_stats,
+    profile_for,
+)
 from .games import (
     FORMAT_DESCRIPTION,
     MONTHS_BACK_DESCRIPTION,
@@ -33,6 +39,7 @@ __all__ = [
     "AllGames",
     "CompetitiveGames",
     "NightGames",
+    "PowerIndex",
     "UnfilteredCompetitiveGames",
     "WindowedCompetitiveGames",
     "all_games",
@@ -42,4 +49,7 @@ __all__ = [
     "latest_closed_night",
     "night_narratives",
     "on_night",
+    "power_index",
+    "power_stats",
+    "profile_for",
 ]
