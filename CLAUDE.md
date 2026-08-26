@@ -2,16 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
-
-Radarvan is a statistics tracker for Command & Conquer: Generals Zero Hour. A FastAPI backend scrapes/accepts game replays, parses them via the external cncstats service, stores results in PostgreSQL + S3, and serves stats; a React frontend renders them. Production runs on Heroku (radarvan-5e9c302c60e6.herokuapp.com).
-
 ## Commands
 
 The `Makefile` is the canonical entry point; `make help` lists every target. Local dev stack targets (`up`, `down`, `logs`, `db-shell`, `db-snapshot`, `db-restore`, `db-reset`) are documented in `LOCAL_DEV.md`.
 
 - `make all` — format + auto-fix lint + type-check **both** Python and TypeScript; run this before pushing.
-- Python tests live in `tests/`, fixture JSONs alongside them. Only `/api` is proxied to localhost:8000 by the Vite dev server (`vite.config.ts`).
 
 **Client codegen**: `./gen_client.sh` regenerates the TypeScript client in `src/api/` from the running server's OpenAPI spec — the FastAPI server must already be running and serving your changed code. Always use this script (not `npm run openapi-ts` or a manual generator invocation). Never hand-edit `src/api/` (auto-generated). `PlayerEnum.ts` reorders on every regen (Python set iteration) — that churn is normal.
 
@@ -19,15 +14,11 @@ The `Makefile` is the canonical entry point; `make help` lists every target. Loc
 
 - The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones (confirm with `curl`/`ss -ltnp` if unsure). Never run broad `pkill -f vite` / `pkill -f fastapi`; if a stray process must be killed, target the exact PID. Those hand-run servers use the `DATABASE_URL` from `.env`, which points at **production** Postgres — treat writes through them accordingly.
 - **`docker compose up` (`make up`) is the alternative: the same two servers plus a local Postgres**, documented in `LOCAL_DEV.md`. Compose overrides `DATABASE_URL` to its own container, so it is the safe place to try schema changes. `make db-snapshot` + `make db-restore` hydrate it from production (read-only `pg_dump`, skipping `match_details_cache` rows, which the app regenerates from S3). It binds the same 8000/5173 by default, so it and the hand-run servers can't both be up unless `API_PORT`/`WEB_PORT` are set in `.env`.
-- **The migration chain cannot build the schema from an empty database** — the initial revision is an empty `pass` (alembic was stamped onto the pre-existing prod DB), so later revisions ALTER tables nothing ever created. `scripts/bootstrap_db.py` (what the compose `migrate` service runs) branches on this: `alembic upgrade head` when `alembic_version` exists, `Base.metadata.create_all()` + `alembic stamp head` when the database is empty. A new migration is therefore tested against a *restored snapshot*, not an empty database.
-- **Production migrations run themselves, on deploy.** The `Procfile` has a `release: alembic upgrade head` phase, so pushing to Heroku applies any pending revision before the new dynos start; a failing migration fails the release and the old code keeps serving. Three things this depends on, each of which broke it once: `alembic` must stay in `[project] dependencies` (Heroku's buildpack installs `uv sync --no-dev`, so the dev group is not in the slug); `alembic/env.py` normalizes `postgres://` → `postgresql://` itself, because `alembic upgrade` re-reads the raw env var in its own process and Heroku's addon-managed URL uses the legacy scheme; and it prints the DSN **redacted**, since release-phase output is app log anyone with access can read. The release phase deliberately runs bare `alembic upgrade head` rather than `scripts/bootstrap_db.py` — that script's empty-database branch (`create_all` + `stamp head`) is there for a fresh *local* volume, and on production it would silently manufacture a schema instead of failing loudly if `DATABASE_URL` ever pointed somewhere empty.
-- **A migration still has to be backward-compatible with the running code.** Release phase applies it while the *old* dynos are still serving, so an additive change (a new table, a nullable column) is safe, while a drop or a rename breaks requests in the window before the swap. Split those into two deploys.
+- **Migrations**: alembic revisions apply themselves on deploy (Heroku `release` phase) and the chain cannot build a schema from an empty database. Invoke the **`db-migrations`** skill before writing one.
 - Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree — the user manages commits.
 - **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.** The service is always running; it's the intended read path and matches what the frontend actually sees. Reserve direct `DatabaseManager`/`replay_files` scripting for cases the API genuinely can't express.
 - **When exploring code, read the source file directly (`Read` tool) rather than chaining several `grep`/`sed`/`awk` shell commands.** Use `grep`/`Bash` only for repo-wide searches (finding *where* something is defined/used across many files) — once you know the file, read it.
-- **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium.** Pass the Firefox browser/channel explicitly wherever the driver defaults to Chromium. The bundled Playwright MCP server here defaults to a Chromium build (`chrome` channel) that isn't installed on this host, so it errors out on launch — drive Firefox directly instead (`const { firefox } = require('@playwright/test')` from the project root, so `node_modules` resolves).
-- **Easiest way to inspect one specific match (including its map render) is the DebugData page**, not the Matches list: `http://localhost:5173/?page=debug-data`, then enter the match ID in the `matchId` field and submit — it works via direct URL even though the sidebar link itself is admin-gated (`status.user.is_admin`), and it sidesteps the Matches page's `exclude_dev=true` filtering (which hides `is_dev` matches — e.g. locally-uploaded test replays — unless you're logged in as admin).
-- **Browser caching of `/api` responses is a flat 60s** (`dependencies.cache_short`, `Cache-Control: private, max-age=60`); the built frontend is handled by `http_cache.CachedStaticFiles` (hashed `/assets/*` immutable for a year, everything else `no-cache`). After reparsing/changing stored map geometry or match data, a reload picks it up within a minute — no hard-refresh needed.
+- **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium** (the bundled Chromium build isn't installed here). Driving the UI, inspecting one match, and `/api` cache behaviour are covered by the **`run-radarvan`** skill.
 - **Never call `GET /api/matchup_commentary/` (or anything that reaches `matchup_commentary.generate_commentary`) without asking first — it is a GET, but a cache *miss* still generates. — it spends real tokens/money on every call, against whichever provider `COMMENTARY_PROVIDER` currently selects (Anthropic or Gemini).** Each individual call needs its own explicit confirmation from the user; a prior "yes" doesn't cover the next one. Use the free `GET /api/matchup_commentary/prompt_preview` instead for anything about prompt content/size/structure — it builds the exact same payload without calling either provider.
 - **Same rule for the two hand-triggers of the game-night recap: `POST /api/generate_game_night_summary/{night}` (one night) and `POST /api/backfill_game_night_summaries?days=N&max_to_update=K` (fills missing recaps for the last N closed nights, at most K billed calls per run, newest first, never overwriting).** They are the only other routes that bill a call. Every read path for that feature (`GET /api/game_night/{night}`) is free and never generates; `commentary/night_summary.build_prompt` renders the exact payload for inspection without a provider call.
 
@@ -73,10 +64,6 @@ This is not a new rule — commentary reached the same conclusion independently.
 1. Replays arrive by scheduled gentool scrape or `POST /api/upload_replay`.
 2. cncstats parses the `.rep`; the `.rep` and parsed JSON go to S3 (`s3://generals-stats/radarvan/dev/`), rows to Postgres (`ReplayFile` → `ParsedReplayJson` → `Match`+`MatchPlayer`+`MatchCompostion`).
 3. Derived data is cached (in-process + `match_details_cache` table) and served via REST; the React app consumes it through the generated client.
-
-### Frontend (`src/`)
-
-React + MUI + recharts, entry `index.tsx` → `App.tsx` → `Menu.tsx`; views map ~1:1 to backend areas. Frontend-specific conventions and gotchas live in `src/CLAUDE.md`, which loads automatically when you work in that directory.
 
 ## Core invariants — read before writing backend code
 
@@ -159,12 +146,6 @@ Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check agains
 - **Game-night dates**: `utils.game_night_date` converts UTC to US Eastern with a 5am rollover so post-midnight games count toward the evening they started. Use it, not `.date()`.
 - **APM has two paths** (`apm.py`): per-order `replay.body` chunks when present, else derived from stats events (newer cncstats outputs ship an empty body). Scoped to non-observer humans; `apm_over_time` returns 10s windows scaled to APM.
 
-### Timelines and special powers (`timeline_events.py`)
-
-- `body[].details.Name` for `SpecialPowerAt*` orders encodes three families: `SpecialAbility*` (unit abilities — skip, they flood timelines), `SpecialPower*` (generals-panel powers), `Superweapon*` (mix of powers AND true superweapons — a true launch matches `_SUPERWEAPON_ACTIVATION_KEYWORDS`). Superweapon *buildings* are detected by name against `_SUPERWEAPON_STRUCTURES`, not cost.
-- `MatchDetails.timeline_events` markers: `search_and_destroy` fires only on 0→1 battle-plan flips; `low_power` only on OK→low transitions; rank-ups with `rank_level <= 1` or seed frames are dropped.
-- Object names rendered to the UI go through `replay_helpers.clean_object_name` (strips `Lazr_`-style prefix then faction prefix); power names additionally through `clean_power_name`.
-
 ### Matches, overrides, reparse
 
 - `matches_differ` compares map, winner, duration (2dp), incomplete, game_version, and the sorted player tuples — extend it if new fields must trigger refresh.
@@ -173,26 +154,20 @@ Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check agains
 - `list_jsons_parsed_before` uses PostgreSQL `DISTINCT ON (match_id)` and excludes match_ids with any record newer than the cutoff.
 - The `match_compostion` table name misspelling is baked into an early migration — intentionally preserved everywhere; do not "fix" without a migration.
 
-### Maps
-
-- **Coordinates**: CnC uses bottom-left origin (y up); CSS top-left. Convert with `top = (1 - y / height) * 100%` (`Map.tsx`); same convention for `eventDots` overlays.
-- **Name resolution**: user-supplied map names are matched case-/whitespace-insensitively — `ReplayManager.resolve_map_name(name)` returns the canonical stored name; `replay_files.map_key` is the normalized join key between `Match.map` paths and `MapData.map_name`. Image lookup is S3-only (`find_s3_webp`, tries variants) — the legacy bundled `public/maps`/`dist/maps` fallback was removed once every map name in real match data was confirmed to resolve via S3.
-- **CRC**: `MapData.crc` is uppercase hex matching replay-header `mapCrc`. Played maps: derive from a sample match's parsed JSON (`missing_maps.crc_for_map`/`backfill_map_crcs`). Uploaded maps: recompute from raw bytes via `compute_map_crc` (SAGE rotate-left-1-then-add, validated against cncstats). cncstats uses decimal (`int(hex, 16)`). Pushing to cncstats (`/add_map`, headers `X-API-Key`/`X-Map-CRC`/`X-Map-File`) is gated on `CNCSTATS_API_KEY`, deduped via `MapData.cncstats_synced_at` + `/map_exists`, and run concurrently through `CncstatsClient`'s async methods.
-- **OpenAPI generator path conflicts**: the generator silently merges a static route with a parameterized sibling sharing its prefix (e.g. `/api/map_data/by_player_count` vs `/api/map_data/{map_name}`). Give new static routes a distinct top-level path (`/api/bracket_eligible_players` exists for this reason).
-
-### Bracket (1v1 double elimination)
-
-- `bracket.py` is pure and hand-verified (loss accounting); the DB stores only seeds + per-match date/best-of/scores; players/winners/status are re-derived every call via `resolve_bracket`. Keep new bracket logic in `bracket.py` where it's unit-testable, not in the route.
-- **Losers-bracket construction is organized by dependency *depth*, not winners-bracket round number** (see the module docstring and `_match_depths`) — depth is how many rounds of real (non-bye) competition had to finish before a match was playable; a Round-2 match between two bye seeds is depth 1 (as immediately available as Round 1), a Round-2 match against a Round-1 winner is depth 2. `build_topology` groups WB losers by depth and merges one depth-group at a time — never assume "WB round N's losers all enter the losers bracket in the same round." This shape was checked against a real Challonge-generated bracket, not derived from first principles alone.
-- Every pairing decision (`_reduce_to`'s self-pairing, `_merge_droppers`' cross-merge) goes through `_pair_safely`, which searches for a collision-free ordering (mirror → rotations → full permutation) via `_would_rematch` rather than a hand-derived rotation offset. If you touch either function, don't reintroduce a fixed same-index pairing — `test_no_immediate_rematch` (parametrized across all 8 player counts) will catch a regression.
-- `POST /api/bracket/{match_id}` has **PATCH semantics** via `model_fields_set` — omitted fields keep stored values, explicit null clears. Edits that would re-route players through an already-scored downstream match are rejected with 409 (`bracket.rerouted_scored_matches`); the admin must clear the downstream result first.
-
 ### Caching / scheduling specifics
 
 - `_draft_cache` in `routes/draft.py` stays a manual TTLCache (allow-listed in `tests/test_derived_registry.py`) — not because the registry couldn't bind it, but because a draft is a *random* result held steady, not a value derived from the corpus: version-keying would re-randomize everyone's teams the moment a game landed.
 - **`/api/balance_teams/` has two layers, on purpose.** `create_teams.balance_teams` is `@derived(on=CORPUS, maxsize=128)` (`games` binds the corpus, `player_list` is the key) and so tracks the ratings. The *route* (`routes/players.py`) then holds its answer for **6 hours per roster** in a plain `TTLCache`, keyed on the alias-resolved player set — so asking again with the same players during a game night returns the same teams even after games land. That hold is a product decision (the group is split on whether teams should reshuffle mid-night), which is why it lives at the route rather than in the derivation, and why it is a wall clock rather than a version token. Raw spellings are re-applied per request, so the hold does not freeze one caller's aliases onto another's response. Before this split, the 12h TTL sat on the derivation and silently served stale *ratings* — the same visible effect, but by accident of a cache key, and it made `/api/partition_teams/` (never held) disagree with it.
 - Scheduler (`schedule.py`): scrape+register every 6h, superlatives recompute at 04:00, player profiles at 04:30; all take `db_manager` and are also triggerable via `POST /api/scrape/{days}` and `POST /api/superlatives/recompute`.
 - **`compute_game_night_summary` at 11:00 is the only scheduled job that spends money**, and its time is load-bearing rather than cosmetic. `utils.game_night_date` rolls over at **5am US Eastern**, so 11:00 in the process timezone (UTC on Heroku) is the first slot at which last night is definitively closed in both EST and EDT. Running it with the 04:00 jobs would summarize an evening still being played — and the row is permanent, since nothing regenerates. It writes **at most one row per run** (the latest closed night, skipped if it already has one, skipped below `MIN_MATCHES_FOR_SUMMARY`), so deploying it does not backfill the archive and a missed run costs that night its recap rather than queueing several calls. A night with no row returns `ai_summary: null` and the page omits the section.
+
+## Subsystem guides (skills — load on invocation, not every session)
+
+- **`bracket`** — 1v1 double-elimination construction, losers-bracket depth ordering, `POST /api/bracket/{match_id}` PATCH semantics.
+- **`maps`** — coordinate conversion, map-name resolution, CRC derivation and the cncstats push, OpenAPI static-route conflicts.
+- **`db-migrations`** — the empty-database problem, the Heroku release phase, backward-compatibility windows.
+- **`replay-fixtures`** — real `stats.*` payload shapes, plus timelines and special powers (`timeline_events.py`).
+- **`run-radarvan`** — running/driving the app, Playwright-on-Firefox, the DebugData page, `/api` cache behaviour.
 
 ## Reference fixtures (`references/`)
 
