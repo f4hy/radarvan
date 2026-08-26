@@ -23,7 +23,7 @@ rather than mysterious.
 from __future__ import annotations
 
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 from ..api_types import (
@@ -38,7 +38,7 @@ from ..api_types import (
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
 from ..derived import CORPUS, derived
-from .. import generals_powers
+from .. import generals_powers, player_ids
 from ..generals_powers import RECON_POWERS
 from ..match_details import DETAILS_VERSION
 
@@ -141,7 +141,25 @@ class PowerIndex:
 
     @property
     def players(self) -> list[str]:
-        return sorted({player for player, _ in self.by_player})
+        """The roster the page offers, most games first.
+
+        Restricted to `player_ids.HUMAN_NAMES` - the same canonical set
+        `player_stats.most_common_colors` builds identity colors from, so the
+        picker offers exactly the people the rest of the app treats as players.
+        A one-off guest or an unresolved alias is not someone you compare
+        habits for.
+
+        The *baseline* is deliberately not restricted this way: "everyone else
+        on this general" means everyone who played it, and dropping a guest's
+        games would narrow the comparison without making it more honest.
+        """
+        games: Counter[str] = Counter()
+        for (player, _), counts in self.by_player.items():
+            if player in player_ids.HUMAN_NAMES:
+                games[player] += counts.games
+        # Most-played first, then alphabetical - a button set reads left to
+        # right, and the regulars belong at the start of it.
+        return sorted(games, key=lambda name: (-games[name], name))
 
 
 def _fold(index: PowerIndex, powers: MatchPowers) -> None:

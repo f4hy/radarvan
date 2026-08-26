@@ -394,6 +394,31 @@ def _match(*slot_specs: tuple[str, str, list[int], dict[str, int]]) -> MatchPowe
     )
 
 
+def test_the_picker_roster_is_the_canonical_player_set() -> None:
+    """Only names the rest of the app treats as players, most games first.
+
+    `player_stats.most_common_colors` builds identity colors from the same set,
+    so the picker offers exactly the people who have one. A guest or an
+    unresolved alias is not someone whose habits you compare - but their games
+    still count toward the baseline, which is "everyone else on this general".
+    """
+    index = _index(
+        *[
+            _match(
+                ("Skip", "FactionChinaTankGeneral", [36], {}),
+                ("Syn", "FactionChinaTankGeneral", [32], {}),
+                ("SomeVisitor", "FactionChinaTankGeneral", [32], {}),
+            )
+            for _ in range(3)
+        ],
+        _match(("Syn", "FactionChinaTankGeneral", [32], {})),
+    )
+    assert index.players == ["Syn", "Skip"]
+    # The visitor is out of the picker but still in the group they are compared
+    # against: three players played, so the baseline for either regular is 2x3.
+    assert index.by_general[General.TANK].games == 10
+
+
 def test_taking_every_level_is_still_one_pick() -> None:
     """Pick *rate* is games, not points - three levels in one game is one game."""
     index = _index(_match(("Alice", "FactionChinaTankGeneral", [36, 37, 38], {})))
