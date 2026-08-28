@@ -55,6 +55,12 @@ export interface FFAPlayerStat {
      * @memberof FFAPlayerStat
      */
     dominance: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof FFAPlayerStat
+     */
+    isCpu?: boolean;
 }
 
 /**
@@ -86,6 +92,7 @@ export function FFAPlayerStatFromJSONTyped(json: any, ignoreDiscriminator: boole
         'winRate': json['winRate'],
         'expectedWins': json['expectedWins'],
         'dominance': json['dominance'],
+        'isCpu': json['isCpu'] == null ? undefined : json['isCpu'],
     };
 }
 
@@ -106,6 +113,7 @@ export function FFAPlayerStatToJSONTyped(value?: FFAPlayerStat | null, ignoreDis
         'winRate': value['winRate'],
         'expectedWins': value['expectedWins'],
         'dominance': value['dominance'],
+        'isCpu': value['isCpu'],
     };
 }
 

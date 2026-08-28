@@ -23,6 +23,9 @@ class FFAPlayerStat(BaseModel):
     expected_wins: float = Field(alias="expectedWins")
     # Actual wins divided by expected wins: 1.0 == exactly average, >1 over-performing.
     dominance: float
+    # True for an AI row, which only appears when the caller asked for CPU games.
+    # The page marks these instead of linking them to a player profile.
+    is_cpu: bool = Field(default=False, alias="isCpu")
 
 
 class FFAGeneralStat(BaseModel):

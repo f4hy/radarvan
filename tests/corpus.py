@@ -169,6 +169,7 @@ def ffa_match(
     map_name: str | None = None,
     incomplete: str = "",
     num_computers: int = 0,
+    cpu_names: tuple[str, ...] | None = None,
     generals: tuple[General, ...] | None = None,
 ) -> MatchInfo:
     """A free-for-all: every player teamless, exactly one winner.
@@ -176,7 +177,19 @@ def ffa_match(
     FFA slots are typically all team 0, which is why ``ffa_stats`` reads
     ``roster().humans`` rather than ``human_participants`` - requiring a team
     would empty the field. Built here so that shape is stated once.
+
+    The AI slots are *real slots*, not just a bumped ``num_computers`` count:
+    ``ffa_stats``' CPU-inclusive mode reads ``roster().cpus``, so a composition
+    that claims AI the player list doesn't have would let it pass the filter and
+    then find an empty field. ``cpu_names`` sets them (repeat a name to get the
+    several-slots-one-name shape real replays have, where three AI opponents are
+    all called "Tactical AI"); a bare ``num_computers`` gets that many
+    "Tactical AI"s.
+
+    ``winner_index`` indexes the whole field, humans first, so an index at or
+    past ``len(names)`` makes an AI the winner.
     """
+    ai_names = cpu_names if cpu_names is not None else ("Tactical AI",) * num_computers
     players = [
         Player(
             name=name,
@@ -189,6 +202,20 @@ def ffa_match(
         for i, name in enumerate(names)
     ]
     n = len(names)
+    players += [
+        cpu(
+            name=name,
+            team=Team.NONE,
+            color=COLORS[(n + i) % len(COLORS)],
+            general=(
+                generals[n + i]
+                if generals and len(generals) > n + i
+                else General((n + i) % 12)
+            ),
+            won=(n + i == winner_index),
+        )
+        for i, name in enumerate(ai_names)
+    ]
     comp = composition(
         category="ffa",
         is_ffa=True,
@@ -196,9 +223,9 @@ def ffa_match(
         is_1v1=False,
         num_teams=n,
         team_sizes=[1] * n,
-        total_players=n + num_computers,
+        total_players=n + len(ai_names),
         num_humans=n,
-        num_computers=num_computers,
+        num_computers=len(ai_names),
     )
     timestamp = datetime(2026, 1, day, 12, 0, tzinfo=UTC)
     return MatchInfo(

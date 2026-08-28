@@ -5,6 +5,22 @@ are excluded from the competitive leaderboards (which require balanced teams), s
 they get their own page. The headline numbers are per-player win counts/games and
 per-general win rates; we also surface FFA map activity.
 
+``include_cpu`` selects the corpus, and the page offers it as a toggle. Off (the
+default) is the human-only field this module started as. On, AI slots are *full
+participants* rather than merely tolerated: they count toward the field size, so
+beating three Tactical AIs reads as the 4-player field it was; they get their own
+leaderboard rows and their generals join the win-rate table; and an FFA the AI
+won is a win for that AI rather than a game with no winner. That is one switch -
+which roster partition ``entries`` is built from - because a half-counted CPU
+(present in the field, absent from the totals) is exactly the kind of asymmetry
+that makes two numbers on the same page disagree.
+
+One consequence of that, visible on the leaderboard: a game can field three
+slots all called "Tactical AI", and they collapse into a single row whose
+``games`` therefore counts *slots*, not matches (145 of them across 151 games in
+the current corpus). ``expected_wins`` collapses the same way - three slots at
+1/N each - so ``dominance``, the number that judgment hangs on, stays honest.
+
 Win rate alone is misleading in FFA because the expected rate is ``1/N`` for an
 N-player game. We therefore also track *expected wins* (the sum of ``1/N`` over a
 player's games) and a *dominance* ratio (actual wins / expected wins) so a player
@@ -31,35 +47,43 @@ logger = structlog.get_logger(__name__)
 MIN_PLAYER_GAMES = 8
 # Minimum FFA games on a map before it shows up in the map breakdown.
 MIN_MAP_GAMES = 2
-# Smallest FFA we count (3+ humans, every-player-for-themselves).
+# Smallest FFA we count: 3+ in the field, every player for themselves.
+# Whether AI slots count toward that field is `include_cpu`'s decision.
 MIN_FFA_PLAYERS = 3
 # Cap the map list so the page stays readable.
 TOP_MAPS = 15
 
 
-def is_ffa_game(game: MatchInfo) -> bool:
-    """True for a completed, human-only free-for-all we want to count.
+def is_ffa_game(game: MatchInfo, *, include_cpu: bool = False) -> bool:
+    """True for a completed free-for-all we want to count.
 
-    Comp-stomps and games containing any CPU are excluded so the stats reflect
-    real players battling each other.
+    With ``include_cpu`` false (the default) any game containing a CPU is
+    dropped, so the stats reflect real players battling each other. With it
+    true, AI slots count toward the field, so the size floor is measured
+    against the whole field rather than the humans in it - a 2-human, 4-CPU
+    game is a 6-player free-for-all.
     """
     # NB: we deliberately do *not* call ``game_composition.competitive_game_filter``
     # here - it requires ``is_team_game`` and so would drop every FFA. The
-    # ``num_computers > 0`` guard below covers the same "no CPUs" intent.
+    # ``num_computers`` guard below covers the same "no CPUs" intent.
     comp = game.composition
     if game.incomplete:
         return False
     if comp is None or not comp.is_ffa:
         return False
-    if comp.num_computers > 0:
-        return False
-    return not comp.num_humans < MIN_FFA_PLAYERS
+    if not include_cpu:
+        return comp.num_computers == 0 and comp.num_humans >= MIN_FFA_PLAYERS
+    return comp.num_humans + comp.num_computers >= MIN_FFA_PLAYERS
 
 
-def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
+def get_ffa_stats(games: list[MatchInfo], *, include_cpu: bool = False) -> FFAStats:
     player_games: Counter[str] = Counter()
     player_wins: Counter[str] = Counter()
     player_expected: defaultdict[str, float] = defaultdict(float)
+    # Which leaderboard rows are AI, so the page can mark them rather than
+    # offering a player profile for "Tactical AI". Stays empty when
+    # `include_cpu` is off.
+    cpu_names: set[str] = set()
 
     gen_games: Counter[General] = Counter()
     gen_wins: Counter[General] = Counter()
@@ -74,18 +98,25 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
     most_recent_timestamp = None
 
     for game in games:
-        if not is_ffa_game(game):
+        if not is_ffa_game(game, include_cpu=include_cpu):
             continue
 
+        roster = game.roster()
         # roster().humans drops observers and AI in one go. Deliberately not
         # `human_participants`: an FFA's slots are often all teamless (team 0),
         # so requiring a team here would empty the field.
-        entries = []
-        for player in game.roster().humans:
-            if not player.has_known_general:
-                continue
-            name = player_ids.resolve_player_name(player.name, player.color)
-            entries.append((player, name))
+        entries = [
+            (p, player_ids.resolve_player_name(p.name, p.color))
+            for p in roster.humans
+            if p.has_known_general
+        ]
+        if include_cpu:
+            # An AI's name arrives already canonical ("Tactical AI", "Hard
+            # Army"); alias resolution exists for humans' in-game spellings and
+            # here could only risk folding a CPU onto a person.
+            ai = [(p, p.name) for p in roster.cpus if p.has_known_general]
+            cpu_names.update(name for _, name in ai)
+            entries += ai
 
         n = len(entries)
         if n < MIN_FFA_PLAYERS:
@@ -120,6 +151,7 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
             wins=player_wins[name],
             win_rate=player_wins[name] / games_played,
             expected_wins=player_expected[name],
+            is_cpu=name in cpu_names,
             dominance=(
                 player_wins[name] / player_expected[name]
                 if player_expected[name] > 0
@@ -159,7 +191,10 @@ def get_ffa_stats(games: list[MatchInfo]) -> FFAStats:
 
     avg_players = total_slots / total_games if total_games else 0.0
     logger.info(
-        "computed ffa stats", total_games=total_games, players=len(player_games)
+        "computed ffa stats",
+        total_games=total_games,
+        players=len(player_games),
+        include_cpu=include_cpu,
     )
 
     return FFAStats(

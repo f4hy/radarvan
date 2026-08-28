@@ -8,7 +8,7 @@ numbers most worth pinning - they are arithmetic no endpoint test would catch.
 Also pinned: the eligibility predicate. `is_ffa_game` deliberately does *not*
 use `competitive_game_filter` (it requires `is_team_game`, which would drop every
 FFA), so the "no CPUs" intent is enforced by a separate guard that nothing else
-checks.
+checks - and `include_cpu` is the page toggle that lifts it.
 """
 
 import pytest
@@ -55,9 +55,7 @@ def test_a_team_game_is_not_an_ffa() -> None:
 
 def test_an_ffa_containing_any_cpu_does_not_count() -> None:
     """Comp-stomps and mixed games are excluded so the stats are player-vs-player."""
-    assert not ffa_stats.is_ffa_game(
-        ffa_match(1, day=5, names=FOUR, num_computers=1)
-    )
+    assert not ffa_stats.is_ffa_game(ffa_match(1, day=5, names=FOUR, num_computers=1))
 
 
 @pytest.mark.parametrize("size,expected", [(2, False), (3, True)])
@@ -223,9 +221,7 @@ def test_an_observer_changes_nothing() -> None:
     """
     plain = _series(8)
     watched = [
-        g.model_copy(
-            update={"players": [*g.players, observer(general=General.CHINA)]}
-        )
+        g.model_copy(update={"players": [*g.players, observer(general=General.CHINA)]})
         for g in plain
     ]
     assert ffa_stats.get_ffa_stats(watched) == ffa_stats.get_ffa_stats(plain)
@@ -256,3 +252,161 @@ def test_a_field_that_shrinks_below_three_after_filtering_is_skipped() -> None:
     stats = ffa_stats.get_ffa_stats(games)
     assert stats.total_games == 0, "a two-player field was counted as an FFA"
     assert stats.player_stats == []
+
+
+# --- include_cpu ------------------------------------------------------------
+#
+# The toggle picks a corpus, and inside a counted game the AI slots are full
+# participants: they size the field, hold leaderboard rows, and can win. What is
+# worth pinning is that both halves of that move together - a CPU that sizes the
+# field but is missing from the totals would make two numbers on the page
+# disagree, and each half is one call site away from the other.
+
+
+def _mixed(n: int, *, humans=FOUR, cpus=("Tactical AI", "Hard Army"), winner_index=0):
+    return [
+        ffa_match(
+            8000 + i,
+            day=5 + (i % 23),
+            names=humans,
+            cpu_names=cpus,
+            winner_index=winner_index,
+        )
+        for i in range(n)
+    ]
+
+
+def test_the_default_is_still_the_human_only_corpus() -> None:
+    assert ffa_stats.get_ffa_stats(_mixed(8)).total_games == 0
+
+
+def test_include_cpu_admits_the_same_games() -> None:
+    stats = ffa_stats.get_ffa_stats(_mixed(8), include_cpu=True)
+    assert stats.total_games == 8
+
+
+def test_include_cpu_leaves_the_human_only_corpus_untouched() -> None:
+    """A game with no AI in it must read identically under either setting."""
+    plain = _series(8)
+    assert ffa_stats.get_ffa_stats(plain, include_cpu=True) == ffa_stats.get_ffa_stats(
+        plain
+    )
+
+
+def test_ai_slots_size_the_field() -> None:
+    """Four humans plus two AI is a six-player FFA, not a four-player one."""
+    stats = ffa_stats.get_ffa_stats(_mixed(12), include_cpu=True)
+    assert stats.avg_players_per_game == 6.0
+    by_name = {s.name: s for s in stats.player_stats}
+    assert by_name[FOUR[0]].expected_wins == pytest.approx(2.0)
+
+
+def test_ai_gets_its_own_leaderboard_row() -> None:
+    stats = ffa_stats.get_ffa_stats(_mixed(8), include_cpu=True)
+    by_name = {s.name: s for s in stats.player_stats}
+    assert by_name["Tactical AI"].is_cpu
+    assert not by_name[FOUR[0]].is_cpu
+
+
+def test_no_row_is_flagged_cpu_in_the_human_only_corpus() -> None:
+    """`is_cpu` is what stops the page linking a profile that can't exist."""
+    stats = ffa_stats.get_ffa_stats(_series(8))
+    assert stats.player_stats
+    assert not any(s.is_cpu for s in stats.player_stats)
+
+
+def test_a_game_the_ai_won_is_that_ais_win() -> None:
+    """winner_index 4 is the first AI slot: humans first, then the CPUs."""
+    stats = ffa_stats.get_ffa_stats(_mixed(8, winner_index=4), include_cpu=True)
+    by_name = {s.name: s for s in stats.player_stats}
+    assert by_name["Tactical AI"].wins == 8
+    assert all(s.wins == 0 for s in stats.player_stats if not s.is_cpu)
+
+
+def test_an_ai_win_is_the_most_recent_ffas_winner() -> None:
+    late = ffa_match(8100, day=20, names=FOUR, cpu_names=("Hard Army",), winner_index=4)
+    stats = ffa_stats.get_ffa_stats([late], include_cpu=True)
+    assert stats.most_recent is not None
+    assert stats.most_recent.winner == "Hard Army"
+
+
+def test_ai_generals_are_counted_and_can_hold_the_wins() -> None:
+    games = [
+        ffa_match(
+            8300 + i,
+            day=5 + i,
+            names=FFA_NAMES[:3],
+            cpu_names=("Tactical AI",),
+            generals=(General.USA, General.CHINA, General.GLA, General.NUKE),
+            winner_index=3,
+        )
+        for i in range(8)
+    ]
+    by_general = {
+        s.general: s
+        for s in ffa_stats.get_ffa_stats(games, include_cpu=True).general_stats
+    }
+    assert by_general[General.NUKE].wins == 8, (
+        "the AI's general held every win but was left off the table"
+    )
+    assert General.NUKE not in {
+        s.general for s in ffa_stats.get_ffa_stats(games).general_stats
+    }
+
+
+def test_the_size_floor_counts_the_whole_field_not_just_the_humans() -> None:
+    """Two humans and two AI is a four-player FFA and counts; two alone does not."""
+    assert ffa_stats.is_ffa_game(
+        ffa_match(1, day=5, names=FFA_NAMES[:2], num_computers=2), include_cpu=True
+    )
+    assert not ffa_stats.is_ffa_game(
+        ffa_match(1, day=5, names=FFA_NAMES[:2]), include_cpu=True
+    )
+
+
+def test_ai_names_are_not_alias_resolved() -> None:
+    """Alias resolution exists for humans' in-game spellings.
+
+    "pc" is the live example - it maps to a person by colour. An AI slot whose
+    name collided with an alias must stay itself rather than be folded onto a
+    player's row.
+    """
+    humans = ("Skip", "CoreDawg", "Syn")
+    games = [
+        ffa_match(8400 + i, day=5 + i, names=humans, cpu_names=("pc",))
+        for i in range(8)
+    ]
+    listed = {
+        s.name for s in ffa_stats.get_ffa_stats(games, include_cpu=True).player_stats
+    }
+    assert listed == {*humans, "pc"}, (
+        "the AI slot was alias-resolved onto a person's row"
+    )
+
+
+def test_identically_named_ai_slots_collapse_into_one_row() -> None:
+    """Three AI opponents in one game are all "Tactical AI" in a real replay.
+
+    They share a row, so its `games` counts slots rather than matches - and
+    `expected_wins` has to collapse the same way or `dominance` would read three
+    times too high.
+    """
+    games = _mixed(8, humans=FFA_NAMES[:3], cpus=("Tactical AI",) * 3)
+    stats = ffa_stats.get_ffa_stats(games, include_cpu=True)
+    by_name = {s.name: s for s in stats.player_stats}
+    ai = by_name["Tactical AI"]
+    assert ai.games == 24, "one row per name, one game per slot"
+    assert ai.expected_wins == pytest.approx(4.0), "24 slots at 1/6 of a 6-player field"
+    assert ai.dominance == pytest.approx(0.0)
+
+
+def test_an_observer_changes_nothing_with_cpus_included() -> None:
+    """The invariant has to survive the partition swap, not just `humans`."""
+    plain = _mixed(8)
+    watched = [
+        g.model_copy(update={"players": [*g.players, observer(general=General.CHINA)]})
+        for g in plain
+    ]
+    assert ffa_stats.get_ffa_stats(
+        watched, include_cpu=True
+    ) == ffa_stats.get_ffa_stats(plain, include_cpu=True)

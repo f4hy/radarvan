@@ -13,6 +13,7 @@ Name | Type
 `winRate` | number
 `expectedWins` | number
 `dominance` | number
+`isCpu` | boolean
 
 ## Example
 
@@ -27,6 +28,7 @@ const example = {
   "winRate": null,
   "expectedWins": null,
   "dominance": null,
+  "isCpu": null,
 } satisfies FFAPlayerStat
 
 console.log(example)

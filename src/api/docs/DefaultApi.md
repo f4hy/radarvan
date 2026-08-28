@@ -1321,11 +1321,11 @@ This endpoint does not need any parameter.
 
 ## getFfaStatsApiFfastatsGet
 
-> FFAStats getFfaStatsApiFfastatsGet()
+> FFAStats getFfaStatsApiFfastatsGet(includeCpu)
 
 Get Ffa Stats
 
-Stats scoped to human free-for-all games (player wins, general win rates, ...).
+Stats scoped to free-for-all games (player wins, general win rates, ...).
 
 ### Example
 
@@ -1344,8 +1344,13 @@ async function example() {
   });
   const api = new DefaultApi(config);
 
+  const body = {
+    // boolean | Include free-for-alls containing AI players. The AI slots then count as full participants: they size the field, hold their own leaderboard rows, and can win the game. (optional)
+    includeCpu: true,
+  } satisfies GetFfaStatsApiFfastatsGetRequest;
+
   try {
-    const data = await api.getFfaStatsApiFfastatsGet();
+    const data = await api.getFfaStatsApiFfastatsGet(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -1358,7 +1363,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **includeCpu** | `boolean` | Include free-for-alls containing AI players. The AI slots then count as full participants: they size the field, hold their own leaderboard rows, and can win the game. | [Optional] [Defaults to `false`] |
 
 ### Return type
 
@@ -1378,6 +1386,7 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

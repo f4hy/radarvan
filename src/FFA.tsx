@@ -10,7 +10,10 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
+import Chip from "@mui/material/Chip"
 import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 import useMediaQuery from "@mui/material/useMediaQuery"
@@ -142,6 +145,25 @@ function dominanceColor(d: number): string {
   return "text.primary"
 }
 
+/** AI rows have no player profile to navigate to, so they read as plain text. */
+function LeaderboardName(props: { player: FFAPlayerStat; bold: boolean }) {
+  const { player, bold } = props
+  if (!player.isCpu) {
+    return <PlayerLabel name={player.name} bold={bold} />
+  }
+  return (
+    <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: bold ? 700 : 500, color: "text.secondary" }}
+      >
+        {player.name}
+      </Typography>
+      <Chip label="AI" size="small" variant="outlined" sx={{ height: 18 }} />
+    </Stack>
+  )
+}
+
 function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
   const [sortKey, setSortKey] = React.useState<SortKey>("wins")
 
@@ -168,7 +190,7 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
         }}
       >
         <Typography variant="h5">Player Leaderboard</Typography>
-        <InfoTip title="Free-for-all record per player (min 3 FFA games). Dominance compares actual wins to the wins you'd expect if every player in each game were equally likely to win (1/N): 1.0 is exactly average, above 1 means you win more FFAs than your share of the field." />
+        <InfoTip title="Free-for-all record per player (min 8 FFA games). Dominance compares actual wins to the wins you'd expect if every player in each game were equally likely to win (1/N): 1.0 is exactly average, above 1 means you win more FFAs than your share of the field." />
       </Stack>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small" stickyHeader>
@@ -200,7 +222,7 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
               <TableRow key={p.name} hover>
                 <TableCell>{i + 1}</TableCell>
                 <TableCell>
-                  <PlayerLabel name={p.name} bold={i < 3} />
+                  <LeaderboardName player={p} bold={i < 3} />
                 </TableCell>
                 <TableCell align="right">{p.games}</TableCell>
                 <TableCell align="right">{p.wins}</TableCell>
@@ -406,54 +428,90 @@ function MapBreakdown(props: { stats: FFAStats }) {
   )
 }
 
+// --- Field toggle ---------------------------------------------------------
+
+// Two corpora, not a display filter: the choice goes to the server, which
+// re-derives every number over the games it selects. "All FFA" counts the AI
+// slots as real entrants (they size the field, and they can win), so a human's
+// dominance there is measured against a field that included the AIs.
+const FIELDS = ["Humans only", "All FFA"] as const
+type Field = (typeof FIELDS)[number]
+
+function FieldToggle(props: {
+  value: Field
+  onChange: (value: Field) => void
+}) {
+  return (
+    <>
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        Field:
+      </Typography>
+      <ToggleButtonGroup
+        value={props.value}
+        exclusive
+        size="small"
+        onChange={(_, next: Field | null) =>
+          next !== null && props.onChange(next)
+        }
+      >
+        {FIELDS.map((option) => (
+          <ToggleButton key={option} value={option}>
+            {option}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+      <InfoTip title="Humans only counts free-for-alls with no AI in them. All FFA adds the games that had AI players, counting each AI as a full entrant: it sizes the field, holds its own leaderboard row, and a game an AI won is that AI's win." />
+    </>
+  )
+}
+
 export default function DisplayFFAStats() {
   const [stats, setStats] = React.useState<FFAStats>(empty)
   const [loaded, setLoaded] = React.useState(false)
+  const [field, setField] = React.useState<Field>("Humans only")
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
     setLoaded(false)
-    Client.getFfaStatsApiFfastatsGet()
+    Client.getFfaStatsApiFfastatsGet({ includeCpu: field === "All FFA" })
       .then((s) => {
         setStats(s)
         setLoaded(true)
       })
       .catch(showError)
-  }, [showError])
+  }, [field, showError])
 
-  if (!loaded) {
-    return <Loading />
-  }
-
-  if (stats.totalGames === 0) {
-    return (
-      <Page title="Free-For-All" width="narrow">
-        <Typography variant="h6">No FFA games found yet.</Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          Free-for-all games (3+ human players, every player for themselves)
-          will show up here once they've been played.
-        </Typography>
-      </Page>
-    )
-  }
+  // The toggle renders in both states on purpose: an empty result is itself a
+  // reason to reach for the other corpus, so it must not take the control away.
+  const actions = <FieldToggle value={field} onChange={setField} />
 
   return (
     <Page
       title="Free-For-All"
       description="Every player for themselves. Team games and comp-stomps are counted elsewhere."
+      actions={actions}
     >
-      <SummaryCards stats={stats} />
-      <Divider sx={{ mb: 2 }} />
-      <PlayerLeaderboard players={stats.playerStats} />
-      <Divider sx={{ mb: 2 }} />
-      <GeneralWinRates stats={stats} />
-      <Divider sx={{ mb: 2 }} />
-      <MapBreakdown stats={stats} />
+      {!loaded ? (
+        <Loading />
+      ) : stats.totalGames === 0 ? (
+        <>
+          <Typography variant="h6">No FFA games found yet.</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Free-for-all games (3+ players, every player for themselves) will
+            show up here once they&apos;ve been played.
+          </Typography>
+        </>
+      ) : (
+        <>
+          <SummaryCards stats={stats} />
+          <Divider sx={{ mb: 2 }} />
+          <PlayerLeaderboard players={stats.playerStats} />
+          <Divider sx={{ mb: 2 }} />
+          <GeneralWinRates stats={stats} />
+          <Divider sx={{ mb: 2 }} />
+          <MapBreakdown stats={stats} />
+        </>
+      )}
       {errorSnackbar}
     </Page>
   )
