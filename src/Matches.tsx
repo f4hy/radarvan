@@ -357,15 +357,13 @@ function MatchHeader(props: {
 
 // Small, secondary download action that lives in the header rather than as a
 // full-width button below the match.
-function DownloadReplayButton(props: { matchId: number; filename: string }) {
+function DownloadReplayButton(props: { matchId: number }) {
   return (
-    <Tooltip
-      title={`Download replay (${props.filename.split("/").pop() ?? "rep"})`}
-    >
+    <Tooltip title="Download replay">
       <IconButton
         size="small"
         aria-label="Download replay"
-        onClick={() => downloadReplay(props.matchId, props.filename)}
+        onClick={() => downloadReplay(props.matchId)}
       >
         <DownloadIcon fontSize="small" />
       </IconButton>
@@ -417,9 +415,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
       <MatchHeader
         match={match}
         formatLabel="FFA"
-        action={
-          <DownloadReplayButton matchId={match.id} filename={match.filename} />
-        }
+        action={<DownloadReplayButton matchId={match.id} />}
       />
       <Stack
         direction="row"
@@ -452,13 +448,13 @@ function downloadURI(uri: string, name: string) {
   document.body.removeChild(link)
 }
 
-function downloadReplay(matchId: number, fallbackUrl: string) {
+function downloadReplay(matchId: number) {
   Client.getMatchReplayUrlApiReplayUrlMatchIdGet({ matchId })
     .then((result) => {
-      const presigned = result["url"]
-      if (!presigned) return
-      const filename = fallbackUrl.split("/").pop() || `${matchId}.rep`
-      downloadURI(presigned, filename)
+      if (!result.url) return
+      // The name is also signed into the presigned URL's Content-Disposition -
+      // `download` alone is ignored on a cross-origin (S3) href.
+      downloadURI(result.url, result.filename)
     })
     .catch(console.error)
 }
@@ -499,12 +495,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
       <MatchHeader
         match={props.match}
         formatLabel={props.match.composition?.category ?? "?"}
-        action={
-          <DownloadReplayButton
-            matchId={props.match.id}
-            filename={props.match.filename}
-          />
-        }
+        action={<DownloadReplayButton matchId={props.match.id} />}
       />
       {props.match?.notes?.length ? (
         <Typography

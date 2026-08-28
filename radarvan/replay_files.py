@@ -1,16 +1,20 @@
 """Manual paths for now."""
 
 import hashlib
+import re
 import structlog
 import fsspec
+from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any, NamedTuple
+from .api_types import MatchInfo
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from functools import cache
 from .parse_replay import parse_replay_data
 from . import utils
 from .log_time import log_time
 from .db_utils import ReplayManager
+from .player_ids import resolve_player_name
 from .repositories.maps import normalize_map_name
 import boto3
 from urllib.parse import urlparse
@@ -46,15 +50,28 @@ def _s3_client() -> Any:
     )
 
 
-def presigned_url(s3_path: str, expires_in: int = 3600) -> str:
-    """preSign a s3_path. expires_in is the URL validity in seconds (S3 caps at 7 days)."""
+def presigned_url(
+    s3_path: str, expires_in: int = 3600, save_as: str | None = None
+) -> str:
+    """preSign a s3_path. expires_in is the URL validity in seconds (S3 caps at 7 days).
+
+    ``save_as`` names the file the browser should write. It has to be signed
+    into the URL rather than set by the caller: the presigned URL points at S3,
+    so a cross-origin `<a download>` attribute is ignored and the download
+    would land under the S3 key - a content hash. Pass a name from
+    `download_filename`.
+    """
     parsed = urlparse(s3_path)
     bucket = parsed.netloc
     key = parsed.path.lstrip("/")
 
+    params = {"Bucket": bucket, "Key": key}
+    if save_as is not None:
+        params["ResponseContentDisposition"] = f'attachment; filename="{save_as}"'
+
     url = _s3_client().generate_presigned_url(
         "get_object",
-        Params={"Bucket": bucket, "Key": key},
+        Params=params,
         ExpiresIn=expires_in,
     )
 
@@ -277,6 +294,50 @@ def upload_and_parse(
 
 def map_basename(map_path: str) -> str:
     return map_path.rsplit("/", maxsplit=1)[-1] if map_path else "Unknown"
+
+
+# Everything outside this set becomes an underscore: in-game names carry
+# clan tags, brackets and non-ASCII, and the name is signed into an S3
+# `Content-Disposition` header as well as written to a filesystem.
+_UNSAFE_IN_FILENAME = re.compile(r"[^A-Za-z0-9_]+")
+
+
+def _safe_part(text: str) -> str:
+    return _UNSAFE_IN_FILENAME.sub("_", text).strip("_") or "unknown"
+
+
+def download_filename(match: MatchInfo) -> str:
+    """The name a match's .rep should be saved as.
+
+    ``2025-08-27-2v2-Alice-Bob-vs-Carl-Dave-Tournament_Desert-84611718.rep``:
+    date, format, the sides, the map, and the match id. The stored S3 key is a
+    content hash, so without this every downloaded replay lands in the browser
+    named after that hash.
+    """
+    roster = match.roster()
+    by_team: dict[int, list[str]] = defaultdict(list)
+    # A 1v1 that never went through parse_replay.reassign_1v1_teams has two
+    # teamless competitors; each is its own side rather than one joint team.
+    solo: list[str] = []
+    for slot in roster.competitors:
+        name = _safe_part(resolve_player_name(slot.name, slot.color))
+        if slot.team > 0:
+            by_team[slot.team].append(name)
+        else:
+            solo.append(name)
+    side_names = [sorted(names) for _, names in sorted(by_team.items())]
+    side_names.extend([n] for n in sorted(solo))
+    sides = ["-".join(names) for names in side_names]
+    matchup = "-vs-".join(sides) if sides else "unknown"
+    # The composition is what the rest of the app labels the match with; the
+    # side sizes are the same answer for a match parsed before it had one.
+    game_format = _safe_part(
+        match.composition.category
+        if match.composition is not None
+        else "v".join(str(len(names)) for names in side_names)
+    )
+    map_name = _safe_part(map_basename(match.map).removesuffix(".map"))
+    return f"{match.date.isoformat()}-{game_format}-{matchup}-{map_name}-{match.id}.rep"
 
 
 def map_key(name: str) -> str:

@@ -46,6 +46,7 @@ import type {
   PowerStats,
   PredictRequest,
   RatingUpset,
+  ReplayDownload,
   ReplayFileSchema,
   ReplayWithoutPlayerStats,
   ResponseGetFilesForMatchIdApiFilesForMatchGetValue,
@@ -123,6 +124,8 @@ import {
     PredictRequestToJSON,
     RatingUpsetFromJSON,
     RatingUpsetToJSON,
+    ReplayDownloadFromJSON,
+    ReplayDownloadToJSON,
     ReplayFileSchemaFromJSON,
     ReplayFileSchemaToJSON,
     ReplayWithoutPlayerStatsFromJSON,
@@ -1689,21 +1692,21 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return a presigned S3 URL for the .rep file of a match.
+     * Return a presigned S3 URL for the .rep file of a match, and its save name.
      * Get Match Replay Url
      */
-    async getMatchReplayUrlApiReplayUrlMatchIdGetRaw(requestParameters: GetMatchReplayUrlApiReplayUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async getMatchReplayUrlApiReplayUrlMatchIdGetRaw(requestParameters: GetMatchReplayUrlApiReplayUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ReplayDownload>> {
         const requestOptions = await this.getMatchReplayUrlApiReplayUrlMatchIdGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ReplayDownloadFromJSON(jsonValue));
     }
 
     /**
-     * Return a presigned S3 URL for the .rep file of a match.
+     * Return a presigned S3 URL for the .rep file of a match, and its save name.
      * Get Match Replay Url
      */
-    async getMatchReplayUrlApiReplayUrlMatchIdGet(requestParameters: GetMatchReplayUrlApiReplayUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+    async getMatchReplayUrlApiReplayUrlMatchIdGet(requestParameters: GetMatchReplayUrlApiReplayUrlMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ReplayDownload> {
         const response = await this.getMatchReplayUrlApiReplayUrlMatchIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }

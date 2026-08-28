@@ -1888,11 +1888,11 @@ example().catch(console.error);
 
 ## getMatchReplayUrlApiReplayUrlMatchIdGet
 
-> { [key: string]: string | null; } getMatchReplayUrlApiReplayUrlMatchIdGet(matchId)
+> ReplayDownload getMatchReplayUrlApiReplayUrlMatchIdGet(matchId)
 
 Get Match Replay Url
 
-Return a presigned S3 URL for the .rep file of a match.
+Return a presigned S3 URL for the .rep file of a match, and its save name.
 
 ### Example
 
@@ -1937,7 +1937,7 @@ example().catch(console.error);
 
 ### Return type
 
-**{ [key: string]: string | null; }**
+[**ReplayDownload**](ReplayDownload.md)
 
 ### Authorization
 
