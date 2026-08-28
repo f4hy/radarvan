@@ -39,9 +39,7 @@ class Batch:
     weight: torch.Tensor  # [B] float per-match loss weight (1.0 == uniform)
 
     def to(self, device: torch.device) -> Batch:
-        return Batch(
-            **{f.name: getattr(self, f.name).to(device) for f in fields(self)}
-        )
+        return Batch(**{f.name: getattr(self, f.name).to(device) for f in fields(self)})
 
 
 class MatchDataset(Dataset[EncodedMatch]):
@@ -77,9 +75,7 @@ def _pad_team(
 
 
 def collate(matches: list[EncodedMatch]) -> Batch:
-    max_t = max(
-        max(len(m.team_a), len(m.team_b)) for m in matches
-    )
+    max_t = max(max(len(m.team_a), len(m.team_b)) for m in matches)
 
     def as_tuples(team: list) -> list[tuple[int, int, int, int]]:
         return [(p.player, p.general, p.faction, p.start_pos) for p in team]
@@ -87,12 +83,18 @@ def collate(matches: list[EncodedMatch]) -> Batch:
     a = _pad_team([as_tuples(m.team_a) for m in matches], max_t)
     b = _pad_team([as_tuples(m.team_b) for m in matches], max_t)
     return Batch(
-        a_player=a[0], a_general=a[1], a_faction=a[2], a_start=a[3], a_mask=a[4],
-        b_player=b[0], b_general=b[1], b_faction=b[2], b_start=b[3], b_mask=b[4],
+        a_player=a[0],
+        a_general=a[1],
+        a_faction=a[2],
+        a_start=a[3],
+        a_mask=a[4],
+        b_player=b[0],
+        b_general=b[1],
+        b_faction=b[2],
+        b_start=b[3],
+        b_mask=b[4],
         map=torch.tensor([m.map for m in matches], dtype=torch.long),
-        map_feat=torch.tensor(
-            [m.map_feat for m in matches], dtype=torch.float32
-        ),
+        map_feat=torch.tensor([m.map_feat for m in matches], dtype=torch.float32),
         fmt=torch.tensor([m.fmt for m in matches], dtype=torch.long),
         label=torch.tensor([float(m.label) for m in matches], dtype=torch.float32),
         duration=torch.tensor(
@@ -110,9 +112,19 @@ def encode_all(matches_path: Path, vocab: Vocab) -> list[EncodedMatch]:
 class MatchDataModule(L.LightningDataModule):
     """Loads a ``split-*`` directory (train/dev jsonl + vocab).
 
-    ``recency_half_life_days`` down-weights older *training* games. Dev is always
-    left uniform: val_loss drives early stopping and cross-run comparison, so it
-    has to keep meaning the same thing whatever the half-life is.
+    ``recency_half_life_days`` down-weights older *training* games. The
+    validation set is always left uniform: val_loss drives early stopping and
+    cross-run comparison, so it has to keep meaning the same thing whatever the
+    half-life is.
+
+    **``val_frac`` carves validation out of train, and dev never enters
+    fitting.** Validating on ``dev.jsonl.gz`` would make early stopping, the
+    best-checkpoint pick and the temperature fit all *select on the set we then
+    report* - straightforward test-set model selection, and it inflated every
+    rolling-origin number this repo published. The most recent ``val_frac`` of
+    train is the honest stand-in: it is the slice closest in time to dev, i.e.
+    the best available proxy for the shift dev measures. Pass ``val_frac=0.0``
+    only to reproduce the old (leaky) behaviour.
     """
 
     def __init__(
@@ -121,22 +133,32 @@ class MatchDataModule(L.LightningDataModule):
         batch_size: int,
         num_workers: int = 0,
         recency_half_life_days: float | None = None,
+        val_frac: float = 0.15,
     ):
         super().__init__()
         self.split_dir = Path(split_dir)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.recency_half_life_days = recency_half_life_days
+        self.val_frac = val_frac
         self.vocab = Vocab.load(self.split_dir / "vocab.json")
         self._train: list[EncodedMatch] = []
+        self._val: list[EncodedMatch] = []
         self._dev: list[EncodedMatch] = []
 
     def setup(self, stage: str | None = None) -> None:
-        self._train = recency_weighted(
-            encode_all(self.split_dir / "train.jsonl.gz", self.vocab),
-            self.recency_half_life_days,
-        )
+        # train.jsonl.gz is time-ordered, so the tail is the most recent games.
+        train_all = encode_all(self.split_dir / "train.jsonl.gz", self.vocab)
         self._dev = encode_all(self.split_dir / "dev.jsonl.gz", self.vocab)
+        if self.val_frac > 0 and len(train_all) > 20:
+            n_val = max(1, int(len(train_all) * self.val_frac))
+            fit, self._val = train_all[:-n_val], train_all[-n_val:]
+        else:
+            fit, self._val = train_all, self._dev
+        # Weights are anchored to the newest game in the *fit* block, so holding
+        # a validation tail back does not change the surviving games' weights
+        # relative to each other.
+        self._train = recency_weighted(fit, self.recency_half_life_days)
 
     def train_dataloader(self) -> DataLoader[EncodedMatch]:
         return DataLoader(
@@ -149,7 +171,7 @@ class MatchDataModule(L.LightningDataModule):
 
     def val_dataloader(self) -> DataLoader[EncodedMatch]:
         return DataLoader(
-            MatchDataset(self._dev),
+            MatchDataset(self._val),
             batch_size=self.batch_size,
             shuffle=False,
             collate_fn=collate,

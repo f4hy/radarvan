@@ -61,9 +61,17 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
     accelerator = select_accelerator(accelerator)
     logger.info("accelerator", using=accelerator)
 
-    dm = WinProbDataModule(split_dir, batch_size=cfg.train.batch_size)
+    dm = WinProbDataModule(
+        split_dir, batch_size=cfg.train.batch_size, val_frac=cfg.train.val_frac
+    )
     dm.setup()
-    logger.info("data", n_train=len(dm._train), n_dev=len(dm._dev))
+    logger.info(
+        "data",
+        n_train=len(dm._train),
+        n_val=len(dm._val),
+        n_dev=len(dm._dev),
+        val_frac=cfg.train.val_frac,
+    )
 
     module = WinProbLitModule(cfg, N_FEATURES)
 

@@ -8,9 +8,11 @@ re-exporting K times, then re-derives the 144-cell matrix from each. Training
 is cheap here (~10-20s/run on GPU) so K in the 30-50 range is a few minutes,
 not an overnight job.
 
-dev.jsonl.gz and vocab.json are held fixed across replicates (copied from the
-source split, not resampled) so early-stopping is evaluated consistently and
-every replicate's matrix cells line up on the same general/player indices.
+vocab.json is held fixed across replicates (copied from the source split, not
+resampled) so every replicate's matrix cells line up on the same general/player
+indices. Each replicate holds out the same recent tail of train for early
+stopping and the temperature fit, and resamples only the games before it -
+dev.jsonl.gz is never read during training.
 
 Usage::
 
@@ -79,15 +81,36 @@ def _write_jsonl_gz(matches: list[MatchInfo], path: Path) -> None:
 def _bootstrap_replicate(
     split_dir: Path, boot_dir: Path, train_matches: list[MatchInfo], seed: int
 ) -> Path:
+    """One replicate: resample the fit games, keep the validation tail intact.
+
+    Only the *fit* portion is resampled. The recent tail that early stopping and
+    the temperature fit use is held out first and appended unchanged, so it stays
+    time-ordered, free of bootstrap duplicates, and disjoint from what the
+    weights see - none of which survives resampling the whole block and then
+    taking its last 15%.
+    """
+    cfg = Config()
+    cfg.train.seed = seed
+
+    ordered = sorted(train_matches, key=lambda m: m.timestamp)
+    n_val = int(len(ordered) * cfg.train.val_frac)
+    fit, val = (ordered[: len(ordered) - n_val], ordered[len(ordered) - n_val :])
+
     rng = random.Random(seed)  # noqa: S311 - resampling data, not crypto
-    resampled = [rng.choice(train_matches) for _ in range(len(train_matches))]
+    resampled = sorted(
+        (rng.choice(fit) for _ in range(len(fit))), key=lambda m: m.timestamp
+    )
+    written = [*resampled, *val]
     boot_dir.mkdir(parents=True, exist_ok=True)
-    _write_jsonl_gz(resampled, boot_dir / "train.jsonl.gz")
+    _write_jsonl_gz(written, boot_dir / "train.jsonl.gz")
+    # dev is copied only because MatchDataModule expects the file; with
+    # val_frac > 0 nothing in training reads it.
     (boot_dir / "dev.jsonl.gz").write_bytes((split_dir / "dev.jsonl.gz").read_bytes())
     (boot_dir / "vocab.json").write_bytes((split_dir / "vocab.json").read_bytes())
 
-    cfg = Config()
-    cfg.train.seed = seed
+    # Re-point val_frac at exactly the games we appended, whatever the resample
+    # did to the fit block's length.
+    cfg.train.val_frac = len(val) / len(written) if written else 0.0
     run_dir = train(boot_dir, cfg, accelerator="auto")
     export(run_dir)
     return run_dir
@@ -96,8 +119,14 @@ def _bootstrap_replicate(
 def _dump_matrix(run_dir: Path) -> list[dict[str, float]]:
     out_path = run_dir / "matrix.json"
     cmd = [
-        "uv", "run", "python", "-m", "ml.dump_matrix_worker",
-        str(run_dir / "model.onnx"), str(run_dir / "vocab.json"), str(out_path),
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "ml.dump_matrix_worker",
+        str(run_dir / "model.onnx"),
+        str(run_dir / "vocab.json"),
+        str(out_path),
     ]
     subprocess.run(  # noqa: S603 - fixed internal command, not untrusted input
         cmd,
@@ -138,16 +167,18 @@ def run_bootstrap(split_dir: Path, k: int, base_seed: int) -> dict:
             n = len(vals)
             lo = vals[max(0, int(n * 0.05))]
             hi = vals[min(n - 1, int(n * 0.95))]
-            cell_stats.append({
-                "general_a": ga.value,
-                "general_b": gb.value,
-                "mean": statistics.mean(vals),
-                "std": statistics.stdev(vals) if n > 1 else 0.0,
-                "p05": lo,
-                "p95": hi,
-                "significant": lo > 0.5 or hi < 0.5,
-                "values": vals,
-            })
+            cell_stats.append(
+                {
+                    "general_a": ga.value,
+                    "general_b": gb.value,
+                    "mean": statistics.mean(vals),
+                    "std": statistics.stdev(vals) if n > 1 else 0.0,
+                    "p05": lo,
+                    "p95": hi,
+                    "significant": lo > 0.5 or hi < 0.5,
+                    "values": vals,
+                }
+            )
 
     result = {
         "split_dir": str(split_dir),
@@ -198,7 +229,8 @@ def promote_ensemble(split_dir: Path, ensemble_dir: Path = DEFAULT_ENSEMBLE_DIR)
     if stale:
         logger.warning(
             "ignoring older run bundles; promoting the newest per replicate",
-            n_ignored=stale, n_replicates=len(model_paths),
+            n_ignored=stale,
+            n_replicates=len(model_paths),
         )
     if not model_paths:
         raise SystemExit(

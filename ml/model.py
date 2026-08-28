@@ -42,22 +42,32 @@ class OutcomeModel(nn.Module):
         self.n_generals = vocab.n_generals
 
         self.player_emb = nn.Embedding(vocab.n_players, cfg.emb_player, padding_idx=0)
-        self.general_emb = nn.Embedding(vocab.n_generals, cfg.emb_general, padding_idx=0)
-        self.faction_emb = nn.Embedding(vocab.n_factions, cfg.emb_faction, padding_idx=0)
+        self.general_emb = nn.Embedding(
+            vocab.n_generals, cfg.emb_general, padding_idx=0
+        )
+        self.faction_emb = nn.Embedding(
+            vocab.n_factions, cfg.emb_faction, padding_idx=0
+        )
         self.fmt_emb = nn.Embedding(vocab.n_formats, cfg.emb_format, padding_idx=0)
 
         # Map representation -> a cfg.emb_map vector, either projected from numeric
         # geometry features (generalises across maps) or a per-map-name embedding.
-        if cfg.use_map_features:
-            self.map_proj: nn.Linear | None = nn.Linear(N_MAP_FEATURES, cfg.emb_map)
+        if not cfg.use_map:
+            self.map_proj: nn.Linear | None = None
             self.map_emb: nn.Embedding | None = None
+        elif cfg.use_map_features:
+            self.map_proj = nn.Linear(N_MAP_FEATURES, cfg.emb_map)
+            self.map_emb = None
         else:
             self.map_proj = None
             self.map_emb = nn.Embedding(vocab.n_maps, cfg.emb_map, padding_idx=0)
 
         in_dim = (
-            cfg.emb_player + cfg.emb_general + cfg.emb_faction
-            + cfg.emb_map + cfg.emb_format
+            cfg.emb_player
+            + cfg.emb_general
+            + cfg.emb_faction
+            + (cfg.emb_map if cfg.use_map else 0)
+            + cfg.emb_format
         )
         if cfg.use_starting_position:
             self.start_emb: nn.Embedding | None = nn.Embedding(16, 4, padding_idx=0)
@@ -115,7 +125,10 @@ class OutcomeModel(nn.Module):
         unlearn. Small embeddings + zero score head start calibrated.
         """
         embeds = [
-            self.player_emb, self.general_emb, self.faction_emb, self.fmt_emb,
+            self.player_emb,
+            self.general_emb,
+            self.faction_emb,
+            self.fmt_emb,
         ]
         if self.map_emb is not None:
             embeds.append(self.map_emb)
@@ -154,7 +167,7 @@ class OutcomeModel(nn.Module):
         general: torch.Tensor,
         faction: torch.Tensor,
         start: torch.Tensor,
-        e_map: torch.Tensor,
+        e_map: torch.Tensor | None,
         e_fmt: torch.Tensor,
     ) -> torch.Tensor:
         """[B, T, *] ids -> per-player hidden [B, T, H]. Match-level map/fmt broadcast."""
@@ -163,18 +176,23 @@ class OutcomeModel(nn.Module):
             self.player_emb(player),
             self.general_emb(general),
             self.faction_emb(faction),
-            e_map.unsqueeze(1).expand(-1, t, -1),
             e_fmt.unsqueeze(1).expand(-1, t, -1),
         ]
+        if e_map is not None:
+            feats.insert(3, e_map.unsqueeze(1).expand(-1, t, -1))
         if self.start_emb is not None:
             feats.append(self.start_emb(start.clamp(max=15)))
         x = torch.cat(feats, dim=-1)
         return self.encoder(x)
 
+    def _team_size(self, mask: torch.Tensor) -> torch.Tensor:
+        return mask.sum(dim=1).clamp(min=1.0)  # [B]
+
     def _team_score(self, h: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """Masked-sum of per-player scalar scores -> [B]."""
+        """Masked pool of per-player scalar scores -> [B] (mean if size_norm)."""
         per_player = self.score_head(h).squeeze(-1)  # [B, T]
-        return (per_player * mask).sum(dim=1)
+        total = (per_player * mask).sum(dim=1)
+        return total / self._team_size(mask) if self.cfg.size_norm else total
 
     def _team_pool(self, h: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         return (h * mask.unsqueeze(-1)).sum(dim=1)  # [B, H]
@@ -187,7 +205,11 @@ class OutcomeModel(nn.Module):
         # sum_{i<j} u_i.u_j = 0.5(||sum u||^2 - sum ||u||^2)
         sq_of_sum = (sum_u * sum_u).sum(dim=-1)
         sum_of_sq = (u * u).sum(dim=(1, 2))
-        return 0.5 * (sq_of_sum - sum_of_sq)
+        total = 0.5 * (sq_of_sum - sum_of_sq)
+        if not self.cfg.size_norm:
+            return total
+        n = self._team_size(mask)
+        return total / (n * (n - 1) / 2).clamp(min=1.0)  # per teammate pair
 
     def _general_counts(
         self, general: torch.Tensor, mask: torch.Tensor
@@ -205,27 +227,44 @@ class OutcomeModel(nn.Module):
         c_a = self._general_counts(batch.a_general, batch.a_mask)
         c_b = self._general_counts(batch.b_general, batch.b_mask)
         # c_a^T A c_b ; antisymmetric under team swap because A is skew-symmetric.
-        return torch.einsum("bg,gh,bh->b", c_a, a, c_b)
+        total = torch.einsum("bg,gh,bh->b", c_a, a, c_b)
+        if not self.cfg.size_norm:
+            return total
+        return total / (
+            self._team_size(batch.a_mask) * self._team_size(batch.b_mask)
+        )  # per cross-team pair
 
     # --- public ------------------------------------------------------------
 
-    def _map_embed(self, batch: Batch) -> torch.Tensor:
-        """[B, emb_map] map representation, from numeric features or name embedding."""
+    def _map_embed(self, batch: Batch) -> torch.Tensor | None:
+        """[B, emb_map] map representation, or None when the map is ablated out."""
         if self.map_proj is not None:
             return self.map_proj(batch.map_feat)
         if self.map_emb is not None:
             return self.map_emb(batch.map)
-        raise RuntimeError("no map representation configured")
+        return None
 
-    def _logit_terms(self, batch: Batch) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    def _logit_terms(
+        self, batch: Batch
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """Raw logit plus its additive decomposition (each term is [B])."""
         e_map = self._map_embed(batch)
         e_fmt = self.fmt_emb(batch.fmt)
         h_a = self._encode_players(
-            batch.a_player, batch.a_general, batch.a_faction, batch.a_start, e_map, e_fmt
+            batch.a_player,
+            batch.a_general,
+            batch.a_faction,
+            batch.a_start,
+            e_map,
+            e_fmt,
         )
         h_b = self._encode_players(
-            batch.b_player, batch.b_general, batch.b_faction, batch.b_start, e_map, e_fmt
+            batch.b_player,
+            batch.b_general,
+            batch.b_faction,
+            batch.b_start,
+            e_map,
+            e_fmt,
         )
         strength = self._team_score(h_a, batch.a_mask) - self._team_score(
             h_b, batch.b_mask
@@ -269,12 +308,24 @@ class OutcomeModel(nn.Module):
         e_map = self._map_embed(batch)
         e_fmt = self.fmt_emb(batch.fmt)
         h_a = self._encode_players(
-            batch.a_player, batch.a_general, batch.a_faction, batch.a_start, e_map, e_fmt
+            batch.a_player,
+            batch.a_general,
+            batch.a_faction,
+            batch.a_start,
+            e_map,
+            e_fmt,
         )
         h_b = self._encode_players(
-            batch.b_player, batch.b_general, batch.b_faction, batch.b_start, e_map, e_fmt
+            batch.b_player,
+            batch.b_general,
+            batch.b_faction,
+            batch.b_start,
+            e_map,
+            e_fmt,
         )
-        combined = self._team_pool(h_a, batch.a_mask) + self._team_pool(h_b, batch.b_mask)
+        combined = self._team_pool(h_a, batch.a_mask) + self._team_pool(
+            h_b, batch.b_mask
+        )
         return self.duration_head(combined).squeeze(-1)
 
 

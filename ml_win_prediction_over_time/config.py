@@ -44,6 +44,12 @@ class TrainConfig:
     max_epochs: int = 100
     patience: int = 15  # early-stop patience on val log-loss
     seed: int = 1234
+    # Fraction of the *train* split (its most recent tail) held out for early
+    # stopping and best-checkpoint selection. Validating on dev.jsonl.gz - which
+    # is what this trainer used to do, and what `predict.py --eval` then scores -
+    # is test-set model selection; the same bug in ../ml inflated its published
+    # AUC by ~0.06. 0.0 restores that behaviour.
+    val_frac: float = 0.15
     # Later timesteps are weighted up to this multiple of early ones: a game's
     # outcome is genuinely uncertain early, so we don't punish the model as hard
     # for a coin-flip at minute 1 as for a wrong call at minute 20.

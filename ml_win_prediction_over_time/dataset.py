@@ -65,20 +65,40 @@ def encode_all(path: Path, stats: FeatureStats) -> list[SeqMatch]:
 
 
 class WinProbDataModule(L.LightningDataModule):
-    """Loads a ``split-*`` directory (train/dev jsonl + feature_stats.json)."""
+    """Loads a ``split-*`` directory (train/dev jsonl + feature_stats.json).
 
-    def __init__(self, split_dir: Path, batch_size: int, num_workers: int = 0):
+    ``val_frac`` carves the validation set out of the *train* split (its most
+    recent tail, since the split file is time-ordered) so that early stopping and
+    the best-checkpoint pick never see ``dev.jsonl.gz`` - the set
+    ``predict.py --eval`` then reports on. Validating on dev is test-set model
+    selection; ``ml/dataset.py`` carries the same fix and the same reasoning.
+    """
+
+    def __init__(
+        self,
+        split_dir: Path,
+        batch_size: int,
+        num_workers: int = 0,
+        val_frac: float = 0.15,
+    ):
         super().__init__()
         self.split_dir = Path(split_dir)
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.val_frac = val_frac
         self.stats = FeatureStats.load(self.split_dir / "feature_stats.json")
         self._train: list[SeqMatch] = []
+        self._val: list[SeqMatch] = []
         self._dev: list[SeqMatch] = []
 
     def setup(self, stage: str | None = None) -> None:
-        self._train = encode_all(self.split_dir / "train.jsonl.gz", self.stats)
+        train_all = encode_all(self.split_dir / "train.jsonl.gz", self.stats)
         self._dev = encode_all(self.split_dir / "dev.jsonl.gz", self.stats)
+        if self.val_frac > 0 and len(train_all) > 20:
+            n_val = max(1, int(len(train_all) * self.val_frac))
+            self._train, self._val = train_all[:-n_val], train_all[-n_val:]
+        else:
+            self._train, self._val = train_all, self._dev
 
     def train_dataloader(self) -> DataLoader[_Item]:
         return DataLoader(
@@ -91,7 +111,7 @@ class WinProbDataModule(L.LightningDataModule):
 
     def val_dataloader(self) -> DataLoader[_Item]:
         return DataLoader(
-            SeqDataset(self._dev, self.stats),
+            SeqDataset(self._val, self.stats),
             batch_size=self.batch_size,
             shuffle=False,
             collate_fn=collate,

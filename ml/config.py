@@ -35,6 +35,13 @@ class ModelConfig:
     use_synergy: bool = True
     use_matchup: bool = True
 
+    # Feed the map into the per-player encoder at all. The map is shared by both
+    # teams, so it can only move the (antisymmetric) logit through its
+    # *interactions* with player/general - and a per-map embedding over ~180 maps,
+    # a third of them singletons, is the model's second-largest parameter block.
+    # Off is a real ablation to run, not a degenerate one.
+    use_map: bool = True
+
     # Map representation: numeric geometry features (size, money/player,
     # oils/player) projected to emb_map, vs a per-map-name embedding. Tested as a
     # fix for map sparsity but it was *worse* on held-out dev — even on unseen
@@ -48,6 +55,13 @@ class ModelConfig:
     # default so the model is order-invariant (team ordering is treated as
     # arbitrary); enable with --global-bias to let it learn a host/spawn base rate.
     use_global_bias: bool = False
+
+    # Normalise every additive term by team size (score by |team|, synergy by
+    # the pair count, matchup by |A|*|B|) so the logit means the same thing in a
+    # 1v1 and a 4v4. With plain sum pooling a 4v4 gets four times the strength
+    # spread of a 1v1 purely from the pooling, and one shared temperature then
+    # cannot calibrate both. Measured on the rolling protocol; see model_design.md.
+    size_norm: bool = True
 
     # Optional features (off by default; see model_design.md leakage note).
     use_starting_position: bool = False
@@ -67,6 +81,19 @@ class TrainConfig:
     # Auxiliary regression heads (duration, etc.); weight 0 disables.
     aux_duration_weight: float = 0.0
     seed: int = 1234
+    # Fraction of the *train* split (its most recent tail) held out for early
+    # stopping, best-checkpoint selection and the temperature fit. Anything but
+    # 0 keeps dev.jsonl.gz out of fitting entirely; 0.0 restores the old
+    # behaviour of validating on dev, which is test-set model selection - see
+    # ml.dataset.MatchDataModule.
+    val_frac: float = 0.15
+    # After early stopping picks an epoch count on the held-out tail, refit from
+    # scratch on the *whole* train split for that many epochs. Holding a
+    # validation slice back costs the model its most recent games - exactly the
+    # ones recency weighting says matter most - and this buys them back without
+    # letting the validation set influence anything but the epoch count. The
+    # temperature stays the one fitted on the held-out slice.
+    refit_on_full: bool = True
     # Exponential down-weighting of old training games (half-life in days); None
     # weights every game equally. Players drift — the median regular's win rate
     # moves ~10 points between years, Skip's went 31% -> 45% across five — so a

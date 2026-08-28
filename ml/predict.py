@@ -1,8 +1,11 @@
 """CPU inference + evaluation harness (model vs baselines).
 
 Loads a run bundle on CPU and reports log-loss / accuracy / AUC / Brier on the
-dev split, alongside the baselines the model must beat: coin flip and the repo's
-openskill ``predict_win`` (ratings fit on the *train* split, evaluated on dev).
+dev split, alongside the baselines the model must beat: coin flip, the training
+block's base rate, the repo's openskill ``predict_win``, and a 17-parameter
+Bradley-Terry logistic (all fit on the *train* split, evaluated on dev). See
+``ml.baselines`` for why the last one is the bar that matters - openskill's
+log-loss is worse than a coin flip's, so clearing it proves very little.
 
 ``--eval`` scores **one** dev slice, which at this corpus size is ~180 games -
 enough for a quick sanity check on a run, not enough to report: the bootstrap CI
@@ -31,6 +34,7 @@ from radarvan.api_types import General, MatchInfo, Team
 from radarvan.db_utils import DatabaseManager, ReplayManager
 from radarvan.matches import match_to_matchinfo
 
+from .baselines import base_rate_probs, bt_logistic_probs
 from .config import Config, ModelConfig, TrainConfig
 from .dataset import Batch, collate
 from .features import Vocab, encode_match, resolved_real_players
@@ -47,9 +51,7 @@ def _config_from_json(raw: dict) -> Config:
     m = raw["model"]
     t = raw["train"]
     return Config(
-        model=ModelConfig(
-            **{**m, "mlp_hidden": tuple(m["mlp_hidden"])}
-        ),
+        model=ModelConfig(**{**m, "mlp_hidden": tuple(m["mlp_hidden"])}),
         train=TrainConfig(**t),
     )
 
@@ -96,10 +98,13 @@ def _auc(probs: list[float], labels: list[int]) -> float:
 def score(name: str, probs: list[float], labels: list[int]) -> Metrics:
     eps = 1e-7
     n = len(labels)
-    ll = -sum(
-        y * math.log(max(p, eps)) + (1 - y) * math.log(max(1 - p, eps))
-        for p, y in zip(probs, labels)
-    ) / n
+    ll = (
+        -sum(
+            y * math.log(max(p, eps)) + (1 - y) * math.log(max(1 - p, eps))
+            for p, y in zip(probs, labels)
+        )
+        / n
+    )
     acc = sum((p > 0.5) == bool(y) for p, y in zip(probs, labels)) / n
     brier = sum((p - y) ** 2 for p, y in zip(probs, labels)) / n
     return Metrics(name, n, ll, acc, brier, _auc(probs, labels))
@@ -177,9 +182,14 @@ def evaluate(run_dir: Path) -> None:
     _, dev_labels = model_probs(module, vocab, dev)
     results.append(score("coin_flip", [0.5] * len(dev_labels), dev_labels))
 
-    # openskill.
-    os_probs, os_labels = openskill_probs(train, dev)
-    results.append(score("openskill", os_probs, os_labels))
+    # The three fitted baselines, in ascending order of how much they bite.
+    for name, fn in (
+        ("base_rate", base_rate_probs),
+        ("openskill", openskill_probs),
+        ("bt_logistic", bt_logistic_probs),
+    ):
+        probs, labels = fn(train, dev)
+        results.append(score(name, probs, labels))
 
     # Our model.
     m_probs, m_labels = model_probs(module, vocab, dev)

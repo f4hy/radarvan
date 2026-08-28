@@ -54,6 +54,14 @@ uv run --group ml python -m ml_win_prediction_over_time.predict \
     data/split-<date>-temporal/runs/<ts>/ --eval
 ```
 
+**Early stopping does not watch dev.** `TrainConfig.val_frac` (default 0.15)
+holds back the most recent slice of *train* for the best-checkpoint pick, so
+`--eval` scores a set that had no hand in choosing the weights. This trainer
+used to validate on `dev.jsonl.gz` itself — the same bug as in `../ml`, where
+removing it cost the headline AUC ~0.06 of inflation. Any number produced before
+this fix is optimistic.
+
+
 ## Layout
 
 | file | role |
@@ -71,6 +79,9 @@ uv run --group ml python -m ml_win_prediction_over_time.predict \
 
 - First cut handles **two-sided** games only (most ratable team games). FFA and
   >2 teams are skipped in `record_from_replay`.
+- Not yet re-measured after the validation fix: the shipped
+  `ml_winprob_over_time.onnx` predates it, so its quoted quality is the inflated
+  kind. Retrain and re-score before quoting a number from it.
 - Natural extensions: temperature-calibrate like `ml/train.py`, add categorical
   general/faction embeddings, ONNX-export for torch-free serving, and surface the
   curve in the match-detail UI alongside the replay playback.

@@ -64,9 +64,7 @@ def fit_temperature(logits: torch.Tensor, labels: torch.Tensor) -> float:
     if labels.unique().numel() < 2:
         return 1.0
     log_t = torch.zeros(1, requires_grad=True)
-    opt = torch.optim.LBFGS(
-        [log_t], lr=0.1, max_iter=50, line_search_fn="strong_wolfe"
-    )
+    opt = torch.optim.LBFGS([log_t], lr=0.1, max_iter=50, line_search_fn="strong_wolfe")
 
     def closure() -> torch.Tensor:
         opt.zero_grad()
@@ -80,14 +78,17 @@ def fit_temperature(logits: torch.Tensor, labels: torch.Tensor) -> float:
     return t if torch.isfinite(torch.tensor(t)) else 1.0
 
 
-def _calibrate(module: OutcomeLitModule, train: list[EncodedMatch]) -> float:
-    """Fit temperature on the most recent 20% of train (leak-free vs dev).
+def _calibrate(module: OutcomeLitModule, calib: list[EncodedMatch]) -> float:
+    """Fit temperature on games the weights were **not** fitted on.
 
-    train.jsonl.gz is time-ordered, so the tail is the slice closest in time to
-    the dev set — the best proxy for dev calibration without touching dev.
+    That set is ``MatchDataModule._val`` — the recent tail of train, which is
+    also what early stopping watched. It used to be the last 20% of the *fit*
+    block, i.e. games the model had already memorised: an overfit net looks
+    perfectly calibrated on its own training data, so the fit returned T < 1
+    (making it *more* confident) exactly when it needed T > 1. That is why the
+    model out-ranked a 17-parameter logistic on AUC while losing to it on
+    log-loss.
     """
-    cut = int(len(train) * 0.8)
-    calib = train[cut:] or train
     logits, labels = _raw_logits(module, calib)
     return fit_temperature(logits, labels)
 
@@ -120,6 +121,38 @@ def select_accelerator(requested: str) -> str:
         return "cpu"
 
 
+def _refit_on_full_train(
+    split_dir: Path, cfg: Config, epochs: int, accelerator: str
+) -> OutcomeLitModule:
+    """Retrain from scratch on train + the validation tail, for a fixed budget.
+
+    Same seed and hyperparameters; the only thing carried over from the
+    early-stopped run is ``epochs``. No validation loader, so nothing here can
+    select on anything.
+    """
+    dm = MatchDataModule(
+        split_dir,
+        batch_size=cfg.train.batch_size,
+        recency_half_life_days=cfg.train.recency_half_life_days,
+        val_frac=0.0,  # fit on the whole train split
+    )
+    dm.setup()
+    module = OutcomeLitModule(dm.vocab, cfg)
+    trainer = L.Trainer(
+        max_epochs=max(1, epochs),
+        accelerator=accelerator,
+        devices="auto",
+        enable_checkpointing=False,
+        enable_progress_bar=True,
+        limit_val_batches=0,
+        num_sanity_val_steps=0,
+        log_every_n_steps=10,
+        logger=False,
+    )
+    trainer.fit(module, train_dataloaders=dm.train_dataloader())
+    return module.cpu().eval()
+
+
 def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
     L.seed_everything(cfg.train.seed, workers=True)
     accelerator = select_accelerator(accelerator)
@@ -128,12 +161,18 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
         split_dir,
         batch_size=cfg.train.batch_size,
         recency_half_life_days=cfg.train.recency_half_life_days,
+        val_frac=cfg.train.val_frac,
     )
     dm.setup()
     logger.info(
-        "data", n_players=dm.vocab.n_players, n_maps=dm.vocab.n_maps,
-        n_train=len(dm._train), n_dev=len(dm._dev),
+        "data",
+        n_players=dm.vocab.n_players,
+        n_maps=dm.vocab.n_maps,
+        n_train=len(dm._train),
+        n_val=len(dm._val),
+        n_dev=len(dm._dev),
         recency_half_life_days=cfg.train.recency_half_life_days,
+        val_frac=cfg.train.val_frac,
     )
 
     module = OutcomeLitModule(dm.vocab, cfg)
@@ -141,7 +180,10 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
     run_dir = split_dir / "runs" / datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     run_dir.mkdir(parents=True, exist_ok=True)
     ckpt_cb = ModelCheckpoint(
-        dirpath=run_dir, filename="best", monitor="val_loss", mode="min",
+        dirpath=run_dir,
+        filename="best",
+        monitor="val_loss",
+        mode="min",
         save_top_k=1,
     )
     early = EarlyStopping(monitor="val_loss", mode="min", patience=cfg.train.patience)
@@ -157,13 +199,19 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
     )
     trainer.fit(module, datamodule=dm)
 
-    # Reload the best (lowest val_loss) weights onto CPU and fit temperature on a
-    # held-out tail of train. ModelCheckpoint saved the pre-calibration weights.
+    # Reload the best (lowest val_loss) weights onto CPU and fit temperature on
+    # the same held-out validation tail. ModelCheckpoint saved the
+    # pre-calibration weights.
     module = module.cpu()
     ckpt = torch.load(ckpt_cb.best_model_path, map_location="cpu", weights_only=False)
     module.load_state_dict(ckpt["state_dict"])
     module.eval()
-    temperature = _calibrate(module, dm._train)
+    temperature = _calibrate(module, dm._val)
+    best_epoch = int(ckpt.get("epoch", cfg.train.max_epochs))
+
+    if cfg.train.refit_on_full and cfg.train.val_frac > 0:
+        module = _refit_on_full_train(split_dir, cfg, best_epoch + 1, accelerator)
+        torch.save({"state_dict": module.state_dict()}, run_dir / "best.ckpt")
 
     shutil.copy(split_dir / "vocab.json", run_dir / "vocab.json")
     (run_dir / "config.json").write_text(
@@ -174,8 +222,10 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
     )
     logger.info(
         "done",
-        best=str(ckpt_cb.best_model_path),
+        best=str(run_dir / "best.ckpt"),
         val_loss=ckpt_cb.best_model_score,
+        best_epoch=best_epoch,
+        refit_on_full=cfg.train.refit_on_full and cfg.train.val_frac > 0,
         temperature=round(temperature, 3),
     )
     return run_dir
@@ -188,6 +238,26 @@ def main() -> None:
     parser.add_argument("--no-mlp", action="store_true")
     parser.add_argument("--no-synergy", action="store_true")
     parser.add_argument("--no-matchup", action="store_true")
+    parser.add_argument(
+        "--no-map", action="store_true", help="Drop the map from the encoder entirely."
+    )
+    parser.add_argument(
+        "--no-size-norm",
+        action="store_true",
+        help="Sum-pool each team instead of normalising by team size.",
+    )
+    parser.add_argument(
+        "--no-refit",
+        action="store_true",
+        help="Keep the early-stopped weights instead of refitting on all of train.",
+    )
+    parser.add_argument(
+        "--val-frac",
+        type=float,
+        default=None,
+        help="Fraction of train held out for early stopping + temperature "
+        "(0 = validate on dev, which leaks the reported set into model selection).",
+    )
     parser.add_argument(
         "--global-bias",
         action="store_true",
@@ -233,6 +303,12 @@ def main() -> None:
     cfg.model.use_matchup = not args.no_matchup
     cfg.model.use_global_bias = args.global_bias
     cfg.model.use_map_features = args.map_features
+    cfg.model.use_map = not args.no_map
+    cfg.model.size_norm = not args.no_size_norm
+    if args.val_frac is not None:
+        cfg.train.val_frac = args.val_frac
+    if args.no_refit:
+        cfg.train.refit_on_full = False
 
     train(args.split_dir, cfg, accelerator=args.accelerator)
 

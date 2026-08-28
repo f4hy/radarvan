@@ -10,7 +10,8 @@ This walks the cut point across the snapshot instead, trains a fresh model at
 each cut (vocab frozen from that cut's train block, as in ml.split), predicts
 the block immediately after it, and pools every block's predictions into one
 scored set. Same corpus, ~2.4x the evaluation data, and no single fortnight can
-dominate. Baselines (coin flip, openskill) are scored on exactly the pooled
+dominate. Baselines (coin flip, base rate, openskill, and the 17-parameter
+Bradley-Terry logistic in ``ml.baselines``) are scored on exactly the pooled
 games so the comparison is paired.
 
 Each cut trains ``--seeds`` models; both the mean single-model score and the
@@ -40,6 +41,7 @@ import torch
 
 from radarvan.api_types import MatchInfo
 
+from .baselines import base_rate_probs, bt_logistic_probs
 from .config import DATA_DIR, Config
 from .features import Vocab, build_vocab
 from .model import OutcomeLitModule
@@ -92,15 +94,20 @@ def rolling_eval(
     n = len(matches)
     stamp = snapshot.name.split(".")[0].replace("snapshot-", "")
     map_feat_path = snapshot.parent / f"map_features-{stamp}.json"
-    map_feat = (
-        json.loads(map_feat_path.read_text()) if map_feat_path.exists() else None
-    )
+    map_feat = json.loads(map_feat_path.read_text()) if map_feat_path.exists() else None
 
     # Pooled predictions, one list per seed plus the shared labels/baselines.
     per_seed: dict[int, list[float]] = {s: [] for s in seeds}
     labels: list[int] = []
-    os_probs: list[float] = []
-    os_labels: list[int] = []
+    # Each baseline pools its own labels: it can drop a game the model kept (or
+    # vice versa), and padding to match would invent predictions.
+    baselines = {
+        "base_rate": base_rate_probs,
+        "openskill": openskill_probs,
+        "bt_logistic": bt_logistic_probs,
+    }
+    base_probs: dict[str, list[float]] = {k: [] for k in baselines}
+    base_labels: dict[str, list[int]] = {k: [] for k in baselines}
     per_cut: list[dict[str, object]] = []
 
     for cut_frac in cuts:
@@ -134,36 +141,43 @@ def rolling_eval(
         if block_labels is None:  # no seeds ran; nothing to pool for this cut
             continue
         labels.extend(block_labels)
-        # openskill, fit on the same train block only. Pooled with its own labels:
-        # it can drop a game the model kept (or vice versa), and padding to match
-        # would invent predictions rather than report the baseline.
-        cut_os, cut_os_lab = openskill_probs(train_block, test_block)
-        os_probs.extend(cut_os)
-        os_labels.extend(cut_os_lab)
-        per_cut.append({
-            "cut": cut_frac,
-            "n_train": len(train_block),
-            "n_test": len(test_block),
-            "auc_mean": statistics.mean(cut_aucs),
-            "auc_min": min(cut_aucs),
-            "auc_max": max(cut_aucs),
-        })
+        for name, fn in baselines.items():
+            probs, labs = fn(train_block, test_block)
+            base_probs[name].extend(probs)
+            base_labels[name].extend(labs)
+        per_cut.append(
+            {
+                "cut": cut_frac,
+                "n_train": len(train_block),
+                "n_test": len(test_block),
+                "auc_mean": statistics.mean(cut_aucs),
+                "auc_min": min(cut_aucs),
+                "auc_max": max(cut_aucs),
+            }
+        )
         logger.info(
-            "cut done", cut=cut_frac, n_train=len(train_block), n_test=len(test_block),
+            "cut done",
+            cut=cut_frac,
+            n_train=len(train_block),
+            n_test=len(test_block),
             auc=round(statistics.mean(cut_aucs), 3),
         )
 
     results: list[Metrics] = [
         score("coin_flip", [0.5] * len(labels), labels),
-        score("openskill", os_probs, os_labels),
+        *(score(n, base_probs[n], base_labels[n]) for n in baselines),
     ]
     singles = [score(f"seed_{s}", per_seed[s], labels) for s in seeds]
-    bagged = [statistics.mean(per_seed[s][i] for s in seeds) for i in range(len(labels))]
+    bagged = [
+        statistics.mean(per_seed[s][i] for s in seeds) for i in range(len(labels))
+    ]
     results.append(score("ml_bagged", bagged, labels))
 
-    print(f"\n=== rolling-origin evaluation ({len(labels)} pooled test games, "
-          f"{len(per_cut)} cuts x {len(seeds)} seeds) ===")
-    for r in results[:2]:
+    print(
+        f"\n=== rolling-origin evaluation ({len(labels)} pooled test games, "
+        f"{len(per_cut)} cuts x {len(seeds)} seeds) ==="
+    )
+    for r in results[: 1 + len(baselines)]:
         print(_fmt(r))
     print(
         f"{'ml_single (mean)':<22} n={len(labels):<5} "
@@ -175,8 +189,10 @@ def rolling_eval(
     print(_fmt(results[-1]))
     print("\nper cut:")
     for c in per_cut:
-        print(f"  cut {c['cut']:<5} train={c['n_train']:<5} test={c['n_test']:<4} "
-              f"auc={c['auc_mean']:.3f} ({c['auc_min']:.3f}-{c['auc_max']:.3f})")
+        print(
+            f"  cut {c['cut']:<5} train={c['n_train']:<5} test={c['n_test']:<4} "
+            f"auc={c['auc_mean']:.3f} ({c['auc_min']:.3f}-{c['auc_max']:.3f})"
+        )
 
     payload: dict[str, object] = {
         "snapshot": snapshot.name,

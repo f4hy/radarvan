@@ -57,9 +57,12 @@ uv run python -m ml.split ml/data/snapshot-<date>.jsonl.gz --mode temporal
 uv run python -m ml.train ml/data/split-<date>-temporal/
 #   -> .../runs/<ts>/{best.ckpt,vocab.json,config.json}
 
-# 4. Evaluate on CPU vs baselines (coin flip, openskill predict_win). Quick
-#    check of one run against one dev slice - do NOT report this number on its
-#    own, ~180 games can't tell this model from a coin flip (see step 4c).
+# 4. Evaluate on CPU vs the baselines in ml/baselines.py (coin flip, base rate,
+#    openskill predict_win, and the 17-parameter Bradley-Terry logistic - the
+#    last one is the bar that actually bites; openskill's log-loss is worse than
+#    a coin flip's). Quick check of one run against one dev slice - do NOT report
+#    this number on its own, ~180 games can't tell this model from a coin flip
+#    (see step 4c).
 uv run python -m ml.predict ml/data/split-<date>-temporal/runs/<ts>/ --eval
 
 # 4b. Predict a single match by id (fetches from the DB; needs DATABASE_URL).
@@ -109,9 +112,20 @@ each contribution:
 uv run python -m ml.train <split>/ --no-mlp        # Bradley-Terry / openskill-like floor
 uv run python -m ml.train <split>/ --no-synergy
 uv run python -m ml.train <split>/ --no-matchup
+uv run python -m ml.train <split>/ --no-map        # drop the map from the encoder
+uv run python -m ml.train <split>/ --no-size-norm  # sum-pool teams instead of averaging
 uv run python -m ml.train <split>/ --no-recency    # weight every game equally, however old
 uv run python -m ml.train <split>/ --recency-half-life 365
+uv run python -m ml.train <split>/ --no-refit      # keep the early-stopped weights
+uv run python -m ml.train <split>/ --val-frac 0    # validate on dev (LEAKS - see below)
 ```
+
+**`--val-frac 0` exists only to reproduce the old numbers.** It makes early
+stopping, the best-checkpoint pick and the temperature fit all watch
+`dev.jsonl.gz` - the set every eval in this directory then scores. That is
+test-set model selection and it was worth about +0.06 AUC of pure inflation; see
+`model_design.md`, "The measurement bug".
+
 
 Ablate under `ml.rolling_eval` (which takes the same `--no-recency` /
 `--recency-half-life` flags), not a single dev slice — the slice-to-slice spread
@@ -129,6 +143,7 @@ is larger than any of these effects.
 | `model.py` | DeepSet + synergy + matchup model + Lightning module |
 | `train.py` | training CLI (GPU) |
 | `predict.py` | CPU inference + baseline/metric harness (single split) |
+| `baselines.py` | base rate + the 17-parameter Bradley-Terry logistic (torch-free) |
 | `rolling_eval.py` | rolling-origin evaluation — the protocol whose numbers we report |
 | `bootstrap_matrix.py` | builds the production N-model ensemble (bootstrap resample + reseed, retrain, `--promote`) |
 | `dump_matrix_worker.py` | standalone single-model UNK/UNK matrix dump; the per-replicate worker `bootstrap_matrix.py` shells out to |
