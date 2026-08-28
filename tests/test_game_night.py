@@ -521,10 +521,29 @@ def test_a_night_of_casual_games_carries_no_tournament_marker() -> None:
     assert "TOURNAMENT" not in _rendered([corpus.match(i, day=5) for i in (1, 2)])
 
 
-def test_the_prompt_separates_superweapons_from_generals_powers() -> None:
-    """The rule this feature got wrong first time round."""
-    lowered = night_summary.SYSTEM_PROMPT.lower()
-    assert "never call a gunship a superweapon" in lowered
+def test_the_prompt_names_the_category_in_the_beat_itself() -> None:
+    """The rule this feature got wrong first time round, moved into the data.
+
+    The distinction used to reach the model only as a choice of verb -
+    "launched" versus "called in" - with the real answer sitting unrendered in
+    ``beat.kind``, so the guidelines had to carry a paragraph forbidding the
+    confusion. Asserted on the rendered prompt rather than on the prompt's
+    prose: what matters is that the model is told, not that we said we would.
+    """
+    rendered = _rendered(
+        [corpus.match(1, day=5)],
+        details={
+            1: _details(
+                1,
+                timeline_events=[
+                    _activation("Skip", "SpectreGunship", 9.9),
+                    _activation("Skip", "ScudStorm", 20.0),
+                ],
+            )
+        },
+    )
+    assert "the SpectreGunship generals power" in rendered
+    assert "the ScudStorm superweapon" in rendered
 
 
 def test_the_prompt_warns_that_a_night_may_be_two_sittings() -> None:

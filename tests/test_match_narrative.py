@@ -128,7 +128,7 @@ def test_a_generals_power_is_not_reported_as_a_superweapon() -> None:
     )
     assert not [b for b in narrative.beats if b.kind == "superweapon"]
     power = next(b for b in narrative.beats if b.kind == "power")
-    assert power.text == "Skip called in SpectreGunship."
+    assert power.text == "Skip called in the SpectreGunship generals power."
 
 
 def test_the_two_are_reported_side_by_side_not_merged() -> None:
@@ -178,7 +178,7 @@ def test_a_single_launch_is_not_annotated_with_a_count() -> None:
         _details(timeline_events=[_activation("Skip", "ScudStorm", 20.0)]),
     )
     launch = next(b for b in narrative.beats if b.kind == "superweapon")
-    assert launch.text == "Skip launched ScudStorm."
+    assert launch.text == "Skip launched the ScudStorm superweapon."
 
 
 def test_superweapon_launches_are_capped_and_time_ordered() -> None:

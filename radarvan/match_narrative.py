@@ -286,7 +286,16 @@ def _grouped_activations(
 def _superweapon_beats(
     details: MatchDetails, canonical: dict[str, str]
 ) -> list[NarrativeBeat]:
-    """Launches from the three base-bound superweapons - the game-deciding ones."""
+    """Launches from the three base-bound superweapons - the game-deciding ones.
+
+    The beat text names the category ("the ScudStorm superweapon") rather than
+    leaving it to ``kind``, which is a field only a consumer that knows to look
+    ever reads. The night recap did not: it rendered ``text`` alone, so the
+    distinction between this and ``_power_beats`` reached the model as nothing
+    but a choice of verb, and the guidelines had to spend a paragraph teaching
+    it that a gunship is not a superweapon. Naming it here makes the confusion
+    unavailable instead of forbidden.
+    """
     beats = []
     for (raw, weapon), launches in _grouped_activations(
         details, base_superweapons=True
@@ -297,7 +306,7 @@ def _superweapon_beats(
                 kind="superweapon",
                 at_minute=launches.first_minute,
                 player_name=_name(canonical, raw),
-                text=f"{_name(canonical, raw)} launched {weapon}{repeat}.",
+                text=f"{_name(canonical, raw)} launched the {weapon} superweapon{repeat}.",
             )
         )
     return beats
@@ -322,7 +331,7 @@ def _power_beats(
                 kind="power",
                 at_minute=launches.first_minute,
                 player_name=_name(canonical, raw),
-                text=f"{_name(canonical, raw)} called in {power}{repeat}.",
+                text=f"{_name(canonical, raw)} called in the {power} generals power{repeat}.",
             )
         )
     return beats
