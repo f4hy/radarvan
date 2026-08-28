@@ -7,6 +7,7 @@ tracking per-day/per-match rating changes and upsets."""
 # for the ml/ 3.13 training venv (see pyproject.toml's ml group).
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import NamedTuple
@@ -93,12 +94,80 @@ class RatingMatchChange:
     at_date: date
 
 
+# Per-player performance noise for *displayed* win probabilities only. This is
+# deliberately NOT the beta in get_model(): that one drives rate(), and moving it
+# would move every rating in the app. See displayed_win_probs.
+#
+# Fitted by maximum likelihood over the whole rating corpus (2026-08-28): 7.8,
+# against get_model()'s 6.25. The fit is flat - 5.9 and 11.7 cost 0.006 log-loss
+# either side of it - and stable as history grows (6.9-7.8 over expanding
+# prefixes), so it is a constant rather than something refit at runtime.
+DISPLAY_BETA = 7.8
+
+
+def displayed_win_probs(
+    teams: list[list[PlackettLuceRating]], beta: float = DISPLAY_BETA
+) -> list[float]:
+    """Calibrated P(win) per team, for probabilities we actually show people.
+
+    ``PlackettLuce.predict_win`` is badly overconfident here, and the reason is
+    structural rather than a bad beta. Its two-team branch is
+
+        Phi( (mu_A - mu_B) / sqrt(2*beta^2 + sigma_A^2 + sigma_B^2) )
+
+    where ``mu_A`` is the *sum* of the team's mus. The numerator therefore grows
+    with team size while the dominant ``2*beta^2`` term does not - one beta per
+    team however many people are on it. Measured as-of over 812 games, the
+    favourite it names wins:
+
+        1v1  stated 0.81  actual 0.75
+        2v2  stated 0.79  actual 0.66
+        3v3  stated 0.73  actual 0.57
+        4v4  stated 0.71  actual 0.49   <- its most confident format is a coin flip
+
+    (4v4 really is near-unpredictable: openskill scores AUC 0.529 there and a
+    17-parameter Bradley-Terry fit gets 0.519, so the right answer for most 4v4s
+    is "about even" - which the library formula is structurally unable to say.)
+
+    The fix is to let the team's performance noise scale with the team, i.e.
+    ``beta^2 * (n_A^2 + n_B^2)`` in place of ``2*beta^2``. That is the same
+    correction ``ml.config.ModelConfig.size_norm`` applies to the neural model.
+    It takes pooled log-loss from 0.806 - worse than a coin flip - to 0.659, and
+    it is the only variant that calibrates every format at once: a flat
+    temperature fixes the average and still overstates 4v4 while understating
+    1v1. Full write-up in ``ml/model_design.md``.
+
+    Monotone in ``mu_A - mu_B``, so **which** team is favoured is unchanged;
+    only the stated confidence moves (and, across formats, the ordering of how
+    surprising two upsets were - correctly, since a 4v4 gap means less).
+
+    Two teams only, which is all ``build_teams`` ever produces.
+    """
+    if len(teams) != 2:
+        raise ValueError(f"expected exactly 2 teams, got {len(teams)}")
+
+    def summed(team: list[PlackettLuceRating]) -> tuple[float, float, int]:
+        return (
+            sum(r.mu for r in team),
+            sum(r.sigma**2 for r in team),
+            len(team),
+        )
+
+    (mu_a, var_a, n_a), (mu_b, var_b, n_b) = (summed(t) for t in teams)
+    spread = math.sqrt(beta**2 * (n_a**2 + n_b**2) + var_a + var_b)
+    p_a = 0.5 * (1.0 + math.erf((mu_a - mu_b) / (spread * math.sqrt(2.0))))
+    return [p_a, 1.0 - p_a]
+
+
 @dataclass(slots=True)
 class GameUpset:
     """A game where the team the model favored to win lost.
 
-    Probabilities are the model's pre-game ``predict_win`` for each team, using
-    the (converged) ratings from the final rating pass.
+    Which team was favored comes from the model's pre-game ``predict_win``,
+    using the (converged) ratings from the final rating pass. The **probability**
+    is ``displayed_win_probs`` on the same ratings - ``predict_win``'s own number
+    is not calibrated and is not fit to show anyone. Both agree on who was
+    favored, so this changes what the card says, never which game it picks.
     """
 
     match_id: int
@@ -203,7 +272,12 @@ def _update_ratings_for_game(
     upset = (
         None
         if has_cpu
-        else _detect_upset(game, teams, dict(zip(team_ids, prediction, strict=True)))
+        # Not `prediction`: that is predict_win's uncalibrated number, which is
+        # right for _compute_surprise_uncertainty (a threshold on the rating
+        # path) and wrong to print. See displayed_win_probs.
+        else _detect_upset(
+            game, teams, dict(zip(team_ids, displayed_win_probs(pteams), strict=True))
+        )
     )
     scale = CPU_GAME_RATING_SCALE if has_cpu else 1.0
     updated: dict[str, NamedRating] = {}

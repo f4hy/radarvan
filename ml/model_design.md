@@ -77,8 +77,24 @@ A single jointly-trained model can capture all of these, and — importantly —
 (that's what the linear ablation below is for).
 
 **openskill is also a much lower bar than it looks, because its probabilities
-are not calibrated.** Scored as-of on 812 rolling test games, its stated
-favourites win far less often than it says:
+are not calibrated — and the reason is the same team-size bug as `size_norm`
+below.** `predict_win`'s two-team branch is
+
+    Phi( (mu_A - mu_B) / sqrt(2*beta^2 + sigma_A^2 + sigma_B^2) )
+
+with `mu_A` the *sum* of the team's mus. The numerator grows with team size; the
+dominant `2*beta^2` term does not — one beta per team however many people are on
+it. Scored as-of on 812 rolling test games, its stated favourites win far less
+often than it says, and the gap widens with the format exactly as that predicts:
+
+| format | games | stated favourite | actually won |
+|---|---|---|---|
+| 1v1 | 32 | 0.81 | 0.75 |
+| 2v2 | 335 | 0.79 | 0.66 |
+| 3v3 | 294 | 0.73 | 0.57 |
+| 4v4 | 151 | 0.71 | **0.49** |
+
+Its most confident format is a coin flip. Pooled over all of them:
 
 | openskill says the favourite has | games | favourite actually won |
 |---|---|---|
@@ -91,9 +107,39 @@ favourites win far less often than it says:
 
 Its log-loss is **0.806 — worse than a coin flip's 0.693** — while its AUC is a
 respectable 0.642, the signature of a model that ranks fine and states wildly
-overconfident numbers. A single fitted temperature drops it to 0.679 without
-touching the ranking. "Beats openskill on log-loss" is therefore nearly free and
+overconfident numbers. "Beats openskill on log-loss" is therefore nearly free and
 proves nothing; see `ml/baselines.py` for the bar that does bite.
+
+**The fix, measured.** Beta itself was nearly right: refitting it alone (with the
+library's denominator) gets to 0.661, and the maximum-likelihood value is 7.8
+against the configured 6.25. Almost all the damage is the missing team-size
+scaling. Replacing `2*beta^2` with `beta^2 * (n_A^2 + n_B^2)` — the team's
+performance noise scaling with the team, which is the same correction
+`size_norm` makes to the neural model — and refitting beta gives:
+
+| variant | log-loss | Brier | 1v1 | 2v2 | 3v3 | 4v4 |
+|---|---|---|---|---|---|---|
+| raw (`predict_win`) | 0.8058 | 0.2605 | .81/.75 | .79/.66 | .73/.57 | .71/.49 |
+| flat temperature | 0.6568 | 0.2322 | .62/.75 | .65/.66 | .62/.57 | .61/.49 |
+| `beta^2 (n_A + n_B)` | 0.6580 | 0.2327 | .68/.75 | .66/.66 | .61/.57 | .60/.49 |
+| **`beta^2 (n_A^2 + n_B^2)`** | 0.6586 | 0.2329 | **.77/.75** | **.68/.66** | **.60/.57** | **.58/.49** |
+
+(cells are stated favourite / observed). All the fitted variants tie on pooled
+log-loss — within 0.002, far inside the noise band — so pick on *shape*, not on
+the aggregate. Only the `n^2` form calibrates every format at once; a flat
+temperature buys the average by understating 1v1 (0.62 stated against 0.75
+observed) to pay for 4v4. The residual 4v4 gap is not fixable by calibration:
+openskill scores AUC 0.529 there and a 17-parameter Bradley-Terry fit gets 0.519,
+so 4v4 in this corpus is close to genuinely unpredictable and "about even" is the
+correct output.
+
+**Shipped** as `player_rating.displayed_win_probs` with `DISPLAY_BETA = 7.8`,
+used only where a probability is printed. `get_model()`'s beta is untouched, so
+`rate()`, `_compute_surprise_uncertainty`, `create_teams` and every rating in the
+app are unaffected. The transform is monotone in `mu_A - mu_B`, so the favourite
+never changes and no game gains or loses upset status — only the number moves,
+and the cross-format ordering of *how* surprising two upsets were (correctly: a
+gap spread over four players means less than the same gap in a 2v2).
 
 This matters outside the model, too. `player_rating.GameUpset.favored_win_prob`
 / `winner_win_prob` are this same `predict_win` output, and they are what the
@@ -105,11 +151,12 @@ shot. The overconfidence is structural, not an artifact of scoring as-of: it
 comes from the spread of `mu` being large relative to `beta`, and the app's
 version uses the *converged* ratings, which are sharper still.
 
-Nothing here changes those surfaces. `predict_win` also drives the rating update
-(`_compute_surprise_uncertainty`) and `create_teams`, so rescaling it is not a
-display-only change and is not a call to make inside an ML write-up. But the
-number as published is not a probability, and if a calibrated one is wanted the
-ML ensemble already produces it.
+Those surfaces now use `displayed_win_probs`. On the live corpus the top upset is
+the same match and reads **4.97%** where it used to read **0.02%**; the top-five
+list reshuffles as two 3v3s give way to 2v2s that were genuinely more surprising
+per player. Existing `game_night_summaries` rows are permanent, so an already-
+written recap keeps the old number in its prose; the superlative and the
+highlight card recompute.
 
 ## Hard constraints the architecture must satisfy
 
