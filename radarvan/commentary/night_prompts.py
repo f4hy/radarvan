@@ -25,7 +25,7 @@ Write the morning-after recap of one game night - what a friend who watched the 
 
 Setup:
 - A gaming group plays Command and Conquer Generals Zero Hour together a few times a week. An evening is usually 5-15 games.
-- These are TEAM games - 2v2s, 3v3s, 4v4s - not a tournament. Teams are auto-balanced by the site and shuffled between games, so tonight's teammate is tomorrow's opponent. Never treat the teams as fixed sides or as rivals with history.
+- These are mostly TEAM games - 2v2s, 3v3s, 4v4s - not a tournament, though an evening throws up the odd 1v1 or free-for-all. Teams are auto-balanced by the site and shuffled between games, so tonight's teammate is tomorrow's opponent. Never treat the teams as fixed sides or as rivals with history.
 - **Generals are randomized, not chosen.** Nobody picks their faction. Never say a player "went", "picked", "favoured", or "switched to" a general - it was dealt to them. A player doing well on a general is luck plus adaptation, never a strategic choice.
 - These players know each other well. Don't explain the game to them, don't restate the rules, and don't introduce them as if the reader has never heard of them.
 
@@ -33,8 +33,9 @@ What you are given:
 - The night's shape: how many games, the formats and maps played, when it started and finished, total time on the clock.
 - A standings table: each player's win-loss for the night, their best win streak within the night, and the generals they were dealt.
 - Highlight cards the site computed: things like the longest and shortest game, the biggest upset, the fastest first blood, the earliest collapse, the top APM.
-- A beat-by-beat account of each game, **in the order they were played**, each stamped with the wall-clock time it started. The first one listed is the first one played, and the last is how the night ended.
+- A beat-by-beat account of each game, **in the order they were played**, each stamped with the wall-clock window it ran for (`9:38pm-9:48pm`). The first one listed is the first one played, and the last is how the night ended. Any real gap between two games is already worked out for you and appears on its own line as `-- 38 min break --`; games with no such line ran back to back. Don't do your own clock arithmetic.
 - A game marked `[TOURNAMENT: ...]` counted toward a bracket or tournament round. Everything else is a casual game.
+- A game marked `[NOT IN THE STANDINGS - reason]` was really played and its beats are real, but its result is in none of the numbers above - not the win-loss table, not the streaks, not the highlight cards. Write about it freely; just don't count it in anyone's record, or call it the night's longest or shortest. A `free-for-all` is every player for themselves; a `comp-stomp` is the group ganging up on the AI.
 - Each game's beats: the result, and the moments the replay actually recorded - first blood, who reached generals rank 5 first, superweapon launches, who went "hunted", the priciest kill, who banked the most money, who had the fastest hands.
 - **Superweapons and generals powers are listed separately and are not the same thing.** A superweapon is one of the three base-bound ones - Scud Storm, Particle Cannon, the nuke - built in the base and decisive when it lands. A generals power (Spectre Gunship, EMP Pulse, anthrax) is bought with generals points off the panel and comes back on a timer, so it recurs. Never call a gunship a superweapon.
 - "Hunted" means a player lost their last dozer or worker with no way to build another. They can still fight with what they have but cannot rebuild. It is usually the moment that player's game ended, so it is worth using where it appears. Most games have no such line - that is ordinary and not worth remarking on.
@@ -53,7 +54,7 @@ Reading the data honestly:
 - Money earned versus spent is a floating-cash tell: a big gap means someone banked instead of building.
 - A high APM is a tempo signal, not a quality score.
 - Most games have one or two numbers that explain them. Find those and leave the rest out - a stat dump is not a recap.
-- **A game night is a date, not necessarily one sitting.** Read the start times: a long gap in the middle means people played, stopped, and came back, and that is worth saying ("an early pair of 1v1s, then everyone piled back in after ten"). Don't describe a night as one continuous run if the clock says otherwise, and don't invent a gap that isn't there.
+- **A game night is a date, not necessarily one sitting.** A `-- N min break --` line means people played, stopped, and came back, and that is worth saying ("an early pair of 1v1s, then everyone piled back in after ten"). No break lines means one continuous run.
 - **Tournament games are not casual games.** A bracket game is played to win with something on it; a casual team game is people messing about after work. If a night mixes them, say which is which - it is the single biggest thing that changes how a result should be read. If every game is casual, don't mention tournaments at all.
 
 Output structure:

@@ -16,7 +16,7 @@ import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 from .. import game_night, match_details, match_narrative, player_rating, utils
-from ..api_types import GameNightRecap, MatchDetails, MatchInfo, MatchNarrative
+from ..api_types import GameNightRecap, MatchDetails, MatchInfo, MatchNarrative, Team
 from ..db_utils import DatabaseManager
 from typing import NamedTuple
 
@@ -24,15 +24,40 @@ from typing import NamedTuple
 class NightGames(NamedTuple):
     """One night's games and their details, as the recap and the prompt see them.
 
-    Returned together because the two callers need the same three things and
-    must not re-derive any of them independently: the recap the page renders,
-    the counted games it was computed over, and the details those games'
-    narratives come from.
+    Returned together because the two callers need the same things and must not
+    re-derive any of them independently: the recap the page renders, every game
+    that was played, the subset the records were computed over, and the details
+    the narratives come from.
+
+    ``played`` and ``counted`` are both here because they answer different
+    questions and the prompt needs both. The standings and the highlight cards
+    are only honest over ``counted``; the *clock* is only honest over
+    ``played``. Handing the model narratives for ``counted`` alone left holes in
+    the timeline where the uncounted games had been, and it read those holes as
+    downtime - one night's recap described a 29-minute free-for-all as a
+    "40-minute breather".
     """
 
     recap: GameNightRecap
+    played: list[MatchInfo]
     counted: list[MatchInfo]
     details_by_id: dict[int, MatchDetails]
+
+
+class NightGame(NamedTuple):
+    """One game as the prompt sees it: its story, and whether it counts.
+
+    The ``uncounted`` reason lives here rather than on ``MatchNarrative``
+    because it is not a property of the match - it is this night's answer to
+    "is this game in the standings above", and deriving it a second time
+    anywhere else is how the prompt starts describing a different night than
+    the page (the reason ``build_night_recap`` exists at all).
+    """
+
+    narrative: MatchNarrative
+    # None when the game is in the standings; otherwise why it isn't, in words
+    # the model can use ("free-for-all", "comp-stomp", ...).
+    uncounted: str | None
 
 
 def on_night(games: list[MatchInfo], night: date) -> list[MatchInfo]:
@@ -72,8 +97,21 @@ async def build_night_recap(
 ) -> NightGames:
     """The deterministic recap for one night, plus what it was built from."""
     tonight = on_night(all_games, night)
-    counted = on_night(competitive, night)
-    details_by_id = await details_for(counted, db_manager)
+    # The decided subset is what the standings and the highlight cards are
+    # computed over, so it is what `counted` has to mean everywhere downstream.
+    # `build_recap` applies the same filter to whatever it is handed, so
+    # narrowing here changes nothing it produces - it just stops the prompt
+    # from having to re-derive the set the page was built from.
+    counted = [
+        match
+        for match in on_night(competitive, night)
+        if match.winning_team > Team.NONE
+    ]
+    # Details for every game, not just the counted ones: an uncounted game is
+    # still an hour of somebody's evening and still has a story worth telling
+    # (a free-for-all is usually the most memorable game of the night). The
+    # loader is concurrency-bounded, so a handful of extra ids is cheap.
+    details_by_id = await details_for(tonight, db_manager)
     # Ratings are @derived over the corpus and usually warm, but a cold call is
     # a full pass over every competitive game - keep it off the event loop.
     ratings = await asyncio.to_thread(player_rating.compute_player_ratings, competitive)
@@ -85,14 +123,56 @@ async def build_night_recap(
         details_by_id,
         ratings.upsets,
     )
-    return NightGames(recap=recap, counted=counted, details_by_id=details_by_id)
+    return NightGames(
+        recap=recap, played=tonight, counted=counted, details_by_id=details_by_id
+    )
 
 
-def night_narratives(night_games: NightGames) -> list[MatchNarrative]:
-    """A narrative per counted game, in play order - the model's game-by-game input."""
+def uncounted_reason(match: MatchInfo) -> str:
+    """Why this game is outside the standings, in words rather than a flag.
+
+    Only ever asked of a game already known to be uncounted. The order is the
+    order a reader would explain it in, not ``competitive_game_filter``'s: a
+    free-for-all also fails "balanced" and "team game", and "free-for-all" is
+    the answer that lets the model write about it correctly, where "uneven
+    teams" would invite it to describe a lopsided 3v1 that never happened.
+    """
+    composition = match.composition
+    if composition is None:
+        return "not parsed"
+    if composition.is_ffa:
+        return "free-for-all"
+    if composition.is_comp_stomp:
+        return "comp-stomp"
+    if composition.num_computers > 1:
+        return "more than one AI"
+    if match.winning_team <= Team.NONE:
+        return match.incomplete or "no result recorded"
+    if not composition.is_balanced:
+        return "uneven teams"
+    if not composition.is_team_game:
+        return "not a team game"
+    return "not counted"
+
+
+def night_narratives(night_games: NightGames) -> list[NightGame]:
+    """A narrative per game played, in play order - the model's game-by-game input.
+
+    Every game, not just the counted ones, because this list is the only place
+    the prompt carries a clock: dropping a game leaves a gap the model can
+    only read as people having stopped playing. The uncounted ones come
+    labelled with why, so their results stay out of the standings the model
+    quotes while their beats stay available to it.
+    """
+    counted_ids = {match.id for match in night_games.counted}
     return [
-        match_narrative.build_narrative(match, night_games.details_by_id.get(match.id))
-        for match in night_games.counted
+        NightGame(
+            narrative=match_narrative.build_narrative(
+                match, night_games.details_by_id.get(match.id)
+            ),
+            uncounted=None if match.id in counted_ids else uncounted_reason(match),
+        )
+        for match in night_games.played
     ]
 
 

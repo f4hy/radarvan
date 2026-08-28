@@ -11,6 +11,7 @@ Name | Type
 `headline` | string
 `beats` | [Array&lt;NarrativeBeat&gt;](NarrativeBeat.md)
 `startedAt` | Date
+`durationMinutes` | number
 `tournament` | string
 
 ## Example
@@ -24,6 +25,7 @@ const example = {
   "headline": null,
   "beats": null,
   "startedAt": null,
+  "durationMinutes": null,
   "tournament": null,
 } satisfies MatchNarrative
 

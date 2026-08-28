@@ -57,6 +57,12 @@ export interface MatchNarrative {
     startedAt?: Date | null;
     /**
      * 
+     * @type {number}
+     * @memberof MatchNarrative
+     */
+    durationMinutes?: number;
+    /**
+     * 
      * @type {string}
      * @memberof MatchNarrative
      */
@@ -86,6 +92,7 @@ export function MatchNarrativeFromJSONTyped(json: any, ignoreDiscriminator: bool
         'headline': json['headline'],
         'beats': json['beats'] == null ? undefined : ((json['beats'] as Array<any>).map(NarrativeBeatFromJSON)),
         'startedAt': json['startedAt'] == null ? undefined : (new Date(json['startedAt'])),
+        'durationMinutes': json['durationMinutes'] == null ? undefined : json['durationMinutes'],
         'tournament': json['tournament'] == null ? undefined : json['tournament'],
     };
 }
@@ -105,6 +112,7 @@ export function MatchNarrativeToJSONTyped(value?: MatchNarrative | null, ignoreD
         'headline': value['headline'],
         'beats': value['beats'] == null ? undefined : ((value['beats'] as Array<any>).map(NarrativeBeatToJSON)),
         'startedAt': value['startedAt'] == null ? value['startedAt'] : value['startedAt'].toISOString(),
+        'durationMinutes': value['durationMinutes'],
         'tournament': value['tournament'],
     };
 }

@@ -47,6 +47,44 @@ def _recap(
     )
 
 
+def _night_games(
+    played: list[object],
+    counted: list[object] | None = None,
+    details: dict[int, MatchDetails] | None = None,
+) -> queries.NightGames:
+    """What ``build_night_recap`` would have returned, without a DB."""
+    return queries.NightGames(
+        recap=_recap(played, counted, details),  # type: ignore[arg-type]
+        played=played,  # type: ignore[arg-type]
+        counted=(played if counted is None else counted),  # type: ignore[arg-type]
+        details_by_id=details or {},
+    )
+
+
+def _rendered(
+    played: list[object],
+    counted: list[object] | None = None,
+    details: dict[int, MatchDetails] | None = None,
+) -> str:
+    night = _night_games(played, counted, details)
+    return night_summary.render_night(night.recap, queries.night_narratives(night))
+
+
+def _at(match: object, hour: int, minute: int, *, minutes: float) -> object:
+    """The same match, started at a UTC wall clock and run for ``minutes``.
+
+    ``corpus.match`` puts every game at noon, which is right for the recap
+    tests and useless for the clock ones: a night whose games all start at the
+    same instant cannot show a gap.
+    """
+    return match.model_copy(  # type: ignore[attr-defined]
+        update={
+            "timestamp": datetime(2026, 1, 5, hour, minute, tzinfo=UTC),
+            "duration_minutes": minutes,
+        }
+    )
+
+
 def test_an_empty_night_is_a_zeroed_recap_not_an_error() -> None:
     recap = _recap([])
     assert recap.match_count == 0
@@ -291,9 +329,8 @@ def test_record_cards_need_a_meaningful_sample() -> None:
 
 def test_the_prompt_renders_the_night_without_calling_a_provider() -> None:
     games = [corpus.match(1, day=5), corpus.match(2, day=5)]
-    recap = _recap(games)
-    narratives = [match_narrative.build_narrative(game, None) for game in games]
-    prompt = night_summary.build_prompt(recap, narratives)
+    night = _night_games(games)
+    prompt = night_summary.build_prompt(night.recap, queries.night_narratives(night))
     assert "never seen" not in prompt.system  # sanity: it's the night guidelines
     assert "game night" in prompt.system.lower()
     assert "<game_night>" in prompt.user_message
@@ -311,10 +348,7 @@ def test_the_prompt_forbids_rating_levels() -> None:
 
 def test_rendered_games_are_capped() -> None:
     games = [corpus.match(i, day=5) for i in range(1, 40)]
-    recap = _recap(games)
-    narratives = [match_narrative.build_narrative(g, None) for g in games]
-    rendered = night_summary.render_night(recap, narratives)
-    assert rendered.count("Game ") <= night_summary.MAX_GAMES_RENDERED + 1
+    assert _rendered(games).count("Game ") <= night_summary.MAX_GAMES_RENDERED + 1
 
 
 # --- which night the nightly job picks ---------------------------------------
@@ -350,13 +384,12 @@ def test_latest_closed_night_is_none_when_only_tonight_has_games() -> None:
 def test_the_prompt_stamps_every_game_with_its_start_time() -> None:
     """Two disjoint sittings on one date are only visible from the clock."""
     games = [corpus.match(1, day=5), corpus.match(2, day=5)]
-    recap = _recap(games)
-    narratives = [match_narrative.build_narrative(g, None) for g in games]
     # Scoped to the per-game section: the night's summary line carries the
     # same clock time, and counting the whole document would pass on that.
-    per_game = night_summary.render_night(recap, narratives).split("GAME BY GAME")[1]
-    # corpus builds every match at 12:00 UTC = 7am US Eastern (EST in January).
-    assert per_game.count("7:00am") == len(games)
+    per_game = _rendered(games).split("GAME BY GAME")[1]
+    # corpus builds every match at 12:00 UTC = 7am US Eastern (EST in January),
+    # and runs it for 15 minutes - so every game is stamped with its window.
+    assert per_game.count("7:00am-7:15am") == len(games)
 
 
 def test_the_prompt_renders_times_in_the_groups_own_timezone() -> None:
@@ -378,18 +411,96 @@ def test_a_tournament_game_is_flagged_in_the_prompt() -> None:
             )
         }
     )
-    games = [casual, tournament]
-    recap = _recap(games)
-    narratives = [match_narrative.build_narrative(g, None) for g in games]
-    rendered = night_summary.render_night(recap, narratives)
+    rendered = _rendered([casual, tournament])
     assert rendered.count("[TOURNAMENT: spring-cup - Winners Round 1]") == 1
 
 
+# --- the clock ---------------------------------------------------------------
+#
+# All four of these are one bug. The prompt used to carry a start time per game
+# and nothing else, over the *counted* games only, while telling the model to
+# read gaps off those start times. On 2026-08-26 that produced "a 40-minute
+# breather around 11:00pm": the last 3v3 ended at 11:02pm, the next game it was
+# shown started at 11:41pm, and the 29-minute free-for-all that filled the hole
+# had been filtered out for being uncounted. The arithmetic was right; the
+# timeline had a hole in it.
+
+
+def test_a_long_game_between_two_others_is_not_read_as_a_break() -> None:
+    """The regression: 29 minutes of play, not 33 minutes of nobody playing."""
+    grind = _at(corpus.match(1, day=5), 22, 8, minutes=29.3)
+    after = _at(corpus.match(2, day=5), 22, 41, minutes=12.8)
+    rendered = _rendered([grind, after])
+    assert "break" not in rendered
+    # 22:08 UTC is 5:08pm US Eastern in January.
+    assert "5:08pm-5:37pm" in rendered
+
+
+def test_a_real_break_is_measured_from_the_end_of_the_previous_game() -> None:
+    """Start-to-start is an hour here; only 50 minutes of it was downtime."""
+    before = _at(corpus.match(1, day=5), 22, 0, minutes=10.0)
+    after = _at(corpus.match(2, day=5), 23, 0, minutes=10.0)
+    assert "-- 50 min break --" in _rendered([before, after])
+
+
+def test_back_to_back_games_carry_no_break_line() -> None:
+    first = _at(corpus.match(1, day=5), 22, 0, minutes=10.0)
+    second = _at(corpus.match(2, day=5), 22, 14, minutes=10.0)
+    assert "break" not in _rendered([first, second])
+
+
+def test_an_uncounted_game_still_appears_on_the_timeline() -> None:
+    """Its beats are real; only its result is out of the standings."""
+    ffa = _at(
+        corpus.match(
+            1,
+            day=5,
+            comp=corpus.composition(
+                category="FFA", is_ffa=True, is_balanced=False, is_team_game=False
+            ),
+        ),
+        22,
+        8,
+        minutes=29.3,
+    )
+    after = _at(corpus.match(2, day=5), 22, 41, minutes=12.8)
+    rendered = _rendered([ffa, after], counted=[after])
+    assert "[NOT IN THE STANDINGS - free-for-all]" in rendered
+    assert "5:08pm-5:37pm" in rendered
+    assert "break" not in rendered
+
+
+def test_the_uncounted_reason_names_the_format_before_the_filter() -> None:
+    """"uneven teams" would invite a lopsided 3v1 that never happened."""
+    ffa = corpus.match(
+        1,
+        day=5,
+        comp=corpus.composition(
+            category="FFA", is_ffa=True, is_balanced=False, is_team_game=False
+        ),
+    )
+    assert queries.uncounted_reason(ffa) == "free-for-all"
+    stomp = corpus.match(2, day=5, comp=corpus.composition(is_comp_stomp=True))
+    assert queries.uncounted_reason(stomp) == "comp-stomp"
+    undecided = corpus.match(3, day=5, winner=Team.NONE)
+    assert queries.uncounted_reason(undecided) == "no result recorded"
+
+
+def test_narratives_cover_every_game_played_not_just_the_counted_ones() -> None:
+    played = [corpus.match(i, day=5) for i in (1, 2, 3)]
+    games = queries.night_narratives(_night_games(played, counted=played[:1]))
+    assert [game.narrative.match_id for game in games] == [1, 2, 3]
+    assert [game.uncounted is None for game in games] == [True, False, False]
+
+
+def test_a_narrative_carries_how_long_the_game_ran() -> None:
+    """Without it a consumer can only guess an end time from the headline."""
+    match = corpus.match(1, day=5, duration_minutes=29.3)
+    assert match_narrative.build_narrative(match, None).duration_minutes == 29.3
+
+
 def test_a_night_of_casual_games_carries_no_tournament_marker() -> None:
-    games = [corpus.match(i, day=5) for i in (1, 2)]
-    recap = _recap(games)
-    narratives = [match_narrative.build_narrative(g, None) for g in games]
-    assert "TOURNAMENT" not in night_summary.render_night(recap, narratives)
+    assert "TOURNAMENT" not in _rendered([corpus.match(i, day=5) for i in (1, 2)])
 
 
 def test_the_prompt_separates_superweapons_from_generals_powers() -> None:

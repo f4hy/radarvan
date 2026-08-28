@@ -62,6 +62,13 @@ class MatchNarrative(BaseModel):
     # key, not a session: an evening can be two disjoint sittings, and only the
     # clock times show that.
     started_at: datetime | None = Field(default=None, alias="startedAt")
+    # How long it ran. Carried alongside `started_at` because a start time on
+    # its own cannot answer the question `started_at` exists for: the gap
+    # between two games is the second one's start minus the *end* of the first,
+    # and a consumer with only starts measures the gap plus the game. That is
+    # not hypothetical - the night recap once reported a "40-minute breather"
+    # that was a 29-minute game it had no end time for.
+    duration_minutes: Minute = Field(default=0.0, alias="durationMinutes")
     # The tournament this game counted toward, as "slug" or "slug - Round
     # Name", or null for a casual game. A tournament link is the only
     # "played to win" signal in the data (see CLAUDE.md), so it changes how a

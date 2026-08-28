@@ -451,6 +451,7 @@ def build_narrative(match: MatchInfo, details: MatchDetails | None) -> MatchNarr
             headline=headline,
             beats=[],
             started_at=match.timestamp,
+            duration_minutes=match.duration_minutes,
             tournament=tournament,
         )
 
@@ -479,5 +480,6 @@ def build_narrative(match: MatchInfo, details: MatchDetails | None) -> MatchNarr
         headline=headline,
         beats=beats,
         started_at=match.timestamp,
+        duration_minutes=match.duration_minutes,
         tournament=tournament,
     )

@@ -9,11 +9,13 @@ may import from `routes`.
 """
 
 from .game_night import (
+    NightGame,
     NightGames,
     build_night_recap,
     closed_nights_within,
     latest_closed_night,
     night_narratives,
+    uncounted_reason,
     on_night,
 )
 from .powers import (
@@ -38,6 +40,7 @@ __all__ = [
     "MONTHS_BACK_DESCRIPTION",
     "AllGames",
     "CompetitiveGames",
+    "NightGame",
     "NightGames",
     "PowerIndex",
     "UnfilteredCompetitiveGames",
@@ -52,4 +55,5 @@ __all__ = [
     "power_index",
     "power_stats",
     "profile_for",
+    "uncounted_reason",
 ]
