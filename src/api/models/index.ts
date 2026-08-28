@@ -136,6 +136,7 @@ export * from './PushMapsResponse';
 export * from './RatingUpset';
 export * from './ReparseMapResult';
 export * from './ReparseMapsResponse';
+export * from './ReplayDownload';
 export * from './ReplayFileSchema';
 export * from './ReplayWithoutPlayerStats';
 export * from './ResponseGetFilesForMatchIdApiFilesForMatchGetValue';

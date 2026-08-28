@@ -157,3 +157,16 @@ class ReplayWithoutPlayerStats(BaseModel):
     version: str | None = None
     presigned_url: str
     all_replay_urls: list[str]
+
+
+class ReplayDownload(BaseModel):
+    """A presigned .rep URL plus the name the browser should save it under.
+
+    The name travels with the URL because it is derived from the match (date,
+    sides, map) rather than from the S3 key, which is a content hash.
+    """
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+
+    url: str
+    filename: str

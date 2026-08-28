@@ -21,6 +21,7 @@ from ..api_types import (
     GameRecord,
     MatchInfo,
     ParsedReplayJsonSchema,
+    ReplayDownload,
     ReplayFileSchema,
     ReplayWithoutPlayerStats,
 )
@@ -88,8 +89,8 @@ def list_replays(
 def get_match_replay_url(
     match_id: int,
     replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, str]:
-    """Return a presigned S3 URL for the .rep file of a match."""
+) -> ReplayDownload:
+    """Return a presigned S3 URL for the .rep file of a match, and its save name."""
     match = replay_manager.get_match(match_id)
     if match is None:
         raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
@@ -98,7 +99,11 @@ def get_match_replay_url(
         raise HTTPException(
             status_code=404, detail=f"Replay file for {match_id} not found"
         )
-    return {"url": replay_files.presigned_url(parsed.replay_file.s3_uri)}
+    filename = replay_files.download_filename(matches.match_to_matchinfo(match))
+    return ReplayDownload(
+        url=replay_files.presigned_url(parsed.replay_file.s3_uri, save_as=filename),
+        filename=filename,
+    )
 
 
 @router.get("/api/replay")

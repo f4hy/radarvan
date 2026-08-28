@@ -151,6 +151,7 @@ docs/PushMapsResponse.md
 docs/RatingUpset.md
 docs/ReparseMapResult.md
 docs/ReparseMapsResponse.md
+docs/ReplayDownload.md
 docs/ReplayFileSchema.md
 docs/ReplayWithoutPlayerStats.md
 docs/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.md
@@ -327,6 +328,7 @@ models/PushMapsResponse.ts
 models/RatingUpset.ts
 models/ReparseMapResult.ts
 models/ReparseMapsResponse.ts
+models/ReplayDownload.ts
 models/ReplayFileSchema.ts
 models/ReplayWithoutPlayerStats.ts
 models/ResponseGetFilesForMatchIdApiFilesForMatchGetValue.ts
