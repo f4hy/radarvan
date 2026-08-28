@@ -218,14 +218,19 @@ def render_night(recap: GameNightRecap, games: list[NightGame]) -> str:
         )
 
     if games:
+        # Deliberately unnumbered. A "Game 6:" header is the one label in this
+        # document the reader never sees, so the model quoting it is a leak -
+        # and a leak that had to be forbidden in the guidelines, costing a rule
+        # to suppress an artifact only this loop created. The clock stamp and
+        # the headline identify a game the way the recap should refer to it.
         blocks: list[str] = []
         previous: MatchNarrative | None = None
-        for index, game in enumerate(games[:MAX_GAMES_RENDERED], start=1):
+        for game in games[:MAX_GAMES_RENDERED]:
             if previous is not None:
                 gap = _render_break(previous, game.narrative)
                 if gap is not None:
                     blocks.append(gap)
-            blocks.append(f"Game {index}:\n" + "\n".join(_render_narrative(game)))
+            blocks.append("\n".join(_render_narrative(game)))
             previous = game.narrative
         sections.append("GAME BY GAME\n" + "\n\n".join(blocks))
 

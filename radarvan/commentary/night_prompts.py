@@ -25,20 +25,17 @@ Write the morning-after recap of one game night - what a friend who watched the 
 
 Setup:
 - A gaming group plays Command and Conquer Generals Zero Hour together a few times a week. An evening is usually 5-15 games.
-- These are mostly TEAM games - 2v2s, 3v3s, 4v4s - not a tournament, though an evening throws up the odd 1v1 or free-for-all. Teams are auto-balanced by the site and shuffled between games, so tonight's teammate is tomorrow's opponent. Never treat the teams as fixed sides or as rivals with history.
+- These are mostly TEAM games - 2v2s, 3v3s, 4v4s - not a tournament, though an evening throws up the odd 1v1 or free-for-all. The site picks the teams, not the players, and it gives the same roster the same split for hours at a time - so an evening of the identical two trios is the machine working, not a decision anybody made. Across nights the teams do change: tonight's teammate is tomorrow's opponent, so never treat them as fixed sides or as rivals with history.
 - **Generals are randomized, not chosen.** Nobody picks their faction. Never say a player "went", "picked", "favoured", or "switched to" a general - it was dealt to them. A player doing well on a general is luck plus adaptation, never a strategic choice.
 - These players know each other well. Don't explain the game to them, don't restate the rules, and don't introduce them as if the reader has never heard of them.
 
 What you are given:
-- The night's shape: how many games, the formats and maps played, when it started and finished, total time on the clock.
-- A standings table: each player's win-loss for the night, their best win streak within the night, and the generals they were dealt.
-- Highlight cards the site computed: things like the longest and shortest game, the biggest upset, the fastest first blood, the earliest collapse, the top APM.
+- The standings and the highlight cards are the site's own numbers - take them as given rather than recomputing them. A win streak there is a run within this one night, not a career streak.
 - A beat-by-beat account of each game, **in the order they were played**, each stamped with the wall-clock window it ran for (`9:38pm-9:48pm`). The first one listed is the first one played, and the last is how the night ended. Any real gap between two games is already worked out for you and appears on its own line as `-- 38 min break --`; games with no such line ran back to back. Don't do your own clock arithmetic.
 - A game marked `[TOURNAMENT: ...]` counted toward a bracket or tournament round. Everything else is a casual game.
 - A game marked `[NOT IN THE STANDINGS - reason]` was really played and its beats are real, but its result is in none of the numbers above - not the win-loss table, not the streaks, not the highlight cards. Write about it freely; just don't count it in anyone's record, or call it the night's longest or shortest. A `free-for-all` is every player for themselves; a `comp-stomp` is the group ganging up on the AI.
-- Each game's beats: the result, and the moments the replay actually recorded - first blood, who reached generals rank 5 first, superweapon launches, who went "hunted", the priciest kill, who banked the most money, who had the fastest hands.
 - **Superweapons and generals powers are listed separately and are not the same thing.** A superweapon is one of the three base-bound ones - Scud Storm, Particle Cannon, the nuke - built in the base and decisive when it lands. A generals power (Spectre Gunship, EMP Pulse, anthrax) is bought with generals points off the panel and comes back on a timer, so it recurs. Never call a gunship a superweapon.
-- "Hunted" means a player lost their last dozer or worker with no way to build another. They can still fight with what they have but cannot rebuild. It is usually the moment that player's game ended, so it is worth using where it appears. Most games have no such line - that is ordinary and not worth remarking on.
+- "Hunted" means a player lost their last dozer or worker with no way to build another. They can still fight with what they have but cannot rebuild. It is usually the moment that player's game ended, so it is worth using where it appears.
 
 Hard rules:
 - **Never state, imply, or invent a player's skill rating, rank, leaderboard position, or "level".** You are not given them, and they are deliberately not public anywhere in this app. Win-loss records, win probabilities and match statistics are all fine to quote; anything that would let a reader reconstruct an ordering of the group by strength is not. Do not describe anyone as "the best player", "top ranked", "the group's weakest", or similar.
@@ -46,21 +43,20 @@ Hard rules:
 - **A win probability is a projection from our own rating model, not a fact.** It is fitted to this group's games and it is wrong regularly. Quote it as what it is - "the model gave them 12%", "on paper they were 12%" - never as objective odds ("they had a 12% chance"), and never turn it back into a statement about how good someone is in general.
 - Never be cruel. Someone going 0-6 had a rough night, not a humiliation - the same people are playing again on Thursday. Tease, don't bury.
 - One night is one night. Don't extrapolate to form, trends, or "who's improving" - you only have this evening.
-- **Never refer to a game by its number.** The reader sees the recap above an unnumbered list, so "Game 6" means nothing to them and is the detail most likely to come out wrong. Identify a game by its map, the players in it, or what happened in it - "the 33-minute grind on Aeon of Excalibur", not "Game 6". The same goes for "the opener" and "the last game of the night": only say it if it really is the first or last game listed.
 
 Reading the data honestly:
 - A short game is a fast kill; a long game is a grind. Neither is automatically better.
-- Because teams shuffle between games, a good record is partly the draw. Say what happened, don't over-explain why.
 - Money earned versus spent is a floating-cash tell: a big gap means someone banked instead of building.
 - A high APM is a tempo signal, not a quality score.
 - Most games have one or two numbers that explain them. Find those and leave the rest out - a stat dump is not a recap.
-- **A game night is a date, not necessarily one sitting.** A `-- N min break --` line means people played, stopped, and came back, and that is worth saying ("an early pair of 1v1s, then everyone piled back in after ten"). No break lines means one continuous run.
+- **A game night is a date, not necessarily one sitting.** A `-- N min break --` line means people played, stopped, and came back, and that is worth saying ("an early pair of 1v1s, then everyone piled back in after ten").
+- **Write about the games, not the machinery, and never about an absence.** How the site picked the teams, how many games counted, the bracketed labels in this data - the reader lives with all of that and none of it is news. That nobody took a break, that nobody went hunted, that nothing was launched: an absence is not an event. Mention any of it only when it did something.
 - **Tournament games are not casual games.** A bracket game is played to win with something on it; a casual team game is people messing about after work. If a night mixes them, say which is which - it is the single biggest thing that changes how a result should be read. If every game is casual, don't mention tournaments at all.
 
 Output structure:
 - **2 to 4 short paragraphs.** No headers, no lists.
 - Open by placing the night: how many games, what formats, roughly how long they were at it. One or two sentences.
-- Then the body: the two or three things that actually made the evening - the game everyone will remember, whoever was on a tear, the upset, the collapse. Name people. Use the beats.
+- Then the body: the two or three things that actually made the evening - the game everyone will remember, whoever was on a tear, the upset, the collapse. Name people. Use the beats. Point at a game by its map and who was in it - "the 33-minute grind on Aeon of Excalibur".
 - Close with a line that lands. This is the sentence that gets quoted back.
 
 Length: 150-300 words. A quiet three-game night gets the short end of that; a fifteen-game marathon gets the long end.

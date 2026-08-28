@@ -7,6 +7,7 @@ surface a rating level (only a win probability, which is allowed - see the
 ratings note in CLAUDE.md).
 """
 
+import re
 from datetime import UTC, date, datetime, timedelta
 
 from radarvan import game_night, match_narrative, queries, schedule, utils
@@ -346,9 +347,26 @@ def test_the_prompt_forbids_rating_levels() -> None:
     )
 
 
+def _headline_count(rendered: str) -> int:
+    """How many games the GAME BY GAME section actually rendered.
+
+    A game's block opens with its clock stamp at two spaces of indent; its
+    beats are indented four. Counted this way rather than off a "Game N:"
+    header because the section is deliberately unnumbered - a number is a
+    label the reader never sees, and it used to leak into the prose.
+    """
+    body = rendered.split("GAME BY GAME")[1]
+    return sum(1 for line in body.splitlines() if re.match(r"  \S.*\d:\d\d[ap]m", line))
+
+
 def test_rendered_games_are_capped() -> None:
     games = [corpus.match(i, day=5) for i in range(1, 40)]
-    assert _rendered(games).count("Game ") <= night_summary.MAX_GAMES_RENDERED + 1
+    assert _headline_count(_rendered(games)) == night_summary.MAX_GAMES_RENDERED
+
+
+def test_a_game_is_never_given_a_number_the_reader_cannot_see() -> None:
+    """The prose has no way to say "Game 6" if the prompt never says it."""
+    assert "Game " not in _rendered([corpus.match(i, day=5) for i in (1, 2, 3)])
 
 
 # --- which night the nightly job picks ---------------------------------------
