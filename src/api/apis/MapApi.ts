@@ -20,7 +20,6 @@ import type {
   HTTPValidationError,
   MapDataPayload,
   MapMatchCount,
-  MapRenderRequest,
   MapReparseStatus,
   MapStatsResponse,
   MapSummaryRequest,
@@ -40,8 +39,6 @@ import {
     MapDataPayloadToJSON,
     MapMatchCountFromJSON,
     MapMatchCountToJSON,
-    MapRenderRequestFromJSON,
-    MapRenderRequestToJSON,
     MapReparseStatusFromJSON,
     MapReparseStatusToJSON,
     MapStatsResponseFromJSON,
@@ -89,10 +86,6 @@ export interface ListMissingMapsEndpointApiMissingMapsGetRequest {
 
 export interface PushMapsToCncstatsApiPushMapsToCncstatsPostRequest {
     maxToUpdate?: number;
-}
-
-export interface RenderMapWithPlayersApiMapRenderPostRequest {
-    mapRenderRequest: MapRenderRequest;
 }
 
 export interface ReparseMapsApiReparseMapsPostRequest {
@@ -672,63 +665,6 @@ export class MapApi extends runtime.BaseAPI {
      */
     async pushMapsToCncstatsApiPushMapsToCncstatsPost(requestParameters: PushMapsToCncstatsApiPushMapsToCncstatsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushMapsResponse> {
         const response = await this.pushMapsToCncstatsApiPushMapsToCncstatsPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for renderMapWithPlayersApiMapRenderPost without sending the request
-     */
-    async renderMapWithPlayersApiMapRenderPostRequestOpts(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['mapRenderRequest'] == null) {
-            throw new runtime.RequiredError(
-                'mapRenderRequest',
-                'Required parameter "mapRenderRequest" was null or undefined when calling renderMapWithPlayersApiMapRenderPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
-        }
-
-
-        let urlPath = `/api/map_render`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: MapRenderRequestToJSON(requestParameters['mapRenderRequest']),
-        };
-    }
-
-    /**
-     * Render a map image with player positions (name, general, team color) baked in.
-     * Render Map With Players
-     */
-    async renderMapWithPlayersApiMapRenderPostRaw(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        const requestOptions = await this.renderMapWithPlayersApiMapRenderPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
-    }
-
-    /**
-     * Render a map image with player positions (name, general, team color) baked in.
-     * Render Map With Players
-     */
-    async renderMapWithPlayersApiMapRenderPost(requestParameters: RenderMapWithPlayersApiMapRenderPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.renderMapWithPlayersApiMapRenderPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
