@@ -1,5 +1,5 @@
 import pathlib
-import httpx
+import httpx2
 
 url = "http://localhost:8000/api/register_replay_url"
 url = "https://www.radarvan.com/api/register_replay_url"
@@ -18,7 +18,7 @@ with list_file.open() as f:
             continue
         if "2v2" in line or "3v3" in line or "4v4" in line:
             path = f"{base}{line}"
-            resp = httpx.post(url, params={"url_of_replay": path}, timeout=300)
+            resp = httpx2.post(url, params={"url_of_replay": path}, timeout=300)
             if resp.json():
                 print(resp.json()["id"])
             parsed += 1

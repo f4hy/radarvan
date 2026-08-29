@@ -21,7 +21,10 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "fsspec[s3]>=2026.7.0",
     "google-genai>=2.19.0",
-    "httpx>=0.28.1",
+    # Pydantic's maintained fork of httpx (upstream is frozen at 0.28.1).
+    # Plain httpx is NOT a direct dependency: nothing of ours imports it,
+    # but it stays in the tree via google-genai and fastapi[standard].
+    "httpx2>=2.12.0",
     "itsdangerous>=2.2.0",
     "numpy>=2.5.2",
     "onnxruntime>=1.29.0",

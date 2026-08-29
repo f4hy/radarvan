@@ -14,7 +14,10 @@ from fastapi import FastAPI
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.httpx import (
+    HTTPX2ClientInstrumentor,
+    HTTPXClientInstrumentor,
+)
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -25,7 +28,7 @@ _OTLP_ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 
 
 def configure_tracing(app: FastAPI) -> None:
-    """Set up OTLP HTTP tracing and instrument FastAPI + httpx.
+    """Set up OTLP HTTP tracing and instrument FastAPI + both HTTP clients.
 
     Call once, right after the ``FastAPI`` app is constructed.
     """
@@ -42,5 +45,9 @@ def configure_tracing(app: FastAPI) -> None:
     trace.set_tracer_provider(provider)
 
     FastAPIInstrumentor.instrument_app(app)
+    # Two independent instrumentors, because two HTTP stacks are in the
+    # process: our own code and the anthropic SDK are on httpx2, while
+    # google-genai and fastapi[standard] still pull plain httpx.
+    HTTPX2ClientInstrumentor().instrument()
     HTTPXClientInstrumentor().instrument()
     logger.info("tracing configured", endpoint=endpoint)
