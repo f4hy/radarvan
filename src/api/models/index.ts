@@ -78,8 +78,6 @@ export * from './MapPlayerStart';
 export * from './MapPlayerWL';
 export * from './MapPoint';
 export * from './MapProfileStat';
-export * from './MapRenderPlayer';
-export * from './MapRenderRequest';
 export * from './MapReparseStatus';
 export * from './MapStatsResponse';
 export * from './MapSummaryPlayer';

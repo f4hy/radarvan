@@ -9,7 +9,6 @@ All URIs are relative to *http://localhost*
 | [**backfillPlayerRolesApiBackfillPlayerRolesPost**](DefaultApi.md#backfillplayerrolesapibackfillplayerrolespost) | **POST** /api/backfill_player_roles/ | Backfill Player Roles |
 | [**backfillTournamentGamesApiBackfillTournamentGamesPost**](DefaultApi.md#backfilltournamentgamesapibackfilltournamentgamespost) | **POST** /api/backfill/tournament_games | Backfill Tournament Games |
 | [**balanceTeamsApiBalanceTeamsGet**](DefaultApi.md#balanceteamsapibalanceteamsget) | **GET** /api/balance_teams/ | Balance Teams |
-| [**cleanupShortMatchesApiCleanupShortMatchesPost**](DefaultApi.md#cleanupshortmatchesapicleanupshortmatchespost) | **POST** /api/cleanup_short_matches/ | Cleanup Short Matches |
 | [**clearDetailsCacheApiClearDetailsCachePost**](DefaultApi.md#cleardetailscacheapicleardetailscachepost) | **POST** /api/clear_details_cache/ | Clear Details Cache |
 | [**computeMatchCompositionApiMatchesMatchIdCompositionPost**](DefaultApi.md#computematchcompositionapimatchesmatchidcompositionpost) | **POST** /api/matches/{match_id}/composition | Compute Match Composition |
 | [**debugMatchApiDebugMatchMatchIdGet**](DefaultApi.md#debugmatchapidebugmatchmatchidget) | **GET** /api/debug/match/{match_id} | Debug Match |
@@ -408,74 +407,6 @@ example().catch(console.error);
 ### Authorization
 
 [APIKeyHeader](../README.md#APIKeyHeader)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## cleanupShortMatchesApiCleanupShortMatchesPost
-
-> { [key: string]: number | null; } cleanupShortMatchesApiCleanupShortMatchesPost(maxToUpdate)
-
-Cleanup Short Matches
-
-Delete match rows below the duration floor left by the old ingest order.  Before &#x60;matches.register_parsed_replay&#x60;, both ingest paths registered a match and only then asked whether the replay was long enough, so short games kept a committed row that no listing shows. Deleting them is only stable now that the floor is applied before the write. Run it repeatedly until &#x60;remaining&#x60; is 0.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from '';
-import type { CleanupShortMatchesApiCleanupShortMatchesPostRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
-
-  const body = {
-    // number (optional)
-    maxToUpdate: 56,
-  } satisfies CleanupShortMatchesApiCleanupShortMatchesPostRequest;
-
-  try {
-    const data = await api.cleanupShortMatchesApiCleanupShortMatchesPost(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **maxToUpdate** | `number` |  | [Optional] [Defaults to `50`] |
-
-### Return type
-
-**{ [key: string]: number | null; }**
-
-### Authorization
-
-No authorization required
 
 ### HTTP request headers
 
