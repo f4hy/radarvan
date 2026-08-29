@@ -533,27 +533,6 @@ def register_matches(
     return {"updated": outcome.registered, "checked": outcome.examined}
 
 
-@session_router.post("/api/cleanup_short_matches/", dependencies=OPS_ADMIN)
-def cleanup_short_matches(
-    max_to_update: int = 50,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> dict[str, int]:
-    """Delete match rows below the duration floor left by the old ingest order.
-
-    Before `matches.register_parsed_replay`, both ingest paths registered a
-    match and only then asked whether the replay was long enough, so short
-    games kept a committed row that no listing shows. Deleting them is only
-    stable now that the floor is applied before the write. Run it repeatedly
-    until `remaining` is 0.
-    """
-    cleanup = replay_manager.delete_short_matches(
-        utils.MIN_MATCH_MINUTES, limit=max_to_update
-    )
-    if cleanup.deleted:
-        invalidate_match_caches()
-    return cleanup._asdict()
-
-
 @session_router.post("/api/fix_incomplete/", dependencies=OPS_ADMIN)
 def fix_incomplete(
     max_to_update: int = 1,
