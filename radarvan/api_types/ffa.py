@@ -12,7 +12,7 @@ from .common import General
 class FFAPlayerStat(BaseModel):
     """Per-player record across free-for-all games."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     games: int
@@ -31,7 +31,7 @@ class FFAPlayerStat(BaseModel):
 class FFAGeneralStat(BaseModel):
     """Per-general win record across free-for-all games."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     games: int
@@ -42,7 +42,7 @@ class FFAGeneralStat(BaseModel):
 class FFAMapStat(BaseModel):
     """Per-map activity across free-for-all games."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     map: str
     games: int
@@ -52,7 +52,7 @@ class FFAMapStat(BaseModel):
 class FFARecentMatch(BaseModel):
     """Pointer to the most recently played FFA game."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     match_id: int = Field(alias="matchId")
     winner: str
@@ -61,7 +61,7 @@ class FFARecentMatch(BaseModel):
 class FFAStats(BaseModel):
     """Everything the FFA page renders, computed over human free-for-all games."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     total_games: int = Field(alias="totalGames")
     distinct_players: int = Field(alias="distinctPlayers")

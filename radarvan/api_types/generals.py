@@ -10,7 +10,7 @@ from .common import General, WinLoss
 
 
 class GeneralStatPlayerWL(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     win_loss: WinLoss | None = Field(default=None, alias="winLoss")

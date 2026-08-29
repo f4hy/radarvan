@@ -8,9 +8,6 @@ from pydantic import BaseModel, Field, RootModel, ConfigDict
 from typing import Annotated, Literal
 
 
-_SLOTS: ConfigDict = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
-
-
 # ---------------------------------------------------------------------------
 # Byte array helpers (shared with header)
 # ---------------------------------------------------------------------------
@@ -34,8 +31,6 @@ class ByteArray8(RootModel[list[int]]):
 
 
 class Player(BaseModel):
-    model_config = _SLOTS
-
     Type: Literal["H", "C"]
     Name: str
     IP: str
@@ -49,8 +44,6 @@ class Player(BaseModel):
 
 
 class Metadata(BaseModel):
-    model_config = _SLOTS
-
     MapFile: str
     MapCRC: str
     MapSize: str
@@ -62,8 +55,6 @@ class Metadata(BaseModel):
 
 
 class GeneralsHeader(BaseModel):
-    model_config = _SLOTS
-
     GameType: str
     TimeStampBegin: int
     TimeStampEnd: int
@@ -102,14 +93,12 @@ class GeneralsHeader(BaseModel):
 
 
 class EventDetails(BaseModel):
-    model_config = _SLOTS
-
     Name: str
     Cost: int | None = None
 
 
 class BodyChunk(BaseModel):
-    model_config = ConfigDict(slots=True, extra="ignore")  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(extra="ignore")
 
     TimeCode: int
     OrderCode: int
@@ -125,15 +114,11 @@ class BodyChunk(BaseModel):
 
 
 class ObjectSummary(BaseModel):
-    model_config = _SLOTS
-
     Count: int
     TotalSpent: int
 
 
 class PlayerSummary(BaseModel):
-    model_config = _SLOTS
-
     Name: str
     Side: str
     Team: int
@@ -150,8 +135,6 @@ class PlayerSummary(BaseModel):
 
 
 class GameInfo(BaseModel):
-    model_config = _SLOTS
-
     map: str
     mode: str
     frameCount: int
@@ -162,8 +145,6 @@ class GameInfo(BaseModel):
 
 
 class AcademyStats(BaseModel):
-    model_config = _SLOTS
-
     supplyCentersBuilt: int
     peonsBuilt: int
     structuresCaptured: int
@@ -185,8 +166,6 @@ class AcademyStats(BaseModel):
 
 
 class StatsPlayer(BaseModel):
-    model_config = _SLOTS
-
     index: int
     displayName: str
     faction: str
@@ -202,8 +181,6 @@ class StatsPlayer(BaseModel):
 
 
 class TimeSeriesPlayer(BaseModel):
-    model_config = _SLOTS
-
     index: int
     money: list[int]
     moneyEarned: list[int]
@@ -211,14 +188,10 @@ class TimeSeriesPlayer(BaseModel):
 
 
 class TimeSeries(BaseModel):
-    model_config = _SLOTS
-
     players: list[TimeSeriesPlayer]
 
 
 class BuildEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     x: float
@@ -230,8 +203,6 @@ class BuildEvent(BaseModel):
 
 
 class KillEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     killerPlayer: int
     victimPlayer: int
@@ -243,15 +214,11 @@ class KillEvent(BaseModel):
 
 
 class DeathEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
 
 
 class CaptureEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     newOwner: int
     oldOwner: int
@@ -261,16 +228,12 @@ class CaptureEvent(BaseModel):
 
 
 class RankEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     rankLevel: int
 
 
 class EnergyEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     production: int
@@ -278,32 +241,24 @@ class EnergyEvent(BaseModel):
 
 
 class SciencePointsEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     sciencePurchasePoints: int
 
 
 class SkillPointsEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     skillPoints: int
 
 
 class RadarEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     hasRadar: bool
 
 
 class BattlePlanEvent(BaseModel):
-    model_config = _SLOTS
-
     frame: int
     player: int
     bombardment: int
@@ -312,8 +267,6 @@ class BattlePlanEvent(BaseModel):
 
 
 class GameStats(BaseModel):
-    model_config = _SLOTS
-
     version: int
     game: GameInfo
     players: list[StatsPlayer]
@@ -336,8 +289,6 @@ class GameStats(BaseModel):
 
 
 class EnhancedReplayV2(BaseModel):
-    model_config = _SLOTS
-
     Header: GeneralsHeader
     Body: list[BodyChunk]
     Summary: list[PlayerSummary]

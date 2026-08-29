@@ -22,7 +22,7 @@ class TeamStat(BaseModel):
 
 
 class TeamStats(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     team_stats: list[TeamStat] = Field(alias="teamStats")
 
@@ -63,7 +63,7 @@ class PairFactionWinLosses(BaseModel):
 
 
 class TeamPairs(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     team_pairs: dict[str, PairsWinLosses] = Field(alias="teamPairs")
     faction_pairs: dict[str, PairFactionWinLosses] = Field(alias="factionPairs")

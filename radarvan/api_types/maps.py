@@ -26,7 +26,7 @@ class MapPlayerWL(BaseModel):
 
 
 class MapGeneralWL(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     wins: int
@@ -35,7 +35,7 @@ class MapGeneralWL(BaseModel):
 
 
 class MapData(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     map_name: str = Field(alias="mapName")
     total_games: int = Field(alias="totalGames")
@@ -80,7 +80,7 @@ class MapResults(BaseModel):
 
 
 class MapStats(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     map_stats: list[MapStat] = Field(alias="mapStats")
     over_time: dict[str, MapResults] = Field(alias="overTime")
@@ -133,14 +133,14 @@ class MapDataPayload(BaseModel):
 
 
 class MapsByPlayerCount(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_count: int = Field(alias="playerCount")
     maps: list[str]
 
 
 class MapMatchCount(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     map: str
     match_count: int = Field(alias="matchCount")

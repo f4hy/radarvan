@@ -15,7 +15,7 @@ from .matches import Player
 
 
 class KillEventOutput(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     at_minute: Minute = Field(alias="atMinute")
     killer_player: str = Field(alias="killerPlayer")
@@ -38,7 +38,7 @@ class MapEventOutput(BaseModel):
     cleaned object name. Kill events are served separately via `kill_events`.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     at_minute: Minute = Field(alias="atMinute")
     x: float
@@ -49,7 +49,7 @@ class MapEventOutput(BaseModel):
 
 
 class CostsBuiltObject(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     count: int
@@ -64,7 +64,7 @@ class Costs(BaseModel):
 
 
 class APM(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     action_count: int = Field(alias="actionCount")
@@ -73,7 +73,7 @@ class APM(BaseModel):
 
 
 class UpgradeEvent(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     timecode: int = 0
@@ -83,7 +83,7 @@ class UpgradeEvent(BaseModel):
 
 
 class Spent(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     acc_cost: int = Field(alias="accCost")
@@ -100,7 +100,7 @@ class ObjectSummary(BaseModel):
 
 
 class AcademyStats(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     cleared_garrisoned_buildings: int = Field(alias="clearedGarrisonedBuildings")
     control_groups_used: int = Field(alias="controlGroupsUsed")
@@ -148,7 +148,7 @@ class FirstBlood(BaseModel):
 
 
 class TimelineEvent(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     at_minute: Minute = Field(alias="atMinute")
@@ -169,7 +169,7 @@ class PowerPick(BaseModel):
     DETAILS_VERSION bump and a re-derivation of every cached match.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     at_minute: Minute = Field(alias="atMinute")
     science_id: int = Field(alias="scienceId")
@@ -178,7 +178,7 @@ class PowerPick(BaseModel):
 class PowerUse(BaseModel):
     """How often one power was activated, by one player, in one match."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     count: int
@@ -189,7 +189,7 @@ class PowerUse(BaseModel):
 class PlayerPowers(BaseModel):
     """One player's powers in one match: what they bought and what they fired."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     # Alias-resolved (see player_ids.resolve_player_name), so this is directly
     # comparable to a name written canonically anywhere else in the app. The
@@ -210,13 +210,13 @@ class PlayerPowers(BaseModel):
 class MatchPowers(BaseModel):
     """Per-player generals-power picks and activations for one match."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     players: list[PlayerPowers] = Field(default_factory=list)
 
 
 class BuildOrderEntry(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     at_minute: Minute = Field(alias="atMinute")
     name: str
@@ -231,7 +231,7 @@ class BuildOrderEntry(BaseModel):
 
 
 class BuildOrder(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     buildings: list[BuildOrderEntry]
     units: list[BuildOrderEntry]
@@ -239,7 +239,7 @@ class BuildOrder(BaseModel):
 
 
 class MatchDetails(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     match_id: int = Field(alias="matchId")
     game_version: str | None = Field(None)

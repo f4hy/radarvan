@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from ..api_types import (
     BracketMatchOutput,
@@ -41,7 +41,6 @@ from ..replay_helpers import clean_object_name
 from ..generals_powers import clean_power_name
 from . import hype_data
 
-_SLOTS = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 
 # How much of each per-player list survives into the prompt. The opening is
 # where a game's plan is visible, and the tail of a 200-unit production
@@ -60,8 +59,6 @@ _PLACEHOLDER_NAMES = {"dummy", ""}
 class SummaryKiller(BaseModel):
     """One unit type and what it destroyed, from this player's kill events."""
 
-    model_config = _SLOTS
-
     name: str
     kills: int
     value: int
@@ -69,8 +66,6 @@ class SummaryKiller(BaseModel):
 
 class SummaryPlayerGame(BaseModel):
     """One player's ledger for one game."""
-
-    model_config = _SLOTS
 
     player: str
     general: str
@@ -117,8 +112,6 @@ class SummaryGame(BaseModel):
     isn't dropped.
     """
 
-    model_config = _SLOTS
-
     match_id: int
     outcome: hype_data.HypeTournamentGame
     # "Alice killed Bob's first unit at 1.5min", already alias-resolved.
@@ -129,8 +122,6 @@ class SummaryGame(BaseModel):
 
 class SummarySet(BaseModel):
     """A completed best-of-N bracket match and every game inside it."""
-
-    model_config = _SLOTS
 
     stage: str
     round_name: str

@@ -27,7 +27,7 @@ class BracketMatchGames(BaseModel):
     on a different night than scheduled).
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     match_id: str = Field(alias="matchId")
     linked: list[MatchInfo] = Field(default_factory=list)
@@ -167,7 +167,7 @@ class BracketSummaryResponse(BaseModel):
     of showing nothing.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     match_id: str = Field(alias="matchId")
     ready: bool
