@@ -31,8 +31,14 @@ class SeqMatch:
     match_id: int
 
 
-def match_to_sequence(rec: Record) -> SeqMatch | None:
-    """Encode one snapshot record into a feature sequence, or ``None`` if unusable."""
+def match_to_sequence(rec: Record, prior_logit: float = 0.0) -> SeqMatch | None:
+    """Encode one snapshot record into a feature sequence, or ``None`` if unusable.
+
+    ``prior_logit`` is the frozen pre-game prior for this match (``pregame.py``),
+    repeated across every timestep. It defaults to 0.0 — an even prior — so a
+    caller that has no fitted prior still gets a usable sequence of the right
+    width.
+    """
     frame_count = int(rec.get("frame_count", 0))
     duration_minutes = float(rec.get("duration_minutes", 0.0))
     if frame_count <= 0 or duration_minutes <= 0:
@@ -70,7 +76,9 @@ def match_to_sequence(rec: Record) -> SeqMatch | None:
     sec_per_snap = si * sec_per_frame
     money_level = np.zeros((n_buckets, 2), dtype=np.float64)
     if sec_per_snap > 0:
-        snap_idx = (np.arange(1, n_buckets + 1) * BUCKET_SECONDS / sec_per_snap).astype(int)
+        snap_idx = (np.arange(1, n_buckets + 1) * BUCKET_SECONDS / sec_per_snap).astype(
+            int
+        )
         for side in (0, 1):
             series = rec["money"].get(str(side), [])
             if series:
@@ -80,13 +88,24 @@ def match_to_sequence(rec: Record) -> SeqMatch | None:
     # Per-side feature blocks [n_buckets, 7]: money + the 6 cumulative event counts.
     feat_a = np.log1p(np.concatenate([money_level[:, 0:1], cum[:, 0]], axis=1))
     feat_b = np.log1p(np.concatenate([money_level[:, 1:2], cum[:, 1]], axis=1))
-    elapsed = (np.arange(1, n_buckets + 1) / n_buckets)[:, None]
-    feats = np.concatenate([feat_a, feat_b, feat_a - feat_b, elapsed], axis=1).astype(
-        np.float32
-    )
+    # Minutes played so far, NOT the fraction of the match elapsed. The fraction
+    # is `bucket / n_buckets`, and `n_buckets` comes from the match's *total*
+    # duration - so it told the model how long the game was going to last, which
+    # no live win-probability bar can know. Measured on the rolling protocol the
+    # swap is a dead heat (+0.0006 log-loss, 95% CI [-0.0082, +0.0094]), so this
+    # costs nothing and makes the module's "same information a live bar would
+    # have" claim true.
+    elapsed = np.log1p(np.arange(1, n_buckets + 1) * BUCKET_SECONDS / 60.0)[:, None]
+    prior = np.full((n_buckets, 1), float(prior_logit))
+    feats = np.concatenate(
+        [feat_a, feat_b, feat_a - feat_b, elapsed, prior], axis=1
+    ).astype(np.float32)
 
     return SeqMatch(
-        x=feats, label=int(rec["label_a_win"]), length=n_buckets, match_id=rec["match_id"]
+        x=feats,
+        label=int(rec["label_a_win"]),
+        length=n_buckets,
+        match_id=rec["match_id"],
     )
 
 

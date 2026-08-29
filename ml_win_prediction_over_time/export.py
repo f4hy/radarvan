@@ -39,17 +39,26 @@ OPSET = 17
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_MODEL = ROOT / "ml_winprob_over_time.onnx"
 ROOT_STATS = ROOT / "ml_winprob_over_time_stats.json"
+ROOT_PRIOR = ROOT / "ml_winprob_over_time_prior.json"
 
 
 class _ExportWrapper(nn.Module):
-    """Runs the GRU and bakes the sigmoid in, so the graph outputs a probability."""
+    """Runs the GRU and bakes in the temperature + sigmoid, so the graph outputs
+    a *calibrated* probability.
 
-    def __init__(self, model: nn.Module):
+    The temperature has to travel with the graph: ``winprob_inference`` serves
+    the ONNX file alone and has nowhere else to read it from, and a curve that
+    is sharper than the evidence is exactly the failure mode this model is most
+    likely to have.
+    """
+
+    def __init__(self, model: nn.Module, temperature: float = 1.0):
         super().__init__()
         self.model = model
+        self.register_buffer("temperature", torch.tensor([float(temperature)]))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.sigmoid(self.model(x))  # [B, T]
+        return torch.sigmoid(self.model(x) / self.temperature)  # [B, T]
 
 
 def find_latest_run(data_dir: Path = DATA_DIR) -> Path:
@@ -75,8 +84,12 @@ def _verify_parity(wrapper: _ExportWrapper, onnx_path: Path) -> float:
 
 
 def export(run_dir: Path) -> Path:
-    module, _stats = load_run(run_dir)
-    wrapper = _ExportWrapper(module.model).eval()
+    module, _stats, _prior = load_run(run_dir)
+    calib = run_dir / "calibration.json"
+    temperature = (
+        float(json.loads(calib.read_text())["temperature"]) if calib.exists() else 1.0
+    )
+    wrapper = _ExportWrapper(module.model, temperature).eval()
     out_path = run_dir / "model.onnx"
     example = torch.zeros((1, 4, N_FEATURES), dtype=torch.float32)
 
@@ -105,6 +118,7 @@ def export(run_dir: Path) -> Path:
             "ml_winprob_over_time_stats.json). prob_team_a[b, t] is P(team_a wins) "
             "given events up to window t; team_a is the lower team id."
         ),
+        "temperature": temperature,
         "max_abs_parity_error": parity,
     }
     (run_dir / "onnx_meta.json").write_text(json.dumps(meta, indent=2))
@@ -115,7 +129,15 @@ def export(run_dir: Path) -> Path:
 def deploy_to_root(run_dir: Path, model_path: Path) -> None:
     shutil.copy(model_path, ROOT_MODEL)
     shutil.copy(run_dir / "feature_stats.json", ROOT_STATS)
-    logger.info("deployed to root", model=str(ROOT_MODEL), stats=str(ROOT_STATS))
+    prior_src = run_dir / "pregame_prior.json"
+    if prior_src.exists():
+        shutil.copy(prior_src, ROOT_PRIOR)
+    logger.info(
+        "deployed to root",
+        model=str(ROOT_MODEL),
+        stats=str(ROOT_STATS),
+        prior=str(ROOT_PRIOR) if prior_src.exists() else None,
+    )
 
 
 def main() -> None:

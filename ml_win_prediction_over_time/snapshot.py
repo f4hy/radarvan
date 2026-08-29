@@ -78,9 +78,7 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
     """
     if replay.stats is None:
         return None
-    humans = [
-        p for p in replay.summary if p.team >= 0 and p.player_type == "Human"
-    ]
+    humans = [p for p in replay.summary if p.team >= 0 and p.player_type == "Human"]
     teams = sorted({p.team for p in humans})
     if len(teams) != 2:
         return None
@@ -143,9 +141,7 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
         ]
 
     frame_count = (replay.header.frame_count if replay.header else 0) or 0
-    snapshot_interval = (
-        replay.game_info.snapshot_interval if replay.game_info else 0
-    )
+    snapshot_interval = replay.game_info.snapshot_interval if replay.game_info else 0
     return {
         "match_id": replay.replay_id,
         "time_stamp_begin": replay.header.time_stamp_begin,
@@ -163,11 +159,17 @@ def record_from_replay(replay: EnhancedReplayV2) -> Record | None:
 def _git_sha() -> str | None:
     try:
         return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent)  # noqa: S607
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent
+            )  # noqa: S607
             .decode()
             .strip()
         )
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    # Parens pinned, and the formatter told to leave them: PEP 758 makes the bare
+    # form valid on the app's 3.14 (ruff format rewrites to it unprompted), but
+    # this module is imported under the 3.13 training venv - no torch wheel for
+    # 3.14 - where it is a SyntaxError. Same constraint as radarvan/player_role.py.
+    except (subprocess.CalledProcessError, FileNotFoundError):  # fmt: skip
         return None
 
 
@@ -180,9 +182,7 @@ def iter_competitive_replays() -> Iterator[tuple[int, str]]:
     with db_manager.SessionLocal() as session:
         replay_manager = ReplayManager(session, auto_commit=False, notify=False)
         infos = get_match_infos(replay_manager)
-        competitive = {
-            m.id for m in infos if player_rating.is_ratable_team_game(m)
-        }
+        competitive = {m.id for m in infos if player_rating.is_ratable_team_game(m)}
         rows = session.query(dbmod.Match.match_id, dbmod.Match.json_s3_uri).all()
     logger.info("matches", total=len(rows), competitive=len(competitive))
     for match_id, uri in rows:

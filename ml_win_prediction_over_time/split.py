@@ -23,6 +23,7 @@ import structlog
 from radarvan.logging_config import configure_logging
 
 from .config import DATA_DIR
+from . import pregame
 from .features import FeatureStats, match_to_sequence
 from .snapshot import load_snapshot
 
@@ -47,7 +48,22 @@ def split(snapshot_path: Path, out_dir: Path, dev_frac: float = 0.15) -> Path:
     _write_jsonl_gz(train, out_dir / "train.jsonl.gz")
     _write_jsonl_gz(dev, out_dir / "dev.jsonl.gz")
 
-    seqs = [s for r in train if (s := match_to_sequence(r)) is not None]
+    # The pre-game prior is frozen from train exactly like the feature stats: it
+    # is a fitted model, and fitting it on everything would leak dev outcomes
+    # into a feature the sequence model reads at t=0. See pregame.py.
+    prior = pregame.fit(train)
+    prior.save(out_dir / "pregame_prior.json")
+
+    seqs = [
+        s
+        for r in train
+        if (
+            s := match_to_sequence(
+                r, prior_logit=prior.logit(r["team_a_players"], r["team_b_players"])
+            )
+        )
+        is not None
+    ]
     if not seqs:
         raise SystemExit("No encodable training sequences — check the snapshot.")
     stats = FeatureStats.fit(seqs)
@@ -62,6 +78,7 @@ def split(snapshot_path: Path, out_dir: Path, dev_frac: float = 0.15) -> Path:
                 "dev_frac": dev_frac,
                 "n_train": len(train),
                 "n_dev": len(dev),
+                "n_prior_players": len(prior.players),
             },
             indent=2,
         )

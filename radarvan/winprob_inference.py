@@ -19,6 +19,7 @@ import structlog
 
 from ml_win_prediction_over_time.config import BUCKET_SECONDS
 from ml_win_prediction_over_time.features import FeatureStats, match_to_sequence
+from ml_win_prediction_over_time.pregame import PregamePrior
 from ml_win_prediction_over_time.snapshot import (
     higher_slot_is_side_a,
     record_from_replay,
@@ -33,6 +34,10 @@ logger = structlog.get_logger(__name__)
 
 MODEL_PATH = Path(os.getenv("WINPROB_MODEL_PATH", "ml_winprob_over_time.onnx"))
 STATS_PATH = Path(os.getenv("WINPROB_STATS_PATH", "ml_winprob_over_time_stats.json"))
+# Frozen pre-game prior (rosters -> log-odds), one of the model's input features.
+# Optional: a model exported before the prior existed has a neutral one baked in,
+# and PregamePrior.neutral() reproduces exactly the 0.0 column it was trained on.
+PRIOR_PATH = Path(os.getenv("WINPROB_PRIOR_PATH", "ml_winprob_over_time_prior.json"))
 
 
 class ModelUnavailable(RuntimeError):
@@ -51,6 +56,13 @@ def _stats() -> FeatureStats:
     if not STATS_PATH.exists():
         raise ModelUnavailable(f"feature stats not found at {STATS_PATH}")
     return FeatureStats.load(STATS_PATH)
+
+
+@lru_cache(maxsize=1)
+def _prior() -> PregamePrior:
+    return (
+        PregamePrior.load(PRIOR_PATH) if PRIOR_PATH.exists() else PregamePrior.neutral()
+    )
 
 
 def model_available() -> bool:
@@ -86,7 +98,8 @@ def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
     record = record_from_replay(replay)
     if record is None:
         return None
-    seq = match_to_sequence(record)
+    prior_logit = _prior().logit(record["team_a_players"], record["team_b_players"])
+    seq = match_to_sequence(record, prior_logit=prior_logit)
     if seq is None:
         return None
 

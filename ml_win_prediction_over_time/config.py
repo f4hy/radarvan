@@ -24,8 +24,9 @@ BUCKET_SECONDS = 30.0
 MAX_BUCKETS = 80  # 40 minutes at 30s/bucket
 
 # Number of per-timestep input features produced by ``features.match_to_sequence``.
-# 7 cumulative features per side (a, b), their 7 differences, plus elapsed_frac.
-N_FEATURES = 7 * 2 + 7 + 1  # = 22
+# 7 cumulative features per side (a, b), their 7 differences, elapsed minutes,
+# and the frozen pre-game prior (constant across the match — see pregame.py).
+N_FEATURES = 7 * 2 + 7 + 1 + 1  # = 23
 
 
 @dataclass(slots=True)
@@ -50,6 +51,12 @@ class TrainConfig:
     # is test-set model selection; the same bug in ../ml inflated its published
     # AUC by ~0.06. 0.0 restores that behaviour.
     val_frac: float = 0.15
+    # After early stopping picks an epoch count on the held-out tail, refit from
+    # scratch on the *whole* train split for that many epochs. The holdout costs
+    # the model its most recent games; this buys them back without letting the
+    # validation set influence anything but the epoch count. The temperature
+    # stays the one fitted on the held-out slice. Mirrors ml.config.TrainConfig.
+    refit_on_full: bool = True
     # Later timesteps are weighted up to this multiple of early ones: a game's
     # outcome is genuinely uncertain early, so we don't punish the model as hard
     # for a coin-flip at minute 1 as for a wrong call at minute 20.

@@ -49,7 +49,25 @@ def _radarvan_modules_reachable_from_ml() -> list[Path]:
     return sorted(paths)
 
 
-REACHABLE = _radarvan_modules_reachable_from_ml()
+def _ml_package_sources() -> list[Path]:
+    """Every source file in the two ML packages themselves.
+
+    The reachable-set above only covers ``radarvan/`` modules, so nothing
+    guarded the ML packages' *own* files - and ``ruff format`` duly rewrote
+    ``ml_win_prediction_over_time/snapshot.py``'s except clause into the PEP 758
+    bare form, which is a SyntaxError on 3.13 and broke every training entry
+    point in that package. These are the files most exposed to the trap,
+    because they are the ones that only ever run under the 3.13 venv.
+    """
+    return sorted(
+        path
+        for pkg in ("ml", "ml_win_prediction_over_time")
+        for path in (REPO_ROOT / pkg).rglob("*.py")
+        if "__pycache__" not in path.parts
+    )
+
+
+REACHABLE = _radarvan_modules_reachable_from_ml() + _ml_package_sources()
 
 
 def test_the_reachable_set_is_not_empty() -> None:
@@ -74,7 +92,18 @@ def test_module_parses_under_the_ml_venv_python(path: Path) -> None:
 @pytest.mark.skipif(
     not ML_PYTHON.exists(), reason="ml training venv (.venv-ml) not built here"
 )
-@pytest.mark.parametrize("module", ML_ENTRY_POINTS)
+@pytest.mark.parametrize(
+    "module",
+    [
+        *ML_ENTRY_POINTS,
+        # The other package trains under the same venv and has its own entry
+        # points; importing them catches breakage a parse check cannot see.
+        "ml_win_prediction_over_time.split",
+        "ml_win_prediction_over_time.train",
+        "ml_win_prediction_over_time.predict",
+        "ml_win_prediction_over_time.export",
+    ],
+)
 def test_module_imports_under_ml_venv(module: str) -> None:
     result = subprocess.run(  # noqa: S603
         [str(ML_PYTHON), "-c", f"import {module}"],
