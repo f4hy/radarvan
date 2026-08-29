@@ -162,18 +162,6 @@ class FetchMissingMapResult(BaseModel):
     error: str | None = None
 
 
-class MapRenderPlayer(BaseModel):
-    name: str
-    general: General
-    team: int
-    position_number: int
-
-
-class MapRenderRequest(BaseModel):
-    map_name: str
-    players: list[MapRenderPlayer]
-
-
 class MapSummaryPlayer(BaseModel):
     name: PlayerName
     general: General
