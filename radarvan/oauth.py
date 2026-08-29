@@ -1,6 +1,6 @@
 """Discord OAuth2 (authorization-code flow) configuration and helpers.
 
-We talk to Discord directly with httpx rather than pulling in a full OAuth
+We talk to Discord directly with httpx2 rather than pulling in a full OAuth
 client library. The flow:
 
 1. Redirect the browser to Discord's authorize URL with a CSRF ``state``.
@@ -15,7 +15,7 @@ import os
 from functools import cache
 from urllib.parse import urlencode
 
-import httpx
+import httpx2
 
 DISCORD_API_BASE = "https://discord.com/api"
 DISCORD_AUTHORIZE_URL = "https://discord.com/oauth2/authorize"
@@ -35,10 +35,10 @@ _HTTP_TIMEOUT = 10.0
 
 
 @cache
-def _client() -> httpx.AsyncClient:
+def _client() -> httpx2.AsyncClient:
     """Process-wide async client, reused across the two back-to-back Discord
     calls in one login (token exchange then user fetch hit the same host)."""
-    return httpx.AsyncClient(timeout=_HTTP_TIMEOUT)
+    return httpx2.AsyncClient(timeout=_HTTP_TIMEOUT)
 
 
 def is_configured() -> bool:

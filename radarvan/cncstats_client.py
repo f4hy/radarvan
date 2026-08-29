@@ -3,7 +3,7 @@
 Every outbound call to ``cncstats.computersrfun.org`` goes through
 ``CncstatsClient``: replay parsing (``POST /replay``) and the map registry
 (``GET /get_map`` / ``POST /add_map``). Get the process-wide instance via the
-``cncstats_client()`` factory - it is ``@cache``d so one ``httpx.Client`` is
+``cncstats_client()`` factory - it is ``@cache``d so one ``httpx2.Client`` is
 reused for the lifetime of the process (connection pooling, one place to
 configure).
 
@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from functools import cache
 
-import httpx
+import httpx2
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -37,7 +37,7 @@ _MAP_TIMEOUT = 60.0
 
 
 class CncstatsClient:
-    """Thin wrapper over a shared ``httpx.Client`` for the cncstats API.
+    """Thin wrapper over a shared ``httpx2.Client`` for the cncstats API.
 
     Credentials are sent per-request (the underlying client carries no default
     auth header) so the Bearer parse token never leaks onto map-registry calls.
@@ -49,23 +49,23 @@ class CncstatsClient:
         base_url: str = BASE_URL,
         parse_token: str | None = None,
         map_api_key: str | None = None,
-        client: httpx.Client | None = None,
+        client: httpx2.Client | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._parse_token = parse_token
         self._map_api_key = map_api_key
-        self._client = client or httpx.Client(timeout=_MAP_TIMEOUT)
+        self._client = client or httpx2.Client(timeout=_MAP_TIMEOUT)
         # Created lazily on first async use (and bound to that event loop).
-        self._async_client: httpx.AsyncClient | None = None
+        self._async_client: httpx2.AsyncClient | None = None
 
-    def _aclient(self) -> httpx.AsyncClient:
+    def _aclient(self) -> httpx2.AsyncClient:
         if self._async_client is None:
-            self._async_client = httpx.AsyncClient(timeout=_MAP_TIMEOUT)
+            self._async_client = httpx2.AsyncClient(timeout=_MAP_TIMEOUT)
         return self._async_client
 
     # --- replay parsing -------------------------------------------------
 
-    def parse_replay(self, data: bytes) -> httpx.Response:
+    def parse_replay(self, data: bytes) -> httpx2.Response:
         """POST a raw replay to ``/replay`` and return the response.
 
         Does not ``raise_for_status``; the caller validates the JSON body (and
@@ -163,7 +163,7 @@ class CncstatsClient:
 
 @cache
 def cncstats_client() -> CncstatsClient:
-    """Process-wide cncstats client; the httpx connection pool lives as long."""
+    """Process-wide cncstats client; the httpx2 connection pool lives as long."""
     parse_token = os.environ.get(PARSE_BEARER_ENV)
     map_api_key = os.environ.get(MAP_API_KEY_ENV)
     logger.info(
