@@ -22,7 +22,7 @@ class DurationBucket(BaseModel):
     one four-hour marathon widens the tail label instead of the whole axis.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     start_minutes: float = Field(alias="startMinutes")
     end_minutes: float | None = Field(default=None, alias="endMinutes")
@@ -32,7 +32,7 @@ class DurationBucket(BaseModel):
 class DurationStats(BaseModel):
     """Order statistics for one set of game lengths, all in minutes."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     count: int
     total_minutes: float = Field(alias="totalMinutes")
@@ -51,7 +51,7 @@ class DurationDistribution(BaseModel):
     collapses to a single entry when the caller passed ``game_format``.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     bucket_minutes: float = Field(alias="bucketMinutes")
     buckets: list[DurationBucket] = Field(default_factory=list)
