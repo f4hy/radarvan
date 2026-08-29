@@ -19,7 +19,7 @@ class MatchupCommentaryPromptPreview(BaseModel):
     endpoints (pre-game matchup, post-game recap); see routes/commentary.py.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     system: str
     user_message: str = Field(alias="userMessage")

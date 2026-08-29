@@ -9,30 +9,36 @@ extractions used by the superlatives.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import NamedTuple
 
-from pydantic import BaseModel
-
+from .api_types import FirstBlood
 from .cncstats_model.statsfile import IncomeBySource
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .replay_helpers import is_initial_seed_frame
 from .utils import minutes_per_step
 
 
-@dataclass
-class MoneyData:
-    player_monies: dict[float, dict[str, int]]
-    player_collected: dict[float, dict[str, int]]
-
-
-class FirstBlood(BaseModel):
-    attacker: str
-    victim: str
-    atMinute: float
-
-
-class StatsData(BaseModel):
+# These two are plain slotted dataclasses, not BaseModels, on purpose. They
+# are internal hand-offs between `stats_data_from_replay` and
+# `match_details.match_details_from_replay` - the dicts they carry were built
+# by this process a few lines earlier and are handed straight to
+# `MatchDetails`, which validates them. As BaseModels they cost a full
+# validate-copy of all twelve series on the way in and a `model_dump()` copy
+# on the way out - 4.5 ms and 1.2 MB of garbage per match on a reference
+# replay (21k leaf entries), to check types nothing external ever supplied,
+# and then MatchDetails copied a third time. Slotted dataclasses pass the
+# dicts by reference: 3.6 us, one copy total. `FirstBlood` is the wire type
+# from api_types rather than a local duplicate, so it reaches MatchDetails
+# without a dict round-trip.
+#
+# `frozen=True` because neither is ever rebound after construction and the
+# +1.2 us it costs is noise against a ~32 ms detail build. Note it is shallow:
+# it stops `sd.xp = ...`, not `sd.xp[t] = ...`, and `as_series_map` hands the
+# live dicts out - so it documents the hand-off, it does not make the payload
+# immutable.
+@dataclass(frozen=True, slots=True)
+class StatsData:
     xp: dict[float, dict[str, int]]
     units_built: dict[float, dict[str, int]]
     units_lost: dict[float, dict[str, int]]
@@ -46,8 +52,16 @@ class StatsData(BaseModel):
     tech_buildings_captured: dict[float, dict[str, int]]
     faction_buildings_captured: dict[float, dict[str, int]]
 
+    def as_series_map(self) -> dict[str, dict[float, dict[str, int]]]:
+        """The twelve series keyed by name, the shape `MatchDetails.stats_data`
+        wants. Returns the live dicts by reference - the caller hands them
+        straight to `MatchDetails`, whose own validation makes the one copy.
+        Adding a field above adds it here with no further edit."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
 
-class AllExtractedData(BaseModel):
+
+@dataclass(frozen=True, slots=True)
+class AllExtractedData:
     stats_data: StatsData
     # Cumulative income broken down by source, keyed by the IncomeBySource
     # field name ("supply", "oil_derrick", ...). Only populated when cncstats

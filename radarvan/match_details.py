@@ -292,18 +292,8 @@ async def load_many_kill_data(
 def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     apms = apms_from_replay(replay)
     stats_data = stats_data_from_replay(replay)
-    if stats_data:
-        first_blood = (
-            stats_data.first_blood.model_dump() if stats_data.first_blood else None
-        )
-        building_first_blood = (
-            stats_data.building_first_blood.model_dump()
-            if stats_data.building_first_blood
-            else None
-        )
-    else:
-        first_blood = None
-        building_first_blood = None
+    first_blood = stats_data.first_blood if stats_data else None
+    building_first_blood = stats_data.building_first_blood if stats_data else None
     upgrades = events_from_replay(replay)
     name_by_idx: dict[int, str] = {}
     player_money_spent: dict[str, int] = {}
@@ -407,7 +397,7 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         costs=[],
         apms=apms,
         upgrade_events=upgrades,
-        stats_data=stats_data.stats_data.model_dump() if stats_data else {},
+        stats_data=stats_data.stats_data.as_series_map() if stats_data else {},
         income_by_source=stats_data.income_by_source if stats_data else {},
         player_money_spent=player_money_spent,
         player_money_collected=player_money_collected,

@@ -15,7 +15,7 @@ from .common import (
 
 
 class GeneralWL(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     win_loss: WinLoss = Field(alias="winLoss")
@@ -27,14 +27,14 @@ class PlayerRateOverTime(BaseModel):
 
 
 class PlayerStatFactionWL(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     faction: Faction = Faction.ANYUSA
     win_loss: WinLoss | None = Field(default=None, alias="winLoss")
 
 
 class PlayerStat(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     stats: dict[General, WinLoss]
@@ -44,7 +44,7 @@ class PlayerStat(BaseModel):
 
 
 class PlayerStats(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_stats: list[PlayerStat] = Field(alias="playerStats")
 
