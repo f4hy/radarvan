@@ -15,7 +15,7 @@ class PowerRow(BaseModel):
     their own comparison flattens exactly the signal the row exists to show.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     power: str
     # True when this power is bought with a generals point. False for the ones
@@ -45,7 +45,7 @@ class PowerRow(BaseModel):
 class GeneralPowers(BaseModel):
     """One player's power habits on one general."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     games: int
@@ -68,7 +68,7 @@ class UnusualPick(BaseModel):
     something odd doesn't outrank a habit held over thirty.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     power: str
@@ -81,7 +81,7 @@ class UnusualPick(BaseModel):
 
 
 class PlayerPowerProfile(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player: str
     games: int
@@ -92,7 +92,7 @@ class PlayerPowerProfile(BaseModel):
 class PowerStats(BaseModel):
     """The powers page payload: who can be picked, and the picked player."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     players: list[str]
     # Matches contributing power data. Lower than the corpus size: a match

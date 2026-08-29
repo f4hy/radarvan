@@ -112,7 +112,7 @@ class WinLoss(BaseModel):
 
 
 class DateMessage(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     year: int = Field(alias="Year")
     month: int = Field(alias="Month")

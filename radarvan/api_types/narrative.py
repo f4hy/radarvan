@@ -35,7 +35,7 @@ class NarrativeBeat(BaseModel):
     unknown kind must render as a plain bullet rather than break the list.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     kind: str
     text: str
@@ -53,7 +53,7 @@ class MatchNarrative(BaseModel):
     always has something to show.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     match_id: int = Field(alias="matchId")
     headline: str

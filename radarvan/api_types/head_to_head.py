@@ -18,7 +18,7 @@ class HeadToHead(BaseModel):
 
 
 class HeadToHeadGame(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     match_id: int = Field(alias="matchId")
     timestamp: datetime
@@ -39,7 +39,7 @@ class HeadToHeadGame(BaseModel):
 
 
 class HeadToHeadGeneralRecord(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     wins: int
@@ -47,7 +47,7 @@ class HeadToHeadGeneralRecord(BaseModel):
 
 
 class HeadToHeadMapRecord(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     map: str
     player1_wins: int = Field(alias="player1Wins")
@@ -58,7 +58,7 @@ class HeadToHeadDetail(BaseModel):
     """Detailed head-to-head record between two players in opposite-team games,
     plus how often they've been teammates instead."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player1: str
     player2: str
