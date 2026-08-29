@@ -1,7 +1,7 @@
 from .db_utils import DatabaseManager, ReplayManager
 from typing import Any
 import asyncio
-import httpx
+import httpx2
 from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urljoin
@@ -21,8 +21,8 @@ TIMEOUT = 600.0
 
 
 @cache
-def async_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=600.0)
+def async_client() -> httpx2.AsyncClient:
+    return httpx2.AsyncClient(timeout=600.0)
 
 
 @cache
@@ -36,7 +36,7 @@ def _request_semaphore() -> asyncio.Semaphore:
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
-async def get_url(url: str) -> httpx.Response:
+async def get_url(url: str) -> httpx2.Response:
     client = async_client()
     logger.debug("getting url", url=url)
     async with _request_semaphore():
@@ -100,7 +100,7 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
 
     try:
         response = await get_url(base_url)
-    except httpx.ReadTimeout:
+    except httpx2.ReadTimeout:
         logger.warning("timed out reading", base_url=base_url)
         return []
     except Exception as e:
@@ -132,7 +132,7 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
 
     #         print(f"Downloading: {filename}")
 
-    #         file_response = httpx.get(file_url)
+    #         file_response = httpx2.get(file_url)
     #         file_response.raise_for_status()
 
     #         with open(filepath, "wb") as f:
