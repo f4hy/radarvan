@@ -9,20 +9,16 @@ for async code that shouldn't wait for the webhook at all, and
 """
 
 import asyncio
-from functools import cache
-
-import httpx
 import os
 import structlog
 
+from .discord_http import async_client, client
 from .rate_limit import InMemoryRateLimitStore, RateLimitStore
 
 logger = structlog.get_logger(__name__)
 WEB_HOOK_ENV = "NOTIFY_WEB_HOOK"
 
 WEB_HOOK = os.environ.get(WEB_HOOK_ENV)
-
-_TIMEOUT = 10.0
 
 
 def notify(message: str) -> None:
@@ -31,16 +27,9 @@ def notify(message: str) -> None:
         logger.warning("web hook not set, skipping notify", message=message)
         return
     try:
-        httpx.post(WEB_HOOK, json={"content": message}, timeout=_TIMEOUT)
+        client().post(WEB_HOOK, json={"content": message})
     except Exception:
         logger.exception("notify webhook failed", message=message)
-
-
-@cache
-def _async_client() -> httpx.AsyncClient:
-    """Process-wide async client, created lazily on first use (and thereby
-    bound to the app's single event loop - same pattern as radarvan.oauth)."""
-    return httpx.AsyncClient(timeout=_TIMEOUT)
 
 
 async def notify_async(message: str) -> None:
@@ -49,7 +38,7 @@ async def notify_async(message: str) -> None:
         logger.warning("web hook not set, skipping notify", message=message)
         return
     try:
-        await _async_client().post(WEB_HOOK, json={"content": message})
+        await async_client().post(WEB_HOOK, json={"content": message})
     except Exception:
         logger.exception("notify webhook failed", message=message)
 

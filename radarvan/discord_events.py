@@ -15,8 +15,9 @@ whatever event id it already had.
 import os
 from datetime import datetime, timedelta
 
-import httpx
 import structlog
+
+from .discord_http import client
 
 logger = structlog.get_logger(__name__)
 
@@ -26,7 +27,6 @@ BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
 GUILD_ID = os.environ.get("DISCORD_GUILD_ID")
 VOICE_CHANNEL_ID = os.environ.get("DISCORD_VOICE_CHANNEL_ID")
 
-_TIMEOUT = 10.0
 # Matches Agenda.tsx's googleCalendarUrl default: no per-match duration is
 # tracked, so a fixed 1-hour block is a placeholder rather than a precise end time.
 _DEFAULT_DURATION = timedelta(hours=1)
@@ -71,7 +71,7 @@ def sync_match_event(
 
 
 def _create_event(scheduled_at: datetime, name: str) -> str:
-    resp = httpx.post(
+    resp = client().post(
         f"{DISCORD_API_BASE}/guilds/{GUILD_ID}/scheduled-events",
         headers=_headers(),
         json={
@@ -82,14 +82,13 @@ def _create_event(scheduled_at: datetime, name: str) -> str:
             "entity_type": _ENTITY_TYPE_VOICE,
             "channel_id": VOICE_CHANNEL_ID,
         },
-        timeout=_TIMEOUT,
     )
     resp.raise_for_status()
     return str(resp.json()["id"])
 
 
 def _update_event(event_id: str, scheduled_at: datetime, name: str) -> str:
-    resp = httpx.patch(
+    resp = client().patch(
         f"{DISCORD_API_BASE}/guilds/{GUILD_ID}/scheduled-events/{event_id}",
         headers=_headers(),
         json={
@@ -97,16 +96,14 @@ def _update_event(event_id: str, scheduled_at: datetime, name: str) -> str:
             "scheduled_start_time": scheduled_at.isoformat(),
             "scheduled_end_time": (scheduled_at + _DEFAULT_DURATION).isoformat(),
         },
-        timeout=_TIMEOUT,
     )
     resp.raise_for_status()
     return event_id
 
 
 def _cancel_event(event_id: str) -> None:
-    resp = httpx.delete(
+    resp = client().delete(
         f"{DISCORD_API_BASE}/guilds/{GUILD_ID}/scheduled-events/{event_id}",
         headers=_headers(),
-        timeout=_TIMEOUT,
     )
     resp.raise_for_status()
