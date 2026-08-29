@@ -1,13 +1,12 @@
-"""Map stats, geometry, render, and image endpoints."""
+"""Map stats, geometry, and image endpoints."""
 
 import asyncio
 from typing import NamedTuple
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 
-from .. import map_render as map_render_module
 from .. import map_stats as map_stats_module
 from .. import ml_inference
 from .. import missing_maps as missing_maps_module
@@ -17,7 +16,6 @@ from ..api_types import (
     MapDataPayload,
     MapMatchCount,
     MapReparseStatus,
-    MapRenderRequest,
     MapStatsResponse,
     MapsByPlayerCount,
     MapSummaryRequest,
@@ -409,42 +407,6 @@ async def push_maps_to_cncstats(
         pushed=pushed,
         already_present=already_present,
         results=results,
-    )
-
-
-def _load_map_image_bytes(map_name: str, replay_manager: ReplayManager) -> bytes:
-    canonical = resolve_map_name_cached(replay_manager, map_name) or map_name
-    s3_uri = missing_maps_module.find_s3_webp(canonical)
-    if s3_uri is not None:
-        fs = replay_files.get_fs()
-        data: bytes = fs.read_bytes(s3_uri)
-        return data
-    raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
-
-
-@router.post("/api/map_render", response_model=None)
-def render_map_with_players(
-    request: MapRenderRequest,
-    replay_manager: ReplayManager = Depends(get_replay_manager),
-) -> Response:
-    """Render a map image with player positions (name, general, team color) baked in."""
-    canonical = replay_manager.resolve_map_name(request.map_name)
-    if canonical is None:
-        raise HTTPException(
-            status_code=404, detail=f"No map data for '{request.map_name}'"
-        )
-    map_data = replay_manager.get_map_data(canonical)
-    if map_data is None:
-        raise HTTPException(
-            status_code=404, detail=f"No map data for '{request.map_name}'"
-        )
-    image_bytes = _load_map_image_bytes(canonical, replay_manager)
-    png = map_render_module.render_map(image_bytes, map_data, request.players)
-    base = canonical.removesuffix(".map").split("/")[-1]
-    return Response(
-        content=png,
-        media_type="image/png",
-        headers={"Content-Disposition": f'attachment; filename="{base}.png"'},
     )
 
 
