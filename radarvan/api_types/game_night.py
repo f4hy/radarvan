@@ -29,7 +29,7 @@ class GameNightPlayerLine(BaseModel):
     played.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player: str
     wins: int
@@ -52,7 +52,7 @@ class GameNightHighlight(BaseModel):
     human-readable, so an unrecognised kind still renders correctly.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     kind: str
     title: str
@@ -69,7 +69,7 @@ class GameNightRecap(BaseModel):
     unfinished games, or games with an unknown player.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     date: date_type
     match_count: int = Field(alias="matchCount")
@@ -102,7 +102,7 @@ class GameNightSummaryStatus(BaseModel):
     Used by the ops panel to see what the nightly job has and hasn't written.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     date: date_type
     has_summary: bool = Field(alias="hasSummary")
@@ -133,7 +133,7 @@ class GameNightBackfillNight(BaseModel):
     blind.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     date: date_type
     # Games played that night (all of them, matching GameNightRecap.matchCount).
@@ -144,7 +144,7 @@ class GameNightBackfillNight(BaseModel):
 class GameNightBackfill(BaseModel):
     """The result of one backfill run over the last N game nights."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     days: int
     # Nights written this run - i.e. how many LLM calls this run billed.

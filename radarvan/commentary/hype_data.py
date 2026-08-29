@@ -15,7 +15,7 @@ and never round-tripped back through a JSON parser.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from ..api_types import (
     BracketMatchOutput,
@@ -36,7 +36,6 @@ from ..api_types import (
 from ..player_ids import resolve_player_name
 from ..replay_files import map_basename
 
-_SLOTS = ConfigDict(slots=True)  # type: ignore[typeddict-unknown-key]
 
 # "Last N matches" for the head-to-head recency data - just enough to spot a
 # real 1v1 session and check the last-30-days window (guidelines caveat #5),
@@ -55,8 +54,6 @@ _MIN_NOTABLE_PERCENTILE = 75
 
 
 class HypeGeneralRecord(BaseModel):
-    model_config = _SLOTS
-
     general: str
     games: int
     wins: int
@@ -64,8 +61,6 @@ class HypeGeneralRecord(BaseModel):
 
 
 class HypeRatingEntry(BaseModel):
-    model_config = _SLOTS
-
     player: str
     ordinal: float
     sigma: float
@@ -88,8 +83,6 @@ class HypeRatingsContext(BaseModel):
     or a number worth repeating verbatim.
     """
 
-    model_config = _SLOTS
-
     player1: str
     player2: str
     entries: list[HypeRatingEntry]
@@ -98,8 +91,6 @@ class HypeRatingsContext(BaseModel):
 class HypePlayerData(BaseModel):
     """Everything the hype-commentary guidelines use from one player's
     profile - see ``build_hype_player_data``."""
-
-    model_config = _SLOTS
 
     player: str
     generals: list[HypeGeneralRecord]
@@ -133,16 +124,12 @@ class HypePlayerData(BaseModel):
 
 
 class HypeHeadToHeadGeneralRecord(BaseModel):
-    model_config = _SLOTS
-
     general: str
     wins: int
     losses: int
 
 
 class HypeMatchOutcome(BaseModel):
-    model_config = _SLOTS
-
     date: str
     winner: str
 
@@ -150,8 +137,6 @@ class HypeMatchOutcome(BaseModel):
 class HypeHeadToHead(BaseModel):
     """Trimmed head-to-head payload - see ``build_hype_head_to_head``. Used
     for both the 1v1-only and unfiltered-all-formats pulls."""
-
-    model_config = _SLOTS
 
     player1: str
     player2: str
@@ -241,8 +226,6 @@ class HypeTournamentGame(BaseModel):
     anything.
     """
 
-    model_config = _SLOTS
-
     series_index: int | None
     map: str
     winner: str
@@ -268,8 +251,6 @@ class HypeReversePair(BaseModel):
     knowing the format.
     """
 
-    model_config = _SLOTS
-
     map: str
     general_a: str
     general_b: str
@@ -285,8 +266,6 @@ class HypeTournamentSeries(BaseModel):
     detector has run (see ``tournament_membership.sync_links``).
     """
 
-    model_config = _SLOTS
-
     stage: str
     round_name: str
     player_a: str
@@ -301,8 +280,6 @@ class HypeTournamentSeries(BaseModel):
 class HypeTournamentRun(BaseModel):
     """One player's completed sets in this tournament, oldest first."""
 
-    model_config = _SLOTS
-
     player: str
     series: list[HypeTournamentSeries]
 
@@ -315,8 +292,6 @@ class HypeTournamentContext(BaseModel):
     interesting thing this block can surface, and duplicating it under both
     players buries that.
     """
-
-    model_config = _SLOTS
 
     player1: str
     player2: str

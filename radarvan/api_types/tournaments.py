@@ -59,7 +59,7 @@ class GameRecord(BaseModel):
 
 
 class Tournament(BaseModel):
-    model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(frozen=True)
 
     name: str
     start_date: date
@@ -90,7 +90,7 @@ class TournamentResult(BaseModel):
 
 
 class Statistic(BaseModel):
-    model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(frozen=True)
 
     stat_name: str
     date_computed: date
@@ -102,7 +102,7 @@ class Statistic(BaseModel):
 class TournamentInfo(BaseModel):
     """A tournament in the registry, with how many games are linked to it."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     slug: str
     name: str
@@ -114,7 +114,7 @@ class TournamentInfo(BaseModel):
 
 
 class TournamentReport(BaseModel):
-    model_config = ConfigDict(frozen=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(frozen=True)
 
     name: str
     stats: list[Statistic]

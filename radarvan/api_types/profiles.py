@@ -20,7 +20,7 @@ class FavoriteObject(BaseModel):
     peers playing the same general).
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     general: General
@@ -42,7 +42,7 @@ class ObjectUsageStat(BaseModel):
     ``z_score`` is None when it's 0 (every peer had the identical rate).
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     general: General
@@ -64,7 +64,7 @@ class UnitDamageStat(BaseModel):
     unit - the damage-dealt proxy, since replays don't carry raw HP.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     general: General
@@ -77,7 +77,7 @@ class UnitDamageStat(BaseModel):
 class ProfileBadge(BaseModel):
     """A top-3 behavioral standout among profiled players for one stat."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     key: str
     label: str
@@ -96,7 +96,7 @@ class GeneralWinRatePoint(BaseModel):
     player's record on this general evolved.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     date: date
     game_number: int = Field(alias="gameNumber")
@@ -111,7 +111,7 @@ class GeneralWinRateSeries(BaseModel):
 
 
 class GeneralProfileStat(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     general: General
     games: int
@@ -128,7 +128,7 @@ class MapProfileStat(BaseModel):
 
 
 class TeammateProfileStat(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str
     games_together: int = Field(alias="gamesTogether")
@@ -153,7 +153,7 @@ class PlayerProfileComputed(BaseModel):
     to that population) and persisted per player; see radarvan.player_profile.
     """
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     favorite_unit: FavoriteObject | None = Field(None, alias="favoriteUnit")
     favorite_building: FavoriteObject | None = Field(None, alias="favoriteBuilding")
@@ -199,7 +199,7 @@ class PlayerProfile(BaseModel):
     """Full profile for one player: live MatchInfo-derived stats plus the
     persisted deep stats (None until the batch recompute has run)."""
 
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player: str
     games: int

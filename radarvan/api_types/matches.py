@@ -57,7 +57,7 @@ class TournamentTag(BaseModel):
     rather than being copied onto every match of every listing.
     """
 
-    model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     slug: str
     stage: str | None = None
@@ -66,7 +66,7 @@ class TournamentTag(BaseModel):
 
 
 class MatchInfo(BaseModel):
-    model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     id: int
     timestamp: datetime
@@ -166,7 +166,7 @@ class ReplayDownload(BaseModel):
     sides, map) rather than from the S3 key, which is a content hash.
     """
 
-    model_config = ConfigDict(frozen=True, populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     url: str
     filename: str

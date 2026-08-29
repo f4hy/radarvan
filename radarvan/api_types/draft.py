@@ -20,7 +20,7 @@ class DraftRequest(BaseModel):
 
 
 class DraftAssignment(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     team: int
@@ -29,7 +29,7 @@ class DraftAssignment(BaseModel):
 
 
 class DraftResult(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, slots=True)  # type: ignore[typeddict-unknown-key]
+    model_config = ConfigDict(populate_by_name=True)
 
     assignments: list[DraftAssignment]
     randomized_at: datetime = Field(alias="randomizedAt")
