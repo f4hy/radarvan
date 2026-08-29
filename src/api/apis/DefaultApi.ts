@@ -172,10 +172,6 @@ export interface BalanceTeamsApiBalanceTeamsGetRequest {
     players?: Array<string>;
 }
 
-export interface CleanupShortMatchesApiCleanupShortMatchesPostRequest {
-    maxToUpdate?: number;
-}
-
 export interface ComputeMatchCompositionApiMatchesMatchIdCompositionPostRequest {
     matchId: number;
 }
@@ -649,49 +645,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async balanceTeamsApiBalanceTeamsGet(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
         const response = await this.balanceTeamsApiBalanceTeamsGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for cleanupShortMatchesApiCleanupShortMatchesPost without sending the request
-     */
-    async cleanupShortMatchesApiCleanupShortMatchesPostRequestOpts(requestParameters: CleanupShortMatchesApiCleanupShortMatchesPostRequest): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['maxToUpdate'] != null) {
-            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/api/cleanup_short_matches/`;
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Delete match rows below the duration floor left by the old ingest order.  Before `matches.register_parsed_replay`, both ingest paths registered a match and only then asked whether the replay was long enough, so short games kept a committed row that no listing shows. Deleting them is only stable now that the floor is applied before the write. Run it repeatedly until `remaining` is 0.
-     * Cleanup Short Matches
-     */
-    async cleanupShortMatchesApiCleanupShortMatchesPostRaw(requestParameters: CleanupShortMatchesApiCleanupShortMatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number | null; }>> {
-        const requestOptions = await this.cleanupShortMatchesApiCleanupShortMatchesPostRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Delete match rows below the duration floor left by the old ingest order.  Before `matches.register_parsed_replay`, both ingest paths registered a match and only then asked whether the replay was long enough, so short games kept a committed row that no listing shows. Deleting them is only stable now that the floor is applied before the write. Run it repeatedly until `remaining` is 0.
-     * Cleanup Short Matches
-     */
-    async cleanupShortMatchesApiCleanupShortMatchesPost(requestParameters: CleanupShortMatchesApiCleanupShortMatchesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number | null; }> {
-        const response = await this.cleanupShortMatchesApiCleanupShortMatchesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

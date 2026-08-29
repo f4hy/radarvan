@@ -16,7 +16,6 @@ All URIs are relative to *http://localhost*
 | [**listMissingMapsEndpointApiMissingMapsGet**](MapApi.md#listmissingmapsendpointapimissingmapsget) | **GET** /api/missing_maps | List Missing Maps Endpoint |
 | [**mapReparseStatusApiMapReparseStatusGet**](MapApi.md#mapreparsestatusapimapreparsestatusget) | **GET** /api/map_reparse_status | Map Reparse Status |
 | [**pushMapsToCncstatsApiPushMapsToCncstatsPost**](MapApi.md#pushmapstocncstatsapipushmapstocncstatspost) | **POST** /api/push_maps_to_cncstats | Push Maps To Cncstats |
-| [**renderMapWithPlayersApiMapRenderPost**](MapApi.md#rendermapwithplayersapimaprenderpost) | **POST** /api/map_render | Render Map With Players |
 | [**reparseMapsApiReparseMapsPost**](MapApi.md#reparsemapsapireparsemapspost) | **POST** /api/reparse_maps | Reparse Maps |
 | [**saveMapDataApiMapDataMapNamePost**](MapApi.md#savemapdataapimapdatamapnamepost) | **POST** /api/map_data/{map_name} | Save Map Data |
 
@@ -825,78 +824,6 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## renderMapWithPlayersApiMapRenderPost
-
-> any renderMapWithPlayersApiMapRenderPost(mapRenderRequest)
-
-Render Map With Players
-
-Render a map image with player positions (name, general, team color) baked in.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  MapApi,
-} from '';
-import type { RenderMapWithPlayersApiMapRenderPostRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // To configure API key authorization: APIKeyHeader
-    apiKey: "YOUR API KEY",
-  });
-  const api = new MapApi(config);
-
-  const body = {
-    // MapRenderRequest
-    mapRenderRequest: ...,
-  } satisfies RenderMapWithPlayersApiMapRenderPostRequest;
-
-  try {
-    const data = await api.renderMapWithPlayersApiMapRenderPost(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **mapRenderRequest** | [MapRenderRequest](MapRenderRequest.md) |  | |
-
-### Return type
-
-**any**
-
-### Authorization
-
-[APIKeyHeader](../README.md#APIKeyHeader)
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 
