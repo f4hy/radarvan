@@ -165,7 +165,7 @@ def replay_repo() -> ReplayRepo:
 
     SQLite, like `test_match_repo_race`, so this runs in CI. It cannot hold
     `match_compostion` or `match_details_cache` (ARRAY and JSONB are
-    Postgres-only), which is why `delete_short_matches` is not tested here.
+    Postgres-only).
     """
     engine = create_engine("sqlite://")
     for model in (ReplayFile, ParsedReplayJson, Match, MatchPlayer):

@@ -155,7 +155,6 @@ def test_has_admin_access(keys: None) -> None:
 NORMAL_TIER_MUTATIONS = {
     ("POST", "/api/upload_replay"),  # the game client's ingestion path
     ("POST", "/api/map_summary/"),  # pre-game summary for a hypothetical matchup
-    ("POST", "/api/map_render"),  # renders an overlay from a posted payload
     ("POST", "/api/draft/randomize"),  # draft randomization
     ("POST", "/api/predict"),  # win prediction from raw features
 }
