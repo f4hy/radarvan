@@ -154,14 +154,14 @@ export default function Account() {
 
   const body = () => {
     if (loading || status === null) return <Loading />
-    if (!status.logged_in || status.user === null) return <LoginPrompt />
-    if (status.user.needs_player_selection) {
-      return <PlayerSelection players={status.available_players} />
+    if (!status.loggedIn || !status.user) return <LoginPrompt />
+    if (status.user.needsPlayerSelection) {
+      return <PlayerSelection players={status.availablePlayers ?? []} />
     }
     return (
       <Profile
-        username={status.user.discord_username}
-        playerName={status.user.player_name ?? ""}
+        username={status.user.discordUsername}
+        playerName={status.user.playerName ?? ""}
       />
     )
   }

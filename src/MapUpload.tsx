@@ -62,14 +62,14 @@ function PreviewGrid({
         gap: 2,
       }}
     >
-      {result.maps.map((m) => (
-        <Paper key={m.base_name} variant="outlined" sx={{ p: 1 }}>
+      {(result.maps ?? []).map((m) => (
+        <Paper key={m.baseName} variant="outlined" sx={{ p: 1 }}>
           <Stack spacing={1}>
             {m.image ? (
               <Box
                 component="img"
                 src={m.image}
-                alt={m.base_name}
+                alt={m.baseName}
                 sx={{ width: "100%", height: "auto", borderRadius: 1 }}
               />
             ) : (
@@ -93,8 +93,8 @@ function PreviewGrid({
                 </Typography>
               </Box>
             )}
-            <Typography variant="subtitle2" noWrap title={m.base_name}>
-              {m.base_name}
+            <Typography variant="subtitle2" noWrap title={m.baseName}>
+              {m.baseName}
             </Typography>
             <Stack
               direction="row"
@@ -103,10 +103,10 @@ function PreviewGrid({
                 flexWrap: "wrap",
               }}
             >
-              {m.player_count != null && (
-                <Chip size="small" label={`${m.player_count} players`} />
+              {m.playerCount != null && (
+                <Chip size="small" label={`${m.playerCount} players`} />
               )}
-              {m.already_exists && (
+              {m.alreadyExists && (
                 <Chip
                   size="small"
                   color="warning"
@@ -166,10 +166,10 @@ export default function MapUpload() {
     return null
   }
 
-  const isAdmin = status?.user?.is_admin ?? false
-  const savedCount = result?.maps.filter((m) => m.saved).length ?? 0
+  const isAdmin = status?.user?.isAdmin ?? false
+  const savedCount = (result?.maps ?? []).filter((m) => m.saved).length
 
-  if (!status?.logged_in) {
+  if (!status?.loggedIn) {
     return (
       <Page
         surface={false}
@@ -263,7 +263,7 @@ export default function MapUpload() {
           >
             Preview
           </Button>
-          {result && !result.committed && result.maps.length > 0 && (
+          {result && !result.committed && (result.maps ?? []).length > 0 && (
             <Button
               variant="contained"
               color="success"
@@ -271,8 +271,8 @@ export default function MapUpload() {
               disabled={busy}
               onClick={() => run(true)}
             >
-              Save {result.maps.length} map
-              {result.maps.length === 1 ? "" : "s"}
+              Save {(result.maps ?? []).length} map
+              {(result.maps ?? []).length === 1 ? "" : "s"}
             </Button>
           )}
         </Stack>
@@ -282,15 +282,17 @@ export default function MapUpload() {
             Saved {savedCount} map{savedCount === 1 ? "" : "s"}.
           </Alert>
         )}
-        {result?.errors.map((e, i) => (
+        {(result?.errors ?? []).map((e, i) => (
           <Alert key={i} severity="warning">
             {e}
           </Alert>
         ))}
-        {result && result.maps.length === 0 && !result.errors.length && (
-          <Alert severity="warning">No valid maps found in the upload.</Alert>
-        )}
-        {result && result.maps.length > 0 && (
+        {result &&
+          (result.maps ?? []).length === 0 &&
+          !(result.errors ?? []).length && (
+            <Alert severity="warning">No valid maps found in the upload.</Alert>
+          )}
+        {result && (result.maps ?? []).length > 0 && (
           <PreviewGrid result={result} isAdmin={isAdmin} />
         )}
       </Stack>
