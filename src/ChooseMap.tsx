@@ -17,8 +17,8 @@ import Page from "./Page"
 import PlayerCountPicker from "./PlayerCountPicker"
 import { displayMapName } from "./utils"
 import {
-  ChooseMapCandidate,
-  ChooseMapResult,
+  type ChooseMapCandidate,
+  type ChooseMapResult,
   chooseMap,
   fetchPlayerCounts,
   fetchVotingPlayers,
@@ -40,7 +40,7 @@ const SPIN_EASE_POWER = 3 // spin starts fast, slows down
 // Cumulative reveal progress at item `i` of `count`. Concave so the gaps between
 // items shrink as it goes — the reveal starts slow and speeds up.
 function revealProgress(i: number, count: number): number {
-  return 1 - Math.pow(1 - i / count, REVEAL_EASE_POWER)
+  return 1 - (1 - i / count) ** REVEAL_EASE_POWER
 }
 
 function CandidateRow({
@@ -196,7 +196,7 @@ export default function ChooseMap() {
     let raf = 0
     const frame = (now: number) => {
       const t = Math.min(1, (now - start) / SPIN_DURATION_MS)
-      const eased = 1 - Math.pow(1 - t, SPIN_EASE_POWER)
+      const eased = 1 - (1 - t) ** SPIN_EASE_POWER
       const advance = Math.min(totalAdvance, Math.floor(eased * totalAdvance))
       setSpinIndex(advance % eligible.length)
       if (t >= 1) {

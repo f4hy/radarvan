@@ -51,7 +51,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import {
+import type {
   FavoriteObject,
   GeneralWinRateSeries,
   ObjectSummary,
@@ -63,7 +63,6 @@ import {
 import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
-import Loading from "./Loading"
 import Page from "./Page"
 import QueryState from "./QueryState"
 import PlayerChip from "./PlayerChip"

@@ -1,0 +1,15 @@
+{
+  // The end-to-end suite, typechecked separately from `src`.
+  //
+  // Separate because it needs Node globals (`process.env.CI` in the Playwright
+  // config) and `src` must not: browser code reaching for `process` should stay
+  // a type error there. The fixtures import from `src/api`, which is the point —
+  // a backend model change breaks this build rather than drifting until a test
+  // goes red for a reason nobody can trace.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["e2e", "playwright.config.ts"]
+}

@@ -17,7 +17,7 @@ import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import {
+import type {
   HeadToHeadDetail,
   HeadToHeadGame,
   HeadToHeadGeneralRecord,
@@ -27,7 +27,6 @@ import {
 import { Client } from "./Client"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
-import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import QueryState from "./QueryState"

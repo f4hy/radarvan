@@ -1,3 +1,6 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: these render the split
+// of one immutable string in place. The chunks never reorder, are never
+// inserted into, and hold no state — position IS the identity here.
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 

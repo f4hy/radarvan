@@ -1,6 +1,5 @@
 import { ThemeProvider } from "@mui/material/styles"
 import { QueryClientProvider } from "@tanstack/react-query"
-import * as React from "react"
 import {
   BrowserRouter,
   Navigate,

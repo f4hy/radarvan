@@ -1,27 +1,52 @@
-name: Playwright Tests
+name: End-to-end (Playwright)
+
+# Runs the browser suite in e2e/. It needs no database and no backend: the API
+# is served from typed fixtures via page.route (e2e/mockApi.ts), and the server's
+# own behaviour is covered by pytest (tests/test_spa_fallback.py).
+#
+# This used to install three browser engines and run the `npm init playwright`
+# scaffold, which navigated to playwright.dev and asserted things about their
+# documentation — a permanently green end-to-end job that had never loaded this
+# app. Firefox only now, matching the repo's Playwright rule.
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   pull_request:
-    branches: [ main, master ]
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    timeout-minutes: 60
+    name: Browser tests (Firefox)
     runs-on: ubuntu-latest
+    # The suite is ~35 fast tests; ten minutes is generous. The old job allowed
+    # sixty, so a hung page burned an hour before anyone was told.
+    timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-node@v7
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v7
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Only the engine the suite actually uses.
+      - name: Install Firefox
+        run: npx playwright install --with-deps firefox
+
+      # playwright.config.ts's webServer builds and serves the production
+      # bundle, so this covers `vite build` too.
+      - name: Run end-to-end tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

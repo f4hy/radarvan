@@ -45,26 +45,26 @@ import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import DateTimeField from "./DateTimeField"
-import dayjs, { Dayjs } from "dayjs"
+import dayjs, { type Dayjs } from "dayjs"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import { renderAiText, renderBoldSegments } from "./aiText"
 import { useIsTournamentAdmin } from "./AuthContext"
-import { BracketMatchGames, FactionMatchupOption } from "./api"
+import type { BracketMatchGames, FactionMatchupOption } from "./api"
 import {
-  BracketMatchOutput,
-  BracketMatchStatus,
-  BracketPlayerEntry,
-  BracketTournamentOutput,
+  type BracketMatchOutput,
+  type BracketMatchStatus,
+  type BracketPlayerEntry,
+  type BracketTournamentOutput,
   createBracket,
   fetchBracket,
   fetchBracketMapRecords,
   fetchEligiblePlayers,
   mapKey,
-  MapPlayerRecords,
-  MatchSource,
-  SetBracketMatchRequest,
+  type MapPlayerRecords,
+  type MatchSource,
+  type SetBracketMatchRequest,
   setBracketGames,
   setBracketMatch,
   setBracketRevealAt,
@@ -190,9 +190,9 @@ function TournamentRulesPanel() {
         Rules
       </Typography>
       <List sx={{ listStyleType: "decimal", pl: 3 }}>
-        {TOURNAMENT_RULES.map((rule, idx) => (
+        {TOURNAMENT_RULES.map((rule) => (
           <ListItem
-            key={idx}
+            key={rule}
             sx={{ display: "list-item", py: 0.5, pl: 0.5 }}
             disableGutters
           >
@@ -382,6 +382,19 @@ function sliderSx(color: string) {
     "& .MuiSlider-thumb": { height: 22, width: 22 },
     "& .MuiSlider-mark": { height: 8 },
   } as const
+}
+
+/** A node's stable identity, for React keys — every variant already has one,
+ * so the tree never needs to fall back to an array index. */
+function bracketNodeKey(node: BracketNode): string {
+  switch (node.kind) {
+    case "match":
+      return `match-${node.match.matchId}`
+    case "seed":
+      return `seed-${node.seed}`
+    case "ref":
+      return `ref-${node.label}`
+  }
 }
 
 type BracketNode =
@@ -652,10 +665,11 @@ function BestDrawsList(props: {
         </TableRow>
       </TableHead>
       <TableBody>
-        {props.draws.map((d, i) => {
+        {props.draws.map((d) => {
           const favoredPlayer = d.favors === "a" ? props.playerA : props.playerB
           return (
-            <TableRow key={i}>
+            // The general pairing is the row's identity.
+            <TableRow key={`${d.playerAGeneral}-${d.playerBGeneral}`}>
               <TableCell>{toGeneralName(d.playerAGeneral)}</TableCell>
               <TableCell>{toGeneralName(d.playerBGeneral)}</TableCell>
               <TableCell sx={{ color: "success.main", fontWeight: 600 }}>
@@ -1569,9 +1583,9 @@ function BracketTreeSection({
       <SectionTitle>{title}</SectionTitle>
       {columnTitles && <TreeColumnHeaders titles={columnTitles} />}
       <Stack spacing={3} sx={{ width: "fit-content" }}>
-        {nodes.map((node, idx) => (
+        {nodes.map((node) => (
           <BracketNodeView
-            key={idx}
+            key={bracketNodeKey(node)}
             node={node}
             isAdmin={isAdmin}
             onEdit={onEdit}
@@ -2180,12 +2194,9 @@ export default function DisplayBracket() {
       {pageTab === "bracket" && bracketData && (
         <TournamentRoster names={bracketData.participantNames} />
       )}
-      {pageTab === "bracket" &&
-        revealPending &&
-        bracketData &&
-        bracketData.revealAt && (
-          <RevealCountdown revealAt={bracketData.revealAt} />
-        )}
+      {pageTab === "bracket" && revealPending && bracketData?.revealAt && (
+        <RevealCountdown revealAt={bracketData.revealAt} />
+      )}
       <Dialog
         open={adminDialogOpen}
         onClose={() => setAdminDialogOpen(false)}
@@ -2227,7 +2238,11 @@ export default function DisplayBracket() {
           <Stack spacing={1}>
             {seedNames.map((name, idx) => (
               <Stack
-                key={idx}
+                // Keyed on the seed number, not the array index: these rows
+                // each hold an editable Autocomplete, and an index key rebinds
+                // that input state to the wrong row when a seed is removed.
+                // biome-ignore lint/suspicious/noArrayIndexKey: the seed number IS the row's identity here — position is the fact being edited, not an accident of array order.
+                key={`seed-${idx + 1}`}
                 direction="row"
                 spacing={1}
                 sx={{

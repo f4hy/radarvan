@@ -9,8 +9,8 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import PlayArrowIcon from "@mui/icons-material/PlayArrow"
 import PauseIcon from "@mui/icons-material/Pause"
 import ReplayIcon from "@mui/icons-material/Replay"
-import GameMap, { EventDot } from "./Map"
-import { KillEventOutput, MapEventOutput, PlayerSummary } from "./api"
+import GameMap, { type EventDot } from "./Map"
+import type { KillEventOutput, MapEventOutput, PlayerSummary } from "./api"
 import { buildPlayerColorMap, getColorHex } from "./utils"
 
 // Playback speed as a multiple of real game time: 1x advances the replay at

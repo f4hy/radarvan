@@ -25,7 +25,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { FactionMatrix, GeneralStat, GeneralStats } from "./api"
+import type { FactionMatrix, GeneralStat, GeneralStats } from "./api"
 import { Client } from "./Client"
 import DisplayGeneral, { GeneralAvatar } from "./Generals"
 import { toGeneralName } from "./general_utils"

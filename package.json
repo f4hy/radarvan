@@ -2,7 +2,7 @@
   "name": "generals-stats",
   "version": "0.1.0",
   "private": true,
-  "description": "Frontend for Radarvan — a stats tracker for Command & Conquer: Generals Zero Hour.",
+  "description": "Frontend for Radarvan \u2014 a stats tracker for Command & Conquer: Generals Zero Hour.",
   "author": "Brendan Fahy",
   "license": "UNLICENSED",
   "repository": {
@@ -34,12 +34,13 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.e2e.json",
     "openapi-ts": "openapi-ts",
-    "format": "biome format --write src/",
-    "format:check": "biome format src/",
-    "lint": "biome lint src/",
-    "lint:fix": "biome lint --write src/"
+    "format": "biome format --write src/ e2e/ playwright.config.ts",
+    "format:check": "biome format src/ e2e/ playwright.config.ts",
+    "lint": "biome lint src/ e2e/ playwright.config.ts",
+    "lint:fix": "biome lint --write src/ e2e/ playwright.config.ts",
+    "test:e2e": "playwright test"
   },
   "browserslist": {
     "production": [
