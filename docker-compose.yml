@@ -93,6 +93,10 @@ services:
       - .:/app
       # Named volume wins over the bind mount at this path: the container keeps
       # the linux node_modules built by `npm ci` in the image.
+      #
+      # It also outlives `docker compose down`, so rebuilding the image is not
+      # enough to pick up a new dependency -- use `make up-build`, which drops
+      # this volume first. See LOCAL_DEV.md.
       - node_modules:/app/node_modules
     depends_on:
       - backend

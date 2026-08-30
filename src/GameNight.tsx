@@ -36,6 +36,7 @@ import PlayerChip from "./PlayerChip"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { formatPercent, localDate, winRateTone } from "./utils"
+import { useUrlParam } from "./useUrlState"
 
 // Emoji per highlight kind. `kind` is a stable backend slug; an unrecognised
 // one still renders (with the fallback), so adding a highlight server-side
@@ -289,9 +290,10 @@ export default function GameNight() {
   const [focusedMatchId, setFocusedMatchId] = React.useState<number | null>(
     null,
   )
-  const [selected, setSelected] = React.useState<string | null>(() =>
-    new URLSearchParams(window.location.search).get("date"),
-  )
+  // The night lives in the URL — dropping a link to one evening in chat is
+  // this page's whole point, so it can't be component state. `replace` because
+  // the initial redirect to "latest night" isn't a step to go Back to.
+  const [selected, setSelected] = useUrlParam("date", { replace: true })
   const [recap, setRecap] = React.useState<GameNightRecap | null>(null)
   // Same payload the night list comes from — the counts feed the calendar.
   const [dateCounts, setDateCounts] = React.useState<Record<string, number>>({})
@@ -299,24 +301,24 @@ export default function GameNight() {
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
-    Client.getDatesApiDatesGet()
-      .then((dates) => {
-        // Already newest-first from the API.
-        setDateCounts(dates)
-        setSelected((current) => current ?? Object.keys(dates)[0] ?? null)
-      })
-      .catch(showError)
+    // Already newest-first from the API.
+    Client.getDatesApiDatesGet().then(setDateCounts).catch(showError)
   }, [showError])
+
+  const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])
+
+  // Land on the most recent night when the URL didn't name one, and write it
+  // into the URL so the page shares as *that* night rather than "whatever was
+  // latest when you opened it". Idempotent: once `selected` is set the guard
+  // stops it, so this can depend honestly on everything it reads.
+  React.useEffect(() => {
+    if (selected === null && nights.length > 0) setSelected(nights[0])
+  }, [selected, nights, setSelected])
 
   React.useEffect(() => {
     if (selected === null) return
     setRecap(null)
     setFocusedMatchId(null)
-    // Keep the URL shareable — this page's whole point is dropping a link to
-    // one night in chat.
-    const params = new URLSearchParams(window.location.search)
-    params.set("date", selected)
-    window.history.replaceState(null, "", `?${params.toString()}`)
     GameNightClient.getGameNightRecapApiGameNightNightGet({
       night: new Date(selected),
     })
@@ -324,7 +326,6 @@ export default function GameNight() {
       .catch(showError)
   }, [selected, showError])
 
-  const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])
   const index = selected ? nights.indexOf(selected) : -1
   // nights is newest-first, so the *later* night is at a lower index.
   const goNewer = index > 0 ? () => setSelected(nights[index - 1]) : undefined
