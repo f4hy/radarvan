@@ -666,11 +666,11 @@ function NotAuthorized() {
   return (
     <Box sx={{ maxWidth: 560 }}>
       <Alert severity="warning" sx={{ mb: 2 }}>
-        {status?.logged_in
+        {status?.loggedIn
           ? "Your account isn't an operations admin, so these tasks aren't available to you."
           : "Log in with Discord to check whether your account can run admin tasks."}
       </Alert>
-      {!status?.logged_in && (
+      {!status?.loggedIn && (
         <Button
           variant="contained"
           startIcon={<LoginIcon />}

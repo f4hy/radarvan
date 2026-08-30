@@ -1,19 +1,17 @@
-// Map-upload helpers. Same-origin multipart POST so the session cookie
+// Map-upload helper. Same-origin multipart POST so the session cookie
 // authenticates the uploader (login required server-side).
+//
+// This is the one route that does NOT go through the generated client: the
+// generator mishandles a multipart body with binary fields — it hardcodes
+// `useForm = false` in `uploadMapsApiMapUploadPost`, so it would send the files
+// as a URLSearchParams body and the upload would fail. The response *types* and
+// the JSON converter are still the generated ones, so the shape stays tied to
+// the backend even though the request is hand-built.
 
-export interface MapUploadItem {
-  base_name: string
-  image: string | null
-  player_count: number | null
-  already_exists: boolean
-  saved: boolean
-}
+import { type MapUploadResponse, MapUploadResponseFromJSON } from "./api"
+import { responseErrorMessage } from "./apiError"
 
-export interface MapUploadResponse {
-  committed: boolean
-  maps: MapUploadItem[]
-  errors: string[]
-}
+export type { MapUploadResponse, MapUploadItem } from "./api"
 
 export interface MapUploadFiles {
   tga?: File
@@ -37,14 +35,7 @@ export async function uploadMaps(
     body: fd,
   })
   if (!resp.ok) {
-    let detail = `Upload failed (${resp.status})`
-    try {
-      const body = (await resp.json()) as { detail?: string }
-      if (body?.detail) detail = body.detail
-    } catch {
-      // non-JSON error body; keep the generic message
-    }
-    throw new Error(detail)
+    throw new Error(await responseErrorMessage(resp))
   }
-  return (await resp.json()) as MapUploadResponse
+  return MapUploadResponseFromJSON(await resp.json())
 }

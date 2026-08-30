@@ -39,8 +39,8 @@ function searchKey(s: string): string {
   return s.toLowerCase().replace(/\s+/g, "")
 }
 
-function lastPlayedLabel(days: number | null): string {
-  if (days === null) return "never played"
+function lastPlayedLabel(days: number | null | undefined): string {
+  if (days == null) return "never played"
   if (days === 0) return "played today"
   if (days === 1) return "played yesterday"
   return `${days} days ago`
@@ -57,17 +57,17 @@ function MapCard({
 }) {
   // Clicking the active choice clears it; otherwise switch to the clicked one.
   const handle = (_: unknown, next: MapVoteChoice | null) => {
-    onChoose(next === option.my_choice ? null : next)
+    onChoose(next === option.myChoice ? null : next)
   }
   return (
     <Stack spacing={1}>
-      <GameMap mapname={option.map_name} deferData />
+      <GameMap mapname={option.mapName} deferData />
       <Typography
         variant="subtitle1"
         noWrap
-        title={displayMapName(option.map_name)}
+        title={displayMapName(option.mapName)}
       >
-        {displayMapName(option.map_name)}
+        {displayMapName(option.mapName)}
       </Typography>
       <Stack
         direction="row"
@@ -77,17 +77,17 @@ function MapCard({
           flexWrap: "wrap",
         }}
       >
-        <Chip size="small" label={`${option.game_count} games`} />
+        <Chip size="small" label={`${option.gameCount} games`} />
         <Chip
           size="small"
           variant="outlined"
-          label={lastPlayedLabel(option.days_since_last_played)}
+          label={lastPlayedLabel(option.daysSinceLastPlayed)}
         />
       </Stack>
       <ToggleButtonGroup
         exclusive
         size="small"
-        value={option.my_choice}
+        value={option.myChoice}
         onChange={handle}
         disabled={disabled}
         fullWidth
@@ -213,8 +213,8 @@ export default function MapVoting() {
   }
 
   // Filter over all maps (search reaches everything), then cap how many render.
-  const filtered = page.maps.filter((option) =>
-    searchKey(displayMapName(option.map_name)).includes(searchKey(query)),
+  const filtered = (page.maps ?? []).filter((option) =>
+    searchKey(displayMapName(option.mapName)).includes(searchKey(query)),
   )
   const visible = showAll ? filtered : filtered.slice(0, MAP_RENDER_CAP)
   const hidden = filtered.length - visible.length
@@ -222,7 +222,7 @@ export default function MapVoting() {
   return (
     <Page
       surface={false}
-      title={`Map Voting — ${page.player_count} players`}
+      title={`Map Voting — ${page.playerCount} players`}
       description="Vote for the maps you want in the rotation and veto the ones you don't. A veto takes a map out of the draw entirely."
       actions={
         <>
@@ -237,19 +237,19 @@ export default function MapVoting() {
             icon={<HowToVoteIcon />}
             color="success"
             variant="outlined"
-            label={`Votes ${page.votes_used}/${page.vote_limit}`}
+            label={`Votes ${page.votesUsed}/${page.voteLimit}`}
           />
           <Chip
             icon={<BlockIcon />}
             color="error"
             variant="outlined"
-            label={`Vetoes ${page.vetoes_used}/${page.veto_limit}`}
+            label={`Vetoes ${page.vetoesUsed}/${page.vetoLimit}`}
           />
         </>
       }
     >
       <Stack spacing={2}>
-        {!page.logged_in && (
+        {!page.loggedIn && (
           <Alert
             severity="info"
             action={
@@ -294,10 +294,10 @@ export default function MapVoting() {
         >
           {visible.map((option) => (
             <MapCard
-              key={option.map_name}
+              key={option.mapName}
               option={option}
-              disabled={!page.logged_in || pending}
-              onChoose={(choice) => choose(option.map_name, choice)}
+              disabled={!page.loggedIn || pending}
+              onChoose={(choice) => choose(option.mapName, choice)}
             />
           ))}
         </Box>
