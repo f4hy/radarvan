@@ -91,7 +91,7 @@ import {
   WIN_COLOR,
 } from "./theme"
 import Page from "./Page"
-import { usePlayerNav } from "./PlayerNavContext"
+import { usePlayerNav } from "./links"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const DEFAULT_SEEDS = [

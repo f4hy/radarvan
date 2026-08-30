@@ -35,6 +35,7 @@ import { usePlayerPalette } from "./PlayerColorsContext"
 import { displayMapName, formatCash, formatPercent } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinShareBar from "./WinShareBar"
+import { useUrlParam } from "./useUrlState"
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -394,22 +395,12 @@ export function GamesTable(props: {
   )
 }
 
-// Mirrors PlayerProfile.tsx's playerFromUrl() - read once at mount (Menu
-// unmounts/remounts this page fresh on every navigation, so that's the only
-// time it needs to matter) so a link can deep-link straight to a matchup.
-function playersFromUrl(): { player1: string | null; player2: string | null } {
-  const params = new URLSearchParams(window.location.search)
-  return { player1: params.get("player1"), player2: params.get("player2") }
-}
-
 export default function HeadToHead() {
   const [players, setPlayers] = React.useState<string[]>([])
-  const [player1, setPlayer1] = React.useState<string | null>(
-    () => playersFromUrl().player1,
-  )
-  const [player2, setPlayer2] = React.useState<string | null>(
-    () => playersFromUrl().player2,
-  )
+  // Both sides live in the URL, so a matchup is a link — which is what the
+  // "Nemesis" cards and the ratings table point at. See useUrlState.
+  const [player1, setPlayer1] = useUrlParam("player1")
+  const [player2, setPlayer2] = useUrlParam("player2")
   const [format, setFormat] = React.useState<GameFormat>("All")
   const [data, setData] = React.useState<HeadToHeadDetail | null>(null)
   const [loading, setLoading] = React.useState(false)

@@ -2,12 +2,16 @@ import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
+import { Link } from "react-router"
 import { usePlayerPalette } from "./PlayerColorsContext"
-import { usePlayerNav } from "./PlayerNavContext"
+import { playerProfileHref } from "./links"
 
 /**
  * The player identity used everywhere in the app: a swatch of the color they
- * actually play, their name, and a click through to their profile.
+ * actually play, their name, and a link to their profile.
+ *
+ * A real `<a href>`, not a click handler — so ⌘-click opens a profile in a new
+ * tab and the chip can be copied as a link. See links.ts.
  *
  * The swatch is the raw in-game color; everything around it is derived from
  * that hue (utils.playerPalette) so the chip reads as *theirs* without putting
@@ -56,14 +60,11 @@ export const PlayerChip = React.memo(function PlayerChip(props: {
   disableNav?: boolean
 }) {
   const palette = usePlayerPalette(props.name)
-  const nav = usePlayerNav()
-  // Navigating to the profile is the default, not something each call site has
-  // to remember: every chip in the app is a link to that player unless it's
-  // told otherwise, which is what makes the stats browsable rather than a set
-  // of unconnected reports.
-  const onClick = props.disableNav
-    ? undefined
-    : () => nav.goToPlayerProfile(props.name)
+  // Linking to the profile is the default, not something each call site has to
+  // remember: every chip in the app points at that player unless it's told
+  // otherwise, which is what makes the stats browsable rather than a set of
+  // unconnected reports.
+  const linked = !props.disableNav
   const medium = props.size === "medium"
   return (
     <Chip
@@ -71,8 +72,10 @@ export const PlayerChip = React.memo(function PlayerChip(props: {
       label={props.name}
       size={props.size ?? "small"}
       variant="filled"
-      clickable={onClick != null}
-      onClick={onClick}
+      clickable={linked}
+      {...(linked
+        ? { component: Link, to: playerProfileHref(props.name) }
+        : {})}
       sx={{
         bgcolor: palette.tint,
         color: palette.ink,
@@ -80,7 +83,7 @@ export const PlayerChip = React.memo(function PlayerChip(props: {
         fontWeight: 600,
         "& .MuiChip-icon": { ml: medium ? 1 : 0.75, mr: -0.25 },
         "& .MuiChip-label": { px: medium ? 1 : 0.85 },
-        ...(onClick && {
+        ...(linked && {
           "&:hover, &:focus-visible": { bgcolor: palette.tintStrong },
         }),
       }}
@@ -96,13 +99,11 @@ export const PlayerLabel = React.memo(function PlayerLabel(props: {
   variant?: "body2" | "h6"
 }) {
   const palette = usePlayerPalette(props.name)
-  const nav = usePlayerNav()
   const large = props.variant === "h6"
   return (
     <Box
-      component="button"
-      type="button"
-      onClick={() => nav.goToPlayerProfile(props.name)}
+      component={Link}
+      to={playerProfileHref(props.name)}
       sx={{
         display: "inline-flex",
         alignItems: "center",
@@ -112,6 +113,7 @@ export const PlayerLabel = React.memo(function PlayerLabel(props: {
         bgcolor: "transparent",
         font: "inherit",
         color: "inherit",
+        textDecoration: "none",
         cursor: "pointer",
         textAlign: "left",
         "&:hover .MuiTypography-root": { color: palette.ink },

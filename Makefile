@@ -85,8 +85,19 @@ up: ## Start the local stack (db + backend + frontend) in the background
 	docker compose up -d --wait
 	@echo "✓ frontend http://localhost:$${WEB_PORT:-5173}  api http://localhost:$${API_PORT:-8000}"
 
-up-build: ## Rebuild the dev images, then start the stack
+# The frontend mounts a *named* volume over /app/node_modules so the container
+# keeps the linux tree built by `npm ci` instead of the host's. That volume
+# outlives `docker compose down`, so rebuilding the image alone leaves the
+# container running the OLD dependencies -- a package.json change appears to
+# install and then fails at runtime with "Failed to resolve import". Dropping the
+# volume here is what makes `up-build` mean what it says; it repopulates from the
+# image on the next mount. `down` first because a volume in use can't be removed,
+# and `-f` so a missing volume isn't an error. pgdata is untouched (no `-v`).
+up-build: ## Rebuild the dev images and refresh node_modules, then start the stack
+	docker compose down
+	docker volume rm -f radarvan_node_modules
 	docker compose up -d --build --wait
+	@echo "✓ frontend http://localhost:$${WEB_PORT:-5173}  api http://localhost:$${API_PORT:-8000}"
 
 down: ## Stop the local stack (keeps the database volume)
 	docker compose down

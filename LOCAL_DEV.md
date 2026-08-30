@@ -55,6 +55,21 @@ make up-build      # rebuild the images (after changing pyproject/package.json)
 Dependency changes need an image rebuild: `uv.lock` and `package-lock.json` are
 baked in at build time (`make up-build`).
 
+**Use `make up-build`, not `make down && make up`, after adding a package.** The
+frontend mounts a *named* volume (`radarvan_node_modules`) over
+`/app/node_modules` so the container keeps the linux tree `npm ci` built in the
+image rather than the host's. Named volumes survive `docker compose down`, so a
+plain rebuild leaves the container running the **old** dependencies: the install
+looks like it worked and Vite then fails at runtime with
+
+```
+Failed to resolve import "<the new package>" from "src/….tsx". Does the file exist?
+```
+
+`make up-build` drops that volume so it repopulates from the freshly built image.
+`pgdata` is untouched — never reach for `docker compose down -v` to fix this, it
+destroys your local database too (that's `make db-reset`'s job, deliberately).
+
 ## Hydrating from production
 
 ```bash
