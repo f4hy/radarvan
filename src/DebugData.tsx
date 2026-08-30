@@ -14,7 +14,12 @@ import {
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
-import { GameRecord, MatchInfo, MatchPrediction, Team } from "./api"
+import {
+  type GameRecord,
+  type MatchInfo,
+  type MatchPrediction,
+  Team,
+} from "./api"
 import { isCompetitor } from "./utils"
 import { Client, MapClient } from "./Client"
 import { reparseMatch } from "./adminApi"
@@ -52,7 +57,7 @@ function getDebugData(
 
 function reparse(matchId: number, onError = console.error) {
   reparseMatch(matchId)
-    .then(() => console.log("Parsed " + matchId))
+    .then(() => console.log(`Parsed ${matchId}`))
     .catch(onError)
 }
 
@@ -294,6 +299,7 @@ function JsonArray({ data }: { data: unknown[] }) {
     <Box sx={{ pl: 1 }}>
       {data.map((item, i) => (
         <Box
+          // biome-ignore lint/suspicious/noArrayIndexKey: a flat dump of one debug payload's rows — no state, no reordering.
           key={i}
           sx={{ display: "flex", gap: 1, alignItems: "flex-start", py: 0.25 }}
         >
@@ -447,7 +453,7 @@ export default function DisplayDebugData() {
   const runPrediction = () => {
     if (matchId !== null) {
       const num = Number(matchId)
-      if (!isNaN(num)) {
+      if (!Number.isNaN(num)) {
         setPrediction(null)
         getPrediction(num, setPrediction, showError)
       }
@@ -464,7 +470,7 @@ export default function DisplayDebugData() {
   const submit = () => {
     if (matchId !== null) {
       const num = Number(matchId)
-      if (!isNaN(num)) {
+      if (!Number.isNaN(num)) {
         getGameData(num, setDebugData, showError)
         getDebugData(num, setMatchDebugData, showError)
         setMatchInfo(null)
@@ -475,7 +481,7 @@ export default function DisplayDebugData() {
           .catch(showError)
         setJsonDownloadUrl(null)
         Client.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
-          .then((result) => setJsonDownloadUrl(result["url"]))
+          .then((result) => setJsonDownloadUrl(result.url))
           .catch(showError)
       }
     }

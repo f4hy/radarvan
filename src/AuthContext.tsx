@@ -1,5 +1,5 @@
 import * as React from "react"
-import { AuthStatus, fetchAuthStatus } from "./auth"
+import { type AuthStatus, fetchAuthStatus } from "./auth"
 
 interface AuthContextValue {
   status: AuthStatus | null

@@ -34,9 +34,13 @@ import {
   Area,
   Line,
 } from "recharts"
-import { HeadToHead, PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
+import type {
+  HeadToHead,
+  PlayerRatingData,
+  PlayerSkill,
+  RatingUpset,
+} from "./api"
 import { Client } from "./Client"
-import Loading from "./Loading"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
 import { SimplePlayerSynergy } from "./PlayerSynergy"
@@ -61,7 +65,7 @@ function fetchPlayerRatings(
 }
 
 function formatLabel(val: unknown): string {
-  if (typeof val == "number") {
+  if (typeof val === "number") {
     return `${Number(val).toFixed(1)}`
   }
   return String(val ?? "")
@@ -157,10 +161,21 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
           <Stack key={name}>
             <Typography>{name}</Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 1, flexWrap: "wrap" }}>
-              {recentEntries.map((entry, i) => {
+              {recentEntries.map((entry) => {
                 const isPositive = (entry.delta ?? 0) >= 0
                 return (
-                  <Box key={i} sx={{ textAlign: "center" }}>
+                  <Box
+                    // `atdate` is typed `Date` but arrives as a string: the
+                    // generated converter passes `player_rating_overtime`
+                    // through raw (it is a dict of arrays of models, which the
+                    // generator does not map), so nothing ever calls
+                    // ShortPlayerRatingFromJSON on these. Every other use in
+                    // this file already goes through `new Date(...)` for the
+                    // same reason — don't "simplify" this to a method call on
+                    // the value, which is what broke the page.
+                    key={new Date(entry.atdate ?? 0).getTime()}
+                    sx={{ textAlign: "center" }}
+                  >
                     <Typography
                       variant="caption"
                       sx={{
@@ -335,6 +350,7 @@ function FormDots(props: { results: boolean[] }) {
     >
       {props.results.map((won, i) => (
         <Box
+          // biome-ignore lint/suspicious/noArrayIndexKey: a win/loss streak, where each square's meaning is its position in the sequence.
           key={i}
           sx={{
             width: 10,
@@ -632,92 +648,90 @@ function HeadToHeadMatrix(props: { format: GameFormat }) {
   }
 
   return (
-    <>
-      <Box sx={{ overflowX: "auto" }}>
-        <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr>
-              <th style={{ padding: "4px 8px", textAlign: "left" }}>vs →</th>
-              {players.map((p) => (
-                <th
-                  key={p}
-                  style={{
-                    padding: "4px 8px",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {p}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {players.map((p1) => (
-              <tr key={p1}>
-                <td
-                  style={{
-                    padding: "4px 8px",
-                    fontWeight: "bold",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {p1}
-                </td>
-                {players.map((p2) => {
-                  if (p1 === p2)
-                    return (
-                      <td
-                        key={p2}
-                        style={{
-                          padding: "4px 8px",
-                          textAlign: "center",
-                          background: "#e0e0e0",
-                        }}
-                      >
-                        —
-                      </td>
-                    )
-                  const rec = h2h[p1]?.[p2]
-                  if (!rec)
-                    return (
-                      <td
-                        key={p2}
-                        style={{
-                          padding: "4px 8px",
-                          textAlign: "center",
-                          color: "#aaa",
-                        }}
-                      >
-                        -
-                      </td>
-                    )
-                  return (
-                    <MuiTooltip
-                      key={p2}
-                      title={`${p1} vs ${p2}: ${rec.wins}W-${rec.losses}L`}
-                    >
-                      <td
-                        style={{
-                          padding: "4px 8px",
-                          textAlign: "center",
-                          background: cellColor(rec.wins, rec.losses),
-                          cursor: "default",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {rec.wins}-{rec.losses}
-                      </td>
-                    </MuiTooltip>
-                  )
-                })}
-              </tr>
+    <Box sx={{ overflowX: "auto" }}>
+      <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr>
+            <th style={{ padding: "4px 8px", textAlign: "left" }}>vs →</th>
+            {players.map((p) => (
+              <th
+                key={p}
+                style={{
+                  padding: "4px 8px",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {p}
+              </th>
             ))}
-          </tbody>
-        </table>
-      </Box>
-    </>
+          </tr>
+        </thead>
+        <tbody>
+          {players.map((p1) => (
+            <tr key={p1}>
+              <td
+                style={{
+                  padding: "4px 8px",
+                  fontWeight: "bold",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {p1}
+              </td>
+              {players.map((p2) => {
+                if (p1 === p2)
+                  return (
+                    <td
+                      key={p2}
+                      style={{
+                        padding: "4px 8px",
+                        textAlign: "center",
+                        background: "#e0e0e0",
+                      }}
+                    >
+                      —
+                    </td>
+                  )
+                const rec = h2h[p1]?.[p2]
+                if (!rec)
+                  return (
+                    <td
+                      key={p2}
+                      style={{
+                        padding: "4px 8px",
+                        textAlign: "center",
+                        color: "#aaa",
+                      }}
+                    >
+                      -
+                    </td>
+                  )
+                return (
+                  <MuiTooltip
+                    key={p2}
+                    title={`${p1} vs ${p2}: ${rec.wins}W-${rec.losses}L`}
+                  >
+                    <td
+                      style={{
+                        padding: "4px 8px",
+                        textAlign: "center",
+                        background: cellColor(rec.wins, rec.losses),
+                        cursor: "default",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {rec.wins}-{rec.losses}
+                    </td>
+                  </MuiTooltip>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Box>
   )
 }
 

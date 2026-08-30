@@ -1,3 +1,6 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: overlay dots are drawn
+// from a positional list rebuilt whole on every map change — they carry no
+// state and never reorder within a render.
 import Card from "@mui/material/Card"
 import Tooltip from "@mui/material/Tooltip"
 import Box from "@mui/material/Box"
@@ -8,7 +11,6 @@ import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { MapClient } from "./Client"
 import { formatCash, getColorHex, totalMapSupply } from "./utils"
-import type { MapDataPayload } from "./api"
 
 export type PlayerPosition = {
   name: string
@@ -44,9 +46,7 @@ function pointStyle(category: PointCategory, name: string): PointStyle {
 }
 
 function getMapImageApiUrl(mapname: string) {
-  return (
-    import.meta.env.BASE_URL + "api/map_image/" + encodeURIComponent(mapname)
-  )
+  return `${import.meta.env.BASE_URL}api/map_image/${encodeURIComponent(mapname)}`
 }
 
 /** The map's image on its own, at list-row size.
@@ -245,7 +245,7 @@ export default function GameMap(props: {
           >
             <img
               src={mapUrl}
-              alt={"Map: " + mapname}
+              alt={`Map: ${mapname}`}
               onError={() => setImgError(true)}
               // The landing page renders one of these per match; without this
               // an expanded game night fires a dozen full-size image requests

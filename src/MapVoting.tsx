@@ -18,16 +18,14 @@ import LoginIcon from "@mui/icons-material/Login"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import SearchIcon from "@mui/icons-material/Search"
 import GameMap from "./Map"
-import Loading from "./Loading"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
 import PlayerCountPicker from "./PlayerCountPicker"
 import { startDiscordLogin } from "./auth"
 import { displayMapName } from "./utils"
 import {
-  MapVoteChoice,
-  MapVoteOption,
-  MapVotePage,
+  type MapVoteChoice,
+  type MapVoteOption,
   fetchPlayerCounts,
   fetchVotePage,
   setVote,

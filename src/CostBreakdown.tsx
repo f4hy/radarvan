@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { Costs, CostsBuiltObject } from "./api"
+import type { Costs, CostsBuiltObject } from "./api"
 
 const COLORS = [
   red["200"],

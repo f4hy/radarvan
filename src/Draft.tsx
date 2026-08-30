@@ -102,6 +102,17 @@ export default function DisplayDraft() {
     )
   }, [selectedMap])
 
+  const allNamesValid =
+    players.length >= 2 && players.every((p) => VALID_PLAYER_NAMES.has(p.name))
+
+  const teamCounts = players.reduce<Record<number, number>>((acc, p) => {
+    acc[p.team] = (acc[p.team] ?? 0) + 1
+    return acc
+  }, {})
+  const teamSizes = Object.values(teamCounts)
+  const teamsBalanced =
+    teamSizes.length >= 2 && teamSizes.every((n) => n === teamSizes[0])
+
   React.useEffect(() => {
     setTeamRating(null)
     if (!allNamesValid || !teamsBalanced) return
@@ -121,7 +132,7 @@ export default function DisplayDraft() {
       },
       () => setBalanceLoading(false),
     )
-  }, [players])
+  }, [players, allNamesValid, teamsBalanced])
 
   function clearDraft() {
     setAssignments([])
@@ -197,17 +208,6 @@ export default function DisplayDraft() {
       ),
     [assignments],
   )
-
-  const allNamesValid =
-    players.length >= 2 && players.every((p) => VALID_PLAYER_NAMES.has(p.name))
-
-  const teamCounts = players.reduce<Record<number, number>>((acc, p) => {
-    acc[p.team] = (acc[p.team] ?? 0) + 1
-    return acc
-  }, {})
-  const teamSizes = Object.values(teamCounts)
-  const teamsBalanced =
-    teamSizes.length >= 2 && teamSizes.every((n) => n === teamSizes[0])
 
   const { team1Set, team2Set, allBalancePlayers } = React.useMemo(() => {
     const t1 = new Set(players.filter((p) => p.team === 1).map((p) => p.name))

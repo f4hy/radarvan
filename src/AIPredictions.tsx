@@ -19,7 +19,11 @@ import {
   YAxis,
 } from "recharts"
 import { Client } from "./Client"
-import { MatchPrediction, ResponseError, WinProbOverTime } from "./api"
+import {
+  type MatchPrediction,
+  ResponseError,
+  type WinProbOverTime,
+} from "./api"
 import { formatPercent } from "./utils"
 import WinShareBar from "./WinShareBar"
 import Loading from "./Loading"

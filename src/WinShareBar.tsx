@@ -1,4 +1,3 @@
-import * as React from "react"
 import Box from "@mui/material/Box"
 
 // A two-tone horizontal bar: the left color fills `fraction` (0..1) of the
