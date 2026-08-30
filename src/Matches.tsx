@@ -14,6 +14,8 @@ import Card from "@mui/material/Card"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Link from "@mui/material/Link"
+import { Link as RouterLink } from "react-router"
+import { gameNightHref } from "./links"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { MatchesLoading, MatchRowLoading } from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
@@ -665,13 +667,15 @@ function MatchDateSummary(props: {
         >
           {props.count} {props.count === 1 ? "game" : "games"}
         </Typography>
-        {/* Straight to that night's recap page. A plain link rather than a
+        {/* Straight to that night's recap page. A real link rather than a
             navigate() callback so it is copyable and opens in a new tab -
-            sharing one night in chat is what the recap page is for. Clicks are
-            stopped from reaching the AccordionSummary, which would otherwise
-            toggle the row open on the way out. */}
+            sharing one night in chat is what the recap page is for. Routed
+            through RouterLink so it doesn't reload the app on a normal click.
+            Clicks are stopped from reaching the AccordionSummary, which would
+            otherwise toggle the row open on the way out. */}
         <Link
-          href={`?page=game-night&date=${props.date}`}
+          component={RouterLink}
+          to={gameNightHref(props.date)}
           underline="hover"
           variant="body2"
           onClick={(e) => e.stopPropagation()}

@@ -28,24 +28,11 @@ import Page from "./Page"
 import { usePlayerColors } from "./PlayerColorsContext"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 import { formatPercent, getColorHex, playerColor, playerPalette } from "./utils"
+import { useUrlParam } from "./useUrlState"
 
 // Below this the chip would read "0.00/min vs 0.00" - which is every China and
 // Infantry game, since neither has a scouting power to fire.
 const RECON_CHIP_FLOOR = 0.005
-
-function playerFromUrl(): string | null {
-  return new URLSearchParams(window.location.search).get("player")
-}
-
-function setPlayerInUrl(player: string | null): void {
-  const params = new URLSearchParams(window.location.search)
-  if (player) {
-    params.set("player", player)
-  } else {
-    params.delete("player")
-  }
-  window.history.replaceState(null, "", `?${params.toString()}`)
-}
 
 // Percentage points, not a ratio: "takes it 30pp more often than the group" is
 // the sentence a reader can act on. A ratio would make 2%-vs-1% look like the
@@ -360,7 +347,7 @@ function PlayerPicker(props: {
 
 export default function Powers() {
   const [stats, setStats] = React.useState<PowerStats | null>(null)
-  const [player, setPlayer] = React.useState<string | null>(playerFromUrl)
+  const [player, setPlayer] = useUrlParam("player")
   const [loading, setLoading] = React.useState(true)
   const { showError, errorSnackbar } = useErrorSnackbar()
 
@@ -382,10 +369,7 @@ export default function Powers() {
         <PlayerPicker
           players={stats?.players ?? []}
           value={player}
-          onChange={(value) => {
-            setPlayer(value)
-            setPlayerInUrl(value)
-          }}
+          onChange={setPlayer}
         />
       }
       surface={false}

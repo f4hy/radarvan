@@ -657,7 +657,7 @@ function TaskCard({ task }: { task: AdminTask }) {
   )
 }
 
-// Shown to anyone who reaches ?page=admin-panel without the privilege. The
+// Shown to anyone who reaches /admin-panel without the privilege. The
 // routes 401/403 regardless — this just says so in words rather than as a wall
 // of failed requests.
 function NotAuthorized() {
