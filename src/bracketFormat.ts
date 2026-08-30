@@ -3,7 +3,7 @@
 // module, rather than exported from Bracket.tsx, so Agenda.tsx doesn't need
 // a circular import back into the page that renders it.
 import * as React from "react"
-import { BracketMatchOutput } from "./bracketApi"
+import type { BracketMatchOutput } from "./bracketApi"
 
 // Losers Round N isn't listed here since N is dynamic — see roundCode's fallback.
 const ROUND_CODE: Record<string, { code: string; singleton: boolean }> = {

@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { KillEventOutput, ObjectSummary, PlayerSummary } from "./api"
+import type { KillEventOutput, ObjectSummary, PlayerSummary } from "./api"
 
 function removeUnitPrefix(s: string): string {
   return s

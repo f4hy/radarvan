@@ -39,7 +39,7 @@ import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
-import { FFAStats, FFAPlayerStat } from "./api"
+import type { FFAStats, FFAPlayerStat } from "./api"
 import { Client } from "./Client"
 import { CHART_PALETTE } from "./theme"
 

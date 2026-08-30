@@ -1,8 +1,10 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: fixed-length skeleton
+// arrays with no content and no state. There is nothing to key on but the
+// position, and nothing that could be mis-bound by it.
 import LinearProgress from "@mui/material/LinearProgress"
 import Skeleton from "@mui/material/Skeleton"
 import Stack from "@mui/material/Stack"
 import Box from "@mui/material/Box"
-import * as React from "react"
 
 // Generic page loader: an indeterminate top bar plus a skeleton that mirrors the
 // shape most stat pages settle into (a title, a filter row, a band of cards, and

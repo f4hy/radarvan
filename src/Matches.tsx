@@ -35,10 +35,10 @@ import GameMap, { type PlayerPosition } from "./Map"
 import { toGeneralName } from "./general_utils"
 import { Client, MapClient } from "./Client"
 import {
-  MatchInfo,
-  Matches,
-  Player,
-  PlayerRatingDailyChange,
+  type MatchInfo,
+  type Matches,
+  type Player,
+  type PlayerRatingDailyChange,
   Team,
 } from "./api"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
@@ -56,7 +56,6 @@ import {
   winRateTone,
 } from "./utils"
 import { useIsAdmin } from "./AuthContext"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 // ShowMatchDetails drags in recharts, and this is the landing page — most
 // visits never expand a match, so it is split out and only fetched on demand.
@@ -467,7 +466,7 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
     return <FfaMatchDisplay match={props.match} />
   }
 
-  let header = (
+  const header = (
     <MatchHeader
       match={props.match}
       formatLabel={props.match.composition?.category ?? "?"}
@@ -543,8 +542,8 @@ export const DisplayMatchInfo = React.memo(function DisplayMatchInfo(props: {
   )
 
   if (props.match.incomplete) {
-    paperprops["bgcolor"] = "action.disabledBackground"
-    paperprops["borderColor"] = "error.main"
+    paperprops.bgcolor = "action.disabledBackground"
+    paperprops.borderColor = "error.main"
     return (
       <Accordion defaultExpanded={false}>
         <AccordionSummary
@@ -744,28 +743,26 @@ function DisplayMatchesForDate(props: {
     [],
   )
   return (
-    <>
-      <Accordion expanded={expanded === true} onChange={handleChange}>
-        <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
-          <MatchDateSummary
-            date={props.dateStr}
-            count={props.count}
-            matches={matchList.matches}
-            ratingChanges={ratingChanges}
-          />
-        </AccordionSummary>
-        <AccordionDetails sx={{ bgcolor: "background.default" }}>
-          {queryFallback(matchesQuery, "this night's games") ??
-            (matchList.matches.length === 0 ? (
-              <MatchRowLoading />
-            ) : (
-              matchList.matches.map((m, matchIdx) => (
-                <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
-              ))
-            ))}
-        </AccordionDetails>
-      </Accordion>
-    </>
+    <Accordion expanded={expanded === true} onChange={handleChange}>
+      <AccordionSummary expandIcon={<ArrowDownwardIcon />}>
+        <MatchDateSummary
+          date={props.dateStr}
+          count={props.count}
+          matches={matchList.matches}
+          ratingChanges={ratingChanges}
+        />
+      </AccordionSummary>
+      <AccordionDetails sx={{ bgcolor: "background.default" }}>
+        {queryFallback(matchesQuery, "this night's games") ??
+          (matchList.matches.length === 0 ? (
+            <MatchRowLoading />
+          ) : (
+            matchList.matches.map((m, matchIdx) => (
+              <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
+            ))
+          ))}
+      </AccordionDetails>
+    </Accordion>
   )
 }
 

@@ -34,9 +34,9 @@ import {
   General,
   GeneralFromJSON,
   instanceOfGeneral,
-  PlayerStat,
-  PlayerStats,
-  WinLoss,
+  type PlayerStat,
+  type PlayerStats,
+  type WinLoss,
 } from "./api"
 import { Client } from "./Client"
 import { winRate, wilsonLowerBound } from "./utils"
@@ -52,7 +52,7 @@ function fetchPlayerStats(gameFormat: GameFormat): Promise<PlayerStats> {
 }
 
 function toGeneral(s: string | number): General {
-  let num = typeof s === "string" ? parseInt(s) : s
+  const num = typeof s === "string" ? parseInt(s, 10) : s
   if (instanceOfGeneral(num)) {
     return GeneralFromJSON(num)
   }
@@ -80,8 +80,7 @@ function GameCountsTable(props: { playerStats: PlayerStats }) {
   const rows = React.useMemo(
     () =>
       [...props.playerStats.playerStats].sort(
-        (a, b) =>
-          (b.gameCounts?.["total"] ?? 0) - (a.gameCounts?.["total"] ?? 0),
+        (a, b) => (b.gameCounts?.total ?? 0) - (a.gameCounts?.total ?? 0),
       ),
     [props.playerStats.playerStats],
   )
@@ -454,7 +453,7 @@ function BestPlayerPerGeneral(props: { playerStats: PlayerStats }) {
     const generalMap = new Map<number, BestEntry[]>()
     for (const stat of props.playerStats.playerStats) {
       for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
-        const generalNum = parseInt(generalStr)
+        const generalNum = parseInt(generalStr, 10)
         if (generalNum < 0) continue
         const wins = winLoss?.wins ?? 0
         const losses = winLoss?.losses ?? 0
@@ -569,7 +568,7 @@ function BestRelativePlayerPerGeneral(props: { playerStats: PlayerStats }) {
     for (const stat of props.playerStats.playerStats) {
       const overallWinRate = playerOverallRate.get(stat.playerName) ?? 0
       for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
-        const generalNum = parseInt(generalStr)
+        const generalNum = parseInt(generalStr, 10)
         if (generalNum < 0) continue
         const wins = winLoss?.wins ?? 0
         const losses = winLoss?.losses ?? 0
@@ -682,7 +681,7 @@ function GeneralConsistency(props: { playerStats: PlayerStats }) {
     for (const stat of props.playerStats.playerStats) {
       const qualifying: { general: General; winRate: number }[] = []
       for (const [generalStr, winLoss] of Object.entries(stat.stats)) {
-        const generalNum = parseInt(generalStr)
+        const generalNum = parseInt(generalStr, 10)
         if (generalNum < 0) continue
         const wins = winLoss?.wins ?? 0
         const losses = winLoss?.losses ?? 0

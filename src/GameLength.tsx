@@ -25,9 +25,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { DurationDistribution, DurationStats } from "./api"
+import type { DurationDistribution, DurationStats } from "./api"
 import { Client } from "./Client"
-import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"

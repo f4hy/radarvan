@@ -26,7 +26,7 @@ import {
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { Client } from "./Client"
-import {
+import type {
   KillEventOutput,
   MatchDetails,
   APM,
@@ -57,7 +57,6 @@ import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import Loading from "./Loading"
 import { queryFallback } from "./QueryState"
 import MatchNarrative from "./MatchNarrative"
 import Box from "@mui/material/Box"
@@ -108,7 +107,7 @@ function MoneyChart(props: {
               type="number"
               dataKey="atMinute"
               domain={[0, max_time]}
-              tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
+              tickFormatter={(atMinute) => `${atMinute.toFixed(1)}m`}
               name="minutes"
             />
             <YAxis
@@ -134,7 +133,7 @@ function MoneyChart(props: {
             ))}
             {lines.map((value, i) => (
               <ReferenceLine
-                key={i}
+                key={value}
                 y={value}
                 label={{ value: `${i + 2}⭐`, position: "insideLeft" }}
                 stroke={BRAND_COLOR}
@@ -370,6 +369,7 @@ function EventChart(props: {
                         const Icon = meta.icon
                         const title = `${e.eventName} · ${meta.label} · ${e.atMinute.toFixed(2)}m${e.cost ? ` · $${e.cost}` : ""}`
                         return (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: events are positioned along a fixed timeline and the list is rebuilt whole.
                           <MuiTooltip key={i} title={title} arrow>
                             <Box
                               sx={{
@@ -495,7 +495,7 @@ function ApmChart(props: {
             type="number"
             dataKey="atMinute"
             domain={[0, maxTime]}
-            tickFormatter={(t) => t.toFixed(0) + "m"}
+            tickFormatter={(t) => `${t.toFixed(0)}m`}
             name="minutes"
           />
           <YAxis
@@ -606,10 +606,10 @@ interface StyledTableRow {
 }
 
 function renderCash(value: number | null | undefined): string {
-  if (value === null || value == undefined) {
+  if (value == null) {
     return "?"
   }
-  return "$" + value.toLocaleString("en-US")
+  return `$${value.toLocaleString("en-US")}`
 }
 
 function renderRatio(value: number | null | undefined): string {
@@ -843,9 +843,9 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedData.map((row, index) => (
+          {sortedData.map((row) => (
             <TableRow
-              key={index}
+              key={row.player}
               sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}
             >
               {columns.map((column, i) => {
@@ -880,17 +880,17 @@ function MoneyCharts(props: { details: MatchDetails }) {
     <>
       <MoneyChart
         title="Money"
-        money={props.details.statsData["money"]}
+        money={props.details.statsData.money}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="$ Earned"
-        money={props.details.statsData["money_earned"]}
+        money={props.details.statsData.money_earned}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="$ spent"
-        money={props.details.statsData["money_spent"]}
+        money={props.details.statsData.money_spent}
         playerSummaries={props.details.playerSummary}
       />
     </>
@@ -901,7 +901,7 @@ function XpCharts(props: { details: MatchDetails }) {
   return (
     <MoneyChart
       title="XP"
-      money={props.details.statsData["xp"]}
+      money={props.details.statsData.xp}
       playerSummaries={props.details.playerSummary}
       horizontalLines={[800, 1500, 2500, 5000]}
     />
@@ -913,32 +913,32 @@ function UnitCharts(props: { details: MatchDetails }) {
     <>
       <MoneyChart
         title="Units Killed"
-        money={props.details.statsData["units_killed"]}
+        money={props.details.statsData.units_killed}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="Units Built"
-        money={props.details.statsData["units_built"]}
+        money={props.details.statsData.units_built}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="Units Lost"
-        money={props.details.statsData["units_lost"]}
+        money={props.details.statsData.units_lost}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="Buildings Killed"
-        money={props.details.statsData["buildings_killed"]}
+        money={props.details.statsData.buildings_killed}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="Buildings Built"
-        money={props.details.statsData["buildings_built"]}
+        money={props.details.statsData.buildings_built}
         playerSummaries={props.details.playerSummary}
       />
       <MoneyChart
         title="Buildings Lost"
-        money={props.details.statsData["buildings_lost"]}
+        money={props.details.statsData.buildings_lost}
         playerSummaries={props.details.playerSummary}
       />
     </>
@@ -1139,6 +1139,7 @@ function BuildOrderColumn(props: {
             // Economy/non-combat builds (workers, dozers, supply) are dimmed.
             const dim = e.isEconomy ? 0.5 : 1
             return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: same ordered event list as above, rendered as rows.
               <React.Fragment key={i}>
                 <Box
                   sx={{
@@ -1341,7 +1342,7 @@ function PlayerIncomeChart(props: {
             type="number"
             dataKey="atMinute"
             domain={[0, maxTime]}
-            tickFormatter={(atMinute) => atMinute.toFixed(1) + "m"}
+            tickFormatter={(atMinute) => `${atMinute.toFixed(1)}m`}
             name="minutes"
           />
           <YAxis domain={[0, yMax]} />
@@ -1558,7 +1559,13 @@ function EconTab(props: { details: MatchDetails }) {
       ),
     [income],
   )
-  const categories = econCategories(secondaryKeys)
+  // Memoized on the same input it derives from, so it can be an honest
+  // dependency below: unmemoized it was a new array every render, which is why
+  // the memo omitted it and needed a comment explaining the omission.
+  const categories = React.useMemo(
+    () => econCategories(secondaryKeys),
+    [secondaryKeys],
+  )
   const colors = buildPlayerColorMap(props.details.playerSummary, getColorHex)
   const data = React.useMemo(
     () =>
@@ -1571,9 +1578,7 @@ function EconTab(props: { details: MatchDetails }) {
         }
         return row
       }),
-    // categories is derived deterministically from secondaryKeys (already a
-    // dep) each render, so it doesn't need to be a dep itself.
-    [props.details.playerSummary, income, minutes, secondaryKeys],
+    [props.details.playerSummary, income, minutes, categories],
   )
   if (!hasIncomeBySourceData(props.details)) {
     return <Typography>No econ data for this replay</Typography>
