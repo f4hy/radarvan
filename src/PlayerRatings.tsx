@@ -15,6 +15,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { Box, Tooltip as MuiTooltip, Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Bar,
@@ -33,15 +34,14 @@ import {
   Area,
   Line,
 } from "recharts"
-import { PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
+import { HeadToHead, PlayerRatingData, PlayerSkill, RatingUpset } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
 import Page from "./Page"
-import { useFetch } from "./useFetch"
+import { queryFallback } from "./QueryState"
 import { SimplePlayerSynergy } from "./PlayerSynergy"
 import { PlayerLabel } from "./PlayerChip"
 import { BRAND_COLOR, WIN_COLOR, LOSS_COLOR } from "./theme"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -520,20 +520,19 @@ function UpsetsTable(props: { upsets: RatingUpset[] }) {
 
 // Recent big shocks: last RECENT_UPSET_DAYS days, surprise >= RECENT_UPSET_MIN_PCT%.
 function RecentUpsets(props: { format: GameFormat }) {
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const upsets = useFetch(
-    () =>
+  const query = useQuery({
+    queryKey: ["ratingUpsets", "recent", props.format],
+    queryFn: () =>
       Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
         limit: 200,
         withinDays: RECENT_UPSET_DAYS,
         minSurprise: RECENT_UPSET_MIN_PCT / 100,
         ...(props.format === "All" ? {} : { gameFormat: props.format }),
       }),
-    [props.format],
-    showError,
-  )
-
-  if (!upsets) return <Loading />
+  })
+  const fallback = queryFallback(query, "recent upsets")
+  if (fallback) return fallback
+  const upsets = query.data as RatingUpset[]
   if (upsets.length === 0) {
     return (
       <Typography
@@ -561,7 +560,6 @@ function RecentUpsets(props: { format: GameFormat }) {
         least a {RECENT_UPSET_MIN_PCT}% pre-game edge and still lost.
       </Typography>
       <UpsetsTable upsets={upsets} />
-      {errorSnackbar}
     </>
   )
 }
@@ -569,18 +567,17 @@ function RecentUpsets(props: { format: GameFormat }) {
 // Top games where the rating model's favored team lost. The "surprise" is the
 // favorite's pre-game win-probability edge over the team that actually won.
 function BiggestUpsets(props: { format: GameFormat }) {
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const upsets = useFetch(
-    () =>
+  const query = useQuery({
+    queryKey: ["ratingUpsets", "biggest", props.format],
+    queryFn: () =>
       Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
         limit: 15,
         ...(props.format === "All" ? {} : { gameFormat: props.format }),
       }),
-    [props.format],
-    showError,
-  )
-
-  if (!upsets) return <Loading />
+  })
+  const fallback = queryFallback(query, "upsets")
+  if (fallback) return fallback
+  const upsets = query.data as RatingUpset[]
   if (upsets.length === 0) {
     return (
       <Typography
@@ -607,23 +604,21 @@ function BiggestUpsets(props: { format: GameFormat }) {
         first. The chance shown is the model&apos;s pre-game win probability.
       </Typography>
       <UpsetsTable upsets={upsets} />
-      {errorSnackbar}
     </>
   )
 }
 
 function HeadToHeadMatrix(props: { format: GameFormat }) {
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const h2h = useFetch(
-    () =>
+  const query = useQuery({
+    queryKey: ["ratingsHeadToHead", props.format],
+    queryFn: () =>
       Client.getHeadToHeadApiPlayerRatingsHeadToHeadGet(
         props.format === "All" ? {} : { gameFormat: props.format },
       ),
-    [props.format],
-    showError,
-  )
-
-  if (!h2h) return <Loading />
+  })
+  const fallback = queryFallback(query, "the head-to-head matrix")
+  if (fallback) return fallback
+  const h2h = query.data as { [k: string]: { [k: string]: HeadToHead } }
 
   const players = Object.keys(h2h).sort()
 
@@ -722,7 +717,6 @@ function HeadToHeadMatrix(props: { format: GameFormat }) {
           </tbody>
         </table>
       </Box>
-      {errorSnackbar}
     </>
   )
 }
@@ -894,34 +888,36 @@ function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
 const WHR_FORMATS = ["All", "2v2", "3v3", "4v4"] as const
 
 function WhrTable() {
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const data = useFetch(
-    () =>
-      Promise.all(
+  const query = useQuery({
+    queryKey: ["playerSkills", WHR_FORMATS],
+    queryFn: async () => {
+      const results = await Promise.all(
         WHR_FORMATS.map((f) =>
           Client.getPlayerSkillsApiPlayerSkillsGet(
             f === "All" ? {} : { gameFormat: f },
           ),
         ),
-      ).then((results) => {
-        const byPlayer: Record<
-          string,
-          Partial<Record<(typeof WHR_FORMATS)[number], number>>
-        > = {}
-        results.forEach((skills: PlayerSkill[], i) => {
-          const fmt = WHR_FORMATS[i]
-          for (const s of skills) {
-            if (!byPlayer[s.name]) byPlayer[s.name] = {}
-            byPlayer[s.name][fmt] = s.skill
-          }
-        })
-        return byPlayer
-      }),
-    [],
-    showError,
-  )
-
-  if (!data) return <Loading />
+      )
+      const byPlayer: Record<
+        string,
+        Partial<Record<(typeof WHR_FORMATS)[number], number>>
+      > = {}
+      results.forEach((skills: PlayerSkill[], i) => {
+        const fmt = WHR_FORMATS[i]
+        for (const s of skills) {
+          if (!byPlayer[s.name]) byPlayer[s.name] = {}
+          byPlayer[s.name][fmt] = s.skill
+        }
+      })
+      return byPlayer
+    },
+  })
+  const fallback = queryFallback(query, "skill ratings")
+  if (fallback) return fallback
+  const data = query.data as Record<
+    string,
+    Partial<Record<(typeof WHR_FORMATS)[number], number>>
+  >
 
   const sorted = Object.entries(data).sort(
     (a, b) => (b[1].All ?? -Infinity) - (a[1].All ?? -Infinity),
@@ -971,21 +967,19 @@ function WhrTable() {
           </TableBody>
         </Table>
       </TableContainer>
-      {errorSnackbar}
     </Stack>
   )
 }
 
 export function DisplayPlayerRatingTrend() {
   const [format, setFormat] = React.useState<GameFormat>("All")
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const playerRatings = useFetch(
-    () => fetchPlayerRatings(format, null),
-    [format],
-    showError,
-  )
-
-  if (!playerRatings) return <Loading />
+  const query = useQuery({
+    queryKey: ["playerRatings", format, null],
+    queryFn: () => fetchPlayerRatings(format, null),
+  })
+  const fallback = queryFallback(query, "rating trends")
+  if (fallback) return fallback
+  const playerRatings = query.data as PlayerRatingData
 
   const data = [...playerRatings.playerRating].sort(
     (a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0),
@@ -1049,7 +1043,6 @@ export function DisplayPlayerRatingTrend() {
         Player Synergy
       </Typography>
       <SimplePlayerSynergy />
-      {errorSnackbar}
     </Page>
   )
 }
@@ -1057,19 +1050,17 @@ export function DisplayPlayerRatingTrend() {
 export default function DisplayPlayerRatings() {
   const [format, setFormat] = React.useState<GameFormat>("All")
   const [monthsBack, setMonthsBack] = React.useState<MonthsBack>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const playerRatings = useFetch(
-    () => fetchPlayerRatings(format, monthsBack),
-    [format, monthsBack],
-    showError,
-  )
+  const query = useQuery({
+    queryKey: ["playerRatings", format, monthsBack],
+    queryFn: () => fetchPlayerRatings(format, monthsBack),
+  })
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
-  if (!playerRatings) {
-    return <Loading />
-  }
+  const fallback = queryFallback(query, "player ratings")
+  if (fallback) return fallback
+  const playerRatings = query.data as PlayerRatingData
   // Loaded but empty (e.g. a narrow months-back window where nobody clears
   // the rating minimum): keep the selectors rendered so the user can switch
   // back, instead of spinning forever.
@@ -1088,7 +1079,6 @@ export default function DisplayPlayerRatings() {
           No rated players for this format / time range — ratings need a minimum
           number of games.
         </Typography>
-        {errorSnackbar}
       </Paper>
     )
   }
@@ -1133,7 +1123,6 @@ export default function DisplayPlayerRatings() {
           <RatingsOverTime data={playerRatings} />
         </AccordionDetails>
       </Accordion>
-      {errorSnackbar}
     </Paper>
   )
 }

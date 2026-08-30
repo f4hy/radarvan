@@ -18,6 +18,7 @@ import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Bar,
@@ -31,8 +32,8 @@ import {
   YAxis,
 } from "recharts"
 
-import Loading from "./Loading"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import { PlayerLabel } from "./PlayerChip"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
@@ -40,18 +41,7 @@ import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import { FFAStats, FFAPlayerStat } from "./api"
 import { Client } from "./Client"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { CHART_PALETTE } from "./theme"
-
-const empty: FFAStats = {
-  totalGames: 0,
-  distinctPlayers: 0,
-  avgPlayersPerGame: 0,
-  mostRecent: null,
-  playerStats: [],
-  generalStats: [],
-  mapStats: [],
-}
 
 function InfoTip(props: { title: string }) {
   return (
@@ -466,22 +456,14 @@ function FieldToggle(props: {
 }
 
 export default function DisplayFFAStats() {
-  const [stats, setStats] = React.useState<FFAStats>(empty)
-  const [loaded, setLoaded] = React.useState(false)
   const [field, setField] = React.useState<Field>("Humans only")
-  const { showError, errorSnackbar } = useErrorSnackbar()
+  const query = useQuery({
+    queryKey: ["ffaStats", field],
+    queryFn: () =>
+      Client.getFfaStatsApiFfastatsGet({ includeCpu: field === "All FFA" }),
+  })
 
-  React.useEffect(() => {
-    setLoaded(false)
-    Client.getFfaStatsApiFfastatsGet({ includeCpu: field === "All FFA" })
-      .then((s) => {
-        setStats(s)
-        setLoaded(true)
-      })
-      .catch(showError)
-  }, [field, showError])
-
-  // The toggle renders in both states on purpose: an empty result is itself a
+  // The toggle renders in every state on purpose: an empty result is itself a
   // reason to reach for the other corpus, so it must not take the control away.
   const actions = <FieldToggle value={field} onChange={setField} />
 
@@ -491,28 +473,29 @@ export default function DisplayFFAStats() {
       description="Every player for themselves. Team games and comp-stomps are counted elsewhere."
       actions={actions}
     >
-      {!loaded ? (
-        <Loading />
-      ) : stats.totalGames === 0 ? (
-        <>
-          <Typography variant="h6">No FFA games found yet.</Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Free-for-all games (3+ players, every player for themselves) will
-            show up here once they&apos;ve been played.
-          </Typography>
-        </>
-      ) : (
-        <>
-          <SummaryCards stats={stats} />
-          <Divider sx={{ mb: 2 }} />
-          <PlayerLeaderboard players={stats.playerStats} />
-          <Divider sx={{ mb: 2 }} />
-          <GeneralWinRates stats={stats} />
-          <Divider sx={{ mb: 2 }} />
-          <MapBreakdown stats={stats} />
-        </>
-      )}
-      {errorSnackbar}
+      <QueryState query={query} what="free-for-all stats">
+        {(stats) =>
+          stats.totalGames === 0 ? (
+            <>
+              <Typography variant="h6">No FFA games found yet.</Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Free-for-all games (3+ players, every player for themselves)
+                will show up here once they&apos;ve been played.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <SummaryCards stats={stats} />
+              <Divider sx={{ mb: 2 }} />
+              <PlayerLeaderboard players={stats.playerStats} />
+              <Divider sx={{ mb: 2 }} />
+              <GeneralWinRates stats={stats} />
+              <Divider sx={{ mb: 2 }} />
+              <MapBreakdown stats={stats} />
+            </>
+          )
+        }
+      </QueryState>
     </Page>
   )
 }

@@ -18,6 +18,7 @@ import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { GeneralPowers, PowerRow, PowerStats, UnusualPick } from "./api"
 import { Client } from "./Client"
@@ -25,8 +26,8 @@ import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import { usePlayerColors } from "./PlayerColorsContext"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { formatPercent, getColorHex, playerColor, playerPalette } from "./utils"
 import { useUrlParam } from "./useUrlState"
 
@@ -346,19 +347,13 @@ function PlayerPicker(props: {
 }
 
 export default function Powers() {
-  const [stats, setStats] = React.useState<PowerStats | null>(null)
   const [player, setPlayer] = useUrlParam("player")
-  const [loading, setLoading] = React.useState(true)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    setLoading(true)
-    Client.getPowerStatsApiPowerStatsGet(player ? { player } : {})
-      .then(setStats)
-      .catch(showError)
-      .finally(() => setLoading(false))
-  }, [player, showError])
-
+  const query = useQuery({
+    queryKey: ["powerStats", player],
+    queryFn: () =>
+      Client.getPowerStatsApiPowerStatsGet(player ? { player } : {}),
+  })
+  const stats = query.data
   const profile = stats?.profile ?? null
 
   return (
@@ -374,20 +369,23 @@ export default function Powers() {
       }
       surface={false}
     >
-      {loading && <Loading />}
-      {!loading && !player && (
+      {queryFallback(query, "generals powers")}
+      {query.isSuccess && !player && (
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Pick a player to see which powers they take, and which ones nobody
           else does.
         </Typography>
       )}
-      {!loading && player && profile && profile.generals.length === 0 && (
-        <Alert severity="info">
-          No general with enough games yet for {player}. Power data covers{" "}
-          {stats?.matches ?? 0} matches so far.
-        </Alert>
-      )}
-      {!loading && profile && profile.generals.length > 0 && (
+      {query.isSuccess &&
+        player &&
+        profile &&
+        profile.generals.length === 0 && (
+          <Alert severity="info">
+            No general with enough games yet for {player}. Power data covers{" "}
+            {stats?.matches ?? 0} matches so far.
+          </Alert>
+        )}
+      {query.isSuccess && profile && profile.generals.length > 0 && (
         <>
           <SignatureCard unusual={profile.unusual} />
           {profile.generals.map((general, index) => (
@@ -399,7 +397,6 @@ export default function Powers() {
           ))}
         </>
       )}
-      {errorSnackbar}
     </Page>
   )
 }

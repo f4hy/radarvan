@@ -11,11 +11,13 @@ import Button from "@mui/material/Button"
 import Stack from "@mui/material/Stack"
 import Loading from "./Loading"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import LinearProgress from "@mui/material/LinearProgress"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import { Chip, Tooltip as MuiTooltip, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Bar,
@@ -37,41 +39,9 @@ import {
 } from "./api"
 import { Client } from "./Client"
 import { useIsAdmin } from "./AuthContext"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { WIN_COLOR, WIN_COLOR_SOFT, LOSS_COLOR } from "./theme"
 import { Typography } from "@mui/material"
 import { DisplayMatchInfo } from "./Matches"
-
-function getTournamentResults(
-  callback: (m: TournamentResult[]) => void,
-  onError = console.error,
-) {
-  Client.getTournamentResultsApiTournamentResultsGet()
-    .then(callback)
-    .catch(onError)
-}
-
-function getTournamentReport(
-  name: string,
-  callback: (m: TournamentReport) => void,
-  onError = console.error,
-) {
-  Client.getTournamentReportApiTournamentReportTournamentNameGet({
-    tournamentName: name,
-  })
-    .then(callback)
-    .catch(onError)
-}
-
-function getMatch(
-  matchId: number,
-  callback: (m: MatchInfo) => void,
-  onError = console.error,
-) {
-  Client.getMatchByIdApiMatchMatchIdGet({ matchId: matchId })
-    .then(callback)
-    .catch(onError)
-}
 
 const getWinRateStyle = (winRate: number) => {
   if (winRate >= 55) {
@@ -156,23 +126,22 @@ function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
 }
 
 function LoadAndShowMatch(props: { matchId: number }) {
-  const [match, setMatch] = React.useState<MatchInfo | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    getMatch(props.matchId, setMatch, showError)
-  }, [props.matchId, showError])
-  if (match === null || match.durationMinutes === undefined) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
+  // Shares the ["match", id] key with Records, so a match opened on either page
+  // is already in cache on the other.
+  const query = useQuery({
+    queryKey: ["match", props.matchId],
+    queryFn: () =>
+      Client.getMatchByIdApiMatchMatchIdGet({ matchId: props.matchId }),
+  })
+  const fallback = queryFallback(query, `match #${props.matchId}`)
+  if (fallback) return fallback
+  const match = query.data as MatchInfo
+  // A match with no duration hasn't finished parsing; keep waiting rather than
+  // rendering a half-built card.
+  if (match.durationMinutes === undefined) return <Loading />
   return (
     <>
       <DisplayMatchInfo match={match} idx={props.matchId} />
-      {errorSnackbar}
     </>
   )
 }
@@ -541,31 +510,30 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
 }
 
 function DisplayTournamentStats(props: { result: TournamentResult }) {
-  const [touramentStats, setTournamentStats] =
-    React.useState<TournamentReport | null>(null)
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
   const debug = useIsAdmin()
   const show = props.result.complete === true || debug
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    getTournamentReport(
-      props.result.tournament.name,
-      setTournamentStats,
-      showError,
-    )
-  }, [props.result.tournament.name, showError])
+  const reportQuery = useQuery({
+    queryKey: ["tournamentReport", props.result.tournament.name],
+    queryFn: () =>
+      Client.getTournamentReportApiTournamentReportTournamentNameGet({
+        tournamentName: props.result.tournament.name,
+      }),
+    // An in-progress tournament has no report to show, so don't ask for one.
+    enabled: show,
+  })
+  const touramentStats = reportQuery.data ?? null
 
   if (!show) {
     return (
       <Paper>
         <Typography>Tournament still in progress</Typography>
-        {errorSnackbar}
       </Paper>
     )
   }
-  if (touramentStats == null) {
-    return <>{errorSnackbar}</>
-  }
+  const reportFallback = queryFallback(reportQuery, "this tournament's report")
+  if (reportFallback) return reportFallback
+  if (touramentStats == null) return null
   function matchButton(mId: number | null | undefined) {
     if (mId === null || mId === undefined) {
       return <></>
@@ -618,7 +586,6 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
         </Table>
       </TableContainer>
       <Divider />
-      {errorSnackbar}
     </Paper>
   )
 }
@@ -644,21 +611,13 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
 }
 
 export default function DisplayTournamentResults() {
-  const [touramentResults, setTournamentResults] = React.useState<
-    TournamentResult[]
-  >([])
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    getTournamentResults(setTournamentResults, showError)
-  }, [showError])
-  if (touramentResults.length === 0) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
+  const query = useQuery({
+    queryKey: ["tournamentResults"],
+    queryFn: () => Client.getTournamentResultsApiTournamentResultsGet(),
+  })
+  const fallback = queryFallback(query, "tournaments")
+  if (fallback) return fallback
+  const touramentResults = query.data as TournamentResult[]
   return (
     <Page
       title="Tournaments"
@@ -667,7 +626,6 @@ export default function DisplayTournamentResults() {
       {touramentResults.map((r) => (
         <DisplayTournamentResult key={r.tournament.name} result={r} />
       ))}
-      {errorSnackbar}
     </Page>
   )
 }

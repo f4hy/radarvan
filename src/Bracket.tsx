@@ -46,6 +46,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import DateTimeField from "./DateTimeField"
 import dayjs, { Dayjs } from "dayjs"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import { renderAiText, renderBoldSegments } from "./aiText"
@@ -91,6 +92,7 @@ import {
   WIN_COLOR,
 } from "./theme"
 import Page from "./Page"
+import { BILLED_QUERY_OPTIONS } from "./queryClient"
 import { usePlayerNav } from "./links"
 import { useErrorSnackbar } from "./useErrorSnackbar"
 
@@ -239,22 +241,11 @@ function mapSections(
 // tracks whatever an admin has linked/unlinked rather than re-deriving
 // membership.
 function MapPlayerRecordList() {
-  const [records, setRecords] = React.useState<MapPlayerRecords[] | null>(null)
-  const [failed, setFailed] = React.useState(false)
-
-  React.useEffect(() => {
-    let cancelled = false
-    fetchBracketMapRecords()
-      .then((res) => {
-        if (!cancelled) setRecords(res)
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { data: records = null, isError: failed } = useQuery({
+    queryKey: ["bracketMapRecords"],
+    queryFn: fetchBracketMapRecords,
+    retry: false,
+  })
 
   if (failed) {
     return (
@@ -798,108 +789,81 @@ function MatchupPopup({
   const playerB = match.playerB
   const scheduledAt = match.scheduledAt
 
-  const [gamesData, setGamesData] = React.useState<BracketMatchGames | null>(
-    null,
-  )
   const [saving, setSaving] = React.useState(false)
-  const [loading, setLoading] = React.useState(false)
-  const games = gamesData?.linked ?? []
-  const [commentary, setCommentary] = React.useState<string | null>(null)
-  const [commentaryLoading, setCommentaryLoading] = React.useState(false)
-  const [summary, setSummary] = React.useState<string | null>(null)
-  const [summaryLoading, setSummaryLoading] = React.useState(false)
-  const [factionMatchup, setFactionMatchup] = React.useState<
-    FactionMatchupOption[] | null
-  >(null)
   const { showError, errorSnackbar } = useErrorSnackbar()
   const isTournamentAdmin = useIsTournamentAdmin()
 
   // No map is known this far ahead of the draw - the endpoint defaults to an
   // "unknown map" placeholder the model handles gracefully - so this is a
   // draw-only signal, not a map-aware one.
-  React.useEffect(() => {
-    if (!playerA || !playerB) {
-      setFactionMatchup(null)
-      return
-    }
-    let cancelled = false
-    Client.predictFactionMatchupApiPredictFactionMatchupGet({
-      player1: playerA,
-      player2: playerB,
-    })
-      .then((res) => {
-        if (!cancelled) setFactionMatchup(res.options)
-      })
-      .catch(() => {
-        // Best-effort like the AI hype below: model unavailable (503) or any
-        // other failure just hides the section rather than erroring the popup.
-        if (!cancelled) setFactionMatchup(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [playerA, playerB])
+  // Best-effort like the AI hype below: model unavailable (503) or any other
+  // failure just hides the section rather than erroring the popup, so no retry
+  // and no error surface.
+  const { data: factionMatchup = null } = useQuery({
+    queryKey: ["factionMatchup", playerA, playerB],
+    queryFn: async () => {
+      const res = await Client.predictFactionMatchupApiPredictFactionMatchupGet(
+        { player1: playerA as string, player2: playerB as string },
+      )
+      return res.options
+    },
+    enabled: Boolean(playerA && playerB),
+    retry: false,
+  })
 
   const bestDraws = React.useMemo(
     () => topDraws(factionMatchup ?? [], 2),
     [factionMatchup],
   )
 
-  React.useEffect(() => {
-    if (!playerA || !playerB) {
-      setCommentary(null)
-      return
-    }
-    let cancelled = false
-    setCommentaryLoading(true)
-    CommentaryClient.getMatchupCommentaryApiMatchupCommentaryGet({
-      player1: playerA,
-      player2: playerB,
-      roundName: match.roundName,
-    })
-      .then((res) => {
-        if (!cancelled) setCommentary(res.commentary)
-      })
-      .catch(() => {
-        // Best-effort flavor text: a disabled provider (503) or a
-        // generation failure (502) shouldn't break the rest of the popup -
-        // just skip showing this section rather than surfacing an error.
-        if (!cancelled) setCommentary(null)
-      })
-      .finally(() => !cancelled && setCommentaryLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [playerA, playerB, match.roundName])
+  // MONEY: a cache *miss* on this endpoint generates, and generation costs a
+  // real LLM call against whichever provider COMMENTARY_PROVIDER selects. So
+  // this deliberately opts out of every automatic refetch the query client
+  // would otherwise do — `staleTime: Infinity` and no refetch on focus or
+  // remount, so re-opening a popup or tabbing back can never bill a call. It is
+  // asked exactly once per (pair, round) per session.
+  const commentaryQuery = useQuery({
+    queryKey: ["matchupCommentary", playerA, playerB, match.roundName],
+    queryFn: async () => {
+      const res =
+        await CommentaryClient.getMatchupCommentaryApiMatchupCommentaryGet({
+          player1: playerA as string,
+          player2: playerB as string,
+          roundName: match.roundName,
+        })
+      return res.commentary ?? null
+    },
+    enabled: Boolean(playerA && playerB),
+    // A disabled provider (503) or a generation failure (502) also just hides
+    // the section; BILLED_QUERY_OPTIONS' `retry: false` is what stops a failure
+    // becoming a second billable attempt.
+    ...BILLED_QUERY_OPTIONS,
+  })
+  const commentary = commentaryQuery.data ?? null
+  const commentaryLoading = commentaryQuery.isFetching
 
   // The recap only exists once the set is finished AND every game of it is
   // linked; the backend decides that and answers `ready: false` (free, no
   // model call) until then, so this just asks whenever the set is scored.
   // Re-asks on a score edit, since that changes what "all the games" means.
   const isCompleted = match.status === "completed"
-  React.useEffect(() => {
-    if (!isCompleted) {
-      setSummary(null)
-      return
-    }
-    let cancelled = false
-    setSummaryLoading(true)
-    CommentaryClient.getBracketSummaryApiBracketSummaryMatchIdGet({
-      matchId: match.matchId,
-    })
-      .then((res) => {
-        if (!cancelled) setSummary(res.summary ?? null)
-      })
-      .catch(() => {
-        // Best-effort like the hype above - a 502/503 hides the section
-        // rather than erroring the popup.
-        if (!cancelled) setSummary(null)
-      })
-      .finally(() => !cancelled && setSummaryLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [isCompleted, match.matchId, match.scoreA, match.scoreB])
+  // Same money rule as the hype above. Keyed on the score as well as the match,
+  // because a score edit changes what "all the games" means and so is a
+  // genuinely different question — but nothing else re-asks it.
+  const summaryQuery = useQuery({
+    queryKey: ["bracketSummary", match.matchId, match.scoreA, match.scoreB],
+    queryFn: async () => {
+      const res =
+        await CommentaryClient.getBracketSummaryApiBracketSummaryMatchIdGet({
+          matchId: match.matchId,
+        })
+      return res.summary ?? null
+    },
+    enabled: isCompleted,
+    ...BILLED_QUERY_OPTIONS,
+  })
+  const summary = summaryQuery.data ?? null
+  const summaryLoading = summaryQuery.isFetching
 
   // The games played are a stored fact (the tournament_games link table), not
   // something the client re-derives. The previous version guessed by fetching
@@ -907,34 +871,44 @@ function MatchupPopup({
   // found nothing for anyone whose in-game alias differs from their bracket
   // name (`Grn` vs `Gorn`). The backend resolves aliases and also hands back
   // unconfirmed `candidates` for admins to link.
-  React.useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    BracketClient.getBracketGamesApiBracketGamesMatchIdGet({
-      matchId: match.matchId,
-    })
-      .then((res) => {
-        if (!cancelled) setGamesData(res)
-      })
-      .catch((e) => !cancelled && showError(e))
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-    // scheduledAt/playerA/playerB are inputs to what the backend links, so an
-    // in-popup reschedule or score edit (which re-routes players through this
-    // slot) has to refetch rather than keep showing the old pairing's games.
-  }, [match.matchId, scheduledAt, playerA, playerB, showError])
+  // scheduledAt/playerA/playerB are inputs to what the backend links, so they
+  // are part of the key: an in-popup reschedule or score edit (which re-routes
+  // players through this slot) asks a different question rather than keeping
+  // the old pairing's games on screen.
+  const gamesKey = React.useMemo(
+    () => [
+      "bracketGames",
+      match.matchId,
+      scheduledAt?.toISOString() ?? null,
+      playerA,
+      playerB,
+    ],
+    [match.matchId, scheduledAt, playerA, playerB],
+  )
+  const gamesQuery = useQuery({
+    queryKey: gamesKey,
+    queryFn: () =>
+      BracketClient.getBracketGamesApiBracketGamesMatchIdGet({
+        matchId: match.matchId,
+      }),
+  })
+  const gamesData = gamesQuery.data ?? null
+  const loading = gamesQuery.isPending
+  const games = gamesData?.linked ?? []
 
+  // A write, so its failure belongs in a snackbar. The server's reply is the
+  // new linked set, so it is written straight into this query's cache rather
+  // than triggering a refetch of what we were just told.
+  const queryClient = useQueryClient()
   const handleLinkGames = React.useCallback(
     (matchIds: number[]) => {
       setSaving(true)
       setBracketGames(match.matchId, matchIds)
-        .then(setGamesData)
+        .then((updated) => queryClient.setQueryData(gamesKey, updated))
         .catch(showError)
         .finally(() => setSaving(false))
     },
-    [match.matchId, showError],
+    [match.matchId, showError, queryClient, gamesKey],
   )
 
   const handleGoToPlayer = (playerName: string) => {
@@ -1786,7 +1760,6 @@ function NextMatchBanner({
 export default function DisplayBracket() {
   const [bracketData, setBracketData] =
     React.useState<BracketTournamentOutput | null>(null)
-  const [eligiblePlayers, setEligiblePlayers] = React.useState<string[]>([])
   const [loading, setLoading] = React.useState(true)
   const [seedNames, setSeedNames] =
     React.useState<(string | null)[]>(DEFAULT_SEEDS)
@@ -1868,13 +1841,13 @@ export default function DisplayBracket() {
     setRevealAtInput(bracketData?.revealAt ? dayjs(bracketData.revealAt) : null)
   }, [bracketData?.revealAt])
 
-  React.useEffect(() => {
-    if (isTournamentAdmin) {
-      fetchEligiblePlayers()
-        .then(setEligiblePlayers)
-        .catch(() => {})
-    }
-  }, [isTournamentAdmin])
+  // Only an admin can seed a bracket, so only an admin needs the roster.
+  const { data: eligiblePlayers = [] } = useQuery({
+    queryKey: ["bracketEligiblePlayers"],
+    queryFn: fetchEligiblePlayers,
+    enabled: isTournamentAdmin,
+    retry: false,
+  })
 
   // Opening the admin tools implies wanting to see/edit the real roster and
   // seeding, even before the public reveal - so it also switches on preview
