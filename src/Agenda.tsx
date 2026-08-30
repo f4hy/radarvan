@@ -16,6 +16,7 @@ import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import DateTimeField from "./DateTimeField"
 import dayjs, { Dayjs } from "dayjs"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { useAuth, useIsTournamentAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
@@ -653,20 +654,11 @@ function CompletedMatchRow({
 // Renders nothing until there's at least one completed, predicted-on match -
 // an empty leaderboard would just be a confusing "0/0 everyone" list.
 function PredictionLeaderboardPanel() {
-  const [entries, setEntries] = React.useState<
-    BracketPredictionLeaderboardEntry[]
-  >([])
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    let cancelled = false
-    fetchBracketPredictionLeaderboard()
-      .then((list) => !cancelled && setEntries(list))
-      .catch(showError)
-    return () => {
-      cancelled = true
-    }
-  }, [showError])
+  // Best-effort side panel: no leaderboard just means no panel.
+  const { data: entries = [] } = useQuery({
+    queryKey: ["bracketPredictionLeaderboard"],
+    queryFn: fetchBracketPredictionLeaderboard,
+  })
 
   if (entries.length === 0) return null
   const top = entries.slice(0, 5)
@@ -706,7 +698,6 @@ function PredictionLeaderboardPanel() {
           </Stack>
         ))}
       </Stack>
-      {errorSnackbar}
     </Paper>
   )
 }
@@ -724,41 +715,45 @@ export default function AgendaPanel({
   onSchedule: (matchId: string, scheduledAt: Date | null) => Promise<void>
 }) {
   const matches = agendaMatches(bracketData)
-  const [predictions, setPredictions] = React.useState<
-    Record<string, BracketMatchPrediction>
-  >({})
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
   // Re-fetch whenever the underlying tournament data changes (new/reset
   // tournament, a match getting scored, reveal_at flipping) - simplest way
   // to stay in sync without hand-diffing which matches actually need it.
-  React.useEffect(() => {
-    if (!bracketData) {
-      setPredictions({})
-      return
-    }
-    let cancelled = false
-    fetchBracketPredictions()
-      .then((list) => {
-        if (cancelled) return
-        setPredictions(Object.fromEntries(list.map((p) => [p.matchId, p])))
-      })
-      .catch(showError)
-    return () => {
-      cancelled = true
-    }
-  }, [bracketData, showError])
+  const { data: predictions = {} } = useQuery({
+    queryKey: ["bracketPredictions"],
+    queryFn: async () => {
+      const list = await fetchBracketPredictions()
+      return Object.fromEntries(list.map((p) => [p.matchId, p]))
+    },
+    enabled: Boolean(bracketData),
+  })
 
+  // A pick is a user action, so its failure belongs in a snackbar rather than
+  // a panel — unlike a read, there is nothing on screen for an error state to
+  // replace. The server's reply is written straight into the cache, so no
+  // refetch is needed to show the new tally.
+  const { showError, errorSnackbar } = useErrorSnackbar()
+  const queryClient = useQueryClient()
+  const pick = useMutation({
+    mutationFn: ({
+      matchId,
+      winner,
+    }: {
+      matchId: string
+      winner: string | null
+    }) => setBracketPrediction(matchId, winner),
+    onSuccess: (updated, { matchId }) => {
+      queryClient.setQueryData<Record<string, BracketMatchPrediction>>(
+        ["bracketPredictions"],
+        (prev) => ({ ...(prev ?? {}), [matchId]: updated }),
+      )
+    },
+    onError: showError,
+  })
   const handlePick = React.useCallback(
     async (matchId: string, winner: string | null) => {
-      try {
-        const updated = await setBracketPrediction(matchId, winner)
-        setPredictions((prev) => ({ ...prev, [matchId]: updated }))
-      } catch (e) {
-        showError(e)
-      }
+      await pick.mutateAsync({ matchId, winner }).catch(() => {})
     },
-    [showError],
+    [pick],
   )
 
   const completed = recentlyCompletedMatches(bracketData)

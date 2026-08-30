@@ -4,6 +4,7 @@ import Box from "@mui/material/Box"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import DownloadIcon from "@mui/icons-material/Download"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { MapClient } from "./Client"
 import { formatCash, getColorHex, totalMapSupply } from "./utils"
@@ -97,56 +98,41 @@ export function MapThumbnail(props: { mapname: string; size?: number }) {
   )
 }
 
-const mapDataResolved: Record<string, MapDataPayload> = {}
-const mapDataInFlight: Record<string, Promise<MapDataPayload>> = {}
+/**
+ * One map's geometry and supply data.
+ *
+ * This used to carry its own `mapDataResolved` / `mapDataInFlight` pair to
+ * cache resolved payloads and deduplicate concurrent requests — a map thumbnail
+ * appears in lists of eighty rows, and the same map repeats. The query client
+ * does both, keyed on the map name, so the hand-rolled pair is gone.
+ *
+ * Map data is immutable in practice (it changes only when someone uploads a new
+ * map file), so it is worth holding far longer than the corpus default.
+ */
+const MAP_DATA_STALE_MS = 60 * 60_000
 
-export function fetchMapData(mapname: string): Promise<MapDataPayload> {
-  const resolved = mapDataResolved[mapname]
-  if (resolved) return Promise.resolve(resolved)
-  if (!mapDataInFlight[mapname]) {
-    const promise = MapClient.getMapDataApiMapDataMapNameGet({
-      mapName: mapname,
-    })
-      .then((data) => {
-        mapDataResolved[mapname] = data
-        delete mapDataInFlight[mapname]
-        return data
-      })
-      .catch((err) => {
-        delete mapDataInFlight[mapname]
-        return Promise.reject(err)
-      })
-    mapDataInFlight[mapname] = promise
+function mapDataQueryOptions(mapname: string) {
+  return {
+    queryKey: ["mapData", mapname],
+    queryFn: () =>
+      MapClient.getMapDataApiMapDataMapNameGet({ mapName: mapname }),
+    staleTime: MAP_DATA_STALE_MS,
+    gcTime: MAP_DATA_STALE_MS,
+    // A map with no data row 404s; that is an answer, not a failure to retry.
+    retry: false,
   }
-  return mapDataInFlight[mapname]
 }
 
-// Total collectible supply cash for a map, fetched (and cached via
-// fetchMapData) lazily on mount - null until resolved or if the map has none.
-// `mapname` may be a full path (e.g. "userdata/maps/Foo") like MatchDetails.mapName -
-// only the basename is a valid map_data lookup key (see GameMap above).
+// Total collectible supply cash for a map — null until resolved, or if the map
+// has none. `mapname` may be a full path (e.g. "userdata/maps/Foo") like
+// MatchDetails.mapName; only the basename is a valid map_data lookup key.
 export function useMapSupplyTotal(mapname: string): number | null {
   const basename = mapname.split("/").slice(-1).pop() ?? ""
-  const [total, setTotal] = React.useState<number | null>(null)
-  React.useEffect(() => {
-    if (!basename) {
-      setTotal(null)
-      return
-    }
-    let cancelled = false
-    fetchMapData(basename).then(
-      (data) => {
-        if (!cancelled) setTotal(totalMapSupply(data.supply))
-      },
-      () => {
-        if (!cancelled) setTotal(null)
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [basename])
-  return total
+  const { data } = useQuery({
+    ...mapDataQueryOptions(basename),
+    enabled: basename !== "",
+  })
+  return data ? totalMapSupply(data.supply) : null
 }
 
 export type EventDot = {
@@ -172,7 +158,6 @@ export default function GameMap(props: {
   deferData?: boolean
 }) {
   const [imgError, setImgError] = React.useState(false)
-  const [mapData, setMapData] = React.useState<MapDataPayload | null>(null)
   const [dataRequested, setDataRequested] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
@@ -197,35 +182,13 @@ export default function GameMap(props: {
     setDataRequested(false)
   }, [mapname])
 
-  React.useEffect(() => {
-    if (!mapname) {
-      setMapData(null)
-      return
-    }
-    const resolved = mapDataResolved[mapname]
-    if (resolved) {
-      setMapData(resolved)
-      return
-    }
-    // Deferred maps wait for a hover before fetching overlay data.
-    if (props.deferData && !dataRequested) {
-      setMapData(null)
-      return
-    }
-    setMapData(null)
-    let cancelled = false
-    fetchMapData(mapname).then(
-      (data) => {
-        if (!cancelled) setMapData(data)
-      },
-      () => {
-        if (!cancelled) setMapData(null)
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [mapname, props.deferData, dataRequested])
+  // Deferred maps wait for a hover before fetching overlay data — `enabled` is
+  // what expresses that now, and an already-cached map still renders instantly
+  // because the query reads the cache without running the fetcher.
+  const { data: mapData } = useQuery({
+    ...mapDataQueryOptions(mapname),
+    enabled: mapname !== "" && (!props.deferData || dataRequested),
+  })
 
   const showPlaceholder = !mapUrl || imgError
   const supplyTotal = mapData ? totalMapSupply(mapData.supply) : 0

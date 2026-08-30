@@ -12,6 +12,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useTheme } from "@mui/material/styles"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Bar,
@@ -29,8 +30,8 @@ import { Client } from "./Client"
 import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import { BRAND_COLOR, CHART_PALETTE, NEUTRAL_COLOR } from "./theme"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -242,29 +243,17 @@ export default function GameLength() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const [gameFormat, setGameFormat] = React.useState<GameFormat>("All")
   const [bucketMinutes, setBucketMinutes] = React.useState<BucketMinutes>(2)
-  const [distribution, setDistribution] =
-    React.useState<DurationDistribution | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    setDistribution(null)
-    Client.getDurationDistributionApiDurationDistributionGet({
-      bucketMinutes,
-      ...(gameFormat === "All" ? {} : { gameFormat }),
-    })
-      .then(setDistribution)
-      .catch(showError)
-  }, [gameFormat, bucketMinutes, showError])
-
-  if (distribution === null) {
-    return (
-      <>
-        {errorSnackbar}
-        <Loading />
-      </>
-    )
-  }
-
+  const query = useQuery({
+    queryKey: ["durationDistribution", gameFormat, bucketMinutes],
+    queryFn: () =>
+      Client.getDurationDistributionApiDurationDistributionGet({
+        bucketMinutes,
+        ...(gameFormat === "All" ? {} : { gameFormat }),
+      }),
+  })
+  const fallback = queryFallback(query, "game lengths")
+  if (fallback) return fallback
+  const distribution = query.data as DurationDistribution
   const stats = distribution.stats
   return (
     <Page
@@ -294,7 +283,6 @@ export default function GameLength() {
       }
     >
       <Stack spacing={2}>
-        {errorSnackbar}
         <Stack
           direction="row"
           spacing={1.5}

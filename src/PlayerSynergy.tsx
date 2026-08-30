@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
@@ -19,9 +20,9 @@ import { Tooltip as MuiTooltip } from "@mui/material"
 import { PlayerSynergy } from "./api"
 import { Client } from "./Client"
 import Loading from "./Loading"
+import QueryState from "./QueryState"
 import { PlayerLabel } from "./PlayerChip"
 import { WIN_COLOR, LOSS_COLOR } from "./theme"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -108,7 +109,6 @@ function PairCell(props: { a: string; b: string }) {
 }
 
 export default function DisplayPlayerSynergy() {
-  const [pairs, setPairs] = React.useState<PlayerSynergy[] | null>(null)
   const [format, setFormat] = React.useState<GameFormat>("All")
   const [minGames, setMinGames] = React.useState<number>(3)
   const [significantOnly, setSignificantOnly] = React.useState(false)
@@ -116,20 +116,18 @@ export default function DisplayPlayerSynergy() {
   const [pairRegDraft, setPairRegDraft] = React.useState(DEFAULT_PAIR_REG)
   const [mainReg, setMainReg] = React.useState(DEFAULT_MAIN_REG)
   const [mainRegDraft, setMainRegDraft] = React.useState(DEFAULT_MAIN_REG)
-  const { showError, errorSnackbar } = useErrorSnackbar()
 
-  React.useEffect(() => {
-    setPairs(null)
-    const params = format === "All" ? {} : { gameFormat: format }
-    Client.getPlayerSynergyApiPlayerRatingsSynergyGet({
-      minGamesTogether: minGames,
-      regularization: pairReg,
-      mainRegularization: mainReg,
-      ...params,
-    })
-      .then(setPairs)
-      .catch(showError)
-  }, [format, minGames, pairReg, mainReg, showError])
+  const query = useQuery({
+    queryKey: ["playerSynergy", format, minGames, pairReg, mainReg],
+    queryFn: () =>
+      Client.getPlayerSynergyApiPlayerRatingsSynergyGet({
+        minGamesTogether: minGames,
+        regularization: pairReg,
+        mainRegularization: mainReg,
+        ...(format === "All" ? {} : { gameFormat: format }),
+      }),
+  })
+  const pairs = query.data
 
   const visible = React.useMemo(() => {
     if (!pairs) return []
@@ -238,21 +236,22 @@ export default function DisplayPlayerSynergy() {
           onCommit={setMainReg}
         />
       </Stack>
-      {!pairs ? (
-        <Loading />
-      ) : visible.length === 0 ? (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          No pairs match the current filters.
-        </Typography>
-      ) : (
-        <SynergyTable pairs={visible} />
-      )}
-      {errorSnackbar}
+      <QueryState query={query} what="synergy">
+        {() =>
+          visible.length === 0 ? (
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+              }}
+            >
+              No pairs match the current filters.
+            </Typography>
+          ) : (
+            <SynergyTable pairs={visible} />
+          )
+        }
+      </QueryState>
     </Stack>
   )
 }
@@ -264,18 +263,21 @@ const SIMPLE_MIN_GAMES = 10
 const SIMPLE_MIN_Z = 1
 
 export function SimplePlayerSynergy() {
-  const [pairs, setPairs] = React.useState<PlayerSynergy[] | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    Client.getPlayerSynergyApiPlayerRatingsSynergyGet({
-      minGamesTogether: SIMPLE_MIN_GAMES,
-    })
-      .then(setPairs)
-      .catch(showError)
-  }, [showError])
-
-  if (!pairs) return <Loading />
+  const query = useQuery({
+    queryKey: ["playerSynergy", "simple", SIMPLE_MIN_GAMES],
+    queryFn: () =>
+      Client.getPlayerSynergyApiPlayerRatingsSynergyGet({
+        minGamesTogether: SIMPLE_MIN_GAMES,
+      }),
+  })
+  if (query.isPending || query.isError) {
+    return (
+      <QueryState query={query} what="synergy">
+        {() => null}
+      </QueryState>
+    )
+  }
+  const pairs = query.data
   const strong = pairs.filter((p) => Math.abs(p.zScore) > SIMPLE_MIN_Z)
   if (strong.length === 0) {
     return (
@@ -336,7 +338,6 @@ export function SimplePlayerSynergy() {
           </TableBody>
         </Table>
       </TableContainer>
-      {errorSnackbar}
     </>
   )
 }

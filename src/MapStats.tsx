@@ -15,6 +15,7 @@ import Tabs from "@mui/material/Tabs"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import { MapData, MapStatsResponse } from "./api"
@@ -22,17 +23,14 @@ import { MapClient } from "./Client"
 import { toGeneralName } from "./general_utils"
 import GameMap, { MapThumbnail } from "./Map"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import { WinRateBar } from "./WinRateChip"
 import { PlayerLabel } from "./PlayerChip"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { useIsAdmin } from "./AuthContext"
 import { displayMapName, winRate } from "./utils"
 
-function getMapStats(
-  callback: (m: MapStatsResponse) => void,
-  onError = console.error,
-) {
-  MapClient.getMapStatsApiMapStatsGet().then(callback).catch(onError)
+function fetchMapStats(): Promise<MapStatsResponse> {
+  return MapClient.getMapStatsApiMapStatsGet()
 }
 
 function mapId(mapName: string): string {
@@ -456,7 +454,6 @@ const MIN_GAMES_OPTIONS = [5, 10, 20] as const
 const DEFAULT_MIN_GAMES = 10
 
 export default function DisplayMapStats() {
-  const [mapStats, setMapStats] = React.useState<MapStatsResponse | null>(null)
   const [expandedMaps, setExpandedMaps] = React.useState<Set<string>>(new Set())
   const [search, setSearch] = React.useState("")
   const [minGames, setMinGames] = React.useState<number>(DEFAULT_MIN_GAMES)
@@ -465,11 +462,11 @@ export default function DisplayMapStats() {
   // that map is one of the thin ones the floor is there to hide.
   const [pinned, setPinned] = React.useState<Set<string>>(new Set())
   const [scrollTo, setScrollTo] = React.useState<string | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    getMapStats(setMapStats, showError)
-  }, [showError])
+  const mapStatsQuery = useQuery({
+    queryKey: ["mapStats"],
+    queryFn: fetchMapStats,
+  })
+  const mapStats = mapStatsQuery.data
 
   React.useEffect(() => {
     if (mapStats) {
@@ -525,16 +522,10 @@ export default function DisplayMapStats() {
     [mapStats],
   )
 
-  if (mapStats === null) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
+  const fallback = queryFallback(mapStatsQuery, "map stats")
+  if (fallback) return fallback
 
-  const hiddenCount = mapStats.maps.length - visibleMaps.length
+  const hiddenCount = (mapStats?.maps.length ?? 0) - visibleMaps.length
 
   return (
     <Page
@@ -568,7 +559,7 @@ export default function DisplayMapStats() {
             ))}
           </ToggleButtonGroup>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {visibleMaps.length} of {mapStats.maps.length} maps
+            {visibleMaps.length} of {mapStats?.maps.length ?? 0} maps
             {query === "" && hiddenCount > 0
               ? `, ${hiddenCount} below the floor`
               : ""}
@@ -608,7 +599,6 @@ export default function DisplayMapStats() {
           />
         ))
       )}
-      {errorSnackbar}
     </Page>
   )
 }

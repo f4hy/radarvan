@@ -39,6 +39,7 @@ import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Area,
@@ -64,10 +65,10 @@ import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import PlayerChip from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { useUrlParam } from "./useUrlState"
 import { displayMapName, formatPercent, wilsonInterval } from "./utils"
 import WinRateChip from "./WinRateChip"
@@ -1241,49 +1242,36 @@ function ProfileBody(props: { profile: PlayerProfile }) {
 }
 
 export default function DisplayPlayerProfile() {
-  const [players, setPlayers] = React.useState<string[]>([])
   // The URL is the only copy — a chip elsewhere on this page, a pasted link and
   // the Back button all land here. See useUrlState.
   const [player, setPlayer] = useUrlParam("player")
-  const [profile, setProfile] = React.useState<PlayerProfile | null>(null)
-  const [loading, setLoading] = React.useState(false)
-  const { showError, errorSnackbar } = useErrorSnackbar()
 
-  React.useEffect(() => {
-    // Only players with a full profile (enough games for favorites/badges to
-    // mean anything, computer players already excluded) show up as options.
-    Client.getEligiblePlayersApiPlayerProfileEligiblePlayersGet()
-      .then((names) => setPlayers(names.filter((n): n is string => n != null)))
-      .catch(showError)
-  }, [showError])
+  // Only players with a full profile (enough games for favorites/badges to mean
+  // anything, computer players already excluded) show up as options. The list
+  // is shared with every other page that offers a player picker, so it comes
+  // out of the cache after the first one.
+  const { data: players = [] } = useQuery({
+    queryKey: ["eligiblePlayers"],
+    queryFn: async () => {
+      const names =
+        await Client.getEligiblePlayersApiPlayerProfileEligiblePlayersGet()
+      return names.filter((n): n is string => n != null)
+    },
+  })
 
-  React.useEffect(() => {
-    if (!player) {
-      setProfile(null)
-      return
-    }
-    let cancelled = false
-    setLoading(true)
-    Client.getPlayerProfileApiPlayerProfileGet({ player })
-      .then((p) => !cancelled && setProfile(p))
-      .catch((e) => {
-        if (!cancelled) {
-          setProfile(null)
-          showError(e)
-        }
-      })
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [player, showError])
+  const profileQuery = useQuery({
+    queryKey: ["playerProfile", player],
+    queryFn: () =>
+      Client.getPlayerProfileApiPlayerProfileGet({ player: player as string }),
+    // Nothing to fetch until someone is picked; the empty state below covers it.
+    enabled: player !== null && player !== "",
+  })
 
   return (
     <Page
       title="Player Profile"
       description="What a player is known for. The units and powers they reach for more than anyone else, who they beat, who beats them, and how each general has gone over time."
     >
-      {errorSnackbar}
       <Autocomplete
         options={players}
         value={player}
@@ -1291,9 +1279,11 @@ export default function DisplayPlayerProfile() {
         sx={{ maxWidth: 300 }}
         renderInput={(params) => <TextField {...params} label="Player" />}
       />
-      {loading && <Loading />}
-      {!loading && profile && <ProfileBody profile={profile} />}
-      {!loading && !profile && !player && (
+      {player ? (
+        <QueryState query={profileQuery} what={`${player}'s profile`}>
+          {(profile) => <ProfileBody profile={profile} />}
+        </QueryState>
+      ) : (
         <Typography
           variant="body2"
           sx={{

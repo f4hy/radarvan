@@ -18,6 +18,7 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
 import { useAuth } from "./AuthContext"
+import ErrorBoundary from "./ErrorBoundary"
 import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 import Loading from "./Loading"
@@ -205,11 +206,13 @@ export default function Menu() {
       >
         <Toolbar />
         <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
-          {/* Keyed on the path so a page transition remounts rather than
-              reusing the previous page's Suspense boundary mid-swap. */}
-          <React.Suspense fallback={<Loading />}>
-            <Outlet />
-          </React.Suspense>
+          {/* Keyed on the path so navigating away clears a caught error
+              rather than pinning the boundary open on the next page. */}
+          <ErrorBoundary key={pathname} what="this page">
+            <React.Suspense fallback={<Loading />}>
+              <Outlet />
+            </React.Suspense>
+          </ErrorBoundary>
         </Box>
       </Box>
     </Box>
