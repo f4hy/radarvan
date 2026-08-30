@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import Box from "@mui/material/Box"
 import Stack from "@mui/material/Stack"
@@ -239,33 +240,32 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
 }
 
 export default function AIPredictions(props: { matchId: number }) {
-  const [pregame, setPregame] = React.useState<Panel<MatchPrediction> | null>(
-    null,
-  )
-  const [overTime, setOverTime] = React.useState<Panel<WinProbOverTime> | null>(
-    null,
-  )
+  // Each panel carries its own error rather than throwing: a model can be
+  // unavailable (503) for one prediction and fine for the other, and the panel
+  // says which. That's why the failure is folded into the value here instead of
+  // reaching QueryState — and why neither retries.
+  const pregameQuery = useQuery<Panel<MatchPrediction>>({
+    queryKey: ["predictMatch", props.matchId],
+    queryFn: () =>
+      Client.predictMatchApiPredictMatchMatchIdGet({
+        matchId: props.matchId,
+      }).catch((e) => ({ error: describeError(e) })),
+    retry: false,
+  })
+  const overTimeQuery = useQuery<Panel<WinProbOverTime>>({
+    queryKey: ["predictOverTime", props.matchId],
+    queryFn: () =>
+      Client.predictOverTimeApiPredictOverTimeMatchIdGet({
+        matchId: props.matchId,
+      }).catch((e) => ({ error: describeError(e) })),
+    retry: false,
+  })
 
-  React.useEffect(() => {
-    let cancelled = false
-    setPregame(null)
-    setOverTime(null)
-    Client.predictMatchApiPredictMatchMatchIdGet({ matchId: props.matchId })
-      .then((r) => !cancelled && setPregame(r))
-      .catch((e) => !cancelled && setPregame({ error: describeError(e) }))
-    Client.predictOverTimeApiPredictOverTimeMatchIdGet({
-      matchId: props.matchId,
-    })
-      .then((r) => !cancelled && setOverTime(r))
-      .catch((e) => !cancelled && setOverTime({ error: describeError(e) }))
-    return () => {
-      cancelled = true
-    }
-  }, [props.matchId])
-
-  if (pregame === null || overTime === null) {
+  if (pregameQuery.isPending || overTimeQuery.isPending) {
     return <Loading />
   }
+  const pregame = pregameQuery.data as Panel<MatchPrediction>
+  const overTime = overTimeQuery.data as Panel<WinProbOverTime>
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 760 }}>

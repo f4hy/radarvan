@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
@@ -114,9 +115,7 @@ function CandidateRow({
 }
 
 export default function ChooseMap() {
-  const [counts, setCounts] = React.useState<number[] | null>(null)
   const [selected, setSelected] = React.useState<number | null>(null)
-  const [players, setPlayers] = React.useState<string[]>([])
   const [participants, setParticipants] = React.useState<Set<string>>(new Set())
   const [result, setResult] = React.useState<ChooseMapResult | null>(null)
   const [phase, setPhase] = React.useState<Phase>("pick")
@@ -124,18 +123,25 @@ export default function ChooseMap() {
   const [spinIndex, setSpinIndex] = React.useState(0)
   const [error, setError] = React.useState<string | null>(null)
 
+  const { data: counts = null } = useQuery({
+    queryKey: ["mapVotePlayerCounts"],
+    queryFn: fetchPlayerCounts,
+  })
+  const { data: players = [] } = useQuery({
+    queryKey: ["votingPlayers"],
+    queryFn: fetchVotingPlayers,
+  })
+
+  // Default to everyone selected; the host deselects whoever isn't playing.
+  // Seeded once the roster arrives rather than on every render, so a host who
+  // has already deselected someone doesn't have it undone underneath them.
+  const seeded = React.useRef(false)
   React.useEffect(() => {
-    fetchPlayerCounts()
-      .then(setCounts)
-      .catch(() => setError("Could not load player counts"))
-    // Default to everyone selected; the host deselects whoever isn't playing.
-    fetchVotingPlayers()
-      .then((p) => {
-        setPlayers(p)
-        setParticipants(new Set(p))
-      })
-      .catch(() => setError("Could not load players"))
-  }, [])
+    if (!seeded.current && players.length > 0) {
+      seeded.current = true
+      setParticipants(new Set(players))
+    }
+  }, [players])
 
   const toggleParticipant = (name: string) => {
     setParticipants((prev) => {

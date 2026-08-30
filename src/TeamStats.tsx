@@ -1,25 +1,22 @@
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
-import Loading from "./Loading"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import Tab from "@mui/material/Tab"
 import Tabs from "@mui/material/Tabs"
 import Typography from "@mui/material/Typography"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "./api"
 import { Client } from "./Client"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import { WinRateBar } from "./WinRateChip"
 import { PlayerChip } from "./PlayerChip"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { formatPercent, wilsonLowerBound, winRateTone } from "./utils"
 
-function getTeamStats(
-  callback: (m: TeamStatsResponse) => void,
-  onError = console.error,
-) {
-  Client.getTeamStatsApiTeamStatsGet().then(callback).catch(onError)
+function fetchTeamStats(): Promise<TeamStatsResponse> {
+  return Client.getTeamStatsApiTeamStatsGet()
 }
 
 function TeamRow(props: { team: TeamRecord }) {
@@ -100,46 +97,48 @@ function TeamSizeTab(props: { group: TeamSizeGroup }) {
 }
 
 export default function DisplayTeamStats() {
-  const [teamStats, setTeamStats] = React.useState<TeamStatsResponse | null>(
-    null,
-  )
   // null until the groups arrive: hardcoding 2v2 leaves the Tabs pointing at a
   // value that may not exist, which renders no tab as selected while the
   // content silently falls back to the first group.
   const [tab, setTab] = React.useState<number | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    getTeamStats(setTeamStats, showError)
-  }, [showError])
-
-  if (teamStats === null) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
-
-  const groups = teamStats.groups
-  // Prefer 2v2 when it exists (the most common format), else the first group
-  // that does — and keep the Tabs value and the rendered group in agreement.
-  const activeGroup = groups.find((g) => g.size === (tab ?? 2)) ?? groups[0]
+  const query = useQuery({
+    queryKey: ["teamStats"],
+    queryFn: fetchTeamStats,
+  })
 
   return (
     <Page
       title="Team Stats"
       description="Which pairings actually work. A team needs more than 3 games together to show up here."
     >
-      <Divider sx={{ mb: 1 }} />
-      <Tabs value={activeGroup?.size ?? false} onChange={(_, v) => setTab(v)}>
-        {groups.map((g) => (
-          <Tab key={g.size} value={g.size} label={`${g.size}v${g.size}`} />
-        ))}
-      </Tabs>
-      {activeGroup && <TeamSizeTab group={activeGroup} />}
-      {errorSnackbar}
+      <QueryState query={query} what="team stats">
+        {(teamStats) => {
+          const groups = teamStats.groups
+          // Prefer 2v2 when it exists (the most common format), else the first
+          // group that does — and keep the Tabs value and the rendered group in
+          // agreement.
+          const activeGroup =
+            groups.find((g) => g.size === (tab ?? 2)) ?? groups[0]
+          return (
+            <>
+              <Divider sx={{ mb: 1 }} />
+              <Tabs
+                value={activeGroup?.size ?? false}
+                onChange={(_, v) => setTab(v)}
+              >
+                {groups.map((g) => (
+                  <Tab
+                    key={g.size}
+                    value={g.size}
+                    label={`${g.size}v${g.size}`}
+                  />
+                ))}
+              </Tabs>
+              {activeGroup && <TeamSizeTab group={activeGroup} />}
+            </>
+          )
+        }}
+      </QueryState>
     </Page>
   )
 }

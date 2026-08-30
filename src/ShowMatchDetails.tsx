@@ -5,6 +5,7 @@ import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import orderBy from "lodash/orderBy"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Area,
@@ -57,6 +58,7 @@ import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Loading from "./Loading"
+import { queryFallback } from "./QueryState"
 import MatchNarrative from "./MatchNarrative"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
@@ -66,8 +68,6 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
-import { useErrorSnackbar } from "./useErrorSnackbar"
-import { useFetch } from "./useFetch"
 import { buildPlayerColorMap, formatCash, getColorHex } from "./utils"
 import { BRAND_COLOR } from "./theme"
 
@@ -1753,23 +1753,17 @@ export default function ShowMatchDetails(props: { id: number }) {
   const [selectedDisplay, setSelectedDisplay] = React.useState<Displays>(
     "Player Unit and spending breakdown",
   )
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  // useFetch, not a hand-rolled effect: switching matches has to clear the old
-  // details (otherwise the previous match's charts stay on screen under the
-  // new id) and drop a response that lands after the id already moved on.
-  const details = useFetch(
-    () => Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: props.id }),
-    [props.id],
-    showError,
-  )
-  if (details === null) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
+  // Keyed on the match id, so switching matches shows the new match's details
+  // rather than leaving the previous one's charts on screen under the new id —
+  // and a response that lands after the id moved on belongs to its own key.
+  const query = useQuery({
+    queryKey: ["matchDetails", props.id],
+    queryFn: () =>
+      Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: props.id }),
+  })
+  const fallback = queryFallback(query, `match #${props.id}`)
+  if (fallback) return fallback
+  const details = query.data as MatchDetails
   const choices: Displays[] = [
     "Player Unit and spending breakdown",
     "Event Chart",
@@ -1811,7 +1805,6 @@ export default function ShowMatchDetails(props: { id: number }) {
         onChange={setSelectedDisplay}
         details={details}
       />
-      {errorSnackbar}
     </Paper>
   )
 }
