@@ -36,7 +36,7 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/playerstats", { player_stats: [] }],
   ["/api/generalstats", { general_stats: [] }],
   ["/api/ffastats", { total_games: 0, player_stats: [], distinct_players: 0 }],
-  ["/api/map_stats/", { maps: [] }],
+  ["/api/map_stats/", fx.MAP_STATS.body],
   ["/api/map_match_counts", []],
   ["/api/maps_by_player_count", {}],
   ["/api/power_stats/", { players: [], profile: null }],
@@ -63,17 +63,26 @@ export interface ApiMock {
   unmocked: string[]
   /** Every `/api` path requested, in order — for asserting cache behaviour. */
   calls: string[]
+  /**
+   * The same requests with their query strings, for asserting that a filter the
+   * page shows is a filter the server was actually asked for. `calls` stays
+   * path-only because the cache assertions want to count requests, not
+   * distinguish them.
+   */
+  urls: string[]
 }
 
 export async function mockApi(
   page: Page,
   overrides: Record<string, Body> = {},
 ): Promise<ApiMock> {
-  const state: ApiMock = { unmocked: [], calls: [] }
+  const state: ApiMock = { unmocked: [], calls: [], urls: [] }
 
   await page.route("**/api/**", async (route: Route) => {
-    const path = new URL(route.request().url()).pathname
+    const url = new URL(route.request().url())
+    const path = url.pathname
     state.calls.push(path)
+    state.urls.push(path + url.search)
 
     // Map images are binary and irrelevant to every assertion here; a 404 is a
     // shape the app already handles (it draws its placeholder).

@@ -35,7 +35,7 @@ import { usePlayerPalette } from "./PlayerColorsContext"
 import { displayMapName, formatCash, formatPercent } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinShareBar from "./WinShareBar"
-import { useUrlParam } from "./useUrlState"
+import { useUrlChoice, useUrlParam } from "./useUrlState"
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -400,7 +400,11 @@ export default function HeadToHead() {
   // "Nemesis" cards and the ratings table point at. See useUrlState.
   const [player1, setPlayer1] = useUrlParam("player1")
   const [player2, setPlayer2] = useUrlParam("player2")
-  const [format, setFormat] = React.useState<GameFormat>("All")
+  const [format, setFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
 
   const { data: players = [] } = useQuery({
     queryKey: ["playerGameCounts"],
