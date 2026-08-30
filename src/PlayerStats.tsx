@@ -38,7 +38,7 @@ import {
   type PlayerStats,
   type WinLoss,
 } from "./api"
-import { Client } from "./Client"
+import { PlayersClient } from "./clients/players"
 import { winRate, wilsonLowerBound } from "./utils"
 import WinRateRadar from "./WinRateRadar"
 import WinRateChip, { WinLossVolumeBar } from "./WinRateChip"
@@ -48,7 +48,7 @@ type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
 function fetchPlayerStats(gameFormat: GameFormat): Promise<PlayerStats> {
   const params = gameFormat === "All" ? {} : { gameFormat }
-  return Client.getPlayerStatsApiPlayerstatsGet(params)
+  return PlayersClient.getPlayerStatsApiPlayerstatsGet(params)
 }
 
 function toGeneral(s: string | number): General {

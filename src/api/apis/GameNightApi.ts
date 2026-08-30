@@ -15,11 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
+  GameNightBackfill,
   GameNightRecap,
   GameNightSummaryStatus,
   HTTPValidationError,
 } from '../models/index';
 import {
+    GameNightBackfillFromJSON,
+    GameNightBackfillToJSON,
     GameNightRecapFromJSON,
     GameNightRecapToJSON,
     GameNightSummaryStatusFromJSON,
@@ -27,6 +30,16 @@ import {
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
 } from '../models/index';
+
+export interface BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest {
+    days?: number;
+    maxToUpdate?: number;
+}
+
+export interface GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest {
+    night: Date;
+    force?: boolean;
+}
 
 export interface GetGameNightRecapApiGameNightNightGetRequest {
     night: Date;
@@ -44,6 +57,108 @@ export interface ListGameNightSummariesApiGameNightSummariesGetRequest {
  * 
  */
 export class GameNightApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for backfillGameNightSummariesApiBackfillGameNightSummariesPost without sending the request
+     */
+    async backfillGameNightSummariesApiBackfillGameNightSummariesPostRequestOpts(requestParameters: BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['days'] != null) {
+            queryParameters['days'] = requestParameters['days'];
+        }
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/backfill_game_night_summaries`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Fill in missing LLM recaps for the last ``days`` game nights.  **Every night this writes is a real, billed LLM call**, which is what shapes the two knobs. ``days`` says how far back to *look*; ``max_to_update`` says how many calls this run may *spend* (the backfill endpoint pattern - default 1, run it again to continue). Nights are taken newest first, so a small budget buys the recaps people are most likely to read.  Never overwrites: a night with a stored row is reported ``already_summarized`` and skipped, because the stored text is the delivery mechanism rather than a cache. Use ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite one deliberately. Nights below the floor the nightly job uses (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night currently in progress is never in the window - see ``queries.closed_nights_within``.  The report lists every night considered, so a run with the default budget doubles as a dry run of the next one.
+     * Backfill Game Night Summaries
+     */
+    async backfillGameNightSummariesApiBackfillGameNightSummariesPostRaw(requestParameters: BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameNightBackfill>> {
+        const requestOptions = await this.backfillGameNightSummariesApiBackfillGameNightSummariesPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GameNightBackfillFromJSON(jsonValue));
+    }
+
+    /**
+     * Fill in missing LLM recaps for the last ``days`` game nights.  **Every night this writes is a real, billed LLM call**, which is what shapes the two knobs. ``days`` says how far back to *look*; ``max_to_update`` says how many calls this run may *spend* (the backfill endpoint pattern - default 1, run it again to continue). Nights are taken newest first, so a small budget buys the recaps people are most likely to read.  Never overwrites: a night with a stored row is reported ``already_summarized`` and skipped, because the stored text is the delivery mechanism rather than a cache. Use ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite one deliberately. Nights below the floor the nightly job uses (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night currently in progress is never in the window - see ``queries.closed_nights_within``.  The report lists every night considered, so a run with the default budget doubles as a dry run of the next one.
+     * Backfill Game Night Summaries
+     */
+    async backfillGameNightSummariesApiBackfillGameNightSummariesPost(requestParameters: BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameNightBackfill> {
+        const response = await this.backfillGameNightSummariesApiBackfillGameNightSummariesPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for generateGameNightSummaryApiGenerateGameNightSummaryNightPost without sending the request
+     */
+    async generateGameNightSummaryApiGenerateGameNightSummaryNightPostRequestOpts(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['night'] == null) {
+            throw new runtime.RequiredError(
+                'night',
+                'Required parameter "night" was null or undefined when calling generateGameNightSummaryApiGenerateGameNightSummaryNightPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['force'] != null) {
+            queryParameters['force'] = requestParameters['force'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/generate_game_night_summary/{night}`;
+        if (requestParameters['night'] instanceof Date) {
+            urlPath = urlPath.replace(`{${"night"}}`, encodeURIComponent(requestParameters['night'].toISOString().substring(0,10)));
+        } else {
+            urlPath = urlPath.replace(`{${"night"}}`, encodeURIComponent(String(requestParameters['night'])));
+        }
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Write (or rewrite) one game night\'s LLM recap by hand.  A real, billed LLM call - which is why this is the only way to reach the generator outside the nightly job, why it is ops-admin gated, and why it refuses by default when a row already exists. ``force=true`` overwrites.  Unlike the nightly job this does not require the night to be closed, so it can be used to see what tonight would read like; the row it writes is then the one the page serves, so re-run it with ``force`` once the night ends.
+     * Generate Game Night Summary
+     */
+    async generateGameNightSummaryApiGenerateGameNightSummaryNightPostRaw(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GameNightSummaryStatus>> {
+        const requestOptions = await this.generateGameNightSummaryApiGenerateGameNightSummaryNightPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GameNightSummaryStatusFromJSON(jsonValue));
+    }
+
+    /**
+     * Write (or rewrite) one game night\'s LLM recap by hand.  A real, billed LLM call - which is why this is the only way to reach the generator outside the nightly job, why it is ops-admin gated, and why it refuses by default when a row already exists. ``force=true`` overwrites.  Unlike the nightly job this does not require the night to be closed, so it can be used to see what tonight would read like; the row it writes is then the one the page serves, so re-run it with ``force`` once the night ends.
+     * Generate Game Night Summary
+     */
+    async generateGameNightSummaryApiGenerateGameNightSummaryNightPost(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameNightSummaryStatus> {
+        const response = await this.generateGameNightSummaryApiGenerateGameNightSummaryNightPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getGameNightRecapApiGameNightNightGet without sending the request

@@ -40,7 +40,7 @@ import WinRateRadar from "./WinRateRadar"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import type { FFAStats, FFAPlayerStat } from "./api"
-import { Client } from "./Client"
+import { FfaClient } from "./clients/ffa"
 import { CHART_PALETTE } from "./theme"
 
 function InfoTip(props: { title: string }) {
@@ -460,7 +460,7 @@ export default function DisplayFFAStats() {
   const query = useQuery({
     queryKey: ["ffaStats", field],
     queryFn: () =>
-      Client.getFfaStatsApiFfastatsGet({ includeCpu: field === "All FFA" }),
+      FfaClient.getFfaStatsApiFfastatsGet({ includeCpu: field === "All FFA" }),
   })
 
   // The toggle renders in every state on purpose: an empty result is itself a

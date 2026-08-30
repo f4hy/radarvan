@@ -36,7 +36,8 @@ import type {
   WinLoss,
   MatchInfo,
 } from "./api"
-import { Client } from "./Client"
+import { MatchesClient } from "./clients/matches"
+import { TournamentsClient } from "./clients/tournaments"
 import { useIsAdmin } from "./AuthContext"
 import { WIN_COLOR, WIN_COLOR_SOFT, LOSS_COLOR } from "./theme"
 import { Typography } from "@mui/material"
@@ -130,7 +131,7 @@ function LoadAndShowMatch(props: { matchId: number }) {
   const query = useQuery({
     queryKey: ["match", props.matchId],
     queryFn: () =>
-      Client.getMatchByIdApiMatchMatchIdGet({ matchId: props.matchId }),
+      MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId: props.matchId }),
   })
   const fallback = queryFallback(query, `match #${props.matchId}`)
   if (fallback) return fallback
@@ -511,9 +512,11 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   const reportQuery = useQuery({
     queryKey: ["tournamentReport", props.result.tournament.name],
     queryFn: () =>
-      Client.getTournamentReportApiTournamentReportTournamentNameGet({
-        tournamentName: props.result.tournament.name,
-      }),
+      TournamentsClient.getTournamentReportApiTournamentReportTournamentNameGet(
+        {
+          tournamentName: props.result.tournament.name,
+        },
+      ),
     // An in-progress tournament has no report to show, so don't ask for one.
     enabled: show,
   })
@@ -608,7 +611,8 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
 export default function DisplayTournamentResults() {
   const query = useQuery({
     queryKey: ["tournamentResults"],
-    queryFn: () => Client.getTournamentResultsApiTournamentResultsGet(),
+    queryFn: () =>
+      TournamentsClient.getTournamentResultsApiTournamentResultsGet(),
   })
   const fallback = queryFallback(query, "tournaments")
   if (fallback) return fallback

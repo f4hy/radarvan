@@ -27,7 +27,7 @@ from ..queries import CompetitiveGames
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["matches"])
 
 
 def empty_match_details(match_id: int) -> MatchDetails:
