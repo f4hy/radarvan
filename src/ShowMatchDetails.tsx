@@ -25,7 +25,7 @@ import {
 } from "recharts"
 import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
-import { Client } from "./Client"
+import { MatchesClient } from "./clients/matches"
 import type {
   KillEventOutput,
   MatchDetails,
@@ -1764,7 +1764,7 @@ export default function ShowMatchDetails(props: { id: number }) {
   const query = useQuery({
     queryKey: ["matchDetails", props.id],
     queryFn: () =>
-      Client.getMatchDetailsApiDetailsMatchIdGet({ matchId: props.id }),
+      MatchesClient.getMatchDetailsApiDetailsMatchIdGet({ matchId: props.id }),
   })
   const fallback = queryFallback(query, `match #${props.id}`)
   if (fallback) return fallback

@@ -78,3 +78,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Generated per-model markdown from openapi-generator (see
+# src/api/.openapi-generator-ignore). Nothing reads it; the TypeScript is the
+# documentation.
+/src/api/docs/

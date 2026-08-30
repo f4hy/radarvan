@@ -11,7 +11,7 @@ from ..queries import power_stats
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["powers"])
 
 
 @router.get("/api/power_stats/", dependencies=[Depends(cache_short)])

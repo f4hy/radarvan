@@ -1,5 +1,9 @@
 import type { MapPoint, Player } from "./api"
-import { PlayerRole, Team } from "./api"
+// Direct model imports, not the `./api` barrel: see the note in apiError.ts —
+// a value import through the barrel drags every API class along, and this
+// module is on the eager path.
+import { PlayerRole } from "./api/models/PlayerRole"
+import { Team } from "./api/models/Team"
 import { INK, LOSS_COLOR, NEUTRAL_COLOR, WIN_COLOR } from "./theme"
 
 // The generated PlayerRole is NUMBER_0/1/2 - Python IntEnum member names don't

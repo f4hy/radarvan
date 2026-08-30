@@ -1,4 +1,10 @@
-import { ResponseError } from "./api"
+// Imported from the runtime module rather than the `./api` barrel on purpose.
+// The barrel re-exports every generated API class, so a *value* import through
+// it pulls all of them into whatever chunk this lands in — and this module is
+// eagerly loaded (queryClient depends on it), which put the app's whole endpoint
+// surface in the initial payload. Same reason `utils.ts` reaches for the model
+// files directly.
+import { ResponseError } from "./api/runtime"
 
 /**
  * Turn anything thrown by the generated client into a message worth showing.

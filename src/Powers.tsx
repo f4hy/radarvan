@@ -20,7 +20,7 @@ import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import type { GeneralPowers, PowerRow, UnusualPick } from "./api"
-import { Client } from "./Client"
+import { PowersClient } from "./clients/powers"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Page from "./Page"
@@ -349,7 +349,7 @@ export default function Powers() {
   const query = useQuery({
     queryKey: ["powerStats", player],
     queryFn: () =>
-      Client.getPowerStatsApiPowerStatsGet(player ? { player } : {}),
+      PowersClient.getPowerStatsApiPowerStatsGet(player ? { player } : {}),
   })
   const stats = query.data
   const profile = stats?.profile ?? null

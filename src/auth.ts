@@ -6,7 +6,7 @@
 // used to live here — those could drift from the API with nothing to catch it,
 // and they were the reason the app spelled the same object two ways.
 
-import { AuthClient } from "./Client"
+import { AuthClient } from "./clients/auth"
 import type { AuthStatus, CurrentUser } from "./api"
 
 export type { AuthStatus, CurrentUser }

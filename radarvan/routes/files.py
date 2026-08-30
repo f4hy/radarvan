@@ -31,12 +31,12 @@ from ..dependencies import OPS_ADMIN, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["files"])
 
 # Operational routes the admin control panel drives. Cookie-authenticated, so
 # included in main.py without the API-key dependency; every route here carries
 # `dependencies=OPS_ADMIN`.
-session_router = APIRouter()
+session_router = APIRouter(tags=["files"])
 
 MAX_REPLAY_UPLOAD_BYTES = 5 * 1024 * 1024
 

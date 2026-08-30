@@ -21,12 +21,12 @@ from ..repositories import TournamentRepo
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["tournaments"])
 
 # Operational routes the admin control panel drives. Cookie-authenticated, so
 # included in main.py without the API-key dependency; every route here carries
 # `dependencies=OPS_ADMIN`.
-session_router = APIRouter()
+session_router = APIRouter(tags=["tournaments"])
 
 
 _report_semaphore = asyncio.Semaphore(value=1)

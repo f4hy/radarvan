@@ -15,12 +15,12 @@ from ..notify import notify_async
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["superlatives"])
 
 # Operational routes the admin control panel drives. Cookie-authenticated, so
 # included in main.py without the API-key dependency; every route here carries
 # `dependencies=OPS_ADMIN`.
-session_router = APIRouter()
+session_router = APIRouter(tags=["superlatives"])
 
 
 _recompute_lock = asyncio.Lock()

@@ -26,7 +26,7 @@ import {
   YAxis,
 } from "recharts"
 import type { DurationDistribution, DurationStats } from "./api"
-import { Client } from "./Client"
+import { MatchesClient } from "./clients/matches"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
@@ -245,7 +245,7 @@ export default function GameLength() {
   const query = useQuery({
     queryKey: ["durationDistribution", gameFormat, bucketMinutes],
     queryFn: () =>
-      Client.getDurationDistributionApiDurationDistributionGet({
+      MatchesClient.getDurationDistributionApiDurationDistributionGet({
         bucketMinutes,
         ...(gameFormat === "All" ? {} : { gameFormat }),
       }),
