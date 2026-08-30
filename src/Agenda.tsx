@@ -69,7 +69,7 @@ const flashLive = keyframes`
 // RevealCountdown, so only this row re-renders each second, not the whole
 // list. Exported for Bracket.tsx's hero "next match" banner, which reuses
 // the same escalating hype styling rather than a second copy of it.
-export function AgendaCountdown({ scheduledAt }: { scheduledAt: string }) {
+export function AgendaCountdown({ scheduledAt }: { scheduledAt: Date }) {
   const remaining = useCountdownMs(scheduledAt)
 
   if (remaining <= 0) {
@@ -142,22 +142,22 @@ function ScheduleMatchButton({
   onSchedule,
 }: {
   match: BracketMatchOutput
-  onSchedule: (matchId: string, scheduledAt: string | null) => Promise<void>
+  onSchedule: (matchId: string, scheduledAt: Date | null) => Promise<void>
 }) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
   const [value, setValue] = React.useState<Dayjs | null>(null)
   const [saving, setSaving] = React.useState(false)
 
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
-    setValue(match.scheduled_at ? dayjs(match.scheduled_at) : null)
+    setValue(match.scheduledAt ? dayjs(match.scheduledAt) : null)
     setAnchorEl(e.currentTarget)
   }
   const handleClose = () => setAnchorEl(null)
 
-  const commit = async (scheduledAt: string | null) => {
+  const commit = async (scheduledAt: Date | null) => {
     setSaving(true)
     try {
-      await onSchedule(match.match_id, scheduledAt)
+      await onSchedule(match.matchId, scheduledAt)
     } finally {
       setSaving(false)
       handleClose()
@@ -190,7 +190,7 @@ function ScheduleMatchButton({
             spacing={1}
             sx={{ justifyContent: "flex-end" }}
           >
-            {match.scheduled_at && (
+            {match.scheduledAt && (
               <Button
                 size="small"
                 disabled={saving}
@@ -203,7 +203,7 @@ function ScheduleMatchButton({
               size="small"
               variant="contained"
               disabled={saving}
-              onClick={() => commit(value ? value.toISOString() : null)}
+              onClick={() => commit(value ? value.toDate() : null)}
             >
               Save
             </Button>
@@ -230,11 +230,11 @@ function PredictionBar({
   prediction: BracketMatchPrediction | undefined
   playerA: string
   playerB: string
-  scheduledAt: string | null
+  scheduledAt: Date | null
   onPick: (winner: string | null) => Promise<void>
 }) {
   const { status } = useAuth()
-  const loggedIn = status?.logged_in ?? false
+  const loggedIn = status?.loggedIn ?? false
   const [pending, setPending] = React.useState(false)
 
   const tally = prediction?.tally ?? {}
@@ -243,14 +243,14 @@ function PredictionBar({
   const total = countA + countB
   const pctA = total > 0 ? Math.round((countA / total) * 100) : 50
   const pctB = 100 - pctA
-  const myPick = prediction?.my_pick ?? null
+  const myPick = prediction?.myPick ?? null
   // `prediction.open` is a snapshot from whenever the list was fetched, so a
   // page left open past tip-off would keep offering picks (the POST would 409
   // - _prediction_is_open in routes/bracket.py is the real gate). Re-check the
   // start time against the shared per-second ticker so the poll closes itself
   // the moment the match starts. Unscheduled matches (NaN remaining) stay open.
-  const remainingMs = useCountdownMs(scheduledAt ?? "")
-  const started = scheduledAt !== null && remainingMs <= 0
+  const remainingMs = useCountdownMs(scheduledAt)
+  const started = scheduledAt != null && remainingMs <= 0
   const open = (prediction?.open ?? false) && !started
 
   // Logged out isn't a dead end: clicking either side sends the visitor
@@ -379,7 +379,7 @@ function AgendaRow({
   onPick,
 }: {
   match: BracketMatchOutput
-  onSchedule: (matchId: string, scheduledAt: string | null) => Promise<void>
+  onSchedule: (matchId: string, scheduledAt: Date | null) => Promise<void>
   prediction: BracketMatchPrediction | undefined
   onPick: (matchId: string, winner: string | null) => Promise<void>
 }) {
@@ -397,7 +397,7 @@ function AgendaRow({
       >
         <Stack spacing={0.25}>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {match.round_name} ({shortMatchLabel(match)})
+            {match.roundName} ({shortMatchLabel(match)})
           </Typography>
           <Typography variant="subtitle1">
             {playerLabel(match, "a")} vs {playerLabel(match, "b")}
@@ -405,12 +405,12 @@ function AgendaRow({
         </Stack>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <Stack sx={{ alignItems: "flex-end" }} spacing={0.25}>
-            {match.scheduled_at ? (
+            {match.scheduledAt ? (
               <>
                 <Typography variant="body2">
-                  {formatScheduledAt(match.scheduled_at)}
+                  {formatScheduledAt(match.scheduledAt)}
                 </Typography>
-                <AgendaCountdown scheduledAt={match.scheduled_at} />
+                <AgendaCountdown scheduledAt={match.scheduledAt} />
               </>
             ) : (
               <Typography
@@ -421,7 +421,7 @@ function AgendaRow({
               </Typography>
             )}
           </Stack>
-          {match.scheduled_at && (
+          {match.scheduledAt && (
             <Tooltip title="Add to Google Calendar">
               <IconButton
                 size="small"
@@ -439,14 +439,14 @@ function AgendaRow({
           )}
         </Stack>
       </Stack>
-      {match.player_a && match.player_b && (
+      {match.playerA && match.playerB && (
         <Box sx={{ mt: 1.5 }}>
           <PredictionBar
             prediction={prediction}
-            playerA={match.player_a}
-            playerB={match.player_b}
-            scheduledAt={match.scheduled_at ?? null}
-            onPick={(winner) => onPick(match.match_id, winner)}
+            playerA={match.playerA}
+            playerB={match.playerB}
+            scheduledAt={match.scheduledAt ?? null}
+            onPick={(winner) => onPick(match.matchId, winner)}
           />
         </Box>
       )}
@@ -465,16 +465,14 @@ export function agendaMatches(
 ): BracketMatchOutput[] {
   return (bracketData?.matches ?? [])
     .filter(
-      (m) => m.status === "ready" && m.player_a !== null && m.player_b !== null,
+      (m) => m.status === "ready" && m.playerA !== null && m.playerB !== null,
     )
     .sort((a, b) => {
       // Unscheduled matches (nothing to sort by) sort after all scheduled
       // ones, which are soonest-first.
-      if (a.scheduled_at === null) return b.scheduled_at === null ? 0 : 1
-      if (b.scheduled_at === null) return -1
-      return (
-        new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-      )
+      if (a.scheduledAt == null) return b.scheduledAt == null ? 0 : 1
+      if (b.scheduledAt == null) return -1
+      return a.scheduledAt.getTime() - b.scheduledAt.getTime()
     })
 }
 
@@ -488,11 +486,9 @@ function recentlyCompletedMatches(
   return (bracketData?.matches ?? [])
     .filter((m) => m.status === "completed")
     .sort((a, b) => {
-      if (a.scheduled_at === null) return b.scheduled_at === null ? 0 : 1
-      if (b.scheduled_at === null) return -1
-      return (
-        new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
-      )
+      if (a.scheduledAt == null) return b.scheduledAt == null ? 0 : 1
+      if (b.scheduledAt == null) return -1
+      return b.scheduledAt.getTime() - a.scheduledAt.getTime()
     })
 }
 
@@ -507,16 +503,16 @@ function CompletedPredictionReveal({
   match: BracketMatchOutput
   prediction: BracketMatchPrediction | undefined
 }) {
-  if (!match.player_a || !match.player_b || !match.winner) return null
-  const playerA = match.player_a
-  const playerB = match.player_b
+  if (!match.playerA || !match.playerB || !match.winner) return null
+  const playerA = match.playerA
+  const playerB = match.playerB
   const tally = prediction?.tally ?? {}
   const countA = tally[playerA] ?? 0
   const countB = tally[playerB] ?? 0
   const total = countA + countB
   const pctA = total > 0 ? Math.round((countA / total) * 100) : 50
   const pctB = 100 - pctA
-  const correctPicks = prediction?.correct_picks ?? []
+  const correctPicks = prediction?.correctPicks ?? []
 
   const segmentSx = (isWinnerSide: boolean) => ({
     py: 0.75,
@@ -615,14 +611,14 @@ function CompletedMatchRow({
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={0.25} sx={{ mb: 1.5 }}>
         <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          {match.round_name} ({shortMatchLabel(match)})
+          {match.roundName} ({shortMatchLabel(match)})
         </Typography>
         <Typography variant="subtitle1">
           <Box
             component="span"
             sx={{
-              fontWeight: match.winner === match.player_a ? 700 : 400,
-              color: match.winner === match.player_a ? WIN_COLOR : undefined,
+              fontWeight: match.winner === match.playerA ? 700 : 400,
+              color: match.winner === match.playerA ? WIN_COLOR : undefined,
             }}
           >
             {playerLabel(match, "a")}
@@ -631,20 +627,20 @@ function CompletedMatchRow({
           <Box
             component="span"
             sx={{
-              fontWeight: match.winner === match.player_b ? 700 : 400,
-              color: match.winner === match.player_b ? WIN_COLOR : undefined,
+              fontWeight: match.winner === match.playerB ? 700 : 400,
+              color: match.winner === match.playerB ? WIN_COLOR : undefined,
             }}
           >
             {playerLabel(match, "b")}
           </Box>
         </Typography>
-        {match.score_a !== null && match.score_b !== null && (
+        {match.scoreA !== null && match.scoreB !== null && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            {match.score_a} – {match.score_b}
+            {match.scoreA} – {match.scoreB}
           </Typography>
         )}
       </Stack>
-      {match.player_a && match.player_b && (
+      {match.playerA && match.playerB && (
         <CompletedPredictionReveal match={match} prediction={prediction} />
       )}
     </Paper>
@@ -687,7 +683,7 @@ function PredictionLeaderboardPanel() {
       <Stack spacing={0.5}>
         {top.map((entry, i) => (
           <Stack
-            key={entry.user_name}
+            key={entry.userName}
             direction="row"
             spacing={1}
             sx={{ alignItems: "center" }}
@@ -702,7 +698,7 @@ function PredictionLeaderboardPanel() {
               variant="body2"
               sx={{ flexGrow: 1, fontWeight: i === 0 ? 700 : 400 }}
             >
-              {entry.user_name}
+              {entry.userName}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               {entry.correct}/{entry.total}
@@ -725,7 +721,7 @@ export default function AgendaPanel({
   onSchedule,
 }: {
   bracketData: BracketTournamentOutput | null
-  onSchedule: (matchId: string, scheduledAt: string | null) => Promise<void>
+  onSchedule: (matchId: string, scheduledAt: Date | null) => Promise<void>
 }) {
   const matches = agendaMatches(bracketData)
   const [predictions, setPredictions] = React.useState<
@@ -745,7 +741,7 @@ export default function AgendaPanel({
     fetchBracketPredictions()
       .then((list) => {
         if (cancelled) return
-        setPredictions(Object.fromEntries(list.map((p) => [p.match_id, p])))
+        setPredictions(Object.fromEntries(list.map((p) => [p.matchId, p])))
       })
       .catch(showError)
     return () => {
@@ -784,10 +780,10 @@ export default function AgendaPanel({
         <Stack spacing={1.5}>
           {matches.map((m) => (
             <AgendaRow
-              key={m.match_id}
+              key={m.matchId}
               match={m}
               onSchedule={onSchedule}
-              prediction={predictions[m.match_id]}
+              prediction={predictions[m.matchId]}
               onPick={handlePick}
             />
           ))}
@@ -804,9 +800,9 @@ export default function AgendaPanel({
           <Stack spacing={1.5}>
             {completed.map((m) => (
               <CompletedMatchRow
-                key={m.match_id}
+                key={m.matchId}
                 match={m}
-                prediction={predictions[m.match_id]}
+                prediction={predictions[m.matchId]}
               />
             ))}
           </Stack>
