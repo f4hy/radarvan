@@ -18,7 +18,7 @@ import Typography from "@mui/material/Typography"
 import { Tooltip as MuiTooltip } from "@mui/material"
 
 import type { PlayerSynergy } from "./api"
-import { Client } from "./Client"
+import { PlayersClient } from "./clients/players"
 import QueryState from "./QueryState"
 import { PlayerLabel } from "./PlayerChip"
 import { WIN_COLOR, LOSS_COLOR } from "./theme"
@@ -119,7 +119,7 @@ export default function DisplayPlayerSynergy() {
   const query = useQuery({
     queryKey: ["playerSynergy", format, minGames, pairReg, mainReg],
     queryFn: () =>
-      Client.getPlayerSynergyApiPlayerRatingsSynergyGet({
+      PlayersClient.getPlayerSynergyApiPlayerRatingsSynergyGet({
         minGamesTogether: minGames,
         regularization: pairReg,
         mainRegularization: mainReg,
@@ -265,7 +265,7 @@ export function SimplePlayerSynergy() {
   const query = useQuery({
     queryKey: ["playerSynergy", "simple", SIMPLE_MIN_GAMES],
     queryFn: () =>
-      Client.getPlayerSynergyApiPlayerRatingsSynergyGet({
+      PlayersClient.getPlayerSynergyApiPlayerRatingsSynergyGet({
         minGamesTogether: SIMPLE_MIN_GAMES,
       }),
   })

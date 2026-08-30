@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import type { Statistic, Superlatives } from "./api"
-import { Client } from "./Client"
+import { MatchesClient } from "./clients/matches"
+import { SuperlativesClient } from "./clients/superlatives"
 import Page from "./Page"
 import QueryState from "./QueryState"
 import { DisplayMatchInfo } from "./Matches"
@@ -52,7 +53,7 @@ function categorize(statName: string): string {
 function LoadAndShowMatch({ matchId }: { matchId: number }) {
   const query = useQuery({
     queryKey: ["match", matchId],
-    queryFn: () => Client.getMatchByIdApiMatchMatchIdGet({ matchId }),
+    queryFn: () => MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId }),
   })
   return (
     <QueryState query={query} what={`match #${matchId}`}>
@@ -226,7 +227,7 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
 export default function DisplaySuperlatives() {
   const query = useQuery({
     queryKey: ["superlatives"],
-    queryFn: () => Client.getSuperlativesApiSuperlativesGet(),
+    queryFn: () => SuperlativesClient.getSuperlativesApiSuperlativesGet(),
   })
   return (
     <Page title="Records">

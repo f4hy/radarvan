@@ -23,7 +23,9 @@ import type {
 } from "./api"
 import Chip from "@mui/material/Chip"
 import { PlayerEnum } from "./api"
-import { Client, MapClient } from "./Client"
+import { PlayersClient } from "./clients/players"
+import { DraftClient } from "./clients/draft"
+import { MapClient } from "./clients/map"
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "./Generals"
 import GameMap from "./Map"
@@ -68,7 +70,7 @@ export default function DisplayDraft() {
       setMapsByCount,
       () => {},
     )
-    Client.getPlayerTeamGameCountsApiPlayerGameCountsTeamGet().then(
+    PlayersClient.getPlayerTeamGameCountsApiPlayerGameCountsTeamGet().then(
       (data: PlayerGameCount[]) => setTopPlayers(data.map((p) => p.name)),
       () => {},
     )
@@ -123,7 +125,7 @@ export default function DisplayDraft() {
       .filter((p) => p.team === 2)
       .map((p) => p.name as PlayerEnum)
     setBalanceLoading(true)
-    Client.balanceTeamsApiBalanceTeamsGet({
+    PlayersClient.balanceTeamsApiBalanceTeamsGet({
       players: [...team1, ...team2],
     }).then(
       (data) => {
@@ -169,7 +171,7 @@ export default function DisplayDraft() {
 
   async function randomize() {
     if (!selectedMap || players.length === 0) return
-    const result = await Client.randomizeDraftApiDraftRandomizePost({
+    const result = await DraftClient.randomizeDraftApiDraftRandomizePost({
       draftRequest: {
         mapName: selectedMap,
         players: players.map((p) => ({ name: p.name, team: p.team })),

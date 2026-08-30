@@ -77,7 +77,9 @@ import {
   sourceMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
-import { BracketClient, Client, CommentaryClient } from "./Client"
+import { BracketClient } from "./clients/bracket"
+import { CommentaryClient } from "./clients/commentary"
+import { PredictClient } from "./clients/predict"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import GameMap from "./Map"
@@ -816,9 +818,11 @@ function MatchupPopup({
   const { data: factionMatchup = null } = useQuery({
     queryKey: ["factionMatchup", playerA, playerB],
     queryFn: async () => {
-      const res = await Client.predictFactionMatchupApiPredictFactionMatchupGet(
-        { player1: playerA as string, player2: playerB as string },
-      )
+      const res =
+        await PredictClient.predictFactionMatchupApiPredictFactionMatchupGet({
+          player1: playerA as string,
+          player2: playerB as string,
+        })
       return res.options
     },
     enabled: Boolean(playerA && playerB),

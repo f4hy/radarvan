@@ -21,7 +21,11 @@ import {
   Team,
 } from "./api"
 import { isCompetitor } from "./utils"
-import { Client, MapClient } from "./Client"
+import { AdminClient } from "./clients/admin"
+import { FilesClient } from "./clients/files"
+import { MapClient } from "./clients/map"
+import { MatchesClient } from "./clients/matches"
+import { PredictClient } from "./clients/predict"
 import { reparseMatch } from "./adminApi"
 import { DisplayMatchInfo } from "./Matches"
 import Table from "@mui/material/Table"
@@ -40,7 +44,7 @@ function getGameData(
   callback: (m: GameRecord[]) => void,
   onError = console.error,
 ) {
-  Client.listReplaysApiReplaysGet({ matchId: matchId })
+  FilesClient.listReplaysApiReplaysGet({ matchId: matchId })
     .then(callback)
     .catch(onError)
 }
@@ -50,7 +54,7 @@ function getDebugData(
   callback: (m: { [key: string]: unknown }) => void,
   onError = console.error,
 ) {
-  Client.debugMatchApiDebugMatchMatchIdGet({ matchId: matchId })
+  AdminClient.debugMatchApiDebugMatchMatchIdGet({ matchId: matchId })
     .then(callback)
     .catch(onError)
 }
@@ -66,7 +70,7 @@ function getPrediction(
   callback: (p: MatchPrediction) => void,
   onError = console.error,
 ) {
-  Client.predictMatchApiPredictMatchMatchIdGet({ matchId: matchId })
+  PredictClient.predictMatchApiPredictMatchMatchIdGet({ matchId: matchId })
     .then(callback)
     .catch(onError)
 }
@@ -476,11 +480,11 @@ export default function DisplayDebugData() {
         setMatchInfo(null)
         setPrediction(null)
         setMapSummary(null)
-        Client.getMatchByIdApiMatchMatchIdGet({ matchId: num })
+        MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId: num })
           .then(setMatchInfo)
           .catch(showError)
         setJsonDownloadUrl(null)
-        Client.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
+        AdminClient.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
           .then((result) => setJsonDownloadUrl(result.url))
           .catch(showError)
       }

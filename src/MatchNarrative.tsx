@@ -7,7 +7,7 @@ import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 import { useQuery } from "@tanstack/react-query"
 import type { MatchNarrative as MatchNarrativeData, NarrativeBeat } from "./api"
-import { Client } from "./Client"
+import { MatchesClient } from "./clients/matches"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 
 /**
@@ -119,7 +119,7 @@ export default function MatchNarrative(props: {
   const { data: narrative, isPending } = useQuery({
     queryKey: ["matchNarrative", props.matchId],
     queryFn: () =>
-      Client.getMatchNarrativeApiNarrativeMatchIdGet({
+      MatchesClient.getMatchNarrativeApiNarrativeMatchIdGet({
         matchId: props.matchId,
       }),
     retry: false,

@@ -28,7 +28,8 @@ import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import type { GameNightHighlight, GameNightRecap } from "./api"
 import { renderAiText } from "./aiText"
-import { Client, GameNightClient } from "./Client"
+import { GameNightClient } from "./clients/game-night"
+import { MatchesClient } from "./clients/matches"
 import Loading from "./Loading"
 import MatchActivityCalendar from "./MatchActivityCalendar"
 import MatchNarrative from "./MatchNarrative"
@@ -223,13 +224,14 @@ function GameByGame(props: {
   const query = useQuery({
     queryKey: ["matchesByDate", props.date],
     queryFn: async () => {
-      const result = await Client.getMatchesByDateApiMatchesByDateDateGet({
-        // The generated client serializes Date params via toISOString() (UTC),
-        // so the param must be UTC midnight of the backend's date key — which
-        // is what new Date("YYYY-MM-DD") produces.
-        date: new Date(props.date),
-        excludeDev: true,
-      })
+      const result =
+        await MatchesClient.getMatchesByDateApiMatchesByDateDateGet({
+          // The generated client serializes Date params via toISOString() (UTC),
+          // so the param must be UTC midnight of the backend's date key — which
+          // is what new Date("YYYY-MM-DD") produces.
+          date: new Date(props.date),
+          excludeDev: true,
+        })
       return result.matches
     },
     enabled: expanded,
@@ -304,7 +306,7 @@ export default function GameNight() {
   // the counts feed the calendar too.
   const { data: dateCounts = {} } = useQuery({
     queryKey: ["dates"],
-    queryFn: () => Client.getDatesApiDatesGet(),
+    queryFn: () => MatchesClient.getDatesApiDatesGet(),
   })
 
   const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])

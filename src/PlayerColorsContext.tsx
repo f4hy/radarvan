@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { Client } from "./Client"
+import { PlayersClient } from "./clients/players"
 import {
   getColorHex,
   type PlayerPalette,
@@ -24,7 +24,7 @@ export function PlayerColorsProvider(props: { children: React.ReactNode }) {
   const { data } = useQuery({
     queryKey: ["playerColors"],
     queryFn: async () => {
-      const raw = await Client.getPlayerColorsApiPlayerColorsGet()
+      const raw = await PlayersClient.getPlayerColorsApiPlayerColorsGet()
       const clean: Record<string, string> = {}
       for (const [name, color] of Object.entries(raw)) {
         if (color) clean[name] = color

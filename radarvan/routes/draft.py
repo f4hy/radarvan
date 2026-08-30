@@ -11,7 +11,7 @@ from ..api_types import DraftPlayerRequest, DraftRequest, DraftResult
 from ..db_utils import ReplayManager
 from ..dependencies import get_replay_manager
 
-router = APIRouter()
+router = APIRouter(tags=["draft"])
 
 
 # Deliberately NOT a @derived derivation, and the reason is not the mechanism -
