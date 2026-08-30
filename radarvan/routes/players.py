@@ -43,7 +43,7 @@ from ..queries import (
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
 
-router = APIRouter()
+router = APIRouter(tags=["players"])
 
 
 _TEAM_FORMATS = {"2v2", "3v3", "4v4"}

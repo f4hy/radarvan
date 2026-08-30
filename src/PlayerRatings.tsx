@@ -40,7 +40,7 @@ import type {
   PlayerSkill,
   RatingUpset,
 } from "./api"
-import { Client } from "./Client"
+import { PlayersClient } from "./clients/players"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
 import { SimplePlayerSynergy } from "./PlayerSynergy"
@@ -61,7 +61,7 @@ function fetchPlayerRatings(
     ...(gameFormat === "All" ? {} : { gameFormat }),
     ...(monthsBack == null ? {} : { monthsBack }),
   }
-  return Client.getPlayerRatingsApiPlayerRatingsGet(params)
+  return PlayersClient.getPlayerRatingsApiPlayerRatingsGet(params)
 }
 
 function formatLabel(val: unknown): string {
@@ -539,7 +539,7 @@ function RecentUpsets(props: { format: GameFormat }) {
   const query = useQuery({
     queryKey: ["ratingUpsets", "recent", props.format],
     queryFn: () =>
-      Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+      PlayersClient.getRatingUpsetsApiPlayerRatingsUpsetsGet({
         limit: 200,
         withinDays: RECENT_UPSET_DAYS,
         minSurprise: RECENT_UPSET_MIN_PCT / 100,
@@ -586,7 +586,7 @@ function BiggestUpsets(props: { format: GameFormat }) {
   const query = useQuery({
     queryKey: ["ratingUpsets", "biggest", props.format],
     queryFn: () =>
-      Client.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+      PlayersClient.getRatingUpsetsApiPlayerRatingsUpsetsGet({
         limit: 15,
         ...(props.format === "All" ? {} : { gameFormat: props.format }),
       }),
@@ -628,7 +628,7 @@ function HeadToHeadMatrix(props: { format: GameFormat }) {
   const query = useQuery({
     queryKey: ["ratingsHeadToHead", props.format],
     queryFn: () =>
-      Client.getHeadToHeadApiPlayerRatingsHeadToHeadGet(
+      PlayersClient.getHeadToHeadApiPlayerRatingsHeadToHeadGet(
         props.format === "All" ? {} : { gameFormat: props.format },
       ),
   })
@@ -907,7 +907,7 @@ function WhrTable() {
     queryFn: async () => {
       const results = await Promise.all(
         WHR_FORMATS.map((f) =>
-          Client.getPlayerSkillsApiPlayerSkillsGet(
+          PlayersClient.getPlayerSkillsApiPlayerSkillsGet(
             f === "All" ? {} : { gameFormat: f },
           ),
         ),

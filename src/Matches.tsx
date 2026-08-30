@@ -33,7 +33,10 @@ import * as React from "react"
 import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
 import { toGeneralName } from "./general_utils"
-import { Client, MapClient } from "./Client"
+import { PlayersClient } from "./clients/players"
+import { FilesClient } from "./clients/files"
+import { MapClient } from "./clients/map"
+import { MatchesClient } from "./clients/matches"
 import {
   type MatchInfo,
   type Matches,
@@ -102,7 +105,7 @@ function filterParams(filters: MatchFilters) {
 }
 
 function fetchDates(filters: MatchFilters): Promise<{ [key: string]: number }> {
-  return Client.getDatesApiDatesGet(filterParams(filters))
+  return MatchesClient.getDatesApiDatesGet(filterParams(filters))
 }
 
 function fetchMatches(
@@ -111,7 +114,7 @@ function fetchMatches(
   excludeDev: boolean,
 ): Promise<Matches> {
   // Hide dev-build matches (is_dev) for non-admins.
-  return Client.getMatchesByDateApiMatchesByDateDateGet({
+  return MatchesClient.getMatchesByDateApiMatchesByDateDateGet({
     date: date,
     excludeDev: excludeDev,
     ...filterParams(filters),
@@ -442,7 +445,7 @@ function downloadURI(uri: string, name: string) {
 }
 
 function downloadReplay(matchId: number) {
-  Client.getMatchReplayUrlApiReplayUrlMatchIdGet({ matchId })
+  FilesClient.getMatchReplayUrlApiReplayUrlMatchIdGet({ matchId })
     .then((result) => {
       if (!result.url) return
       // The name is also signed into the presigned URL's Content-Disposition -
@@ -728,7 +731,7 @@ function DisplayMatchesForDate(props: {
   const ratingChangesQuery = useQuery({
     queryKey: ["ratingDailyChanges", props.dateStr],
     queryFn: () =>
-      Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
+      PlayersClient.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
         forDate: apiDate,
       }),
     enabled: expanded,

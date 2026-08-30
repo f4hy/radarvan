@@ -45,7 +45,7 @@ router = APIRouter(tags=["game night"])
 # Operational routes the admin control panel drives. Cookie-authenticated, so
 # included in main.py without the API-key dependency; every route here carries
 # `dependencies=OPS_ADMIN`.
-session_router = APIRouter()
+session_router = APIRouter(tags=["game night"])
 
 
 def summary_status(

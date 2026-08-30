@@ -11,7 +11,7 @@ from ..queries import AllGames
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["ffa"])
 
 
 @router.get("/api/ffastats", dependencies=[Depends(cache_short)])

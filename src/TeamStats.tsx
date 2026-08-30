@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import type { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "./api"
-import { Client } from "./Client"
+import { TeamsClient } from "./clients/teams"
 import Page from "./Page"
 import QueryState from "./QueryState"
 import { WinRateBar } from "./WinRateChip"
@@ -16,7 +16,7 @@ import { PlayerChip } from "./PlayerChip"
 import { formatPercent, wilsonLowerBound, winRateTone } from "./utils"
 
 function fetchTeamStats(): Promise<TeamStatsResponse> {
-  return Client.getTeamStatsApiTeamStatsGet()
+  return TeamsClient.getTeamStatsApiTeamStatsGet()
 }
 
 function TeamRow(props: { team: TeamRecord }) {

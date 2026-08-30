@@ -18,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { Client } from "./Client"
+import { PredictClient } from "./clients/predict"
 import {
   type MatchPrediction,
   ResponseError,
@@ -251,7 +251,7 @@ export default function AIPredictions(props: { matchId: number }) {
   const pregameQuery = useQuery<Panel<MatchPrediction>>({
     queryKey: ["predictMatch", props.matchId],
     queryFn: () =>
-      Client.predictMatchApiPredictMatchMatchIdGet({
+      PredictClient.predictMatchApiPredictMatchMatchIdGet({
         matchId: props.matchId,
       }).catch((e) => ({ error: describeError(e) })),
     retry: false,
@@ -259,7 +259,7 @@ export default function AIPredictions(props: { matchId: number }) {
   const overTimeQuery = useQuery<Panel<WinProbOverTime>>({
     queryKey: ["predictOverTime", props.matchId],
     queryFn: () =>
-      Client.predictOverTimeApiPredictOverTimeMatchIdGet({
+      PredictClient.predictOverTimeApiPredictOverTimeMatchIdGet({
         matchId: props.matchId,
       }).catch((e) => ({ error: describeError(e) })),
     retry: false,

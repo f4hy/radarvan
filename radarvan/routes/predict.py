@@ -26,7 +26,7 @@ from ..derived import MODEL, derived
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["predict"])
 
 # Recognised generals only (skip UNRECOGNIZED = -1), mirroring ml/features.py's
 # closed vocab so every value here is one the model actually has an embedding for.

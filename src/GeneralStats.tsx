@@ -26,7 +26,8 @@ import {
   YAxis,
 } from "recharts"
 import type { FactionMatrix, GeneralStat, GeneralStats } from "./api"
-import { Client } from "./Client"
+import { GeneralsClient } from "./clients/generals"
+import { PredictClient } from "./clients/predict"
 import DisplayGeneral, { GeneralAvatar } from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
@@ -43,7 +44,7 @@ type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
 function fetchGeneralStats(gameFormat: GameFormat): Promise<GeneralStats> {
   const params = gameFormat === "All" ? {} : { gameFormat }
-  return Client.getGeneralsStatsApiGeneralstatsGet(params)
+  return GeneralsClient.getGeneralsStatsApiGeneralstatsGet(params)
 }
 
 type GeneralChartData = {
@@ -331,7 +332,8 @@ function FactionMatrixSection() {
   // an unavailable model stays unavailable for the length of a visit.
   const { data: matrix, isPending } = useQuery({
     queryKey: ["factionMatrix"],
-    queryFn: () => Client.predictFactionMatrixApiPredictFactionMatrixGet(),
+    queryFn: () =>
+      PredictClient.predictFactionMatrixApiPredictFactionMatrixGet(),
     retry: false,
   })
 
