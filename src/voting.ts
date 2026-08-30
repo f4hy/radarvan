@@ -1,65 +1,41 @@
-// Map-voting helpers. Like auth.ts these use relative-URL, same-origin fetch so
-// the session cookie identifies the voter (the generated API-key client in
-// Client.ts is cross-origin in dev and can't carry the cookie).
+// Map-voting helpers over the generated client.
+//
+// The session cookie identifies the voter; `Client.ts` sends it because the
+// client's base path is relative and so same-origin. The response types are the
+// generated ones — the hand-written snake_case copies that used to live here
+// duplicated `MapVotePage`, `MapVoteOption`, `ChooseMapCandidate` and
+// `ChooseMapResult`, all of which the generator already emits from the same
+// backend models.
+
+import { MapVoteClient } from "./Client"
+import type { MapVotePage, ChooseMapResult } from "./api"
+
+export type {
+  MapVotePage,
+  MapVoteOption,
+  ChooseMapCandidate,
+  ChooseMapResult,
+} from "./api"
 
 export type MapVoteChoice = "vote" | "veto"
 
-export interface MapVoteOption {
-  map_name: string
-  game_count: number
-  last_played: string | null
-  days_since_last_played: number | null
-  my_choice: MapVoteChoice | null
-}
-
-export interface MapVotePage {
-  player_count: number
-  logged_in: boolean
-  vote_limit: number
-  veto_limit: number
-  votes_used: number
-  vetoes_used: number
-  maps: MapVoteOption[]
-}
-
+// The player-count and player lists come back as `Array<number | null>` /
+// `Array<string | null>` because the backend's response models don't forbid a
+// null element; nothing ever sends one, so they're filtered here rather than
+// making every call site carry the null.
 export async function fetchPlayerCounts(): Promise<number[]> {
-  const resp = await fetch("/api/map_vote/player_counts", {
-    credentials: "same-origin",
-  })
-  if (!resp.ok) throw new Error(`player_counts failed (${resp.status})`)
-  return (await resp.json()) as number[]
+  const counts = await MapVoteClient.playerCountsApiMapVotePlayerCountsGet()
+  return counts.filter((c): c is number => c != null)
 }
 
 export async function fetchVotePage(playerCount: number): Promise<MapVotePage> {
-  const resp = await fetch(`/api/map_vote/${playerCount}`, {
-    credentials: "same-origin",
-  })
-  if (!resp.ok) throw new Error(`map_vote failed (${resp.status})`)
-  return (await resp.json()) as MapVotePage
-}
-
-export interface ChooseMapCandidate {
-  map_name: string
-  votes: number
-  vetoes: number
-  weight: number
-  eligible: boolean
-  recently_played: boolean
-}
-
-export interface ChooseMapResult {
-  player_count: number
-  chosen_map: string | null
-  candidates: ChooseMapCandidate[]
+  return MapVoteClient.getVotePageApiMapVotePlayerCountGet({ playerCount })
 }
 
 // In-game names that have an account — the selectable draw participants.
 export async function fetchVotingPlayers(): Promise<string[]> {
-  const resp = await fetch("/api/map_vote/players", {
-    credentials: "same-origin",
-  })
-  if (!resp.ok) throw new Error(`players failed (${resp.status})`)
-  return (await resp.json()) as string[]
+  const players = await MapVoteClient.votingPlayersApiMapVotePlayersGet()
+  return players.filter((p): p is string => p != null)
 }
 
 // Runs the authoritative weighted-random draw on the backend, counting only
@@ -68,14 +44,10 @@ export async function chooseMap(
   playerCount: number,
   players: string[],
 ): Promise<ChooseMapResult> {
-  const resp = await fetch(`/api/map_vote/${playerCount}/choose`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ players }),
+  return MapVoteClient.chooseMapApiMapVotePlayerCountChoosePost({
+    playerCount,
+    chooseMapRequest: { players },
   })
-  if (!resp.ok) throw new Error(`choose failed (${resp.status})`)
-  return (await resp.json()) as ChooseMapResult
 }
 
 export async function setVote(
@@ -83,22 +55,8 @@ export async function setVote(
   mapName: string,
   choice: MapVoteChoice | null,
 ): Promise<MapVotePage> {
-  const resp = await fetch(`/api/map_vote/${playerCount}`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ map_name: mapName, choice }),
+  return MapVoteClient.setVoteApiMapVotePlayerCountPost({
+    playerCount,
+    setMapVoteRequest: { mapName, choice },
   })
-  if (!resp.ok) {
-    // Surface the server's detail (e.g. the 409 limit message) when present.
-    let detail = `Vote failed (${resp.status})`
-    try {
-      const body = (await resp.json()) as { detail?: string }
-      if (body?.detail) detail = body.detail
-    } catch {
-      // non-JSON error body; keep the generic message
-    }
-    throw new Error(detail)
-  }
-  return (await resp.json()) as MapVotePage
 }

@@ -141,8 +141,8 @@ export default function Menu() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [selection, setSelection] = React.useState<Selection>(selectionFromUrl)
   const { status } = useAuth()
-  const debug = status?.user?.is_admin ?? false
-  const opsAdmin = status?.user?.is_ops_admin ?? false
+  const debug = status?.user?.isAdmin ?? false
+  const opsAdmin = status?.user?.isOpsAdmin ?? false
 
   // Navigate to a page and reflect it in the URL (?page=) so it's shareable.
   const navigate = React.useCallback((s: Selection) => {
@@ -181,7 +181,7 @@ export default function Menu() {
 
   // After returning from Discord without an in-game name yet, drop the user
   // straight onto the Account page to finish the one-time selection.
-  const needsSelection = status?.user?.needs_player_selection ?? false
+  const needsSelection = status?.user?.needsPlayerSelection ?? false
   React.useEffect(() => {
     if (needsSelection) {
       navigate("Account")
@@ -410,14 +410,14 @@ export default function Menu() {
             >
               {navItems.find((i) => i.value === selection)?.text ?? selection}
             </Typography>
-            {status?.logged_in ? (
+            {status?.loggedIn ? (
               <Button
                 color="inherit"
                 startIcon={<AccountCircleIcon />}
                 onClick={() => navigate("Account")}
               >
-                {status.user?.player_name ??
-                  status.user?.discord_username ??
+                {status.user?.playerName ??
+                  status.user?.discordUsername ??
                   "Account"}
               </Button>
             ) : (

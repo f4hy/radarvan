@@ -48,13 +48,13 @@ export function useAuth(): AuthContextValue {
 // True if the logged-in user is an admin (player_ids.ADMIN_PLAYERS). Also gates
 // what used to be the ?debug=True views.
 export function useIsAdmin(): boolean {
-  return useAuth().status?.user?.is_admin ?? false
+  return useAuth().status?.user?.isAdmin ?? false
 }
 
 // True if the logged-in user can administer the 1v1 bracket tournament
 // (player_ids.TOURNAMENT_ADMINS) — a separate, narrower set from useIsAdmin.
 export function useIsTournamentAdmin(): boolean {
-  return useAuth().status?.user?.is_tournament_admin ?? false
+  return useAuth().status?.user?.isTournamentAdmin ?? false
 }
 
 // True if the logged-in user can run the operational admin tasks behind the
@@ -62,5 +62,5 @@ export function useIsTournamentAdmin(): boolean {
 // only unlocks the debug views. The backend gates every one of those routes on
 // the same set, so this is presentation only, not the security boundary.
 export function useIsOpsAdmin(): boolean {
-  return useAuth().status?.user?.is_ops_admin ?? false
+  return useAuth().status?.user?.isOpsAdmin ?? false
 }

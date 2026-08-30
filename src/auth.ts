@@ -1,63 +1,47 @@
 // Cookie-based auth helpers.
 //
-// These talk to /api/auth/* with the session cookie, deliberately *separate*
-// from the generated API-key client in Client.ts. We use relative URLs so the
-// requests stay same-origin (dev: through the Vite proxy; prod: same host),
-// which is what lets the signed session cookie ride along.
+// These go through the generated client like everything else. The types are
+// the generated `AuthStatus`/`CurrentUser` (camelCase, regenerated from the
+// backend's own models) rather than the hand-written snake_case copies that
+// used to live here — those could drift from the API with nothing to catch it,
+// and they were the reason the app spelled the same object two ways.
 
-export interface CurrentUser {
-  discord_id: string
-  discord_username: string
-  discord_avatar: string | null
-  player_name: string | null
-  needs_player_selection: boolean
-  is_admin: boolean
-  is_tournament_admin: boolean
-  is_ops_admin: boolean
-}
+import { AuthClient } from "./Client"
+import type { AuthStatus, CurrentUser } from "./api"
 
-export interface AuthStatus {
-  logged_in: boolean
-  user: CurrentUser | null
-  available_players: string[]
-}
+export type { AuthStatus, CurrentUser }
 
 const LOGGED_OUT: AuthStatus = {
-  logged_in: false,
+  loggedIn: false,
   user: null,
-  available_players: [],
+  availablePlayers: [],
 }
 
 export async function fetchAuthStatus(): Promise<AuthStatus> {
-  const resp = await fetch("/api/auth/me", { credentials: "same-origin" })
-  if (!resp.ok) {
+  // Not-logged-in is an ordinary state, not an error: any failure to read the
+  // session (401, a network blip) reads as logged out rather than throwing
+  // into AuthProvider, which has no error branch and gates the whole nav.
+  try {
+    return await AuthClient.meApiAuthMeGet()
+  } catch {
     return LOGGED_OUT
   }
-  return (await resp.json()) as AuthStatus
 }
 
 // Full-page navigation that hands the browser to Discord's consent screen.
+// Deliberately not the generated `discordLoginApiAuthDiscordLoginGet`: this has
+// to be a top-level navigation so Discord can render its own page and redirect
+// back, not an XHR that follows the redirect in the background.
 export function startDiscordLogin(): void {
   window.location.href = "/api/auth/discord/login"
 }
 
 export async function selectPlayer(playerName: string): Promise<AuthStatus> {
-  const resp = await fetch("/api/auth/select_player", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ player_name: playerName }),
+  return AuthClient.selectPlayerApiAuthSelectPlayerPost({
+    selectPlayerRequest: { playerName },
   })
-  if (!resp.ok) {
-    const detail = await resp.text()
-    throw new Error(detail || `select_player failed (${resp.status})`)
-  }
-  return (await resp.json()) as AuthStatus
 }
 
 export async function logout(): Promise<void> {
-  await fetch("/api/auth/logout", {
-    method: "POST",
-    credentials: "same-origin",
-  })
+  await AuthClient.logoutApiAuthLogoutPost()
 }
