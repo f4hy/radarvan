@@ -1,7 +1,16 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "includes": ["**", "!!**/dist"] },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!!**/dist"
+    ]
+  },
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
@@ -27,13 +36,18 @@
   },
   "linter": {
     "enabled": true,
-    "rules": { "preset": "none" },
+    "rules": {
+      "recommended": true
+    },
     "includes": [
       "**",
       "!build/**",
       "!node_modules/**",
       "!src/api/**"
-    ]
+    ],
+    "domains": {
+      "react": "recommended"
+    }
   },
   "javascript": {
     "formatter": {
@@ -56,32 +70,27 @@
   },
   "overrides": [
     {
-      "includes": ["src/**/*.{ts,tsx}"],
-      "javascript": { "globals": [] },
+      "includes": [
+        "src/**/*.{ts,tsx}"
+      ],
+      "javascript": {
+        "globals": []
+      },
       "linter": {
         "rules": {
-          "complexity": {
-            "noBannedTypes": "error",
-            "noUselessThisAlias": "error",
-            "noUselessTypeConstraint": "error"
-          },
-          "correctness": { "noUnusedVariables": "warn" },
-          "style": {
-            "noCommonJs": "error",
-            "noNamespace": "error",
-            "useArrayLiterals": "error",
-            "useAsConstAssertion": "error"
+          "recommended": true,
+          "correctness": {
+            "useExhaustiveDependencies": {
+              "level": "error",
+              "options": {
+                "reportUnnecessaryDependencies": false
+              }
+            },
+            "noUnusedVariables": "warn"
           },
           "suspicious": {
-            "noDuplicateEnumValues": "error",
             "noExplicitAny": "warn",
-            "noExtraNonNullAssertion": "error",
-            "noMisleadingInstantiator": "error",
-            "noNonNullAssertedOptionalChain": "error",
-            "noTsIgnore": "error",
-            "noUnsafeDeclarationMerging": "error",
-            "noUnusedExpressions": "off",
-            "useNamespaceKeyword": "error"
+            "noUnusedExpressions": "off"
           }
         }
       }
@@ -89,6 +98,10 @@
   ],
   "assist": {
     "enabled": true,
-    "actions": { "source": { "organizeImports": "on" } }
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   }
 }

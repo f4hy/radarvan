@@ -263,10 +263,10 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
   // "primary" chips were the one place that ignored the theme entirely.
 
   const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    _event: React.ChangeEvent<HTMLInputElement>,
     value: string,
   ) => {
-    setTeamSize(parseInt(value))
+    setTeamSize(parseInt(value, 10))
   }
   return (
     <Stack>
@@ -283,7 +283,9 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       </RadioGroup>
       <Grid container spacing={2}>
         {teamPartition.map((team, i) => (
-          <Grid key={i}>
+          // A team is its roster; the partition is re-randomized in place, so
+          // keying on the index would carry one team's card state onto another.
+          <Grid key={team.join("|")}>
             <Paper
               variant="outlined"
               sx={{
@@ -385,7 +387,7 @@ export default function DisplayBalanceTeams() {
   }
   const players = Object.values(PlayerEnum).sort()
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setSelectedTab(newValue)
     if (newValue === "partitionTeams" && selectedPlayers.length < 6) {
       const allPlayers = players.filter((p) => p !== "HardArmy")

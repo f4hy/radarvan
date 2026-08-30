@@ -85,17 +85,54 @@ export default function MatchActivityCalendar(props: {
     (block: React.ReactElement, activity: { date: string; count: number }) => {
       const playable = activity.count > 0
       const isSelected = activity.date === selected
+      // stroke/stroke-width are inherited SVG presentation attributes, so
+      // ringing the selected night is a property of this wrapper rather than a
+      // cloned copy of the library's own block element.
+      const ring = {
+        stroke: isSelected ? BRAND_COLOR : undefined,
+        strokeWidth: isSelected ? 2 : undefined,
+      }
+
+      // A night with nothing played isn't a target: no role, no tab stop, no
+      // handler. Split rather than made conditional on one element so that
+      // "this is interactive" is a static fact about the branch.
+      if (!playable) {
+        return (
+          <g {...ring} style={{ cursor: "default" }}>
+            {block}
+          </g>
+        )
+      }
+
+      const select = () => onSelect(activity.date)
+      // Two nested <g>s, and the nesting is load-bearing. react-activity-calendar
+      // wraps whatever renderBlock returns in its own Tooltip, which does
+      // `cloneElement(children, { ref, ...getReferenceProps() })` — floating-ui's
+      // props are spread *after* ours, so anything on the outer element that it
+      // also sets is silently replaced. It sets `onKeyDown` (Escape-to-dismiss)
+      // and `ref`, but not `onClick`, which is why a single <g> gave a calendar
+      // that worked with a mouse and did nothing on Enter. The outer <g> is the
+      // sacrificial one it clones; everything interactive lives on the inner one.
       return (
-        // stroke/stroke-width are inherited SVG presentation attributes, so
-        // ringing the selected night is a property of this wrapper rather than
-        // a cloned copy of the library's own block element.
-        <g
-          onClick={playable ? () => onSelect(activity.date) : undefined}
-          style={{ cursor: playable ? "pointer" : "default" }}
-          stroke={isSelected ? BRAND_COLOR : undefined}
-          strokeWidth={isSelected ? 2 : undefined}
-        >
-          {block}
+        <g>
+          {/* biome-ignore lint/a11y/useSemanticElements: inside an <svg>, where an HTML <button> is not valid content — role + tabIndex is the correct way to make an SVG group operable. */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label={`${activity.count} ${activity.count === 1 ? "game" : "games"} on ${activity.date}`}
+            aria-pressed={isSelected}
+            onClick={select}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                select()
+              }
+            }}
+            style={{ cursor: "pointer" }}
+            {...ring}
+          >
+            {block}
+          </g>
         </g>
       )
     },

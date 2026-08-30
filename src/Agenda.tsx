@@ -11,20 +11,19 @@ import IconButton from "@mui/material/IconButton"
 import Paper from "@mui/material/Paper"
 import Popover from "@mui/material/Popover"
 import Stack from "@mui/material/Stack"
-import { alpha, keyframes, Theme } from "@mui/material/styles"
+import { alpha, keyframes, type Theme } from "@mui/material/styles"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import DateTimeField from "./DateTimeField"
-import dayjs, { Dayjs } from "dayjs"
+import dayjs, { type Dayjs } from "dayjs"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { useAuth, useIsTournamentAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
 import {
-  BracketMatchOutput,
-  BracketMatchPrediction,
-  BracketPredictionLeaderboardEntry,
-  BracketTournamentOutput,
+  type BracketMatchOutput,
+  type BracketMatchPrediction,
+  type BracketTournamentOutput,
   fetchBracketPredictionLeaderboard,
   fetchBracketPredictions,
   setBracketPrediction,

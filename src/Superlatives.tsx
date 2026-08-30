@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import type { MatchInfo, Statistic, Superlatives } from "./api"
+import type { Statistic, Superlatives } from "./api"
 import { Client } from "./Client"
 import Page from "./Page"
 import QueryState from "./QueryState"

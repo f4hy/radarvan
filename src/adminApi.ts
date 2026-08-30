@@ -5,7 +5,7 @@
 // here — it points at an absolute base URL, which is cross-origin in dev and so
 // never sends the cookie.
 
-import { MatchInfo } from "./api"
+import type { MatchInfo } from "./api"
 
 export type AdminMethod = "POST" | "DELETE"
 

@@ -1,7 +1,6 @@
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
-import * as React from "react"
 
 /**
  * The game-format filter, in one place.

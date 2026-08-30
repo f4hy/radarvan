@@ -29,13 +29,12 @@ import {
   YAxis,
   Legend,
 } from "recharts"
-import {
+import type {
   Tournament,
   TournamentResult,
   MatchupResult,
   WinLoss,
   MatchInfo,
-  TournamentReport,
 } from "./api"
 import { Client } from "./Client"
 import { useIsAdmin } from "./AuthContext"
@@ -139,19 +138,14 @@ function LoadAndShowMatch(props: { matchId: number }) {
   // A match with no duration hasn't finished parsing; keep waiting rather than
   // rendering a half-built card.
   if (match.durationMinutes === undefined) return <Loading />
-  return (
-    <>
-      <DisplayMatchInfo match={match} idx={props.matchId} />
-    </>
-  )
+  return <DisplayMatchInfo match={match} idx={props.matchId} />
 }
 
 function DisplayMatchup(props: { matchup: MatchupResult }) {
   const gameDate =
     props.matchup.matches.find((m) => m.timestamp)?.timestamp?.toDateString() ??
     ""
-  const header =
-    Object.keys(props.matchup.outcome).join(" vs. ") + ` @ ${gameDate}`
+  const header = `${Object.keys(props.matchup.outcome).join(" vs. ")} @ ${gameDate}`
   return (
     <Box>
       <Stack>
@@ -313,7 +307,7 @@ function TeamProgressChart(props: {
       }
     }>
   }) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
       const data = payload[0].payload
       return (
         <Paper elevation={3} sx={{ p: 1.5, lineHeight: 1.5 }}>
@@ -448,6 +442,7 @@ function MatchupButtonGrid(props: {
       {rows.map((row, rowIndex) => (
         <ToggleButtonGroup
           color="primary"
+          // biome-ignore lint/suspicious/noArrayIndexKey: rows are fixed-size chunks of one option list; the row index is the chunk's identity.
           key={rowIndex}
           value={props.selected}
           exclusive
@@ -576,7 +571,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
                   }}
                 >
                   <TableCell>{s.statName}</TableCell>
-                  <TableCell>{"" + s.value}</TableCell>
+                  <TableCell>{`${s.value}`}</TableCell>
                   <TableCell>{s.player}</TableCell>
                   <TableCell>{matchButton(s.matchId)}</TableCell>
                 </TableRow>

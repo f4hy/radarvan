@@ -14,7 +14,11 @@ import UploadFileIcon from "@mui/icons-material/UploadFile"
 import SaveIcon from "@mui/icons-material/Save"
 import { useAuth } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
-import { MapUploadFiles, MapUploadResponse, uploadMaps } from "./mapUpload"
+import {
+  type MapUploadFiles,
+  type MapUploadResponse,
+  uploadMaps,
+} from "./mapUpload"
 
 type Mode = "files" | "zip"
 
@@ -282,8 +286,8 @@ export default function MapUpload() {
             Saved {savedCount} map{savedCount === 1 ? "" : "s"}.
           </Alert>
         )}
-        {(result?.errors ?? []).map((e, i) => (
-          <Alert key={i} severity="warning">
+        {(result?.errors ?? []).map((e) => (
+          <Alert key={e} severity="warning">
             {e}
           </Alert>
         ))}
