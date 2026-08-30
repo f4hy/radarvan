@@ -60,7 +60,7 @@ import type {
   PlayerProfile,
   ProfileBadge,
 } from "./api"
-import { Client } from "./Client"
+import { ProfileClient } from "./clients/profile"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Page from "./Page"
@@ -1253,7 +1253,7 @@ export default function DisplayPlayerProfile() {
     queryKey: ["eligiblePlayers"],
     queryFn: async () => {
       const names =
-        await Client.getEligiblePlayersApiPlayerProfileEligiblePlayersGet()
+        await ProfileClient.getEligiblePlayersApiPlayerProfileEligiblePlayersGet()
       return names.filter((n): n is string => n != null)
     },
   })
@@ -1261,7 +1261,9 @@ export default function DisplayPlayerProfile() {
   const profileQuery = useQuery({
     queryKey: ["playerProfile", player],
     queryFn: () =>
-      Client.getPlayerProfileApiPlayerProfileGet({ player: player as string }),
+      ProfileClient.getPlayerProfileApiPlayerProfileGet({
+        player: player as string,
+      }),
     // Nothing to fetch until someone is picked; the empty state below covers it.
     enabled: player !== null && player !== "",
   })

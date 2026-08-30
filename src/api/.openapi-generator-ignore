@@ -21,3 +21,10 @@
 #docs/*.md
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
+
+# --- radarvan ---
+# The generator writes a .md file per model and per API class: 186 files and
+# ~1 MB that nothing reads, regenerated wholesale on every `./gen_client.sh` run
+# and therefore noise in every diff that touches the API. The TypeScript is the
+# documentation here.
+docs/*.md

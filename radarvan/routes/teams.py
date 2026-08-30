@@ -7,7 +7,7 @@ from ..api_types import TeamStatsResponse
 from ..dependencies import cache_short
 from ..queries import UnfilteredCompetitiveGames
 
-router = APIRouter()
+router = APIRouter(tags=["teams"])
 
 
 @router.get("/api/team_stats/", dependencies=[Depends(cache_short)])

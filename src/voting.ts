@@ -7,7 +7,7 @@
 // `ChooseMapResult`, all of which the generator already emits from the same
 // backend models.
 
-import { MapVoteClient } from "./Client"
+import { MapVoteClient } from "./clients/map-vote"
 import type { MapVotePage, ChooseMapResult } from "./api"
 
 export type {

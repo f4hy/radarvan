@@ -11,7 +11,7 @@
 // One real difference from those copies: `scheduledAt` and `revealAt` arrive as
 // `Date`, not an ISO string, because the generated converters parse them.
 
-import { BracketClient } from "./Client"
+import { BracketClient } from "./clients/bracket"
 import type {
   BracketMatchGames,
   BracketMatchPrediction,

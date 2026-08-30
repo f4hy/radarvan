@@ -24,7 +24,7 @@ import type {
   HeadToHeadMapRecord,
   PlayerGameCount,
 } from "./api"
-import { Client } from "./Client"
+import { PlayersClient } from "./clients/players"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
@@ -406,7 +406,7 @@ export default function HeadToHead() {
     queryKey: ["playerGameCounts"],
     queryFn: async () => {
       const counts: PlayerGameCount[] =
-        await Client.getPlayerGameCountsApiPlayerGameCountsGet()
+        await PlayersClient.getPlayerGameCountsApiPlayerGameCountsGet()
       return counts.map((c) => c.name)
     },
   })
@@ -417,7 +417,7 @@ export default function HeadToHead() {
   const query = useQuery({
     queryKey: ["headToHead", player1, player2, format],
     queryFn: () =>
-      Client.getPlayerHeadToHeadApiPlayerHeadToHeadGet({
+      PlayersClient.getPlayerHeadToHeadApiPlayerHeadToHeadGet({
         player1: player1 as string,
         player2: player2 as string,
         gameFormat: format === "All" ? undefined : format,

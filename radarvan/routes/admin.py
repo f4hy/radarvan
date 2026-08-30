@@ -41,13 +41,13 @@ from ..game_composition import GameComposition
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["admin"])
 
 # Admin actions driven from the UI. Included in main.py *without* the API-key
 # dependency: the browser sends a session cookie, not an admin key. Every route
 # here must carry `dependencies=OPS_ADMIN` (or `ADMIN_LOGIN` for the DebugData
 # reparse button) - the router itself has no gate of its own.
-session_router = APIRouter()
+session_router = APIRouter(tags=["admin"])
 
 
 def _row_to_dict(obj: Any) -> dict[str, Any]:

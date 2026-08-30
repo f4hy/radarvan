@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography"
 import DownloadIcon from "@mui/icons-material/Download"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { MapClient } from "./Client"
+import { MapClient } from "./clients/map"
 import { formatCash, getColorHex, totalMapSupply } from "./utils"
 
 export type PlayerPosition = {

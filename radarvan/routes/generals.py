@@ -12,7 +12,7 @@ from ..queries import CompetitiveGames
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["generals"])
 
 
 @router.get("/api/generalstats", dependencies=[Depends(cache_short)])

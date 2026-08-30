@@ -19,7 +19,7 @@ import Tab from "@mui/material/Tab"
 import Tabs from "@mui/material/Tabs"
 import * as React from "react"
 import { PlayerEnum, PlayerEnumFromJSON } from "./api"
-import { Client } from "./Client"
+import { PlayersClient } from "./clients/players"
 import { useIsAdmin } from "./AuthContext"
 import { CHART_PALETTE } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -37,7 +37,7 @@ function getTeamWinRating(
     callback({})
     return
   }
-  Client.balanceTeamsApiBalanceTeamsGet({ players: players })
+  PlayersClient.balanceTeamsApiBalanceTeamsGet({ players: players })
     .then(callback)
     .catch(onError)
 }
@@ -56,7 +56,7 @@ function getTeamPartition(
     callback([])
     return
   }
-  Client.partitionTeamsApiPartitionTeamsTeamSizeGet({
+  PlayersClient.partitionTeamsApiPartitionTeamsTeamSizeGet({
     teamSize: teamSize,
     players: players,
   })
