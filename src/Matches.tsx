@@ -20,6 +20,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { MatchesLoading, MatchRowLoading } from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import Stack from "@mui/material/Stack"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
@@ -27,6 +28,7 @@ import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 
 import groupBy from "lodash/groupBy"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
@@ -100,31 +102,21 @@ function filterParams(filters: MatchFilters) {
   }
 }
 
-function getDates(
-  filters: MatchFilters,
-  callback: (m: { [key: string]: number }) => void,
-  onError = console.error,
-) {
-  Client.getDatesApiDatesGet(filterParams(filters))
-    .then(callback)
-    .catch(onError)
+function fetchDates(filters: MatchFilters): Promise<{ [key: string]: number }> {
+  return Client.getDatesApiDatesGet(filterParams(filters))
 }
 
-function getMatches(
+function fetchMatches(
   date: Date,
   filters: MatchFilters,
-  callback: (m: Matches) => void,
   excludeDev: boolean,
-  onError = console.error,
-) {
+): Promise<Matches> {
   // Hide dev-build matches (is_dev) for non-admins.
-  Client.getMatchesByDateApiMatchesByDateDateGet({
+  return Client.getMatchesByDateApiMatchesByDateDateGet({
     date: date,
     excludeDev: excludeDev,
     ...filterParams(filters),
   })
-    .then(callback)
-    .catch(onError)
 }
 
 function normalizePlayerName(name: string): string {
@@ -720,33 +712,30 @@ function DisplayMatchesForDate(props: {
   openByDefault: boolean
 }) {
   const [expanded, setExpanded] = React.useState<boolean>(props.openByDefault)
-  const [matchList, setMatchList] = React.useState<Matches>(empty)
-  const [ratingChanges, setRatingChanges] = React.useState<
-    PlayerRatingDailyChange[]
-  >([])
-  const { showError, errorSnackbar } = useErrorSnackbar()
   const isAdmin = useIsAdmin()
   // The generated client serializes Date params via toISOString() (UTC), so
   // the API param must be UTC midnight of the backend's date key — which is
   // exactly what new Date("YYYY-MM-DD") produces. Display uses the raw string.
   const apiDate = React.useMemo(() => new Date(props.dateStr), [props.dateStr])
-  React.useEffect(() => {
-    if (expanded && matchList.matches.length === 0) {
-      getMatches(apiDate, props.filters, setMatchList, !isAdmin, showError)
+
+  // Both queries are keyed on the filter set as well as the night, which is
+  // what makes an already-expanded row refetch instead of showing what it
+  // loaded under the old filter. `enabled` keeps a collapsed night silent.
+  const matchesQuery = useQuery({
+    queryKey: ["matchesByDate", props.dateStr, props.filters, isAdmin],
+    queryFn: () => fetchMatches(apiDate, props.filters, !isAdmin),
+    enabled: expanded,
+  })
+  const ratingChangesQuery = useQuery({
+    queryKey: ["ratingDailyChanges", props.dateStr],
+    queryFn: () =>
       Client.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
         forDate: apiDate,
-      })
-        .then(setRatingChanges)
-        .catch(showError)
-    }
-  }, [
-    expanded,
-    matchList.matches.length,
-    apiDate,
-    props.filters,
-    showError,
-    isAdmin,
-  ])
+      }),
+    enabled: expanded,
+  })
+  const matchList = matchesQuery.data ?? empty
+  const ratingChanges = ratingChangesQuery.data ?? []
 
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -766,16 +755,16 @@ function DisplayMatchesForDate(props: {
           />
         </AccordionSummary>
         <AccordionDetails sx={{ bgcolor: "background.default" }}>
-          {matchList.matches.length === 0 ? (
-            <MatchRowLoading />
-          ) : (
-            matchList.matches.map((m, matchIdx) => (
-              <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
-            ))
-          )}
+          {queryFallback(matchesQuery, "this night's games") ??
+            (matchList.matches.length === 0 ? (
+              <MatchRowLoading />
+            ) : (
+              matchList.matches.map((m, matchIdx) => (
+                <DisplayMatchInfo match={m} key={m.id} idx={matchIdx} />
+              ))
+            ))}
         </AccordionDetails>
       </Accordion>
-      {errorSnackbar}
     </>
   )
 }
@@ -837,27 +826,31 @@ function MatchFilterBar(props: {
 const NIGHTS_PER_PAGE = 25
 
 export default function DisplayMatches() {
-  const [dates, setDates] = React.useState<{ [key: string]: number } | null>(
-    null,
-  )
   const [filters, setFilters] = React.useState<MatchFilters>(NO_FILTERS)
   const [visibleNights, setVisibleNights] = React.useState(NIGHTS_PER_PAGE)
-  const [mapOptions, setMapOptions] = React.useState<string[]>([])
-  const { showError, errorSnackbar } = useErrorSnackbar()
 
+  const datesQuery = useQuery({
+    queryKey: ["dates", filters],
+    queryFn: () => fetchDates(filters),
+  })
+  const dates = datesQuery.data ?? null
+
+  // Changing the filter set starts the list over: page 3 of the old filter is
+  // not page 3 of the new one.
   React.useEffect(() => {
-    setDates(null)
     setVisibleNights(NIGHTS_PER_PAGE)
-    getDates(filters, setDates, showError)
-  }, [filters, showError])
+  }, [filters])
 
-  React.useEffect(() => {
-    MapClient.getMapMatchCountsApiMapMatchCountsGet()
-      .then((counts) => setMapOptions(counts.map((c) => c.map)))
-      // Best-effort: without it the map filter is an empty picker, which is
-      // better than failing the page.
-      .catch(() => setMapOptions([]))
-  }, [])
+  // Best-effort: without it the map filter is an empty picker, which is better
+  // than failing the page.
+  const { data: mapOptions = [] } = useQuery({
+    queryKey: ["mapMatchCounts"],
+    queryFn: async () => {
+      const counts = await MapClient.getMapMatchCountsApiMapMatchCountsGet()
+      return counts.map((c) => c.map)
+    },
+    retry: false,
+  })
 
   const nights = Object.entries(dates ?? {})
   const shown = nights.slice(0, visibleNights)
@@ -916,7 +909,6 @@ export default function DisplayMatches() {
           )}
         </Stack>
       )}
-      {errorSnackbar}
     </Page>
   )
 }

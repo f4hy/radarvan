@@ -1,9 +1,9 @@
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import type { MatchInfo, Statistic, Superlatives } from "./api"
 import { Client } from "./Client"
-import { useErrorSnackbar } from "./useErrorSnackbar"
-import Loading from "./Loading"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import { DisplayMatchInfo } from "./Matches"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -50,28 +50,14 @@ function categorize(statName: string): string {
 }
 
 function LoadAndShowMatch({ matchId }: { matchId: number }) {
-  const [match, setMatch] = React.useState<MatchInfo | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
-
-  React.useEffect(() => {
-    Client.getMatchByIdApiMatchMatchIdGet({ matchId })
-      .then(setMatch)
-      .catch(showError)
-  }, [matchId, showError])
-
-  if (match === null) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
+  const query = useQuery({
+    queryKey: ["match", matchId],
+    queryFn: () => Client.getMatchByIdApiMatchMatchIdGet({ matchId }),
+  })
   return (
-    <>
-      <DisplayMatchInfo match={match} idx={matchId} />
-      {errorSnackbar}
-    </>
+    <QueryState query={query} what={`match #${matchId}`}>
+      {(match) => <DisplayMatchInfo match={match} idx={matchId} />}
+    </QueryState>
   )
 }
 
@@ -153,11 +139,9 @@ function CategorySection({
   )
 }
 
-export default function DisplaySuperlatives() {
-  const [data, setData] = React.useState<Superlatives | null>(null)
+function SuperlativesBody({ data }: { data: Superlatives }) {
   const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
   const matchPanelRef = React.useRef<HTMLDivElement | null>(null)
-  const { showError, errorSnackbar } = useErrorSnackbar()
 
   // The panel renders above every category section, so a chip clicked from the
   // Money section (hundreds of pixels down) would otherwise change the page
@@ -170,12 +154,7 @@ export default function DisplaySuperlatives() {
     })
   }, [selectedMatch])
 
-  React.useEffect(() => {
-    Client.getSuperlativesApiSuperlativesGet().then(setData).catch(showError)
-  }, [showError])
-
   const grouped = React.useMemo(() => {
-    if (data === null) return new Map<string, Statistic[]>()
     const map = new Map<string, Statistic[]>()
     for (const stat of data.stats) {
       const cat = categorize(stat.statName)
@@ -199,26 +178,21 @@ export default function DisplaySuperlatives() {
     return groups
   }, [grouped])
 
-  if (data === null) {
-    return <Loading />
-  }
-
   if (data.stats.length === 0) {
     return (
-      <Page title="Records" width="narrow">
-        <Typography sx={{ color: "text.secondary" }}>
-          Nothing here yet. Records are computed overnight, so they appear after
-          the next run.
-        </Typography>
-      </Page>
+      <Typography sx={{ color: "text.secondary" }}>
+        Nothing here yet. Records are computed overnight, so they appear after
+        the next run.
+      </Typography>
     )
   }
 
   return (
-    <Page
-      title="Records"
-      description={`All-time bests across 2v2, 3v3 and 4v4 team games. Updated nightly, last on ${data.computedAt.toLocaleDateString()}.`}
-    >
+    <>
+      <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+        All-time bests across 2v2, 3v3 and 4v4 team games. Updated nightly, last
+        on {data.computedAt.toLocaleDateString()}.
+      </Typography>
       <Divider sx={{ mb: 3 }} />
       {selectedMatch !== null && (
         <Box ref={matchPanelRef} sx={{ mb: 3, scrollMarginTop: 80 }}>
@@ -245,7 +219,20 @@ export default function DisplaySuperlatives() {
           onMatchClick={setSelectedMatch}
         />
       ))}
-      {errorSnackbar}
+    </>
+  )
+}
+
+export default function DisplaySuperlatives() {
+  const query = useQuery({
+    queryKey: ["superlatives"],
+    queryFn: () => Client.getSuperlativesApiSuperlativesGet(),
+  })
+  return (
+    <Page title="Records">
+      <QueryState query={query} what="records">
+        {(data) => <SuperlativesBody data={data} />}
+      </QueryState>
     </Page>
   )
 }
