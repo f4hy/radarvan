@@ -6,8 +6,7 @@ import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 import { useQuery } from "@tanstack/react-query"
-import * as React from "react"
-import { MatchNarrative as MatchNarrativeData, NarrativeBeat } from "./api"
+import type { MatchNarrative as MatchNarrativeData, NarrativeBeat } from "./api"
 import { Client } from "./Client"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 
@@ -102,6 +101,7 @@ export function NarrativeBody(props: { narrative: MatchNarrativeData }) {
   return (
     <Stack spacing={0.75}>
       {beats.map((beat, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: beats are an ordered retelling — two of the same kind differ only by where they fall, and the list is rebuilt whole per match.
         <Beat key={`${beat.kind}-${index}`} beat={beat} />
       ))}
     </Stack>

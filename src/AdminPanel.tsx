@@ -29,7 +29,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow"
 import WarningAmberIcon from "@mui/icons-material/WarningAmber"
 import { useAuth, useIsOpsAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
-import { AdminMethod, QueryValues, adminRequest } from "./adminApi"
+import { type AdminMethod, type QueryValues, adminRequest } from "./adminApi"
 
 type Values = Record<string, string>
 

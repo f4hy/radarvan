@@ -2,7 +2,7 @@
         ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check \
         build clean install test all \
         up up-build down logs ps shell db-shell db-snapshot db-snapshot-full \
-        db-restore db-reset migrate
+        db-restore db-reset migrate test-e2e
 
 # Default target
 .DEFAULT_GOAL := help
@@ -11,7 +11,7 @@ help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 install: ## Install Python and Node dependencies
 	uv sync
@@ -131,6 +131,9 @@ db-reset: ## Destroy the local database volume and re-run migrations from scratc
 	docker compose up -d --wait db
 	docker compose run --rm migrate
 	@echo "✓ empty local database at head"
+
+test-e2e: ## Run the browser suite (Firefox; builds and previews the app itself)
+	npm run test:e2e
 
 ci: clean install all build ## Run full CI pipeline
 	@echo "✓ CI pipeline complete!"
