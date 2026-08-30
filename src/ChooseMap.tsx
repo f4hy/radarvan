@@ -85,9 +85,9 @@ function CandidateRow({
         }}
         noWrap
       >
-        {displayMapName(candidate.map_name)}
+        {displayMapName(candidate.mapName)}
       </Typography>
-      {candidate.recently_played && (
+      {candidate.recentlyPlayed && (
         <Chip
           size="small"
           color="warning"
@@ -147,7 +147,7 @@ export default function ChooseMap() {
   }
 
   const eligible = React.useMemo(
-    () => result?.candidates.filter((c) => c.eligible) ?? [],
+    () => (result?.candidates ?? []).filter((c) => c.eligible) ?? [],
     [result],
   )
 
@@ -156,7 +156,7 @@ export default function ChooseMap() {
   // each item shrinks as it goes (starts slow, speeds up toward the end).
   React.useEffect(() => {
     if (phase !== "reveal" || !result) return
-    const count = result.candidates.length
+    const count = (result.candidates ?? []).length
     if (revealCount < count) {
       const gap =
         REVEAL_TOTAL_MS *
@@ -182,7 +182,7 @@ export default function ChooseMap() {
     }
     const target = Math.max(
       0,
-      eligible.findIndex((c) => c.map_name === result.chosen_map),
+      eligible.findIndex((c) => c.mapName === result.chosenMap),
     )
     // Total index advances; lands on `target` at t=1 (advance % len === target).
     const totalAdvance = eligible.length * SPIN_LOOPS + target
@@ -253,12 +253,12 @@ export default function ChooseMap() {
 
   const revealed =
     phase === "reveal"
-      ? (result?.candidates.slice(0, revealCount) ?? [])
+      ? ((result?.candidates ?? []).slice(0, revealCount) ?? [])
       : (result?.candidates ?? [])
   const spinning = phase === "spin"
   const spotlightName = spinning
-    ? eligible[spinIndex]?.map_name
-    : (result?.chosen_map ?? undefined)
+    ? eligible[spinIndex]?.mapName
+    : (result?.chosenMap ?? undefined)
 
   return (
     <Page
@@ -399,12 +399,12 @@ export default function ChooseMap() {
             </Typography>
             {revealed.map((c) => (
               <CandidateRow
-                key={c.map_name}
+                key={c.mapName}
                 candidate={c}
                 highlighted={
-                  spinning && eligible[spinIndex]?.map_name === c.map_name
+                  spinning && eligible[spinIndex]?.mapName === c.mapName
                 }
-                winner={phase === "done" && result?.chosen_map === c.map_name}
+                winner={phase === "done" && result?.chosenMap === c.mapName}
               />
             ))}
           </Stack>

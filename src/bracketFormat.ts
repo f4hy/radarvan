@@ -21,10 +21,10 @@ function roundCode(match: BracketMatchOutput): {
   singleton: boolean
 } {
   return (
-    ROUND_CODE[match.round_name] ??
+    ROUND_CODE[match.roundName] ??
     (match.bracket === "L"
-      ? { code: `LR${match.round_number}`, singleton: false }
-      : { code: match.round_name, singleton: false })
+      ? { code: `LR${match.roundNumber}`, singleton: false }
+      : { code: match.roundName, singleton: false })
   )
 }
 
@@ -38,7 +38,7 @@ function indexToLetter(idx: number): string {
 export function shortMatchLabel(match: BracketMatchOutput): string {
   const { code, singleton } = roundCode(match)
   if (singleton) return code
-  const suffix = match.match_id.match(/-(\d+)$/)
+  const suffix = match.matchId.match(/-(\d+)$/)
   const idx = suffix ? Number(suffix[1]) : 1
   return `${code}-${indexToLetter(idx)}`
 }
@@ -65,12 +65,12 @@ export function playerLabel(
   side: "a" | "b",
   matchesById?: Map<string, BracketMatchOutput>,
 ): string {
-  const name = side === "a" ? match.player_a : match.player_b
+  const name = side === "a" ? match.playerA : match.playerB
   if (name) return name
   if (match.status === "not_applicable") return "—"
-  const source = side === "a" ? match.source_a : match.source_b
+  const source = side === "a" ? match.sourceA : match.sourceB
   if (matchesById && source.kind !== "seed") {
-    const refLabel = sourceMatchLabel(source.match_id, matchesById)
+    const refLabel = sourceMatchLabel(source.matchId, matchesById)
     return `${source.kind === "winner" ? "Winner" : "Loser"} of ${refLabel}`
   }
   return "TBD"
@@ -79,8 +79,8 @@ export function playerLabel(
 // Compact "Aug 5, 3:00 PM" rendering for a match card's caption / the
 // Agenda list - full date + time, in the viewer's local timezone, without
 // the verbosity of a full toLocaleString() (no year, no seconds).
-export function formatScheduledAt(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+export function formatScheduledAt(at: Date): string {
+  return at.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -103,8 +103,8 @@ export function formatCountdown(remainingMs: number): string {
 }
 
 // "YYYYMMDDTHHMMSSZ" - Google Calendar's `dates=` param format, UTC.
-function toGoogleCalendarStamp(iso: string): string {
-  return new Date(iso).toISOString().replace(/[-:]|\.\d{3}/g, "")
+function toGoogleCalendarStamp(at: Date): string {
+  return at.toISOString().replace(/[-:]|\.\d{3}/g, "")
 }
 
 // Default event length: match durations vary with best_of and neither side
@@ -116,34 +116,38 @@ const DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000
 // creation UI pre-filled, no API/auth needed since it's just a URL the
 // browser navigates to.
 export function googleCalendarUrl(match: BracketMatchOutput): string | null {
-  if (!match.scheduled_at) return null
-  const start = new Date(match.scheduled_at)
+  if (!match.scheduledAt) return null
+  const start = match.scheduledAt
   const end = new Date(start.getTime() + DEFAULT_EVENT_DURATION_MS)
   const title = `${playerLabel(match, "a")} vs ${playerLabel(match, "b")} (${shortMatchLabel(match)})`
   const details = [
-    match.round_name,
-    match.best_of ? `Best of ${match.best_of}` : null,
+    match.roundName,
+    match.bestOf ? `Best of ${match.bestOf}` : null,
   ]
     .filter(Boolean)
     .join(" - ")
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: title,
-    dates: `${toGoogleCalendarStamp(start.toISOString())}/${toGoogleCalendarStamp(end.toISOString())}`,
+    dates: `${toGoogleCalendarStamp(start)}/${toGoogleCalendarStamp(end)}`,
     details,
   })
   return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
-// Milliseconds remaining until targetIso, ticking once a second - shared by
+// Milliseconds remaining until `target`, ticking once a second - shared by
 // RevealCountdown (Bracket.tsx) and AgendaCountdown (Agenda.tsx). Own
 // interval (rather than a `nowMs` prop from the parent) so only the
 // component calling this re-renders each second, not its parent.
-export function useCountdownMs(targetIso: string): number {
+// An unscheduled match has no target, and callers rely on that yielding NaN:
+// `remaining <= 0` is false for NaN, which is what keeps an unscheduled match's
+// prediction poll open. That used to be spelled `new Date("")` at the call
+// site; it's explicit here instead.
+export function useCountdownMs(target: Date | null | undefined): number {
   const [nowMs, setNowMs] = React.useState(() => Date.now())
   React.useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
-  return new Date(targetIso).getTime() - nowMs
+  return target == null ? Number.NaN : target.getTime() - nowMs
 }
