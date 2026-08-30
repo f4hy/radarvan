@@ -68,6 +68,7 @@ import PlayerChip from "./PlayerChip"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
+import { useUrlParam } from "./useUrlState"
 import { displayMapName, formatPercent, wilsonInterval } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
@@ -75,20 +76,6 @@ import WinRateRadar from "./WinRateRadar"
 // A general needs at least this many games in its running series before it's
 // worth a tab - a handful of points reads as noise, not a trend.
 const MIN_SERIES_GAMES = 5
-
-function playerFromUrl(): string | null {
-  return new URLSearchParams(window.location.search).get("player")
-}
-
-function setPlayerInUrl(player: string | null): void {
-  const params = new URLSearchParams(window.location.search)
-  if (player) {
-    params.set("player", player)
-  } else {
-    params.delete("player")
-  }
-  window.history.replaceState(null, "", `?${params.toString()}`)
-}
 
 /** Split a cleaned object name into words: "TankQuadCannon" -> "Tank Quad Cannon". */
 function prettyObjectName(name: string): string {
@@ -1255,7 +1242,9 @@ function ProfileBody(props: { profile: PlayerProfile }) {
 
 export default function DisplayPlayerProfile() {
   const [players, setPlayers] = React.useState<string[]>([])
-  const [player, setPlayer] = React.useState<string | null>(playerFromUrl)
+  // The URL is the only copy — a chip elsewhere on this page, a pasted link and
+  // the Back button all land here. See useUrlState.
+  const [player, setPlayer] = useUrlParam("player")
   const [profile, setProfile] = React.useState<PlayerProfile | null>(null)
   const [loading, setLoading] = React.useState(false)
   const { showError, errorSnackbar } = useErrorSnackbar()
@@ -1298,10 +1287,7 @@ export default function DisplayPlayerProfile() {
       <Autocomplete
         options={players}
         value={player}
-        onChange={(_, v) => {
-          setPlayer(v)
-          setPlayerInUrl(v)
-        }}
+        onChange={(_, v) => setPlayer(v)}
         sx={{ maxWidth: 300 }}
         renderInput={(params) => <TextField {...params} label="Player" />}
       />
