@@ -15,6 +15,7 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   HeadToHeadDetail,
@@ -29,8 +30,8 @@ import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import ShowMatchDetails from "./ShowMatchDetails"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { usePlayerPalette } from "./PlayerColorsContext"
 import { displayMapName, formatCash, formatPercent } from "./utils"
 import WinRateChip from "./WinRateChip"
@@ -396,48 +397,34 @@ export function GamesTable(props: {
 }
 
 export default function HeadToHead() {
-  const [players, setPlayers] = React.useState<string[]>([])
   // Both sides live in the URL, so a matchup is a link — which is what the
   // "Nemesis" cards and the ratings table point at. See useUrlState.
   const [player1, setPlayer1] = useUrlParam("player1")
   const [player2, setPlayer2] = useUrlParam("player2")
   const [format, setFormat] = React.useState<GameFormat>("All")
-  const [data, setData] = React.useState<HeadToHeadDetail | null>(null)
-  const [loading, setLoading] = React.useState(false)
-  const { showError, errorSnackbar } = useErrorSnackbar()
 
-  React.useEffect(() => {
-    Client.getPlayerGameCountsApiPlayerGameCountsGet()
-      .then((counts: PlayerGameCount[]) =>
-        setPlayers(counts.map((c) => c.name)),
-      )
-      .catch(showError)
-  }, [showError])
+  const { data: players = [] } = useQuery({
+    queryKey: ["playerGameCounts"],
+    queryFn: async () => {
+      const counts: PlayerGameCount[] =
+        await Client.getPlayerGameCountsApiPlayerGameCountsGet()
+      return counts.map((c) => c.name)
+    },
+  })
 
-  React.useEffect(() => {
-    if (!player1 || !player2 || player1 === player2) {
-      setData(null)
-      return
-    }
-    let cancelled = false
-    setLoading(true)
-    Client.getPlayerHeadToHeadApiPlayerHeadToHeadGet({
-      player1,
-      player2,
-      gameFormat: format === "All" ? undefined : format,
-    })
-      .then((d) => !cancelled && setData(d))
-      .catch((e) => {
-        if (!cancelled) {
-          setData(null)
-          showError(e)
-        }
-      })
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [player1, player2, format, showError])
+  // A matchup needs two different people; until then there is nothing to ask
+  // for, and the empty state below says so.
+  const bothPicked = Boolean(player1 && player2 && player1 !== player2)
+  const query = useQuery({
+    queryKey: ["headToHead", player1, player2, format],
+    queryFn: () =>
+      Client.getPlayerHeadToHeadApiPlayerHeadToHeadGet({
+        player1: player1 as string,
+        player2: player2 as string,
+        gameFormat: format === "All" ? undefined : format,
+      }),
+    enabled: bothPicked,
+  })
 
   return (
     <Page
@@ -493,49 +480,54 @@ export default function HeadToHead() {
           Pick two different players.
         </Typography>
       )}
-      {loading && <Loading />}
-      {!loading && data && data.games.length === 0 && (
-        <Typography
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          No head-to-head games found for {data.player1} vs {data.player2}
-          {format === "All" ? "" : ` in ${format}`}.
-        </Typography>
+      {bothPicked && (
+        <QueryState query={query} what="this matchup">
+          {(data) => <MatchupResults data={data} format={format} />}
+        </QueryState>
       )}
-      {!loading && data && data.games.length > 0 && (
-        <>
-          <Scoreboard data={data} />
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <MapBreakdown
-                records={data.byMap}
-                player1={data.player1}
-                player2={data.player2}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <GeneralBreakdown
-                player={data.player1}
-                records={data.player1ByGeneral}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <GeneralBreakdown
-                player={data.player2}
-                records={data.player2ByGeneral}
-              />
-            </Grid>
-          </Grid>
-          <GamesTable
-            games={data.games}
+    </Page>
+  )
+}
+
+function MatchupResults(props: { data: HeadToHeadDetail; format: GameFormat }) {
+  const { data, format } = props
+  if (data.games.length === 0) {
+    return (
+      <Typography sx={{ color: "text.secondary" }}>
+        No head-to-head games found for {data.player1} vs {data.player2}
+        {format === "All" ? "" : ` in ${format}`}.
+      </Typography>
+    )
+  }
+  return (
+    <>
+      <Scoreboard data={data} />
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MapBreakdown
+            records={data.byMap}
             player1={data.player1}
             player2={data.player2}
           />
-        </>
-      )}
-      {errorSnackbar}
-    </Page>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <GeneralBreakdown
+            player={data.player1}
+            records={data.player1ByGeneral}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <GeneralBreakdown
+            player={data.player2}
+            records={data.player2ByGeneral}
+          />
+        </Grid>
+      </Grid>
+      <GamesTable
+        games={data.games}
+        player1={data.player1}
+        player2={data.player2}
+      />
+    </>
   )
 }

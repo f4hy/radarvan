@@ -24,6 +24,7 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Typography from "@mui/material/Typography"
 import { alpha, useTheme } from "@mui/material/styles"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { GameNightHighlight, GameNightRecap, MatchInfo } from "./api"
 import { renderAiText } from "./aiText"
@@ -32,6 +33,7 @@ import Loading from "./Loading"
 import MatchActivityCalendar from "./MatchActivityCalendar"
 import MatchNarrative from "./MatchNarrative"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import PlayerChip from "./PlayerChip"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { useErrorSnackbar } from "./useErrorSnackbar"
@@ -213,28 +215,32 @@ function GameByGame(props: {
   // named game into view, so a card like "Longest game" leads somewhere.
   focusedMatchId: number | null
 }) {
-  const [matches, setMatches] = React.useState<MatchInfo[] | null>(null)
   const [expanded, setExpanded] = React.useState(false)
   const rowRefs = React.useRef<{ [key: number]: HTMLDivElement | null }>({})
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const load = React.useCallback(() => {
-    if (matches !== null) return
-    Client.getMatchesByDateApiMatchesByDateDateGet({
-      // The generated client serializes Date params via toISOString() (UTC), so
-      // the param must be UTC midnight of the backend's date key — which is
-      // what new Date("YYYY-MM-DD") produces.
-      date: new Date(props.date),
-      excludeDev: true,
-    })
-      .then((result) => setMatches(result.matches))
-      .catch(showError)
-  }, [matches, props.date, showError])
+
+  // Fetched only once the row is open — `enabled` is what expresses the
+  // laziness the old `if (matches !== null) return` guard did by hand, and it
+  // also means a night reopened later renders from cache instead of refetching.
+  const query = useQuery({
+    queryKey: ["matchesByDate", props.date],
+    queryFn: async () => {
+      const result = await Client.getMatchesByDateApiMatchesByDateDateGet({
+        // The generated client serializes Date params via toISOString() (UTC),
+        // so the param must be UTC midnight of the backend's date key — which
+        // is what new Date("YYYY-MM-DD") produces.
+        date: new Date(props.date),
+        excludeDev: true,
+      })
+      return result.matches
+    },
+    enabled: expanded,
+  })
+  const matches = query.data ?? null
 
   React.useEffect(() => {
     if (props.focusedMatchId === null) return
     setExpanded(true)
-    load()
-  }, [props.focusedMatchId, load])
+  }, [props.focusedMatchId])
 
   // Separate from the effect above: the row only exists once the fetch has
   // resolved and the accordion has rendered its children.
@@ -252,14 +258,13 @@ function GameByGame(props: {
       slotProps={{ transition: { unmountOnExit: true } }}
       onChange={(_e, isExpanded) => {
         setExpanded(isExpanded)
-        if (isExpanded) load()
       }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography sx={{ fontWeight: 600 }}>Game by game</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        {errorSnackbar}
+        {queryFallback(query, "this night's games")}
         {matches === null ? (
           <Loading />
         ) : (
@@ -294,16 +299,14 @@ export default function GameNight() {
   // this page's whole point, so it can't be component state. `replace` because
   // the initial redirect to "latest night" isn't a step to go Back to.
   const [selected, setSelected] = useUrlParam("date", { replace: true })
-  const [recap, setRecap] = React.useState<GameNightRecap | null>(null)
-  // Same payload the night list comes from — the counts feed the calendar.
-  const [dateCounts, setDateCounts] = React.useState<Record<string, number>>({})
   const [calendarOpen, setCalendarOpen] = React.useState(false)
-  const { showError, errorSnackbar } = useErrorSnackbar()
 
-  React.useEffect(() => {
-    // Already newest-first from the API.
-    Client.getDatesApiDatesGet().then(setDateCounts).catch(showError)
-  }, [showError])
+  // Already newest-first from the API. Same payload the night list comes from —
+  // the counts feed the calendar too.
+  const { data: dateCounts = {} } = useQuery({
+    queryKey: ["dates"],
+    queryFn: () => Client.getDatesApiDatesGet(),
+  })
 
   const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])
 
@@ -315,16 +318,20 @@ export default function GameNight() {
     if (selected === null && nights.length > 0) setSelected(nights[0])
   }, [selected, nights, setSelected])
 
+  const recapQuery = useQuery({
+    queryKey: ["gameNightRecap", selected],
+    queryFn: () =>
+      GameNightClient.getGameNightRecapApiGameNightNightGet({
+        night: new Date(selected as string),
+      }),
+    enabled: selected !== null,
+  })
+  const recap = recapQuery.data ?? null
+
+  // A different night means the previously focused match is not on this page.
   React.useEffect(() => {
-    if (selected === null) return
-    setRecap(null)
     setFocusedMatchId(null)
-    GameNightClient.getGameNightRecapApiGameNightNightGet({
-      night: new Date(selected),
-    })
-      .then(setRecap)
-      .catch(showError)
-  }, [selected, showError])
+  }, [])
 
   const index = selected ? nights.indexOf(selected) : -1
   // nights is newest-first, so the *later* night is at a lower index.
@@ -390,7 +397,6 @@ export default function GameNight() {
       actions={picker}
     >
       <Stack spacing={2}>
-        {errorSnackbar}
         {calendar}
         {recap === null ? (
           <Loading />

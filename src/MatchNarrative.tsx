@@ -5,11 +5,11 @@ import Skeleton from "@mui/material/Skeleton"
 import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { MatchNarrative as MatchNarrativeData, NarrativeBeat } from "./api"
 import { Client } from "./Client"
 import { usePlayerAccentColor } from "./PlayerColorsContext"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 /**
  * The match retold as a timeline of sentences.
@@ -113,30 +113,29 @@ export default function MatchNarrative(props: {
   matchId: number
   showHeadline?: boolean
 }) {
-  const [narrative, setNarrative] = React.useState<MatchNarrativeData | null>(
-    null,
-  )
-  const { showError, errorSnackbar } = useErrorSnackbar()
+  // Best-effort colour on a match view: if the narrative can't be built there
+  // is nothing to say, so it renders nothing rather than an error panel over
+  // the match details it sits above.
+  const { data: narrative, isPending } = useQuery({
+    queryKey: ["matchNarrative", props.matchId],
+    queryFn: () =>
+      Client.getMatchNarrativeApiNarrativeMatchIdGet({
+        matchId: props.matchId,
+      }),
+    retry: false,
+  })
 
-  React.useEffect(() => {
-    setNarrative(null)
-    Client.getMatchNarrativeApiNarrativeMatchIdGet({ matchId: props.matchId })
-      .then(setNarrative)
-      .catch(showError)
-  }, [props.matchId, showError])
-
-  if (narrative === null) {
+  if (isPending) {
     return (
       <Box>
-        {errorSnackbar}
         <Skeleton variant="rounded" height={120} animation="wave" />
       </Box>
     )
   }
+  if (!narrative) return null
 
   return (
     <Paper variant="outlined" sx={{ p: 1.5 }}>
-      {errorSnackbar}
       {props.showHeadline !== false && (
         <Stack
           direction="row"

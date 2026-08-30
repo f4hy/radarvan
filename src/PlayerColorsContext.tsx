@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { Client } from "./Client"
 import {
@@ -13,25 +14,29 @@ const PlayerColorsContext = React.createContext<Record<string, string>>({})
  * startup. Best-effort: PlayerChip falls back to its hash-based color for
  * any name missing here (not yet loaded, request failed, or not enough
  * games to have a "usual" color). */
-export function PlayerColorsProvider(props: { children: React.ReactNode }) {
-  const [colors, setColors] = React.useState<Record<string, string>>({})
+const NO_COLORS: Record<string, string> = {}
 
-  React.useEffect(() => {
-    Client.getPlayerColorsApiPlayerColorsGet()
-      .then((data) => {
-        const clean: Record<string, string> = {}
-        for (const [name, color] of Object.entries(data)) {
-          if (color) clean[name] = color
-        }
-        setColors(clean)
-      })
-      .catch(() => {
-        // Swallow - the hash-based fallback covers this.
-      })
-  }, [])
+export function PlayerColorsProvider(props: { children: React.ReactNode }) {
+  // Best-effort, and it stays that way: a failure resolves to the empty map and
+  // PlayerChip falls back to its hash-based color, so no retry and no error
+  // surface. Colors only change when someone plays a new one, so this is held
+  // for the session rather than revalidated.
+  const { data } = useQuery({
+    queryKey: ["playerColors"],
+    queryFn: async () => {
+      const raw = await Client.getPlayerColorsApiPlayerColorsGet()
+      const clean: Record<string, string> = {}
+      for (const [name, color] of Object.entries(raw)) {
+        if (color) clean[name] = color
+      }
+      return clean
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: false,
+  })
 
   return (
-    <PlayerColorsContext.Provider value={colors}>
+    <PlayerColorsContext.Provider value={data ?? NO_COLORS}>
       {props.children}
     </PlayerColorsContext.Provider>
   )

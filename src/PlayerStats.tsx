@@ -2,11 +2,10 @@ import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
-import Loading from "./Loading"
 import FormatToggle, { TEAM_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import { PlayerChip, PlayerLabel } from "./PlayerChip"
-import { useFetch } from "./useFetch"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import List from "@mui/material/List"
@@ -26,6 +25,7 @@ import Typography from "@mui/material/Typography"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import ExpandLessIcon from "@mui/icons-material/ExpandLess"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
@@ -42,7 +42,6 @@ import { Client } from "./Client"
 import { winRate, wilsonLowerBound } from "./utils"
 import WinRateRadar from "./WinRateRadar"
 import WinRateChip, { WinLossVolumeBar } from "./WinRateChip"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 
 const FORMAT_OPTIONS = TEAM_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -808,16 +807,13 @@ function PlayerJumpList(props: { names: string[] }) {
 
 export default function DisplayPlayerStats() {
   const [format, setFormat] = React.useState<GameFormat>("All")
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  const playerStats = useFetch(
-    () => fetchPlayerStats(format),
-    [format],
-    showError,
-  )
+  const query = useQuery({
+    queryKey: ["playerStats", format],
+    queryFn: () => fetchPlayerStats(format),
+  })
 
-  if (!playerStats) {
-    return <Loading />
-  }
+  // The toggle renders in every state on purpose: a failed load is itself a
+  // reason to try another format, so the control must not go away with the data.
   return (
     <Page
       title="Player Stats"
@@ -831,25 +827,30 @@ export default function DisplayPlayerStats() {
         />
       }
     >
-      <PlayerJumpList
-        names={playerStats.playerStats.map((s) => s.playerName)}
-      />
-      <Divider sx={{ my: 2 }} />
-      <GameCountsTable playerStats={playerStats} />
-      <Divider sx={{ mb: 2 }} />
-      <BestPlayerPerGeneral playerStats={playerStats} />
-      <Divider sx={{ mb: 2 }} />
-      <BestRelativePlayerPerGeneral playerStats={playerStats} />
-      <Divider sx={{ mb: 2 }} />
-      <GeneralConsistency playerStats={playerStats} />
-      <Divider sx={{ mb: 2 }} />
-      {playerStats.playerStats.map((m) => (
-        <React.Fragment key={m.playerName}>
-          <DisplayPlayerStat stat={m} />
-          <Divider />
-        </React.Fragment>
-      ))}
-      {errorSnackbar}
+      <QueryState query={query} what="player stats">
+        {(playerStats) => (
+          <>
+            <PlayerJumpList
+              names={playerStats.playerStats.map((s) => s.playerName)}
+            />
+            <Divider sx={{ my: 2 }} />
+            <GameCountsTable playerStats={playerStats} />
+            <Divider sx={{ mb: 2 }} />
+            <BestPlayerPerGeneral playerStats={playerStats} />
+            <Divider sx={{ mb: 2 }} />
+            <BestRelativePlayerPerGeneral playerStats={playerStats} />
+            <Divider sx={{ mb: 2 }} />
+            <GeneralConsistency playerStats={playerStats} />
+            <Divider sx={{ mb: 2 }} />
+            {playerStats.playerStats.map((m) => (
+              <React.Fragment key={m.playerName}>
+                <DisplayPlayerStat stat={m} />
+                <Divider />
+              </React.Fragment>
+            ))}
+          </>
+        )}
+      </QueryState>
     </Page>
   )
 }

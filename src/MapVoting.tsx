@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
@@ -19,6 +20,7 @@ import SearchIcon from "@mui/icons-material/Search"
 import GameMap from "./Map"
 import Loading from "./Loading"
 import Page from "./Page"
+import { queryFallback } from "./QueryState"
 import PlayerCountPicker from "./PlayerCountPicker"
 import { startDiscordLogin } from "./auth"
 import { displayMapName } from "./utils"
@@ -104,67 +106,51 @@ function MapCard({
 }
 
 export default function MapVoting() {
-  const [counts, setCounts] = React.useState<number[] | null>(null)
   const [selected, setSelected] = React.useState<number | null>(null)
-  const [page, setPage] = React.useState<MapVotePage | null>(null)
-  const [loading, setLoading] = React.useState(true)
-  const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
   const [showAll, setShowAll] = React.useState(false)
 
-  React.useEffect(() => {
-    let cancelled = false
-    fetchPlayerCounts()
-      .then((c) => {
-        if (!cancelled) setCounts(c)
-      })
-      .catch(() => {
-        if (!cancelled) setError("Could not load player counts")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const countsQuery = useQuery({
+    queryKey: ["mapVotePlayerCounts"],
+    queryFn: fetchPlayerCounts,
+  })
+  const counts = countsQuery.data ?? null
 
+  const pageQuery = useQuery({
+    queryKey: ["mapVotePage", selected],
+    queryFn: () => fetchVotePage(selected as number),
+    enabled: selected !== null,
+  })
+  const page = pageQuery.data ?? null
+
+  // A fresh count starts the uncapped search clean.
   React.useEffect(() => {
-    if (selected === null) {
-      setPage(null)
-      return
-    }
-    let cancelled = false
-    setLoading(true)
-    // Fresh count -> start uncapped-search clean.
     setQuery("")
     setShowAll(false)
-    fetchVotePage(selected)
-      .then((p) => {
-        if (!cancelled) setPage(p)
-      })
-      .catch(() => {
-        if (!cancelled) setError("Could not load maps")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [selected])
+  }, [])
+
+  // Voting is a user action, so its failure is a snackbar rather than a panel.
+  // The server returns the whole updated page, so it goes straight into the
+  // cache — the tallies and the remaining-vote counts move without a refetch.
+  const queryClient = useQueryClient()
+  const vote = useMutation({
+    mutationFn: ({
+      mapName,
+      choice,
+    }: {
+      mapName: string
+      choice: MapVoteChoice | null
+    }) => setVote(selected as number, mapName, choice),
+    onSuccess: (updated) =>
+      queryClient.setQueryData(["mapVotePage", selected], updated),
+    onError: (e) => setError(e instanceof Error ? e.message : "Vote failed"),
+  })
+  const pending = vote.isPending
 
   const choose = async (mapName: string, choice: MapVoteChoice | null) => {
     if (selected === null) return
-    setPending(true)
-    try {
-      setPage(await setVote(selected, mapName, choice))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Vote failed")
-    } finally {
-      setPending(false)
-    }
+    await vote.mutateAsync({ mapName, choice }).catch(() => {})
   }
 
   const errorBar = (
@@ -180,8 +166,13 @@ export default function MapVoting() {
     </Snackbar>
   )
 
-  if (loading) {
-    return <Loading />
+  // Both reads get a real error state — this page used to set an error string
+  // and then return <Loading /> above the snackbar that would have shown it.
+  const countsFallback = queryFallback(countsQuery, "the player counts")
+  if (countsFallback) return countsFallback
+  if (selected !== null) {
+    const pageFallback = queryFallback(pageQuery, "the map list")
+    if (pageFallback) return pageFallback
   }
 
   if (counts !== null && counts.length === 0) {

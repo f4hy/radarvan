@@ -13,6 +13,7 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import MuiTooltip from "@mui/material/Tooltip"
 import useMediaQuery from "@mui/material/useMediaQuery"
+import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   Bar,
@@ -31,8 +32,8 @@ import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import QueryState from "./QueryState"
 import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "./theme"
-import { useErrorSnackbar } from "./useErrorSnackbar"
 import { formatCash, wilsonLowerBound, winRate } from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
@@ -40,15 +41,9 @@ import WinRateRadar from "./WinRateRadar"
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
-function getGeneralStats(
-  gameFormat: GameFormat,
-  callback: (m: GeneralStats) => void,
-  onError = console.error,
-) {
+function fetchGeneralStats(gameFormat: GameFormat): Promise<GeneralStats> {
   const params = gameFormat === "All" ? {} : { gameFormat }
-  Client.getGeneralsStatsApiGeneralstatsGet(params)
-    .then(callback)
-    .catch(onError)
+  return Client.getGeneralsStatsApiGeneralstatsGet(params)
 }
 
 type GeneralChartData = {
@@ -331,42 +326,21 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
 }
 
 function FactionMatrixSection() {
-  const [matrix, setMatrix] = React.useState<FactionMatrix | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  // Deliberately not wrapped in QueryState: the model is optional, so a 503
+  // means "no prediction available", not "this page failed". No retry either —
+  // an unavailable model stays unavailable for the length of a visit.
+  const { data: matrix, isPending } = useQuery({
+    queryKey: ["factionMatrix"],
+    queryFn: () => Client.predictFactionMatrixApiPredictFactionMatrixGet(),
+    retry: false,
+  })
 
-  React.useEffect(() => {
-    let cancelled = false
-    Client.predictFactionMatrixApiPredictFactionMatrixGet()
-      .then((res) => {
-        if (!cancelled) setMatrix(res)
-      })
-      .catch(() => {
-        // Model unavailable (503) or any other failure - best-effort, just
-        // skip the section rather than erroring the whole page.
-        if (!cancelled) setMatrix(null)
-      })
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  if (loading) return <Loading />
+  if (isPending) return <Loading />
   if (!matrix) return null
   return <FactionMatrixTable matrix={matrix} />
 }
 
-const empty = { generalStats: [] }
-
-export default function DisplayGeneralStats() {
-  const [generalStats, setGeneralStats] = React.useState<GeneralStats>(empty)
-  const [format, setFormat] = React.useState<GameFormat>("All")
-  const { showError, errorSnackbar } = useErrorSnackbar()
-  React.useEffect(() => {
-    setGeneralStats(empty)
-    getGeneralStats(format, setGeneralStats, showError)
-  }, [format, showError])
-
+function GeneralStatsBody({ generalStats }: { generalStats: GeneralStats }) {
   const sorted = React.useMemo(
     () =>
       [...generalStats.generalStats].sort(
@@ -388,23 +362,8 @@ export default function DisplayGeneralStats() {
     [generalStats.generalStats],
   )
 
-  if (generalStats.generalStats.length === 0) {
-    return <Loading />
-  }
-
   return (
-    <Page
-      title="General Stats"
-      description="How each general performs across our games, and which faction matchups genuinely favor one side."
-      actions={
-        <FormatToggle
-          label="Game format"
-          options={FORMAT_OPTIONS}
-          value={format}
-          onChange={setFormat}
-        />
-      }
-    >
+    <>
       <DisplayOverallGeneralStat stats={generalStats} />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <Grid
@@ -437,7 +396,33 @@ export default function DisplayGeneralStats() {
       </Grid>
       <Divider sx={{ mt: 4, mb: 2 }} />
       <FactionMatrixSection />
-      {errorSnackbar}
+    </>
+  )
+}
+
+export default function DisplayGeneralStats() {
+  const [format, setFormat] = React.useState<GameFormat>("All")
+  const query = useQuery({
+    queryKey: ["generalStats", format],
+    queryFn: () => fetchGeneralStats(format),
+  })
+
+  return (
+    <Page
+      title="General Stats"
+      description="How each general performs across our games, and which faction matchups genuinely favor one side."
+      actions={
+        <FormatToggle
+          label="Game format"
+          options={FORMAT_OPTIONS}
+          value={format}
+          onChange={setFormat}
+        />
+      }
+    >
+      <QueryState query={query} what="general stats">
+        {(generalStats) => <GeneralStatsBody generalStats={generalStats} />}
+      </QueryState>
     </Page>
   )
 }

@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@mui/material/styles"
+import { QueryClientProvider } from "@tanstack/react-query"
 import * as React from "react"
 import {
   BrowserRouter,
@@ -9,9 +10,11 @@ import {
 } from "react-router"
 import "./App.css"
 import { AuthProvider } from "./AuthContext"
+import ErrorBoundary from "./ErrorBoundary"
 import Menu from "./Menu"
 import { PlayerColorsProvider } from "./PlayerColorsContext"
 import NotFound from "./NotFound"
+import { queryClient } from "./queryClient"
 import { DEFAULT_ROUTE, LEGACY_PAGE_PARAM, ROUTES, routeBySlug } from "./routes"
 import theme from "./theme"
 
@@ -39,30 +42,48 @@ function LegacyPageRedirect() {
   return <Navigate to={`/${target.slug}${query ? `?${query}` : ""}`} replace />
 }
 
+// The root boundary can't assume the theme or the router mounted, so its
+// fallback is plain DOM rather than MUI components.
+function RootFallback(error: Error) {
+  return (
+    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
+      <h1 style={{ fontSize: 20 }}>Radarvan failed to start</h1>
+      <p>Reloading the page usually clears this.</p>
+      <pre style={{ whiteSpace: "pre-wrap", color: "#5b6675" }}>
+        {error.message}
+      </pre>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <div className="App">
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <AuthProvider>
-            <PlayerColorsProvider>
-              <Routes>
-                <Route element={<Menu />}>
-                  <Route index element={<LegacyPageRedirect />} />
-                  {ROUTES.map((route) => (
-                    <Route
-                      key={route.slug}
-                      path={route.slug}
-                      element={<route.Component />}
-                    />
-                  ))}
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-            </PlayerColorsProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ThemeProvider>
+      <ErrorBoundary fallback={RootFallback}>
+        <ThemeProvider theme={theme}>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <AuthProvider>
+                <PlayerColorsProvider>
+                  <Routes>
+                    <Route element={<Menu />}>
+                      <Route index element={<LegacyPageRedirect />} />
+                      {ROUTES.map((route) => (
+                        <Route
+                          key={route.slug}
+                          path={route.slug}
+                          element={<route.Component />}
+                        />
+                      ))}
+                      <Route path="*" element={<NotFound />} />
+                    </Route>
+                  </Routes>
+                </PlayerColorsProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
     </div>
   )
 }
