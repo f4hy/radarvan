@@ -52,50 +52,26 @@ async def get_url(url: str) -> httpx2.Response:
 
 
 def generate_directories(n_days: int, base_path: str = ".") -> Any:
-    """
-    Generate directory structure for the last N days.
-
-    Args:
-        n_days (int): Number of days to go back
-        base_path (str): Base directory path where to create the structure
-    """
-    # Get current date
+    """The last ``n_days`` date-path strings (``YYYY_MM_Month/DD_Day``), oldest first."""
     current_date = datetime.now(UTC)
 
-    # Create base path if it doesn't exist
     base = Path(base_path)
     base.mkdir(exist_ok=True)
 
     created_dirs = []
 
-    # Generate directories for last N days
     for i in range(-1, n_days):
-        # Calculate date for this iteration
         date = current_date - timedelta(days=i)
-
-        # Format: YYYY_MM_MonthName
         year_month = date.strftime("%Y_%m_%B")
-
-        # Format: DD_DayName
         day_name = date.strftime("%d_%A")
-
-        # Create full path
         full_path = base / year_month / day_name
-
-        # Create directory
-        # full_path.mkdir(parents=True, exist_ok=True)
         created_dirs.append(str(full_path))
-
-        # print(f"Created: {full_path}")
 
     return reversed(created_dirs)
 
 
 async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
-    """
-    Download files from an Apache directory listing that match a pattern.
-
-    """
+    """URLs from an Apache directory listing whose href matches one of ``patterns``."""
     logger.debug("finding links", patterns=patterns, base_url=base_url)
 
     try:
@@ -111,7 +87,6 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
 
     links = []
     for link in soup.find_all("a", href=True):
-        # print("link?", link)
         href = str(link["href"])
 
         if href in ["../", "../"]:
@@ -123,25 +98,6 @@ async def matching_links(base_url: str, patterns: list[str]) -> list[str]:
             links.append(file_url)
     logger.debug("found links", links=links)
     return links
-    #         filename = href.split("/")[-1]
-    #         if not filename:
-    #             print("NO filename?")
-    #             continue
-    #         print(filename)
-    #         filepath = Path(download_dir) / filename
-
-    #         print(f"Downloading: {filename}")
-
-    #         file_response = httpx2.get(file_url)
-    #         file_response.raise_for_status()
-
-    #         with open(filepath, "wb") as f:
-    #             f.write(file_response.content)
-
-    #         downloaded.append(str(filepath))
-    #         print(f"  Saved to: {filepath}")
-
-    # return downloaded
 
 
 async def get_player_dirs(root: str) -> list[str]:

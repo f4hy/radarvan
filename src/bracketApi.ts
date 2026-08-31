@@ -1,15 +1,9 @@
 // 1v1 bracket tournament helpers over the generated client.
 //
 // The session cookie identifies the tournament admin; `Client.ts` sends it
-// because the client's base path is relative and so same-origin. Everything
-// here used to be hand-written `fetch` plus a hand-written snake_case copy of
-// every response type — `BracketTournamentOutput`, `BracketMatchOutput`,
-// `BracketMatchPrediction`, `BracketPredictionLeaderboardEntry`,
-// `MapPlayerRecords`, `MapPlayerWL`, `BracketPlayerEntry` and `MatchSource` all
-// already exist generated from the same backend models.
-//
-// One real difference from those copies: `scheduledAt` and `revealAt` arrive as
-// `Date`, not an ISO string, because the generated converters parse them.
+// because the client's base path is relative and so same-origin.
+// `scheduledAt` and `revealAt` arrive as `Date`, not an ISO string, because
+// the generated converters parse them.
 
 import { BracketClient } from "./clients/bracket"
 import type {

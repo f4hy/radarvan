@@ -1,10 +1,6 @@
 """Player skill ratings - computes OpenSkill (Plackett-Luce) ratings from match history,
 tracking per-day/per-match rating changes and upsets."""
 
-# Needed so self-references (e.g. NamedRating.with_min_sigma's own return type)
-# resolve under Python < 3.14, which evaluates annotations eagerly unless deferred
-# like this. 3.14+ defers by default (PEP 649) so this is a no-op there - required
-# for the ml/ 3.13 training venv (see pyproject.toml's ml group).
 from __future__ import annotations
 
 import math
@@ -49,27 +45,16 @@ CPU_GAME_RATING_SCALE = 0.1
 
 
 # Guests whose rating is asserted rather than learned, as a multiple of the top
-# established human's ordinal.
-#
-# Excal and Dominator are (semi-)pro players who have played with the group a
-# handful of times. Their games rate like anyone else's, but a handful of games
-# can never *move* a rating far, by design: `_reseed` shrinks a sub-MIN_GAMES
-# player back toward the newcomer prior on every pass, which is exactly what
-# stops a short hot streak from minting a top-of-the-board rating. That
-# safeguard is right for a stranger and wrong for someone already known to
-# outclass the whole group, so these two are stated instead of inferred.
-#
-# Stated here rather than by injecting fabricated wins. A match is a row in the
-# one corpus that W/L records, head-to-head, superlatives, the game-night recap
-# and the duration histogram all read, so buying a rating with fake games would
-# pay for it in fictional games surfacing on six other pages - and it would take
-# a great many of them, since `_reseed` pulls the mu back every pass until the
-# game count clears MIN_GAMES.
-#
-# A *multiple of the leader*, not a fixed mu, for the same reason
-# `_newcomer_prior` is relative: openskill has no absolute anchor, this corpus
-# has already drifted, and a constant would quietly mean something different in
-# six months. Delete an entry to hand the player back to the model.
+# established human's ordinal. Excal and Domi are (semi-)pro visitors: `_reseed`
+# shrinks a sub-MIN_GAMES player back toward the newcomer prior each pass,
+# which stops a short hot streak from minting a top rating - right for a
+# stranger, wrong for someone already known to outclass the group. Stated
+# rather than faked via injected wins, which would surface fictional games on
+# every other page that reads the match corpus (W/L, head-to-head, recaps...).
+# A multiple of the leader, not a fixed mu, for the same reason
+# `_newcomer_prior` is relative: openskill has no absolute anchor and this
+# corpus has already drifted. Delete an entry to hand the player back to the
+# model.
 GUEST_RATING_MULTIPLIERS: dict[str, float] = {
     "Excal": 2.0,
     "Domi": 1.5,
@@ -120,10 +105,8 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
 
 @lru_cache(maxsize=1)
 def get_model() -> PlackettLuce:
-    # A nullary constant, not a derivation: nothing versions it and nothing
-    # invalidates it. lru_cache(1) rather than the registry, which would add a
-    # dependency token and a lock to a call that has neither.
-    # return PlackettLuce(beta=(25.0/3.0), tau=(25.0 / 200.0))
+    # A nullary constant, not a derivation: nothing versions or invalidates it,
+    # so lru_cache(1) rather than the registry's dependency token + lock.
     return PlackettLuce(beta=(25.0 / 4.0))
 
 
@@ -156,38 +139,24 @@ def displayed_win_probs(
 ) -> list[float]:
     """Calibrated P(win) per team, for probabilities we actually show people.
 
-    ``PlackettLuce.predict_win`` is badly overconfident here, and the reason is
-    structural rather than a bad beta. Its two-team branch is
+    ``PlackettLuce.predict_win`` is structurally overconfident: its two-team
+    branch is ``Phi((mu_A - mu_B) / sqrt(2*beta^2 + sigma_A^2 + sigma_B^2))``,
+    where ``mu_A`` is the team's *summed* mu - the numerator grows with team
+    size, the dominant ``2*beta^2`` term doesn't. Measured over 812 games, the
+    named favourite's actual win rate undershoots its stated one, worsening
+    with team size (1v1 0.81 stated/0.75 actual, 2v2 0.79/0.66, 3v3 0.73/0.57,
+    4v4 0.71/0.49 - its most confident format is a coin flip; 4v4 genuinely is
+    near-unpredictable, openskill AUC 0.529 there).
 
-        Phi( (mu_A - mu_B) / sqrt(2*beta^2 + sigma_A^2 + sigma_B^2) )
+    Fix: scale the noise term with team size, ``beta^2 * (n_A^2 + n_B^2)`` in
+    place of ``2*beta^2`` (same correction as ``ml.config.ModelConfig.size_norm``
+    on the neural model). Takes pooled log-loss from 0.806 to 0.659 and is the
+    only variant that calibrates every format at once - a flat temperature
+    fixes the average but still overstates 4v4 while understating 1v1. Full
+    write-up in ``ml/model_design.md``.
 
-    where ``mu_A`` is the *sum* of the team's mus. The numerator therefore grows
-    with team size while the dominant ``2*beta^2`` term does not - one beta per
-    team however many people are on it. Measured as-of over 812 games, the
-    favourite it names wins:
-
-        1v1  stated 0.81  actual 0.75
-        2v2  stated 0.79  actual 0.66
-        3v3  stated 0.73  actual 0.57
-        4v4  stated 0.71  actual 0.49   <- its most confident format is a coin flip
-
-    (4v4 really is near-unpredictable: openskill scores AUC 0.529 there and a
-    17-parameter Bradley-Terry fit gets 0.519, so the right answer for most 4v4s
-    is "about even" - which the library formula is structurally unable to say.)
-
-    The fix is to let the team's performance noise scale with the team, i.e.
-    ``beta^2 * (n_A^2 + n_B^2)`` in place of ``2*beta^2``. That is the same
-    correction ``ml.config.ModelConfig.size_norm`` applies to the neural model.
-    It takes pooled log-loss from 0.806 - worse than a coin flip - to 0.659, and
-    it is the only variant that calibrates every format at once: a flat
-    temperature fixes the average and still overstates 4v4 while understating
-    1v1. Full write-up in ``ml/model_design.md``.
-
-    Monotone in ``mu_A - mu_B``, so **which** team is favoured is unchanged;
-    only the stated confidence moves (and, across formats, the ordering of how
-    surprising two upsets were - correctly, since a 4v4 gap means less).
-
-    Two teams only, which is all ``build_teams`` ever produces.
+    Monotone in ``mu_A - mu_B``, so which team is favoured is unchanged - only
+    the stated confidence moves. Two teams only, all ``build_teams`` produces.
     """
     if len(teams) != 2:
         raise ValueError(f"expected exactly 2 teams, got {len(teams)}")
@@ -250,11 +219,10 @@ def _leaderboard(
 
 @dataclass(slots=True)
 class RatingsAndCounts:
-    # Every seeded player, including those under MIN_GAMES, and the rating to
-    # assume for anyone not seeded at all. Ask through `rating_for`: a caller
-    # that reasons about a player - team balance, prediction - must never end up
-    # holding a hole, because dropping a player is not a small error. It asks
-    # predict_win to compare a 2-man side to a 3-man one.
+    # Every seeded player, including those under MIN_GAMES, plus the rating to
+    # assume for anyone not seeded at all. Ask through `rating_for` - a caller
+    # reasoning about a player (team balance, prediction) must never hold a
+    # hole, or predict_win ends up comparing a 2-man side to a 3-man one.
     all_ratings: dict[str, NamedRating]
     newcomer_prior: NamedRating
     game_counts: dict[str, int]
@@ -267,24 +235,23 @@ class RatingsAndCounts:
 
     @property
     def ratings(self) -> list[NamedRating]:
-        """The leaderboard: best first, and only players over MIN_GAMES.
+        """The leaderboard: best first, only players over MIN_GAMES.
 
-        Derived rather than stored, so it cannot drift from `all_ratings`. A
-        rating with ten games behind it is not worth *showing* - which is all
-        this filter is for. Anything that reasons about a player wants
-        `rating_for`, and `queries/players.player_ratings_payload` builds the
-        wire payload from here.
+        Derived rather than stored, so it can't drift from `all_ratings`. A
+        rating with ten games behind it isn't worth *showing*, which is all
+        this filter is for - reasoning about a player wants `rating_for`.
+        `queries/players.player_ratings_payload` builds the wire payload from
+        here.
         """
         return _leaderboard(self.all_ratings, self.game_counts)
 
     def rating_for(self, name: str) -> NamedRating:
         """This player's rating - never None, never a hole in a team.
 
-        Callers used to build their own `{r.name: r for r in .ratings}`, which
-        is the MIN_GAMES-gated view, and then paper over the misses: create_teams
-        dropped the player outright, ml/predict substituted openskill's mu=25
-        default. Both threw away a real computed rating. One accessor that
-        cannot be combined incorrectly replaces both.
+        Callers used to build `{r.name: r for r in .ratings}` (the MIN_GAMES-
+        gated view) and paper over the misses: create_teams dropped the player
+        outright, ml/predict substituted openskill's mu=25 default. One
+        accessor replaces both.
         """
         return self.all_ratings.get(name) or replace(self.newcomer_prior, name=name)
 
@@ -311,9 +278,9 @@ def _collect_all_players(games: list[MatchInfo]) -> set[str]:
     """Everyone who needs a starting rating: the competitors, not the lobby.
 
     ``build_teams`` looks up participants, a subset of these - seeding the
-    whole competitor set costs nothing and keeps this in step with
-    ``filter_for_rating``, which judges the same slots. Seeding a *spectator*
-    did buy something wrong: a rating entry for someone who never played.
+    whole competitor set costs nothing and stays in step with
+    ``filter_for_rating``, which judges the same slots. Seeding a spectator
+    would buy a rating entry for someone who never played.
     """
     return {name for game in games for name in game.roster().competitor_names()}
 
@@ -491,28 +458,22 @@ def _newcomer_prior(
 ) -> NamedRating:
     """What we assume about someone we have barely seen play.
 
-    Deliberately *relative* to the players we do know. openskill has no absolute
-    anchor - the whole scale is free to drift, and this corpus has drifted to a
-    mu range of roughly 10..38, so the library's own default of mu=25 seeds a
-    brand-new player above two thirds of the regulars. (Lowering the default for
-    everyone fixes nothing: measured, it shifts every mu down by the same amount
-    and leaves the ordering identical.) Anchoring one beta below the weakest
-    established player says the thing we actually mean - "assume they are the
-    weakest here until they show otherwise" - and keeps saying it as the scale
-    moves.
+    Deliberately *relative* to the players we know: openskill has no absolute
+    anchor, this corpus has drifted to a mu range of ~10-38, and the library's
+    own mu=25 default would seed a newcomer above two-thirds of the regulars
+    (lowering the default for everyone shifts every mu down equally and leaves
+    the ordering unchanged - measured). Anchoring one beta below the weakest
+    established player means "assume the weakest here until proven otherwise",
+    and keeps meaning that as the scale moves.
 
-    On the first pass nobody is established yet, and then the margin is dropped
-    along with the anchor: with every player still sitting on the same default
-    there is nothing to be weaker *than*, and subtracting a beta from the shared
-    starting point would single the newcomer out on no evidence at all.
+    On the first pass nobody is established yet, so the margin drops too - with
+    everyone still on the shared default there's nothing to be weaker *than*.
     """
     established = [
         r.mu
         for name, r in ratings.items()
-        # `include_rating` is the app's definition of "enough games to have a
-        # rating worth quoting"; reuse it rather than spelling the threshold a
-        # second time. Its CPU exemption is not wanted here - HardArmy is not a
-        # regular, and its rating is seeded differently.
+        # include_rating is "enough games for a rating worth quoting"; its CPU
+        # exemption isn't wanted here - HardArmy isn't a regular.
         if not player_ids.is_cpu_name(name)
         and include_rating(counts, name, min_game_count=MIN_GAMES)
     ]
@@ -521,8 +482,6 @@ def _newcomer_prior(
         if established
         else model.mu
     )
-    # The wide sigma stands either way: "we have not seen you play" is true on
-    # the first pass too.
     return NamedRating(name="", mu=mu, sigma=model.sigma * NEW_PLAYER_SIGMA_SCALE)
 
 
@@ -533,19 +492,15 @@ def _apply_guest_ratings(
     leader's ordinal. Returns a new dict; the input is left alone.
 
     Runs as the last step of ``compute_player_ratings``, after the passes and
-    after ``_newcomer_prior``. The passes must see the guests' *real* ratings:
+    ``_newcomer_prior`` - the passes must see the guests' *real* ratings, or
     rating the group's games against an asserted 2x opponent would mean losing
-    to Excal barely dents anyone and beating him is worth a fortune, which is a
-    much bigger lie than the one being told here.
+    to Excal barely dents anyone.
 
-    The anchor skips CPUs (HardArmy sits mid-board and is seeded on a different
-    scale, exactly as ``_newcomer_prior`` reasons) and skips the guests
-    themselves. ``_leaderboard`` already drops both - CPUs never top it, guests
-    are under MIN_GAMES - but a guest who did cross the line would otherwise be
-    anchored to their own boosted rating and compound it on every recomputation.
-
-    A guest with no games at all still gets an entry, so ``rating_for`` answers
-    for them the first time they are picked on the Balance Teams page.
+    The anchor skips CPUs (seeded on a different scale) and the guests
+    themselves - a guest who crossed MIN_GAMES would otherwise anchor to their
+    own boosted rating and compound it every recomputation. A guest with no
+    games still gets an entry, so ``rating_for`` answers the first time they're
+    picked on the Balance Teams page.
     """
     board = [
         r
@@ -575,38 +530,28 @@ def _reseed(
     """Starting ratings for the next pass: shrink the barely-seen back toward
     the newcomer prior, then floor sigma.
 
-    This has to run every pass, not once before the first. ``compute_player_ratings``
-    seeds from ``initialize_player`` and then feeds each pass the *previous
-    pass's* output, so a starting prior only ever constrains pass 1 and is
-    swamped by passes 2 and 3 replaying the same games. Measured on the live
-    corpus, seeding a 36-game newcomer 25 mu lower moved them from 8th to 13th
-    after one pass and left them 5th after three - i.e. the prior alone is
-    almost inert at the shipped ITERATIONS. Re-applying it here is what makes it
-    bite.
+    Must run every pass, not once before the first: ``compute_player_ratings``
+    feeds each pass the *previous pass's* output, so a starting prior alone only
+    constrains pass 1 and gets swamped by passes 2-3 replaying the same games -
+    measured, seeding a 36-game newcomer 25 mu lower moved them 8th -> 13th
+    after one pass but only 5th after three. Re-applying it here is what makes
+    it bite.
 
-    The weight ramps linearly to 1.0 at MIN_GAMES and stays there, so a player
-    with enough games keeps exactly their own rating (this reduces to the plain
-    sigma floor it replaced) and nobody's rating steps the night they cross the
-    line. CPUs are exempt: they get their own seed in ``initialize_player`` and
-    are not newcomers whatever their game count.
+    Weight ramps linearly to 1.0 at MIN_GAMES (continuous, so nobody's rating
+    steps the night they cross the line; at 1.0 this reduces to the plain sigma
+    floor it replaced). CPUs are exempt - seeded separately in
+    ``initialize_player``, never newcomers.
 
-    Only mu is pulled back. Sigma is left to converge on its own (floored, as
-    before), because in openskill sigma *is* the learning rate: re-inflating a
-    newcomer's uncertainty every pass would pin them at maximum volatility and
-    let a short winning run carry them further than the evidence does - the
-    opposite of what holding them near the prior is for. The wide sigma belongs
-    to the seed, where it says "we have not seen you play"; once we have seen
-    them, their own sigma is the better answer.
+    Only mu is pulled back; sigma just floors, because sigma *is* openskill's
+    learning rate - re-inflating a newcomer's uncertainty every pass would pin
+    them at max volatility and let a short winning run outrun the evidence.
     """
     prior = _newcomer_prior(ratings, counts, model)
     reseeded: dict[str, NamedRating] = {}
     for name, rating in ratings.items():
-        # How much of this player's own record we believe, ramped linearly to
-        # full trust at MIN_GAMES ratable games; the rest of the weight goes to
-        # the prior. Continuous by construction, so nobody's rating jumps the
-        # night they cross the line, and at trust 1.0 this is exactly the sigma
-        # floor it replaced - which is why a CPU (seeded by `initialize_player`,
-        # never a newcomer) can take the same branch by being trusted outright.
+        # Trust in this player's own record, ramped to 1.0 at MIN_GAMES ratable
+        # games; the rest goes to the prior. A CPU is trusted outright (never a
+        # newcomer), taking the same branch as a fully-trusted human.
         exempt = player_ids.is_cpu_name(name) or name in NON_COMPETITIVE
         trust = 1.0 if exempt else min(1.0, counts.get(name, 0) / MIN_GAMES)
         reseeded[name] = replace(
@@ -680,18 +625,15 @@ def is_tournament_1v1(game: MatchInfo) -> bool:
 def is_ratable_team_game(game: MatchInfo) -> bool:
     """True for a competitive, balanced two-team game eligible for rating.
 
-    Single source of truth for "should this game move ratings / count for synergy",
-    shared by the rating pass and the synergy model.
+    Single source of truth for "should this game move ratings / count for
+    synergy", shared by the rating pass and the synergy model. 1v1s delegate to
+    ``is_tournament_1v1`` rather than being re-tested here, so there's one
+    definition everywhere. Casual 1v1s are excluded: they're wildly
+    concentrated (one pair is over half of them), so rating them would rate
+    that rivalry rather than the ladder - a bracket game is a real result and
+    belongs in ratings.
 
-    1v1s are delegated to ``is_tournament_1v1`` rather than re-tested here, so
-    there is one definition of "a 1v1 that counts" for the gate, the manifest
-    counter, and the docs to share. A bracket game is a real result between two
-    people and belongs in their ratings; a casual 1v1 usually isn't - people
-    play them to drill a matchup or try an off-meta build - and they're wildly
-    concentrated, one pair accounting for over half of them, so letting them in
-    would rate that rivalry rather than the ladder.
-
-    Ordered cheapest-first: the composition checks are attribute reads, while
+    Ordered cheapest-first: composition checks are attribute reads,
     ``filter_for_rating`` resolves every competitor's name.
     """
     comp = game.composition
