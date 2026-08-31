@@ -11,8 +11,9 @@ and an assertion about "the balanced split" would pass against an empty table.
 
 import pytest
 
+from openskill.models import PlackettLuceRating
+
 from radarvan import create_teams, player_rating
-from radarvan.player_rating import NamedRating
 
 from corpus import rated_corpus
 
@@ -82,36 +83,54 @@ def test_a_split_pair_is_untouched() -> None:
 # --- rate_team_partition ----------------------------------------------------
 
 
-def _ratings(**mus: float) -> dict[str, NamedRating]:
-    return {name: NamedRating(name=name, mu=mu, sigma=1.0) for name, mu in mus.items()}
+def _rated(**mus: float) -> dict[str, PlackettLuceRating]:
+    model = player_rating.get_model()
+    return {
+        name: model.rating(name=name, mu=mu, sigma=1.0) for name, mu in mus.items()
+    }
 
 
 def test_a_lopsided_split_scores_worse_than_an_even_one() -> None:
     """The score is a loss: squared distance from a coin flip, lower is better."""
-    ratings = _ratings(strong1=40.0, strong2=40.0, weak1=10.0, weak2=10.0)
+    rated = _rated(strong1=40.0, strong2=40.0, weak1=10.0, weak2=10.0)
     even = create_teams.rate_team_partition(
-        [["strong1", "weak1"], ["strong2", "weak2"]], ratings
+        [["strong1", "weak1"], ["strong2", "weak2"]], rated
     )
     lopsided = create_teams.rate_team_partition(
-        [["strong1", "strong2"], ["weak1", "weak2"]], ratings
+        [["strong1", "strong2"], ["weak1", "weak2"]], rated
     )
     assert even < lopsided
     assert even == pytest.approx(0.0, abs=1e-9), "an identical split should be a coin flip"
 
 
-def test_a_player_with_no_rating_is_skipped_not_crashed_on() -> None:
-    ratings = _ratings(known1=25.0, known2=25.0)
-    score = create_teams.rate_team_partition(
-        [["known1", "stranger"], ["known2", "nobody"]], ratings
+def test_every_player_on_a_team_is_counted() -> None:
+    """The bug this guards: dropping a player made a 2v2 read as a 1v2.
+
+    A 25-mu newcomer beside a 25-mu regular is a dead-even 2v2. Skipping them -
+    which is what reading the MIN_GAMES-gated table used to do - leaves one mu
+    against two, and `predict_win` sums each side, so it scores that as a rout.
+    The balancer then went looking for a strong partner to "fix" a team that was
+    already balanced.
+    """
+    rated = _rated(known1=25.0, known2=25.0, known3=25.0, newcomer=25.0)
+    even = create_teams.rate_team_partition(
+        [["known1", "newcomer"], ["known2", "known3"]], rated
     )
-    assert score == pytest.approx(0.0, abs=1e-9)
+    assert even == pytest.approx(0.0, abs=1e-9), (
+        "the newcomer was not counted: this side was scored as a 1v2"
+    )
 
 
-def test_a_team_with_nobody_rated_contributes_nothing() -> None:
-    ratings = _ratings(known1=25.0, known2=25.0)
-    assert create_teams.rate_team_partition(
-        [["stranger"], ["nobody"]], ratings
-    ) == 0.0
+def test_rate_roster_gives_an_unknown_name_the_newcomer_prior() -> None:
+    """`rate_roster` is what makes a hole impossible - it rates the roster, not
+    the players it happens to recognise, so a name nobody has seen still comes
+    back with a rating (under its own name, not the prior's empty one)."""
+    computed = player_rating.compute_player_ratings(rated_corpus())
+    rated = create_teams.rate_roster(["Skip", "NotAPlayer"], computed)
+
+    assert set(rated) == {"Skip", "NotAPlayer"}
+    assert rated["NotAPlayer"].name == "NotAPlayer"
+    assert rated["NotAPlayer"].mu == computed.newcomer_prior.mu
 
 
 # --- the rating-backed entry points ----------------------------------------
@@ -191,24 +210,44 @@ def test_create_balanced_teams_picks_the_evenest_split(rated_games) -> None:
     assert sorted(p for t in teams for p in t) == sorted(FOUR)
     assert [len(t) for t in teams] == [2, 2]
 
-    best = create_teams.rate_team_partition(
-        teams, {r.name: r for r in player_rating.compute_player_ratings(rated_games).ratings}
+    rated = create_teams.rate_roster(
+        sorted(FOUR), player_rating.compute_player_ratings(rated_games)
     )
-    ratings = {r.name: r for r in player_rating.compute_player_ratings(rated_games).ratings}
+    best = create_teams.rate_team_partition(teams, rated)
     for candidate in create_teams.partition_into_teams(sorted(FOUR), 2):
-        assert best <= create_teams.rate_team_partition(candidate, ratings) + 1e-12, (
+        assert best <= create_teams.rate_team_partition(candidate, rated) + 1e-12, (
             f"{teams} was chosen over the more even {candidate}"
         )
 
 
-def test_a_split_with_an_unrated_side_is_not_scored(rated_games) -> None:
-    """Two known players plus two strangers: any split putting both strangers
-    together leaves that side with no ratings at all, and cannot be scored."""
+def test_every_split_is_scored_even_with_strangers_on_the_roster(rated_games) -> None:
+    """Two known players plus two strangers still makes three scored matchups.
+
+    Strangers used to be dropped from their team, which both mis-scored the
+    splits that kept them apart and left the all-stranger split unscorable. They
+    now take the newcomer prior, so every split is a real 2v2.
+    """
     roster = frozenset({"Skip", "CoreDawg", "NotAPlayer", "AlsoNotAPlayer"})
     scores = create_teams.balance_teams(rated_games, player_list=roster)
-    assert all(
-        not {"NotAPlayer", "AlsoNotAPlayer"} <= set(team) for team in scores
-    ), f"a split with an entirely unrated team was scored: {scores}"
+    assert len(scores) == 3, f"three 2v2 matchups expected, got {scores}"
+    assert all(len(team) == 2 for team in scores)
+
+
+def test_a_newcomer_is_not_a_missing_player(rated_games) -> None:
+    """The reported bug: a sub-MIN_GAMES player was deleted from their team.
+
+    `compute_player_ratings().ratings` is gated at MIN_GAMES, so reading it
+    left the newcomer's side one body short and `predict_win` - which sums each
+    side's mu - called the matchup a rout. Every split is now a plausible
+    probability rather than a near-certainty.
+    """
+    roster = frozenset({"Skip", "CoreDawg", "Syn", "Pancake", "Neo", "AFreshFace"})
+    scores = create_teams.balance_teams(rated_games, player_list=roster)
+    assert scores, "no splits were scored at all"
+    assert max(scores.values()) < 0.999, (
+        f"a split was scored as a certainty, which is what a short-handed team "
+        f"looks like to predict_win: {scores}"
+    )
 
 
 def test_team_member_order_is_deterministic(rated_games) -> None:

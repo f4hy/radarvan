@@ -14,7 +14,7 @@ import Card from "@mui/material/Card"
 import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import Link from "@mui/material/Link"
-import { Link as RouterLink } from "react-router"
+import { Link as RouterLink, useSearchParams } from "react-router"
 import { gameNightHref } from "./links"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { MatchesLoading, MatchRowLoading } from "./Loading"
@@ -59,6 +59,7 @@ import {
   winRateTone,
 } from "./utils"
 import { useIsAdmin } from "./AuthContext"
+import { useUrlPatch } from "./useUrlState"
 
 // ShowMatchDetails drags in recharts, and this is the landing page — most
 // visits never expand a match, so it is split out and only fetched on demand.
@@ -826,7 +827,33 @@ function MatchFilterBar(props: {
 const NIGHTS_PER_PAGE = 25
 
 export default function DisplayMatches() {
-  const [filters, setFilters] = React.useState<MatchFilters>(NO_FILTERS)
+  // The three filters are one fact for everything downstream — the query key,
+  // the remount key, `hasActiveFilters` — so they are read as one object and
+  // written in one go. Written separately they would clobber each other; see
+  // useUrlPatch.
+  const [params] = useSearchParams()
+  const patch = useUrlPatch()
+  const filters: MatchFilters = React.useMemo(
+    () => ({
+      player: params.get("player"),
+      mapName: params.get("map"),
+      // Validated, not trusted: `format` goes straight out as an API query
+      // parameter, so an unknown one reads as "All".
+      format:
+        ALL_FORMATS.find((f) => f === params.get("format")) ??
+        NO_FILTERS.format,
+    }),
+    [params],
+  )
+  const setFilters = React.useCallback(
+    (next: MatchFilters) =>
+      patch({
+        player: next.player,
+        map: next.mapName,
+        format: next.format === NO_FILTERS.format ? null : next.format,
+      }),
+    [patch],
+  )
   const [visibleNights, setVisibleNights] = React.useState(NIGHTS_PER_PAGE)
 
   const datesQuery = useQuery({
