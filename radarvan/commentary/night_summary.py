@@ -8,14 +8,13 @@ because the page shows them, so the prompt is a rendering of what a reader
 already sees rather than a second, parallel reduction of the same replays that
 could drift from it.
 
-What this module owns on top of that is the *clock*. Every game is rendered
-with the window it occupied rather than the moment it started, and the gaps
-between games are subtracted here and rendered as breaks. Both exist because
-the model was asked to do that arithmetic and got it wrong in the obvious way:
-handed start times only, and a game list with the uncounted games filtered out
-of it, it reported a 39-minute hole - the last 3v3 ending at 11:02pm, the first
-1v1 starting at 11:41pm - as a "40-minute breather". The hole was a 29-minute
-free-for-all. See ``queries.game_night.night_narratives`` for the other half.
+What this module owns on top of that is the *clock*: every game is rendered
+with the window it occupied, not just its start, and gaps between games are
+subtracted here and rendered as breaks. Both exist because the model, handed
+only start times, once reported a 39-minute hole between two games as a
+"40-minute breather" - the hole was actually a 29-minute free-for-all that had
+been filtered out of the counted list. See
+``queries.game_night.night_narratives`` for the other half.
 
 **This module is only ever called by the nightly scheduler job.** Nothing on
 the read path generates: ``routes/game_night`` returns whatever the job wrote

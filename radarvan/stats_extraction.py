@@ -166,7 +166,6 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     team_by_idx = {
         idx: header_team_by_name.get(name, -1) for idx, name in name_by_idx.items()
     }
-    # money_earned from time series snapshots
     interval = replay.game_info.snapshot_interval
     ts_players = [p for p in replay.stats.time_series.players if p.index in name_by_idx]
     num_snapshots = max((len(p.money_earned) for p in ts_players), default=0)
@@ -194,11 +193,8 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     money_spent = _drop_redundant_consecutive(money_spent)
     money = _drop_redundant_consecutive(money)
 
-    # income_by_source: only cncstats replay versions newer than statsVersion 1
-    # populate this per-player. The dense form (every source x player x
-    # snapshot) is mostly zeros and repeats, so emit it sparse (see the
-    # AllExtractedData field comment). The series are cumulative, so a
-    # (source, player) pair earned anything iff its final value is nonzero.
+    # Cumulative, so a (source, player) pair earned anything iff its final
+    # value is nonzero - that's the prune test below.
     pruned: dict[str, list[tuple[str, list[int]]]] = {}
     for src in _INCOME_SOURCES:
         entries = []
@@ -240,7 +236,6 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
         current_xp.update(xp_by_frame[frame])
         xp[frame * scale] = dict(current_xp)
 
-    # units_built / buildings_built from buildEvents
     ub_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     bb_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for bev in replay.stats.build_events:
@@ -254,7 +249,6 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     units_built = _event_counts_to_series(ub_deltas, all_players, scale)
     buildings_built = _event_counts_to_series(bb_deltas, all_players, scale)
 
-    # units_killed / buildings_killed (credit killer) and units_lost / buildings_lost (credit victim)
     uk_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     bk_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     ul_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -283,8 +277,7 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     units_lost = _event_counts_to_series(ul_deltas, all_players, scale)
     buildings_lost = _event_counts_to_series(bl_deltas, all_players, scale)
 
-    # tech_buildings_captured / faction_buildings_captured from captureEvents
-    # exclude captures where newOwner and oldOwner are on the same team (e.g. garrisoning)
+    # Same-team new/old owner (e.g. garrisoning) is not a capture; excluded.
     tc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     fc_deltas: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for cev in replay.stats.capture_events:

@@ -74,14 +74,13 @@ logger = structlog.get_logger(__name__)
 # side can build another faction's units after capturing an enemy production
 # building, and those rare capture plays produced nonsense results ("avoids
 # Quad Cannons" as China, who can't normally build them).
-# v4: (reverted in v5) powers were faction-filtered via usage dominance.
-# v5: (reverted in v6) powers skipped faction filtering entirely.
 # v6: powers require a *dominant* faction (>=90% of all uses) matching the
 # player's faction, and powers with no dominant faction are excluded from
-# favorites and aversions altogether. Name checks can't classify powers
-# (ability names carry the unit name), and neutral powers used by every
-# faction (GPSScrambler is a per-player habit across all generals in this
-# community) make no sense framed per-general.
+# favorites and aversions altogether (earlier attempts at partial-dominance
+# filtering and no filtering at all were both tried and abandoned). Name
+# checks can't classify powers (ability names carry the unit name), and
+# neutral powers used by every faction (GPSScrambler is a per-player habit
+# across all generals in this community) make no sense framed per-general.
 # v7: favorites/aversions peer baselines are restricted to other ACTIVE
 # (>= min_profile_games) players only - an occasional guest's rate on a
 # rarely-played general was setting the peer bar for regulars.
@@ -92,7 +91,6 @@ logger = structlog.get_logger(__name__)
 # v9: objects that never cost anything (e.g. GLA Stealth's free "Hole"
 # tunnel-network exit points, logged with TotalSpent always 0) are dropped
 # entirely from favorites/aversions - see _drop_zero_cost_objects.
-# v10: (superseded by v11) badge percentile cutoff lowered 90 -> 70.
 # v11: academy badges are rank-based medals (gold/silver/bronze for the top
 # 3 players per stat) instead of a percentile threshold - a fixed medal
 # count reads more clearly than a percentile cutoff with a dozen-ish players.

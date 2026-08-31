@@ -2,10 +2,6 @@
 ``ReplayFile``, ``ParsedReplayJson``, ``MatchDetailsCache``, ``User``, ``MapData``, …)
 and the ``Base`` declarative class shared across the backend."""
 
-# Needed so forward references (e.g. ReplayFile.parsed_replay_json -> ParsedReplayJson,
-# defined later in this file) resolve under Python < 3.14, which evaluates annotations
-# eagerly unless deferred like this. 3.14+ defers by default (PEP 649) so this is a
-# no-op there - required for the ml/ 3.13 training venv (see pyproject.toml's ml group).
 from __future__ import annotations
 
 from datetime import UTC, datetime, date
@@ -101,11 +97,9 @@ class ReplayFile(Base):
         default=False, server_default="false", index=True
     )
 
-    # Timestamps
     discovered_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     source_date: Mapped[date] = mapped_column(index=True)
 
-    # Relationships
     parsed_replay_json: Mapped[ParsedReplayJson | None] = relationship(
         back_populates="replay_file"
     )
@@ -126,7 +120,6 @@ class ParsedReplayJson(Base):
         unique=True,
     )
 
-    # File info
     num_time_stamps: Mapped[int | None] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime | None] = mapped_column(
@@ -138,7 +131,6 @@ class ParsedReplayJson(Base):
     has_enhanced_stats: Mapped[bool | None] = mapped_column()
     is_v2: Mapped[bool | None] = mapped_column()
 
-    # Relationships
     replay_file: Mapped[ReplayFile] = relationship(back_populates="parsed_replay_json")
     match: Mapped[Match | None] = relationship(
         back_populates="replay_json", lazy="joined"
@@ -183,7 +175,6 @@ class Match(Base):
         Index("idx_matches_winning_team", "winning_team_id"),
     )
 
-    # Relationships
     replay_json: Mapped[ParsedReplayJson | None] = relationship(back_populates="match")
     players: Mapped[list[MatchPlayer]] = relationship(
         back_populates="match",

@@ -120,8 +120,7 @@ const MAX_PLAYERS = 16
 
 const BEST_OF_OPTIONS = [5, 7, 9] as const
 
-// Banner title for the Rules tab — distinct from the (also from
-// 1v1_tournament_rules.txt) rule text below it, which is the actual content.
+// Banner title for the Rules tab — distinct from the rule text below it.
 const TOURNAMENT_BANNER_TITLE = "The Third Gamerz Rule 1v1 Tournament"
 
 // Copied verbatim from 1v1_tournament_rules.txt, with **bold** markers added
@@ -153,8 +152,6 @@ const TOURNAMENT_MAP_LIST: string[] = [
   "Oxygen 1",
 ]
 
-// A distinct title banner for the Rules tab, separate from the rule content
-// below it — was previously just the organizer's plain announcement text.
 function TournamentBanner() {
   return (
     <Box
@@ -182,8 +179,7 @@ function TournamentBanner() {
   )
 }
 
-// The Rules tab content — a title banner plus the numbered rule set, laid
-// out as a proper list rather than the plain-text block it started as.
+// The Rules tab content: a title banner plus the numbered rule list.
 function TournamentRulesPanel() {
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -884,10 +880,9 @@ function MatchupPopup({
   const summaryLoading = summaryQuery.isFetching
 
   // The games played are a stored fact (the tournament_games link table), not
-  // something the client re-derives. The previous version guessed by fetching
-  // the night's matches and comparing player names directly, which silently
-  // found nothing for anyone whose in-game alias differs from their bracket
-  // name (`Grn` vs `Gorn`). The backend resolves aliases and also hands back
+  // derived by matching player names against the night's matches — that
+  // silently misses anyone whose in-game alias differs from their bracket
+  // name (`Grn` vs `Gorn`). The backend resolves aliases and hands back
   // unconfirmed `candidates` for admins to link.
   // scheduledAt/playerA/playerB are inputs to what the backend links, so they
   // are part of the key: an in-popup reschedule or score edit (which re-routes
@@ -1669,9 +1664,8 @@ function LosersBracketColumns({
 }
 
 // Alphabetical roster (name + the player's usual in-game color, via
-// PlayerChip) - replaces the old admin-only seed-picking panel as the thing
-// everyone sees on this page. Who's *in* the tournament isn't a spoiler;
-// where they land in the bracket is (that's gated by reveal_at instead).
+// PlayerChip). Who's *in* the tournament isn't a spoiler; where they land
+// in the bracket is (that's gated by reveal_at instead).
 function TournamentRoster({ names }: { names: string[] }) {
   const sorted = React.useMemo(
     () => [...names].sort((a, b) => a.localeCompare(b)),
