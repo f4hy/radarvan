@@ -1,17 +1,16 @@
 """Match-derived values, cache warming, and invalidation.
 
 The derivations here are declared with `radarvan.derived.derived`, which supplies
-the bound and the lock and folds the dependency's version token into every key.
-That is why there is no lock or `LRUCache` in this file any more, and why
-`invalidate_match_caches()` no longer names a single cache: it bumps two version
-tokens, and every derivation over them - here and in the seven other modules that
-declare one - stops being addressable. See `radarvan/derived/__init__.py`.
+the bound and the lock and folds the dependency's version token into every key -
+so there's no lock or `LRUCache` in this file, and `invalidate_match_caches()`
+names no single cache: it bumps two version tokens, and every derivation over
+them (here and in seven other modules) stops being addressable. See
+`radarvan/derived/__init__.py`.
 
-Cache-warming still runs on a single long-lived background thread driven by
-threading.Event. We must not spawn a fresh worker per invalidation: a burst of
-warms would waste the dyno's one core recomputing the same thing. (Thread *safety*
-is no longer the reason - the decorator locks every cache and single-flights
-concurrent misses of the same key.)
+Cache-warming runs on a single long-lived background thread driven by a
+threading.Event - a fresh worker per invalidation would waste the dyno's one
+core recomputing the same thing on a burst. (Not for thread safety: the
+decorator already locks every cache and single-flights concurrent misses.)
 """
 
 import structlog

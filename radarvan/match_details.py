@@ -54,29 +54,24 @@ logger = structlog.get_logger(__name__)
 # extracting more data into an existing field, or fixing a computation. Schema
 # changes (new/renamed/retyped fields) are caught automatically by the
 # model_json_schema hash below, so you do NOT need to bump this for those.
-# v2: APM no longer explodes for players with a near-zero active window
-# (apm.py:_MIN_ACTIVE_MINUTES) - invalidates rows cached with the old garbage.
-# v3: apm_over_time now uses 10s windows (was 1-min) scaled to an APM rate.
-# v4: body-path APM no longer counts periodic "Checksum" engine heartbeats as
-# player actions (the _NON_ACTIONS exclusion had a typo, "Chunksum").
+# v2: APM excludes players with a near-zero active window
+# (apm.py:_MIN_ACTIVE_MINUTES), avoiding a divide-by-near-zero blowup.
+# v3: apm_over_time uses 10s windows (was 1-min) scaled to an APM rate.
+# v4: body-path APM excludes periodic "Checksum" engine heartbeats (an
+# _NON_ACTIONS typo, "Chunksum", had let them count as player actions).
 # v5: money/money_earned/money_spent time series drop rows identical to the
-# previous kept row (stats_extraction._drop_redundant_consecutive) - same
-# data, fewer wire entries.
-# v6: player_summary excludes spectators. The old `s.team == Team.OBSERVER`
-# test only caught the few whose summary team was -1, so cached rows carry
-# observer entries with empty stats.
-# v7: timeline_events emits hunted / unhunted markers and MatchDetails gained
+# previous kept row (stats_extraction._drop_redundant_consecutive).
+# v6: player_summary excludes spectators by role (the prior
+# `s.team == Team.OBSERVER` check missed any whose summary team wasn't -1).
+# v7: timeline_events emits hunted/unhunted markers; MatchDetails gained
 # time_to_hunted (cncstats statsVersion 3 added stats.huntedEvents).
 _DETAILS_LOGIC_VERSION = 7
 
 
 def _compute_details_version() -> str:
-    """Stable id for the current MatchDetails *definition* + derivation logic.
+    """Stable id for the current MatchDetails definition + derivation logic.
 
-    The schema hash auto-invalidates persisted rows whenever the MatchDetails
-    shape changes; the logic-version prefix lets us force-invalidate on
-    behavior changes that don't touch the shape. Computed once at import - the
-    schema is fixed for the life of the process.
+    Computed once at import - the schema is fixed for the life of the process.
     """
     schema_json = json.dumps(MatchDetails.model_json_schema(), sort_keys=True)
     schema_hash = hashlib.sha256(schema_json.encode()).hexdigest()[:12]

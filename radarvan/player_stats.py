@@ -110,8 +110,8 @@ def get_player_stats(
         category = game.composition.category
         is_competitive = stats_game_filter(game)
 
-        # Observers are dropped up front: they were previously counted as
-        # having played the game in `player_counts`.
+        # Observers are dropped up front so they're never counted as having
+        # played in `player_counts`.
         for player in game.roster().competitors:
             name = resolve_player_name(player.name, player.color)
             player_counts[name][category] += 1
