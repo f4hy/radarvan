@@ -141,8 +141,7 @@ export function googleCalendarUrl(match: BracketMatchOutput): string | null {
 // component calling this re-renders each second, not its parent.
 // An unscheduled match has no target, and callers rely on that yielding NaN:
 // `remaining <= 0` is false for NaN, which is what keeps an unscheduled match's
-// prediction poll open. That used to be spelled `new Date("")` at the call
-// site; it's explicit here instead.
+// prediction poll open.
 export function useCountdownMs(target: Date | null | undefined): number {
   const [nowMs, setNowMs] = React.useState(() => Date.now())
   React.useEffect(() => {

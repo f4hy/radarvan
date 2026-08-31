@@ -27,8 +27,6 @@ enumerates every version token in the system. ``matchup_commentary_cache`` has n
 version at all, deliberately - see the note there.
 """
 
-# Needed so annotations referring to ReplayManager resolve under Python < 3.14
-# (PEP 649 defers by default on 3.14+); required for the ml/ 3.13 training venv.
 from __future__ import annotations
 
 import functools
@@ -70,21 +68,12 @@ class Dependency:
     ) -> None:
         self.name = name
         self._probe = probe
-        # The two ways a call can reveal which generation of this input it is
-        # working on, both given as *parameter names* so `derived` can bind one
-        # out of a call by inspecting the signature:
-        #
-        # - probe_param: the parameter the probe needs (a `replay_manager`), for
-        #   functions that read the input from the database themselves.
-        # - value_param: the parameter that *is* the input (a `list[MatchInfo]`),
-        #   for functions handed the corpus by value. `value_revision` reduces it
-        #   to something hashable.
-        #
-        # By name rather than by type: an isinstance check against ReplayManager
-        # would reject a FastAPI dependency override or a test stub, which is
-        # exactly what the endpoint smoke tests inject. Binding by name is also
-        # checked when the decorator is applied, so a rename fails at import
-        # rather than on the first request.
+        # probe_param/value_param name (not type) the parameter a call binds this
+        # input through - probe_param for a function that reads the input itself
+        # (a `replay_manager`), value_param for one handed the input directly (a
+        # `list[MatchInfo]`, reduced via `value_revision`). By name so a FastAPI
+        # dependency override or test stub isn't rejected by an isinstance check,
+        # and so a rename fails at import time rather than on the first request.
         if (value_param is None) != (value_revision is None):
             raise ValueError(
                 f"{name}: value_param and value_revision go together - a value "

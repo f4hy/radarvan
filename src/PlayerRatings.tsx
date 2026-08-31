@@ -119,7 +119,6 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
 
   const data = allEntries
     .map(([name, d]) => {
-      // Keep only the last entry per date
       const byDate = new Map<string, (typeof d)[0]>()
       for (const entry of d) {
         byDate.set(String(entry.atdate ?? ""), entry)
@@ -129,7 +128,6 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
         (a, b) =>
           new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime(),
       )
-      // Compute delta (mu change from previous entry)
       const withDelta = sorted.map((entry, i) => ({
         ...entry,
         delta: i > 0 ? (entry.mu ?? 0) - (sorted[i - 1].mu ?? 0) : null,

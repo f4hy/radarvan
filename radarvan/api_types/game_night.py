@@ -9,9 +9,6 @@ to serve a request and old nights are never backfilled. A night without one
 returns null there and the page simply omits that section.
 """
 
-# See radarvan/api_types/__init__.py for why this package is split by context.
-# Needed so forward/self references resolve under Python < 3.14 (PEP 649 defers
-# by default on 3.14+); required for the ml/ 3.13 training venv.
 from __future__ import annotations
 
 from datetime import date as date_type, datetime
