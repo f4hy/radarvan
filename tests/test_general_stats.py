@@ -17,7 +17,7 @@ from radarvan.api_types import (
     Team,
 )
 
-from corpus import COLORS, composition, cpu, match, observer  # noqa: F401
+from corpus import COLORS, composition, cpu, match, observer
 
 TEAM_ONE_GENERALS = (General.USA, General.CHINA)
 TEAM_TWO_GENERALS = (General.GLA, General.USA)
