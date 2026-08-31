@@ -4,10 +4,11 @@ hand-tuned synergy adjustments for certain pairings) to pick the most even match
 from collections.abc import Iterable, Iterator, Mapping
 from itertools import combinations
 from . import player_ids
+from openskill.models import PlackettLuceRating
 from radarvan.api_types import MatchInfo
 import structlog
 from .derived import CORPUS, derived
-from .player_rating import get_model, compute_player_ratings, NamedRating
+from .player_rating import RatingsAndCounts, compute_player_ratings, get_model
 
 logger = structlog.get_logger(__name__)
 
@@ -28,6 +29,29 @@ def _apply_fudge(win_pct: float, team1: Iterable[str], team2: Iterable[str]) -> 
     return win_pct
 
 
+def rate_roster(
+    roster: Iterable[str], computed: RatingsAndCounts
+) -> dict[str, PlackettLuceRating]:
+    """One openskill rating per name on the roster - nobody is ever left out.
+
+    Both callers used to build their teams as ``[ratings[p] for p in team if p
+    in ratings]`` over ``compute_player_ratings(...).ratings``, which is filtered
+    to players with more than ``MIN_GAMES`` games. A newcomer was therefore
+    *deleted from the team*, and ``predict_win`` - which sums each side's mu -
+    was asked to compare a 2-man side against a 3-man one. The side holding the
+    newcomer read ~25 mu short, so the balancer stacked it to compensate: on a
+    six-man roster containing a 36-game player, every split came back 0.75-1.00
+    and the "fairest" one paired the newcomer with the two strongest players in
+    the group. `RatingsAndCounts.rating_for` is what makes a hole impossible.
+
+    Built once per roster rather than per split: a `PlackettLuceRating` mints a
+    uuid4 on construction, and the partition path rates the same dozen players
+    for every one of thousands of partitions.
+    """
+    model = get_model()
+    return {name: computed.rating_for(name).to_rating(model) for name in roster}
+
+
 @derived(on=CORPUS, maxsize=128)
 def balance_teams(
     games: list[MatchInfo], player_list: frozenset[str]
@@ -41,10 +65,6 @@ def balance_teams(
     corpus like every other derivation. The hold is a product decision and lives
     where it is visible - `routes/players.balance_teams`, six hours per roster.
     """
-    ratings = compute_player_ratings(games).ratings
-
-    player_ratings = {r.name: r for r in ratings}
-
     model = get_model()
     # Sorted, and de-duplicated after resolution. Sorted because the team tuples
     # below take their element order from this list, and iterating the frozenset
@@ -54,6 +74,9 @@ def balance_teams(
     # land here and be treated as two people.
     day_players = sorted({player_ids.resolve_player_name(n) for n in player_list})
     team_size = len(day_players) // 2
+    if team_size == 0:
+        return {}
+    rated = rate_roster(day_players, compute_player_ratings(games))
 
     team_win_pct = {}
     seen_matchups: set[frozenset[tuple[str, ...]]] = set()
@@ -67,14 +90,8 @@ def balance_teams(
             continue
         seen_matchups.add(matchup)
 
-        team1_ratings = [
-            player_ratings[p].to_rating(model) for p in team1 if p in player_ratings
-        ]
-        team2_ratings = [
-            player_ratings[p].to_rating(model) for p in team2 if p in player_ratings
-        ]
-        if not team1_ratings or not team2_ratings:
-            continue
+        team1_ratings = [rated[p] for p in team1]
+        team2_ratings = [rated[p] for p in team2]
         win1_prop, win2_prop = model.predict_win([team1_ratings, team2_ratings])
         win1_prop = _apply_fudge(win1_prop, team1, team2)
         win2_prop = 1 - win1_prop
@@ -138,15 +155,12 @@ def partition_into_teams(
 def create_balanced_teams(
     games: list[MatchInfo], player_list: set[str], team_size: int = 2
 ) -> list[list[str]]:
-    ratings = compute_player_ratings(games).ratings
-
-    player_ratings = {r.name: r for r in ratings}
-
     resolved_players = [player_ids.resolve_player_name(n) for n in player_list]
+    rated = rate_roster(resolved_players, compute_player_ratings(games))
     team_configs = dict(enumerate(partition_into_teams(resolved_players, team_size)))
 
     config_rating = {
-        config_id: rate_team_partition(team_config, player_ratings)
+        config_id: rate_team_partition(team_config, rated)
         for config_id, team_config in team_configs.items()
     }
 
@@ -156,16 +170,19 @@ def create_balanced_teams(
 
 
 def rate_team_partition(
-    teams: list[list[str]], ratings: Mapping[str, NamedRating]
+    teams: list[list[str]], rated: Mapping[str, PlackettLuceRating]
 ) -> float:
+    """How unbalanced this partition is - 0.0 is perfectly even.
+
+    `rated` must cover every name in `teams`; build it with `rate_roster`, which
+    is what guarantees that.
+    """
     model = get_model()
     loss = 0.0
     for matchup in combinations(teams, 2):
         team1, team2 = matchup
-        ratings1 = [ratings[p].to_rating(model) for p in team1 if p in ratings]
-        ratings2 = [ratings[p].to_rating(model) for p in team2 if p in ratings]
-        if not ratings1 or not ratings2:
-            continue
+        ratings1 = [rated[p] for p in team1]
+        ratings2 = [rated[p] for p in team2]
         win1_prob, _win2_prob = model.predict_win([ratings1, ratings2])
         win1_prob = _apply_fudge(win1_prob, team1, team2)
         loss += (0.5 - win1_prob) ** 2
