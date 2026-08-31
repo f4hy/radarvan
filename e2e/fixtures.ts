@@ -2,6 +2,7 @@ import type {
   AuthStatus,
   DurationDistribution,
   GameNightRecap,
+  MapStatsResponse,
   MapVotePage,
   MatchInfo,
   PlayerProfile,
@@ -194,4 +195,27 @@ export const PLAYER_RATINGS = wire<PlayerRatingData>({
       { mu: 30.2, sigma: 2.1, atdate: "2026-08-28" },
     ],
   },
+})
+
+/**
+ * Five maps, because the page auto-expands the first three: a deep-link test
+ * needs a target outside that set, or it can't tell "the link worked" from
+ * "this map was open anyway". `thin desert` sits under the 10-game floor for
+ * the same reason — the floor is what the `?map=` pin has to beat.
+ */
+export const MAP_STATS = wire<MapStatsResponse>({
+  // camelCase here, unlike most fixtures in this file: MapData carries no
+  // serialisation aliases, so this endpoint really is camelCase on the wire.
+  // Verified against a running server, not assumed.
+  maps: [
+    { mapName: "alpine assault", totalGames: 40 },
+    { mapName: "tournament desert", totalGames: 30 },
+    { mapName: "dusty rampage", totalGames: 20 },
+    { mapName: "final crusade", totalGames: 15 },
+    { mapName: "thin desert", totalGames: 2 },
+  ].map((m) => ({
+    ...m,
+    playerStats: [{ player: "Skip", wins: 3, losses: 1 }],
+    generalStats: [{ general: "USA", wins: 3, losses: 1 }],
+  })),
 })

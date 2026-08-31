@@ -33,6 +33,7 @@ import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
 import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import { useUrlChoice } from "./useUrlState"
 import QueryState from "./QueryState"
 import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { formatCash, wilsonLowerBound, winRate } from "./utils"
@@ -403,7 +404,11 @@ function GeneralStatsBody({ generalStats }: { generalStats: GeneralStats }) {
 }
 
 export default function DisplayGeneralStats() {
-  const [format, setFormat] = React.useState<GameFormat>("All")
+  const [format, setFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
   const query = useQuery({
     queryKey: ["generalStats", format],
     queryFn: () => fetchGeneralStats(format),

@@ -8,11 +8,11 @@ tracking per-day/per-match rating changes and upsets."""
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from typing import NamedTuple
 from openskill.models import PlackettLuce, PlackettLuceRating
-from collections import defaultdict
+from collections import Counter, defaultdict
 from . import player_ids
 from . import game_composition
 from .derived import CORPUS, derived
@@ -29,6 +29,18 @@ NON_COMPETITIVE: set[str] = {"EasyArmy", "MediumArmy"}
 
 MIN_GAMES = 45
 ITERATIONS = 3
+
+# The floor every pass applies to sigma before re-rating (see _reseed).
+MIN_SIGMA = 5.0
+
+# How far below the weakest established player a newcomer is assumed to sit.
+# One beta - the model's own per-player performance noise - rather than a number
+# read off today's leaderboard, so it stays meaningful as the scale drifts.
+NEW_PLAYER_MARGIN_BETAS = 1.0
+
+# ...and with this multiple of the usual starting uncertainty, because "we have
+# not seen you play" is a wider claim than "you are weak".
+NEW_PLAYER_SIGMA_SCALE = 2.0
 
 # When a game has any CPU player, scale down how far each player's rating moves
 # (both mu and sigma). 1.0 = full movement, 0.0 = no movement. CPU games still
@@ -185,9 +197,32 @@ class GameUpset:
         return self.favored_win_prob - self.winner_win_prob
 
 
+def _leaderboard(
+    ratings: dict[str, NamedRating], game_counts: dict[str, int]
+) -> list[NamedRating]:
+    """Players over MIN_GAMES, best first. The one spelling of the display cut -
+    `compute_player_ratings` logs it once per pass and reports it as
+    `RatingsAndCounts.ratings`."""
+    return sorted(
+        (
+            r
+            for r in ratings.values()
+            if include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
+        ),
+        key=lambda r: r.ordinal(),
+        reverse=True,
+    )
+
+
 @dataclass(slots=True)
 class RatingsAndCounts:
-    ratings: list[NamedRating]
+    # Every seeded player, including those under MIN_GAMES, and the rating to
+    # assume for anyone not seeded at all. Ask through `rating_for`: a caller
+    # that reasons about a player - team balance, prediction - must never end up
+    # holding a hole, because dropping a player is not a small error. It asks
+    # predict_win to compare a 2-man side to a 3-man one.
+    all_ratings: dict[str, NamedRating]
+    newcomer_prior: NamedRating
     game_counts: dict[str, int]
     over_time: dict[str, list[NamedRating]]
     daily_changes: dict[str, list[RatingDailyChange]]
@@ -195,6 +230,29 @@ class RatingsAndCounts:
     ordinal_high: dict[str, float]
     ordinal_low: dict[str, float]
     upsets: list[GameUpset]
+
+    @property
+    def ratings(self) -> list[NamedRating]:
+        """The leaderboard: best first, and only players over MIN_GAMES.
+
+        Derived rather than stored, so it cannot drift from `all_ratings`. A
+        rating with ten games behind it is not worth *showing* - which is all
+        this filter is for. Anything that reasons about a player wants
+        `rating_for`, and `queries/players.player_ratings_payload` builds the
+        wire payload from here.
+        """
+        return _leaderboard(self.all_ratings, self.game_counts)
+
+    def rating_for(self, name: str) -> NamedRating:
+        """This player's rating - never None, never a hole in a team.
+
+        Callers used to build their own `{r.name: r for r in .ratings}`, which
+        is the MIN_GAMES-gated view, and then paper over the misses: create_teams
+        dropped the player outright, ml/predict substituted openskill's mu=25
+        default. Both threw away a real computed rating. One accessor that
+        cannot be combined incorrectly replaces both.
+        """
+        return self.all_ratings.get(name) or replace(self.newcomer_prior, name=name)
 
 
 class TeamBuildResult(NamedTuple):
@@ -210,7 +268,6 @@ class RatingUpdateResult(NamedTuple):
 
 class ProcessGamesResult(NamedTuple):
     players: dict[str, NamedRating]
-    game_counts: dict[str, int]
     rating_over_time: dict[str, list[NamedRating]]
     match_changes: dict[str, list[RatingMatchChange]]
     upsets: list[GameUpset]
@@ -331,22 +388,34 @@ class _RatableGame(NamedTuple):
 
     game: MatchInfo
     teams: dict[int, list[str]]
+
+
+class _PreparedCorpus(NamedTuple):
+    """The games the passes iterate, and how much we know about each player.
+
+    The counts are summed here rather than carried per game: they are a property
+    of the corpus, not of a pass, and `_process_games` ran over all ITERATIONS
+    of them re-adding the same numbers. Keeping them on `_RatableGame` also held
+    a small dict per game alive for the whole computation for one use.
+    """
+
+    games: list[_RatableGame]
     counts: dict[str, int]
 
 
-def _ratable_games(games: list[MatchInfo]) -> list[_RatableGame]:
+def _ratable_games(games: list[MatchInfo]) -> _PreparedCorpus:
     """Gate + team-build every game once, in chronological order."""
     prepared: list[_RatableGame] = []
+    counts: Counter[str] = Counter()
     for game in sorted(games, key=lambda x: x.timestamp):
         if not is_ratable_team_game(game):
             continue
         result = build_teams(game)
         if result is None:
             continue
-        prepared.append(
-            _RatableGame(game=game, teams=result.teams, counts=result.counts)
-        )
-    return prepared
+        prepared.append(_RatableGame(game=game, teams=result.teams))
+        counts.update(result.counts)
+    return _PreparedCorpus(games=prepared, counts=dict(counts))
 
 
 def _process_games(
@@ -355,13 +424,10 @@ def _process_games(
     model: PlackettLuce,
 ) -> ProcessGamesResult:
     players = dict(initial_players)
-    game_counts = dict.fromkeys(players, 0)
     rating_over_time: dict[str, list[NamedRating]] = {name: [] for name in players}
     match_changes: dict[str, list[RatingMatchChange]] = {name: [] for name in players}
     upsets: list[GameUpset] = []
-    for game, teams, counts in games:
-        for name, count in counts.items():
-            game_counts[name] += count
+    for game, teams in games:
         pre_ordinals = {
             name: players[name].ordinal() for team in teams.values() for name in team
         }
@@ -380,11 +446,97 @@ def _process_games(
             )
     return ProcessGamesResult(
         players=players,
-        game_counts=game_counts,
         rating_over_time=rating_over_time,
         match_changes=match_changes,
         upsets=upsets,
     )
+
+
+def _newcomer_prior(
+    ratings: dict[str, NamedRating], counts: dict[str, int], model: PlackettLuce
+) -> NamedRating:
+    """What we assume about someone we have barely seen play.
+
+    Deliberately *relative* to the players we do know. openskill has no absolute
+    anchor - the whole scale is free to drift, and this corpus has drifted to a
+    mu range of roughly 10..38, so the library's own default of mu=25 seeds a
+    brand-new player above two thirds of the regulars. (Lowering the default for
+    everyone fixes nothing: measured, it shifts every mu down by the same amount
+    and leaves the ordering identical.) Anchoring one beta below the weakest
+    established player says the thing we actually mean - "assume they are the
+    weakest here until they show otherwise" - and keeps saying it as the scale
+    moves.
+
+    On the first pass nobody is established yet, and then the margin is dropped
+    along with the anchor: with every player still sitting on the same default
+    there is nothing to be weaker *than*, and subtracting a beta from the shared
+    starting point would single the newcomer out on no evidence at all.
+    """
+    established = [
+        r.mu
+        for name, r in ratings.items()
+        # `include_rating` is the app's definition of "enough games to have a
+        # rating worth quoting"; reuse it rather than spelling the threshold a
+        # second time. Its CPU exemption is not wanted here - HardArmy is not a
+        # regular, and its rating is seeded differently.
+        if not player_ids.is_cpu_name(name)
+        and include_rating(counts, name, min_game_count=MIN_GAMES)
+    ]
+    mu = (
+        min(established) - NEW_PLAYER_MARGIN_BETAS * model.beta
+        if established
+        else model.mu
+    )
+    # The wide sigma stands either way: "we have not seen you play" is true on
+    # the first pass too.
+    return NamedRating(name="", mu=mu, sigma=model.sigma * NEW_PLAYER_SIGMA_SCALE)
+
+
+def _reseed(
+    ratings: dict[str, NamedRating], counts: dict[str, int], model: PlackettLuce
+) -> dict[str, NamedRating]:
+    """Starting ratings for the next pass: shrink the barely-seen back toward
+    the newcomer prior, then floor sigma.
+
+    This has to run every pass, not once before the first. ``compute_player_ratings``
+    seeds from ``initialize_player`` and then feeds each pass the *previous
+    pass's* output, so a starting prior only ever constrains pass 1 and is
+    swamped by passes 2 and 3 replaying the same games. Measured on the live
+    corpus, seeding a 36-game newcomer 25 mu lower moved them from 8th to 13th
+    after one pass and left them 5th after three - i.e. the prior alone is
+    almost inert at the shipped ITERATIONS. Re-applying it here is what makes it
+    bite.
+
+    The weight ramps linearly to 1.0 at MIN_GAMES and stays there, so a player
+    with enough games keeps exactly their own rating (this reduces to the plain
+    sigma floor it replaced) and nobody's rating steps the night they cross the
+    line. CPUs are exempt: they get their own seed in ``initialize_player`` and
+    are not newcomers whatever their game count.
+
+    Only mu is pulled back. Sigma is left to converge on its own (floored, as
+    before), because in openskill sigma *is* the learning rate: re-inflating a
+    newcomer's uncertainty every pass would pin them at maximum volatility and
+    let a short winning run carry them further than the evidence does - the
+    opposite of what holding them near the prior is for. The wide sigma belongs
+    to the seed, where it says "we have not seen you play"; once we have seen
+    them, their own sigma is the better answer.
+    """
+    prior = _newcomer_prior(ratings, counts, model)
+    reseeded: dict[str, NamedRating] = {}
+    for name, rating in ratings.items():
+        # How much of this player's own record we believe, ramped linearly to
+        # full trust at MIN_GAMES ratable games; the rest of the weight goes to
+        # the prior. Continuous by construction, so nobody's rating jumps the
+        # night they cross the line, and at trust 1.0 this is exactly the sigma
+        # floor it replaced - which is why a CPU (seeded by `initialize_player`,
+        # never a newcomer) can take the same branch by being trusted outright.
+        exempt = player_ids.is_cpu_name(name) or name in NON_COMPETITIVE
+        trust = 1.0 if exempt else min(1.0, counts.get(name, 0) / MIN_GAMES)
+        reseeded[name] = replace(
+            rating.with_min_sigma(MIN_SIGMA),
+            mu=trust * rating.mu + (1.0 - trust) * prior.mu,
+        )
+    return reseeded
 
 
 def _log_sorted_ratings(
@@ -488,34 +640,21 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     filtered_games = [g for g in games if filter_for_rating(g)]
     all_players = _collect_all_players(filtered_games)
     player_ratings = {name: initialize_player(name, model) for name in all_players}
-    logger.debug("initial players", players=player_ratings)
 
     # Gate + resolve teams once, then reuse across every pass (see _RatableGame).
-    prepared = _ratable_games(filtered_games)
+    # Before the first pass, not between the seeding and the loop: `_reseed`
+    # needs the per-player game counts to know who is still a newcomer.
+    prepared, ratable_counts = _ratable_games(filtered_games)
+    game_counts = dict.fromkeys(all_players, 0) | ratable_counts
+    logger.debug("initial players", players=player_ratings)
 
     for i in range(ITERATIONS):
-        min_sigmaed = {k: v.with_min_sigma(5.0) for k, v in player_ratings.items()}
-        player_ratings, game_counts, rating_over_time, match_changes, upsets = (
-            _process_games(prepared, min_sigmaed, model)
+        player_ratings, rating_over_time, match_changes, upsets = _process_games(
+            prepared, _reseed(player_ratings, game_counts, model), model
         )
         logger.debug("pass", iteration=i)
-        _log_sorted_ratings(
-            [
-                r
-                for r in player_ratings.values()
-                if include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
-            ],
-            game_counts,
-        )
+        _log_sorted_ratings(_leaderboard(player_ratings, game_counts), game_counts)
     logger.debug("done computing ratings")
-
-    ratings = [
-        r
-        for r in player_ratings.values()
-        if include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
-    ]
-    sorted_ratings = sorted(ratings, key=lambda x: x.ordinal(), reverse=True)
-    _log_sorted_ratings(sorted_ratings, game_counts)
 
     over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
 
@@ -543,7 +682,10 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     sorted_upsets = sorted(upsets, key=lambda u: u.surprise, reverse=True)
 
     return RatingsAndCounts(
-        ratings=sorted_ratings,
+        all_ratings=player_ratings,
+        # Computed here, where the model and the final ratings are both in hand,
+        # rather than re-derived by every caller that needs to place a stranger.
+        newcomer_prior=_newcomer_prior(player_ratings, game_counts, model),
         game_counts=game_counts,
         over_time=over_time_filtered,
         daily_changes=daily_changes,

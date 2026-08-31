@@ -22,6 +22,7 @@ import { PlayersClient } from "./clients/players"
 import QueryState from "./QueryState"
 import { PlayerLabel } from "./PlayerChip"
 import { WIN_COLOR, LOSS_COLOR } from "./theme"
+import { useUrlChoice, useUrlFlag, useUrlNumber } from "./useUrlState"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -33,18 +34,32 @@ const SIGNIFICANT_Z = 2
 const DEFAULT_PAIR_REG = 10
 const DEFAULT_MAIN_REG = 25
 
-// One regularization slider. Dragging updates only the label (`draft`); the
-// committed value (which triggers the refetch) changes on release, so a drag
-// doesn't fire a heavy backend recompute on every step.
+// One regularization slider. Dragging updates only the label; the committed
+// value (which triggers the refetch) changes on release, so a drag doesn't fire
+// a heavy backend recompute on every step.
+//
+// The in-progress position is held here rather than by the page, because the
+// committed value now lives in the URL and the page has no business carrying a
+// second copy of it. That also fixes the case the split state got wrong: the
+// committed value can change without the slider being touched — Back, or a
+// pasted link — and the thumb has to follow.
 function RegSlider(props: {
   label: string
   tooltip: string
-  draft: number
+  value: number
   min: number
   max: number
-  onDraft: (v: number) => void
   onCommit: (v: number) => void
 }) {
+  const [draft, setDraft] = React.useState(props.value)
+  // Adjusting state during render rather than in an effect: React's documented
+  // way to reset state when a prop changes, and it avoids rendering one frame
+  // with the stale thumb position.
+  const [seeded, setSeeded] = React.useState(props.value)
+  if (seeded !== props.value) {
+    setSeeded(props.value)
+    setDraft(props.value)
+  }
   return (
     <Box sx={{ minWidth: 170 }}>
       <MuiTooltip title={props.tooltip}>
@@ -54,17 +69,17 @@ function RegSlider(props: {
             color: "text.secondary",
           }}
         >
-          {props.label}: {props.draft}
+          {props.label}: {draft}
         </Typography>
       </MuiTooltip>
       <Slider
         size="small"
-        value={props.draft}
+        value={draft}
         min={props.min}
         max={props.max}
         step={1}
         valueLabelDisplay="auto"
-        onChange={(_, v) => props.onDraft(v as number)}
+        onChange={(_, v) => setDraft(v as number)}
         onChangeCommitted={(_, v) => props.onCommit(v as number)}
       />
     </Box>
@@ -108,13 +123,25 @@ function PairCell(props: { a: string; b: string }) {
 }
 
 export default function DisplayPlayerSynergy() {
-  const [format, setFormat] = React.useState<GameFormat>("All")
-  const [minGames, setMinGames] = React.useState<number>(3)
-  const [significantOnly, setSignificantOnly] = React.useState(false)
-  const [pairReg, setPairReg] = React.useState(DEFAULT_PAIR_REG)
-  const [pairRegDraft, setPairRegDraft] = React.useState(DEFAULT_PAIR_REG)
-  const [mainReg, setMainReg] = React.useState(DEFAULT_MAIN_REG)
-  const [mainRegDraft, setMainRegDraft] = React.useState(DEFAULT_MAIN_REG)
+  const [format, setFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
+  const [minGames, setMinGames] = useUrlChoice("minGames", MIN_GAMES_OPTIONS, 3)
+  const [significantOnly, setSignificantOnly] = useUrlFlag("significant")
+  // `replace` on the two sliders: a drag that settles through several values
+  // shouldn't cost several presses of Back to leave the page.
+  const [pairReg, setPairReg] = useUrlNumber("pairReg", DEFAULT_PAIR_REG, {
+    replace: true,
+    min: 1,
+    max: 50,
+  })
+  const [mainReg, setMainReg] = useUrlNumber("mainReg", DEFAULT_MAIN_REG, {
+    replace: true,
+    min: 1,
+    max: 100,
+  })
 
   const query = useQuery({
     queryKey: ["playerSynergy", format, minGames, pairReg, mainReg],
@@ -219,19 +246,17 @@ export default function DisplayPlayerSynergy() {
         <RegSlider
           label="Pair shrinkage"
           tooltip="L2 penalty on pair synergy. Higher = more conservative (pulls synergies toward 0)."
-          draft={pairRegDraft}
+          value={pairReg}
           min={1}
           max={50}
-          onDraft={setPairRegDraft}
           onCommit={setPairReg}
         />
         <RegSlider
           label="Main-effect shrinkage"
           tooltip="L2 penalty on per-player main effects. Raise this if Main A·B shows huge values — it stops strong players' main effects running away and saturating the synergy."
-          draft={mainRegDraft}
+          value={mainReg}
           min={1}
           max={100}
-          onDraft={setMainRegDraft}
           onCommit={setMainReg}
         />
       </Stack>

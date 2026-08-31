@@ -33,6 +33,7 @@ import {
 } from "recharts"
 
 import Page from "./Page"
+import { useUrlChoice, useUrlFlag } from "./useUrlState"
 import QueryState from "./QueryState"
 import { PlayerLabel } from "./PlayerChip"
 import WinRateChip from "./WinRateChip"
@@ -120,7 +121,8 @@ function SummaryCards(props: { stats: FFAStats }) {
 
 // --- Player leaderboard ---------------------------------------------------
 
-type SortKey = "wins" | "games" | "winRate" | "dominance"
+const SORT_KEYS = ["games", "wins", "winRate", "dominance"] as const
+type SortKey = (typeof SORT_KEYS)[number]
 
 const SORT_LABELS: Record<SortKey, string> = {
   wins: "Wins",
@@ -155,7 +157,7 @@ function LeaderboardName(props: { player: FFAPlayerStat; bold: boolean }) {
 }
 
 function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
-  const [sortKey, setSortKey] = React.useState<SortKey>("wins")
+  const [sortKey, setSortKey] = useUrlChoice("sort", SORT_KEYS, "wins")
 
   const rows = React.useMemo(() => {
     const sorted = [...props.players]
@@ -192,19 +194,17 @@ function PlayerLeaderboard(props: { players: FFAPlayerStat[] }) {
               <TableCell>
                 <strong>Player</strong>
               </TableCell>
-              {(["games", "wins", "winRate", "dominance"] as SortKey[]).map(
-                (key) => (
-                  <TableCell key={key} align="right" sortDirection="desc">
-                    <TableSortLabel
-                      active={sortKey === key}
-                      direction="desc"
-                      onClick={handleSort(key)}
-                    >
-                      <strong>{SORT_LABELS[key]}</strong>
-                    </TableSortLabel>
-                  </TableCell>
-                ),
-              )}
+              {SORT_KEYS.map((key) => (
+                <TableCell key={key} align="right" sortDirection="desc">
+                  <TableSortLabel
+                    active={sortKey === key}
+                    direction="desc"
+                    onClick={handleSort(key)}
+                  >
+                    <strong>{SORT_LABELS[key]}</strong>
+                  </TableSortLabel>
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -456,11 +456,14 @@ function FieldToggle(props: {
 }
 
 export default function DisplayFFAStats() {
-  const [field, setField] = React.useState<Field>("Humans only")
+  // Stored as a flag rather than the label: `?cpu=1` beats `?field=All+FFA`,
+  // and the label is display text that should stay free to change.
+  const [includeCpu, setIncludeCpu] = useUrlFlag("cpu")
+  const field: Field = includeCpu ? "All FFA" : "Humans only"
+  const setField = (next: Field) => setIncludeCpu(next === "All FFA")
   const query = useQuery({
-    queryKey: ["ffaStats", field],
-    queryFn: () =>
-      FfaClient.getFfaStatsApiFfastatsGet({ includeCpu: field === "All FFA" }),
+    queryKey: ["ffaStats", includeCpu],
+    queryFn: () => FfaClient.getFfaStatsApiFfastatsGet({ includeCpu }),
   })
 
   // The toggle renders in every state on purpose: an empty result is itself a

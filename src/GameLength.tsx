@@ -31,6 +31,7 @@ import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
 import { BRAND_COLOR, CHART_PALETTE, NEUTRAL_COLOR } from "./theme"
+import { useUrlChoice } from "./useUrlState"
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -240,8 +241,16 @@ function FormatTable(props: { byFormat: { [key: string]: DurationStats } }) {
 export default function GameLength() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-  const [gameFormat, setGameFormat] = React.useState<GameFormat>("All")
-  const [bucketMinutes, setBucketMinutes] = React.useState<BucketMinutes>(2)
+  const [gameFormat, setGameFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
+  const [bucketMinutes, setBucketMinutes] = useUrlChoice<BucketMinutes>(
+    "bars",
+    BUCKET_OPTIONS,
+    2,
+  )
   const query = useQuery({
     queryKey: ["durationDistribution", gameFormat, bucketMinutes],
     queryFn: () =>

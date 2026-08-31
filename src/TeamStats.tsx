@@ -10,6 +10,7 @@ import * as React from "react"
 import type { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "./api"
 import { TeamsClient } from "./clients/teams"
 import Page from "./Page"
+import { useUrlNumber } from "./useUrlState"
 import QueryState from "./QueryState"
 import { WinRateBar } from "./WinRateChip"
 import { PlayerChip } from "./PlayerChip"
@@ -97,10 +98,11 @@ function TeamSizeTab(props: { group: TeamSizeGroup }) {
 }
 
 export default function DisplayTeamStats() {
-  // null until the groups arrive: hardcoding 2v2 leaves the Tabs pointing at a
-  // value that may not exist, which renders no tab as selected while the
-  // content silently falls back to the first group.
-  const [tab, setTab] = React.useState<number | null>(null)
+  // 2v2 is the common case and so the default, but the size named here may not
+  // be one the data has. The Tabs value below is taken from the group that was
+  // actually resolved, never from this, so an absent size selects no tab rather
+  // than pointing at one that isn't there.
+  const [tab, setTab] = useUrlNumber("size", 2)
   const query = useQuery({
     queryKey: ["teamStats"],
     queryFn: fetchTeamStats,
@@ -117,8 +119,7 @@ export default function DisplayTeamStats() {
           // Prefer 2v2 when it exists (the most common format), else the first
           // group that does — and keep the Tabs value and the rendered group in
           // agreement.
-          const activeGroup =
-            groups.find((g) => g.size === (tab ?? 2)) ?? groups[0]
+          const activeGroup = groups.find((g) => g.size === tab) ?? groups[0]
           return (
             <>
               <Divider sx={{ mb: 1 }} />
