@@ -119,10 +119,19 @@ def openskill_probs(
     """openskill predict_win for team_a (smaller team id), fit on train only."""
     model = player_rating.get_model()
     rc = player_rating.compute_player_ratings(train)
-    rated = {r.name: r for r in rc.ratings}
-
-    def rating(name: str) -> player_rating.NamedRating:
-        return rated.get(name) or player_rating.initialize_player(name, model)
+    # `rating_for`, not `{r.name: r for r in rc.ratings}` + a default for the
+    # misses: that view is gated on MIN_GAMES, so the baseline used to throw
+    # away the real computed rating of every sub-45-game player and seed them at
+    # openskill's mu=25 - which on this corpus is above two thirds of the
+    # regulars. The balancer had the same bug; see create_teams.rate_roster.
+    rated = {
+        name: rc.rating_for(name).to_rating(model)
+        for name in {
+            player_ids.resolve_player_name(p.name, p.color)
+            for m in dev
+            for p in m.roster().participants
+        }
+    }
 
     probs: list[float] = []
     labels: list[int] = []
@@ -138,10 +147,7 @@ def openskill_probs(
         winner = int(m.winning_team)
         if winner not in (a_id, b_id):
             continue
-        pteams = [
-            [rating(n).to_rating(model) for n in teams[a_id]],
-            [rating(n).to_rating(model) for n in teams[b_id]],
-        ]
+        pteams = [[rated[n] for n in teams[a_id]], [rated[n] for n in teams[b_id]]]
         p_a, _p_b = model.predict_win(teams=pteams)
         probs.append(float(p_a))
         labels.append(1 if winner == a_id else 0)

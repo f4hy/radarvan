@@ -4,6 +4,7 @@ import Collapse from "@mui/material/Collapse"
 import IconButton from "@mui/material/IconButton"
 import FormatToggle, { TEAM_FORMATS } from "./FormatToggle"
 import Page from "./Page"
+import { useUrlChoice } from "./useUrlState"
 import QueryState from "./QueryState"
 import { PlayerChip, PlayerLabel } from "./PlayerChip"
 import Divider from "@mui/material/Divider"
@@ -805,7 +806,11 @@ function PlayerJumpList(props: { names: string[] }) {
 }
 
 export default function DisplayPlayerStats() {
-  const [format, setFormat] = React.useState<GameFormat>("All")
+  const [format, setFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
   const query = useQuery({
     queryKey: ["playerStats", format],
     queryFn: () => fetchPlayerStats(format),

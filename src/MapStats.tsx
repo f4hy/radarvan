@@ -22,6 +22,7 @@ import { MapClient } from "./clients/map"
 import { toGeneralName } from "./general_utils"
 import GameMap, { MapThumbnail } from "./Map"
 import Page from "./Page"
+import { useUrlChoice, useUrlParam } from "./useUrlState"
 import { queryFallback } from "./QueryState"
 import { WinRateBar } from "./WinRateChip"
 import { PlayerLabel } from "./PlayerChip"
@@ -450,12 +451,25 @@ const MapCard = React.memo(function MapCard(props: {
 // aid, so it never applies to a search - if you typed a map's name you want
 // that map, however little we have on it.
 const MIN_GAMES_OPTIONS = [5, 10, 20] as const
-const DEFAULT_MIN_GAMES = 10
+type MinGames = (typeof MIN_GAMES_OPTIONS)[number]
+const DEFAULT_MIN_GAMES: MinGames = 10
 
 export default function DisplayMapStats() {
   const [expandedMaps, setExpandedMaps] = React.useState<Set<string>>(new Set())
-  const [search, setSearch] = React.useState("")
-  const [minGames, setMinGames] = React.useState<number>(DEFAULT_MIN_GAMES)
+  // `replace` while typing: one history entry per keystroke would take a dozen
+  // presses of Back to leave the page.
+  const [searchParam, setSearch] = useUrlParam("q", { replace: true })
+  const search = searchParam ?? ""
+  const [minGames, setMinGames] = useUrlChoice(
+    "minGames",
+    MIN_GAMES_OPTIONS,
+    DEFAULT_MIN_GAMES,
+  )
+  // The map this page is pointed at, if any. Clicking a general's best/worst
+  // badge used to expand and scroll to a map while leaving the URL on the bare
+  // page, so the one view here worth sending someone was the one view that
+  // couldn't be sent. It is also what makes Back undo a jump.
+  const [focusedMap, setFocusedMap] = useUrlParam("map")
   // Maps a best/worst badge sent us to, kept visible regardless of the floor -
   // otherwise clicking "worst map" for a general scrolls to nothing whenever
   // that map is one of the thin ones the floor is there to hide.
@@ -473,6 +487,18 @@ export default function DisplayMapStats() {
     }
   }, [mapStats])
 
+  // One path for every way `?map=` can arrive — a pasted link, a badge click,
+  // Back — so the three can't drift. It runs after the seed above and adds to
+  // it rather than replacing, which is why both use the updater form.
+  React.useEffect(() => {
+    if (focusedMap === null || !mapStats) return
+    setExpandedMaps((prev) => new Set([...prev, focusedMap]))
+    setPinned((prev) => new Set([...prev, focusedMap]))
+    // Not an inline scrollIntoView: pinning may be what puts the row on the
+    // page at all, so the scroll has to wait for that render.
+    setScrollTo(focusedMap)
+  }, [focusedMap, mapStats])
+
   const handleToggle = React.useCallback(
     (mapName: string, isExpanded: boolean) => {
       setExpandedMaps((prev) => {
@@ -485,13 +511,12 @@ export default function DisplayMapStats() {
     [],
   )
 
-  const handleMapClick = React.useCallback((mapName: string) => {
-    setExpandedMaps((prev) => new Set([...prev, mapName]))
-    setPinned((prev) => new Set([...prev, mapName]))
-    // Not an inline scrollIntoView: pinning may be what puts the row on the
-    // page at all, so the scroll has to wait for that render.
-    setScrollTo(mapName)
-  }, [])
+  // Only the URL is set: the effect above turns that into expand + pin +
+  // scroll, so a click and a pasted link do exactly the same thing.
+  const handleMapClick = React.useCallback(
+    (mapName: string) => setFocusedMap(mapName),
+    [setFocusedMap],
+  )
 
   React.useEffect(() => {
     if (scrollTo === null) return
@@ -547,7 +572,7 @@ export default function DisplayMapStats() {
             exclusive
             size="small"
             disabled={query !== ""}
-            onChange={(_, next: number | null) =>
+            onChange={(_, next: MinGames | null) =>
               next !== null && setMinGames(next)
             }
           >

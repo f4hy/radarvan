@@ -46,11 +46,15 @@ import { queryFallback } from "./QueryState"
 import { SimplePlayerSynergy } from "./PlayerSynergy"
 import { PlayerLabel } from "./PlayerChip"
 import { BRAND_COLOR, WIN_COLOR, LOSS_COLOR } from "./theme"
+import { useUrlChoice, useUrlNumber } from "./useUrlState"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
 const MONTHS_BACK_OPTIONS = [1, 3, 6, 9, 12] as const
+// The rating-history chart opens here; earlier years exist but are mostly a
+// different group of players.
+const DEFAULT_START_YEAR = 2024
 type MonthsBack = (typeof MONTHS_BACK_OPTIONS)[number] | null
 
 function fetchPlayerRatings(
@@ -86,7 +90,6 @@ function formatSkill(v: [number, number]): string {
 }
 
 function RatingsOverTime(props: { data: PlayerRatingData }) {
-  const [startYear, setStartYear] = React.useState(2024)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
@@ -104,6 +107,13 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
     { length: currentYear - earliestYear + 1 },
     (_, i) => earliestYear + i,
   )
+
+  // Clamped to the years the data actually covers, so a stale `?since=2019`
+  // link lands on the earliest chart there is rather than an empty one.
+  const [startYear, setStartYear] = useUrlNumber("since", DEFAULT_START_YEAR, {
+    min: earliestYear,
+    max: currentYear,
+  })
 
   const startMs = new Date(`${startYear}-01-01`).getTime()
 
@@ -767,6 +777,8 @@ function FormatSelector(props: {
 }
 
 const MONTHS_BACK_ALL = "all"
+const MONTHS_BACK_PARAMS = [MONTHS_BACK_ALL, ...MONTHS_BACK_OPTIONS] as const
+type MonthsBackParam = (typeof MONTHS_BACK_PARAMS)[number]
 
 function MonthsBackSelector(props: {
   monthsBack: MonthsBack
@@ -986,7 +998,11 @@ function WhrTable() {
 }
 
 export function DisplayPlayerRatingTrend() {
-  const [format, setFormat] = React.useState<GameFormat>("All")
+  const [format, setFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
   const query = useQuery({
     queryKey: ["playerRatings", format, null],
     queryFn: () => fetchPlayerRatings(format, null),
@@ -1062,8 +1078,21 @@ export function DisplayPlayerRatingTrend() {
 }
 
 export default function DisplayPlayerRatings() {
-  const [format, setFormat] = React.useState<GameFormat>("All")
-  const [monthsBack, setMonthsBack] = React.useState<MonthsBack>(null)
+  const [format, setFormat] = useUrlChoice<GameFormat>(
+    "format",
+    FORMAT_OPTIONS,
+    "All",
+  )
+  // `null` is "all time", and the URL says so with the same sentinel the toggle
+  // group already uses rather than inventing a second spelling for it.
+  const [monthsRaw, setMonthsRaw] = useUrlChoice<MonthsBackParam>(
+    "months",
+    MONTHS_BACK_PARAMS,
+    MONTHS_BACK_ALL,
+  )
+  const monthsBack: MonthsBack =
+    monthsRaw === MONTHS_BACK_ALL ? null : monthsRaw
+  const setMonthsBack = (m: MonthsBack) => setMonthsRaw(m ?? MONTHS_BACK_ALL)
   const query = useQuery({
     queryKey: ["playerRatings", format, monthsBack],
     queryFn: () => fetchPlayerRatings(format, monthsBack),

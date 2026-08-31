@@ -4,6 +4,7 @@ import type { Statistic, Superlatives } from "./api"
 import { MatchesClient } from "./clients/matches"
 import { SuperlativesClient } from "./clients/superlatives"
 import Page from "./Page"
+import { useUrlId } from "./useUrlState"
 import QueryState from "./QueryState"
 import { DisplayMatchInfo } from "./Matches"
 import Box from "@mui/material/Box"
@@ -141,7 +142,9 @@ function CategorySection({
 }
 
 function SuperlativesBody({ data }: { data: Superlatives }) {
-  const [selectedMatch, setSelectedMatch] = React.useState<number | null>(null)
+  // In the URL: a record and the game behind it are the thing worth sending
+  // someone from this page, and it was the one state here that couldn't be.
+  const [selectedMatch, setSelectedMatch] = useUrlId("match")
   const matchPanelRef = React.useRef<HTMLDivElement | null>(null)
 
   // The panel renders above every category section, so a chip clicked from the
