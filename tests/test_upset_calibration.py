@@ -80,4 +80,4 @@ def test_rejects_anything_but_two_teams() -> None:
 
 def test_display_beta_is_not_the_rating_beta() -> None:
     """Changing the rating beta would move every rating; these stay independent."""
-    assert DISPLAY_BETA != get_model().beta
+    assert get_model().beta != DISPLAY_BETA
