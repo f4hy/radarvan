@@ -465,10 +465,8 @@ export default function DisplayMapStats() {
     MIN_GAMES_OPTIONS,
     DEFAULT_MIN_GAMES,
   )
-  // The map this page is pointed at, if any. Clicking a general's best/worst
-  // badge used to expand and scroll to a map while leaving the URL on the bare
-  // page, so the one view here worth sending someone was the one view that
-  // couldn't be sent. It is also what makes Back undo a jump.
+  // The map this page is pointed at, if any. In the URL so a link to "worst
+  // map for General X" is shareable, and so Back undoes a jump.
   const [focusedMap, setFocusedMap] = useUrlParam("map")
   // Maps a best/worst badge sent us to, kept visible regardless of the floor -
   // otherwise clicking "worst map" for a general scrolls to nothing whenever

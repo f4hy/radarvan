@@ -67,17 +67,7 @@ def overrides_for_tournament(tournament_id: str) -> list[MatchupResult]:
     logger.info("getting overrides", tournament_id=tournament_id)
     if tournament_id == "2025_2v2_tournament":
         logger.warning("pancake+131 vs Neo and Coredawg was not uploaded to gentool")
-        return [
-            # MatchupResult(
-            #     tournament_name="205_2v2_tournament",
-            #     matches=[],  # missing
-            #     outcome={
-            #         sorted_tuple(["OneThree111", "Pancake"]): WinLoss(wins=4, losses=2),
-            #         sorted_tuple(["Neo", "CoreDawg"]): WinLoss(wins=2, losses=4),
-            #     },
-            #     override="Matches not uploaded to gentool results manually added",
-            # )
-        ]
+        return []
     return []
 
 
@@ -139,9 +129,6 @@ def winning_team(m: MatchInfo, tournament: Tournament) -> tuple[str, ...]:
 def create_tournament_results(
     tournament_matches: dict[str, list[MatchInfo]],
 ) -> list[TournamentResult]:
-    """
-    Convert a dictionary of tournament matches to TournamentResult objects.
-    """
     results = []
 
     for tournament_name, matches in tournament_matches.items():
@@ -150,18 +137,14 @@ def create_tournament_results(
 
         tournament = TOURNAMENT_MAP[tournament_name]
 
-        # Build team records
         team_records: dict[tuple[str, ...], WinLoss] = {}
 
-        # Initialize records for all tournament teams
         for team in tournament.teams:
             team_records[team] = WinLoss(wins=0, losses=0)
 
-        # Group matches by team matchup
         matchup_dict: dict[frozenset[tuple[str, ...]], list[MatchInfo]] = {}
 
         for match in matches:
-            # Group players by team
             teams_in_match: dict[Team, set[str]] = {}
             for player in match.roster().participants:
                 if not player.has_known_general:
@@ -173,28 +156,23 @@ def create_tournament_results(
                     resolve_player_name(player.name, player.color)
                 )
 
-            # Convert to sorted tuples
             team_tuples = [
                 tuple(sorted(players)) for players in teams_in_match.values()
             ]
 
-            # Create matchup key (frozenset of team tuples)
             matchup_key = frozenset(team_tuples)
 
             if matchup_key not in matchup_dict:
                 matchup_dict[matchup_key] = []
             matchup_dict[matchup_key].append(match)
 
-        # Create MatchupResult objects
         matchups = []
         for matchup_teams, matchup_matches in matchup_dict.items():
-            # Calculate outcome for each team in this matchup
             outcome: dict[tuple[str, ...], WinLoss] = {}
 
             for team in matchup_teams:
                 outcome[team] = WinLoss(wins=0, losses=0)
 
-            # Count wins/losses for each team in this specific matchup
             for match in matchup_matches:
                 teams_in_match = {}
                 player_won: dict[str, bool] = {}

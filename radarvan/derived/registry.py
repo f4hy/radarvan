@@ -15,10 +15,8 @@ conventional:
 
 That last one is why ``@derived(on=X, maxsize=N)`` is the whole vocabulary: the
 dependency knows which parameter carries its input (see ``versions.Dependency``),
-and everything else in the signature is the key. An earlier draft made the caller
-pass ``key=`` and ``revision=`` by hand; both are now derived, because a caller
-who forgets ``key=`` gets *wrong* answers rather than stale ones, which is worse
-than the problem this module was written to solve.
+and everything else in the signature is the key - never passed by hand, since a
+caller who forgot ``key=`` would get *wrong* answers, not merely stale ones.
 
 The registry itself is what makes those properties testable: ``REGISTRY`` holds a
 record per derivation, and ``tests/test_derived_registry.py`` walks it. It also

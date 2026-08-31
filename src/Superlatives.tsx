@@ -142,8 +142,7 @@ function CategorySection({
 }
 
 function SuperlativesBody({ data }: { data: Superlatives }) {
-  // In the URL: a record and the game behind it are the thing worth sending
-  // someone from this page, and it was the one state here that couldn't be.
+  // In the URL so a record and the game behind it are shareable.
   const [selectedMatch, setSelectedMatch] = useUrlId("match")
   const matchPanelRef = React.useRef<HTMLDivElement | null>(null)
 

@@ -1559,9 +1559,6 @@ function EconTab(props: { details: MatchDetails }) {
       ),
     [income],
   )
-  // Memoized on the same input it derives from, so it can be an honest
-  // dependency below: unmemoized it was a new array every render, which is why
-  // the memo omitted it and needed a comment explaining the omission.
   const categories = React.useMemo(
     () => econCategories(secondaryKeys),
     [secondaryKeys],
