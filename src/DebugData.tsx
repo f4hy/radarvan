@@ -448,7 +448,6 @@ export default function DisplayDebugData() {
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value
-    // Replace any non-digit character globally with an empty string
     const onlyNums = newValue.replace(/[^0-9]/g, "")
 
     setMatchId(onlyNums)

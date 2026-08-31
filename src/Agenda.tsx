@@ -133,10 +133,7 @@ export function AgendaCountdown({ scheduledAt }: { scheduledAt: Date }) {
 // than a labelled button) so it reads as an admin affordance at a glance,
 // same idiom as MatchBox's edit-pencil icon in Bracket.tsx, which is also
 // only ever rendered for admins. Opens a popover with a full calendar +
-// clock picker (DateTimeField, which carries its own LocalizationProvider)
-// rather than the
-// bare native datetime-local input the removed MatchEditor date field and
-// the tournament reveal-time dialog used to rely on.
+// clock picker (DateTimeField, which carries its own LocalizationProvider).
 function ScheduleMatchButton({
   match,
   onSchedule,

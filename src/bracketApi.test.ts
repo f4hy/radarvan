@@ -40,8 +40,7 @@ describe("SetBracketMatchRequest PATCH semantics", () => {
 
 describe("wire snake_case maps to the camelCase models", () => {
   // The app reads `status.user.isAdmin`; the backend sends `is_admin`. Nothing
-  // else checks that these line up now that auth.ts no longer declares its own
-  // copy of the type.
+  // else checks that these line up.
   it("reads an auth status", () => {
     const status = AuthStatusFromJSON({
       logged_in: true,

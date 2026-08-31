@@ -71,16 +71,12 @@ class HypeRatingsContext(BaseModel):
     best-to-worst - internal calibration context, not per-player narrative
     material (see ``build_hype_ratings_context`` / ``render_ratings_context``).
 
-    Earlier iterations embedded just the two matchup players' own ordinals in
-    their profile blocks. That still let the model quote a raw ordinal number
-    in the output (meaningless/confusing to anyone reading the commentary -
-    these are OpenSkill internals, never surfaced anywhere else in the app),
-    and gave the model no sense of *scale*: is a 3-point gap huge or noise?
-    Showing the full population with sigma (uncertainty) fixes both - the
-    model can see where these two sit among everyone else and judge "close
-    fight" vs "skill gap" without ever being handed the population rank
-    (see the guideline against demoralizing an underdog with a raw ranking)
-    or a number worth repeating verbatim.
+    Embedding just the two matchup players' own ordinals let the model quote a
+    raw ordinal (meaningless to a reader - an OpenSkill internal never
+    surfaced elsewhere) and gave no sense of *scale* (is a 3-point gap huge or
+    noise?). The full population with sigma fixes both: the model can judge
+    "close fight" vs "skill gap" without a population rank or a number worth
+    repeating verbatim.
     """
 
     player1: str

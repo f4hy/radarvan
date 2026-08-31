@@ -32,7 +32,6 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
         if game.winning_team < 1:
             continue
 
-        # Group human players by team number
         teams: dict[int, list[PlayerResult]] = defaultdict(list)
         for player in game.roster().human_participants:
             name = resolve_player_name(player.name, player.color)
@@ -41,7 +40,7 @@ def get_team_stats(games: list[MatchInfo]) -> TeamStatsResponse:
         if not teams:
             continue
 
-        # Only count balanced games (all teams the same size)
+        # Records only make sense between equal-sized teams.
         sizes = [len(t) for t in teams.values()]
         if len(set(sizes)) != 1:
             continue
