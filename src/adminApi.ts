@@ -9,6 +9,14 @@ import type { MatchInfo } from "./api"
 
 export type AdminMethod = "POST" | "DELETE"
 
+export interface AdminUser {
+  id: number
+  discordId: string
+  discordUsername: string
+  playerName: string | null
+  createdAt: string
+}
+
 // A query value of undefined or "" is dropped rather than sent as empty: the
 // handlers default their optional params, and `?winner=` would fail validation
 // rather than mean "unset".
@@ -63,4 +71,10 @@ export async function reparseMatch(matchId: number): Promise<MatchInfo | null> {
     undefined,
     "Reparse",
   )
+}
+
+export async function listAdminUsers(): Promise<AdminUser[]> {
+  const resp = await fetch("/api/admin/users", { credentials: "same-origin" })
+  if (!resp.ok) throw await errorFrom(resp, "Loading users failed")
+  return (await resp.json()) as AdminUser[]
 }

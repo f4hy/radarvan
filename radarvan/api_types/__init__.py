@@ -9,6 +9,7 @@ acyclic (common <- matches <- details <- profiles <- head_to_head).
 """
 
 from .auth import (
+    AdminUser,
     AuthStatus,
     CurrentUser,
     SelectPlayerRequest,
@@ -250,6 +251,7 @@ from .votes import (
 __all__ = [
     "APM",
     "AcademyStats",
+    "AdminUser",
     "AuthStatus",
     "BackfillMapCrcsResponse",
     "BracketMatchGames",
