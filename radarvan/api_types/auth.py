@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field, computed_field
 from ..player_ids import (
     is_admin as _is_admin_player,
@@ -57,3 +59,15 @@ class AuthStatus(BaseModel):
 
 class SelectPlayerRequest(BaseModel):
     player_name: str
+
+
+class AdminUser(BaseModel):
+    """Account details visible only to operations administrators."""
+
+    model_config = _FROM_ATTRIBUTES
+
+    id: int
+    discord_id: str
+    discord_username: str
+    player_name: str | None = None
+    created_at: datetime

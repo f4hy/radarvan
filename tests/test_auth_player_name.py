@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from radarvan.api_types import SelectPlayerRequest
+from radarvan.api_types import AdminUser, SelectPlayerRequest
 from radarvan.db import User
 from radarvan.repositories import UserRepo
 from radarvan.routes.auth import select_player
@@ -70,3 +70,21 @@ def test_db_unique_constraint_is_the_backstop(session: Session) -> None:
     bob.player_name = "Skip"
     with pytest.raises(IntegrityError):
         session.flush()
+
+
+def test_admin_user_listing_exposes_associations_in_stable_order(
+    session: Session,
+) -> None:
+    repo = UserRepo(session, auto_commit=False)
+    unclaimed = _make_user(session, "unclaimed")
+    unclaimed.discord_username = "First Login"
+    skip = _make_user(session, "skip-discord-id")
+    skip.discord_username = "Skip on Discord"
+    skip.player_name = "Skip"
+    session.flush()
+
+    listed = repo.list_users()
+    assert [user.player_name for user in listed] == ["Skip", None]
+    payload = AdminUser.model_validate(listed[0])
+    assert payload.discord_id == "skip-discord-id"
+    assert payload.discord_username == "Skip on Discord"
