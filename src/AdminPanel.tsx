@@ -22,6 +22,12 @@ import Divider from "@mui/material/Divider"
 import MenuItem from "@mui/material/MenuItem"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import LoginIcon from "@mui/icons-material/Login"
@@ -29,7 +35,13 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow"
 import WarningAmberIcon from "@mui/icons-material/WarningAmber"
 import { useAuth, useIsOpsAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
-import { type AdminMethod, type QueryValues, adminRequest } from "./adminApi"
+import {
+  type AdminMethod,
+  type AdminUser,
+  type QueryValues,
+  adminRequest,
+  listAdminUsers,
+} from "./adminApi"
 
 type Values = Record<string, string>
 
@@ -657,6 +669,77 @@ function TaskCard({ task }: { task: AdminTask }) {
   )
 }
 
+function UserManagement() {
+  const [users, setUsers] = React.useState<AdminUser[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let active = true
+    void listAdminUsers()
+      .then((loaded) => {
+        if (!active) return
+        setUsers(loaded)
+      })
+      .catch((e: unknown) => {
+        if (active) setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  return (
+    <Box>
+      <Typography variant="h6">Discord associations</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Read-only view of every account that has logged in and its current
+        player association. Discord IDs are shown here so privileged accounts
+        can be mapped safely in the later authorization change.
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {loading ? (
+        <CircularProgress size={24} />
+      ) : (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Player</TableCell>
+                <TableCell>Discord user</TableCell>
+                <TableCell>Discord ID</TableCell>
+                <TableCell>First login</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.playerName ?? "—"}</TableCell>
+                  <TableCell>{user.discordUsername}</TableCell>
+                  <TableCell sx={{ fontFamily: "monospace" }}>
+                    {user.discordId}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </Box>
+  )
+}
+
 // Shown to anyone who reaches /admin-panel without the privilege. The
 // routes 401/403 regardless — this just says so in words rather than as a wall
 // of failed requests.
@@ -694,6 +777,8 @@ export default function AdminPanel() {
         something small on purpose — the reparse tasks call cncstats once per
         match.
       </Alert>
+
+      <UserManagement />
 
       {SECTIONS.map((section) => (
         <Box key={section.title}>

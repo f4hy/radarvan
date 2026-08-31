@@ -25,7 +25,12 @@ from typing import Any, NamedTuple
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from .. import matches, replay_files, schedule, tournament_membership, utils
-from ..api_types import MatchInfo, Team, WinnerOverride
+from ..api_types import (
+    AdminUser,
+    MatchInfo,
+    Team,
+    WinnerOverride,
+)
 from ..cache import invalidate_match_caches, sorted_deduped_matches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
@@ -35,8 +40,9 @@ from ..dependencies import (
     db_manager,
     get_bracket_repo,
     get_replay_manager,
+    get_user_repo,
 )
-from ..repositories import BracketRepo
+from ..repositories import BracketRepo, UserRepo
 from ..game_composition import GameComposition
 
 logger = structlog.get_logger(__name__)
@@ -48,6 +54,12 @@ router = APIRouter(tags=["admin"])
 # here must carry `dependencies=OPS_ADMIN` (or `ADMIN_LOGIN` for the DebugData
 # reparse button) - the router itself has no gate of its own.
 session_router = APIRouter(tags=["admin"])
+
+
+@session_router.get("/api/admin/users", dependencies=OPS_ADMIN)
+def list_users(repo: UserRepo = Depends(get_user_repo)) -> list[AdminUser]:
+    """Current Discord/player associations for the operations admin panel."""
+    return [AdminUser.model_validate(user) for user in repo.list_users()]
 
 
 def _row_to_dict(obj: Any) -> dict[str, Any]:
