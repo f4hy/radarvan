@@ -32,6 +32,16 @@ class UserRepo(BaseRepo):
         ).all()
         return [name for name in rows if name]
 
+    def list_users(self) -> list[User]:
+        """All Discord accounts, with claimed players first for admin review."""
+        return list(
+            self.session.scalars(
+                select(User).order_by(
+                    User.player_name.is_(None), User.player_name, User.discord_username
+                )
+            ).all()
+        )
+
     def ids_for_player_names(self, names: list[str]) -> list[int]:
         """User ids for the given claimed in-game names (missing names ignored)."""
         if not names:
