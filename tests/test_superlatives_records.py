@@ -56,12 +56,18 @@ def test_no_ai_holds_a_record(name: str) -> None:
     assert not holds_records(name)
 
 
-@pytest.mark.parametrize("name", ["domi", "[OoE]ExCaL^", "Gorn.v.131"])
+@pytest.mark.parametrize("name", ["Dynamics", "MisterHoncho", "Gorn.v.131"])
 def test_no_stranger_holds_a_record(name: str) -> None:
     """A scraped pickup game passes the competitive filter as long as each team
     has one group member, so passers-by reach the records pass. Two of them
     held "Highest APM" and "Fastest to Rank 5". The caster account is here for
-    the same reason - it is a name, not a role, that gives it away."""
+    the same reason - it is a name, not a role, that gives it away.
+
+    The two original names here were "domi" and "[OoE]ExCaL^", who have since
+    been adopted as guests (`player_ids.PLAYER_NAME_MAPPING`) and so are group
+    members entitled to records. They only kept passing as strangers because
+    the raw spellings are not the canonical ones `holds_records` is given.
+    """
     assert not holds_records(name)
 
 
@@ -427,7 +433,7 @@ def test_a_stranger_does_not_take_the_superweapon_record() -> None:
             1,
             [
                 *[
-                    _event("domi", "ScudStorm", "superweapon_activated", m)
+                    _event("Dynamics", "ScudStorm", "superweapon_activated", m)
                     for m in (4.0, 5.0, 6.0)
                 ],
                 _event("Skip", "NeutronMissile", "superweapon_activated", 20.0),

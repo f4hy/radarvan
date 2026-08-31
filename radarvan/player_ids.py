@@ -69,6 +69,17 @@ PLAYER_NAME_MAPPING = {
     "shift": "Shifty",
     "shifty": "Shifty",
     "wilywolf": "WilyWolf",
+    # Guests. Excal and Dominator are (semi-)pro players who have played with
+    # the group a handful of times; being in PLAYER_NAMES is what puts them on
+    # the Balance Teams page (PlayerEnum is built from it) and lets the games
+    # they did play be rated and counted like anyone else's. Their *rating* is
+    # not learned from those few games - see player_rating.GUEST_RATING_MULTIPLIERS.
+    "excal": "Excal",
+    "[ooe]excal^": "Excal",
+    "[ooe]excal": "Excal",
+    "domi": "Domi",
+    "dominator": "Domi",
+    "-dominator-": "Domi",
 }
 
 CPU_NAME_MAPPING = {

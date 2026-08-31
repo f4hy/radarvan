@@ -48,6 +48,40 @@ NEW_PLAYER_SIGMA_SCALE = 2.0
 CPU_GAME_RATING_SCALE = 0.1
 
 
+# Guests whose rating is asserted rather than learned, as a multiple of the top
+# established human's ordinal.
+#
+# Excal and Dominator are (semi-)pro players who have played with the group a
+# handful of times. Their games rate like anyone else's, but a handful of games
+# can never *move* a rating far, by design: `_reseed` shrinks a sub-MIN_GAMES
+# player back toward the newcomer prior on every pass, which is exactly what
+# stops a short hot streak from minting a top-of-the-board rating. That
+# safeguard is right for a stranger and wrong for someone already known to
+# outclass the whole group, so these two are stated instead of inferred.
+#
+# Stated here rather than by injecting fabricated wins. A match is a row in the
+# one corpus that W/L records, head-to-head, superlatives, the game-night recap
+# and the duration histogram all read, so buying a rating with fake games would
+# pay for it in fictional games surfacing on six other pages - and it would take
+# a great many of them, since `_reseed` pulls the mu back every pass until the
+# game count clears MIN_GAMES.
+#
+# A *multiple of the leader*, not a fixed mu, for the same reason
+# `_newcomer_prior` is relative: openskill has no absolute anchor, this corpus
+# has already drifted, and a constant would quietly mean something different in
+# six months. Delete an entry to hand the player back to the model.
+GUEST_RATING_MULTIPLIERS: dict[str, float] = {
+    "Excal": 2.0,
+    "Domi": 1.5,
+}
+
+# Asserted, so asserted confidently: the same floor every converged rating
+# lands on. A wide sigma would undo the point - `predict_win` divides the mu
+# gap by the two teams' pooled uncertainty, so an unsure 2x rating reads as a
+# *smaller* edge than a sure 1.5x one.
+GUEST_SIGMA = MIN_SIGMA
+
+
 @dataclass(slots=True)
 class NamedRating:
     """Wrapper around PlackettLuceRating where name is guaranteed to be str."""
@@ -492,6 +526,49 @@ def _newcomer_prior(
     return NamedRating(name="", mu=mu, sigma=model.sigma * NEW_PLAYER_SIGMA_SCALE)
 
 
+def _apply_guest_ratings(
+    ratings: dict[str, NamedRating], counts: dict[str, int]
+) -> dict[str, NamedRating]:
+    """Replace each guest's learned rating with its asserted multiple of the
+    leader's ordinal. Returns a new dict; the input is left alone.
+
+    Runs as the last step of ``compute_player_ratings``, after the passes and
+    after ``_newcomer_prior``. The passes must see the guests' *real* ratings:
+    rating the group's games against an asserted 2x opponent would mean losing
+    to Excal barely dents anyone and beating him is worth a fortune, which is a
+    much bigger lie than the one being told here.
+
+    The anchor skips CPUs (HardArmy sits mid-board and is seeded on a different
+    scale, exactly as ``_newcomer_prior`` reasons) and skips the guests
+    themselves. ``_leaderboard`` already drops both - CPUs never top it, guests
+    are under MIN_GAMES - but a guest who did cross the line would otherwise be
+    anchored to their own boosted rating and compound it on every recomputation.
+
+    A guest with no games at all still gets an entry, so ``rating_for`` answers
+    for them the first time they are picked on the Balance Teams page.
+    """
+    board = [
+        r
+        for r in _leaderboard(ratings, counts)
+        if not player_ids.is_cpu_name(r.name) and r.name not in GUEST_RATING_MULTIPLIERS
+    ]
+    if not board:
+        return ratings
+    top_ordinal = board[0].ordinal()
+    boosted = dict(ratings)
+    for name, multiplier in GUEST_RATING_MULTIPLIERS.items():
+        existing = ratings.get(name)
+        boosted[name] = NamedRating(
+            name=name,
+            # ordinal() is mu - 3*sigma, solved for the mu that lands the
+            # ordinal on the multiple asked for.
+            mu=multiplier * top_ordinal + 3 * GUEST_SIGMA,
+            sigma=GUEST_SIGMA,
+            at_date=existing.at_date if existing else None,
+        )
+    return boosted
+
+
 def _reseed(
     ratings: dict[str, NamedRating], counts: dict[str, int], model: PlackettLuce
 ) -> dict[str, NamedRating]:
@@ -681,11 +758,18 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     sorted_upsets = sorted(upsets, key=lambda u: u.surprise, reverse=True)
 
+    # The prior first, off the learned ratings, then the guest overrides on top.
+    # Both read the leaderboard, and the order is what keeps the assertion from
+    # feeding back: a boosted guest must not be able to shift what "the weakest
+    # established player" means for everyone we have genuinely not seen play.
+    newcomer_prior = _newcomer_prior(player_ratings, game_counts, model)
+    player_ratings = _apply_guest_ratings(player_ratings, game_counts)
+
     return RatingsAndCounts(
         all_ratings=player_ratings,
         # Computed here, where the model and the final ratings are both in hand,
         # rather than re-derived by every caller that needs to place a stranger.
-        newcomer_prior=_newcomer_prior(player_ratings, game_counts, model),
+        newcomer_prior=newcomer_prior,
         game_counts=game_counts,
         over_time=over_time_filtered,
         daily_changes=daily_changes,
