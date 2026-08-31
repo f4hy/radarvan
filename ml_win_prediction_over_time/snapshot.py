@@ -161,7 +161,7 @@ def _git_sha() -> str | None:
         return (
             subprocess.check_output(
                 ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent
-            )  # noqa: S607
+            )
             .decode()
             .strip()
         )
