@@ -15,7 +15,7 @@ from radarvan import create_teams, player_ids, player_rating
 from corpus import TEAM_ONE, TEAM_TWO, rated_corpus
 
 
-GUESTS = ("Excal", "Domi")
+GUESTS = ("Excal", "Marakar", "Domi")
 
 
 @pytest.fixture(scope="module")
@@ -42,6 +42,9 @@ def leader_ordinal(computed):
     [
         ("[OoE]ExCaL^", "Excal"),
         ("excal", "Excal"),
+        ("[OoE]Marakar*", "Marakar"),
+        ("marakar", "Marakar"),
+        ("[OoE]Maraka*", "Marakar"),
         ("Domi", "Domi"),
         ("domi", "Domi"),
         ("-DoMiNaToR-", "Domi"),
@@ -78,8 +81,9 @@ def test_a_guest_rating_is_the_asserted_multiple_of_the_leader(
 def test_the_guests_outrank_everyone_in_the_stated_order(computed) -> None:
     best_real = computed.ratings[0].ordinal()
     excal = computed.rating_for("Excal").ordinal()
+    marakar = computed.rating_for("Marakar").ordinal()
     domi = computed.rating_for("Domi").ordinal()
-    assert excal > domi > best_real
+    assert excal > marakar > domi > best_real
 
 
 def test_a_guest_who_has_never_played_still_has_a_rating(computed) -> None:
