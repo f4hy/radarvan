@@ -1,9 +1,8 @@
 """1v1 double-elimination bracket tournament endpoints.
 
-Public reads; admin-gated writes (create/reset the bracket, set a match's
-date/best-of/score). "Admin" here is the tournament-specific set
-(``player_ids.TOURNAMENT_ADMINS``), not the global ``ADMIN_PLAYERS`` used by
-other admin features.
+Public reads; tournament-admin-gated writes (create/reset the bracket, set a
+match's date/best-of/score). Privilege follows the authenticated Discord ID,
+not the user-selectable player association.
 
 ``/api/bracket_eligible_players`` is deliberately a separate top-level path
 rather than nested under ``/api/bracket`` - the OpenAPI client generator can
@@ -63,7 +62,7 @@ router = APIRouter(tags=["bracket"])
 
 
 def _require_tournament_admin(user: User) -> None:
-    if not player_ids.is_tournament_admin(user.player_name):
+    if not player_ids.is_tournament_admin(user.discord_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
@@ -217,9 +216,7 @@ def get_bracket(
     if tournament is None:
         return None
     allow_preview = (
-        preview
-        and user is not None
-        and player_ids.is_tournament_admin(user.player_name)
+        preview and user is not None and player_ids.is_tournament_admin(user.discord_id)
     )
     return _build_output(tournament, repo, allow_preview=allow_preview)
 
@@ -455,7 +452,7 @@ def get_bracket_games(
     withholds from ``GET /api/bracket``. Editing is admin-gated below.
     """
     tournament_row, raw_states, _result, resolved = load_match(repo, match_id)
-    is_admin = user is not None and player_ids.is_tournament_admin(user.player_name)
+    is_admin = user is not None and player_ids.is_tournament_admin(user.discord_id)
     if not is_revealed(tournament_row, allow_preview=is_admin):
         return BracketMatchGames(match_id=match_id)
     parent = tournament_for_bracket(tournament_row, tournament_repo)
@@ -558,7 +555,7 @@ def get_bracket_map_records(
     tournament_row = repo.get_active()
     if tournament_row is None:
         return []
-    is_admin = user is not None and player_ids.is_tournament_admin(user.player_name)
+    is_admin = user is not None and player_ids.is_tournament_admin(user.discord_id)
     if not is_revealed(tournament_row, allow_preview=is_admin):
         return []
     parent = tournament_for_bracket(tournament_row, tournament_repo)

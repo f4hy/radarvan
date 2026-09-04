@@ -30,6 +30,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from radarvan import dependencies, notify, player_ids, routes
+from radarvan.api_types.auth import CurrentUser
 from radarvan.auth_notify import notify_auth_event
 from radarvan.db import User
 from radarvan.rate_limit import InMemoryRateLimitStore
@@ -44,6 +45,9 @@ from radarvan.dependencies import (
 
 NORMAL_KEY = "normal-key"
 ADMIN_KEY = "admin-key"
+ADMIN_DISCORD_ID = "admin-discord-id"
+SECOND_ADMIN_DISCORD_ID = "second-admin-discord-id"
+TOURNAMENT_ADMIN_DISCORD_ID = "tournament-admin-discord-id"
 
 T = TypeVar("T")
 
@@ -57,6 +61,19 @@ def keys(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(dependencies, "API_KEYS_NORMAL", {NORMAL_KEY})
     monkeypatch.setattr(dependencies, "API_KEYS_ADMIN", {ADMIN_KEY})
     monkeypatch.setattr(dependencies, "ENFORCE_AUTH", True)
+    monkeypatch.setattr(
+        player_ids,
+        "ADMIN_DISCORD_IDS",
+        frozenset({ADMIN_DISCORD_ID, SECOND_ADMIN_DISCORD_ID}),
+    )
+    monkeypatch.setattr(
+        player_ids, "OPS_ADMIN_DISCORD_IDS", frozenset({ADMIN_DISCORD_ID})
+    )
+    monkeypatch.setattr(
+        player_ids,
+        "TOURNAMENT_ADMIN_DISCORD_IDS",
+        frozenset({TOURNAMENT_ADMIN_DISCORD_ID}),
+    )
 
 
 def _request(
@@ -161,7 +178,7 @@ NORMAL_TIER_MUTATIONS = {
 
 # Mutating routes on the cookie-session routers whose privilege check is done
 # *inside* the handler rather than as a route dependency - see
-# player_ids.ADMIN_PLAYERS / TOURNAMENT_ADMINS. The admin/ops routes are not
+# the caller's database-backed Discord identity. The admin/ops routes are not
 # listed here: they carry ADMIN_LOGIN / OPS_ADMIN, which `_is_elevated` sees.
 COOKIE_AUTH_MUTATIONS = {
     ("POST", "/api/auth/select_player"),
@@ -295,18 +312,51 @@ def test_reads_stay_normal_tier(path: str) -> None:
 # --- admin actions the UI drives -------------------------------------------
 
 
-def _admin_name() -> str:
-    return next(iter(player_ids.ADMIN_PLAYERS))
+def _admin_discord_id() -> str:
+    return ADMIN_DISCORD_ID
 
 
 def test_require_admin_login_accepts_admin_user(keys: None) -> None:
-    require_admin_login(_request(), User(player_name=_admin_name()))
+    require_admin_login(_request(), User(discord_id=_admin_discord_id()))
 
 
 def test_require_admin_login_rejects_non_admin_user(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_admin_login(_request(), User(player_name="SomeRandomPlayer"))
+        require_admin_login(_request(), User(discord_id="unprivileged"))
     assert exc.value.status_code == 403
+
+
+def test_claiming_an_admin_player_name_does_not_grant_access(keys: None) -> None:
+    with pytest.raises(HTTPException) as exc:
+        require_admin_login(
+            _request(), User(discord_id="attacker", player_name="Modus")
+        )
+    assert exc.value.status_code == 403
+
+
+def test_admin_access_survives_a_player_name_change(keys: None) -> None:
+    require_admin_login(
+        _request(),
+        User(discord_id=_admin_discord_id(), player_name="SomeOtherPlayer"),
+    )
+
+
+def test_current_user_roles_are_computed_from_discord_id(keys: None) -> None:
+    privileged = CurrentUser(
+        discord_id=ADMIN_DISCORD_ID,
+        discord_username="admin",
+        player_name="SomeOtherPlayer",
+    )
+    impersonator = CurrentUser(
+        discord_id="attacker",
+        discord_username="attacker",
+        player_name="Modus",
+    )
+
+    assert privileged.is_admin is True
+    assert privileged.is_ops_admin is True
+    assert impersonator.is_admin is False
+    assert impersonator.is_ops_admin is False
 
 
 def test_require_admin_login_rejects_normal_key_without_session(keys: None) -> None:
@@ -338,29 +388,27 @@ def test_require_admin_login_open_in_dev(monkeypatch: pytest.MonkeyPatch) -> Non
 # --- the ops-admin gate (the control panel) ---------------------------------
 
 
-def _ops_admin_name() -> str:
-    return next(iter(player_ids.OPS_ADMINS))
+def _ops_admin_discord_id() -> str:
+    return ADMIN_DISCORD_ID
 
 
 def test_require_ops_admin_accepts_ops_admin_user(keys: None) -> None:
-    require_ops_admin(_request(), User(player_name=_ops_admin_name()))
+    require_ops_admin(_request(), User(discord_id=_ops_admin_discord_id()))
 
 
 def test_require_ops_admin_rejects_a_plain_admin(keys: None) -> None:
-    """The whole point of the third set: ADMIN_PLAYERS unlocks the debug
-    *views*, not scrape/reparse/backfill/delete. An ADMIN_PLAYERS user who is
-    not in OPS_ADMINS must be turned away."""
-    non_ops_admins = player_ids.ADMIN_PLAYERS - player_ids.OPS_ADMINS
-    assert non_ops_admins, "no admin outside OPS_ADMINS left to test the split with"
-    for name in non_ops_admins:
+    """A debug admin who is not an operations admin must be turned away."""
+    non_ops_admins = player_ids.ADMIN_DISCORD_IDS - player_ids.OPS_ADMIN_DISCORD_IDS
+    assert non_ops_admins, "no admin outside ops admins left to test the split with"
+    for discord_id in non_ops_admins:
         with pytest.raises(HTTPException) as exc:
-            require_ops_admin(_request(), User(player_name=name))
+            require_ops_admin(_request(), User(discord_id=discord_id))
         assert exc.value.status_code == 403
 
 
 def test_require_ops_admin_rejects_non_admin_user(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_ops_admin(_request(), User(player_name="SomeRandomPlayer"))
+        require_ops_admin(_request(), User(discord_id="unprivileged"))
     assert exc.value.status_code == 403
 
 
@@ -383,8 +431,8 @@ def test_require_ops_admin_accepts_admin_key_for_scripts(keys: None) -> None:
     require_ops_admin(_request(key=ADMIN_KEY), None)
 
 
-def test_ops_admin_is_narrower_than_admin() -> None:
-    assert player_ids.OPS_ADMINS < player_ids.ADMIN_PLAYERS
+def test_ops_admin_is_narrower_than_admin(keys: None) -> None:
+    assert player_ids.OPS_ADMIN_DISCORD_IDS < player_ids.ADMIN_DISCORD_IDS
 
 
 # --- cookie gates and session routers stay in step --------------------------

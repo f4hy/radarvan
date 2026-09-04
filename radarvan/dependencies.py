@@ -270,9 +270,9 @@ def _require_logged_in_admin(
 ) -> None:
     """Shared body of the cookie-session admin gates.
 
-    ``allowed`` is the membership test for the claimed in-game name - the only
-    thing that differs between ``require_admin_login`` (ADMIN_PLAYERS) and
-    ``require_ops_admin`` (OPS_ADMINS). Kept as one function so the *order* of
+    ``allowed`` is the membership test for the stable Discord account ID - the only
+    thing that differs between the admin and operations-admin gates. Kept as
+    one function so the *order* of
     the checks - key short-circuit, then 401, then 403 - can't drift apart
     between them; the status codes are what the auth-notify webhook reports.
     """
@@ -280,7 +280,7 @@ def _require_logged_in_admin(
         return
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if not allowed(user.player_name):
+    if not allowed(user.discord_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
@@ -289,7 +289,7 @@ def require_admin_login(
     user: db.User | None = Depends(get_current_user),
 ) -> None:
     """Admin gate for routes a *browser* reaches: the caller must be logged in
-    as a ``player_ids.ADMIN_PLAYERS`` user.
+    as a configured admin Discord account.
 
     Use this instead of ``require_admin_key`` when the action is driven from
     the UI. The frontend ships a single API key to every visitor, so an
@@ -317,13 +317,12 @@ def require_ops_admin(
     user: db.User | None = Depends(get_current_user),
 ) -> None:
     """Gate for the operational control panel: the caller must be logged in as
-    a ``player_ids.OPS_ADMINS`` user.
+    a configured operations-admin Discord account.
 
     The same shape as ``require_admin_login`` (cookie session, admin-tier key
     still accepted for curl/ops) against a narrower set. It is deliberately
     *not* ``require_admin_login``: these routes scrape, reparse, backfill,
-    override and delete, and ADMIN_PLAYERS is the set that unlocks the debug
-    *views*. Routes carrying this must be on a session router included without
+    override and delete. Routes carrying this must be on a session router included without
     ``verify_api_key``, since the browser sends a cookie and a normal-tier key.
     """
     _require_logged_in_admin(request, user, player_ids.is_ops_admin)

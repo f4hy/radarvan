@@ -3,7 +3,7 @@
 //
 // Everything here goes through `adminApi.adminRequest` — a same-origin fetch so
 // the session cookie rides along. The backend gates each route on
-// `dependencies=OPS_ADMIN` (player_ids.OPS_ADMINS), so this page is *not* the
+// `dependencies=OPS_ADMIN`, so this page is *not* the
 // security boundary; hiding it from non-admins is presentation only.
 //
 // Tasks are data, not JSX: add an entry to SECTIONS and it renders, validates,
@@ -35,13 +35,9 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow"
 import WarningAmberIcon from "@mui/icons-material/WarningAmber"
 import { useAuth, useIsOpsAdmin } from "./AuthContext"
 import { startDiscordLogin } from "./auth"
-import {
-  type AdminMethod,
-  type AdminUser,
-  type QueryValues,
-  adminRequest,
-  listAdminUsers,
-} from "./adminApi"
+import type { AdminUser } from "./api"
+import { AdminClient } from "./clients/admin"
+import { type AdminMethod, type QueryValues, adminRequest } from "./adminApi"
 
 type Values = Record<string, string>
 
@@ -676,7 +672,7 @@ function UserManagement() {
 
   React.useEffect(() => {
     let active = true
-    void listAdminUsers()
+    void AdminClient.listUsersApiAdminUsersGet()
       .then((loaded) => {
         if (!active) return
         setUsers(loaded)
@@ -727,9 +723,7 @@ function UserManagement() {
                   <TableCell sx={{ fontFamily: "monospace" }}>
                     {user.discordId}
                   </TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </TableCell>
+                  <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

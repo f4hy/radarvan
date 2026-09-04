@@ -6,9 +6,9 @@ Two routers, because there are two kinds of caller:
   the DebugData page can reach them with the key the browser ships.
 - ``session_router`` - every mutating operation, included in main.py *without*
   the API-key dependency because the credential is a signed session cookie.
-  The reparse button on the DebugData page carries ``ADMIN_LOGIN``
-  (``ADMIN_PLAYERS``); everything else - scrape, backfill, bulk reparse,
-  override, delete - carries ``OPS_ADMIN`` (``OPS_ADMINS``), which is what the
+  The reparse button on the DebugData page carries ``ADMIN_LOGIN``; everything
+  else - scrape, backfill, bulk reparse, override, delete - carries
+  ``OPS_ADMIN``, which is what the
   admin control panel drives.
 
 These used to sit on ``router`` behind an admin-tier ``X-API-Key``, which no

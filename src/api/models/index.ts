@@ -2,6 +2,7 @@
 /* eslint-disable */
 export * from './APM';
 export * from './AcademyStats';
+export * from './AdminUser';
 export * from './AuthStatus';
 export * from './BackfillMapCrcsResponse';
 export * from './BracketMatchGames';
