@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
+import { useColorMode } from "./ColorModeContext"
 import { PlayersClient } from "./clients/players"
 import {
   getColorHex,
@@ -62,5 +63,6 @@ export function usePlayerAccentColor(name: string): string {
  * color (`ink`), and the wash/border derived from the same hue. Lives here
  * beside the raw hook so a call site picks between them deliberately. */
 export function usePlayerPalette(name: string): PlayerPalette {
-  return playerPalette(usePlayerAccentColor(name))
+  const { mode } = useColorMode()
+  return playerPalette(usePlayerAccentColor(name), mode)
 }

@@ -1,6 +1,9 @@
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
+import DarkModeIcon from "@mui/icons-material/DarkMode"
+import LightModeIcon from "@mui/icons-material/LightMode"
 import LoginIcon from "@mui/icons-material/Login"
 import MenuIcon from "@mui/icons-material/Menu"
+import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness"
 import AppBar from "@mui/material/AppBar"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -14,15 +17,53 @@ import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
 import ListSubheader from "@mui/material/ListSubheader"
 import Toolbar from "@mui/material/Toolbar"
+import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
 import { useAuth } from "./AuthContext"
+import type { ColorModePreference } from "./ColorModeContext"
+import { useColorMode } from "./ColorModeContext"
 import ErrorBoundary from "./ErrorBoundary"
 import { startDiscordLogin } from "./auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
 import Loading from "./Loading"
 import { navGroups, routeBySlug } from "./routes"
+
+// Cycles system -> light -> dark -> system on click, and shows the current
+// preference (not just the resolved mode) so "system" stays visible as a
+// distinct state rather than silently collapsing into whatever it resolved
+// to today.
+const NEXT_PREFERENCE: Record<ColorModePreference, ColorModePreference> = {
+  system: "light",
+  light: "dark",
+  dark: "system",
+}
+const COLOR_MODE_ICON: Record<ColorModePreference, React.ReactNode> = {
+  system: <SettingsBrightnessIcon />,
+  light: <LightModeIcon />,
+  dark: <DarkModeIcon />,
+}
+const COLOR_MODE_LABEL: Record<ColorModePreference, string> = {
+  system: "Matching your system",
+  light: "Light",
+  dark: "Dark",
+}
+
+function ColorModeToggle() {
+  const { preference, setPreference } = useColorMode()
+  return (
+    <Tooltip title={`Theme: ${COLOR_MODE_LABEL[preference]} (click to change)`}>
+      <IconButton
+        color="inherit"
+        aria-label="Toggle color mode"
+        onClick={() => setPreference(NEXT_PREFERENCE[preference])}
+      >
+        {COLOR_MODE_ICON[preference]}
+      </IconButton>
+    </Tooltip>
+  )
+}
 
 const drawerWidth = 204
 
@@ -135,6 +176,7 @@ export default function Menu() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {current?.title ?? "Radarvan"}
           </Typography>
+          <ColorModeToggle />
           {status?.loggedIn ? (
             <Button
               color="inherit"
