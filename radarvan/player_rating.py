@@ -45,18 +45,19 @@ CPU_GAME_RATING_SCALE = 0.1
 
 
 # Guests whose rating is asserted rather than learned, as a multiple of the top
-# established human's ordinal. Excal and Domi are (semi-)pro visitors: `_reseed`
-# shrinks a sub-MIN_GAMES player back toward the newcomer prior each pass,
-# which stops a short hot streak from minting a top rating - right for a
-# stranger, wrong for someone already known to outclass the group. Stated
-# rather than faked via injected wins, which would surface fictional games on
-# every other page that reads the match corpus (W/L, head-to-head, recaps...).
-# A multiple of the leader, not a fixed mu, for the same reason
+# established human's ordinal. Excal, Domi, and Marakar are (semi-)pro
+# visitors: `_reseed` shrinks a sub-MIN_GAMES player back toward the newcomer
+# prior each pass, which stops a short hot streak from minting a top rating -
+# right for a stranger, wrong for someone already known to outclass the group.
+# Stated rather than faked via injected wins, which would surface fictional
+# games on every other page that reads the match corpus (W/L, head-to-head,
+# recaps...). A multiple of the leader, not a fixed mu, for the same reason
 # `_newcomer_prior` is relative: openskill has no absolute anchor and this
 # corpus has already drifted. Delete an entry to hand the player back to the
 # model.
 GUEST_RATING_MULTIPLIERS: dict[str, float] = {
     "Excal": 2.0,
+    "Marakar": 1.95,
     "Domi": 1.5,
 }
 
