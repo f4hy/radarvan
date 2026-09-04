@@ -25,6 +25,7 @@ import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
+import { useColorMode } from "./ColorModeContext"
 import { usePlayerColors } from "./PlayerColorsContext"
 import { formatPercent, getColorHex, playerColor, playerPalette } from "./utils"
 import { useUrlParam } from "./useUrlState"
@@ -298,6 +299,7 @@ function PlayerPicker(props: {
   onChange: (value: string | null) => void
 }) {
   const colors = usePlayerColors()
+  const { mode } = useColorMode()
   return (
     <ToggleButtonGroup
       exclusive
@@ -311,6 +313,7 @@ function PlayerPicker(props: {
         const raw = colors[name]
         const palette = playerPalette(
           raw != null ? getColorHex(raw) : playerColor(name),
+          mode,
         )
         return (
           <ToggleButton
