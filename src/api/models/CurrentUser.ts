@@ -50,22 +50,19 @@ export interface CurrentUser {
      */
     readonly needsPlayerSelection: boolean;
     /**
-     * True if the claimed in-game name is in player_ids.ADMIN_PLAYERS.
+     * Whether this Discord account may use general admin features.
      * @type {boolean}
      * @memberof CurrentUser
      */
     readonly isAdmin: boolean;
     /**
-     * True if the claimed in-game name is in player_ids.TOURNAMENT_ADMINS.
+     * Whether this Discord account may administer the tournament bracket.
      * @type {boolean}
      * @memberof CurrentUser
      */
     readonly isTournamentAdmin: boolean;
     /**
-     * True if the claimed in-game name is in player_ids.OPS_ADMINS.
-     * 
-     * Gates the admin control panel - narrower than `is_admin`, which only
-     * unlocks the debug views.
+     * Whether this Discord account may run operational admin tasks.
      * @type {boolean}
      * @memberof CurrentUser
      */

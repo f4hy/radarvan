@@ -52,7 +52,7 @@ def upload_maps(
             detail="No valid maps found (each needs both a .map and a .tga)",
         )
     processed = map_upload_module.process(
-        uploads, commit, replay_manager, player_ids.is_admin(user.player_name)
+        uploads, commit, replay_manager, player_ids.is_admin(user.discord_id)
     )
     logger.info(
         "map upload",

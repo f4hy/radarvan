@@ -1,6 +1,8 @@
 """Player identity helpers - the known-player ID/alias tables, ``resolve_player_name``
 for canonicalizing in-game aliases, and ``is_admin`` admin checks."""
 
+import os
+
 PLAYERS = {
     "wild": "A1AF434A9790",
     "modus": "09BAC013F91C",
@@ -101,14 +103,23 @@ PLAYER_NAMES = set(NAME_MAPPING.values())
 CPU_NAMES: frozenset[str] = frozenset(CPU_NAME_MAPPING.values())
 HUMAN_NAMES: frozenset[str] = frozenset(PLAYER_NAME_MAPPING.values())
 
-# Players (by claimed in-game name) with admin privileges. Hard-coded for now;
-# add names here to grant admin.
-ADMIN_PLAYERS: set[str] = {"Modus", "OneThree111"}
+
+def _discord_ids(name: str) -> frozenset[str]:
+    return frozenset(
+        value.strip() for value in os.getenv(name, "").split(",") if value.strip()
+    )
 
 
-def is_admin(player_name: str | None) -> bool:
-    """True if the given claimed in-game name is an admin."""
-    return player_name is not None and player_name in ADMIN_PLAYERS
+# Privileges attach to Discord's stable account ID, never to the player name a
+# user can select in the UI. IDs live in deployment configuration rather than
+# this public repository.
+ADMIN_DISCORD_IDS = _discord_ids("ADMIN_DISCORD_IDS")
+TOURNAMENT_ADMIN_DISCORD_IDS = _discord_ids("TOURNAMENT_ADMIN_DISCORD_IDS")
+OPS_ADMIN_DISCORD_IDS = _discord_ids("OPS_ADMIN_DISCORD_IDS")
+
+
+def is_admin(discord_id: str | None) -> bool:
+    return discord_id is not None and discord_id in ADMIN_DISCORD_IDS
 
 
 # Directory names on gentool.net to skip during scraping even though they
@@ -119,28 +130,12 @@ def is_admin(player_name: str | None) -> bool:
 BLOCKED_SCRAPE_DIRS: set[str] = {"akram_7E00462DFB0F", "DESKTOP-CQM9_7E00462DFB0F"}
 
 
-# Admins for the 1v1 double-elimination bracket feature specifically - a
-# separate, narrower set from ADMIN_PLAYERS so granting bracket admin doesn't
-# also grant access to unrelated admin features (debug page, backfills, …).
-TOURNAMENT_ADMINS: set[str] = {"Modus", "Gorn"}
+def is_tournament_admin(discord_id: str | None) -> bool:
+    return discord_id is not None and discord_id in TOURNAMENT_ADMIN_DISCORD_IDS
 
 
-def is_tournament_admin(player_name: str | None) -> bool:
-    """True if the given claimed in-game name can administer the 1v1 bracket."""
-    return player_name is not None and player_name in TOURNAMENT_ADMINS
-
-
-# Admins for the operational control panel (scrape, reparse, backfill,
-# override, delete) - a third, narrower set than ADMIN_PLAYERS, for the same
-# reason TOURNAMENT_ADMINS is narrower: these actions rewrite stored data and
-# spend real work, so being trusted with the debug views (ADMIN_PLAYERS) does
-# not imply being trusted to reparse the corpus.
-OPS_ADMINS: set[str] = {"Modus"}
-
-
-def is_ops_admin(player_name: str | None) -> bool:
-    """True if the given claimed in-game name can run operational admin tasks."""
-    return player_name is not None and player_name in OPS_ADMINS
+def is_ops_admin(discord_id: str | None) -> bool:
+    return discord_id is not None and discord_id in OPS_ADMIN_DISCORD_IDS
 
 
 def resolve_player_name(name: str, color: str = "") -> str:

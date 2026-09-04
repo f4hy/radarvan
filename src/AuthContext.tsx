@@ -45,20 +45,20 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
-// True if the logged-in user is an admin (player_ids.ADMIN_PLAYERS). Also gates
+// True if the logged-in user's Discord account is an admin. Also gates
 // the debug views.
 export function useIsAdmin(): boolean {
   return useAuth().status?.user?.isAdmin ?? false
 }
 
 // True if the logged-in user can administer the 1v1 bracket tournament
-// (player_ids.TOURNAMENT_ADMINS) — a separate, narrower set from useIsAdmin.
+// (a separate allowlist from useIsAdmin).
 export function useIsTournamentAdmin(): boolean {
   return useAuth().status?.user?.isTournamentAdmin ?? false
 }
 
 // True if the logged-in user can run the operational admin tasks behind the
-// Admin panel (player_ids.OPS_ADMINS) — narrower again than useIsAdmin, which
+// Admin panel (the operations-admin Discord allowlist) — narrower again than useIsAdmin, which
 // only unlocks the debug views. The backend gates every one of those routes on
 // the same set, so this is presentation only, not the security boundary.
 export function useIsOpsAdmin(): boolean {
