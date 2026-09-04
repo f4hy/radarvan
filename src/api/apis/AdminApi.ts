@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  AdminUser,
   GameComposition,
   HTTPValidationError,
   MatchInfo,
@@ -24,6 +25,8 @@ import type {
   WinnerOverride,
 } from '../models/index';
 import {
+    AdminUserFromJSON,
+    AdminUserToJSON,
     GameCompositionFromJSON,
     GameCompositionToJSON,
     HTTPValidationErrorFromJSON,
@@ -604,6 +607,45 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async getOverridesApiOverridesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WinnerOverride>> {
         const response = await this.getOverridesApiOverridesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listUsersApiAdminUsersGet without sending the request
+     */
+    async listUsersApiAdminUsersGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/admin/users`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Current Discord/player associations for the operations admin panel.
+     * List Users
+     */
+    async listUsersApiAdminUsersGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AdminUser>>> {
+        const requestOptions = await this.listUsersApiAdminUsersGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AdminUserFromJSON));
+    }
+
+    /**
+     * Current Discord/player associations for the operations admin panel.
+     * List Users
+     */
+    async listUsersApiAdminUsersGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminUser>> {
+        const response = await this.listUsersApiAdminUsersGetRaw(initOverrides);
         return await response.value();
     }
 
