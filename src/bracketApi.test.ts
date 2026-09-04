@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  AdminUserFromJSON,
   AuthStatusFromJSON,
   MapVotePageFromJSON,
   SetBracketMatchRequestToJSON,
@@ -39,6 +40,20 @@ describe("SetBracketMatchRequest PATCH semantics", () => {
 })
 
 describe("wire snake_case maps to the camelCase models", () => {
+  it("reads an admin user association", () => {
+    const user = AdminUserFromJSON({
+      id: 7,
+      discord_id: "123456789",
+      discord_username: "discord-name",
+      player_name: "Modus",
+      created_at: "2026-06-14T12:00:00Z",
+    })
+    expect(user.discordId).toBe("123456789")
+    expect(user.discordUsername).toBe("discord-name")
+    expect(user.playerName).toBe("Modus")
+    expect(user.createdAt.toISOString()).toBe("2026-06-14T12:00:00.000Z")
+  })
+
   // The app reads `status.user.isAdmin`; the backend sends `is_admin`. Nothing
   // else checks that these line up.
   it("reads an auth status", () => {

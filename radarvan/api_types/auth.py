@@ -30,24 +30,20 @@ class CurrentUser(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def is_admin(self) -> bool:
-        """True if the claimed in-game name is in player_ids.ADMIN_PLAYERS."""
-        return _is_admin_player(self.player_name)
+        """Whether this Discord account may use general admin features."""
+        return _is_admin_player(self.discord_id)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def is_tournament_admin(self) -> bool:
-        """True if the claimed in-game name is in player_ids.TOURNAMENT_ADMINS."""
-        return _is_tournament_admin_player(self.player_name)
+        """Whether this Discord account may administer the tournament bracket."""
+        return _is_tournament_admin_player(self.discord_id)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def is_ops_admin(self) -> bool:
-        """True if the claimed in-game name is in player_ids.OPS_ADMINS.
-
-        Gates the admin control panel - narrower than `is_admin`, which only
-        unlocks the debug views.
-        """
-        return _is_ops_admin_player(self.player_name)
+        """Whether this Discord account may run operational admin tasks."""
+        return _is_ops_admin_player(self.discord_id)
 
 
 class AuthStatus(BaseModel):

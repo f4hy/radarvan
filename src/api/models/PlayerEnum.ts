@@ -69,4 +69,3 @@ export function PlayerEnumToJSON(value?: PlayerEnum | null): any {
 export function PlayerEnumToJSONTyped(value: any, ignoreDiscriminator: boolean): PlayerEnum {
     return value as PlayerEnum;
 }
-

@@ -22,6 +22,7 @@ apis/index.ts
 index.ts
 models/APM.ts
 models/AcademyStats.ts
+models/AdminUser.ts
 models/AuthStatus.ts
 models/BackfillMapCrcsResponse.ts
 models/BracketMatchGames.ts
