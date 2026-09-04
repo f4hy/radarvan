@@ -78,6 +78,14 @@ PLAYER_NAME_MAPPING = {
     "domi": "Domi",
     "dominator": "Domi",
     "-dominator-": "Domi",
+    "marakar": "Marakar",
+    "marakar*": "Marakar",
+    "maraka": "Marakar",
+    "maraka*": "Marakar",
+    "[ooe]marakar": "Marakar",
+    "[ooe]marakar*": "Marakar",
+    "[ooe]maraka": "Marakar",
+    "[ooe]maraka*": "Marakar",
 }
 
 CPU_NAME_MAPPING = {
