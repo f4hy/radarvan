@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@mui/material/styles"
 import { QueryClientProvider } from "@tanstack/react-query"
+import * as React from "react"
 import {
   BrowserRouter,
   Navigate,
@@ -9,13 +10,14 @@ import {
 } from "react-router"
 import "./App.css"
 import { AuthProvider } from "./AuthContext"
+import { ColorModeProvider, useColorMode } from "./ColorModeContext"
 import ErrorBoundary from "./ErrorBoundary"
 import Menu from "./Menu"
 import { PlayerColorsProvider } from "./PlayerColorsContext"
 import NotFound from "./NotFound"
 import { queryClient } from "./queryClient"
 import { DEFAULT_ROUTE, LEGACY_PAGE_PARAM, ROUTES, routeBySlug } from "./routes"
-import theme from "./theme"
+import { buildTheme } from "./theme"
 
 /**
  * The app routed on `?page=<slug>` before it had a router, and those links were
@@ -55,33 +57,44 @@ function RootFallback(error: Error) {
   )
 }
 
+// Reads the resolved light/dark mode and hands ThemeProvider a matching
+// theme — split out so ColorModeProvider can sit outside it (the theme
+// depends on the mode; the mode doesn't depend on the theme).
+function ThemedApp(props: { children: React.ReactNode }) {
+  const { mode } = useColorMode()
+  const theme = React.useMemo(() => buildTheme(mode), [mode])
+  return <ThemeProvider theme={theme}>{props.children}</ThemeProvider>
+}
+
 export default function App() {
   return (
     <div className="App">
       <ErrorBoundary fallback={RootFallback}>
-        <ThemeProvider theme={theme}>
-          <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
-              <AuthProvider>
-                <PlayerColorsProvider>
-                  <Routes>
-                    <Route element={<Menu />}>
-                      <Route index element={<LegacyPageRedirect />} />
-                      {ROUTES.map((route) => (
-                        <Route
-                          key={route.slug}
-                          path={route.slug}
-                          element={<route.Component />}
-                        />
-                      ))}
-                      <Route path="*" element={<NotFound />} />
-                    </Route>
-                  </Routes>
-                </PlayerColorsProvider>
-              </AuthProvider>
-            </BrowserRouter>
-          </QueryClientProvider>
-        </ThemeProvider>
+        <ColorModeProvider>
+          <ThemedApp>
+            <QueryClientProvider client={queryClient}>
+              <BrowserRouter>
+                <AuthProvider>
+                  <PlayerColorsProvider>
+                    <Routes>
+                      <Route element={<Menu />}>
+                        <Route index element={<LegacyPageRedirect />} />
+                        {ROUTES.map((route) => (
+                          <Route
+                            key={route.slug}
+                            path={route.slug}
+                            element={<route.Component />}
+                          />
+                        ))}
+                        <Route path="*" element={<NotFound />} />
+                      </Route>
+                    </Routes>
+                  </PlayerColorsProvider>
+                </AuthProvider>
+              </BrowserRouter>
+            </QueryClientProvider>
+          </ThemedApp>
+        </ColorModeProvider>
       </ErrorBoundary>
     </div>
   )

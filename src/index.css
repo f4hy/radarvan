@@ -11,3 +11,37 @@ code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
+
+/* recharts draws its own SVG text/lines with hardcoded light-mode colors
+ * (fill="#808080"/"#666", stroke="#ccc") and it can't read the MUI theme, so
+ * ColorModeContext stamps `data-color-mode` on <html> and these rules pick it
+ * up instead. CSS on the stylesheet beats an SVG presentation attribute
+ * regardless of specificity, so no `!important` is needed for the SVG rules
+ * below — only the tooltip popup (an HTML div styled via inline `style`)
+ * needs it, since inline styles otherwise beat any stylesheet rule. */
+[data-color-mode="dark"] .recharts-text,
+[data-color-mode="dark"] .recharts-cartesian-axis-tick-value {
+  fill: #a7b1c2;
+}
+[data-color-mode="dark"] .recharts-cartesian-axis-tick-line,
+[data-color-mode="dark"] .recharts-cartesian-axis-line,
+[data-color-mode="dark"] .recharts-polar-angle-axis-line,
+[data-color-mode="dark"] .recharts-polar-radius-axis-line {
+  stroke: #4a5468;
+}
+[data-color-mode="dark"] .recharts-cartesian-grid-horizontal line,
+[data-color-mode="dark"] .recharts-cartesian-grid-vertical line {
+  stroke: #2a3240;
+}
+[data-color-mode="dark"] .recharts-default-tooltip {
+  /* biome-ignore lint/complexity/noImportantStyles: recharts sets contentStyle inline, which beats any stylesheet rule without !important */
+  background-color: #1a212c !important;
+  /* biome-ignore lint/complexity/noImportantStyles: same as background-color above */
+  border-color: rgba(231, 235, 242, 0.16) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: same as background-color above */
+  color: #e7ebf2 !important;
+}
+[data-color-mode="dark"] .recharts-tooltip-label {
+  /* biome-ignore lint/complexity/noImportantStyles: recharts sets labelStyle inline, which beats any stylesheet rule without !important */
+  color: #e7ebf2 !important;
+}

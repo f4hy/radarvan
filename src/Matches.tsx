@@ -48,6 +48,7 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import { Tooltip } from "@mui/material"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { PlayerDot } from "./PlayerChip"
+import { useColorMode } from "./ColorModeContext"
 import { usePlayerColors } from "./PlayerColorsContext"
 import {
   displayMapName,
@@ -184,6 +185,7 @@ function StatusBand(props: {
 }
 
 function TeamCard(props: { players: Player[]; won: boolean }) {
+  const { mode } = useColorMode()
   const first = props.players[0]
   const team = first?.team
   let label = `${props.won ? "Won" : "Lost"} · Team ${team}`
@@ -229,7 +231,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
               noWrap
               sx={{
                 fontWeight: 700,
-                color: playerPalette(getColorHex(p.color)).ink,
+                color: playerPalette(getColorHex(p.color), mode).ink,
               }}
             >
               {normalizePlayerName(p.name)}
@@ -242,6 +244,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
 }
 
 function FfaPlayerCard(props: { player: Player }) {
+  const { mode } = useColorMode()
   const { player } = props
   return (
     <Card sx={{ minWidth: 150, overflow: "hidden" }}>
@@ -266,7 +269,7 @@ function FfaPlayerCard(props: { player: Player }) {
             noWrap
             sx={{
               fontWeight: 700,
-              color: playerPalette(getColorHex(player.color)).ink,
+              color: playerPalette(getColorHex(player.color), mode).ink,
             }}
           >
             {normalizePlayerName(player.name)}
