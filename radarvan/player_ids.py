@@ -84,6 +84,7 @@ PLAYER_NAME_MAPPING = {
     "maraka": "Marakar",
     "maraka*": "Marakar",
     "mar": "Marakar",
+    "mrk": "Marakar",
     "[ooe]marakar": "Marakar",
     "[ooe]marakar*": "Marakar",
     "[ooe]maraka": "Marakar",
