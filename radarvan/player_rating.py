@@ -24,19 +24,12 @@ logger = structlog.get_logger(__name__)
 NON_COMPETITIVE: set[str] = {"EasyArmy", "MediumArmy"}
 
 MIN_GAMES = 45
-ITERATIONS = 3
 
-# The floor every pass applies to sigma before re-rating (see _reseed).
-MIN_SIGMA = 5.0
-
-# How far below the weakest established player a newcomer is assumed to sit.
-# One beta - the model's own per-player performance noise - rather than a number
-# read off today's leaderboard, so it stays meaningful as the scale drifts.
-NEW_PLAYER_MARGIN_BETAS = 1.0
-
-# ...and with this multiple of the usual starting uncertainty, because "we have
-# not seen you play" is a wider claim than "you are weak".
-NEW_PLAYER_SIGMA_SCALE = 2.0
+# Static and low - what we assume about someone we've barely seen play. See
+# CLAUDE.md's rating section for why this and GUEST_INITIAL_MU are both flat
+# constants rather than computed.
+NEWCOMER_PRIOR_MU = 3.0
+NEWCOMER_PRIOR_SIGMA = 16.0  # wide: "never seen you play" is a broad claim
 
 # When a game has any CPU player, scale down how far each player's rating moves
 # (both mu and sigma). 1.0 = full movement, 0.0 = no movement. CPU games still
@@ -44,28 +37,39 @@ NEW_PLAYER_SIGMA_SCALE = 2.0
 CPU_GAME_RATING_SCALE = 0.1
 
 
-# Guests whose rating is asserted rather than learned, as a multiple of the top
-# established human's ordinal. Excal, Domi, and Marakar are (semi-)pro
-# visitors: `_reseed` shrinks a sub-MIN_GAMES player back toward the newcomer
-# prior each pass, which stops a short hot streak from minting a top rating -
-# right for a stranger, wrong for someone already known to outclass the group.
-# Stated rather than faked via injected wins, which would surface fictional
-# games on every other page that reads the match corpus (W/L, head-to-head,
-# recaps...). A multiple of the leader, not a fixed mu, for the same reason
-# `_newcomer_prior` is relative: openskill has no absolute anchor and this
-# corpus has already drifted. Delete an entry to hand the player back to the
-# model.
-GUEST_RATING_MULTIPLIERS: dict[str, float] = {
-    "Excal": 2.0,
-    "Marakar": 1.95,
-    "Domi": 1.5,
+# Excal/Marakar/Domi: (semi-)pro visitors known to outclass the group with too
+# few real games to prove it from scratch. Static, deliberately high *starting*
+# mu, not a permanent override - real games move it from there like anyone
+# else's. Roughly ordered against the corpus's real leaders (high-30s/low-40s
+# ordinal currently), not derived from anything. See CLAUDE.md. Delete an
+# entry to hand the player back to the model.
+GUEST_INITIAL_MU: dict[str, float] = {
+    "Excal": 55.0,
+    "Marakar": 50.0,
+    "Domi": 45.0,
 }
 
-# Asserted, so asserted confidently: the same floor every converged rating
-# lands on. A wide sigma would undo the point - `predict_win` divides the mu
-# gap by the two teams' pooled uncertainty, so an unsure 2x rating reads as a
-# *smaller* edge than a sure 1.5x one.
-GUEST_SIGMA = MIN_SIGMA
+# Players who joined the corpus partway through, seeded at an estimate of
+# their skill *at the time they entered* (not their current rating) rather
+# than the neutral default - same reasoning as GUEST_INITIAL_MU, applied
+# retroactively instead of to a stranger.
+PLAYER_INITIAL_MU: dict[str, float] = {
+    "Modus": 35.0,
+    "OneThree111": 25.0,
+    "Syn": 10.0,
+    "STM": 10.0,
+    "EnragedFerret": 0.5,
+}
+
+
+def is_guest_name(name: str) -> bool:
+    return name in GUEST_INITIAL_MU
+
+
+# A guest's *starting* sigma - tight, so their high seed isn't taxed by wide
+# uncertainty before their first real game (ordinal is mu - 3*sigma). Single
+# pass now, so nothing ever resets it back to this value once real games move it.
+GUEST_SIGMA = 2.5
 
 
 @dataclass(slots=True)
@@ -80,16 +84,12 @@ class NamedRating:
     def ordinal(self) -> float:
         return self.mu - 3 * self.sigma
 
-    def with_min_sigma(self, min_sigma: float) -> NamedRating:
-        return NamedRating(
-            name=self.name,
-            mu=self.mu,
-            sigma=max(self.sigma, min_sigma),
-            at_date=self.at_date,
-        )
-
     def to_rating(self, model: PlackettLuce) -> PlackettLuceRating:
         return model.rating(name=self.name, mu=self.mu, sigma=self.sigma)
+
+
+def _seeded(name: str, table: dict[str, float], sigma: float) -> NamedRating:
+    return NamedRating(name=name, mu=table[name], sigma=sigma)
 
 
 def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
@@ -98,7 +98,11 @@ def initialize_player(name: str, model: PlackettLuce) -> NamedRating:
     if name in NON_COMPETITIVE:
         return NamedRating(name=name, mu=0.5, sigma=r.sigma / 2.0)
     if player_ids.is_cpu_name(name):
-        return NamedRating(name=name, mu=r.mu, sigma=r.sigma / 2.0)
+        return NamedRating(name=name, mu=r.mu / 2.0, sigma=r.sigma / 2.0)
+    if is_guest_name(name):
+        return _seeded(name, GUEST_INITIAL_MU, GUEST_SIGMA)
+    if name in PLAYER_INITIAL_MU:
+        return _seeded(name, PLAYER_INITIAL_MU, r.sigma)
     if name in known_players:
         return NamedRating(name=name, mu=r.mu, sigma=r.sigma)
     return NamedRating(name=name, mu=r.mu, sigma=r.sigma * 8)
@@ -204,14 +208,17 @@ class GameUpset:
 def _leaderboard(
     ratings: dict[str, NamedRating], game_counts: dict[str, int]
 ) -> list[NamedRating]:
-    """Players over MIN_GAMES, best first. The one spelling of the display cut -
-    `compute_player_ratings` logs it once per pass and reports it as
+    """Players over MIN_GAMES, best first, plus the guests regardless of games
+    played - their rating is asserted, not earned, so the "not enough games to
+    trust it" reasoning behind the cut doesn't apply to them. The one spelling
+    of the display cut - `compute_player_ratings` logs it and reports it as
     `RatingsAndCounts.ratings`."""
     return sorted(
         (
             r
             for r in ratings.values()
-            if include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
+            if is_guest_name(r.name)
+            or include_rating(game_counts, r.name, min_game_count=MIN_GAMES)
         ),
         key=lambda r: r.ordinal(),
         reverse=True,
@@ -382,10 +389,9 @@ def _detect_upset(
 class _RatableGame(NamedTuple):
     """A game that passed the rating gate, with its teams already resolved.
 
-    ``compute_player_ratings`` runs ITERATIONS passes over the same games, and
-    neither the gate nor ``build_teams`` depends on the current ratings - both
-    resolve every competitor's alias, so redoing them per pass tripled the
-    name-resolution work for no change in result.
+    Neither the gate nor ``build_teams`` depends on the current ratings, so
+    resolving every competitor's alias once here (rather than inline in
+    ``_process_games``) keeps that concern separate from applying ratings.
     """
 
     game: MatchInfo
@@ -393,12 +399,12 @@ class _RatableGame(NamedTuple):
 
 
 class _PreparedCorpus(NamedTuple):
-    """The games the passes iterate, and how much we know about each player.
+    """The games to rate, and how much we know about each player.
 
-    The counts are summed here rather than carried per game: they are a property
-    of the corpus, not of a pass, and `_process_games` ran over all ITERATIONS
-    of them re-adding the same numbers. Keeping them on `_RatableGame` also held
-    a small dict per game alive for the whole computation for one use.
+    The counts are summed here rather than carried per game: they are a
+    property of the corpus, not of any one game. Keeping them on
+    `_RatableGame` instead would hold a small dict per game alive for the
+    whole computation for one use.
     """
 
     games: list[_RatableGame]
@@ -454,112 +460,7 @@ def _process_games(
     )
 
 
-def _newcomer_prior(
-    ratings: dict[str, NamedRating], counts: dict[str, int], model: PlackettLuce
-) -> NamedRating:
-    """What we assume about someone we have barely seen play.
-
-    Deliberately *relative* to the players we know: openskill has no absolute
-    anchor, this corpus has drifted to a mu range of ~10-38, and the library's
-    own mu=25 default would seed a newcomer above two-thirds of the regulars
-    (lowering the default for everyone shifts every mu down equally and leaves
-    the ordering unchanged - measured). Anchoring one beta below the weakest
-    established player means "assume the weakest here until proven otherwise",
-    and keeps meaning that as the scale moves.
-
-    On the first pass nobody is established yet, so the margin drops too - with
-    everyone still on the shared default there's nothing to be weaker *than*.
-    """
-    established = [
-        r.mu
-        for name, r in ratings.items()
-        # include_rating is "enough games for a rating worth quoting"; its CPU
-        # exemption isn't wanted here - HardArmy isn't a regular.
-        if not player_ids.is_cpu_name(name)
-        and include_rating(counts, name, min_game_count=MIN_GAMES)
-    ]
-    mu = (
-        min(established) - NEW_PLAYER_MARGIN_BETAS * model.beta
-        if established
-        else model.mu
-    )
-    return NamedRating(name="", mu=mu, sigma=model.sigma * NEW_PLAYER_SIGMA_SCALE)
-
-
-def _apply_guest_ratings(
-    ratings: dict[str, NamedRating], counts: dict[str, int]
-) -> dict[str, NamedRating]:
-    """Replace each guest's learned rating with its asserted multiple of the
-    leader's ordinal. Returns a new dict; the input is left alone.
-
-    Runs as the last step of ``compute_player_ratings``, after the passes and
-    ``_newcomer_prior`` - the passes must see the guests' *real* ratings, or
-    rating the group's games against an asserted 2x opponent would mean losing
-    to Excal barely dents anyone.
-
-    The anchor skips CPUs (seeded on a different scale) and the guests
-    themselves - a guest who crossed MIN_GAMES would otherwise anchor to their
-    own boosted rating and compound it every recomputation. A guest with no
-    games still gets an entry, so ``rating_for`` answers the first time they're
-    picked on the Balance Teams page.
-    """
-    board = [
-        r
-        for r in _leaderboard(ratings, counts)
-        if not player_ids.is_cpu_name(r.name) and r.name not in GUEST_RATING_MULTIPLIERS
-    ]
-    if not board:
-        return ratings
-    top_ordinal = board[0].ordinal()
-    boosted = dict(ratings)
-    for name, multiplier in GUEST_RATING_MULTIPLIERS.items():
-        existing = ratings.get(name)
-        boosted[name] = NamedRating(
-            name=name,
-            # ordinal() is mu - 3*sigma, solved for the mu that lands the
-            # ordinal on the multiple asked for.
-            mu=multiplier * top_ordinal + 3 * GUEST_SIGMA,
-            sigma=GUEST_SIGMA,
-            at_date=existing.at_date if existing else None,
-        )
-    return boosted
-
-
-def _reseed(
-    ratings: dict[str, NamedRating], counts: dict[str, int], model: PlackettLuce
-) -> dict[str, NamedRating]:
-    """Starting ratings for the next pass: shrink the barely-seen back toward
-    the newcomer prior, then floor sigma.
-
-    Must run every pass, not once before the first: ``compute_player_ratings``
-    feeds each pass the *previous pass's* output, so a starting prior alone only
-    constrains pass 1 and gets swamped by passes 2-3 replaying the same games -
-    measured, seeding a 36-game newcomer 25 mu lower moved them 8th -> 13th
-    after one pass but only 5th after three. Re-applying it here is what makes
-    it bite.
-
-    Weight ramps linearly to 1.0 at MIN_GAMES (continuous, so nobody's rating
-    steps the night they cross the line; at 1.0 this reduces to the plain sigma
-    floor it replaced). CPUs are exempt - seeded separately in
-    ``initialize_player``, never newcomers.
-
-    Only mu is pulled back; sigma just floors, because sigma *is* openskill's
-    learning rate - re-inflating a newcomer's uncertainty every pass would pin
-    them at max volatility and let a short winning run outrun the evidence.
-    """
-    prior = _newcomer_prior(ratings, counts, model)
-    reseeded: dict[str, NamedRating] = {}
-    for name, rating in ratings.items():
-        # Trust in this player's own record, ramped to 1.0 at MIN_GAMES ratable
-        # games; the rest goes to the prior. A CPU is trusted outright (never a
-        # newcomer), taking the same branch as a fully-trusted human.
-        exempt = player_ids.is_cpu_name(name) or name in NON_COMPETITIVE
-        trust = 1.0 if exempt else min(1.0, counts.get(name, 0) / MIN_GAMES)
-        reseeded[name] = replace(
-            rating.with_min_sigma(MIN_SIGMA),
-            mu=trust * rating.mu + (1.0 - trust) * prior.mu,
-        )
-    return reseeded
+NEWCOMER_PRIOR = NamedRating(name="", mu=NEWCOMER_PRIOR_MU, sigma=NEWCOMER_PRIOR_SIGMA)
 
 
 def _log_sorted_ratings(
@@ -651,6 +552,9 @@ def is_ratable_team_game(game: MatchInfo) -> bool:
 def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     """Ratings over the supplied games.
 
+    A single chronological pass - see CLAUDE.md's rating section for why the
+    old multi-pass/reseed design was dropped in favor of this.
+
     Keyed on the ids in `games` *and* the corpus epoch. The ids alone would be
     wrong: a reparse or a WinnerOverride changes a match's winner while leaving
     its id untouched, so `competitive_matches` would hand this a corrected list
@@ -658,25 +562,30 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
     """
     model = get_model()
     filtered_games = [g for g in games if filter_for_rating(g)]
-    all_players = _collect_all_players(filtered_games)
+    # Guests are seeded (see `initialize_player`) regardless of whether
+    # they've played - a guest with no games yet still needs an entry, so
+    # `rating_for` answers the first time they're picked on the Balance Teams
+    # page, before their first real game ever lands.
+    all_players = _collect_all_players(filtered_games) | GUEST_INITIAL_MU.keys()
     player_ratings = {name: initialize_player(name, model) for name in all_players}
 
-    # Gate + resolve teams once, then reuse across every pass (see _RatableGame).
-    # Before the first pass, not between the seeding and the loop: `_reseed`
-    # needs the per-player game counts to know who is still a newcomer.
     prepared, ratable_counts = _ratable_games(filtered_games)
     game_counts = dict.fromkeys(all_players, 0) | ratable_counts
     logger.debug("initial players", players=player_ratings)
 
-    for i in range(ITERATIONS):
-        player_ratings, rating_over_time, match_changes, upsets = _process_games(
-            prepared, _reseed(player_ratings, game_counts, model), model
-        )
-        logger.debug("pass", iteration=i)
-        _log_sorted_ratings(_leaderboard(player_ratings, game_counts), game_counts)
+    player_ratings, rating_over_time, match_changes, upsets = _process_games(
+        prepared, player_ratings, model
+    )
     logger.debug("done computing ratings")
+    _log_sorted_ratings(_leaderboard(player_ratings, game_counts), game_counts)
 
-    over_time_filtered = {n: v for n, v in rating_over_time.items() if len(v) > 30}
+    # Guests are exempted from over_time's "enough games to be worth a
+    # sparkline" cut for the same reason they're exempted from MIN_GAMES on
+    # the leaderboard: the point of asserting a starting rating is to see it
+    # move, however few real games back it so far.
+    over_time_filtered = {
+        n: v for n, v in rating_over_time.items() if len(v) > 30 or is_guest_name(n)
+    }
 
     ordinal_high = {
         name: max(r.ordinal() for r in entries)
@@ -701,18 +610,9 @@ def compute_player_ratings(games: list[MatchInfo]) -> RatingsAndCounts:
 
     sorted_upsets = sorted(upsets, key=lambda u: u.surprise, reverse=True)
 
-    # The prior first, off the learned ratings, then the guest overrides on top.
-    # Both read the leaderboard, and the order is what keeps the assertion from
-    # feeding back: a boosted guest must not be able to shift what "the weakest
-    # established player" means for everyone we have genuinely not seen play.
-    newcomer_prior = _newcomer_prior(player_ratings, game_counts, model)
-    player_ratings = _apply_guest_ratings(player_ratings, game_counts)
-
     return RatingsAndCounts(
         all_ratings=player_ratings,
-        # Computed here, where the model and the final ratings are both in hand,
-        # rather than re-derived by every caller that needs to place a stranger.
-        newcomer_prior=newcomer_prior,
+        newcomer_prior=NEWCOMER_PRIOR,
         game_counts=game_counts,
         over_time=over_time_filtered,
         daily_changes=daily_changes,

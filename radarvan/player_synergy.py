@@ -35,6 +35,7 @@ from .player_rating import (
     build_teams,
     compute_player_ratings,
     get_model,
+    is_guest_name,
     is_ratable_team_game,
 )
 
@@ -114,7 +115,11 @@ def _collect_rows(
 ) -> list[_GameRow]:
     # Synergy is about human chemistry; drop any game with a CPU player so CPUs
     # never form pairs or main effects (PLAYER_NAMES includes CPU names, so the
-    # rating filter alone doesn't exclude them).
+    # rating filter alone doesn't exclude them). Guests need the same explicit
+    # exclusion for the same reason: they now sit on `.ratings` regardless of
+    # games played (see player_rating.GUEST_INITIAL_MU), so the membership
+    # check alone no longer enforces "enough games to trust" for them the way
+    # it does for everyone else.
     rows: list[_GameRow] = []
     for game in games:
         if not is_ratable_team_game(game):
@@ -124,6 +129,8 @@ def _collect_rows(
             continue
         teams = result.teams
         if game.roster().has_cpu:
+            continue
+        if any(is_guest_name(name) for team in teams.values() for name in team):
             continue
         if any(name not in rating_by_name for team in teams.values() for name in team):
             continue
