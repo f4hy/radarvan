@@ -44,7 +44,7 @@ CPU_GAME_RATING_SCALE = 0.1
 # ordinal currently), not derived from anything. See CLAUDE.md. Delete an
 # entry to hand the player back to the model.
 GUEST_INITIAL_MU: dict[str, float] = {
-    "Excal": 55.0,
+    "Excal": 51.0,
     "Marakar": 50.0,
     "Domi": 45.0,
 }
@@ -55,10 +55,11 @@ GUEST_INITIAL_MU: dict[str, float] = {
 # retroactively instead of to a stranger.
 PLAYER_INITIAL_MU: dict[str, float] = {
     "Modus": 35.0,
-    "OneThree111": 25.0,
+    "Gorn": 30.0,
+    "OneThree111": 24.0,
     "Syn": 10.0,
     "STM": 10.0,
-    "EnragedFerret": 0.5,
+    "EnragedFerret": -1.5,
 }
 
 
