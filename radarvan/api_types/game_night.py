@@ -55,6 +55,8 @@ class GameNightHighlight(BaseModel):
     title: str
     detail: str
     match_id: int | None = Field(default=None, alias="matchId")
+    # Winner's win-prob sparkline, for the "momentum" highlight only.
+    points: list[float] | None = Field(default=None)
 
 
 class GameNightRecap(BaseModel):
