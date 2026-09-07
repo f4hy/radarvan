@@ -22,7 +22,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import NamedTuple
 
 import structlog
@@ -51,10 +51,11 @@ OPENING_DEPTH = 5
 # worth of raw builds - always >= OPENING_DEPTH today, but nothing else ties
 # the two together, so a future drop in _MAX_ROWS would silently start
 # truncating openings. Fail loudly instead.
-assert OPENING_DEPTH <= _BUILD_ORDER_MAX_ROWS, (
-    "OPENING_DEPTH can't exceed build_order._MAX_ROWS - opening_key has "
-    "nothing more to expand past that many collapsed rows"
-)
+if OPENING_DEPTH > _BUILD_ORDER_MAX_ROWS:
+    raise AssertionError(
+        "OPENING_DEPTH can't exceed build_order._MAX_ROWS - opening_key has "
+        "nothing more to expand past that many collapsed rows"
+    )
 
 # An opening below this many games gets folded into "other" rather than shown
 # as its own named row - a one-off build isn't a strategy anyone is playing.
@@ -238,7 +239,7 @@ def opening_book_from_computed(stats: list[Statistic]) -> OpeningBook:
         computed_at = s.date_computed
     generals.sort(key=lambda gb: -gb.total_games)
     return OpeningBook(
-        computed_at=computed_at or date.today(),
+        computed_at=computed_at or datetime.now(UTC).date(),
         min_games=MIN_GAMES_FOR_OPENING,
         generals=generals,
     )

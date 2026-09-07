@@ -1735,7 +1735,7 @@ function NextMatchBanner({
     <Paper
       variant="outlined"
       onClick={onClick}
-      sx={{
+      sx={(theme) => ({
         p: 2,
         mb: 2,
         display: "flex",
@@ -1745,9 +1745,11 @@ function NextMatchBanner({
         gap: 1.5,
         cursor: "pointer",
         borderColor: BRAND_COLOR,
-        bgcolor: (theme) =>
-          alpha(BRAND_COLOR, theme.palette.mode === "dark" ? 0.12 : 0.06),
-      }}
+        bgcolor: alpha(BRAND_COLOR, 0.06),
+        ...theme.applyStyles("dark", {
+          bgcolor: alpha(BRAND_COLOR, 0.12),
+        }),
+      })}
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
         <WhatshotIcon sx={{ color: BRAND_COLOR }} />

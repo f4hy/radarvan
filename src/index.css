@@ -14,11 +14,13 @@ code {
 
 /* recharts draws its own SVG text/lines with hardcoded light-mode colors
  * (fill="#808080"/"#666", stroke="#ccc") and it can't read the MUI theme, so
- * ColorModeContext stamps `data-color-mode` on <html> and these rules pick it
- * up instead. CSS on the stylesheet beats an SVG presentation attribute
- * regardless of specificity, so no `!important` is needed for the SVG rules
- * below — only the tooltip popup (an HTML div styled via inline `style`)
- * needs it, since inline styles otherwise beat any stylesheet rule. */
+ * theme.ts's `colorSchemeSelector` has MUI stamp `data-color-mode` on <html>
+ * (same attribute theme.ts's own dark-mode component overrides key off of via
+ * `theme.applyStyles`) and these rules pick it up too. CSS on the stylesheet
+ * beats an SVG presentation attribute regardless of specificity, so no
+ * `!important` is needed for the SVG rules below — only the tooltip popup (an
+ * HTML div styled via inline `style`) needs it, since inline styles otherwise
+ * beat any stylesheet rule. */
 [data-color-mode="dark"] .recharts-text,
 [data-color-mode="dark"] .recharts-cartesian-axis-tick-value {
   fill: #a7b1c2;
