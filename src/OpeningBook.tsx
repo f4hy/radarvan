@@ -9,55 +9,67 @@ import ListItem from "@mui/material/ListItem"
 import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
-import type { GeneralOpeningBook, Opening } from "./api"
+import type { GeneralOpeningBook } from "./api"
 import { OpeningBookClient } from "./clients/openingBook"
 import DisplayGeneral from "./Generals"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
 import WinRateChip, { WinLossVolumeBar } from "./WinRateChip"
 
-/** One archetype: the raw building sequence, how popular it is against this
- * general's own busiest opening, and how it's fared. */
-function OpeningRow(props: { opening: Opening; max: number }) {
-  const { opening } = props
+// Fixed-width columns so every row's count/bar/chip lines up regardless of
+// how long its label is - sized to fit the longest real 5-building sequence
+// in this corpus (e.g. "PowerPlant → Barracks → SupplyCenter → GattlingCannon
+// → WarFactory") without ellipsizing it.
+const LABEL_WIDTH = "0 1 39rem"
+const COUNT_WIDTH = "0 0 3.5rem"
+const BAR_SX = { flex: "1 1 auto", minWidth: 60, maxWidth: 180 } as const
+
+/** One row: a label (a building sequence, or "Other"), how popular it is
+ * against this general's own busiest opening, and how it's fared. */
+function BuildOrderRow(props: {
+  label: string
+  monospace?: boolean
+  gameCount: number
+  winCount: number
+  max: number
+}) {
+  const { gameCount, winCount } = props
   return (
     <ListItem disableGutters dense sx={{ gap: 1.5 }}>
       <Typography
         variant="body2"
         sx={{
-          fontFamily: "monospace",
-          flex: "0 1 39rem",
+          fontFamily: props.monospace ? "monospace" : undefined,
+          color: props.monospace ? undefined : "text.secondary",
+          flex: LABEL_WIDTH,
           minWidth: 0,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
         }}
       >
-        {opening.buildings.join(" → ")}
+        {props.label}
       </Typography>
       <Typography
         variant="body2"
         sx={{
           color: "text.secondary",
-          flex: "0 0 3.5rem",
+          flex: COUNT_WIDTH,
           textAlign: "right",
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        {opening.gameCount}
+        {gameCount}
       </Typography>
-      <Box sx={{ flex: "1 1 auto", minWidth: 60, maxWidth: 180 }}>
+      <Box sx={BAR_SX}>
         <WinLossVolumeBar
-          wins={opening.winCount}
-          losses={opening.gameCount - opening.winCount}
+          wins={winCount}
+          losses={gameCount - winCount}
           max={props.max}
         />
       </Box>
       <Box sx={{ flexShrink: 0 }}>
-        <WinRateChip
-          wins={opening.winCount}
-          losses={opening.gameCount - opening.winCount}
-        />
+        <WinRateChip wins={winCount} losses={gameCount - winCount} />
       </Box>
     </ListItem>
   )
@@ -69,7 +81,6 @@ function GeneralSection(props: {
 }) {
   const { book } = props
   const max = Math.max(1, ...book.openings.map((o) => o.gameCount))
-  const otherLosses = book.otherGameCount - book.otherWinCount
   return (
     <Accordion defaultExpanded={props.defaultExpanded} disableGutters>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -90,42 +101,22 @@ function GeneralSection(props: {
       <AccordionDetails sx={{ pt: 0 }}>
         <List dense disablePadding>
           {book.openings.map((opening) => (
-            <OpeningRow
+            <BuildOrderRow
               key={opening.buildings.join("|")}
-              opening={opening}
+              label={opening.buildings.join(" → ")}
+              monospace
+              gameCount={opening.gameCount}
+              winCount={opening.winCount}
               max={max}
             />
           ))}
           {book.otherGameCount > 0 && (
-            <ListItem disableGutters dense sx={{ gap: 1.5 }}>
-              <Typography
-                variant="body2"
-                sx={{ color: "text.secondary", flex: "0 1 39rem", minWidth: 0 }}
-              >
-                Other (one-off builds)
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "text.secondary",
-                  flex: "0 0 3.5rem",
-                  textAlign: "right",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {book.otherGameCount}
-              </Typography>
-              <Box sx={{ flex: "1 1 auto", minWidth: 60, maxWidth: 180 }}>
-                <WinLossVolumeBar
-                  wins={book.otherWinCount}
-                  losses={otherLosses}
-                  max={max}
-                />
-              </Box>
-              <Box sx={{ flexShrink: 0 }}>
-                <WinRateChip wins={book.otherWinCount} losses={otherLosses} />
-              </Box>
-            </ListItem>
+            <BuildOrderRow
+              label="Other (one-off builds)"
+              gameCount={book.otherGameCount}
+              winCount={book.otherWinCount}
+              max={max}
+            />
           )}
         </List>
       </AccordionDetails>
