@@ -8,7 +8,10 @@ import react from "@vitejs/plugin-react"
 const apiTarget = process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000"
 
 export default defineConfig({
-  plugins: [react()],
+  // `compiler: true` runs React Compiler (via oxc-transform-react) over every
+  // component, auto-memoizing so hand-written useMemo/useCallback are no
+  // longer required to avoid unnecessary re-renders.
+  plugins: [react({ compiler: true })],
   server: {
     proxy: {
       "/api": {

@@ -1,5 +1,4 @@
 import { createTheme, responsiveFontSizes } from "@mui/material/styles"
-import type { PaletteMode } from "@mui/material"
 
 /**
  * Central design tokens for the whole app — light AND dark.
@@ -18,6 +17,17 @@ import type { PaletteMode } from "@mui/material"
  * picked at a middle lightness specifically so the same value reads clearly
  * against both a light and a dark canvas; only the *surfaces* (backgrounds,
  * borders, ink) swap per mode.
+ *
+ * This is a single CSS-variables theme (`cssVariables: true`) covering both
+ * color schemes, not two theme objects swapped on toggle: `theme.palette.*`
+ * values resolve through CSS custom properties, so switching mode is a
+ * `data-color-mode` attribute flip (`ColorModeContext.tsx`, via MUI's
+ * `useColorScheme`) rather than a full Emotion re-render of the tree.
+ * `colorSchemeSelector` is set to reuse that same attribute/selector that
+ * `index.css`'s recharts dark-mode rules already key off of. Component style
+ * overrides that can't go through `theme.palette` (raw one-off colors, not
+ * semantic palette tokens) branch with `theme.applyStyles("dark", {...})`
+ * instead of a JS `mode === "dark"` check, for the same reason.
  */
 
 // Semantic result colors — the single source of truth for win/loss.
@@ -110,127 +120,159 @@ const DARK_SURFACES: SurfaceTokens = {
   selectedTintStrong: "rgba(47, 109, 240, 0.28)",
 }
 
-export function buildTheme(mode: PaletteMode) {
-  const s = mode === "dark" ? DARK_SURFACES : LIGHT_SURFACES
+// The attribute+value selector `ColorModeContext.tsx` stamps on <html> —
+// shared verbatim with index.css's `[data-color-mode="dark"]` recharts rules.
+const COLOR_SCHEME_SELECTOR = '[data-color-mode="%s"]'
 
-  let theme = createTheme({
-    palette: {
-      mode,
-      primary: { main: BRAND_COLOR },
-      success: { main: WIN_COLOR },
-      error: { main: LOSS_COLOR },
-      background: {
-        default: s.pageBg,
-        paper: s.paperBg,
+let theme = createTheme({
+  cssVariables: { colorSchemeSelector: COLOR_SCHEME_SELECTOR },
+  colorSchemes: {
+    light: {
+      palette: {
+        primary: { main: BRAND_COLOR },
+        success: { main: WIN_COLOR },
+        error: { main: LOSS_COLOR },
+        background: {
+          default: LIGHT_SURFACES.pageBg,
+          paper: LIGHT_SURFACES.paperBg,
+        },
+        text: {
+          primary: LIGHT_SURFACES.ink,
+          secondary: LIGHT_SURFACES.inkSecondary,
+        },
+        divider: LIGHT_SURFACES.border,
       },
-      text: {
-        primary: s.ink,
-        secondary: s.inkSecondary,
-      },
-      divider: s.border,
     },
-    shape: { borderRadius: 10 },
-    typography: {
-      fontFamily: FONT_STACK,
-      h4: { fontWeight: 700, letterSpacing: "-0.01em" },
-      h5: { fontWeight: 700, letterSpacing: "-0.01em" },
-      h6: { fontWeight: 700 },
-      subtitle1: { fontWeight: 600 },
-      subtitle2: { fontWeight: 600 },
-      button: { textTransform: "none", fontWeight: 600 },
+    dark: {
+      palette: {
+        primary: { main: BRAND_COLOR },
+        success: { main: WIN_COLOR },
+        error: { main: LOSS_COLOR },
+        background: {
+          default: DARK_SURFACES.pageBg,
+          paper: DARK_SURFACES.paperBg,
+        },
+        text: {
+          primary: DARK_SURFACES.ink,
+          secondary: DARK_SURFACES.inkSecondary,
+        },
+        divider: DARK_SURFACES.border,
+      },
     },
-    components: {
-      MuiAppBar: {
-        defaultProps: { elevation: 0 },
-        styleOverrides: {
-          root: {
-            backgroundColor: APPBAR_BG,
-            backgroundImage: "none",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-          },
-        },
-      },
-      MuiPaper: {
-        styleOverrides: {
-          outlined: { borderColor: s.border },
-          // Softer, lower shadows than MUI defaults for a flatter, modern feel.
-          elevation1: {
-            boxShadow:
-              mode === "dark"
-                ? "0 1px 2px rgba(0, 0, 0, 0.4)"
-                : "0 1px 2px rgba(16, 24, 40, 0.06)",
-            border: `1px solid ${s.hairline}`,
-          },
-        },
-      },
-      MuiCard: {
-        defaultProps: { variant: "outlined" },
-        styleOverrides: {
-          root: { borderColor: s.border },
-        },
-      },
-      MuiButton: {
-        defaultProps: { disableElevation: true },
-        styleOverrides: {
-          root: { borderRadius: 8 },
-        },
-      },
-      MuiToggleButton: {
-        styleOverrides: {
-          root: {
-            textTransform: "none",
-            fontWeight: 600,
-            borderColor:
-              mode === "dark"
-                ? "rgba(231, 235, 242, 0.20)"
-                : "rgba(26, 34, 48, 0.16)",
-            "&.Mui-selected": {
-              backgroundColor: s.selectedTint,
-              color: BRAND_COLOR,
-              "&:hover": { backgroundColor: s.selectedTintStrong },
-            },
-          },
-        },
-      },
-      MuiChip: {
-        styleOverrides: {
-          root: { fontWeight: 500 },
-          outlined: {
-            borderColor:
-              mode === "dark"
-                ? "rgba(231, 235, 242, 0.22)"
-                : "rgba(26, 34, 48, 0.18)",
-          },
-        },
-      },
-      MuiTab: {
-        styleOverrides: {
-          root: { textTransform: "none", fontWeight: 600, minHeight: 44 },
-        },
-      },
-      MuiTableCell: {
-        styleOverrides: {
-          head: { fontWeight: 700, color: s.inkSecondary },
-          root: { borderColor: s.hairline },
-        },
-      },
-      MuiListItemButton: {
-        styleOverrides: {
-          root: {
-            "&.Mui-selected": {
-              backgroundColor: s.selectedTint,
-              "&:hover": { backgroundColor: s.selectedTintStrong },
-            },
-          },
+  },
+  shape: { borderRadius: 10 },
+  typography: {
+    fontFamily: FONT_STACK,
+    h4: { fontWeight: 700, letterSpacing: "-0.01em" },
+    h5: { fontWeight: 700, letterSpacing: "-0.01em" },
+    h6: { fontWeight: 700 },
+    subtitle1: { fontWeight: 600 },
+    subtitle2: { fontWeight: 600 },
+    button: { textTransform: "none", fontWeight: 600 },
+  },
+  components: {
+    MuiAppBar: {
+      defaultProps: { elevation: 0 },
+      styleOverrides: {
+        root: {
+          backgroundColor: APPBAR_BG,
+          backgroundImage: "none",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
         },
       },
     },
-  })
+    MuiPaper: {
+      styleOverrides: {
+        outlined: ({ theme: t }) => ({ borderColor: t.palette.divider }),
+        // Softer, lower shadows than MUI defaults for a flatter, modern feel.
+        elevation1: ({ theme: t }) => ({
+          boxShadow: "0 1px 2px rgba(16, 24, 40, 0.06)",
+          border: `1px solid ${LIGHT_SURFACES.hairline}`,
+          ...t.applyStyles("dark", {
+            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
+            border: `1px solid ${DARK_SURFACES.hairline}`,
+          }),
+        }),
+      },
+    },
+    MuiCard: {
+      defaultProps: { variant: "outlined" },
+      styleOverrides: {
+        root: ({ theme: t }) => ({ borderColor: t.palette.divider }),
+      },
+    },
+    MuiButton: {
+      defaultProps: { disableElevation: true },
+      styleOverrides: {
+        root: { borderRadius: 8 },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme: t }) => ({
+          textTransform: "none",
+          fontWeight: 600,
+          borderColor: "rgba(26, 34, 48, 0.16)",
+          ...t.applyStyles("dark", {
+            borderColor: "rgba(231, 235, 242, 0.20)",
+          }),
+          "&.Mui-selected": {
+            backgroundColor: LIGHT_SURFACES.selectedTint,
+            color: BRAND_COLOR,
+            "&:hover": { backgroundColor: LIGHT_SURFACES.selectedTintStrong },
+            ...t.applyStyles("dark", {
+              backgroundColor: DARK_SURFACES.selectedTint,
+              "&:hover": { backgroundColor: DARK_SURFACES.selectedTintStrong },
+            }),
+          },
+        }),
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: { fontWeight: 500 },
+        outlined: ({ theme: t }) => ({
+          borderColor: "rgba(26, 34, 48, 0.18)",
+          ...t.applyStyles("dark", {
+            borderColor: "rgba(231, 235, 242, 0.22)",
+          }),
+        }),
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: { textTransform: "none", fontWeight: 600, minHeight: 44 },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: ({ theme: t }) => ({
+          fontWeight: 700,
+          color: t.palette.text.secondary,
+        }),
+        root: ({ theme: t }) => ({
+          borderColor: LIGHT_SURFACES.hairline,
+          ...t.applyStyles("dark", { borderColor: DARK_SURFACES.hairline }),
+        }),
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: ({ theme: t }) => ({
+          "&.Mui-selected": {
+            backgroundColor: LIGHT_SURFACES.selectedTint,
+            "&:hover": { backgroundColor: LIGHT_SURFACES.selectedTintStrong },
+            ...t.applyStyles("dark", {
+              backgroundColor: DARK_SURFACES.selectedTint,
+              "&:hover": { backgroundColor: DARK_SURFACES.selectedTintStrong },
+            }),
+          },
+        }),
+      },
+    },
+  },
+})
 
-  theme = responsiveFontSizes(theme, { factor: 3 })
-  return theme
-}
+theme = responsiveFontSizes(theme, { factor: 3 })
 
-// Default (light) theme — kept for any code that isn't mode-aware yet.
-const theme = buildTheme("light")
 export default theme

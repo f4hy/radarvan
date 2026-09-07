@@ -281,6 +281,54 @@ function TeamRecordsTable(props: {
   )
 }
 
+function TeamProgressTooltip(props: {
+  active?: boolean
+  payload?: Array<{
+    payload: {
+      team: string
+      wins: number
+      losses: number
+      gamesOutstanding: number
+      maxPossibleWins: number
+    }
+  }>
+  total: number
+}) {
+  if (props.active && props.payload?.length) {
+    const data = props.payload[0].payload
+    return (
+      <Paper elevation={3} sx={{ p: 1.5, lineHeight: 1.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 700,
+            mb: 0.5,
+          }}
+        >
+          {data.team}
+        </Typography>
+        <Typography variant="body2">Current Wins: {data.wins}</Typography>
+        <Typography variant="body2">Losses: {data.losses}</Typography>
+        <Typography variant="body2">
+          Games Played: {data.wins + data.losses}/{props.total}
+        </Typography>
+        <Typography variant="body2">
+          Outstanding: {data.gamesOutstanding}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "primary.main",
+          }}
+        >
+          Max Possible: {data.maxPossibleWins}
+        </Typography>
+      </Paper>
+    )
+  }
+  return null
+}
+
 function TeamProgressChart(props: {
   chartData: {
     team: string
@@ -293,55 +341,6 @@ function TeamProgressChart(props: {
   total: number
   isMobile: boolean
 }) {
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean
-    payload?: Array<{
-      payload: {
-        team: string
-        wins: number
-        losses: number
-        gamesOutstanding: number
-        maxPossibleWins: number
-      }
-    }>
-  }) => {
-    if (active && payload?.length) {
-      const data = payload[0].payload
-      return (
-        <Paper elevation={3} sx={{ p: 1.5, lineHeight: 1.5 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 700,
-              mb: 0.5,
-            }}
-          >
-            {data.team}
-          </Typography>
-          <Typography variant="body2">Current Wins: {data.wins}</Typography>
-          <Typography variant="body2">Losses: {data.losses}</Typography>
-          <Typography variant="body2">
-            Games Played: {data.wins + data.losses}/{props.total}
-          </Typography>
-          <Typography variant="body2">
-            Outstanding: {data.gamesOutstanding}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: "primary.main",
-            }}
-          >
-            Max Possible: {data.maxPossibleWins}
-          </Typography>
-        </Paper>
-      )
-    }
-    return null
-  }
   return (
     <ResponsiveContainer width="100%" height={400}>
       <BarChart
@@ -362,7 +361,7 @@ function TeamProgressChart(props: {
           width={props.isMobile ? 65 : 140}
           tick={{ fontSize: props.isMobile ? 10 : 14 }}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<TeamProgressTooltip total={props.total} />} />
         <Legend />
         <Bar dataKey="wins" stackId="a" fill={WIN_COLOR} name="Current Wins" />
         <Bar
