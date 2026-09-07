@@ -44,6 +44,7 @@ from .powers import powers_from_replay
 from .timeline_events import timeline_events_from_replay
 from .game_composition import MatchRoster
 from .utils import minutes_per_step
+from . import winprob_inference
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -383,6 +384,11 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
     milestones = milestone_timings_from_replay(replay, name_by_idx)
     build_orders = build_order_from_replay(replay, name_by_idx, upgrades)
     timeline_events = timeline_events_from_replay(replay, upgrades, name_by_idx)
+    win_prob_over_time = (
+        winprob_inference.predict_over_time(replay)
+        if winprob_inference.model_available()
+        else None
+    )
 
     hdr = replay.header
     return MatchDetails(
@@ -414,4 +420,5 @@ def match_details_from_replay(replay: EnhancedReplayV2) -> MatchDetails | None:
         apm_over_time=apm_over_time(replay),
         timeline_events=timeline_events,
         powers=powers_from_replay(replay),
+        win_prob_over_time=win_prob_over_time,
     )

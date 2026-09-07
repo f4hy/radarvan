@@ -76,6 +76,13 @@ import {
     KillEventOutputToJSON,
     KillEventOutputToJSONTyped,
 } from './KillEventOutput';
+import type { WinProbOverTime } from './WinProbOverTime';
+import {
+    WinProbOverTimeFromJSON,
+    WinProbOverTimeFromJSONTyped,
+    WinProbOverTimeToJSON,
+    WinProbOverTimeToJSONTyped,
+} from './WinProbOverTime';
 import type { APM } from './APM';
 import {
     APMFromJSON,
@@ -222,6 +229,12 @@ export interface MatchDetails {
      * @memberof MatchDetails
      */
     powers?: MatchPowers | null;
+    /**
+     * 
+     * @type {WinProbOverTime}
+     * @memberof MatchDetails
+     */
+    winProbOverTime?: WinProbOverTime | null;
 }
 
 /**
@@ -269,6 +282,7 @@ export function MatchDetailsFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'apmOverTime': json['apmOverTime'] == null ? undefined : json['apmOverTime'],
         'timelineEvents': json['timelineEvents'] == null ? undefined : ((json['timelineEvents'] as Array<any>).map(TimelineEventFromJSON)),
         'powers': json['powers'] == null ? undefined : MatchPowersFromJSON(json['powers']),
+        'winProbOverTime': json['winProbOverTime'] == null ? undefined : WinProbOverTimeFromJSON(json['winProbOverTime']),
     };
 }
 
@@ -305,6 +319,7 @@ export function MatchDetailsToJSONTyped(value?: MatchDetails | null, ignoreDiscr
         'apmOverTime': value['apmOverTime'],
         'timelineEvents': value['timelineEvents'] == null ? undefined : ((value['timelineEvents'] as Array<any>).map(TimelineEventToJSON)),
         'powers': MatchPowersToJSON(value['powers']),
+        'winProbOverTime': WinProbOverTimeToJSON(value['winProbOverTime']),
     };
 }
 

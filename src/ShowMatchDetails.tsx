@@ -59,6 +59,7 @@ import AccordionSummary from "@mui/material/AccordionSummary"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { queryFallback } from "./QueryState"
 import MatchNarrative from "./MatchNarrative"
+import MomentumSparkline, { winnerProbSeries } from "./MomentumSparkline"
 import Box from "@mui/material/Box"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
@@ -1779,6 +1780,9 @@ export default function ShowMatchDetails(props: { id: number }) {
     "Academy",
     "Build Order",
   ]
+  const momentum = details.winProbOverTime
+    ? winnerProbSeries(details.winProbOverTime)
+    : null
 
   return (
     <Paper>
@@ -1790,7 +1794,18 @@ export default function ShowMatchDetails(props: { id: number }) {
           actually happened in a game. */}
       <Accordion defaultExpanded disableGutters elevation={0}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography sx={{ fontWeight: 600 }}>What happened</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              mr: 1,
+            }}
+          >
+            <Typography sx={{ fontWeight: 600 }}>What happened</Typography>
+            {momentum && <MomentumSparkline points={momentum} />}
+          </Box>
         </AccordionSummary>
         <AccordionDetails>
           <MatchNarrative matchId={props.id} showHeadline={false} />

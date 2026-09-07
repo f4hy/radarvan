@@ -27,6 +27,7 @@ import { PlayerChip } from "./PlayerChip"
 const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
   { label: "Overview", keywords: ["Games"] },
   { label: "Ratings", keywords: ["Rating", "Record", "Upset"] },
+  { label: "Momentum", keywords: ["Comeback", "Choke"] },
   { label: "Streaks", keywords: ["Streak", "Game Night"] },
   { label: "Maps", keywords: ["Map"] },
   { label: "Match Duration", keywords: ["Longest", "Shortest"] },
