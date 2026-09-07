@@ -39,6 +39,17 @@ from .player_rating import GameUpset
 # but the "best record" card shouldn't be theirs on a 1-0.
 MIN_GAMES_FOR_RECORD_CARD = 3
 
+# Card-sized sparkline, not the full curve AIPredictions.tsx renders.
+_SPARKLINE_POINTS = 24
+
+
+def _downsample(values: list[float], n: int) -> list[float]:
+    """Evenly stride down to at most n points, always keeping the first and last."""
+    if len(values) <= n:
+        return values
+    last = len(values) - 1
+    return [values[round(i * last / (n - 1))] for i in range(n)]
+
 
 class NightPlayer(NamedTuple):
     """Accumulator for one player's night, before it goes on the wire."""
@@ -176,7 +187,7 @@ def _upset_highlight(
 def _detail_highlights(
     counted: list[MatchInfo], details_by_id: dict[int, MatchDetails]
 ) -> list[GameNightHighlight]:
-    """Highlights that need the parsed replay: first blood, APM, superweapons, collapses."""
+    """Highlights that need the parsed replay: first blood, APM, superweapons, collapses, momentum."""
     highlights: list[GameNightHighlight] = []
     fastest_blood: tuple[float, str, int] | None = None
     best_apm: tuple[float, str, int] | None = None
@@ -184,12 +195,23 @@ def _detail_highlights(
     first_launch: tuple[float, str, str, int] | None = None
     powers: Counter[str] = Counter()
     hunted: list[tuple[float, str, int]] = []
+    best_momentum: tuple[float, list[str], list[float], int] | None = None
 
     for match in counted:
         details = details_by_id.get(match.id)
         if details is None:
             continue
         canonical = _canonical_names(match)
+        wpot = details.win_prob_over_time
+        if wpot is not None and wpot.actual_winner is not None and wpot.points:
+            winner_is_a = wpot.actual_winner == "team_a"
+            winner_probs = [
+                p.prob_team_a if winner_is_a else 1 - p.prob_team_a for p in wpot.points
+            ]
+            winner_names = wpot.team_a_players if winner_is_a else wpot.team_b_players
+            min_prob = min(winner_probs)
+            if best_momentum is None or min_prob < best_momentum[0]:
+                best_momentum = (min_prob, winner_names, winner_probs, match.id)
         blood = details.first_blood
         if blood is not None:
             attacker = canonical.get(blood.attacker, blood.attacker)
@@ -275,6 +297,18 @@ def _detail_highlights(
                 title="Earliest collapse",
                 detail=f"{name} went hunted at {minute:.1f} min",
                 match_id=match_id,
+            )
+        )
+    if best_momentum is not None:
+        min_prob, winner_names, winner_probs, match_id = best_momentum
+        winners = " & ".join(winner_names)
+        highlights.append(
+            GameNightHighlight(
+                kind="momentum",
+                title="Wildest swing",
+                detail=f"{winners} fell to {min_prob * 100:.0f}% to win before taking it",
+                match_id=match_id,
+                points=_downsample(winner_probs, _SPARKLINE_POINTS),
             )
         )
     return highlights

@@ -127,6 +127,21 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
                     weapon=e.event_name, at_minute=e.at_minute
                 )
 
+    winner_players: list[str] | None = None
+    loser_players: list[str] | None = None
+    winner_min_win_prob: float | None = None
+    loser_max_win_prob: float | None = None
+    wpot = d.win_prob_over_time
+    if wpot is not None and wpot.actual_winner is not None and wpot.points:
+        winner_is_a = wpot.actual_winner == "team_a"
+        winner_probs = [
+            p.prob_team_a if winner_is_a else 1 - p.prob_team_a for p in wpot.points
+        ]
+        winner_players = wpot.team_a_players if winner_is_a else wpot.team_b_players
+        loser_players = wpot.team_b_players if winner_is_a else wpot.team_a_players
+        winner_min_win_prob = min(winner_probs)
+        loser_max_win_prob = max(1 - p for p in winner_probs)
+
     return SuperlativeData(
         match_id=d.match_id,
         first_blood=d.first_blood,
@@ -150,6 +165,10 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
         superweapon_launches=dict(launch_counts),
         first_superweapon=first_launch,
         tech_captures=dict(tech_captures),
+        winner_players=winner_players,
+        loser_players=loser_players,
+        winner_min_win_prob=winner_min_win_prob,
+        loser_max_win_prob=loser_max_win_prob,
     )
 
 
@@ -548,6 +567,50 @@ def get_upset_stats(upsets: list[GameUpset], computed_at: date) -> list[Statisti
             match_id=top.match_id,
         )
     ]
+
+
+def get_comeback_stats(
+    details: list[SuperlativeData], computed_at: date
+) -> list[Statistic]:
+    """Biggest comeback and biggest choke, from the sequence model's curve."""
+    comeback_candidates = [
+        (d, d.winner_min_win_prob)
+        for d in details
+        if d.winner_min_win_prob is not None
+        and d.winner_players
+        and all(holds_records(p) for p in d.winner_players)
+    ]
+    choke_candidates = [
+        (d, d.loser_max_win_prob)
+        for d in details
+        if d.loser_max_win_prob is not None
+        and d.loser_players
+        and all(holds_records(p) for p in d.loser_players)
+    ]
+    stats: list[Statistic] = []
+    if comeback_candidates:
+        best, best_prob = min(comeback_candidates, key=lambda x: x[1])
+        winners = " & ".join(best.winner_players or [])
+        stats.append(
+            Statistic(
+                stat_name=f"🔄 Biggest Comeback ({winners})",
+                date_computed=computed_at,
+                value=f"down to {best_prob * 100:.1f}% to win",
+                match_id=best.match_id,
+            )
+        )
+    if choke_candidates:
+        worst, worst_prob = max(choke_candidates, key=lambda x: x[1])
+        losers = " & ".join(worst.loser_players or [])
+        stats.append(
+            Statistic(
+                stat_name=f"😱 Biggest Choke ({losers})",
+                date_computed=computed_at,
+                value=f"was at {worst_prob * 100:.1f}% to win",
+                match_id=worst.match_id,
+            )
+        )
+    return stats
 
 
 def get_first_blood_stats(
@@ -1313,6 +1376,7 @@ def get_superlatives(
             (get_first_blood_stats, match_info_by_id, details, computed_at),
             (get_building_first_blood_stats, match_info_by_id, details, computed_at),
             (get_apm_stats, details, computed_at),
+            (get_comeback_stats, details, computed_at),
             (get_money_stats, details, computed_at),
             (get_player_money_stats, details, computed_at),
             (get_activity_stats, details, computed_at),

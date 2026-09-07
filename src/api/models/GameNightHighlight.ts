@@ -47,6 +47,12 @@ export interface GameNightHighlight {
      * @memberof GameNightHighlight
      */
     matchId?: number | null;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof GameNightHighlight
+     */
+    points?: Array<number> | null;
 }
 
 /**
@@ -73,6 +79,7 @@ export function GameNightHighlightFromJSONTyped(json: any, ignoreDiscriminator: 
         'title': json['title'],
         'detail': json['detail'],
         'matchId': json['matchId'] == null ? undefined : json['matchId'],
+        'points': json['points'] == null ? undefined : json['points'],
     };
 }
 
@@ -91,6 +98,7 @@ export function GameNightHighlightToJSONTyped(value?: GameNightHighlight | null,
         'title': value['title'],
         'detail': value['detail'],
         'matchId': value['matchId'],
+        'points': value['points'],
     };
 }
 

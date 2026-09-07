@@ -9,6 +9,7 @@ from .common import (
     Rate,
 )
 from .matches import Player
+from .predictions import WinProbOverTime
 
 
 class KillEventOutput(BaseModel):
@@ -295,3 +296,7 @@ class MatchDetails(BaseModel):
     # instead of pulling every match's timeline. None for replays that predate
     # the field or carry no player summary.
     powers: MatchPowers | None = None
+    # None if the model isn't deployed or the match has no decisive 2-team winner.
+    win_prob_over_time: WinProbOverTime | None = Field(
+        default=None, alias="winProbOverTime"
+    )

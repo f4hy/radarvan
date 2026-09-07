@@ -35,6 +35,7 @@ import MatchActivityCalendar from "./MatchActivityCalendar"
 import MatchNarrative from "./MatchNarrative"
 import Page from "./Page"
 import { queryFallback } from "./QueryState"
+import MomentumSparkline from "./MomentumSparkline"
 import PlayerChip from "./PlayerChip"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "./theme"
 import { formatPercent, localDate, winRateTone } from "./utils"
@@ -54,6 +55,7 @@ const HIGHLIGHT_ICONS: { [key: string]: string } = {
   superweapon: "☢️",
   power: "✴️",
   hunted: "🚜",
+  momentum: "🎢",
 }
 
 function longDate(key: string): string {
@@ -98,11 +100,13 @@ function HighlightCard(props: {
         "&:hover": clickable ? { borderColor: BRAND_COLOR } : {},
       }}
     >
-      <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
-        <Typography sx={{ fontSize: 20, lineHeight: 1.2 }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Typography
+          sx={{ fontSize: 20, lineHeight: 1.2, alignSelf: "flex-start" }}
+        >
           {HIGHLIGHT_ICONS[highlight.kind] ?? "•"}
         </Typography>
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
           <Typography variant="caption" color="text.secondary">
             {highlight.title}
           </Typography>
@@ -110,6 +114,9 @@ function HighlightCard(props: {
             {highlight.detail}
           </Typography>
         </Box>
+        {highlight.points && highlight.points.length > 1 && (
+          <MomentumSparkline points={highlight.points} />
+        )}
       </Stack>
     </Paper>
   )

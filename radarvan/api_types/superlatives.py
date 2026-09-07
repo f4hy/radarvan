@@ -53,3 +53,8 @@ class SuperlativeData(BaseModel):
     # Tech-building captures (oil derricks, hospitals, artillery platforms, …)
     # per player.
     tech_captures: dict[str, int] = Field(default_factory=dict)
+    # Comeback/choke magnitude, reduced from MatchDetails.win_prob_over_time.
+    winner_players: list[str] | None = None
+    loser_players: list[str] | None = None
+    winner_min_win_prob: float | None = None
+    loser_max_win_prob: float | None = None
