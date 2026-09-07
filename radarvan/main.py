@@ -39,6 +39,7 @@ from .routes import (
     map_upload,
     maps,
     matches,
+    opening_book,
     players,
     predict,
     profile,
@@ -165,6 +166,7 @@ app.include_router(ffa.router, dependencies=PROTECTED)
 app.include_router(teams.router, dependencies=PROTECTED)
 app.include_router(maps.router, dependencies=PROTECTED)
 app.include_router(draft.router, dependencies=PROTECTED)
+app.include_router(opening_book.router, dependencies=PROTECTED)
 app.include_router(superlatives.router, dependencies=PROTECTED)
 app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)

@@ -13,6 +13,7 @@ export * from './MapApi';
 export * from './MapUploadApi';
 export * from './MapVoteApi';
 export * from './MatchesApi';
+export * from './OpeningBookApi';
 export * from './PlayersApi';
 export * from './PowersApi';
 export * from './PredictApi';
