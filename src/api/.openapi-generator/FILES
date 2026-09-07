@@ -11,6 +11,7 @@ apis/MapApi.ts
 apis/MapUploadApi.ts
 apis/MapVoteApi.ts
 apis/MatchesApi.ts
+apis/OpeningBookApi.ts
 apis/PlayersApi.ts
 apis/PowersApi.ts
 apis/PredictApi.ts
@@ -71,6 +72,7 @@ models/GameNightRecap.ts
 models/GameNightSummaryStatus.ts
 models/GameRecord.ts
 models/General.ts
+models/GeneralOpeningBook.ts
 models/GeneralPowers.ts
 models/GeneralProfileStat.ts
 models/GeneralStat.ts
@@ -122,6 +124,8 @@ models/MissingMapInfo.ts
 models/NarrativeBeat.ts
 models/ObjectSummary.ts
 models/ObjectUsageStat.ts
+models/Opening.ts
+models/OpeningBook.ts
 models/OpponentProfileStat.ts
 models/ParsedReplayJsonSchema.ts
 models/Player.ts
