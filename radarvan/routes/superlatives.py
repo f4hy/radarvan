@@ -6,7 +6,7 @@ import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import general_stats, player_rating, superlatives
+from .. import general_stats, opening_book, player_rating, superlatives
 from ..api_types import Statistic
 from ..cache import competitive_matches
 from ..db_utils import ReplayManager
@@ -35,6 +35,7 @@ def get_superlatives(
         s
         for s in replay_manager.get_computed_stats()
         if not s.stat_name.startswith(general_stats.GENERAL_VALUE_STAT_PREFIX)
+        and not s.stat_name.startswith(opening_book.OPENING_STAT_PREFIX)
     ]
     if saved_stats:
         return superlatives.Superlatives(
@@ -85,13 +86,17 @@ async def _do_recompute(
         for general, (destroyed, lost) in value_stats.items()
         for kind, total in (("destroyed", destroyed), ("lost", lost))
     ]
-    result.stats = result.stats + value_stat_rows
+    tallies = await opening_book.load_opening_tallies(game_list, db_manager)
+    book = opening_book.build_opening_book(tallies, computed_at)
+    opening_book_rows = opening_book.opening_book_stat_rows(book)
+    result.stats = result.stats + value_stat_rows + opening_book_rows
     replay_manager.clear_computed_stats()
     replay_manager.save_computed_stats(result.stats)
     logger.info(
         "saved computed statistics",
         count=len(result.stats),
         general_value_rows=len(value_stat_rows),
+        opening_book_rows=len(opening_book_rows),
     )
     if stale:
         await notify_async("Recomputed superlatives")

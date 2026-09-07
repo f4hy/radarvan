@@ -89,6 +89,11 @@ from .draft import (
     DraftRequest,
     DraftResult,
 )
+from .opening_book import (
+    GeneralOpeningBook,
+    Opening,
+    OpeningBook,
+)
 from .ffa import (
     FFAGeneralStat,
     FFAMapStat,
@@ -300,6 +305,7 @@ __all__ = [
     "GameNightSummaryStatus",
     "GameRecord",
     "General",
+    "GeneralOpeningBook",
     "GeneralPowers",
     "GeneralProfileStat",
     "GeneralStat",
@@ -363,6 +369,8 @@ __all__ = [
     "NarrativeBeat",
     "ObjectSummary",
     "ObjectUsageStat",
+    "Opening",
+    "OpeningBook",
     "OpponentProfileStat",
     "PairFactionWinLoss",
     "PairFactionWinLosses",

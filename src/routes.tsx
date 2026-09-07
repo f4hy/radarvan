@@ -12,6 +12,7 @@ import HowToVoteIcon from "@mui/icons-material/HowToVote"
 import LeaderboardIcon from "@mui/icons-material/Leaderboard"
 import ListIcon from "@mui/icons-material/List"
 import MapIcon from "@mui/icons-material/Map"
+import MenuBookIcon from "@mui/icons-material/MenuBook"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import NightlightRoundIcon from "@mui/icons-material/NightlightRound"
 import PersonIcon from "@mui/icons-material/Person"
@@ -75,6 +76,7 @@ const MapStats = React.lazy(() => import("./MapStats"))
 const MapUpload = React.lazy(() => import("./MapUpload"))
 const MapVoting = React.lazy(() => import("./MapVoting"))
 const Matches = React.lazy(() => import("./Matches"))
+const OpeningBookPage = React.lazy(() => import("./OpeningBook"))
 const PlayerProfile = React.lazy(() => import("./PlayerProfile"))
 const PlayerRatings = React.lazy(() => import("./PlayerRatings"))
 const PlayerRatingTrend = React.lazy(() =>
@@ -206,6 +208,14 @@ export const ROUTES: AppRoute[] = [
     heading: "Stats",
     gate: "public",
     Component: FFA,
+  },
+  {
+    slug: "opening-book",
+    title: "Build Orders",
+    icon: <MenuBookIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: OpeningBookPage,
   },
   // Players
   {
