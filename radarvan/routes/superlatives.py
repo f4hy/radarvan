@@ -54,8 +54,12 @@ async def _do_recompute(
         g for g in competitive_matches(replay_manager).values() if g.winning_team > 0
     ]
     stale = replay_manager.computed_stats_are_stale(days=3)
-    details = await superlatives.load_many_superlative_data(
-        [g.id for g in game_list], db_manager
+    # Two independent full-corpus passes over the same matches - each already
+    # bounds its own DB concurrency, so run them side by side rather than
+    # paying their wall-clock time twice.
+    details, tallies = await asyncio.gather(
+        superlatives.load_many_superlative_data([g.id for g in game_list], db_manager),
+        opening_book.load_opening_tallies(game_list, db_manager),
     )
     if stale:
         await notify_async(
@@ -86,7 +90,6 @@ async def _do_recompute(
         for general, (destroyed, lost) in value_stats.items()
         for kind, total in (("destroyed", destroyed), ("lost", lost))
     ]
-    tallies = await opening_book.load_opening_tallies(game_list, db_manager)
     book = opening_book.build_opening_book(tallies, computed_at)
     opening_book_rows = opening_book.opening_book_stat_rows(book)
     result.stats = result.stats + value_stat_rows + opening_book_rows

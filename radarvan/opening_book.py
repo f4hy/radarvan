@@ -21,7 +21,12 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
+from typing import NamedTuple
+
+import structlog
+from pydantic import ValidationError
 
 from . import player_ids
 from .api_types import (
@@ -33,10 +38,23 @@ from .api_types import (
     OpeningBook,
     Statistic,
 )
+from .build_order import _MAX_ROWS as _BUILD_ORDER_MAX_ROWS
 from .db_utils import DatabaseManager
+
+logger = structlog.get_logger(__name__)
 
 # Non-economy buildings kept per opening key. See module docstring for why 5.
 OPENING_DEPTH = 5
+
+# opening_key() expands build_order.py's collapsed runs back into individual
+# builds (see its docstring), so it can only ever see _MAX_ROWS collapsed rows'
+# worth of raw builds - always >= OPENING_DEPTH today, but nothing else ties
+# the two together, so a future drop in _MAX_ROWS would silently start
+# truncating openings. Fail loudly instead.
+assert OPENING_DEPTH <= _BUILD_ORDER_MAX_ROWS, (
+    "OPENING_DEPTH can't exceed build_order._MAX_ROWS - opening_key has "
+    "nothing more to expand past that many collapsed rows"
+)
 
 # An opening below this many games gets folded into "other" rather than shown
 # as its own named row - a one-off build isn't a strategy anyone is playing.
@@ -46,6 +64,17 @@ MIN_GAMES_FOR_OPENING = 15
 # reader can pick them out from everything else recompute writes to that
 # table (mirrors general_stats.GENERAL_VALUE_STAT_PREFIX).
 OPENING_STAT_PREFIX = "__opening_book_"
+
+
+@dataclass
+class _Tally:
+    games: int = 0
+    wins: int = 0
+
+
+class _Row(NamedTuple):
+    key: tuple[str, ...]
+    tally: _Tally
 
 
 def opening_key(order: BuildOrder) -> tuple[str, ...]:
@@ -89,8 +118,8 @@ async def load_opening_tallies(
     db_manager: DatabaseManager,
     max_concurrent: int = 2,
     chunk_size: int = 10,
-) -> dict[tuple[General, tuple[str, ...]], list[int]]:
-    """[game_count, win_count] per (general, opening key), across `games`.
+) -> dict[tuple[General, tuple[str, ...]], _Tally]:
+    """Games-and-wins tally per (general, opening key), across `games`.
 
     Loads each match's MatchDetails just long enough to read build_orders off
     it, then lets it go - mirrors superlatives.load_many_superlative_data's
@@ -101,9 +130,7 @@ async def load_opening_tallies(
     from .match_details import load_match_details_threadsafe
 
     by_match = _general_and_won_by_match(games)
-    tallies: dict[tuple[General, tuple[str, ...]], list[int]] = defaultdict(
-        lambda: [0, 0]
-    )
+    tallies: dict[tuple[General, tuple[str, ...]], _Tally] = defaultdict(_Tally)
     semaphore = asyncio.Semaphore(max_concurrent)
 
     async def _bounded(match_id: int) -> None:
@@ -125,9 +152,9 @@ async def load_opening_tallies(
             if not key:
                 continue
             tally = tallies[(general, key)]
-            tally[0] += 1
+            tally.games += 1
             if won:
-                tally[1] += 1
+                tally.wins += 1
 
     match_ids = list(by_match.keys())
     for i in range(0, len(match_ids), chunk_size):
@@ -137,36 +164,34 @@ async def load_opening_tallies(
 
 
 def build_opening_book(
-    tallies: dict[tuple[General, tuple[str, ...]], list[int]], computed_at: date
+    tallies: dict[tuple[General, tuple[str, ...]], _Tally], computed_at: date
 ) -> OpeningBook:
     """Tallies into the wire shape: named openings above MIN_GAMES_FOR_OPENING,
     everything thinner rolled into that general's "other" bucket."""
-    by_general: defaultdict[General, list[tuple[tuple[str, ...], int, int]]] = (
-        defaultdict(list)
-    )
-    for (general, key), (game_count, win_count) in tallies.items():
-        by_general[general].append((key, game_count, win_count))
+    by_general: defaultdict[General, list[_Row]] = defaultdict(list)
+    for (general, key), tally in tallies.items():
+        by_general[general].append(_Row(key, tally))
 
     generals: list[GeneralOpeningBook] = []
     for general, rows in by_general.items():
-        rows.sort(key=lambda r: -r[1])
-        named = [r for r in rows if r[1] >= MIN_GAMES_FOR_OPENING]
-        other = [r for r in rows if r[1] < MIN_GAMES_FOR_OPENING]
+        rows.sort(key=lambda r: -r.tally.games)
+        named = [r for r in rows if r.tally.games >= MIN_GAMES_FOR_OPENING]
+        other = [r for r in rows if r.tally.games < MIN_GAMES_FOR_OPENING]
         generals.append(
             GeneralOpeningBook(
                 general=general,
-                total_games=sum(r[1] for r in rows),
+                total_games=sum(r.tally.games for r in rows),
                 openings=[
                     Opening(
-                        buildings=list(key),
-                        game_count=game_count,
-                        win_count=win_count,
-                        win_rate=win_count / game_count,
+                        buildings=list(r.key),
+                        game_count=r.tally.games,
+                        win_count=r.tally.wins,
+                        win_rate=r.tally.wins / r.tally.games,
                     )
-                    for key, game_count, win_count in named
+                    for r in named
                 ],
-                other_game_count=sum(r[1] for r in other),
-                other_win_count=sum(r[2] for r in other),
+                other_game_count=sum(r.tally.games for r in other),
+                other_win_count=sum(r.tally.wins for r in other),
             )
         )
     generals.sort(key=lambda gb: -gb.total_games)
@@ -203,7 +228,13 @@ def opening_book_from_computed(stats: list[Statistic]) -> OpeningBook:
             s.value, str
         ):
             continue
-        generals.append(GeneralOpeningBook.model_validate_json(s.value))
+        try:
+            generals.append(GeneralOpeningBook.model_validate_json(s.value))
+        except ValidationError:
+            # A schema change between when this row was written and now - skip
+            # it rather than break the whole page over one stale general.
+            logger.warning("failed to decode opening book row", stat_name=s.stat_name)
+            continue
         computed_at = s.date_computed
     generals.sort(key=lambda gb: -gb.total_games)
     return OpeningBook(
