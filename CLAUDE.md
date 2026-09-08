@@ -4,183 +4,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-The `Makefile` is the canonical entry point; `make help` lists every target. Local dev stack targets (`up`, `down`, `logs`, `db-shell`, `db-snapshot`, `db-restore`, `db-reset`) are documented in `LOCAL_DEV.md`.
-
-- `make all` — format + auto-fix lint + type-check **both** Python and TypeScript; run this before pushing.
+`make help` lists every target. `make all` — format + auto-fix lint + type-check **both** Python and TypeScript; run this before pushing.
 
 **Client codegen**: `./gen_client.sh` regenerates the TypeScript client in `src/api/` from the running server's OpenAPI spec — the FastAPI server must already be running and serving your changed code. Always use this script (not `npm run openapi-ts` or a manual generator invocation). Never hand-edit `src/api/` (auto-generated). `PlayerEnum.ts` reorders on every regen (Python set iteration) — that churn is normal.
 
-### Dev workflow
+## Dev workflow
 
-- The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones (confirm with `curl`/`ss -ltnp` if unsure). Never run broad `pkill -f vite` / `pkill -f fastapi`; if a stray process must be killed, target the exact PID. Those hand-run servers use the `DATABASE_URL` from `.env`, which points at **production** Postgres — treat writes through them accordingly.
-- **`docker compose up` (`make up`) is the alternative: the same two servers plus a local Postgres**, documented in `LOCAL_DEV.md`. Compose overrides `DATABASE_URL` to its own container, so it is the safe place to try schema changes. `make db-snapshot` + `make db-restore` hydrate it from production (read-only `pg_dump`, skipping `match_details_cache` rows, which the app regenerates from S3). It binds the same 8000/5173 by default, so it and the hand-run servers can't both be up unless `API_PORT`/`WEB_PORT` are set in `.env`.
-- **Migrations**: alembic revisions apply themselves on deploy (Heroku `release` phase) and the chain cannot build a schema from an empty database. Invoke the **`db-migrations`** skill before writing one.
-- Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree — the user manages commits.
-- **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.** The service is always running; it's the intended read path and matches what the frontend actually sees. Reserve direct `DatabaseManager`/`replay_files` scripting for cases the API genuinely can't express.
-- **When exploring code, read the source file directly (`Read` tool) rather than chaining several `grep`/`sed`/`awk` shell commands.** Use `grep`/`Bash` only for repo-wide searches (finding *where* something is defined/used across many files) — once you know the file, read it.
-- **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium** (the bundled Chromium build isn't installed here). Driving the UI, inspecting one match, and `/api` cache behaviour are covered by the **`run-radarvan`** skill.
-- **Never call `GET /api/matchup_commentary/` (or anything that reaches `matchup_commentary.generate_commentary`) without asking first — it is a GET, but a cache *miss* still generates. — it spends real tokens/money on every call, against whichever provider `COMMENTARY_PROVIDER` currently selects (Anthropic or Gemini).** Each individual call needs its own explicit confirmation from the user; a prior "yes" doesn't cover the next one. Use the free `GET /api/matchup_commentary/prompt_preview` instead for anything about prompt content/size/structure — it builds the exact same payload without calling either provider.
-- **Same rule for the two hand-triggers of the game-night recap: `POST /api/generate_game_night_summary/{night}` (one night) and `POST /api/backfill_game_night_summaries?days=N&max_to_update=K` (fills missing recaps for the last N closed nights, at most K billed calls per run, newest first, never overwriting).** They are the only other routes that bill a call. Every read path for that feature (`GET /api/game_night/{night}`) is free and never generates; `commentary/night_summary.build_prompt` renders the exact payload for inspection without a provider call.
+- The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones. Those hand-run servers use the `DATABASE_URL` from `.env`, which points at **production** Postgres — treat writes through them accordingly. `make up` starts an alternative local stack with its own Postgres (`LOCAL_DEV.md`) — the safe place to try schema changes — but binds the same ports, so it and the hand-run servers can't both be up unless `API_PORT`/`WEB_PORT` are set.
+- **Migrations**: alembic revisions apply themselves on deploy and the chain cannot build a schema from an empty database. Invoke the **`db-migrations`** skill before writing one.
+- Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree.
+- **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.**
+- Read the source file directly rather than chaining several `grep`/`sed`/`awk` shell commands. Use `grep`/`Bash` only for repo-wide searches; once you know the file, read it.
+- **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium.** Driving the UI and `/api` cache behaviour are covered by the **`run-radarvan`** skill.
+- **Never call `GET /api/matchup_commentary/` (or anything that reaches `matchup_commentary.generate_commentary`) without asking first — a cache *miss* still generates and spends real tokens/money**, against whichever provider `COMMENTARY_PROVIDER` currently selects. Each call needs its own explicit confirmation. Use the free `GET /api/matchup_commentary/prompt_preview` for prompt content/size/structure instead.
+- **Same rule for `POST /api/generate_game_night_summary/{night}` and `POST /api/backfill_game_night_summaries`** — the only other routes that bill a call. Every read path for that feature (`GET /api/game_night/{night}`) is free and never generates.
 
-### Environment variables
-
-See `ENVIRONMENT.md` for the full table (including the `CNCSTATS_APIKEY` vs `CNCSTATS_API_KEY` distinction, which are two different services).
+See `ENVIRONMENT.md` for environment variables.
 
 ## Architecture
 
-### Backend (`radarvan/`)
-
-Read the module you need — the layout is self-describing. What isn't:
+Backend lives in `radarvan/` — the layout is self-describing, read the module you need. What isn't obvious from the file itself:
 
 - **`api_types.py` is the canonical wire schema.** TS types are generated from the resulting OpenAPI spec, so change the Pydantic model, not the generated client.
 - **`cncstats_model/zhreplay.py`'s `EnhancedReplayV2` is the only replay type to import** — `cncstats_types.py`/`cncstats_types_v2.py` are unused reference copies.
 - **Prefer the specific repo in `repositories/`** over the `ReplayManager` facade in `db_utils.py`; the facade exists for legacy callers.
-- **`main.py` is app composition only** (middleware order, router registration, lifespan, the single global exception handler, static serving). Handlers go in `routes/`.
-- **`queries/` owns corpus selection; `routes/` owns HTTP.** A handler that computes over matches should declare the corpus it needs in its signature — `games: CompetitiveGames`, `AllGames`, `WindowedCompetitiveGames`, `UnfilteredCompetitiveGames` — and never take a `ReplayManager`. The `game_format` query parameter comes with the dependency. The plain functions (`queries.competitive_games(replay_manager, …)`) are for callers that aren't a request. **Don't use the dependency form when a handler can avoid the work** — a FastAPI dependency is resolved before the handler runs, so `routes/players.balance_teams` (whose 6h hold answers most requests without touching the corpus) deliberately keeps its `ReplayManager` and calls the plain function on a miss.
-- **Anything other than a route that wants a route's answer means the answer is a read model**, and it belongs in `queries/` — not in a handler that other modules import. `commentary/matchup_commentary.py` used to call `routes.players` handlers as functions, passing `replay_manager=` into an HTTP handler and `asyncio.run`-ing an endpoint; that made handler signatures an internal API. `queries/players.py` holds the two shared ones (`player_ratings_payload`, `player_head_to_head_detail`). Import direction is `routes` → `queries` → `cache`/`repositories`; nothing in `queries/` may import from `routes/`.
-- **Three projections of an existing cache, not new derivations.** `match_narrative.py` (a match retold as ordered beats), `game_night.py` (an evening's records + highlight cards) and `durations.py` (the game-length histogram) all compute from data already parsed — `MatchDetails` and `MatchInfo` — the way `routes/matches.get_build_orders` does. None of them carries a version or touches `DETAILS_VERSION`, so adding a beat or a highlight costs nothing and invalidates nothing. Keep them pure: the corpus selection and detail loading live in `queries/game_night.py`, which is what lets the scheduler and the route describe the same night.
+- **`main.py` is app composition only** (middleware order, router registration, lifespan, the global exception handler, static serving). Handlers go in `routes/`.
 - **ML inference is ONNX Runtime only — no torch in prod** (`ml_inference.py`, `winprob_inference.py`).
+- **Rating *levels* are never shown to a normal visitor** — a rating number, ordinal, or leaderboard position must not reach the Records page, a profile, a match view, or commentary. See the `player-ratings-and-roles` skill before surfacing anything rating-derived.
 
-### Auth model (three tiers)
-
-1. Most `/api` routers require `X-API-Key` (`verify_api_key`), which accepts **either tier** — the HTTP method is irrelevant. A route needing the **admin** tier opts in explicitly with `dependencies=ADMIN_ONLY` (i.e. `Depends(require_admin_key)`). Only two are left there (`POST`/`DELETE /api/map_data/{map_name}`, `POST /api/test_tournament_report/…`) — every other ops endpoint now lives on a cookie-session router, see (2). Normal tier covers everything the app itself does, including `POST /api/upload_replay`, draft randomization, and prediction. Only enforced when `ENFORCE_AUTH` is set; with no keys configured at all, auth is off. `has_admin_access` is the boolean form, for a normal-tier route with an admin-only *option* (commentary's `force_refresh`). `tests/test_auth_tiers.py` fails if a new mutating route picks none of the three gates.
-2. Cookie-session routes (Discord OAuth): `routes/auth.py`, `votes.py`, `map_upload.py`, `bracket.py` writes, and the `session_router` in `admin.py`/`files.py`/`maps.py`/`profile.py`/`superlatives.py`/`tournaments.py` — deliberately **not** behind the API key; identity via signed session cookie. **Any admin action the UI drives belongs here, never on the API-key router**: the frontend ships one key to every visitor, so it can only ever be normal-tier, and the baseline gate would reject a cookie-only request before the route's own gate ran.
-
-   Three separate admin sets, on purpose: `player_ids.ADMIN_PLAYERS` (debug views), `TOURNAMENT_ADMINS` (bracket only), `OPS_ADMINS` (operational tasks). The matching gates are `require_admin_login` (`dependencies=ADMIN_LOGIN`) and `require_ops_admin` (`dependencies=OPS_ADMIN`); both share `_require_logged_in_admin`, differing only in the membership test. `ADMIN_LOGIN` covers `POST /api/reparse/{match_id}` (the DebugData button); `OPS_ADMIN` covers everything the **admin control panel** (`src/AdminPanel.tsx`, `/admin-panel`) runs — scrape, register, bulk reparse, backfill, recompute, override, delete. Both also accept an admin-tier key so curl/ops scripts keep working against the same paths, and read that header off the request instead of declaring it as a `Security` param — declaring it would wrongly advertise APIKeyHeader as the route's security scheme in the OpenAPI spec.
-
-   `test_auth_tiers.py` sweeps this structurally rather than by allowlist: every cookie-gated route must sit on a `session_router`, every `session_router` route must carry one of the two cookie gates, and neither may advertise APIKeyHeader. Adding a `session_router` to a new module means including it in `main.py` **without** `PROTECTED`.
-3. `maps.public_router` (map images) — no auth, because browsers load them via `<img src>`.
-
-**Rating *levels* are not public.** A player's rating number — `NamedRating.ordinal()`, and anything derived from it: `ordinal_high`, `ordinal_low`, `mu`, a leaderboard position — is deliberately kept off every page a normal visitor sees. "Player Ratings" and "Player Synergy" are hidden from the sidebar behind `gate: "admin"` in `src/routes.tsx` for exactly this reason. It is a soft gate — the route is still reachable by URL and `/api/player_ratings/` is normal-tier — so **the gate is the page, and a rating that escapes onto another page defeats it entirely**. Do not surface a rating level on the Records page, a player profile, a match view, commentary, or anything else public, however it is scaled or framed ("all-time peak", "career high", "rank #1 at 330").
-
-What *is* fine, and already shipped: a rating **change** (`📈 Biggest Rating Gain (30d)` is `round(delta * 10)`), a **win probability** (`🐍 Biggest Upset`), and plain W-L records. Those say who is playing well without publishing the ladder. The distinction is level vs. delta — if a number would let someone reconstruct the leaderboard, it is a level.
-
-This is not a new rule — commentary reached the same conclusion independently. `commentary_prompts.py` tells the model the ratings block is "internal - never seen by users anywhere else in the app - so never state them, or a derived rank/position, in the output", and `HypeRatingsContext` exists because embedding the two players' own ordinals let the model quote one. `queries/players.player_ratings_payload` is the one place a level is meant to reach the wire, and it feeds only the admin-gated ratings page.
-
-`tests/test_superlatives_records.py::test_no_record_exposes_a_rating_level` guards the records path by feeding `ordinal_high`/`ordinal_low` a sentinel and asserting it reaches no card, so a new record reaching for them fails there rather than in review. Nothing enforces it on the other surfaces — check by hand when you add one.
-
-### Data flow
-
-1. Replays arrive by scheduled gentool scrape or `POST /api/upload_replay`.
-2. cncstats parses the `.rep`; the `.rep` and parsed JSON go to S3 (`s3://generals-stats/radarvan/dev/`), rows to Postgres (`ReplayFile` → `ParsedReplayJson` → `Match`+`MatchPlayer`+`MatchCompostion`).
-3. Derived data is cached (in-process + `match_details_cache` table) and served via REST; the React app consumes it through the generated client.
-
-## Core invariants — read before writing backend code
-
-**DB sessions and threads.** The request-scoped session comes from `Depends(get_replay_manager)`. Anything that outlives the request must open its own session via `db_manager.get_replay_manager()` (context manager): FastAPI runs background tasks *after* yield-dependency teardown, and scheduler jobs each open a fresh session per run (a shared long-lived session poisons every later job after one failed transaction). Never let session-bound ORM objects cross into `asyncio.to_thread` workers — extract plain values first (see `matches.ReparseInputs`) or use the per-thread loaders `match_details.load_many_match_details` / `superlatives.load_many_superlative_data`. When catching DB errors inside a loop and continuing, call `session.rollback()` in the except branch or every subsequent statement fails with `PendingRollbackError` (see `matches.register_matches`).
-
-**`update_match` needs a detached Match.** `MatchRepo.update_match` clears `existing.players` then merges. Only ever pass it a fresh Match built by `replay_to_db_match` — passing a session-attached instance is the same object via the identity map, and the clear + delete-orphan cascade permanently deletes the match's players.
-
-**Event loop.** Async handlers and scheduler jobs must push blocking work (cncstats HTTP, S3 I/O, heavy computation) through `asyncio.to_thread`. Sequential `to_thread` calls may share one session; concurrent ones must not.
-
-**Derivations, not caches.** Every in-process memoization goes through `@derived` (`radarvan/derived/`). Do not reach for `cachetools` directly — `tests/test_derived_registry.py` fails on a new `LRUCache`/`TTLCache`/`@cached` anywhere in `radarvan/`, against a three-entry allowlist.
-
-```python
-@derived(on=CORPUS, maxsize=6)    # def compute_player_ratings(games)
-@derived(on=MAPS, maxsize=1)      # def map_name_index(replay_manager)
-```
-
-`@derived(on=…, maxsize=…)` is the entire vocabulary — there is no `key=`, no `revision=`, and deliberately no `ttl=` (a TTL is a guess at a version token, and the registry has the real one). `maxsize` is required and the lock is supplied, so an unbounded or unlocked cache cannot be declared.
-
-`on=` names the input (`CORPUS`, `MAPS`, `MODEL`); its version token is folded into every key, so a stale entry becomes *unreachable* rather than something somebody has to remember to clear. **Every other parameter is the per-call key**, read off the signature at decoration time — forgetting a key would give *wrong* answers rather than stale ones, so it isn't something a call site gets to declare.
-
-A token is `(epoch, revision)` and needs both halves. The epoch is a process-local counter bumped by `invalidate()`, which is what catches a reparse or a `WinnerOverride` (they change match *content* without moving `matches.created_at`). The revision is how *this call* reveals its generation, and `CORPUS` offers two ways: a `replay_manager` parameter (probed on a 60s DB poll, which also catches new matches landing outside this process) or a `games` parameter (the `list[MatchInfo]` itself, reduced to its ids). Which one applies is decided from the signature — so those two parameter names are load-bearing, and a rename fails on import rather than at runtime.
-
-Call `cache.invalidate_match_caches()` after anything that changes match data (registers, reparses, overrides, resets). It bumps `CORPUS` and `MAPS` and triggers a background re-warm on the single warm thread — it names no cache, so a derivation added tomorrow is covered without editing it.
-
-**The two match sets.** `cache.sorted_deduped_matches` = all games (use for counts/listings); `cache.competitive_matches` = complete + `competitive_game_filter` (balanced, non-comp-stomp, team game, ≤1 CPU) + every team has a known player (use for W/L, ratings, records). Both are `@derived(on=CORPUS)` over `replay_manager`, so they refresh when new matches land. `filter_by_format` lives in `matches.py` (it operates on `list[MatchInfo]`), not `game_composition.py`.
-
-**Which 1v1s count, and for what.**
-
-| set | rule | 1v1s included |
-|---|---|---|
-| ratings + synergy | `player_rating.is_ratable_team_game` | tournament only (`is_tournament_1v1`) |
-| ML training | `ml.snapshot.is_training_match` | same — it delegates to the rule above |
-| `competitive_matches` (W/L, records) | `competitive_game_filter` | all of them — a 1v1 has `is_team_game=True` |
-
-A tournament link is the only "played to win" signal available: it's written by `tournament_membership.sync_links` for a scheduled bracket slot, or by an admin, so a practice game can't earn one. Casual 1v1s stay out of both ratings and training — that was measured, not assumed: the corpus is 55% one pairing (CoreDawg vs Syn, 115–10 over 125 games), and adding casual 1v1s cost held-out team-game AUC monotonically (0.556 → 0.538 with that pairing dropped, → 0.517 with everything). Full numbers in `ml/model_design.md`. Measure before widening any of these — the temporal split cuts over non-1v1 games, so the dev set stays byte-identical across variants and ensembles are directly comparable.
-
-**Newcomers: `MIN_GAMES` gates the leaderboard, never the reasoning.** `RatingsAndCounts.ratings` is the display list, filtered to players over `MIN_GAMES` (45) and sorted — a rating with ten games behind it isn't worth publishing. **Anything that has to reason about a player asks `rating_for(name)`**, which never returns a hole: the stored rating if there is one, else `newcomer_prior` under that player's name. Dropping someone is not a small error. `create_teams` and `ml/predict` both used to build `{r.name: r for r in .ratings}` and paper over the misses — the balancer by deleting the player, so `predict_win` (which sums each side's mu) was asked to compare a 2-man team to a 3-man one; every split came back 0.75–1.00 and the "fairest" one paired the newcomer with the two strongest players in the group. The ML baseline instead substituted openskill's `mu=25`, throwing away a real computed rating. One accessor that can't be combined wrongly replaced both; `create_teams.rate_roster` is the team-shaped wrapper (built once per roster, since a `PlackettLuceRating` mints a uuid4 per construction and the partition path rates the same dozen players thousands of times).
-
-`player_synergy` filters on `.ratings` membership and drops any game containing a sub-45-game player — a deliberate methodology choice (a pair coefficient fit on a handful of games is noise), not the same bug. Since guests always sit on `.ratings` regardless of games played (below), that membership check alone no longer excludes them, so `compute_player_synergy` carries its own explicit guest exclusion alongside its existing CPU one.
-
-**`compute_player_ratings` is a single chronological pass** — every game updates a player's rating exactly once, in order, from whatever they were seeded at. There used to be `ITERATIONS = 3` passes replaying the same history, with a `_reseed` step pulling a sub-`MIN_GAMES` player's mu back toward a dynamically-computed prior on every pass (to stop a short streak compounding across replays — measured: without it, a 36-game newcomer's rank recovered from 13th back to 5th purely from replay, with no new games). Both the replay and the pull-back are gone: measured to cost real (`MIN_GAMES`+) players only a small, fairly uniform, rank-preserving shift in absolute rating, in exchange for a much simpler system where a real result — however small the sample — just counts, once, and openskill's own uncertainty (a wide sigma moves more per game) is what keeps a thin record appropriately provisional. **A real winning streak, even a short one, is now allowed to outrate an established player** — that's intended, not a bug to chase (see `tests/test_newcomer_prior.py::test_a_real_winning_streak_can_outrate_established_players`).
-
-**`NEWCOMER_PRIOR` and `GUEST_INITIAL_MU` are both flat, static constants now** (`player_rating.py`), the same style for opposite ends of the scale: comfortably below and comfortably above where this corpus's real players currently land (mu roughly 9–38), not derived from the current leaderboard. `NEWCOMER_PRIOR` only ever reaches the wire via `rating_for(name)`'s fallback — the assumption for a name with *zero* games anywhere in the corpus (a hypothetical stranger being considered for next week's draft). Once a player has even one real game, their rating is `all_ratings[name]`, whatever the single pass computed from it; nothing pulls it back toward this prior. `GUEST_INITIAL_MU` (`Excal`, `Marakar`, `Domi` — semi-pro visitors we already know outclass the group) instead seeds those names' *starting* rating directly in `initialize_player`, high, so a handful of real games doesn't have to prove what's already known — from there they're just rated normally, moving up or down with real results like anyone else. Unlike the old asserted-forever design, a guest's rating **does** reach `.ratings`, `over_time`, and the wire (the admin-gated ratings page) — deliberately, since the whole point is to see it move. `tests/test_guest_ratings.py` covers the seed, its movement, and where it reaches (and doesn't — synergy, the newcomer-prior anchor); delete a `GUEST_INITIAL_MU` entry to hand the player back to the model. They are otherwise ordinary members of `PLAYER_NAMES` — their real games rate and count for records like anyone's.
-
-**Player roles — never re-derive them.** Whether a slot is a human, an AI, or a spectator comes from the replay header (`type == "C"` for AI; a spectator is a type-`"H"` slot with `playerTemplate` `-2`) and is persisted as `match_players.role` (`player_role.PlayerRole`). There is exactly **one** way to ask, and adding a second is a bug: build a `game_composition.MatchRoster` and read its partitions.
-
-- `MatchInfo.roster()` — from a match (the common case; build once per match, it materializes everything up front)
-- `MatchRoster.from_db_players(rows)` — from `match_players`
-- `MatchRoster.from_header_players(header.metadata.players)` — at parse time, before anything is in the DB
-
-Partitions: `.observers`, `.competitors` (played; teamless slots included), `.participants` (competitors with `team > 0`), `.humans`, `.cpus`, `.human_participants`, `.teams`. `RosterSlot.has_known_general` is separate on purpose — that's parse quality, not role, and conflating the two is what the old `is_real()` did.
-
-Name-set questions go through the roster's own methods — `human_participant_names()` (the humans who played) and `competitor_names()` (humans + AI, no spectators) — for the same reason `all_teams_have_group_player` is a method: taking the partition from `self` is what stops a call site from asking over `slots`.
-
-**Observers must never change an answer about the match.** Categorization, ratability, and per-player stats are properties of who *played*, so adding or removing a spectator has to be a no-op — the one exception is `GameComposition.total_players`, which counts every slot by design. This has broken twice: `filter_for_rating` read every slot, so a caster account named for the matchup (`Gorn.v.131`, not in `PLAYER_NAMES`) made 23 real games unratable; and the win-streak pass counted a spectator's `won=False` slot as a loss. `tests/test_observer_invariance.py` asserts the property directly (same answer with and without the observer, rather than a fixed expected value) — extend it when you add a filter.
-
-Do **not** write `p.team > 0`, `p.team == Team.OBSERVER`, or a name check against a CPU list at a call site. The codebase previously spelled the observer test three inconsistent ways and carried four disagreeing CPU detectors; AI slots named outside a five-entry list (Tactical AI, EasyArmy, MediumArmy) were counted as humans in 417 matches, which put comp-stomps on the competitive leaderboards. Guessing from the player's *name* survives only as `player_role.resolve_role`'s fallback for un-backfilled rows — the header is authoritative, and an AI's header name is empty. `role` is still nullable; tighten to NOT NULL once `list_matches_with_unset_roles` returns empty (blocked on one match — see the `Team` enum note below).
-
-**`Team` stops at `FOUR`.** `utils.determine_team` raises `ValueError: 5 is not a valid Team` for any replay with 4+ teams, so such a match can't be parsed or reparsed. The header carries 8 slots, so a full FFA needs `Team` up to `EIGHT`. One known match (`84611718`, a `2v1v1`) is stuck on this.
-
-**Player names.** Any player name arriving over the wire (body or query param) must be alias-resolved — clients send in-game aliases (`skp`→`Skip`). Don't call `resolve_player_name` ad-hoc in handlers; type the field as `api_types.PlayerName` (works in `list[PlayerName]` too) so resolution happens at validation and can't be forgotten. Internally, resolve with `resolve_player_name(name, player.color)` — color disambiguates the shared alias "pc" (purple→pcap, pink→Pancake).
-
-**MatchDetails cache invalidation.** `cache.details_from_id` is an in-process LRU over the durable `match_details_cache` table; rows are stamped with `match_details.DETAILS_VERSION`. A `MatchDetails` *schema* change auto-bumps the version (embedded `model_json_schema()` hash); a *derivation logic* change that leaves the schema unchanged requires manually bumping `_DETAILS_LOGIC_VERSION` in `match_details.py` — otherwise stale rows keep being served. Reparse paths call `delete_cached_details(match_id)` (raw replay changed, version didn't). Browsers also cache `/api/details/` for 1h — hard-refresh (Ctrl-Shift-R) when verifying.
-
-**`notify()`** (Discord webhook) is best-effort and swallows its own errors, but it's still a blocking HTTP call — in async code dispatch it via `asyncio.to_thread`.
-
-**Backfill endpoint pattern.** Ops endpoints take `max_to_update: int`, loop incrementally, return `{"updated": N, ...}`, and are marked `include_in_schema=IS_DEV` (hidden from prod docs but still routable).
+Data flow: replays arrive by scheduled scrape or `POST /api/upload_replay` → cncstats parses the `.rep` → `.rep`+parsed JSON go to S3, rows to Postgres → derived data is cached and served via REST, consumed by the generated client.
 
 ## Python conventions
 
-- **Keep code comments short — a line or two.** Don't write multi-line paragraphs justifying a decision inline; that belongs in a commit message, PR description, or this file, not the source. This file's own dense style is documentation about the codebase, not a template for comments inside it.
-- **This is Python 3.14 (`requires-python = ">=3.14"`, ruff `py314`, mypy 3.14).** Unparenthesized `except ValueError, TypeError:` is valid — [PEP 758](https://peps.python.org/pep-0758/) — and so is `except* A, B:`. `ruff format` actively rewrites the parenthesized form to it. That is correct, current code: do not "fix" it back, and never report it as a syntax error.
-- **Exception: any `radarvan/` module reachable from `ml/` must stay parseable by Python 3.13**, because torch has no 3.14 wheel and training runs in `.venv-ml` (3.13) with the repo on `PYTHONPATH`. There, PEP 758's bare form *is* a SyntaxError — keep those `except` clauses parenthesized **and tagged `# fmt: skip`**, or `make format` silently rewrites them back and breaks training (`player_role.py` is the live example). `tests/test_ml_venv_imports.py` catches a break wherever `.venv-ml` exists.
-- **Many modules open with `from __future__ import annotations` for the same 3.13 reason**: PEP 649 defers annotation evaluation by default only on 3.14+, so under 3.13 a forward/self-reference in a type hint (a method returning its own class, e.g.) raises at import time without it. This is repo-wide and load-bearing but not interesting — **don't add a comment re-explaining it above the import in individual files**; a bare `from __future__ import annotations` is enough, and this bullet is the one place the reasoning lives.
-- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types (e.g. `derived/` imports only `api_types` and `db_utils`, so `cache.py` and `player_rating.py` can both depend on it).
+- **This is Python 3.14** (`requires-python = ">=3.14"`). Unparenthesized `except ValueError, TypeError:` is valid — [PEP 758](https://peps.python.org/pep-0758/) — and `ruff format` actively rewrites the parenthesized form to it. That is correct, current code: do not "fix" it back, and never report it as a syntax error.
+- **Exception: any `radarvan/` module reachable from `ml/` must stay parseable by Python 3.13** (torch has no 3.14 wheel; training runs in `.venv-ml`). There, PEP 758's bare form *is* a SyntaxError — keep those `except` clauses parenthesized and tagged `# fmt: skip` (`player_role.py` is the live example). Many modules open with `from __future__ import annotations` for the same reason (PEP 649 only defers annotation evaluation by default on 3.14+) — that's repo-wide and load-bearing; don't add a comment re-explaining it in individual files.
+- **Never use `TYPE_CHECKING`** — resolve circular imports by moving code to a module that already has access to all needed types.
 - **Never mutate function inputs** — return new values (`model_copy(update=...)` for Pydantic).
-- camelCase wire aliases with `populate_by_name`. (Do not add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — pydantic v2's `ConfigDict` has no such key for `BaseModel`; it's silently ignored. Real slots require `pydantic.dataclasses.dataclass(..., slots=True)`, which isn't compatible with `api_types.py`'s OpenAPI/TS-codegen role.)
-
-## Domain gotchas
-
-### Replay data model
-
-- **`EnhancedReplayV2.stats` is optional** — old replays have `stats=None`. Always guard before touching `stats.*`; return empty structures in the `None` branch. `has_enhanced_stats` in the DB = `replay.stats is not None`.
-- **Summary index vs header order are NOT the same.** `replay.summary[*].index` (1-based) is the canonical player index used by every `stats.*_events` field (`killEvents.killerPlayer`, `buildEvents.player`, …). `replay.header.metadata.players` is a *different order* and 0-based — never enumerate it to resolve event indices. Build `name_by_idx = {p.index: p.name for p in replay.summary}`.
-- **Body chunk `details` is a plain dict with capitalized keys** — `{"Name": ..., "Cost": ...}`. Use `d.get("Name")`; `getattr` and lowercase keys silently return None. Guard with `details = chunk.details if isinstance(chunk.details, dict) else {}`.
-- **Starting position**: replay `StartingPosition` is 0-based; map-data `player_number` is 1-based. The `+1` happens in `utils.players_from_replay()`.
-- **Team 0 players are observers/disconnected**, not FFA participants; `categorize_game_type` ignores them.
-- **Per-player money**: use `stats.players[*].moneySpent`/`moneyEarned` (surfaced as `MatchDetails.player_money_spent/collected`) — `PlayerSummary.MoneySpent` is always 0 for v2 replays.
-- **Buildings vs units** are distinguished by `object_type`/`victim_type == "structure"` on build/kill events.
-- **Game-night dates**: `utils.game_night_date` converts UTC to US Eastern with a 5am rollover so post-midnight games count toward the evening they started. Use it, not `.date()`.
-- **APM has two paths** (`apm.py`): per-order `replay.body` chunks when present, else derived from stats events (newer cncstats outputs ship an empty body). Scoped to non-observer humans; `apm_over_time` returns 10s windows scaled to APM.
-
-### Matches, overrides, reparse
-
-- `matches_differ` compares map, winner, duration (2dp), incomplete, game_version, and the sorted player tuples — extend it if new fields must trigger refresh.
-- `WinnerOverride` takes full precedence in `match_to_matchinfo` and is also baked into freshly parsed JSON by `parse_replay_data`; overrides survive reparses.
-- `session.merge()` + `onupdate` columns: merge copies attribute state by PK, so an unset `updated_at`/`computed_at` merges as NULL. Always set such columns explicitly on objects passed to `merge()` (see `save_parsed_json`, `save_cached_details`).
-- `list_jsons_parsed_before` uses PostgreSQL `DISTINCT ON (match_id)` and excludes match_ids with any record newer than the cutoff.
-- The `match_compostion` table name misspelling is baked into an early migration — intentionally preserved everywhere; do not "fix" without a migration.
-
-### Caching / scheduling specifics
-
-- `_draft_cache` in `routes/draft.py` stays a manual TTLCache (allow-listed in `tests/test_derived_registry.py`) — not because the registry couldn't bind it, but because a draft is a *random* result held steady, not a value derived from the corpus: version-keying would re-randomize everyone's teams the moment a game landed.
-- **`/api/balance_teams/` has two layers, on purpose.** `create_teams.balance_teams` is `@derived(on=CORPUS, maxsize=128)` (`games` binds the corpus, `player_list` is the key) and so tracks the ratings. The *route* (`routes/players.py`) then holds its answer for **6 hours per roster** in a plain `TTLCache`, keyed on the alias-resolved player set — so asking again with the same players during a game night returns the same teams even after games land. That hold is a product decision (the group is split on whether teams should reshuffle mid-night), which is why it lives at the route rather than in the derivation, and why it is a wall clock rather than a version token. Raw spellings are re-applied per request, so the hold does not freeze one caller's aliases onto another's response. Before this split, the 12h TTL sat on the derivation and silently served stale *ratings* — the same visible effect, but by accident of a cache key, and it made `/api/partition_teams/` (never held) disagree with it.
-- Scheduler (`schedule.py`): scrape+register every 6h, superlatives recompute at 04:00, player profiles at 04:30; all take `db_manager` and are also triggerable via `POST /api/scrape/{days}` and `POST /api/superlatives/recompute`.
-- **`compute_game_night_summary` at 11:00 is the only scheduled job that spends money**, and its time is load-bearing rather than cosmetic. `utils.game_night_date` rolls over at **5am US Eastern**, so 11:00 in the process timezone (UTC on Heroku) is the first slot at which last night is definitively closed in both EST and EDT. Running it with the 04:00 jobs would summarize an evening still being played — and the row is permanent, since nothing regenerates. It writes **at most one row per run** (the latest closed night, skipped if it already has one, skipped below `MIN_MATCHES_FOR_SUMMARY`), so deploying it does not backfill the archive and a missed run costs that night its recap rather than queueing several calls. A night with no row returns `ai_summary: null` and the page omits the section.
+- camelCase wire aliases with `populate_by_name`. Don't add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — it's silently ignored for `BaseModel`.
+- **Default to short minimal comments, and no multi-line docstrings.** Add a comment only for something that would still be non-obvious to someone reading this code cold on an unrelated task — a hidden constraint, a subtle invariant, a workaround for a specific bug — not what the code does or why *this task* touched it. If it would age out the moment the current task is forgotten, it doesn't belong in the source.
 
 ## Subsystem guides (skills — load on invocation, not every session)
 
 - **`bracket`** — 1v1 double-elimination construction, losers-bracket depth ordering, `POST /api/bracket/{match_id}` PATCH semantics.
 - **`maps`** — coordinate conversion, map-name resolution, CRC derivation and the cncstats push, OpenAPI static-route conflicts.
 - **`db-migrations`** — the empty-database problem, the Heroku release phase, backward-compatibility windows.
-- **`replay-fixtures`** — real `stats.*` payload shapes, plus timelines and special powers (`timeline_events.py`).
+- **`replay-fixtures`** — real `stats.*` payload shapes for offline inspection.
 - **`run-radarvan`** — running/driving the app, Playwright-on-Firefox, the DebugData page, `/api` cache behaviour.
+- **`auth-tiers`** — the three auth tiers (API key / cookie session / public), which router a new mutating route belongs on. Load before adding or modifying a route.
+- **`backend-invariants`** — DB session & threading rules, event loop rules, the `@derived` cache pattern, `queries/`+`routes/` split, MatchDetails cache invalidation, the backfill endpoint pattern. Load before writing backend logic beyond a trivial handler.
+- **`player-ratings-and-roles`** — which match sets / which 1v1s count for what, newcomer and guest rating rules, player role & roster resolution, the `Team` enum limit, player-name alias resolution. Load before touching ratings, rosters, team balancing, or anything that displays player identity.
+- **`replay-parsing-gotchas`** — replay data model quirks (summary index vs header order, `stats.*` event shapes, body chunk `details`), match override/reparse semantics, draft/balance-teams caching specifics. Load before touching replay parsing or match update code.
 
-## Reference fixtures (`references/`)
-
-`references/` holds real cncstats and API payloads for offline inspection — invoke the **`replay-fixtures`** skill when `MatchDetails` output looks wrong or you need a real `stats.*` event shape.
-
-Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`. `radarvan/api_types.py` is the source of truth for the wire format (the unused `proto/match.proto` was removed).
+Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`, `LOCAL_DEV.md`. `radarvan/api_types.py` is the source of truth for the wire format.
