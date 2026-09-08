@@ -7,7 +7,7 @@ not the user-selectable player association.
 ``/api/bracket_eligible_players`` is deliberately a separate top-level path
 rather than nested under ``/api/bracket`` - the OpenAPI client generator can
 silently merge a static path with a parameterized sibling that shares a
-prefix (see CLAUDE.md gotcha re: ``/api/map_data/by_player_count`` vs.
+prefix (see CLAUDE.md gotcha re: ``/api/maps_by_player_count`` vs.
 ``/api/map_data/{map_name}``).
 """
 

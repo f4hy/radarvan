@@ -25,7 +25,7 @@ See `ENVIRONMENT.md` for environment variables.
 
 Backend lives in `radarvan/` — the layout is self-describing, read the module you need. What isn't obvious from the file itself:
 
-- **`api_types.py` is the canonical wire schema.** TS types are generated from the resulting OpenAPI spec, so change the Pydantic model, not the generated client.
+- **`api_types/` is the canonical wire schema** (a package, one module per domain — `players.py`, `matches.py`, `bracket.py`, etc.). TS types are generated from the resulting OpenAPI spec, so change the Pydantic model, not the generated client.
 - **`cncstats_model/zhreplay.py`'s `EnhancedReplayV2` is the only replay type to import** — `cncstats_types.py`/`cncstats_types_v2.py` are unused reference copies.
 - **Prefer the specific repo in `repositories/`** over the `ReplayManager` facade in `db_utils.py`; the facade exists for legacy callers.
 - **`main.py` is app composition only** (middleware order, router registration, lifespan, the global exception handler, static serving). Handlers go in `routes/`.
@@ -55,4 +55,4 @@ Data flow: replays arrive by scheduled scrape or `POST /api/upload_replay` → c
 - **`player-ratings-and-roles`** — which match sets / which 1v1s count for what, newcomer and guest rating rules, player role & roster resolution, the `Team` enum limit, player-name alias resolution. Load before touching ratings, rosters, team balancing, or anything that displays player identity.
 - **`replay-parsing-gotchas`** — replay data model quirks (summary index vs header order, `stats.*` event shapes, body chunk `details`), match override/reparse semantics, draft/balance-teams caching specifics. Load before touching replay parsing or match update code.
 
-Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`, `LOCAL_DEV.md`. `radarvan/api_types.py` is the source of truth for the wire format.
+Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`, `LOCAL_DEV.md`. `radarvan/api_types/` is the source of truth for the wire format.
