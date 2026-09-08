@@ -43,16 +43,4 @@ Data flow: replays arrive by scheduled scrape or `POST /api/upload_replay` → c
 - camelCase wire aliases with `populate_by_name`. Don't add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — it's silently ignored for `BaseModel`.
 - **Default to short minimal comments, and no multi-line docstrings.** Add a comment only for something that would still be non-obvious to someone reading this code cold on an unrelated task — a hidden constraint, a subtle invariant, a workaround for a specific bug — not what the code does or why *this task* touched it. If it would age out the moment the current task is forgotten, it doesn't belong in the source.
 
-## Subsystem guides (skills — load on invocation, not every session)
-
-- **`bracket`** — 1v1 double-elimination construction, losers-bracket depth ordering, `POST /api/bracket/{match_id}` PATCH semantics.
-- **`maps`** — coordinate conversion, map-name resolution, CRC derivation and the cncstats push, OpenAPI static-route conflicts.
-- **`db-migrations`** — the empty-database problem, the Heroku release phase, backward-compatibility windows.
-- **`replay-fixtures`** — real `stats.*` payload shapes for offline inspection.
-- **`run-radarvan`** — running/driving the app, Playwright-on-Firefox, the DebugData page, `/api` cache behaviour.
-- **`auth-tiers`** — the three auth tiers (API key / cookie session / public), which router a new mutating route belongs on. Load before adding or modifying a route.
-- **`backend-invariants`** — DB session & threading rules, event loop rules, the `@derived` cache pattern, `queries/`+`routes/` split, MatchDetails cache invalidation, the backfill endpoint pattern. Load before writing backend logic beyond a trivial handler.
-- **`player-ratings-and-roles`** — which match sets / which 1v1s count for what, newcomer and guest rating rules, player role & roster resolution, the `Team` enum limit, player-name alias resolution. Load before touching ratings, rosters, team balancing, or anything that displays player identity.
-- **`replay-parsing-gotchas`** — replay data model quirks (summary index vs header order, `stats.*` event shapes, body chunk `details`), match override/reparse semantics, draft/balance-teams caching specifics. Load before touching replay parsing or match update code.
-
 Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`, `LOCAL_DEV.md`. `radarvan/api_types/` is the source of truth for the wire format.
