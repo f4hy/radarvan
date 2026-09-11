@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router"
 import * as React from "react"
+import { useNavigate } from "react-router"
 
 /**
  * Where a player's name points.
@@ -27,6 +27,12 @@ export function headToHeadHref(player1: string, player2: string): string {
  * people paste into chat. */
 export function gameNightHref(date: string): string {
   return `/game-night?${new URLSearchParams({ date })}`
+}
+
+/** Deep-links to Map Stats with that map expanded and scrolled to (the page's
+ * own `focusedMap` url param). */
+export function mapStatsHref(mapName: string): string {
+  return `/map-stats?${new URLSearchParams({ map: mapName })}`
 }
 
 /**
