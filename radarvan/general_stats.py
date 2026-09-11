@@ -5,6 +5,8 @@ from collections import defaultdict
 from .api_types import (
     MatchInfo,
     General,
+    GeneralMatchupCell,
+    GeneralMatchups,
     GeneralStat,
     GeneralStats,
     Statistic,
@@ -121,3 +123,51 @@ def get_generals_stats(
     losses = sum(s.total.losses for s in general_stats.values())
     logger.info("totals", wins=wins, losses=losses)
     return GeneralStats(general_stats=filtered)
+
+
+def get_general_matchups(games: list[MatchInfo]) -> GeneralMatchups:
+    """Actual record for every pair of generals that has faced off, across
+    whatever mix of formats `games` holds (the caller narrows by `gameFormat`
+    the same way `get_generals_stats` does).
+
+    For a 1v1 this is one winner-general-vs-loser-general sample per game. For
+    a team game it's every general on the winning side crossed with every
+    general on the losing side - a 2v2 contributes 4 samples, a 3v3 contributes
+    9 - which is the standard way to turn a team result into pairwise matchup
+    evidence (it's *within*-game correlated, unlike an independent draw, but
+    it's the same tradeoff `general_value_stats` and every other per-general
+    stat on this page already makes by crediting a team's win to each of its
+    generals). Same-general pairs (a mirror matchup) carry no A-vs-B signal
+    and are skipped. One row per unordered pair; the route/frontend fill in
+    both directions of the grid from it.
+    """
+    pair_wins: dict[tuple[General, General], list[int]] = defaultdict(lambda: [0, 0])
+    for game in games:
+        if game.incomplete or game.winning_team < 1:
+            continue
+        if not game_composition.competitive_game_filter(game.composition):
+            continue
+        roster = game.roster()
+        if len(roster.cpus) > 1:
+            continue
+        humans = roster.humans
+        winners = [p for p in humans if p.won and p.has_known_general]
+        losers = [p for p in humans if not p.won and p.has_known_general]
+        for winner in winners:
+            gen_w = General(winner.general)
+            for loser in losers:
+                gen_l = General(loser.general)
+                if gen_w == gen_l:
+                    continue
+                key, winner_is_first = (
+                    ((gen_w, gen_l), True)
+                    if gen_w < gen_l
+                    else ((gen_l, gen_w), False)
+                )
+                pair_wins[key][0 if winner_is_first else 1] += 1
+
+    cells = [
+        GeneralMatchupCell(general_a=a, general_b=b, a_wins=wl[0], b_wins=wl[1])
+        for (a, b), wl in sorted(pair_wins.items(), key=lambda kv: kv[0])
+    ]
+    return GeneralMatchups(cells=cells)

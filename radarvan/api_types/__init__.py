@@ -111,6 +111,8 @@ from .game_night import (
     GameNightSummaryStatus,
 )
 from .generals import (
+    GeneralMatchupCell,
+    GeneralMatchups,
     GeneralStat,
     GeneralStatPlayerWL,
     GeneralStats,
@@ -305,6 +307,8 @@ __all__ = [
     "GameNightSummaryStatus",
     "GameRecord",
     "General",
+    "GeneralMatchupCell",
+    "GeneralMatchups",
     "GeneralOpeningBook",
     "GeneralPowers",
     "GeneralProfileStat",

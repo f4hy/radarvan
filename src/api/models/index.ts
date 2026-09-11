@@ -51,6 +51,8 @@ export * from './GameNightRecap';
 export * from './GameNightSummaryStatus';
 export * from './GameRecord';
 export * from './General';
+export * from './GeneralMatchupCell';
+export * from './GeneralMatchups';
 export * from './GeneralOpeningBook';
 export * from './GeneralPowers';
 export * from './GeneralProfileStat';

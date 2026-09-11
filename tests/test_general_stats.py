@@ -258,3 +258,120 @@ def test_a_non_competitive_game_is_skipped() -> None:
         )
     )
     assert _records(games) == baseline
+
+
+# --- get_general_matchups ----------------------------------------------------
+
+
+def _1v1(
+    match_id: int,
+    *,
+    day: int,
+    gen_a: General,
+    gen_b: General,
+    winner: Team = Team.ONE,
+):
+    m = match(match_id, day=day, winner=winner, team_one=("Skip",), team_two=("Syn",))
+    return m.model_copy(
+        update={
+            "players": [
+                p.model_copy(update={"general": gen_a if i == 0 else gen_b})
+                for i, p in enumerate(m.players)
+            ]
+        }
+    )
+
+
+def test_matchup_tallies_wins_for_each_side() -> None:
+    games = [
+        _1v1(9500, day=5, gen_a=General.USA, gen_b=General.CHINA, winner=Team.ONE),
+        _1v1(9501, day=6, gen_a=General.USA, gen_b=General.CHINA, winner=Team.TWO),
+        _1v1(9502, day=7, gen_a=General.CHINA, gen_b=General.USA, winner=Team.ONE),
+    ]
+    matchups = general_stats.get_general_matchups(games)
+    cell = next(
+        c
+        for c in matchups.cells
+        if {c.general_a, c.general_b} == {General.USA, General.CHINA}
+    )
+    # USA sorts before CHINA (lower enum value), so it's always general_a
+    # regardless of which slot piloted it in a given game.
+    assert (cell.general_a, cell.general_b) == (General.USA, General.CHINA)
+    # USA (piloted by player one) won 9500; CHINA won 9501 (as player two)
+    # and 9502 (as player one): 1 win for USA, 2 for CHINA.
+    assert (cell.a_wins, cell.b_wins) == (1, 2)
+
+
+def test_mirror_matches_are_skipped() -> None:
+    games = [_1v1(9503, day=5, gen_a=General.USA, gen_b=General.USA)]
+    assert general_stats.get_general_matchups(games).cells == []
+
+
+def test_team_games_cross_every_winner_general_with_every_loser_general() -> None:
+    """A 2v2 contributes one sample per winner/loser general pair, not one per
+    game: team one (USA, CHINA) beat team two (GLA, USA) here, so that's
+    USA-vs-GLA, CHINA-vs-GLA and CHINA-vs-USA - three pairs, not one. The
+    USA-vs-USA mirror (team one's pilot against team two's) contributes
+    nothing."""
+    game = _match_with_generals(9504, day=5)
+    cells = {
+        (c.general_a, c.general_b): (c.a_wins, c.b_wins)
+        for c in general_stats.get_general_matchups([game]).cells
+    }
+    assert cells[(General.USA, General.GLA)] == (1, 0)
+    assert cells[(General.CHINA, General.GLA)] == (1, 0)
+    # USA sorts before CHINA, so it's general_a here even though CHINA (the
+    # winner) is the one credited with the win, hence CHINA's win lands on b.
+    assert cells[(General.USA, General.CHINA)] == (0, 1)
+    assert (General.USA, General.USA) not in cells
+
+
+def test_a_game_with_more_than_one_cpu_is_excluded_from_matchups() -> None:
+    game = _match_with_generals(
+        9505,
+        day=5,
+        extra_players=(
+            cpu(name="TacticalAI", team=Team.THREE),
+            cpu(name="EasyArmy", team=Team.THREE, color="pink"),
+        ),
+    )
+    assert general_stats.get_general_matchups([game]).cells == []
+
+
+def test_a_filler_cpu_does_not_itself_appear_in_matchups() -> None:
+    """One CPU filling an empty slot is allowed (same rule as
+    `get_generals_stats`), but the AI's own general must not show up crossed
+    against the human pairs - it pilots USA in the fixture."""
+    game = _match_with_generals(
+        9506, day=5, extra_players=(cpu(name="TacticalAI", team=Team.THREE),)
+    )
+    cells = {
+        (c.general_a, c.general_b)
+        for c in general_stats.get_general_matchups([game]).cells
+    }
+    assert cells == {
+        (General.USA, General.GLA),
+        (General.CHINA, General.GLA),
+        (General.USA, General.CHINA),
+    }
+
+
+def test_an_unrecognized_general_is_excluded_from_matchups() -> None:
+    game = _1v1(9508, day=5, gen_a=General.USA, gen_b=General.UNRECOGNIZED)
+    assert general_stats.get_general_matchups([game]).cells == []
+
+
+def test_incomplete_or_winnerless_1v1_is_skipped_from_matchups() -> None:
+    games = [
+        _1v1(9509, day=5, gen_a=General.USA, gen_b=General.CHINA, winner=Team.ONE),
+    ]
+    baseline = general_stats.get_general_matchups(games).cells
+    games.append(
+        _1v1(9510, day=6, gen_a=General.USA, gen_b=General.CHINA).model_copy(
+            update={"incomplete": "Disconnect"}
+        )
+    )
+    games.append(
+        _1v1(9511, day=7, gen_a=General.USA, gen_b=General.CHINA, winner=Team.NONE)
+    )
+    assert general_stats.get_general_matchups(games).cells == baseline

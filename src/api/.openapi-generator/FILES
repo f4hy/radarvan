@@ -72,6 +72,8 @@ models/GameNightRecap.ts
 models/GameNightSummaryStatus.ts
 models/GameRecord.ts
 models/General.ts
+models/GeneralMatchupCell.ts
+models/GeneralMatchups.ts
 models/GeneralOpeningBook.ts
 models/GeneralPowers.ts
 models/GeneralProfileStat.ts
