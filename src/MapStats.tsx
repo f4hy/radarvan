@@ -1,33 +1,39 @@
-import Tooltip from "@mui/material/Tooltip"
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import Tab from "@mui/material/Tab"
-import TextField from "@mui/material/TextField"
 import Tabs from "@mui/material/Tabs"
+import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import DisplayGeneral from "./Generals"
+import { useIsAdmin } from "./AuthContext"
 import type { MapData, MapStatsResponse } from "./api"
 import { MapClient } from "./clients/map"
+import DisplayGeneral from "./Generals"
 import { toGeneralName } from "./general_utils"
 import GameMap, { MapThumbnail } from "./Map"
+import {
+  type BestWorst,
+  computeGeneralBestWorst,
+  type MapEntry,
+  MIN_SUMMARY_GAMES,
+} from "./mapGeneralStats"
 import Page from "./Page"
-import { useUrlChoice, useUrlParam } from "./useUrlState"
-import { queryFallback } from "./QueryState"
-import { WinRateBar } from "./WinRateChip"
 import { PlayerLabel } from "./PlayerChip"
-import { useIsAdmin } from "./AuthContext"
+import { queryFallback } from "./QueryState"
+import { useUrlChoice, useUrlParam } from "./useUrlState"
 import { displayMapName, winRate } from "./utils"
+import { WinRateBar } from "./WinRateChip"
 
 function fetchMapStats(): Promise<MapStatsResponse> {
   return MapClient.getMapStatsApiMapStatsGet()
@@ -151,54 +157,6 @@ function GeneralWinRates(props: { generals: MapData["generalStats"] }) {
 }
 
 // --- Best/Worst summary ---
-
-const MIN_SUMMARY_GAMES = 3
-
-interface MapEntry {
-  mapName: string
-  wins: number
-  losses: number
-}
-
-interface BestWorst {
-  best: MapEntry
-  worst: MapEntry
-}
-
-function computeGeneralBestWorst(maps: MapData[]): Array<[number, BestWorst]> {
-  const acc = new Map<
-    number,
-    { best: MapEntry | null; worst: MapEntry | null }
-  >()
-  for (const map of maps) {
-    for (const g of map.generalStats) {
-      if (g.wins + g.losses < MIN_SUMMARY_GAMES) continue
-      const wr = winRate(g.wins, g.losses)
-      const entry: MapEntry = {
-        mapName: map.mapName,
-        wins: g.wins,
-        losses: g.losses,
-      }
-      const cur = acc.get(g.general) ?? { best: null, worst: null }
-      if (!cur.best || wr > winRate(cur.best.wins, cur.best.losses))
-        cur.best = entry
-      if (!cur.worst || wr < winRate(cur.worst.wins, cur.worst.losses))
-        cur.worst = entry
-      acc.set(g.general, cur)
-    }
-  }
-  const result: Array<[number, BestWorst]> = []
-  for (const [g, bw] of acc.entries()) {
-    if (bw.best && bw.worst && bw.best.mapName !== bw.worst.mapName) {
-      result.push([g, { best: bw.best, worst: bw.worst }])
-    }
-  }
-  result.sort(
-    ([, a], [, b]) =>
-      winRate(b.best.wins, b.best.losses) - winRate(a.best.wins, a.best.losses),
-  )
-  return result
-}
 
 function computePlayerBestWorst(maps: MapData[]): Array<[string, BestWorst]> {
   const acc = new Map<

@@ -15,6 +15,7 @@ import MuiTooltip from "@mui/material/Tooltip"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
+import { Link } from "react-router"
 import {
   Bar,
   BarChart,
@@ -25,18 +26,32 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type { FactionMatrix, GeneralStat, GeneralStats } from "./api"
+import type {
+  FactionMatrix,
+  GeneralMatchups,
+  GeneralStat,
+  GeneralStats,
+} from "./api"
 import { GeneralsClient } from "./clients/generals"
+import { MapClient } from "./clients/map"
 import { PredictClient } from "./clients/predict"
+import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
 import DisplayGeneral, { GeneralAvatar } from "./Generals"
 import { toGeneralName } from "./general_utils"
 import Loading from "./Loading"
-import FormatToggle, { ALL_FORMATS } from "./FormatToggle"
+import { mapStatsHref } from "./links"
+import { type BestWorst, computeGeneralBestWorst } from "./mapGeneralStats"
 import Page from "./Page"
-import { useUrlChoice } from "./useUrlState"
 import QueryState from "./QueryState"
 import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "./theme"
-import { formatCash, wilsonLowerBound, winRate } from "./utils"
+import { useUrlChoice } from "./useUrlState"
+import {
+  displayMapName,
+  formatCash,
+  wilsonLowerBound,
+  winRate,
+  winRateTone,
+} from "./utils"
 import WinRateChip from "./WinRateChip"
 import WinRateRadar from "./WinRateRadar"
 
@@ -126,7 +141,34 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   return <GeneralWinLossChart data={data} isMobile={isMobile} />
 }
 
-function DisplayGeneralStat(props: { stat: GeneralStat }) {
+function MapEdgeChip(props: {
+  entry: BestWorst["best"]
+  variant: "best" | "worst"
+}) {
+  const { entry } = props
+  const wr = winRate(entry.wins, entry.losses)
+  return (
+    <MuiTooltip
+      title={`${entry.wins}W-${entry.losses}L on ${displayMapName(entry.mapName)} - click to view on Map Stats`}
+    >
+      <Chip
+        component={Link}
+        to={mapStatsHref(entry.mapName)}
+        clickable
+        size="small"
+        color={props.variant === "best" ? "success" : "error"}
+        variant="outlined"
+        label={`${props.variant === "best" ? "Best" : "Worst"}: ${displayMapName(entry.mapName)} ${(wr * 100).toFixed(0)}%`}
+        sx={{ fontSize: "0.7rem" }}
+      />
+    </MuiTooltip>
+  )
+}
+
+function DisplayGeneralStat(props: {
+  stat: GeneralStat
+  bestWorst?: BestWorst
+}) {
   const overall = props.stat.total
   const overallWins = overall?.wins ?? 0
   const overallLosses = overall?.losses ?? 0
@@ -160,6 +202,16 @@ function DisplayGeneralStat(props: { stat: GeneralStat }) {
           {formatCash(valueDestroyed)} destroyed · {formatCash(valueLost)} lost
           {tradeRatio !== undefined && ` · ${tradeRatio.toFixed(2)}x trade`}
         </Typography>
+      )}
+      {props.bestWorst && (
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{ mt: 0.5, flexWrap: "wrap" }}
+        >
+          <MapEdgeChip entry={props.bestWorst.best} variant="best" />
+          <MapEdgeChip entry={props.bestWorst.worst} variant="worst" />
+        </Stack>
       )}
     </Box>
   )
@@ -196,6 +248,181 @@ function MatrixFact(props: { title: string; children: React.ReactNode }) {
       />
     </MuiTooltip>
   )
+}
+
+function pairKey(a: number, b: number): string {
+  return a < b ? `${a}:${b}` : `${b}:${a}`
+}
+
+function EmpiricalMatchupTable(props: {
+  matchups: GeneralMatchups
+  format: GameFormat
+}) {
+  const { cells } = props.matchups
+  const isTeamFormat = props.format !== "1v1" && props.format !== "All"
+
+  const generals = React.useMemo(() => {
+    const seen = new Set<number>()
+    for (const c of cells) {
+      seen.add(c.generalA)
+      seen.add(c.generalB)
+    }
+    return Array.from(seen).sort((a, b) => a - b)
+  }, [cells])
+
+  const cellByPair = React.useMemo(() => {
+    const m = new Map<string, GeneralMatchups["cells"][number]>()
+    for (const c of cells) m.set(pairKey(c.generalA, c.generalB), c)
+    return m
+  }, [cells])
+
+  const totalGames = React.useMemo(
+    () => cells.reduce((sum, c) => sum + c.aWins + c.bWins, 0),
+    [cells],
+  )
+  const nSignificant = React.useMemo(
+    () =>
+      cells.filter((c) => winRateTone(c.aWins, c.bWins).tone !== "inconclusive")
+        .length,
+    [cells],
+  )
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>
+        Actual results{props.format !== "All" && ` (${props.format})`}
+      </Typography>
+      <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+        Real outcomes for the selected format: the row general's win rate
+        against the column general.
+        {isTeamFormat &&
+          " Every general on the winning side is counted against every general on the losing side, so one game contributes more than one sample."}{" "}
+        Unlike the model grid below, nothing here is adjusted for player skill
+        or map — it's just what's actually happened.
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 1.5 }}>
+        <MatrixFact
+          title={
+            isTeamFormat
+              ? "Every winning-general/losing-general pair from a team game counts as one sample, so this can exceed the number of matches played."
+              : "Total 1v1 games between two different generals, across every pair below."
+          }
+        >
+          {totalGames} {isTeamFormat ? "matchup samples" : "games"} counted
+        </MatrixFact>
+        <MatrixFact title="Colored cells are the ones where the 95% Wilson interval doesn't include 50% — the rest could plausibly be a coin flip.">
+          {nSignificant} of {cells.length} matchups hold up
+        </MatrixFact>
+        <MatrixFact title="Too few games between this pair to trust the number.">
+          Faded = too close to call
+        </MatrixFact>
+      </Stack>
+      <TableContainer sx={{ overflowX: "auto", maxHeight: 640 }}>
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ ...STICKY_ROW_LABEL, zIndex: 3 }} />
+              {generals.map((g) => (
+                <TableCell key={g} align="center" sx={{ px: 0.5 }}>
+                  <Stack spacing={0.25} sx={{ alignItems: "center" }}>
+                    <GeneralAvatar general={g} size="1.4rem" />
+                    <Box sx={{ fontWeight: 600, fontSize: "0.7rem" }}>
+                      {toGeneralName(g)}
+                    </Box>
+                  </Stack>
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {generals.map((rowGeneral) => (
+              <TableRow key={rowGeneral}>
+                <TableCell sx={{ ...STICKY_ROW_LABEL, whiteSpace: "nowrap" }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <GeneralAvatar general={rowGeneral} size="1.4rem" />
+                    <Box sx={{ fontWeight: 600 }}>
+                      {toGeneralName(rowGeneral)}
+                    </Box>
+                  </Stack>
+                </TableCell>
+                {generals.map((colGeneral) => {
+                  if (colGeneral === rowGeneral) {
+                    return (
+                      <TableCell
+                        key={colGeneral}
+                        align="center"
+                        sx={{ color: "text.disabled" }}
+                      >
+                        —
+                      </TableCell>
+                    )
+                  }
+                  const cell = cellByPair.get(pairKey(rowGeneral, colGeneral))
+                  if (!cell) {
+                    return (
+                      <TableCell
+                        key={colGeneral}
+                        align="center"
+                        title={`${toGeneralName(rowGeneral)} vs ${toGeneralName(colGeneral)}: no games yet`}
+                        sx={{ color: "text.disabled" }}
+                      >
+                        ·
+                      </TableCell>
+                    )
+                  }
+                  const rowIsA = cell.generalA === rowGeneral
+                  const rowWins = rowIsA ? cell.aWins : cell.bWins
+                  const colWins = rowIsA ? cell.bWins : cell.aWins
+                  const tone = winRateTone(rowWins, colWins)
+                  const isSignificant = tone.tone !== "inconclusive"
+                  const intensity = tone.confidence * tone.margin
+                  return (
+                    <TableCell
+                      key={colGeneral}
+                      align="center"
+                      title={`${toGeneralName(rowGeneral)} vs ${toGeneralName(colGeneral)}: ${rowWins}W-${colWins}L (${(tone.rate * 100).toFixed(1)}%)${isSignificant ? "" : " - not enough games to be confident"}`}
+                      sx={{
+                        bgcolor: alpha(
+                          tone.hex,
+                          isSignificant ? Math.max(0.2, intensity) : 0.1,
+                        ),
+                        color: isSignificant ? "text.primary" : "text.disabled",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {(tone.rate * 100).toFixed(0)}%
+                    </TableCell>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  )
+}
+
+function fetchGeneralMatchups(
+  gameFormat: GameFormat,
+): Promise<GeneralMatchups> {
+  const params = gameFormat === "All" ? {} : { gameFormat }
+  return GeneralsClient.getGeneralMatchupsApiGeneralstatsMatchupsGet(params)
+}
+
+function EmpiricalMatchupSection(props: { format: GameFormat }) {
+  const { data: matchups, isPending } = useQuery({
+    queryKey: ["generalMatchups", props.format],
+    queryFn: () => fetchGeneralMatchups(props.format),
+  })
+
+  if (isPending) return <Loading />
+  if (!matchups || matchups.cells.length === 0) return null
+  return <EmpiricalMatchupTable matchups={matchups} format={props.format} />
 }
 
 function FactionMatrixTable(props: { matrix: FactionMatrix }) {
@@ -236,14 +463,16 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 0.5 }}>
-        Faction matchup matrix
+        Predicted matchups (ML model)
       </Typography>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
-        How much the row general is favored over the column general, with both
-        players and the map unknown. A positive number means the row general has
-        the edge.
+        An ML model's prediction, not a game tally: the row general's edge over
+        the column general with players and map forced unknown.
       </Typography>
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 1.5 }}>
+        <MatrixFact title="One shared matrix fit across every format pooled together, not per format - and this page always queries it as a synthetic 1v1 regardless of the toggle above.">
+          One matrix, all formats pooled
+        </MatrixFact>
         <MatrixFact title="Every cell is percentage points above or below this, not an absolute win rate. The grid's median draw is ~50% by construction.">
           Median draw {(medianProbAWins * 100).toFixed(0)}%
         </MatrixFact>
@@ -343,7 +572,13 @@ function FactionMatrixSection() {
   return <FactionMatrixTable matrix={matrix} />
 }
 
-function GeneralStatsBody({ generalStats }: { generalStats: GeneralStats }) {
+function GeneralStatsBody({
+  generalStats,
+  format,
+}: {
+  generalStats: GeneralStats
+  format: GameFormat
+}) {
   const sorted = React.useMemo(
     () =>
       [...generalStats.generalStats].sort(
@@ -352,6 +587,19 @@ function GeneralStatsBody({ generalStats }: { generalStats: GeneralStats }) {
           wilsonLowerBound(a.total?.wins ?? 0, a.total?.losses ?? 0),
       ),
     [generalStats.generalStats],
+  )
+
+  // Map Stats isn't format-filtered on the backend (see MapStats.tsx), so
+  // this best/worst-map read is the same across every format toggle here too
+  // - a known, pre-existing limitation, not new to this section.
+  const { data: mapStats } = useQuery({
+    queryKey: ["mapStats"],
+    queryFn: () => MapClient.getMapStatsApiMapStatsGet(),
+  })
+  const bestWorstByGeneral = React.useMemo(
+    () =>
+      new Map(mapStats ? computeGeneralBestWorst(mapStats.maps) : undefined),
+    [mapStats],
   )
 
   const radarData = React.useMemo(
@@ -388,7 +636,10 @@ function GeneralStatsBody({ generalStats }: { generalStats: GeneralStats }) {
           <Grid container spacing={2}>
             {sorted.map((m) => (
               <Grid key={m.general} size={12}>
-                <DisplayGeneralStat stat={m} />
+                <DisplayGeneralStat
+                  stat={m}
+                  bestWorst={bestWorstByGeneral.get(m.general)}
+                />
               </Grid>
             ))}
           </Grid>
@@ -397,6 +648,8 @@ function GeneralStatsBody({ generalStats }: { generalStats: GeneralStats }) {
           <WinRateRadar data={radarData} aspect={1.4} />
         </Grid>
       </Grid>
+      <Divider sx={{ mt: 4, mb: 2 }} />
+      <EmpiricalMatchupSection format={format} />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <FactionMatrixSection />
     </>
@@ -428,7 +681,9 @@ export default function DisplayGeneralStats() {
       }
     >
       <QueryState query={query} what="general stats">
-        {(generalStats) => <GeneralStatsBody generalStats={generalStats} />}
+        {(generalStats) => (
+          <GeneralStatsBody generalStats={generalStats} format={format} />
+        )}
       </QueryState>
     </Page>
   )

@@ -15,15 +15,22 @@
 
 import * as runtime from '../runtime';
 import type {
+  GeneralMatchups,
   GeneralStats,
   HTTPValidationError,
 } from '../models/index';
 import {
+    GeneralMatchupsFromJSON,
+    GeneralMatchupsToJSON,
     GeneralStatsFromJSON,
     GeneralStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
 } from '../models/index';
+
+export interface GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest {
+    gameFormat?: string | null;
+}
 
 export interface GetGeneralsStatsApiGeneralstatsGetRequest {
     gameFormat?: string | null;
@@ -33,6 +40,53 @@ export interface GetGeneralsStatsApiGeneralstatsGetRequest {
  * 
  */
 export class GeneralsApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getGeneralMatchupsApiGeneralstatsMatchupsGet without sending the request
+     */
+    async getGeneralMatchupsApiGeneralstatsMatchupsGetRequestOpts(requestParameters: GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['gameFormat'] != null) {
+            queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/generalstats/matchups`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Actual win/loss for every pair of generals that has faced off.  Same `gameFormat`-filtered corpus as `/api/generalstats`, so picking 1v1 up there narrows this to genuine one-on-one results; \"All\" pools every team size together (see `general_stats.get_general_matchups` for how a team game turns into pairwise samples).
+     * Get General Matchups
+     */
+    async getGeneralMatchupsApiGeneralstatsMatchupsGetRaw(requestParameters: GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralMatchups>> {
+        const requestOptions = await this.getGeneralMatchupsApiGeneralstatsMatchupsGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GeneralMatchupsFromJSON(jsonValue));
+    }
+
+    /**
+     * Actual win/loss for every pair of generals that has faced off.  Same `gameFormat`-filtered corpus as `/api/generalstats`, so picking 1v1 up there narrows this to genuine one-on-one results; \"All\" pools every team size together (see `general_stats.get_general_matchups` for how a team game turns into pairwise samples).
+     * Get General Matchups
+     */
+    async getGeneralMatchupsApiGeneralstatsMatchupsGet(requestParameters: GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralMatchups> {
+        const response = await this.getGeneralMatchupsApiGeneralstatsMatchupsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getGeneralsStatsApiGeneralstatsGet without sending the request
