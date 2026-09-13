@@ -336,15 +336,20 @@ def download_filename(match: MatchInfo) -> str:
         if match.composition is not None
         else "v".join(str(len(names)) for names in side_names)
     )
-    map_name = _safe_part(map_basename(match.map).removesuffix(".map"))
+    map_name = _safe_part(map_display_name(match.map))
     return f"{match.date.isoformat()}-{game_format}-{matchup}-{map_name}-{match.id}.rep"
 
 
-def map_key(name: str) -> str:
-    """Normalized join key between a Match.map path and a MapData.map_name.
+# Case-insensitive: replay headers carry ".MAP" as well as ".map".
+_MAP_SUFFIX = re.compile(r"\.map$", re.IGNORECASE)
 
-    Match history stores a path (e.g. ``maps/foo/foo.map``); MapData stores a
-    canonical name. Strip the path, the ``.map`` suffix, whitespace, and case so
-    the two line up.
-    """
-    return normalize_map_name(map_basename(name).removesuffix(".map"))
+
+def map_display_name(name: str) -> str:
+    """The map as a human reads it: path and ``.map`` suffix off, case kept."""
+    return _MAP_SUFFIX.sub("", map_basename(name))
+
+
+def map_key(name: str) -> str:
+    """Join key between a Match.map path and a MapData.map_name."""
+    # Mirrored in src/lib/mapName.ts; tests/test_map_key_parity.py pins the pair.
+    return normalize_map_name(map_display_name(name))

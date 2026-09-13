@@ -1,5 +1,12 @@
 # Frontend (`src/`)
 
+## Layout
+
+`lib/` (non-UI: helpers, hooks, contexts), `components/` (shared UI), `features/<nav heading>/` (pages), `api/` + `clients/` (generated + its wrappers). App shell stays at the root: `App.tsx`, `index.tsx`, `routes.tsx`, `Menu.tsx`.
+
+- **`features/` buckets are `routes.tsx`'s `HEADING_ORDER`**, so the tree and the sidebar can't drift. A new page goes in the directory named after its nav heading.
+- **A page must not import another page.** Shared pieces move to `components/`; `MatchCard` is the worked example — four pages used to import it from `Matches.tsx` and drag the whole page into their chunk.
+
 ## End-to-end tests (`e2e/`)
 
 - **`npm run test:e2e` — Firefox, no backend, no database.** The API is served from typed fixtures through `page.route` (`e2e/mockApi.ts`), and `playwright.config.ts`'s `webServer` builds and previews the production bundle. The division is deliberate: pytest owns server behaviour (`tests/test_spa_fallback.py` covers the SPA fallback these URLs depend on), vitest owns pure functions, and this owns what only a browser can answer — routing, real links, error states, cache behaviour and keyboard operation.
@@ -55,10 +62,10 @@
 - **Dates are `Date`, not ISO strings.** The generated converters parse `scheduled_at`/`reveal_at`, so `bracketFormat`'s `formatScheduledAt`/`useCountdownMs` and Agenda's `onSchedule` all take `Date`. `useCountdownMs(null)` returns `NaN` on purpose — `remaining <= 0` is false for `NaN`, which is what keeps an unscheduled match's prediction poll open (it used to be spelled `new Date("")` at the call site).
 
 - **The generated models are stricter than the hand-written copies were**, mostly `T | null | undefined` where the copy said `T | null`. Compare with `== null` / `!= null`, not `=== null`: `match.winner !== null && match.winner === match.playerA` was true for an unplayed match where both were `undefined`, which would have drawn player A as the winner. `AuthStatus.user` likewise arrives as `undefined` for a null user, so the logged-out test is `!status.user`.
-- The map component is named `GameMap` (from `src/Map.tsx`) to avoid shadowing the JS `Map` constructor. Pass `eventDots?: EventDot[]` to overlay dots in game-space coordinates.
+- The map component is named `GameMap` (from `components/Map.tsx`) to avoid shadowing the JS `Map` constructor. Pass `eventDots?: EventDot[]` to overlay dots in game-space coordinates.
 - `ShowMatchDetails.tsx:EventChart` is pure MUI (no recharts); event types are driven by one `EVENT_TYPES` array (label, row, icon) — `EVENT_TYPE_BY_KEY` and `ROW_ORDER` are both derived from it, so adding an event type only means adding an entry there.
 - recharts Sankey `nodePadding` is uniform across columns; `node`/`link` accept custom elements receiving layout props; `payload.sourceLinks` detects leaf nodes.
-- Use `getColorHex`/`buildPlayerColorMap` from `src/utils.ts` for player-color maps; `WinRateRadar` is the shared radar chart (`data: {name, winRate}[]`).
+- Use `getColorHex`/`buildPlayerColorMap` from `lib/utils.ts` for player-color maps; `WinRateRadar` is the shared radar chart (`data: {name, winRate}[]`).
 - **`MatchActivityCalendar`'s two nested `<g>`s are load-bearing.** `react-activity-calendar` wraps whatever `renderBlock` returns in its own Tooltip, which does `cloneElement(children, { ref, ...getReferenceProps() })` — floating-ui's props are spread *after* yours, so anything it also sets is silently replaced. It sets `onKeyDown` and `ref`; it does not set `onClick`. A single `<g>` therefore gave a calendar that worked with a mouse and did nothing on Enter, with no error anywhere. The outer `<g>` is the sacrificial one it clones; put anything interactive on the inner one.
 - Format toggles: `FORMAT_OPTIONS` arrays drive ToggleButtonGroups; selected format goes up as the `gameFormat` query param; reset dependent state on format change.
 - Static serving: a single `http_cache.CachedStaticFiles` mount (`html=True`, so `/` serves `index.html`). Hashed `/assets/*` are `immutable` for a year; `index.html` and the rest are `no-cache`, so deploys revalidate.
