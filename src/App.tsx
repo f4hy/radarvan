@@ -8,14 +8,14 @@ import {
   useSearchParams,
 } from "react-router"
 import "./App.css"
-import { AuthProvider } from "./AuthContext"
-import ErrorBoundary from "./ErrorBoundary"
+import { AuthProvider } from "./lib/AuthContext"
+import ErrorBoundary from "./components/ErrorBoundary"
 import Menu from "./Menu"
-import { PlayerColorsProvider } from "./PlayerColorsContext"
-import NotFound from "./NotFound"
-import { queryClient } from "./queryClient"
+import { PlayerColorsProvider } from "./lib/PlayerColorsContext"
+import NotFound from "./components/NotFound"
+import { queryClient } from "./lib/queryClient"
 import { DEFAULT_ROUTE, LEGACY_PAGE_PARAM, ROUTES, routeBySlug } from "./routes"
-import theme from "./theme"
+import theme from "./lib/theme"
 
 // Preserves whatever preference was stored under the pre-MUI-cssVariables
 // color mode context, so migrating doesn't reset anyone's saved theme.

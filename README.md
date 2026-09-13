@@ -113,7 +113,7 @@ store wired up:
 
 - `mapparse` — a map-geometry parser binary that `radarvan/missing_maps.py` and
   `radarvan/map_upload.py` shell out to. Override its location with the
-  `MAPPARSE_BIN` env var.
+  `MAPPARSE_BIN` env var. Provenance below.
 - `ml_ensemble/` — the N-model win-prediction ensemble (`model-*.onnx`) and
   their shared vocabulary (`vocab.json`), read from the repo root by
   `radarvan/ml_inference.py`. Override the directory with `ML_ENSEMBLE_DIR`.
@@ -121,3 +121,37 @@ store wired up:
 
 Model-training code and its heavier dependencies live under `ml/` and are
 installed only on demand (`uv sync --group ml`), never in the production app.
+
+### `mapparse` provenance
+
+Upstream: <https://github.com/bill-rich/mapparse>. The source is **not** vendored
+here — the committed binary is the only copy in this repo, so this section is what
+makes it reproducible.
+
+| | |
+| --- | --- |
+| Upstream revision | `673567269893914c9a8c073f1375127e99a38242` |
+| Built | 2026-07-04T19:41:54Z |
+| Working tree | **dirty** (`vcs.modified=true`) — local edits not in the upstream commit |
+| Toolchain | `go1.26.5`, `GOOS=linux`, `GOARCH=amd64`, `CGO_ENABLED=1` |
+| SHA-256 | `f1463691d74e439058cde85b4ad960648e582b771de784e35e08d6a527ad0e8c` |
+
+`tests/test_mapparse_provenance.py` pins the hash, so replacing the binary is a
+red build rather than a silent change in map geometry. Everything in the table
+above except the upstream URL is readable back off the binary itself with
+`go version -m mapparse`, which is the first thing to run if this section and the
+file ever disagree.
+
+Two things follow from the dirty build. The upstream commit alone does **not**
+reproduce this binary, so anyone rebuilding needs whatever local changes produced
+it — recover them by diffing a clean build's `--json` output against a stored
+`jsons/*.json`. And a rebuild changes the hash, which is exactly what
+`MapData.mapparse_bin_hash` is for: `POST /api/reparse_maps` finds the rows parsed
+by the older build. Update the table and the pinned hash in the same commit as any
+new binary.
+
+Rebuild (once the local changes are recovered):
+
+```bash
+GOOS=linux GOARCH=amd64 go build -o mapparse .
+```
