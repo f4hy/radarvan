@@ -68,7 +68,9 @@ class FetchedMap:
 
 
 def _basename(map_path: str) -> str:
-    """Return the basename of the map path (last `/`-separated component, lowercased)."""
+    """Map path basename, lowercased. Not `map_key`: the MapData names this is
+    compared against in `list_missing_maps` keep their whitespace, and widening
+    one side alone changes what `/api/missing_maps` reports."""
     return replay_files.map_basename(map_path).lower()
 
 
