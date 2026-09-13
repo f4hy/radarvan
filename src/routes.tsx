@@ -60,36 +60,46 @@ export interface AppRoute {
   Component: React.LazyExoticComponent<React.ComponentType>
 }
 
-const Account = React.lazy(() => import("./Account"))
-const AdminPanel = React.lazy(() => import("./AdminPanel"))
-const BalanceTeams = React.lazy(() => import("./BalanceTeams"))
-const Bracket = React.lazy(() => import("./Bracket"))
-const ChooseMap = React.lazy(() => import("./ChooseMap"))
-const DebugData = React.lazy(() => import("./DebugData"))
-const Draft = React.lazy(() => import("./Draft"))
-const FFA = React.lazy(() => import("./FFA"))
-const GameLength = React.lazy(() => import("./GameLength"))
-const GameNight = React.lazy(() => import("./GameNight"))
-const GeneralStats = React.lazy(() => import("./GeneralStats"))
-const HeadToHead = React.lazy(() => import("./HeadToHead"))
-const MapStats = React.lazy(() => import("./MapStats"))
-const MapUpload = React.lazy(() => import("./MapUpload"))
-const MapVoting = React.lazy(() => import("./MapVoting"))
-const Matches = React.lazy(() => import("./Matches"))
-const OpeningBookPage = React.lazy(() => import("./OpeningBook"))
-const PlayerProfile = React.lazy(() => import("./PlayerProfile"))
-const PlayerRatings = React.lazy(() => import("./PlayerRatings"))
+const Account = React.lazy(() => import("./features/account/Account"))
+const AdminPanel = React.lazy(() => import("./features/admin/AdminPanel"))
+const BalanceTeams = React.lazy(
+  () => import("./features/play-tonight/BalanceTeams"),
+)
+const Bracket = React.lazy(() => import("./features/competition/Bracket"))
+const ChooseMap = React.lazy(() => import("./features/maps/ChooseMap"))
+const DebugData = React.lazy(() => import("./features/admin/DebugData"))
+const Draft = React.lazy(() => import("./features/play-tonight/Draft"))
+const FFA = React.lazy(() => import("./features/stats/FFA"))
+const GameLength = React.lazy(() => import("./features/stats/GameLength"))
+const GameNight = React.lazy(() => import("./features/games/GameNight"))
+const GeneralStats = React.lazy(() => import("./features/stats/GeneralStats"))
+const HeadToHead = React.lazy(() => import("./features/players/HeadToHead"))
+const MapStats = React.lazy(() => import("./features/maps/MapStats"))
+const MapUpload = React.lazy(() => import("./features/maps/MapUpload"))
+const MapVoting = React.lazy(() => import("./features/maps/MapVoting"))
+const Matches = React.lazy(() => import("./features/games/Matches"))
+const OpeningBookPage = React.lazy(() => import("./features/stats/OpeningBook"))
+const PlayerProfile = React.lazy(
+  () => import("./features/players/PlayerProfile"),
+)
+const PlayerRatings = React.lazy(
+  () => import("./features/players/PlayerRatings"),
+)
 const PlayerRatingTrend = React.lazy(() =>
-  import("./PlayerRatings").then((m) => ({
+  import("./features/players/PlayerRatings").then((m) => ({
     default: m.DisplayPlayerRatingTrend,
   })),
 )
-const PlayerStats = React.lazy(() => import("./PlayerStats"))
-const PlayerSynergy = React.lazy(() => import("./PlayerSynergy"))
-const Powers = React.lazy(() => import("./Powers"))
-const Superlatives = React.lazy(() => import("./Superlatives"))
-const TeamStats = React.lazy(() => import("./TeamStats"))
-const Tournaments = React.lazy(() => import("./Tournaments"))
+const PlayerStats = React.lazy(() => import("./features/players/PlayerStats"))
+const PlayerSynergy = React.lazy(
+  () => import("./features/players/PlayerSynergy"),
+)
+const Powers = React.lazy(() => import("./features/stats/Powers"))
+const Superlatives = React.lazy(() => import("./features/stats/Superlatives"))
+const TeamStats = React.lazy(() => import("./features/stats/TeamStats"))
+const Tournaments = React.lazy(
+  () => import("./features/competition/Tournaments"),
+)
 
 // Grouped rather than one flat list of twenty-five: a newcomer scanning an
 // undivided column has no way to tell "Choose Map" (draw tonight's map) from
