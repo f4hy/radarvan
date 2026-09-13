@@ -1,4 +1,4 @@
 import { CommentaryApi } from "../api/apis/CommentaryApi"
-import { apiConfig } from "../apiConfig"
+import { apiConfig } from "../lib/apiConfig"
 
 export const CommentaryClient = new CommentaryApi(apiConfig)

@@ -32,7 +32,7 @@ from .api_types import (
 from .durations import summarize
 from .match_narrative import is_base_superweapon
 from .player_ids import resolve_player_name
-from .replay_files import map_basename
+from .replay_files import map_display_name
 from .player_rating import GameUpset
 
 # A player who showed up for one game of a twelve-game night is on the sheet,
@@ -121,7 +121,7 @@ def player_lines(
 
 def _display_map(match: MatchInfo) -> str:
     """The map as the rest of the app shows it - stored as a path, read as a name."""
-    return map_basename(match.map).removesuffix(".map")
+    return map_display_name(match.map)
 
 
 def _duration_highlights(counted: list[MatchInfo]) -> list[GameNightHighlight]:

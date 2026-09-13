@@ -42,5 +42,6 @@ Data flow: replays arrive by scheduled scrape or `POST /api/upload_replay` → c
 - **Never mutate function inputs** — return new values (`model_copy(update=...)` for Pydantic).
 - camelCase wire aliases with `populate_by_name`. Don't add `slots=True` to a `BaseModel`'s `ConfigDict` expecting a memory win — it's silently ignored for `BaseModel`.
 - **Default to short minimal comments, and no multi-line docstrings.** Add a comment only for something that would still be non-obvious to someone reading this code cold on an unrelated task — a hidden constraint, a subtle invariant, a workaround for a specific bug — not what the code does or why *this task* touched it. If it would age out the moment the current task is forgotten, it doesn't belong in the source.
+- **This rule beats the surrounding code.** Roughly 60% of existing docstrings here are multi-line, some 30+ lines; that is legacy, not the house style, and "match the surrounding idiom" does not apply to comment length. Match the neighbours on naming and structure, never on verbosity — write the short version next to the long ones. Shorten what you touch; don't expand to fit.
 
 Docs elsewhere in the repo: `auth.md` (Discord OAuth setup), `SYNERGY_METHODOLOGY.md`, `ml/model_design.md`, `LOCAL_DEV.md`. `radarvan/api_types/` is the source of truth for the wire format.

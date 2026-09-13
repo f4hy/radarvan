@@ -1,4 +1,4 @@
 import { ProfileApi } from "../api/apis/ProfileApi"
-import { apiConfig } from "../apiConfig"
+import { apiConfig } from "../lib/apiConfig"
 
 export const ProfileClient = new ProfileApi(apiConfig)
