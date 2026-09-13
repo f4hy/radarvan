@@ -31,7 +31,7 @@ from ..dependencies import (
     get_user_repo,
     require_current_user,
 )
-from ..replay_files import map_basename, map_key
+from ..replay_files import map_display_name, map_key
 from ..repositories import MapVoteRepo, UserRepo, VoteLimitExceeded
 from ..repositories.votes import VETO_LIMIT, VOTE_LIMIT
 
@@ -65,7 +65,7 @@ def _match_map_index(replay_manager: ReplayManager) -> dict[str, _MapAgg]:
         key = map_key(match.map)
         agg = index.get(key)
         if agg is None:
-            agg = _MapAgg(display_name=map_basename(match.map).removesuffix(".map"))
+            agg = _MapAgg(display_name=map_display_name(match.map))
             index[key] = agg
         agg.game_count += 1
         if agg.last_played is None or match.timestamp > agg.last_played:
