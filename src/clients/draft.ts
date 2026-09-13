@@ -1,4 +1,4 @@
 import { DraftApi } from "../api/apis/DraftApi"
-import { apiConfig } from "../apiConfig"
+import { apiConfig } from "../lib/apiConfig"
 
 export const DraftClient = new DraftApi(apiConfig)

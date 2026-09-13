@@ -21,7 +21,7 @@ from .api_types import (
     Team,
 )
 from . import game_composition
-from .replay_files import map_basename, map_key
+from .replay_files import map_display_name, map_key
 from . import general_stats as general_stats_module
 from .player_ids import resolve_player_name
 import structlog
@@ -54,7 +54,7 @@ def get_map_stats(games: list[MatchInfo]) -> MapStatsResponse:
             continue
         if game.winning_team < 1:
             continue
-        map_name = map_basename(game.map)
+        map_name = map_display_name(game.map)
         map_games[map_name] += 1
 
         for player in game.roster().participants:
@@ -120,7 +120,7 @@ def map_player_records(games: Iterable[MatchInfo]) -> list[MapPlayerRecords]:
         if game.incomplete or game.winning_team < 1:
             continue
         key = map_key(game.map)
-        names_by_key.setdefault(key, map_basename(game.map))
+        names_by_key.setdefault(key, map_display_name(game.map))
         games_by_key[key] += 1
         for player in game.roster().participants:
             name = resolve_player_name(player.name, player.color)
@@ -156,18 +156,15 @@ def _form_str(results_desc: list[bool]) -> str:
     return "".join("W" if won else "L" for won in recent)
 
 
-def _normalize_map_name(name: str) -> str:
-    return "".join(name.split()).lower()
-
-
 def map_summary(
     games: list[MatchInfo], map_name: str, players: list[MapSummaryPlayer]
 ) -> MapSummaryResponse:
-    normalized = _normalize_map_name(map_name)
+    # map_name arrives as either a display name or the stored path.
+    normalized = map_key(map_name)
     on_map = [
         g
         for g in games
-        if _normalize_map_name(map_basename(g.map)) == normalized
+        if map_key(g.map) == normalized
         and not g.incomplete
         and g.winning_team >= 1
     ]
