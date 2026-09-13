@@ -30,7 +30,7 @@ from .api_types import (
 )
 from .game_composition import RosterSlot
 from .player_ids import resolve_player_name
-from .replay_files import map_basename
+from .replay_files import map_display_name
 from .replay_helpers import clean_object_name
 from .timeline_events import BASE_SUPERWEAPON_LAUNCHES
 
@@ -90,7 +90,7 @@ def _sides(match: MatchInfo) -> list[Side]:
 
 def _display_map(match: MatchInfo) -> str:
     """The map as the rest of the app shows it - stored as a path, read as a name."""
-    return map_basename(match.map).removesuffix(".map")
+    return map_display_name(match.map)
 
 
 def _join(names: list[str]) -> str:

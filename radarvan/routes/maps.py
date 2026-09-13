@@ -81,7 +81,7 @@ def get_map_summary(
     """Return a pre-game summary: map history, team h2h, and per-player records."""
     games = competitive_matches(replay_manager)
     summary = map_stats_module.map_summary(
-        list(games.values()), request.map_name.replace(".map", ""), request.players
+        list(games.values()), request.map_name, request.players
     )
     # Best-effort win prediction for this hypothetical matchup (notifies result).
     resolved_map = replay_manager.resolve_map_name(request.map_name) or request.map_name
