@@ -37,33 +37,41 @@ import { MapClient } from "../../clients/map"
 import { PredictClient } from "../../clients/predict"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import DisplayGeneral, { GeneralAvatar } from "../../components/Generals"
-import { toGeneralName } from "../../lib/general_utils"
 import Loading from "../../components/Loading"
+import Page from "../../components/Page"
+import QueryState from "../../components/QueryState"
+import WinRateChip from "../../components/WinRateChip"
+import WinRateRadar from "../../components/WinRateRadar"
+import { toGeneralName } from "../../lib/general_utils"
 import { mapStatsHref } from "../../lib/links"
 import {
   type BestWorst,
   computeGeneralBestWorst,
 } from "../../lib/mapGeneralStats"
-import Page from "../../components/Page"
-import QueryState from "../../components/QueryState"
 import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
 import { useUrlChoice } from "../../lib/useUrlState"
 import {
+  DEFAULT_HISTORY_CUTOFF,
   displayMapName,
   formatCash,
+  HISTORY_CUTOFFS,
+  type HistoryCutoff,
+  statsQueryParams,
   wilsonLowerBound,
   winRate,
   winRateTone,
 } from "../../lib/utils"
-import WinRateChip from "../../components/WinRateChip"
-import WinRateRadar from "../../components/WinRateRadar"
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
-function fetchGeneralStats(gameFormat: GameFormat): Promise<GeneralStats> {
-  const params = gameFormat === "All" ? {} : { gameFormat }
-  return GeneralsClient.getGeneralsStatsApiGeneralstatsGet(params)
+function fetchGeneralStats(
+  gameFormat: GameFormat,
+  cutoff: HistoryCutoff,
+): Promise<GeneralStats> {
+  return GeneralsClient.getGeneralsStatsApiGeneralstatsGet(
+    statsQueryParams(gameFormat, cutoff),
+  )
 }
 
 type GeneralChartData = {
@@ -412,15 +420,20 @@ function EmpiricalMatchupTable(props: {
 
 function fetchGeneralMatchups(
   gameFormat: GameFormat,
+  cutoff: HistoryCutoff,
 ): Promise<GeneralMatchups> {
-  const params = gameFormat === "All" ? {} : { gameFormat }
-  return GeneralsClient.getGeneralMatchupsApiGeneralstatsMatchupsGet(params)
+  return GeneralsClient.getGeneralMatchupsApiGeneralstatsMatchupsGet(
+    statsQueryParams(gameFormat, cutoff),
+  )
 }
 
-function EmpiricalMatchupSection(props: { format: GameFormat }) {
+function EmpiricalMatchupSection(props: {
+  format: GameFormat
+  cutoff: HistoryCutoff
+}) {
   const { data: matchups, isPending } = useQuery({
-    queryKey: ["generalMatchups", props.format],
-    queryFn: () => fetchGeneralMatchups(props.format),
+    queryKey: ["generalMatchups", props.format, props.cutoff],
+    queryFn: () => fetchGeneralMatchups(props.format, props.cutoff),
   })
 
   if (isPending) return <Loading />
@@ -578,9 +591,11 @@ function FactionMatrixSection() {
 function GeneralStatsBody({
   generalStats,
   format,
+  cutoff,
 }: {
   generalStats: GeneralStats
   format: GameFormat
+  cutoff: HistoryCutoff
 }) {
   const sorted = React.useMemo(
     () =>
@@ -652,7 +667,7 @@ function GeneralStatsBody({
         </Grid>
       </Grid>
       <Divider sx={{ mt: 4, mb: 2 }} />
-      <EmpiricalMatchupSection format={format} />
+      <EmpiricalMatchupSection format={format} cutoff={cutoff} />
       <Divider sx={{ mt: 4, mb: 2 }} />
       <FactionMatrixSection />
     </>
@@ -665,9 +680,14 @@ export default function DisplayGeneralStats() {
     FORMAT_OPTIONS,
     "All",
   )
+  const [cutoff, setCutoff] = useUrlChoice<HistoryCutoff>(
+    "history",
+    HISTORY_CUTOFFS,
+    DEFAULT_HISTORY_CUTOFF,
+  )
   const query = useQuery({
-    queryKey: ["generalStats", format],
-    queryFn: () => fetchGeneralStats(format),
+    queryKey: ["generalStats", format, cutoff],
+    queryFn: () => fetchGeneralStats(format, cutoff),
   })
 
   return (
@@ -675,17 +695,29 @@ export default function DisplayGeneralStats() {
       title="General Stats"
       description="How each general performs across our games, and which faction matchups genuinely favor one side."
       actions={
-        <FormatToggle
-          label="Game format"
-          options={FORMAT_OPTIONS}
-          value={format}
-          onChange={setFormat}
-        />
+        <>
+          <FormatToggle
+            label="Game format"
+            options={FORMAT_OPTIONS}
+            value={format}
+            onChange={setFormat}
+          />
+          <FormatToggle
+            label="History"
+            options={HISTORY_CUTOFFS}
+            value={cutoff}
+            onChange={setCutoff}
+          />
+        </>
       }
     >
       <QueryState query={query} what="general stats">
         {(generalStats) => (
-          <GeneralStatsBody generalStats={generalStats} format={format} />
+          <GeneralStatsBody
+            generalStats={generalStats}
+            format={format}
+            cutoff={cutoff}
+          />
         )}
       </QueryState>
     </Page>

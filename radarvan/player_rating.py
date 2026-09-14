@@ -539,6 +539,8 @@ def is_ratable_team_game(game: MatchInfo) -> bool:
     Ordered cheapest-first: composition checks are attribute reads,
     ``filter_for_rating`` resolves every competitor's name.
     """
+    if game.is_dev:
+        return False
     comp = game.composition
     if comp is None:
         return False

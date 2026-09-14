@@ -88,7 +88,7 @@ def get_generals_stats(
 ) -> GeneralStats:
     general_stats: dict[General, GeneralStat] = {}
     for game in games:
-        if game.incomplete or game.winning_team < 1:
+        if game.is_dev or game.incomplete or game.winning_team < 1:
             continue
         if not game_composition.competitive_game_filter(game.composition):
             continue
@@ -143,7 +143,7 @@ def get_general_matchups(games: list[MatchInfo]) -> GeneralMatchups:
     """
     pair_wins: dict[tuple[General, General], list[int]] = defaultdict(lambda: [0, 0])
     for game in games:
-        if game.incomplete or game.winning_team < 1:
+        if game.is_dev or game.incomplete or game.winning_team < 1:
             continue
         if not game_composition.competitive_game_filter(game.composition):
             continue

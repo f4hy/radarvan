@@ -30,10 +30,12 @@ import {
 
 export interface GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest {
     gameFormat?: string | null;
+    monthsBack?: number | null;
 }
 
 export interface GetGeneralsStatsApiGeneralstatsGetRequest {
     gameFormat?: string | null;
+    monthsBack?: number | null;
 }
 
 /**
@@ -49,6 +51,10 @@ export class GeneralsApi extends runtime.BaseAPI {
 
         if (requestParameters['gameFormat'] != null) {
             queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        if (requestParameters['monthsBack'] != null) {
+            queryParameters['months_back'] = requestParameters['monthsBack'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -69,7 +75,7 @@ export class GeneralsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Actual win/loss for every pair of generals that has faced off.  Same `gameFormat`-filtered corpus as `/api/generalstats`, so picking 1v1 up there narrows this to genuine one-on-one results; \"All\" pools every team size together (see `general_stats.get_general_matchups` for how a team game turns into pairwise samples).
+     * Actual win/loss for every pair of generals that has faced off.  Same `gameFormat`/`monthsBack`-filtered corpus as `/api/generalstats`, so picking 1v1 up there narrows this to genuine one-on-one results; \"All\" pools every team size together (see `general_stats.get_general_matchups` for how a team game turns into pairwise samples).
      * Get General Matchups
      */
     async getGeneralMatchupsApiGeneralstatsMatchupsGetRaw(requestParameters: GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GeneralMatchups>> {
@@ -80,7 +86,7 @@ export class GeneralsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Actual win/loss for every pair of generals that has faced off.  Same `gameFormat`-filtered corpus as `/api/generalstats`, so picking 1v1 up there narrows this to genuine one-on-one results; \"All\" pools every team size together (see `general_stats.get_general_matchups` for how a team game turns into pairwise samples).
+     * Actual win/loss for every pair of generals that has faced off.  Same `gameFormat`/`monthsBack`-filtered corpus as `/api/generalstats`, so picking 1v1 up there narrows this to genuine one-on-one results; \"All\" pools every team size together (see `general_stats.get_general_matchups` for how a team game turns into pairwise samples).
      * Get General Matchups
      */
     async getGeneralMatchupsApiGeneralstatsMatchupsGet(requestParameters: GetGeneralMatchupsApiGeneralstatsMatchupsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GeneralMatchups> {
@@ -96,6 +102,10 @@ export class GeneralsApi extends runtime.BaseAPI {
 
         if (requestParameters['gameFormat'] != null) {
             queryParameters['game_format'] = requestParameters['gameFormat'];
+        }
+
+        if (requestParameters['monthsBack'] != null) {
+            queryParameters['months_back'] = requestParameters['monthsBack'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
