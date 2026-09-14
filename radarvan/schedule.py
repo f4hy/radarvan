@@ -98,8 +98,7 @@ async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
             details,
             ratings_and_counts,
         )
-        replay_manager.clear_computed_stats()
-        replay_manager.save_computed_stats(result.stats)
+        replay_manager.replace_computed_stats(result.stats)
     duration = datetime.now(UTC) - start
     logger.info(
         "saved computed statistics",

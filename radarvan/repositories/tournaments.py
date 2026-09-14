@@ -210,6 +210,33 @@ class TournamentRepo(BaseRepo):
         self._commit_if_auto()
         return True
 
+    def replace_stage_links(
+        self,
+        tournament_id: int,
+        stage: str,
+        round_name: str,
+        match_ids: list[int],
+    ) -> None:
+        """Replace a stage's links in series order, retaining exclusions as tombstones."""
+        # Inner writes only flush; this operation owns the single commit.
+        writer = TournamentRepo(self.session, auto_commit=False)
+        ordered_ids = list(dict.fromkeys(match_ids))
+        existing = {
+            link.match_id for link in writer.list_links(tournament_id, stage=stage)
+        }
+        for match_id in sorted(existing - set(ordered_ids)):
+            writer.exclude_match(tournament_id, match_id, stage=stage)
+        for index, match_id in enumerate(ordered_ids, start=1):
+            writer.link_match(
+                tournament_id,
+                match_id,
+                stage=stage,
+                round_name=round_name,
+                series_index=index,
+                source="manual",
+            )
+        self._commit_if_auto()
+
     # --- Reports ---
 
     def save_tournament_report(
