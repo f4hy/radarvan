@@ -235,7 +235,7 @@ def test_no_record_exposes_a_rating_level() -> None:
     ratings.ordinal_low = dict.fromkeys(ratings.ordinal_low, sentinel)
     assert ratings.ordinal_high, "fixture must actually produce peaks to guard"
 
-    for stat in superlatives.get_superlatives(games, None, ratings).stats:
+    for stat in superlatives.get_superlatives(games, None, ratings).superlatives.stats:
         rendered = f"{stat.stat_name} {stat.value}"
         assert "987654" not in rendered.replace(",", "")
         assert str(round(sentinel * 10)) not in rendered.replace(",", "")

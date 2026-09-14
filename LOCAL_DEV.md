@@ -136,5 +136,31 @@ have drifted, only the snapshot-restored database will show it.
 - **S3.** `replay_files` hardcodes the bucket and region, so pointing it at a
   MinIO container would take code changes. Local runs use the real bucket.
 - **cncstats.** Replay parsing calls the live service with `CNCSTATS_APIKEY`.
-- **Tests.** `make test` still runs on the host (`uv run pytest`); the suite
-  never opens a real connection — see `tests/conftest.py`.
+- **Tests.** `make test` runs on the host (`uv run pytest`) and *skips* the
+  PostgreSQL integration cases, printing a line saying how many. To include
+  them:
+
+  ```bash
+  make test-pg                                        # whole suite
+  make test-pg PYTEST_ARGS="tests/test_computed_stats.py -q"   # one file
+  make test-db-down                                   # stop the container
+  ```
+
+  That starts the `test-db` service from compose's `test` profile — a separate
+  Postgres on 5434 (`TEST_DB_PORT`), **not** the dev stack's `db` on 5433. It
+  keeps its data directory on a tmpfs with `fsync=off`: create/drop-database per
+  test is the bulk of the cost, nothing in it is worth persisting, and a
+  hard-killed run can't leave stray `radarvan_test_*` databases behind in the
+  dev volume. `make up` does not start it; `make test-pg` does.
+
+  The fixture creates a randomly named database per test and drops it
+  afterward; it never uses the development `radarvan` database or falls back to
+  `DATABASE_URL`. The test role needs permission to create databases.
+
+  `REQUIRE_POSTGRES_TESTS=1` turns "no `TEST_POSTGRES_URL`" from a skip into a
+  failure. `make test-pg` and CI both set it, so a Postgres container that fails
+  to come up can't quietly reduce the run to the offline tier and still pass.
+
+  Keep the postgres image version and `POSTGRES_INITDB_ARGS` identical across
+  `db`, `test-db`, and `.github/workflows/ci.yml` — the C locale is what makes
+  text sort the way it does on prod's RDS.

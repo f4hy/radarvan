@@ -19,5 +19,5 @@ def get_opening_book(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> OpeningBook:
     """Serve the opening book from the DB, computed by the nightly/manual
-    superlatives recompute (see routes/superlatives._do_recompute)."""
+    superlatives recompute (see computed_stats.recompute)."""
     return opening_book.opening_book_from_computed(replay_manager.get_computed_stats())

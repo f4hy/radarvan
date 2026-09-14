@@ -10,7 +10,7 @@ from .db_utils import DatabaseManager, ReplayManager
 from .cache import competitive_matches, invalidate_match_caches
 from .matches import get_match_infos, register_matches
 from .repositories import BracketRepo, GameNightSummaryRepo
-from . import queries
+from . import computed_stats, queries
 from .commentary import llm, night_summary
 from . import tournament_membership
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -18,8 +18,6 @@ from datetime import UTC, datetime
 import asyncio
 from . import scrape_games
 from . import player_profile as player_profile_module
-from . import superlatives as superlatives_module
-from . import player_rating as player_rating_module
 import structlog
 from .notify import notify_async
 
@@ -66,49 +64,16 @@ async def update_games(
 
 
 async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
-    """Recompute all superlatives and persist them, replacing any previous results."""
-    start = datetime.now(UTC)
-    logger.info(
-        "computing superlatives", started_at=start.strftime("%Y-%m-%d %H:%M:%S")
-    )
-    with db_manager.get_replay_manager() as replay_manager:
-        stale = replay_manager.computed_stats_are_stale(days=3)
-        if stale:
-            await notify_async(
-                f"Computing records (started at {start:%Y-%m-%d %H:%M:%S})"
-            )
-        # Same game set as POST /api/superlatives/recompute (routes/superlatives):
-        # competitive_matches already excludes incomplete/mismatch games, so the
-        # nightly run and a manual trigger always agree on which matches count.
-        # Blocking DB work on a cache miss - keep it off the event loop.
-        games = await asyncio.to_thread(competitive_matches, replay_manager)
-        competitive = [m for m in games.values() if m.winning_team > 0]
-        match_ids = [m.id for m in competitive]
-        details = await superlatives_module.load_many_superlative_data(
-            match_ids, db_manager
-        )
-        logger.info("loaded match details for superlatives", count=len(details))
-        # Pure computation, but heavy - run off the event loop.
-        ratings_and_counts = await asyncio.to_thread(
-            player_rating_module.compute_player_ratings, competitive
-        )
-        result = await asyncio.to_thread(
-            superlatives_module.get_superlatives,
-            competitive,
-            details,
-            ratings_and_counts,
-        )
-        replay_manager.replace_computed_stats(result.stats)
-    duration = datetime.now(UTC) - start
-    logger.info(
-        "saved computed statistics",
-        count=len(result.stats),
-        started_at=start.strftime("%Y-%m-%d %H:%M:%S"),
-        took=str(duration),
-    )
-    if stale:
-        msg = f"Saved {len(result.stats)} computed statistics for Records page. Started at {start:%Y-%m-%d %H:%M:%S}, took {duration}."
-        await notify_async(msg)
+    """Nightly records/generals/opening-book refresh.
+
+    Skips rather than queues behind a manual run: blocking would redo the
+    identical full-corpus pass and push it into the 4:30 profile job, which
+    assumes it has the corpus to itself.
+    """
+    if computed_stats.recompute_pending():
+        logger.info("skipping scheduled recompute; one is already running")
+        return
+    await computed_stats.recompute(db_manager)
 
 
 async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
