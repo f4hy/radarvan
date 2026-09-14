@@ -43,6 +43,49 @@ services:
       retries: 30
       start_period: 5s
 
+  # Postgres for the integration tests (`make test-pg`). Profile-gated, so
+  # `make up` never starts it.
+  #
+  # Separate from `db` on purpose: that one's volume is where `make db-restore`
+  # puts a production snapshot, and the fixtures create and drop a database per
+  # test. Here the data directory is a tmpfs and durability is off -- a database
+  # that lives for one test has nothing worth fsyncing, and a hard-killed run
+  # leaks nothing, because the whole cluster dies with the container.
+  #
+  # Keep the image and POSTGRES_INITDB_ARGS in step with `db` above and with
+  # .github/workflows/ci.yml: the C locale is what makes text sort the way it
+  # does on prod's RDS.
+  test-db:
+    image: postgres:17-alpine
+    profiles: [test]
+    environment:
+      POSTGRES_USER: radarvan
+      POSTGRES_PASSWORD: radarvan
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data
+    tmpfs:
+      - /var/lib/postgresql/data
+    command:
+      [
+        "postgres",
+        "-c",
+        "fsync=off",
+        "-c",
+        "full_page_writes=off",
+        "-c",
+        "synchronous_commit=off",
+      ]
+    ports:
+      # 5434: clear of the host (5432) and of the dev stack's db (5433).
+      - "${TEST_DB_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radarvan -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
   # One-shot: brings the schema up to head before the backend starts. Runs on
   # every `up` and is a no-op when there's nothing to apply. See
   # scripts/bootstrap_db.py for why this isn't a bare `alembic upgrade head`.

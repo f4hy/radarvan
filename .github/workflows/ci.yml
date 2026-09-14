@@ -13,6 +13,24 @@ jobs:
   build:
     name: Lint, type-check, test, build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: radarvan
+          POSTGRES_PASSWORD: radarvan
+          POSTGRES_DB: postgres
+          # Must match docker-compose.yml's `db` and `test-db`: the C locale is
+          # what makes text sort the way it does on prod's RDS, so without this
+          # a collation-dependent ORDER BY passes here and differs locally.
+          POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U radarvan -d postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -66,11 +84,15 @@ jobs:
       # `uv run pytest`. The whole suite runs against a clean checkout: the
       # canonical cncstats fixture is committed (references/example_cncstats_output.json)
       # and tests/new_cncstats_output.json is tracked, so no deselects are needed.
-      # DATABASE_URL is a dummy value because several modules read it at import
-      # time -- no real database is contacted by the offline test suite.
+      # DATABASE_URL is inert for app imports. Integration fixtures use a
+      # separate URL and create/drop their own randomly named test databases.
       - name: Python tests (pytest)
         env:
           DATABASE_URL: "sqlite://"
+          TEST_POSTGRES_URL: "postgresql://radarvan:radarvan@127.0.0.1:5432/postgres"
+          # Turns a missing URL into a failure: without it, losing the service
+          # container would skip the integration tier and still report green.
+          REQUIRE_POSTGRES_TESTS: "1"
         run: uv run pytest
 
       # Mirrors `npm test` (vitest run).

@@ -17,7 +17,7 @@ class GeneralStat(BaseModel):
     general: General
     stats: list[GeneralStatPlayerWL]
     total: WinLoss
-    # Precomputed nightly (see routes/superlatives._do_recompute) since it
+    # Precomputed nightly (see computed_stats.recompute) since it
     # requires scanning every competitive match's kill events - too slow to
     # derive live in this otherwise-cheap route. 0 until the first recompute.
     value_destroyed: int = 0
