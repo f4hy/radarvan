@@ -13,7 +13,7 @@ War Factory/Airfield/Patriot Battery as its own line rather than folded into
 the first build of that type.
 
 Only cheap enough to run as part of the nightly superlatives recompute, not
-live per-request - see routes/superlatives._do_recompute (mirrors
+live per-request - see computed_stats.recompute (mirrors
 general_stats.general_value_stats).
 """
 

@@ -1331,20 +1331,33 @@ def get_monthly_stats(
     return stats
 
 
-def _safe_compute(fn, *args) -> list[Statistic]:  # type: ignore[no-untyped-def]
+class _GroupResult(NamedTuple):
+    stats: list[Statistic]
+    failed: str | None
+
+
+class SuperlativeComputation(NamedTuple):
+    """Records plus the producers that raised, so a caller can refuse to publish."""
+
+    superlatives: Superlatives
+    failed_groups: tuple[str, ...]
+
+
+def _safe_compute(fn: Callable[..., list[Statistic]], *args: object) -> _GroupResult:
+    # One bad producer must not sink the other 22, but the caller still has to
+    # learn it happened - an empty group is indistinguishable from a real one.
     try:
-        result: list[Statistic] = fn(*args)
-        return result
+        return _GroupResult(fn(*args), None)
     except Exception:
         logger.exception("error computing superlative stat group", group=fn.__name__)
-        return []
+        return _GroupResult([], fn.__name__)
 
 
 def get_superlatives(
     games: list[MatchInfo],
     details: list[SuperlativeData] | None = None,
     ratings: RatingsAndCounts | None = None,
-) -> Superlatives:
+) -> SuperlativeComputation:
     """Every record, from the corpus plus whatever derived inputs are available.
 
     ``ratings`` carries both things the rating pass already computed that a
@@ -1354,43 +1367,48 @@ def get_superlatives(
     in CLAUDE.md.
     """
     computed_at = datetime.now(UTC).date()
+    match_info_by_id = {g.id: g for g in games}
 
-    stats: list[Statistic] = [
-        *_safe_compute(get_game_count_stats, games, computed_at),
-        *_safe_compute(get_win_streak_stats, games, computed_at),
-        *_safe_compute(get_map_duration_stats, games, computed_at),
-        *_safe_compute(get_match_duration_extremes, games, computed_at),
-        *_safe_compute(get_calendar_stats, games, computed_at),
-        *_safe_compute(get_attendance_stats, games, computed_at),
-        *_safe_compute(get_duo_stats, games, computed_at),
+    producers: list[tuple[Callable[..., list[Statistic]], tuple[object, ...]]] = [
+        (get_game_count_stats, (games, computed_at)),
+        (get_win_streak_stats, (games, computed_at)),
+        (get_map_duration_stats, (games, computed_at)),
+        (get_match_duration_extremes, (games, computed_at)),
+        (get_calendar_stats, (games, computed_at)),
+        (get_attendance_stats, (games, computed_at)),
+        (get_duo_stats, (games, computed_at)),
     ]
     if ratings is not None:
-        for rating_fn, *rating_args in [
-            (get_monthly_stats, games, ratings.daily_changes, computed_at),
-            (get_upset_stats, ratings.upsets, computed_at),
-        ]:
-            stats.extend(_safe_compute(rating_fn, *rating_args))
+        producers += [
+            (get_monthly_stats, (games, ratings.daily_changes, computed_at)),
+            (get_upset_stats, (ratings.upsets, computed_at)),
+        ]
     if details:
-        match_info_by_id = {g.id: g for g in games}
-        for fn, *args in [
-            (get_first_blood_stats, match_info_by_id, details, computed_at),
-            (get_building_first_blood_stats, match_info_by_id, details, computed_at),
-            (get_apm_stats, details, computed_at),
-            (get_comeback_stats, details, computed_at),
-            (get_money_stats, details, computed_at),
-            (get_player_money_stats, details, computed_at),
-            (get_activity_stats, details, computed_at),
-            (get_efficiency_stats, match_info_by_id, details, computed_at),
-            (get_fastest_rank_5_stats, match_info_by_id, details, computed_at),
-            (get_fastest_search_destroy_stats, match_info_by_id, details, computed_at),
-            (get_hunted_stats, match_info_by_id, details, computed_at),
-            (get_xp_rate_stats, match_info_by_id, details, computed_at),
-            (get_superweapon_stats, match_info_by_id, details, computed_at),
-            (get_tech_capture_stats, match_info_by_id, details, computed_at),
-        ]:
-            stats.extend(_safe_compute(fn, *args))
+        producers += [
+            (get_first_blood_stats, (match_info_by_id, details, computed_at)),
+            (get_building_first_blood_stats, (match_info_by_id, details, computed_at)),
+            (get_apm_stats, (details, computed_at)),
+            (get_comeback_stats, (details, computed_at)),
+            (get_money_stats, (details, computed_at)),
+            (get_player_money_stats, (details, computed_at)),
+            (get_activity_stats, (details, computed_at)),
+            (get_efficiency_stats, (match_info_by_id, details, computed_at)),
+            (get_fastest_rank_5_stats, (match_info_by_id, details, computed_at)),
+            (
+                get_fastest_search_destroy_stats,
+                (match_info_by_id, details, computed_at),
+            ),
+            (get_hunted_stats, (match_info_by_id, details, computed_at)),
+            (get_xp_rate_stats, (match_info_by_id, details, computed_at)),
+            (get_superweapon_stats, (match_info_by_id, details, computed_at)),
+            (get_tech_capture_stats, (match_info_by_id, details, computed_at)),
+        ]
 
-    return Superlatives(
-        stats=stats,
-        computed_at=computed_at,
+    results = [_safe_compute(fn, *args) for fn, args in producers]
+    return SuperlativeComputation(
+        superlatives=Superlatives(
+            stats=[stat for result in results for stat in result.stats],
+            computed_at=computed_at,
+        ),
+        failed_groups=tuple(r.failed for r in results if r.failed is not None),
     )

@@ -133,7 +133,7 @@ async def save_report(name: str, save: bool = True) -> TournamentReport:
     async with _report_semaphore:
         with db_manager.get_replay_manager() as rm:
             # Blocking DB work on a cache miss (the whole match listing) - keep
-            # it off the event loop, same as routes/superlatives._do_recompute.
+            # it off the event loop, same as computed_stats.recompute.
             replays = await asyncio.to_thread(sorted_deduped_matches, rm)
         tournament_games = tournament.tournament_games(list(replays.values())).get(
             name, []
