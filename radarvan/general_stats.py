@@ -37,7 +37,7 @@ def general_value_stats(
     the same match set; details for matches missing from `games` (or vice
     versa) are silently skipped. Scans every match's SuperlativeData, so this
     is only cheap enough to run as part of the nightly superlatives recompute,
-    not live per-request - see routes/superlatives._do_recompute.
+    not live per-request - see computed_stats.recompute.
     """
     general_by_match: dict[int, dict[str, General]] = {}
     for g in games:
@@ -65,7 +65,7 @@ def general_value_stats(
 
 def value_stats_from_computed(stats: list[Statistic]) -> dict[General, tuple[int, int]]:
     """Decode the `__general_value_*` rows persisted by the nightly recompute
-    (see routes/superlatives._do_recompute) back into the same shape
+    (see computed_stats.recompute) back into the same shape
     `general_value_stats` produces, for `get_generals_stats` to merge in."""
     destroyed: dict[General, int] = {}
     lost: dict[General, int] = {}
@@ -160,9 +160,7 @@ def get_general_matchups(games: list[MatchInfo]) -> GeneralMatchups:
                 if gen_w == gen_l:
                     continue
                 key, winner_is_first = (
-                    ((gen_w, gen_l), True)
-                    if gen_w < gen_l
-                    else ((gen_l, gen_w), False)
+                    ((gen_w, gen_l), True) if gen_w < gen_l else ((gen_l, gen_w), False)
                 )
                 pair_wins[key][0 if winner_is_first else 1] += 1
 

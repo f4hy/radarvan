@@ -75,8 +75,21 @@ clean: ## Clean build artifacts and cache files
 	find . -type f -name "*.pyo" -delete
 	@echo "✓ Cleaned all build artifacts and caches!"
 
-test: ## Run tests
+test: ## Run tests (PostgreSQL cases skip; see test-pg)
 	uv run pytest
+
+# Starts the tmpfs Postgres from docker-compose.yml's `test` profile, then runs
+# the suite against it. DATABASE_URL is pinned inert here because `make test`
+# otherwise inherits the dev shell's, which .env points at production.
+test-pg: ## Run tests including the PostgreSQL integration cases
+	docker compose --profile test up -d --wait test-db
+	DATABASE_URL=sqlite:// \
+	TEST_POSTGRES_URL=postgresql://radarvan:radarvan@127.0.0.1:$${TEST_DB_PORT:-5434}/postgres \
+	REQUIRE_POSTGRES_TESTS=1 \
+		uv run pytest $(PYTEST_ARGS)
+
+test-db-down: ## Stop the test PostgreSQL container
+	docker compose --profile test down test-db
 
 # ── Local dev stack (docker compose) ──────────────────────────────────────────
 # Postgres + backend + frontend, all hot-reloading. See LOCAL_DEV.md.
