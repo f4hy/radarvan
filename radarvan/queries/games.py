@@ -83,10 +83,17 @@ def all_games(
     """Every deduplicated match, including the ones no leaderboard counts.
 
     For counts and listings - "how many games has this player played" includes
-    the comp-stomps and the unbalanced ones.
+    the comp-stomps and the unbalanced ones. Dev-build ("dev-" zulu) replays
+    are still excluded here - they're test-client noise, not a real game
+    anyone played - which is why this filters `sorted_deduped_matches` rather
+    than just passing it through; that raw cache stays unfiltered because
+    `routes/matches.py`'s `exclude_dev` toggle (the raw match browser) needs
+    dev matches present by default.
     """
     return _narrow(
-        list(sorted_deduped_matches(replay_manager).values()), game_format, months_back
+        [m for m in sorted_deduped_matches(replay_manager).values() if not m.is_dev],
+        game_format,
+        months_back,
     )
 
 
@@ -119,6 +126,16 @@ def _all_games_dep(
     return all_games(replay_manager)
 
 
+def _all_games_windowed_dep(
+    months_back: int | None = Query(None, ge=1, description=MONTHS_BACK_DESCRIPTION),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[MatchInfo]:
+    # No game_format here on purpose: player_stats.get_player_stats filters by
+    # category internally (see its route's docstring), finer-grained than
+    # filter_by_format.
+    return all_games(replay_manager, months_back=months_back)
+
+
 # The corpus a handler declares it needs. The `game_format` query parameter comes
 # with the dependency, so a route that takes `CompetitiveGames` advertises it in
 # the OpenAPI spec without restating it.
@@ -128,3 +145,4 @@ WindowedCompetitiveGames = Annotated[
 ]
 UnfilteredCompetitiveGames = Annotated[list[MatchInfo], Depends(_all_competitive_dep)]
 AllGames = Annotated[list[MatchInfo], Depends(_all_games_dep)]
+WindowedAllGames = Annotated[list[MatchInfo], Depends(_all_games_windowed_dep)]

@@ -38,6 +38,7 @@ from ..queries import (
     AllGames,
     CompetitiveGames,
     UnfilteredCompetitiveGames,
+    WindowedAllGames,
     WindowedCompetitiveGames,
 )
 from ..db_utils import ReplayManager
@@ -64,14 +65,15 @@ class SelectedPlayers(BaseModel):
 
 @router.get("/api/playerstats", dependencies=[Depends(cache_short)])
 def get_player_stats(
-    games: AllGames,
+    games: WindowedAllGames,
     game_format: str | None = Query(None, description=queries.FORMAT_DESCRIPTION),
 ) -> PlayerStats:
     """Get player stats.
 
     `game_format` stays a parameter here rather than coming from the corpus
     dependency: `player_stats.get_player_stats` filters per game *category*
-    internally, which is finer-grained than `filter_by_format`.
+    internally, which is finer-grained than `filter_by_format`. `months_back`
+    (on `WindowedAllGames`) is optional and defaults to all-time.
     """
     return player_stats.get_player_stats(games, game_format=game_format)
 
