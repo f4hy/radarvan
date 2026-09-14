@@ -93,8 +93,7 @@ async def _do_recompute(
     book = opening_book.build_opening_book(tallies, computed_at)
     opening_book_rows = opening_book.opening_book_stat_rows(book)
     result.stats = result.stats + value_stat_rows + opening_book_rows
-    replay_manager.clear_computed_stats()
-    replay_manager.save_computed_stats(result.stats)
+    replay_manager.replace_computed_stats(result.stats)
     logger.info(
         "saved computed statistics",
         count=len(result.stats),
