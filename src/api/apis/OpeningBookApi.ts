@@ -51,7 +51,7 @@ export class OpeningBookApi extends runtime.BaseAPI {
     }
 
     /**
-     * Serve the opening book from the DB, computed by the nightly/manual superlatives recompute (see routes/superlatives._do_recompute).
+     * Serve the opening book from the DB, computed by the nightly/manual superlatives recompute (see computed_stats.recompute).
      * Get Opening Book
      */
     async getOpeningBookApiOpeningBookGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OpeningBook>> {
@@ -62,7 +62,7 @@ export class OpeningBookApi extends runtime.BaseAPI {
     }
 
     /**
-     * Serve the opening book from the DB, computed by the nightly/manual superlatives recompute (see routes/superlatives._do_recompute).
+     * Serve the opening book from the DB, computed by the nightly/manual superlatives recompute (see computed_stats.recompute).
      * Get Opening Book
      */
     async getOpeningBookApiOpeningBookGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OpeningBook> {

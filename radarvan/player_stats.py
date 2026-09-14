@@ -88,8 +88,10 @@ def stats_game_filter(game: MatchInfo) -> bool:
     Complete, competitive team games. Shared with the player profile page so
     its record and per-general numbers match this page's.
     """
-    return not game.incomplete and game_composition.competitive_game_filter(
-        game.composition
+    return (
+        not game.is_dev
+        and not game.incomplete
+        and game_composition.competitive_game_filter(game.composition)
     )
 
 
@@ -100,7 +102,7 @@ def get_player_stats(
     player_counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
 
     for game in games:
-        if game.incomplete:
+        if game.is_dev or game.incomplete:
             continue
         if game.composition is None or not game_composition.is_recognized_team_game(
             game.composition

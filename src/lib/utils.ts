@@ -55,6 +55,41 @@ export function winRate(wins: number, losses: number): number {
   return tot > 0 ? wins / tot : 0
 }
 
+// The history-cutoff toggle shared by Player Stats, Generals Stats and Player
+// Ratings: player skill drifts over the community's multi-year history, so an
+// "All time" win rate can be dominated by an era that no longer reflects
+// anyone's current play. "All" maps to `undefined` (no `monthsBack` sent)
+// rather than a large number, so the request matches the server's own
+// optional-parameter default. Default to 30mo, not "All": the exact case this
+// toggle exists for.
+export const HISTORY_CUTOFFS = [
+  "6mo",
+  "12mo",
+  "18mo",
+  "24mo",
+  "30mo",
+  "All",
+] as const
+export type HistoryCutoff = (typeof HISTORY_CUTOFFS)[number]
+export const DEFAULT_HISTORY_CUTOFF: HistoryCutoff = "30mo"
+
+export function monthsBackFor(cutoff: HistoryCutoff): number | undefined {
+  return cutoff === "All" ? undefined : parseInt(cutoff, 10)
+}
+
+// The {gameFormat, monthsBack} query params every Player/Generals Stats fetch
+// sends - one shape so the "All" sentinel (omit the param) is encoded once
+// rather than re-typed at each call site.
+export function statsQueryParams<F extends string>(
+  gameFormat: F,
+  cutoff: HistoryCutoff,
+): { gameFormat?: F; monthsBack?: number } {
+  return {
+    ...(gameFormat === "All" ? {} : { gameFormat }),
+    monthsBack: monthsBackFor(cutoff),
+  }
+}
+
 // Below this many games a win rate is treated as too noisy to trust — used to
 // dim/grey such cells so a 1-0 record doesn't read as a confident 100%.
 export const LOW_SAMPLE_GAMES = 5
