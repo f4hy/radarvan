@@ -13,14 +13,9 @@ from .base import BaseRepo
 class StatsRepo(BaseRepo):
     """Operations on ComputedStatistic."""
 
-    def clear_computed_stats(self) -> int:
-        """Delete all computed statistics. Returns the number of rows deleted."""
-        result = self.session.execute(sa_delete(ComputedStatistic))
-        self._commit_if_auto()
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
-
-    def save_computed_stats(self, stats: list[PydanticStatistic]) -> None:
-        """Persist a batch of computed statistics using each stat's date_computed."""
+    def replace_computed_stats(self, stats: list[PydanticStatistic]) -> None:
+        """Replace the complete snapshot, committing only after every row is flushed."""
+        self.session.execute(sa_delete(ComputedStatistic))
         for stat in stats:
             db_stat = ComputedStatistic(
                 stat_name=stat.stat_name,
@@ -34,6 +29,7 @@ class StatsRepo(BaseRepo):
                 else:
                     db_stat.value_str = str(stat.value)
             self.session.add(db_stat)
+        self.session.flush()
         self._commit_if_auto()
 
     def get_computed_stats(self) -> list[PydanticStatistic]:
