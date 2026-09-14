@@ -8,7 +8,7 @@ from .. import general_stats
 from ..api_types import GeneralMatchups, GeneralStats
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
-from ..queries import CompetitiveGames
+from ..queries import WindowedCompetitiveGames
 
 logger = structlog.get_logger(__name__)
 
@@ -17,7 +17,7 @@ router = APIRouter(tags=["generals"])
 
 @router.get("/api/generalstats", dependencies=[Depends(cache_short)])
 def get_generals_stats(
-    game_list: CompetitiveGames,
+    game_list: WindowedCompetitiveGames,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> GeneralStats:
     """Get generals stats.
@@ -35,13 +35,13 @@ def get_generals_stats(
 
 
 @router.get("/api/generalstats/matchups", dependencies=[Depends(cache_short)])
-def get_general_matchups(game_list: CompetitiveGames) -> GeneralMatchups:
+def get_general_matchups(game_list: WindowedCompetitiveGames) -> GeneralMatchups:
     """Actual win/loss for every pair of generals that has faced off.
 
-    Same `gameFormat`-filtered corpus as `/api/generalstats`, so picking 1v1
-    up there narrows this to genuine one-on-one results; "All" pools every
-    team size together (see `general_stats.get_general_matchups` for how a
-    team game turns into pairwise samples).
+    Same `gameFormat`/`monthsBack`-filtered corpus as `/api/generalstats`, so
+    picking 1v1 up there narrows this to genuine one-on-one results; "All"
+    pools every team size together (see `general_stats.get_general_matchups`
+    for how a team game turns into pairwise samples).
     """
     logger.info("getting general matchups")
     return general_stats.get_general_matchups(game_list)

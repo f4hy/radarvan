@@ -1,5 +1,10 @@
-import Stack from "@mui/material/Stack"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import { Box, Tooltip as MuiTooltip, Typography, useTheme } from "@mui/material"
+import Accordion from "@mui/material/Accordion"
+import AccordionDetails from "@mui/material/AccordionDetails"
+import AccordionSummary from "@mui/material/AccordionSummary"
 import Paper from "@mui/material/Paper"
+import Stack from "@mui/material/Stack"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
@@ -8,31 +13,26 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
-import Accordion from "@mui/material/Accordion"
-import AccordionSummary from "@mui/material/AccordionSummary"
-import AccordionDetails from "@mui/material/AccordionDetails"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import { Box, Tooltip as MuiTooltip, Typography, useTheme } from "@mui/material"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
-  LabelList,
   CartesianGrid,
   ErrorBar,
+  LabelList,
+  Line,
+  ResponsiveContainer,
   Scatter,
   ScatterChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
   ZAxis,
-  AreaChart,
-  Area,
-  Line,
 } from "recharts"
 import type {
   HeadToHead,
@@ -41,31 +41,34 @@ import type {
   RatingUpset,
 } from "../../api"
 import { PlayersClient } from "../../clients/players"
+import FormatToggle from "../../components/FormatToggle"
 import Page from "../../components/Page"
-import { queryFallback } from "../../components/QueryState"
-import { SimplePlayerSynergy } from "./PlayerSynergy"
 import { PlayerLabel } from "../../components/PlayerChip"
-import { BRAND_COLOR, WIN_COLOR, LOSS_COLOR } from "../../lib/theme"
+import { queryFallback } from "../../components/QueryState"
+import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
 import { useUrlChoice, useUrlNumber } from "../../lib/useUrlState"
+import {
+  DEFAULT_HISTORY_CUTOFF,
+  HISTORY_CUTOFFS,
+  type HistoryCutoff,
+  statsQueryParams,
+} from "../../lib/utils"
+import { SimplePlayerSynergy } from "./PlayerSynergy"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
-const MONTHS_BACK_OPTIONS = [1, 3, 6, 9, 12] as const
 // The rating-history chart opens here; earlier years exist but are mostly a
 // different group of players.
 const DEFAULT_START_YEAR = 2024
-type MonthsBack = (typeof MONTHS_BACK_OPTIONS)[number] | null
 
 function fetchPlayerRatings(
   gameFormat: GameFormat,
-  monthsBack: MonthsBack,
+  cutoff: HistoryCutoff,
 ): Promise<PlayerRatingData> {
-  const params = {
-    ...(gameFormat === "All" ? {} : { gameFormat }),
-    ...(monthsBack == null ? {} : { monthsBack }),
-  }
-  return PlayersClient.getPlayerRatingsApiPlayerRatingsGet(params)
+  return PlayersClient.getPlayerRatingsApiPlayerRatingsGet(
+    statsQueryParams(gameFormat, cutoff),
+  )
 }
 
 function formatLabel(val: unknown): string {
@@ -774,45 +777,6 @@ function FormatSelector(props: {
   )
 }
 
-const MONTHS_BACK_ALL = "all"
-const MONTHS_BACK_PARAMS = [MONTHS_BACK_ALL, ...MONTHS_BACK_OPTIONS] as const
-type MonthsBackParam = (typeof MONTHS_BACK_PARAMS)[number]
-
-function MonthsBackSelector(props: {
-  monthsBack: MonthsBack
-  onChange: (m: MonthsBack) => void
-}) {
-  return (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{
-        alignItems: "center",
-        mb: 2,
-        p: 1,
-      }}
-    >
-      <Typography variant="h6">Time Range:</Typography>
-      <ToggleButtonGroup
-        value={props.monthsBack ?? MONTHS_BACK_ALL}
-        exclusive
-        onChange={(_, v) => {
-          if (v == null) return
-          props.onChange(v === MONTHS_BACK_ALL ? null : v)
-        }}
-        size="small"
-      >
-        <ToggleButton value={MONTHS_BACK_ALL}>All</ToggleButton>
-        {MONTHS_BACK_OPTIONS.map((m) => (
-          <ToggleButton key={m} value={m}>
-            {m}mo
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
-    </Stack>
-  )
-}
-
 function SkillScatterChart(props: { data: RatingEntry[]; isMobile: boolean }) {
   const { data, isMobile } = props
   const labelFontSize = isMobile ? 11 : 20
@@ -1002,8 +966,8 @@ export function DisplayPlayerRatingTrend() {
     "All",
   )
   const query = useQuery({
-    queryKey: ["playerRatings", format, null],
-    queryFn: () => fetchPlayerRatings(format, null),
+    queryKey: ["playerRatings", format, "All"],
+    queryFn: () => fetchPlayerRatings(format, "All"),
   })
   const fallback = queryFallback(query, "rating trends")
   if (fallback) return fallback
@@ -1081,19 +1045,14 @@ export default function DisplayPlayerRatings() {
     FORMAT_OPTIONS,
     "All",
   )
-  // `null` is "all time", and the URL says so with the same sentinel the toggle
-  // group already uses rather than inventing a second spelling for it.
-  const [monthsRaw, setMonthsRaw] = useUrlChoice<MonthsBackParam>(
+  const [cutoff, setCutoff] = useUrlChoice<HistoryCutoff>(
     "months",
-    MONTHS_BACK_PARAMS,
-    MONTHS_BACK_ALL,
+    HISTORY_CUTOFFS,
+    DEFAULT_HISTORY_CUTOFF,
   )
-  const monthsBack: MonthsBack =
-    monthsRaw === MONTHS_BACK_ALL ? null : monthsRaw
-  const setMonthsBack = (m: MonthsBack) => setMonthsRaw(m ?? MONTHS_BACK_ALL)
   const query = useQuery({
-    queryKey: ["playerRatings", format, monthsBack],
-    queryFn: () => fetchPlayerRatings(format, monthsBack),
+    queryKey: ["playerRatings", format, cutoff],
+    queryFn: () => fetchPlayerRatings(format, cutoff),
   })
 
   const theme = useTheme()
@@ -1108,7 +1067,12 @@ export default function DisplayPlayerRatings() {
   if (playerRatings.playerRating.length === 0) {
     return (
       <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
-        <MonthsBackSelector monthsBack={monthsBack} onChange={setMonthsBack} />
+        <FormatToggle
+          label="History"
+          options={HISTORY_CUTOFFS}
+          value={cutoff}
+          onChange={setCutoff}
+        />
         <FormatSelector format={format} onChange={setFormat} />
         <Typography
           variant="body2"
@@ -1126,7 +1090,12 @@ export default function DisplayPlayerRatings() {
   const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
-      <MonthsBackSelector monthsBack={monthsBack} onChange={setMonthsBack} />
+      <FormatToggle
+        label="History"
+        options={HISTORY_CUTOFFS}
+        value={cutoff}
+        onChange={setCutoff}
+      />
       <Accordion
         disableGutters
         defaultExpanded={false}

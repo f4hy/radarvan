@@ -81,6 +81,7 @@ export interface GetPlayerSkillsApiPlayerSkillsGetRequest {
 
 export interface GetPlayerStatsApiPlayerstatsGetRequest {
     gameFormat?: string | null;
+    monthsBack?: number | null;
 }
 
 export interface GetPlayerSynergyApiPlayerRatingsSynergyGetRequest {
@@ -518,6 +519,10 @@ export class PlayersApi extends runtime.BaseAPI {
             queryParameters['game_format'] = requestParameters['gameFormat'];
         }
 
+        if (requestParameters['monthsBack'] != null) {
+            queryParameters['months_back'] = requestParameters['monthsBack'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.apiKey) {
@@ -536,7 +541,7 @@ export class PlayersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.  `game_format` stays a parameter here rather than coming from the corpus dependency: `player_stats.get_player_stats` filters per game *category* internally, which is finer-grained than `filter_by_format`.
+     * Get player stats.  `game_format` stays a parameter here rather than coming from the corpus dependency: `player_stats.get_player_stats` filters per game *category* internally, which is finer-grained than `filter_by_format`. `months_back` (on `WindowedAllGames`) is optional and defaults to all-time.
      * Get Player Stats
      */
     async getPlayerStatsApiPlayerstatsGetRaw(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlayerStats>> {
@@ -547,7 +552,7 @@ export class PlayersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get player stats.  `game_format` stays a parameter here rather than coming from the corpus dependency: `player_stats.get_player_stats` filters per game *category* internally, which is finer-grained than `filter_by_format`.
+     * Get player stats.  `game_format` stays a parameter here rather than coming from the corpus dependency: `player_stats.get_player_stats` filters per game *category* internally, which is finer-grained than `filter_by_format`. `months_back` (on `WindowedAllGames`) is optional and defaults to all-time.
      * Get Player Stats
      */
     async getPlayerStatsApiPlayerstatsGet(requestParameters: GetPlayerStatsApiPlayerstatsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlayerStats> {
