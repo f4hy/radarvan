@@ -1,14 +1,12 @@
+import ExpandLessIcon from "@mui/icons-material/ExpandLess"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
-import IconButton from "@mui/material/IconButton"
-import FormatToggle, { TEAM_FORMATS } from "../../components/FormatToggle"
-import Page from "../../components/Page"
-import { useUrlChoice } from "../../lib/useUrlState"
-import QueryState from "../../components/QueryState"
-import { PlayerChip, PlayerLabel } from "../../components/PlayerChip"
 import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
+import IconButton from "@mui/material/IconButton"
 import List from "@mui/material/List"
 import ListItem from "@mui/material/ListItem"
 import ListItemAvatar from "@mui/material/ListItemAvatar"
@@ -23,14 +21,8 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import ExpandLessIcon from "@mui/icons-material/ExpandLess"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import DisplayGeneral from "../../components/Generals"
-import { toGeneralName } from "../../lib/general_utils"
-
 import {
   General,
   GeneralFromJSON,
@@ -40,16 +32,34 @@ import {
   type WinLoss,
 } from "../../api"
 import { PlayersClient } from "../../clients/players"
-import { winRate, wilsonLowerBound } from "../../lib/utils"
-import WinRateRadar from "../../components/WinRateRadar"
+import FormatToggle, { TEAM_FORMATS } from "../../components/FormatToggle"
+import DisplayGeneral from "../../components/Generals"
+import Page from "../../components/Page"
+import { PlayerChip, PlayerLabel } from "../../components/PlayerChip"
+import QueryState from "../../components/QueryState"
 import WinRateChip, { WinLossVolumeBar } from "../../components/WinRateChip"
+import WinRateRadar from "../../components/WinRateRadar"
+import { toGeneralName } from "../../lib/general_utils"
+import { useUrlChoice } from "../../lib/useUrlState"
+import {
+  DEFAULT_HISTORY_CUTOFF,
+  HISTORY_CUTOFFS,
+  type HistoryCutoff,
+  statsQueryParams,
+  wilsonLowerBound,
+  winRate,
+} from "../../lib/utils"
 
 const FORMAT_OPTIONS = TEAM_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
-function fetchPlayerStats(gameFormat: GameFormat): Promise<PlayerStats> {
-  const params = gameFormat === "All" ? {} : { gameFormat }
-  return PlayersClient.getPlayerStatsApiPlayerstatsGet(params)
+function fetchPlayerStats(
+  gameFormat: GameFormat,
+  cutoff: HistoryCutoff,
+): Promise<PlayerStats> {
+  return PlayersClient.getPlayerStatsApiPlayerstatsGet(
+    statsQueryParams(gameFormat, cutoff),
+  )
 }
 
 function toGeneral(s: string | number): General {
@@ -811,9 +821,14 @@ export default function DisplayPlayerStats() {
     FORMAT_OPTIONS,
     "All",
   )
+  const [cutoff, setCutoff] = useUrlChoice<HistoryCutoff>(
+    "history",
+    HISTORY_CUTOFFS,
+    DEFAULT_HISTORY_CUTOFF,
+  )
   const query = useQuery({
-    queryKey: ["playerStats", format],
-    queryFn: () => fetchPlayerStats(format),
+    queryKey: ["playerStats", format, cutoff],
+    queryFn: () => fetchPlayerStats(format, cutoff),
   })
 
   // The toggle renders in every state on purpose: a failed load is itself a
@@ -823,12 +838,20 @@ export default function DisplayPlayerStats() {
       title="Player Stats"
       description="How everyone does with each general, across competitive team games."
       actions={
-        <FormatToggle
-          label="Game format"
-          options={FORMAT_OPTIONS}
-          value={format}
-          onChange={setFormat}
-        />
+        <>
+          <FormatToggle
+            label="Game format"
+            options={FORMAT_OPTIONS}
+            value={format}
+            onChange={setFormat}
+          />
+          <FormatToggle
+            label="History"
+            options={HISTORY_CUTOFFS}
+            value={cutoff}
+            onChange={setCutoff}
+          />
+        </>
       }
     >
       <QueryState query={query} what="player stats">
