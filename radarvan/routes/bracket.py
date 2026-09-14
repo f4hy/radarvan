@@ -501,22 +501,12 @@ def set_bracket_games(
     if unknown:
         raise HTTPException(status_code=400, detail=f"Unknown match ids: {unknown}")
 
-    existing = {
-        link.match_id for link in tournament_repo.list_links(parent.id, stage=match_id)
-    }
-    for match_id_to_drop in existing - wanted:
-        tournament_repo.exclude_match(parent.id, match_id_to_drop, stage=match_id)
-    for index, linked_id in enumerate(
-        sorted(wanted, key=lambda m: known[m].timestamp), start=1
-    ):
-        tournament_repo.link_match(
-            tournament_id=parent.id,
-            match_id=linked_id,
-            stage=match_id,
-            round_name=resolved.round_name,
-            series_index=index,
-            source="manual",
-        )
+    tournament_repo.replace_stage_links(
+        parent.id,
+        match_id,
+        resolved.round_name,
+        sorted(wanted, key=lambda m: known[m].timestamp),
+    )
 
     logger.info(
         "bracket games set", user_id=user.id, match_id=match_id, games=sorted(wanted)
