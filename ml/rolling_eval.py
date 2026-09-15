@@ -20,7 +20,8 @@ seed-bagged ensemble are reported, since production serves an ensemble.
 Usage::
 
     uv run --group ml --python 3.13 python -m ml.rolling_eval \\
-        ml/data/snapshot-YYYYMMDD.jsonl.gz [--seeds 3] [--no-recency]
+        ml/data/snapshot-YYYYMMDD.jsonl.gz [--seeds 3] [--no-recency] \\
+        [--months-back 24]
 
 Writes ``ml/data/rolling-<stamp>/results.json`` plus each cut's split and run
 bundles (git-ignored, safe to delete).
@@ -40,6 +41,7 @@ import structlog
 import torch
 
 from radarvan.api_types import MatchInfo
+from radarvan.matches import filter_by_months_back
 
 from .baselines import base_rate_probs, bt_logistic_probs
 from .config import DATA_DIR, Config
@@ -89,8 +91,10 @@ def rolling_eval(
     block_frac: float = DEFAULT_BLOCK_FRAC,
     seeds: tuple[int, ...] = (11, 22, 33),
     accelerator: str = "auto",
+    months_back: int | None = None,
 ) -> dict[str, object]:
     matches = sorted(load_snapshot(snapshot), key=lambda m: m.timestamp)
+    matches = filter_by_months_back(matches, months_back)
     n = len(matches)
     stamp = snapshot.name.split(".")[0].replace("snapshot-", "")
     map_feat_path = snapshot.parent / f"map_features-{stamp}.json"
@@ -196,6 +200,7 @@ def rolling_eval(
 
     payload: dict[str, object] = {
         "snapshot": snapshot.name,
+        "months_back": months_back,
         "cuts": list(cuts),
         "block_frac": block_frac,
         "seeds": list(seeds),
@@ -227,6 +232,13 @@ def main() -> None:
         help="Comma-separated corpus fractions to cut at.",
     )
     parser.add_argument("--block-frac", type=float, default=DEFAULT_BLOCK_FRAC)
+    parser.add_argument(
+        "--months-back",
+        type=int,
+        default=None,
+        help="Drop games older than this many months before rolling the cuts "
+        "(default: keep the whole snapshot).",
+    )
     parser.add_argument("--recency-half-life", type=float, default=None)
     parser.add_argument(
         "--no-recency", action="store_true", help="Weight every training game equally."
@@ -241,7 +253,8 @@ def main() -> None:
         cfg.train.recency_half_life_days = args.recency_half_life
 
     stamp = args.snapshot.name.split(".")[0].replace("snapshot-", "")
-    out_dir = args.out_dir or (DATA_DIR / f"rolling-{stamp}")
+    suffix = f"-{args.months_back}mo" if args.months_back is not None else ""
+    out_dir = args.out_dir or (DATA_DIR / f"rolling-{stamp}{suffix}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     rolling_eval(
@@ -252,6 +265,7 @@ def main() -> None:
         block_frac=args.block_frac,
         seeds=tuple(11 * (i + 1) for i in range(args.seeds)),
         accelerator=args.accelerator,
+        months_back=args.months_back,
     )
 
 
