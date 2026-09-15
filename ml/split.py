@@ -11,7 +11,13 @@ fall through to UNK at dev time, exactly as in production.
 Usage::
 
     uv run python -m ml.split ml/data/snapshot-YYYYMMDD.jsonl.gz \\
-        [--mode temporal|random] [--dev-frac 0.15] [--seed 1234]
+        [--mode temporal|random] [--dev-frac 0.15] [--seed 1234] \\
+        [--months-back 24]
+
+``--months-back`` drops games older than N months from the snapshot before
+splitting (train and dev both), for experimenting with a shorter recency
+window without re-pulling from the DB. Same idiom as the app's own
+``radarvan.matches.filter_by_months_back``.
 
 Writes ``ml/data/split-<snapshot>/{train.jsonl.gz,dev.jsonl.gz,vocab.json,split.json}``.
 """
@@ -28,6 +34,7 @@ from pathlib import Path
 import structlog
 
 from radarvan.api_types import MatchInfo
+from radarvan.matches import filter_by_months_back
 
 from .config import DATA_DIR
 from .features import build_vocab
@@ -93,9 +100,19 @@ def main() -> None:
         help="temporal mode: let 1v1s fall into dev by date like anything else "
         "(default: route them into train - see temporal_split)",
     )
+    parser.add_argument(
+        "--months-back",
+        type=int,
+        default=None,
+        help="Drop games older than this many months before splitting (default: "
+        "keep the whole snapshot). Same cutoff idiom as radarvan.matches."
+        "filter_by_months_back, e.g. --months-back 24 to train on the last two "
+        "years only.",
+    )
     args = parser.parse_args()
 
     matches = load_snapshot(args.snapshot)
+    matches = filter_by_months_back(matches, args.months_back)
     if len(matches) < 10:
         raise SystemExit(f"Too few matches to split: {len(matches)}")
 
@@ -119,7 +136,8 @@ def main() -> None:
     # Vocab is frozen from train only — dev sees UNK for novel players/maps.
     vocab = build_vocab(train, map_feat_table)
 
-    out_dir = args.out_dir or (DATA_DIR / f"split-{stamp}-{args.mode}")
+    suffix = f"-{args.months_back}mo" if args.months_back is not None else ""
+    out_dir = args.out_dir or (DATA_DIR / f"split-{stamp}-{args.mode}{suffix}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     _write_jsonl_gz(train, out_dir / "train.jsonl.gz")
@@ -133,6 +151,7 @@ def main() -> None:
         "dev_frac": args.dev_frac,
         "seed": args.seed,
         "holdout_1v1": args.holdout_1v1,
+        "months_back": args.months_back,
         "n_train": len(train),
         "n_dev": len(dev),
         "n_train_1v1": sum(1 for m in train if is_1v1(m)),
