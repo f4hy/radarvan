@@ -20,8 +20,8 @@ general_stats.general_value_stats).
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
-from dataclasses import dataclass
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import NamedTuple
 
@@ -71,6 +71,9 @@ OPENING_STAT_PREFIX = "__opening_book_"
 class _Tally:
     games: int = 0
     wins: int = 0
+    # Resolved player name -> games played under this (general, opening key),
+    # so the busiest opening can name whoever plays it the most.
+    player_games: Counter[str] = field(default_factory=Counter)
 
 
 class _Row(NamedTuple):
@@ -145,7 +148,8 @@ async def load_opening_tallies(
         for name, order in details.build_orders.items():
             # build_orders is keyed by the raw in-replay name, not the
             # alias-resolved one - resolve here to join against by_match.
-            info = players.get(player_ids.resolve_player_name(name))
+            resolved_name = player_ids.resolve_player_name(name)
+            info = players.get(resolved_name)
             if info is None:
                 continue
             general, won = info
@@ -156,12 +160,26 @@ async def load_opening_tallies(
             tally.games += 1
             if won:
                 tally.wins += 1
+            tally.player_games[resolved_name] += 1
 
     match_ids = list(by_match.keys())
     for i in range(0, len(match_ids), chunk_size):
         chunk = match_ids[i : i + chunk_size]
         await asyncio.gather(*[_bounded(mid) for mid in chunk])
     return tallies
+
+
+def _opening_from_row(row: _Row) -> Opening:
+    top = row.tally.player_games.most_common(1)
+    top_player, top_player_games = top[0] if top else (None, 0)
+    return Opening(
+        buildings=list(row.key),
+        game_count=row.tally.games,
+        win_count=row.tally.wins,
+        win_rate=row.tally.wins / row.tally.games,
+        top_player=top_player,
+        top_player_games=top_player_games,
+    )
 
 
 def build_opening_book(
@@ -182,15 +200,7 @@ def build_opening_book(
             GeneralOpeningBook(
                 general=general,
                 total_games=sum(r.tally.games for r in rows),
-                openings=[
-                    Opening(
-                        buildings=list(r.key),
-                        game_count=r.tally.games,
-                        win_count=r.tally.wins,
-                        win_rate=r.tally.wins / r.tally.games,
-                    )
-                    for r in named
-                ],
+                openings=[_opening_from_row(r) for r in named],
                 other_game_count=sum(r.tally.games for r in other),
                 other_win_count=sum(r.tally.wins for r in other),
             )

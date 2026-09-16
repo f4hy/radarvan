@@ -164,9 +164,7 @@ def map_summary(
     on_map = [
         g
         for g in games
-        if map_key(g.map) == normalized
-        and not g.incomplete
-        and g.winning_team >= 1
+        if map_key(g.map) == normalized and not g.incomplete and g.winning_team >= 1
     ]
     if not on_map:
         return MapSummaryResponse(map_name=map_name, total_games=0)
