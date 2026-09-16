@@ -43,6 +43,18 @@ export interface Opening {
      * @memberof Opening
      */
     winRate: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Opening
+     */
+    topPlayer?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Opening
+     */
+    topPlayerGames?: number;
 }
 
 /**
@@ -70,6 +82,8 @@ export function OpeningFromJSONTyped(json: any, ignoreDiscriminator: boolean): O
         'gameCount': json['gameCount'],
         'winCount': json['winCount'],
         'winRate': json['winRate'],
+        'topPlayer': json['topPlayer'] == null ? undefined : json['topPlayer'],
+        'topPlayerGames': json['topPlayerGames'] == null ? undefined : json['topPlayerGames'],
     };
 }
 
@@ -88,6 +102,8 @@ export function OpeningToJSONTyped(value?: Opening | null, ignoreDiscriminator: 
         'gameCount': value['gameCount'],
         'winCount': value['winCount'],
         'winRate': value['winRate'],
+        'topPlayer': value['topPlayer'],
+        'topPlayerGames': value['topPlayerGames'],
     };
 }
 

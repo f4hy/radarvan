@@ -24,10 +24,10 @@ import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { Link as RouterLink, useSearchParams } from "react-router"
 
-import {
-  type MatchInfo,
-  type Matches,
-  type PlayerRatingDailyChange,
+import type {
+  MatchInfo,
+  Matches,
+  PlayerRatingDailyChange,
 } from "../../api"
 import { MapClient } from "../../clients/map"
 import { MatchesClient } from "../../clients/matches"
