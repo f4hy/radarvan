@@ -13,6 +13,7 @@ import type { GeneralOpeningBook } from "../../api"
 import { OpeningBookClient } from "../../clients/openingBook"
 import DisplayGeneral from "../../components/Generals"
 import Page from "../../components/Page"
+import { PlayerChip } from "../../components/PlayerChip"
 import { queryFallback } from "../../components/QueryState"
 import WinRateChip, { WinLossVolumeBar } from "../../components/WinRateChip"
 
@@ -23,6 +24,7 @@ import WinRateChip, { WinLossVolumeBar } from "../../components/WinRateChip"
 const LABEL_WIDTH = "0 1 39rem"
 const COUNT_WIDTH = "0 0 3.5rem"
 const BAR_SX = { flex: "1 1 auto", minWidth: 60, maxWidth: 180 } as const
+const TOP_PLAYER_WIDTH = "0 1 9rem"
 
 /** One row: a label (a building sequence, or "Other"), how popular it is
  * against this general's own busiest opening, and how it's fared. */
@@ -32,10 +34,12 @@ function BuildOrderRow(props: {
   gameCount: number
   winCount: number
   max: number
+  topPlayer?: string | null
+  topPlayerGames?: number
 }) {
   const { gameCount, winCount } = props
   return (
-    <ListItem disableGutters dense sx={{ gap: 1.5 }}>
+    <ListItem disableGutters dense sx={{ gap: 1.5, flexWrap: "wrap" }}>
       <Typography
         variant="body2"
         sx={{
@@ -71,6 +75,21 @@ function BuildOrderRow(props: {
       <Box sx={{ flexShrink: 0 }}>
         <WinRateChip wins={winCount} losses={gameCount - winCount} />
       </Box>
+      {props.topPlayer && (
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{ flex: TOP_PLAYER_WIDTH, minWidth: 0, alignItems: "center" }}
+        >
+          <PlayerChip name={props.topPlayer} size="small" />
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", whiteSpace: "nowrap" }}
+          >
+            ×{props.topPlayerGames}
+          </Typography>
+        </Stack>
+      )}
     </ListItem>
   )
 }
@@ -108,6 +127,8 @@ function GeneralSection(props: {
               gameCount={opening.gameCount}
               winCount={opening.winCount}
               max={max}
+              topPlayer={opening.topPlayer}
+              topPlayerGames={opening.topPlayerGames}
             />
           ))}
           {book.otherGameCount > 0 && (
