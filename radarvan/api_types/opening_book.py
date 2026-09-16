@@ -16,6 +16,9 @@ class Opening(BaseModel):
     game_count: int = Field(alias="gameCount")
     win_count: int = Field(alias="winCount")
     win_rate: float = Field(alias="winRate")
+    # Resolved player name with the most games under this exact opening.
+    top_player: str | None = Field(default=None, alias="topPlayer")
+    top_player_games: int = Field(default=0, alias="topPlayerGames")
 
 
 class GeneralOpeningBook(BaseModel):
