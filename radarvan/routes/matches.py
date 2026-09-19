@@ -21,9 +21,10 @@ from ..api_types import (
 )
 from ..cache import details_from_id, sorted_deduped_matches
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, get_replay_manager
+from ..dependencies import cache_short, get_match_blurb_repo, get_replay_manager
 from ..matches import filter_matches
 from ..queries import CompetitiveGames
+from ..repositories import MatchBlurbRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -179,13 +180,15 @@ def get_match_narrative(
     match_id: int,
     response: Response,
     replay_manager: ReplayManager = Depends(get_replay_manager),
+    blurbs: MatchBlurbRepo = Depends(get_match_blurb_repo),
 ) -> MatchNarrative:
     """The match retold as an ordered list of beats.
 
     A projection of the cached ``MatchDetails`` (see ``match_narrative``), so
     it shares the durable, versioned details cache and runs no extra
-    computation - the same arrangement as ``get_build_orders`` above. Entirely
-    deterministic: no model call, identical on every request.
+    computation - the same arrangement as ``get_build_orders`` above. The
+    beats are deterministic; the only model text is the stored ``blurb``,
+    attached when a row exists and never generated here.
 
     A match that isn't in the corpus returns an empty narrative uncached; one
     whose replay hasn't been parsed yet returns the headline with no beats, and
@@ -198,7 +201,9 @@ def get_match_narrative(
     details = details_from_id(match_id, replay_manager)
     if details is None:
         response.headers["Cache-Control"] = "no-cache"
-    return match_narrative.build_narrative(match, details)
+    narrative = match_narrative.build_narrative(match, details)
+    blurb = blurbs.get_blurbs([match_id]).get(match_id)
+    return narrative if blurb is None else narrative.model_copy(update={"blurb": blurb})
 
 
 @router.get("/api/duration_distribution/", dependencies=[Depends(cache_short)])

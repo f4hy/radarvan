@@ -18,9 +18,10 @@ import { mapValues } from '../runtime';
  * 
  * ``kind`` groups beats for styling and is one of: "setup" (map, format,
  * lineup - no minute), "first_blood", "milestone" (rank 5, search &
- * destroy), "superweapon", "collapse" (went hunted, lost power), "economy",
- * "damage", "tempo" (APM), "result". The frontend maps it to an icon; an
- * unknown kind must render as a plain bullet rather than break the list.
+ * destroy), "superweapon", "turning_point" (biggest win-probability swing),
+ * "collapse" (went hunted, lost power), "economy", "damage", "tempo" (APM),
+ * "result". The frontend maps it to an icon; an unknown kind must render as a
+ * plain bullet rather than break the list.
  * @export
  * @interface NarrativeBeat
  */

@@ -112,6 +112,9 @@ models/MapUploadResponse.ts
 models/MapVoteOption.ts
 models/MapVotePage.ts
 models/MapsByPlayerCount.ts
+models/MatchBlurbBackfill.ts
+models/MatchBlurbBackfillNight.ts
+models/MatchBlurbRun.ts
 models/MatchDetails.ts
 models/MatchInfo.ts
 models/MatchListing.ts

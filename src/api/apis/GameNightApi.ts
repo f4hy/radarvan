@@ -19,6 +19,8 @@ import type {
   GameNightRecap,
   GameNightSummaryStatus,
   HTTPValidationError,
+  MatchBlurbBackfill,
+  MatchBlurbRun,
 } from '../models/index';
 import {
     GameNightBackfillFromJSON,
@@ -29,6 +31,10 @@ import {
     GameNightSummaryStatusToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    MatchBlurbBackfillFromJSON,
+    MatchBlurbBackfillToJSON,
+    MatchBlurbRunFromJSON,
+    MatchBlurbRunToJSON,
 } from '../models/index';
 
 export interface BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequest {
@@ -36,7 +42,17 @@ export interface BackfillGameNightSummariesApiBackfillGameNightSummariesPostRequ
     maxToUpdate?: number;
 }
 
+export interface BackfillMatchBlurbsApiBackfillMatchBlurbsPostRequest {
+    days?: number;
+    maxToUpdate?: number;
+}
+
 export interface GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest {
+    night: Date;
+    force?: boolean;
+}
+
+export interface GenerateMatchBlurbsApiGenerateMatchBlurbsNightPostRequest {
     night: Date;
     force?: boolean;
 }
@@ -106,6 +122,53 @@ export class GameNightApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for backfillMatchBlurbsApiBackfillMatchBlurbsPost without sending the request
+     */
+    async backfillMatchBlurbsApiBackfillMatchBlurbsPostRequestOpts(requestParameters: BackfillMatchBlurbsApiBackfillMatchBlurbsPostRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['days'] != null) {
+            queryParameters['days'] = requestParameters['days'];
+        }
+
+        if (requestParameters['maxToUpdate'] != null) {
+            queryParameters['max_to_update'] = requestParameters['maxToUpdate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/backfill_match_blurbs`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Caption the top matches of the last ``days`` closed nights, newest first.  **Every blurb written is a billed LLM call**, and ``max_to_update`` is the cap on them across the whole run (each night is capped separately at ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it calls no provider and reports what each night would spend. Never overwrites, and never touches the night still being played.
+     * Backfill Match Blurbs
+     */
+    async backfillMatchBlurbsApiBackfillMatchBlurbsPostRaw(requestParameters: BackfillMatchBlurbsApiBackfillMatchBlurbsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchBlurbBackfill>> {
+        const requestOptions = await this.backfillMatchBlurbsApiBackfillMatchBlurbsPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchBlurbBackfillFromJSON(jsonValue));
+    }
+
+    /**
+     * Caption the top matches of the last ``days`` closed nights, newest first.  **Every blurb written is a billed LLM call**, and ``max_to_update`` is the cap on them across the whole run (each night is capped separately at ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it calls no provider and reports what each night would spend. Never overwrites, and never touches the night still being played.
+     * Backfill Match Blurbs
+     */
+    async backfillMatchBlurbsApiBackfillMatchBlurbsPost(requestParameters: BackfillMatchBlurbsApiBackfillMatchBlurbsPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchBlurbBackfill> {
+        const response = await this.backfillMatchBlurbsApiBackfillMatchBlurbsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for generateGameNightSummaryApiGenerateGameNightSummaryNightPost without sending the request
      */
     async generateGameNightSummaryApiGenerateGameNightSummaryNightPostRequestOpts(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest): Promise<runtime.RequestOpts> {
@@ -157,6 +220,61 @@ export class GameNightApi extends runtime.BaseAPI {
      */
     async generateGameNightSummaryApiGenerateGameNightSummaryNightPost(requestParameters: GenerateGameNightSummaryApiGenerateGameNightSummaryNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GameNightSummaryStatus> {
         const response = await this.generateGameNightSummaryApiGenerateGameNightSummaryNightPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for generateMatchBlurbsApiGenerateMatchBlurbsNightPost without sending the request
+     */
+    async generateMatchBlurbsApiGenerateMatchBlurbsNightPostRequestOpts(requestParameters: GenerateMatchBlurbsApiGenerateMatchBlurbsNightPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['night'] == null) {
+            throw new runtime.RequiredError(
+                'night',
+                'Required parameter "night" was null or undefined when calling generateMatchBlurbsApiGenerateMatchBlurbsNightPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['force'] != null) {
+            queryParameters['force'] = requestParameters['force'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/generate_match_blurbs/{night}`;
+        if (requestParameters['night'] instanceof Date) {
+            urlPath = urlPath.replace(`{${"night"}}`, encodeURIComponent(requestParameters['night'].toISOString().substring(0,10)));
+        } else {
+            urlPath = urlPath.replace(`{${"night"}}`, encodeURIComponent(String(requestParameters['night'])));
+        }
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Caption one night\'s top matches by hand. **Every match written is a billed LLM call** (at most ``MAX_BLURBS_PER_NIGHT``); picks that already have a blurb are skipped unless ``force=true``. Does not require the night to be closed.
+     * Generate Match Blurbs
+     */
+    async generateMatchBlurbsApiGenerateMatchBlurbsNightPostRaw(requestParameters: GenerateMatchBlurbsApiGenerateMatchBlurbsNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchBlurbRun>> {
+        const requestOptions = await this.generateMatchBlurbsApiGenerateMatchBlurbsNightPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MatchBlurbRunFromJSON(jsonValue));
+    }
+
+    /**
+     * Caption one night\'s top matches by hand. **Every match written is a billed LLM call** (at most ``MAX_BLURBS_PER_NIGHT``); picks that already have a blurb are skipped unless ``force=true``. Does not require the night to be closed.
+     * Generate Match Blurbs
+     */
+    async generateMatchBlurbsApiGenerateMatchBlurbsNightPost(requestParameters: GenerateMatchBlurbsApiGenerateMatchBlurbsNightPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchBlurbRun> {
+        const response = await this.generateMatchBlurbsApiGenerateMatchBlurbsNightPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

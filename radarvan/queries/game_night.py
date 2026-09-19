@@ -16,8 +16,16 @@ import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 from .. import game_night, match_details, match_narrative, player_rating, utils
-from ..api_types import GameNightRecap, MatchDetails, MatchInfo, MatchNarrative, Team
+from ..api_types import (
+    GameNightHighlight,
+    GameNightRecap,
+    MatchDetails,
+    MatchInfo,
+    MatchNarrative,
+    Team,
+)
 from ..db_utils import DatabaseManager
+from ..repositories import MatchBlurbRepo
 from typing import NamedTuple
 
 
@@ -126,6 +134,31 @@ async def build_night_recap(
     return NightGames(
         recap=recap, played=tonight, counted=counted, details_by_id=details_by_id
     )
+
+
+def with_blurbs(
+    highlights: list[GameNightHighlight], blurbs: MatchBlurbRepo
+) -> list[GameNightHighlight]:
+    """The match-of-the-night card, carrying its stored blurb when it has one."""
+    card_ids = {
+        h.match_id
+        for h in highlights
+        if h.kind == game_night.MATCH_OF_THE_NIGHT and h.match_id is not None
+    }
+    stored = blurbs.get_blurbs(card_ids)
+
+    def attach(highlight: GameNightHighlight) -> GameNightHighlight:
+        is_card = highlight.kind == game_night.MATCH_OF_THE_NIGHT
+        blurb = (
+            stored.get(highlight.match_id) if is_card and highlight.match_id else None
+        )
+        return (
+            highlight
+            if blurb is None
+            else highlight.model_copy(update={"blurb": blurb})
+        )
+
+    return [attach(h) for h in highlights]
 
 
 def uncounted_reason(match: MatchInfo) -> str:
