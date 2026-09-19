@@ -73,6 +73,7 @@ export * from './LocationInner';
 export * from './LoserOfSource';
 export * from './MapData';
 export * from './MapDataPayload';
+export * from './MapDownload';
 export * from './MapEventOutput';
 export * from './MapExtent';
 export * from './MapGeneralWL';

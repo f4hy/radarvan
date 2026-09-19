@@ -3,6 +3,7 @@ import type {
   DurationDistribution,
   GameNightRecap,
   MapStatsResponse,
+  MapsByPlayerCount,
   MapVotePage,
   MatchInfo,
   PlayerProfile,
@@ -239,3 +240,13 @@ export const MAP_STATS = wire<MapStatsResponse>({
     generalStats: [{ general: "USA", wins: 3, losses: 1 }],
   })),
 })
+
+// Same alias situation as MapData above (Field(alias=...) with a camelCase
+// alias, so populate_by_name doesn't change what's on the wire): camelCase here.
+export const MAPS_BY_PLAYER_COUNT = wire<MapsByPlayerCount[]>([
+  { playerCount: 2, maps: ["alpine assault", "dusty rampage"] },
+  {
+    playerCount: 4,
+    maps: ["maps/tournament island", "tournament desert", "final crusade"],
+  },
+])
