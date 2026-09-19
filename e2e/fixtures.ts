@@ -120,6 +120,9 @@ export const MAP_VOTE_PAGE = wire<MapVotePage>({
   ],
 })
 
+export const MATCH_OF_THE_NIGHT_BLURB =
+  "Skip and Syn were written off at 12% on tournament island, then clawed the whole game back."
+
 // Complete rather than minimal, and that is the lesson: the first version left
 // `started_at`/`ended_at` out, `clockSpan` did `new Date(undefined).toISOString()`
 // and the page threw "invalid date" into the error boundary. A required field
@@ -135,7 +138,17 @@ export const GAME_NIGHT = wire<GameNightRecap>({
   formats: { "2v2": 6 },
   maps: { "maps/tournament island": 6 },
   players: [],
-  highlights: [],
+  highlights: [
+    {
+      kind: "match_of_the_night",
+      title: "Match of the night",
+      detail:
+        "Skip & Syn on tournament island: the lead changed hands 3 times; they were down to 12% to win before taking it",
+      match_id: 1234,
+      points: [0.5, 0.3, 0.12, 0.4, 0.7, 0.95],
+      blurb: MATCH_OF_THE_NIGHT_BLURB,
+    },
+  ],
   ai_summary: null,
   ai_summary_provider: null,
   ai_summary_computed_at: null,

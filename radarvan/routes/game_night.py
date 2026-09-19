@@ -27,16 +27,19 @@ from ..api_types import (
     GameNightBackfillOutcome,
     GameNightRecap,
     GameNightSummaryStatus,
+    MatchBlurbBackfill,
+    MatchBlurbRun,
 )
-from ..commentary import llm, night_summary
+from ..commentary import llm, match_blurb, night_summary
 from ..dependencies import (
     OPS_ADMIN,
     cache_short,
     db_manager,
     get_game_night_summary_repo,
+    get_match_blurb_repo,
 )
 from ..queries import AllGames, UnfilteredCompetitiveGames
-from ..repositories import GameNightSummaryRepo
+from ..repositories import GameNightSummaryRepo, MatchBlurbRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -66,6 +69,7 @@ async def get_game_night_recap(
     all_games: AllGames,
     competitive: UnfilteredCompetitiveGames,
     summaries: GameNightSummaryRepo = Depends(get_game_night_summary_repo),
+    blurbs: MatchBlurbRepo = Depends(get_match_blurb_repo),
 ) -> GameNightRecap:
     """The recap for one game night.
 
@@ -77,17 +81,19 @@ async def get_game_night_recap(
     night_games = await queries.build_night_recap(
         night, all_games, competitive, db_manager
     )
-    stored = summaries.get_night_summary(night)
-    if stored is None:
-        return night_games.recap
+    recap = night_games.recap
     # Never mutate in place - see the "no mutating inputs" rule in CLAUDE.md.
-    return night_games.recap.model_copy(
-        update={
+    update: dict[str, object] = {
+        "highlights": queries.with_blurbs(recap.highlights, blurbs)
+    }
+    stored = summaries.get_night_summary(night)
+    if stored is not None:
+        update |= {
             "ai_summary": stored.summary,
             "ai_summary_provider": stored.provider,
             "ai_summary_computed_at": stored.computed_at,
         }
-    )
+    return recap.model_copy(update=update)
 
 
 @router.get("/api/game_night_summaries", dependencies=[Depends(cache_short)])
@@ -159,6 +165,90 @@ async def generate_game_night_summary(
         logger.error("game night summary generation failed", exc_info=e)
         raise HTTPException(status_code=502, detail="summary generation failed") from e
     return summary_status(night, summaries)
+
+
+@session_router.post("/api/generate_match_blurbs/{night}", dependencies=OPS_ADMIN)
+async def generate_match_blurbs(
+    night: date,
+    all_games: AllGames,
+    competitive: UnfilteredCompetitiveGames,
+    force: bool = False,
+    blurbs: MatchBlurbRepo = Depends(get_match_blurb_repo),
+) -> MatchBlurbRun:
+    """Caption one night's top matches by hand. **Every match written is a billed LLM call**
+    (at most ``MAX_BLURBS_PER_NIGHT``); picks that already have a blurb are skipped
+    unless ``force=true``. Does not require the night to be closed.
+    """
+    if match_blurb.generation_lock.locked():
+        raise HTTPException(
+            status_code=409, detail="match blurbs are already being generated"
+        )
+    if not llm.commentary_available():
+        raise HTTPException(
+            status_code=503,
+            detail="LLM generation is not available on this server",
+        )
+    night_games = await queries.build_night_recap(
+        night, all_games, competitive, db_manager
+    )
+    try:
+        return await match_blurb.generate_night_blurbs(night_games, blurbs, force=force)
+    except llm.CommentaryGenerationError as e:
+        logger.error("match blurb generation failed", exc_info=e)
+        raise HTTPException(status_code=502, detail="blurb generation failed") from e
+
+
+@session_router.post("/api/backfill_match_blurbs", dependencies=OPS_ADMIN)
+async def backfill_match_blurbs(
+    all_games: AllGames,
+    competitive: UnfilteredCompetitiveGames,
+    days: int = 7,
+    max_to_update: int = 3,
+    blurbs: MatchBlurbRepo = Depends(get_match_blurb_repo),
+) -> MatchBlurbBackfill:
+    """Caption the top matches of the last ``days`` closed nights, newest first.
+
+    **Every blurb written is a billed LLM call**, and ``max_to_update`` is the
+    cap on them across the whole run (each night is capped separately at
+    ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it calls no
+    provider and reports what each night would spend. Never overwrites, and
+    never touches the night still being played.
+    """
+    if days < 1:
+        raise HTTPException(status_code=400, detail="days must be at least 1")
+    if max_to_update < 0:
+        raise HTTPException(
+            status_code=400, detail="max_to_update must not be negative"
+        )
+    if match_blurb.generation_lock.locked():
+        raise HTTPException(
+            status_code=409, detail="match blurbs are already being generated"
+        )
+    if max_to_update > 0 and not llm.commentary_available():
+        raise HTTPException(
+            status_code=503,
+            detail="LLM generation is not available on this server",
+        )
+    budget = max_to_update
+    nights = []
+    stopped = False
+    for night in queries.closed_nights_within(all_games, days):
+        night_games = await queries.build_night_recap(
+            night, all_games, competitive, db_manager
+        )
+        result = await match_blurb.caption_night(night_games, blurbs, budget)
+        budget -= result.report.generated
+        nights.append(result.report)
+        if result.failed:
+            stopped = True
+            break
+    return MatchBlurbBackfill(
+        days=days,
+        generated=sum(n.generated for n in nights),
+        pending=sum(n.pending for n in nights),
+        stopped=stopped,
+        nights=nights,
+    )
 
 
 @session_router.post("/api/backfill_game_night_summaries", dependencies=OPS_ADMIN)
