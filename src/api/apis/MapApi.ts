@@ -19,6 +19,7 @@ import type {
   FetchMissingMapResult,
   HTTPValidationError,
   MapDataPayload,
+  MapDownload,
   MapMatchCount,
   MapReparseStatus,
   MapStatsResponse,
@@ -37,6 +38,8 @@ import {
     HTTPValidationErrorToJSON,
     MapDataPayloadFromJSON,
     MapDataPayloadToJSON,
+    MapDownloadFromJSON,
+    MapDownloadToJSON,
     MapMatchCountFromJSON,
     MapMatchCountToJSON,
     MapReparseStatusFromJSON,
@@ -69,6 +72,10 @@ export interface FetchMapForMatchApiFetchMapForMatchMatchIdPostRequest {
 }
 
 export interface GetMapDataApiMapDataMapNameGetRequest {
+    mapName: string;
+}
+
+export interface GetMapDownloadApiMapDownloadMapNameGetRequest {
     mapName: string;
 }
 
@@ -295,6 +302,57 @@ export class MapApi extends runtime.BaseAPI {
      */
     async getMapDataApiMapDataMapNameGet(requestParameters: GetMapDataApiMapDataMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDataPayload> {
         const response = await this.getMapDataApiMapDataMapNameGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getMapDownloadApiMapDownloadMapNameGet without sending the request
+     */
+    async getMapDownloadApiMapDownloadMapNameGetRequestOpts(requestParameters: GetMapDownloadApiMapDownloadMapNameGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['mapName'] == null) {
+            throw new runtime.RequiredError(
+                'mapName',
+                'Required parameter "mapName" was null or undefined when calling getMapDownloadApiMapDownloadMapNameGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/map_download/{map_name}`;
+        urlPath = urlPath.replace(`{${"map_name"}}`, encodeURIComponent(String(requestParameters['mapName'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return a presigned S3 URL for a map\'s raw `.map` file, and its save name.  Resolves to the canonical `MapData.map_name` first, same as `get_map_image`.
+     * Get Map Download
+     */
+    async getMapDownloadApiMapDownloadMapNameGetRaw(requestParameters: GetMapDownloadApiMapDownloadMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MapDownload>> {
+        const requestOptions = await this.getMapDownloadApiMapDownloadMapNameGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MapDownloadFromJSON(jsonValue));
+    }
+
+    /**
+     * Return a presigned S3 URL for a map\'s raw `.map` file, and its save name.  Resolves to the canonical `MapData.map_name` first, same as `get_map_image`.
+     * Get Map Download
+     */
+    async getMapDownloadApiMapDownloadMapNameGet(requestParameters: GetMapDownloadApiMapDownloadMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MapDownload> {
+        const response = await this.getMapDownloadApiMapDownloadMapNameGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

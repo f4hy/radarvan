@@ -129,6 +129,17 @@ class MapDataPayload(BaseModel):
         return v if v is not None else []
 
 
+class MapDownload(BaseModel):
+    """A presigned .map URL plus the name the browser should save it under.
+
+    The name travels with the URL because it is derived from the canonical
+    map name rather than from the S3 key, which is a content hash.
+    """
+
+    url: str
+    filename: str
+
+
 class MapsByPlayerCount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

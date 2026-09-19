@@ -74,8 +74,8 @@ const GameLength = React.lazy(() => import("./features/stats/GameLength"))
 const GameNight = React.lazy(() => import("./features/games/GameNight"))
 const GeneralStats = React.lazy(() => import("./features/stats/GeneralStats"))
 const HeadToHead = React.lazy(() => import("./features/players/HeadToHead"))
+const ManageMaps = React.lazy(() => import("./features/maps/ManageMaps"))
 const MapStats = React.lazy(() => import("./features/maps/MapStats"))
-const MapUpload = React.lazy(() => import("./features/maps/MapUpload"))
 const MapVoting = React.lazy(() => import("./features/maps/MapVoting"))
 const Matches = React.lazy(() => import("./features/games/Matches"))
 const OpeningBookPage = React.lazy(() => import("./features/stats/OpeningBook"))
@@ -304,12 +304,12 @@ export const ROUTES: AppRoute[] = [
     Component: ChooseMap,
   },
   {
-    slug: "map-upload",
-    title: "Upload Map",
+    slug: "manage-maps",
+    title: "Manage Maps",
     icon: <UploadFileIcon />,
     heading: "Maps",
     gate: "public",
-    Component: MapUpload,
+    Component: ManageMaps,
   },
   // Admin
   {

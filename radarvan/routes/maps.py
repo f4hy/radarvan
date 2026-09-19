@@ -14,6 +14,7 @@ from .. import replay_files
 from ..api_types import (
     FetchMissingMapResult,
     MapDataPayload,
+    MapDownload,
     MapMatchCount,
     MapReparseStatus,
     MapStatsResponse,
@@ -407,6 +408,24 @@ async def push_maps_to_cncstats(
         pushed=pushed,
         already_present=already_present,
         results=results,
+    )
+
+
+@router.get("/api/map_download/{map_name}")
+def get_map_download(
+    map_name: str, replay_manager: ReplayManager = Depends(get_replay_manager)
+) -> MapDownload:
+    """Return a presigned S3 URL for a map's raw `.map` file, and its save name.
+
+    Resolves to the canonical `MapData.map_name` first, same as `get_map_image`.
+    """
+    canonical = resolve_map_name_cached(replay_manager, map_name) or map_name
+    s3_uri = missing_maps_module.find_s3_asset(canonical, "map")
+    if s3_uri is None:
+        raise HTTPException(status_code=404, detail=f"No .map file for '{map_name}'")
+    filename = f"{canonical}.map"
+    return MapDownload(
+        url=replay_files.presigned_url(s3_uri, save_as=filename), filename=filename
     )
 
 
