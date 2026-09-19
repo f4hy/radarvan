@@ -100,7 +100,7 @@ function DisplayOverrideBanner(props: { override: string | undefined | null }) {
       </Typography>
     )
   }
-  return <></>
+  return null
 }
 
 function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
@@ -533,7 +533,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   if (touramentStats == null) return null
   function matchButton(mId: number | null | undefined) {
     if (mId === null || mId === undefined) {
-      return <></>
+      return null
     }
     return (
       <Button
