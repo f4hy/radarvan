@@ -34,7 +34,7 @@ const PAGES: [slug: string, title: string][] = [
   ["map-stats", "Map Stats"],
   ["map-voting", "Map Voting"],
   ["choose-map", "Choose Map"],
-  ["map-upload", "Upload Map"],
+  ["manage-maps", "Manage Maps"],
   ["account", "Account"],
 ]
 
