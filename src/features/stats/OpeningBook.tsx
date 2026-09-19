@@ -168,8 +168,7 @@ export default function OpeningBookPage() {
         </Alert>
       )}
       {query.isSuccess &&
-        book &&
-        book.generals.map((general, index) => (
+        book?.generals.map((general, index) => (
           <GeneralSection
             key={general.general}
             book={general}

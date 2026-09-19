@@ -190,7 +190,7 @@ function DownloadButton(props: {
       <span>
         <Button
           variant="contained"
-          onClick={() => enabled && downloadReplay(props.url!)}
+          onClick={() => props.url && downloadReplay(props.url)}
           endIcon={<DownloadIcon />}
           disabled={!enabled}
         >
