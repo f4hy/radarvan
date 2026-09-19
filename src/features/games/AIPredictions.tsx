@@ -227,7 +227,8 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
             color: "text.secondary",
           }}
         >
-          Line above 50% favors <span style={{ color: teamA }}>Team A</span>;
+          Line above 50% favors <span style={{ color: teamA }}>Team A</span>
+          {"; "}
           below favors <span style={{ color: teamB }}>Team B</span>.
         </Typography>
         {winner && (
