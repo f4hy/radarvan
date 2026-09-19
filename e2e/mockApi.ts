@@ -38,7 +38,7 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/ffastats", { total_games: 0, player_stats: [], distinct_players: 0 }],
   ["/api/map_stats/", fx.MAP_STATS.body],
   ["/api/map_match_counts", []],
-  ["/api/maps_by_player_count", {}],
+  ["/api/maps_by_player_count", fx.MAPS_BY_PLAYER_COUNT.body],
   ["/api/power_stats/", { players: [], profile: null }],
   ["/api/player_ratings/synergy/", []],
   ["/api/player_ratings/daily_changes/", []],
