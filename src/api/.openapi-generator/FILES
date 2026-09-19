@@ -94,6 +94,7 @@ models/LocationInner.ts
 models/LoserOfSource.ts
 models/MapData.ts
 models/MapDataPayload.ts
+models/MapDownload.ts
 models/MapEventOutput.ts
 models/MapExtent.ts
 models/MapGeneralWL.ts
