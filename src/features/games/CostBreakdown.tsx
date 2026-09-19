@@ -45,7 +45,10 @@ function formatCosts(data: CostsBuiltObject[], name: string) {
 function extractNames(data: object[]): string[] {
   return without(
     uniq(
-      data.reduce<string[]>((names, n) => [...names, ...Object.keys(n)], []),
+      data.reduce<string[]>((names, n) => {
+        names.push(...Object.keys(n))
+        return names
+      }, []),
     ),
     "name",
   )
@@ -118,7 +121,7 @@ export default function CostBreakdown(props: { costs: Costs[] }) {
   )
 
   if (props.costs.length === 0) {
-    return <></>
+    return null
   }
 
   return (

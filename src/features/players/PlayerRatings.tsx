@@ -16,7 +16,6 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import useMediaQuery from "@mui/material/useMediaQuery"
 
 import { useQuery } from "@tanstack/react-query"
-import * as React from "react"
 import {
   Area,
   AreaChart,
@@ -947,7 +946,7 @@ function WhrTable() {
                     align="right"
                     sx={{ fontVariantNumeric: "tabular-nums" }}
                   >
-                    {skills[f] != null ? skills[f]!.toFixed(2) : "—"}
+                    {skills[f] != null ? skills[f]?.toFixed(2) : "—"}
                   </TableCell>
                 ))}
               </TableRow>
