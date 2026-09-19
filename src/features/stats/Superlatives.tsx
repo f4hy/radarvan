@@ -108,7 +108,12 @@ const StatCard = React.memo(function StatCard({
               variant="outlined"
               color="primary"
               clickable
-              onClick={() => onMatchClick(stat.matchId!)}
+              onClick={() => {
+                const matchId = stat.matchId
+                if (matchId != null) {
+                  onMatchClick(matchId)
+                }
+              }}
             />
           )}
         </Box>
@@ -176,8 +181,9 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
     const groups: [string, Statistic[]][] = CATEGORY_ORDER.map(
       ({ label }): [string, Statistic[]] => [label, grouped.get(label) ?? []],
     ).filter(([, stats]) => stats.length > 0)
-    if (grouped.has("Other")) {
-      groups.push(["Other", grouped.get("Other")!])
+    const other = grouped.get("Other")
+    if (other) {
+      groups.push(["Other", other])
     }
     return groups
   }, [grouped])

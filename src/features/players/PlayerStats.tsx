@@ -184,7 +184,7 @@ function PlayerBanner(props: {
 }) {
   const entries = FORMAT_ORDER.filter(
     (k) => props.counts != null && props.counts[k] != null,
-  ).map((k) => [k, props.counts![k]] as const)
+  ).map((k) => [k, props.counts?.[k]] as const)
 
   return (
     <Box
