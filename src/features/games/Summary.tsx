@@ -86,11 +86,14 @@ function buildCategorySankeyData(
   const links: { source: number; target: number; value: number }[] = []
 
   function addNode(name: string): number {
-    if (!nodeIdx.has(name)) {
-      nodeIdx.set(name, nodeNames.length)
-      nodeNames.push(name)
+    const existing = nodeIdx.get(name)
+    if (existing !== undefined) {
+      return existing
     }
-    return nodeIdx.get(name)!
+    const idx = nodeNames.length
+    nodeIdx.set(name, idx)
+    nodeNames.push(name)
+    return idx
   }
 
   const playerIdx = addNode(playerName)
@@ -420,11 +423,14 @@ function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
     const nodeIdx = new Map<string, number>()
     const links: { source: number; target: number; value: number }[] = []
     function addNode(name: string): number {
-      if (!nodeIdx.has(name)) {
-        nodeIdx.set(name, nodeNames.length)
-        nodeNames.push(name)
+      const existing = nodeIdx.get(name)
+      if (existing !== undefined) {
+        return existing
       }
-      return nodeIdx.get(name)!
+      const idx = nodeNames.length
+      nodeIdx.set(name, idx)
+      nodeNames.push(name)
+      return idx
     }
     const playerIdx = addNode(props.playerSummary.name)
     for (const [power, count] of Object.entries(
