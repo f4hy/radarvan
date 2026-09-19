@@ -78,9 +78,15 @@ function clockSpan(recap: GameNightRecap): string | null {
   return `${time(start)} – ${time(end)} (${hours.toFixed(1)}h)`
 }
 
-function HighlightCard(props: {
+// The one card that is a paragraph rather than a stat: it gets a full-width
+// row of its own, first, instead of a tile that stretches its neighbours.
+const FEATURED_KIND = "match_of_the_night"
+
+function HighlightFrame(props: {
   highlight: GameNightHighlight
   onFocusMatch: (matchId: number) => void
+  featured?: boolean
+  children: React.ReactNode
 }) {
   const { highlight } = props
   const clickable = highlight.matchId != null
@@ -94,13 +100,25 @@ function HighlightCard(props: {
       }
       title={clickable ? "Show this game below" : undefined}
       sx={{
-        p: 1.5,
-        flex: "1 1 220px",
-        minWidth: 200,
+        p: props.featured ? 2 : 1.5,
+        flex: props.featured ? "1 1 100%" : "1 1 220px",
+        minWidth: props.featured ? 0 : 200,
         cursor: clickable ? "pointer" : "default",
         "&:hover": clickable ? { borderColor: BRAND_COLOR } : {},
       }}
     >
+      {props.children}
+    </Paper>
+  )
+}
+
+function HighlightCard(props: {
+  highlight: GameNightHighlight
+  onFocusMatch: (matchId: number) => void
+}) {
+  const { highlight } = props
+  return (
+    <HighlightFrame {...props}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         <Typography
           sx={{ fontSize: 20, lineHeight: 1.2, alignSelf: "flex-start" }}
@@ -119,8 +137,37 @@ function HighlightCard(props: {
           <MomentumSparkline points={highlight.points} />
         )}
       </Stack>
+    </HighlightFrame>
+  )
+}
+
+function FeaturedHighlight(props: {
+  highlight: GameNightHighlight
+  onFocusMatch: (matchId: number) => void
+}) {
+  const { highlight } = props
+  return (
+    <HighlightFrame {...props} featured>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
+        <Typography sx={{ fontSize: 20, lineHeight: 1.2 }}>
+          {HIGHLIGHT_ICONS[highlight.kind] ?? "•"}
+        </Typography>
+        <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+          {highlight.title}
+        </Typography>
+        {highlight.points && highlight.points.length > 1 && (
+          <MomentumSparkline
+            points={highlight.points}
+            width={160}
+            height={36}
+          />
+        )}
+      </Stack>
+      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        {highlight.detail}
+      </Typography>
       {highlight.blurb && <AiBlurb text={highlight.blurb} mt={1} />}
-    </Paper>
+    </HighlightFrame>
   )
 }
 
@@ -458,13 +505,25 @@ export default function GameNight() {
                 useFlexGap
                 sx={{ flexWrap: "wrap" }}
               >
-                {(recap.highlights ?? []).map((highlight) => (
-                  <HighlightCard
-                    key={`${highlight.kind}-${highlight.title}`}
-                    highlight={highlight}
-                    onFocusMatch={setFocusedMatchId}
-                  />
-                ))}
+                {[...(recap.highlights ?? [])]
+                  .sort(
+                    (a, b) =>
+                      Number(b.kind === FEATURED_KIND) -
+                      Number(a.kind === FEATURED_KIND),
+                  )
+                  .map((highlight) => {
+                    const Card =
+                      highlight.kind === FEATURED_KIND
+                        ? FeaturedHighlight
+                        : HighlightCard
+                    return (
+                      <Card
+                        key={`${highlight.kind}-${highlight.title}`}
+                        highlight={highlight}
+                        onFocusMatch={setFocusedMatchId}
+                      />
+                    )
+                  })}
               </Stack>
             )}
 
