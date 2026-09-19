@@ -558,7 +558,7 @@ function DisplayFirstBlood(props: {
   building_first_blood?: FirstBlood
 }) {
   if (props.first_blood === undefined) {
-    return <></>
+    return null
   }
   const msgs = [
     `${props.first_blood.attacker} drew first blood on ${props.first_blood.victim} at ${props.first_blood.atMinute.toFixed(2)} minutes`,
