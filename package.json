@@ -55,17 +55,17 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
-    "@playwright/test": "^1.62.1",
-    "@types/node": "^26.4.1",
+    "@biomejs/biome": "2.5.14",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.1",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
-    "baseline-browser-mapping": "^2.11.21",
+    "baseline-browser-mapping": "^2.11.24",
     "jsdom": "^30.0.1",
-    "oxc-transform-react": "^0.145.0",
+    "oxc-transform-react": "^0.150.0",
     "typescript": "^7.0.2",
-    "vite": "^8.2.2",
+    "vite": "^8.3.0",
     "vitest": "^4.1.11"
   }
 }
