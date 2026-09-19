@@ -29,7 +29,9 @@ from .api_types import (
     MatchInfo,
     Team,
 )
+from . import win_curve
 from .durations import summarize
+from .match_interest import MIN_MATCH_OF_THE_NIGHT_SCORE, rank
 from .match_narrative import is_base_superweapon
 from .player_ids import resolve_player_name
 from .replay_files import map_display_name
@@ -38,6 +40,8 @@ from .player_rating import GameUpset
 # A player who showed up for one game of a twelve-game night is on the sheet,
 # but the "best record" card shouldn't be theirs on a 1-0.
 MIN_GAMES_FOR_RECORD_CARD = 3
+
+MATCH_OF_THE_NIGHT = "match_of_the_night"
 
 # Card-sized sparkline, not the full curve AIPredictions.tsx renders.
 _SPARKLINE_POINTS = 24
@@ -202,16 +206,11 @@ def _detail_highlights(
         if details is None:
             continue
         canonical = _canonical_names(match)
-        wpot = details.win_prob_over_time
-        if wpot is not None and wpot.actual_winner is not None and wpot.points:
-            winner_is_a = wpot.actual_winner == "team_a"
-            winner_probs = [
-                p.prob_team_a if winner_is_a else 1 - p.prob_team_a for p in wpot.points
-            ]
-            winner_names = wpot.team_a_players if winner_is_a else wpot.team_b_players
-            min_prob = min(winner_probs)
+        curve = win_curve.winner_curve(details.win_prob_over_time)
+        if curve is not None:
+            min_prob = min(curve.probs)
             if best_momentum is None or min_prob < best_momentum[0]:
-                best_momentum = (min_prob, winner_names, winner_probs, match.id)
+                best_momentum = (min_prob, curve.winners, curve.probs, match.id)
         blood = details.first_blood
         if blood is not None:
             attacker = canonical.get(blood.attacker, blood.attacker)
@@ -314,6 +313,34 @@ def _detail_highlights(
     return highlights
 
 
+def _match_of_the_night(
+    counted: list[MatchInfo], details_by_id: dict[int, MatchDetails]
+) -> list[GameNightHighlight]:
+    """Absent on a night of stomps: an ordinary game is not a match of the night."""
+    best = next(
+        (
+            s
+            for s in rank(counted, details_by_id)
+            if s.interest.score >= MIN_MATCH_OF_THE_NIGHT_SCORE and s.interest.reasons
+        ),
+        None,
+    )
+    if best is None:
+        return []
+    return [
+        GameNightHighlight(
+            kind=MATCH_OF_THE_NIGHT,
+            title="Match of the night",
+            detail=(
+                f"{' & '.join(best.curve.winners)} on {_display_map(best.match)}: "
+                f"{'; '.join(best.interest.reasons)}"
+            ),
+            match_id=best.match.id,
+            points=_downsample(best.curve.probs, _SPARKLINE_POINTS),
+        )
+    ]
+
+
 def _record_highlight(lines: list[GameNightPlayerLine]) -> list[GameNightHighlight]:
     eligible = [line for line in lines if line.games >= MIN_GAMES_FOR_RECORD_CARD]
     if not eligible:
@@ -384,6 +411,7 @@ def build_recap(
             *_record_highlight(lines),
             *_upset_highlight(decided, upsets),
             *_duration_highlights(decided or all_matches),
+            *_match_of_the_night(decided, details_by_id),
             *_detail_highlights(decided, details_by_id),
         ],
     )
