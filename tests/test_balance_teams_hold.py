@@ -18,6 +18,7 @@ the wrong reason.
 """
 
 import pytest
+from fastapi import BackgroundTasks
 
 from radarvan.routes import players
 
@@ -56,8 +57,14 @@ def scores(monkeypatch: pytest.MonkeyPatch) -> _Scores:
 ROSTER = ["Skip", "CoreDawg", "Syn", "Pancake"]
 
 
-def _call(roster: list[str]) -> dict[str, float]:
-    return players.balance_teams(players=roster, replay_manager=object())
+def _call(
+    roster: list[str], background_tasks: BackgroundTasks | None = None
+) -> dict[str, float]:
+    return players.balance_teams(
+        background_tasks=background_tasks or BackgroundTasks(),
+        players=roster,
+        replay_manager=object(),
+    )
 
 
 def test_the_same_roster_gets_the_same_numbers_back(scores: _Scores) -> None:
@@ -121,3 +128,27 @@ def test_too_few_players_is_not_held(scores: _Scores) -> None:
 
 def test_the_window_is_six_hours() -> None:
     assert players._balance_cache.ttl == 6 * 60 * 60
+
+
+def test_a_fresh_roster_posts_the_favoured_side_once(
+    scores: _Scores, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[str] = []
+    monkeypatch.setattr(players, "notify", sent.append)
+
+    for _ in range(2):
+        tasks = BackgroundTasks()
+        _call(ROSTER, tasks)
+        for task in tasks.tasks:
+            task.func(*task.args, **task.kwargs)
+
+    assert len(sent) == 1, "a held answer was announced again"
+    assert "Advantage: Skip, CoreDawg (100.0%)" in sent[0]
+    assert "Skip, CoreDawg vs Pancake, Syn" in sent[0]
+
+
+def test_the_notice_names_the_other_side_and_handles_dead_even() -> None:
+    roster = frozenset({"A", "B", "C", "D"})
+    assert players._balance_notice(roster, {}) is None
+    even = players._balance_notice(roster, {("A", "B"): 0.5})
+    assert even is not None and "dead even" in even
