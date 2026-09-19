@@ -11,6 +11,7 @@ from .bracket_predictions import BracketPredictionRepo
 from .commentary import (
     BracketSummaryRepo,
     GameNightSummaryRepo,
+    MatchBlurbRepo,
     MatchupCommentaryRepo,
 )
 from .details import MatchDetailsRepo
@@ -33,6 +34,7 @@ __all__ = [
     "GameNightSummaryRepo",
     "MapRepo",
     "MapVoteRepo",
+    "MatchBlurbRepo",
     "MatchDebugData",
     "MatchDetailsRepo",
     "MatchRepo",

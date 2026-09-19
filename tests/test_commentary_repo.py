@@ -8,8 +8,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from radarvan.db import MatchupCommentaryCache
-from radarvan.repositories.commentary import MatchupCommentaryRepo
+from radarvan.db import MatchBlurbCache, MatchupCommentaryCache
+from radarvan.repositories.commentary import MatchBlurbRepo, MatchupCommentaryRepo
 
 
 @pytest.fixture
@@ -55,3 +55,31 @@ def test_save_commentary_upserts_existing_row(engine) -> None:  # type: ignore[n
             repo.get_cached_commentary("Alice", "Bob", "Winners Round 1")
             == "**Regenerated.**"
         )
+
+
+# --- MatchBlurbRepo ------------------------------------------------------------
+
+
+@pytest.fixture
+def blurbs():  # type: ignore[no-untyped-def]
+    engine = create_engine("sqlite://")
+    MatchBlurbCache.__table__.create(engine)
+    with Session(engine) as session:
+        yield MatchBlurbRepo(session)
+
+
+def test_a_match_without_a_blurb_is_absent(blurbs: MatchBlurbRepo) -> None:
+    assert blurbs.get_blurbs([1]) == {}
+
+
+def test_a_saved_blurb_round_trips_and_upserts(blurbs: MatchBlurbRepo) -> None:
+    blurbs.save_blurb(7, "First.", "gemini")
+    blurbs.save_blurb(7, "Second.", "anthropic")
+    assert blurbs.get_blurbs([7]) == {7: "Second."}
+
+
+def test_get_blurbs_returns_only_the_ids_that_have_one(blurbs: MatchBlurbRepo) -> None:
+    blurbs.save_blurb(1, "One.", "gemini")
+    blurbs.save_blurb(2, "Two.", "gemini")
+    assert blurbs.get_blurbs([2, 3]) == {2: "Two."}
+    assert blurbs.get_blurbs([]) == {}

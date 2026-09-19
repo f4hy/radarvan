@@ -4,17 +4,20 @@
 (player1, player2, round_name); ``BracketSummaryRepo`` holds the post-game
 recap of a completed bracket set, keyed on (tournament_id, stage);
 ``GameNightSummaryRepo`` holds the once-a-night game-night recap, keyed on
-the game-night date.
+the game-night date; ``MatchBlurbRepo`` holds the blurb for one interesting
+match, keyed on the match id.
 Generation is a real, billed LLM call either way (see radarvan.commentary) -
 once written, a row is served on every subsequent request for the same key
 instead of regenerating.
 """
 
+from collections.abc import Iterable
 from datetime import UTC, date, datetime
 
 from ..db import (
     BracketSummaryCache,
     GameNightSummaryCache,
+    MatchBlurbCache,
     MatchupCommentaryCache,
 )
 from .base import BaseRepo
@@ -122,6 +125,36 @@ class GameNightSummaryRepo(BaseRepo):
                 summary=summary,
                 provider=provider,
                 match_count=match_count,
+                computed_at=datetime.now(UTC),
+            )
+        )
+        self._commit_if_auto()
+
+
+class MatchBlurbRepo(BaseRepo):
+    """Operations on MatchBlurbCache."""
+
+    def get_blurbs(self, match_ids: Iterable[int]) -> dict[int, str]:
+        """The stored blurb for each of ``match_ids`` that has one."""
+        ids = list(match_ids)
+        if not ids:
+            return {}
+        rows = (
+            self.session.query(MatchBlurbCache.match_id, MatchBlurbCache.blurb)
+            .filter(MatchBlurbCache.match_id.in_(ids))
+            .all()
+        )
+        return {row.match_id: row.blurb for row in rows}
+
+    def save_blurb(self, match_id: int, blurb: str, provider: str) -> None:
+        """Upsert the blurb for one match."""
+        # computed_at is set explicitly for the same reason it is in
+        # MatchupCommentaryRepo.save_commentary - see that comment.
+        self.session.merge(
+            MatchBlurbCache(
+                match_id=match_id,
+                blurb=blurb,
+                provider=provider,
                 computed_at=datetime.now(UTC),
             )
         )
