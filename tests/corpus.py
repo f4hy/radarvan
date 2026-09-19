@@ -13,7 +13,16 @@ without a known player, so made-up names would silently empty the corpus.
 
 from datetime import UTC, date, datetime
 
-from radarvan.api_types import General, MatchInfo, Player, Team
+from radarvan.api_types import (
+    General,
+    KillEventOutput,
+    MatchDetails,
+    MatchInfo,
+    Player,
+    Team,
+    WinProbOverTime,
+    WinProbPoint,
+)
 from radarvan.game_composition import GameComposition
 from radarvan.player_role import PlayerRole
 
@@ -285,3 +294,65 @@ A_MATCH = CORPUS[0]
 A_MAP = MAPS[0]
 A_PLAYER = TEAM_ONE[0]
 AN_OPPONENT = TEAM_TWO[0]
+
+
+# --- details and win-probability fixtures -------------------------------------
+
+# The winners' win probability every half minute.
+BACK_AND_FORTH = [0.8] * 4 + [0.15] * 6 + [0.85] * 6 + [0.15] * 6 + [0.9] * 6
+STOMP = [0.7, 0.8, 0.85, 0.9, 0.95, 0.97, 0.99, 1.0]
+
+
+def win_prob_over_time(
+    probs: list[float], *, match_id: int = 1, winner: str = "team_a"
+) -> WinProbOverTime:
+    """A curve for ``TEAM_ONE`` (team A) vs ``TEAM_TWO``; ``probs`` are team A's."""
+    return WinProbOverTime(
+        match_id=match_id,
+        team_a_players=list(TEAM_ONE),
+        team_b_players=list(TEAM_TWO),
+        actual_winner=winner,
+        points=[
+            WinProbPoint(at_minute=(i + 1) * 0.5, prob_team_a=p)
+            for i, p in enumerate(probs)
+        ],
+    )
+
+
+def kill(
+    value: int, killer: str = "Skip", victim: str = "Syn", at_minute: float = 10.0
+) -> KillEventOutput:
+    return KillEventOutput(
+        at_minute=at_minute,
+        killer_player=killer,
+        victim_player=victim,
+        x=0.0,
+        y=0.0,
+        killer="AmericaVehicleCrusader",
+        victim="ChinaVehicleOverlord",
+        damage_type="EXPLOSION",
+        value=value,
+    )
+
+
+def details(match_id: int = 1, **overrides: object) -> MatchDetails:
+    """Empty ``MatchDetails`` for a match; override any field."""
+    base: dict[str, object] = {
+        "match_id": match_id,
+        "costs": [],
+        "apms": [],
+        "upgrade_events": {},
+        "stats_data": {},
+        "player_summary": [],
+    }
+    base.update(overrides)
+    return MatchDetails(**base)  # type: ignore[arg-type]
+
+
+def curve_details(match_id: int, winner_probs: list[float]) -> MatchDetails:
+    """Details with a curve favouring team A and a big kill inside the biggest swing."""
+    return details(
+        match_id,
+        win_prob_over_time=win_prob_over_time(winner_probs, match_id=match_id),
+        kill_events=[kill(5000, at_minute=11.25)],
+    )

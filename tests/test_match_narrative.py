@@ -12,7 +12,6 @@ from radarvan import match_narrative
 from radarvan.api_types import (
     APM,
     FirstBlood,
-    KillEventOutput,
     MatchDetails,
     TimelineEvent,
 )
@@ -211,18 +210,7 @@ def test_superweapon_builds_are_not_reported_as_launches() -> None:
     assert not [b for b in narrative.beats if b.kind == "superweapon"]
 
 
-def _kill(value: int, killer: str = "Skip", victim: str = "Syn") -> KillEventOutput:
-    return KillEventOutput(
-        at_minute=10.0,
-        killer_player=killer,
-        victim_player=victim,
-        x=0.0,
-        y=0.0,
-        killer="AmericaVehicleCrusader",
-        victim="ChinaVehicleOverlord",
-        damage_type="EXPLOSION",
-        value=value,
-    )
+_kill = corpus.kill
 
 
 def test_a_cheap_kill_is_not_called_out_as_the_priciest() -> None:
@@ -341,3 +329,94 @@ def test_a_round_robin_tournament_game_still_names_the_tournament() -> None:
         update={"tournament": TournamentTag(slug="spring-cup")}
     )
     assert match_narrative.build_narrative(match, None).tournament == "spring-cup"
+
+
+# --- turning point ------------------------------------------------------------
+
+SKIP_WINS = corpus.match(1, day=5)
+
+# Rises 25% -> 90% between 1.5 and 3.0 min, the winners starting behind.
+COMEBACK = [0.5, 0.3, 0.25, 0.6, 0.85, 0.9]
+# Rises 55% -> 90% with the winners never behind.
+WIRE_TO_WIRE = [0.55, 0.6, 0.6, 0.65, 0.9, 0.95]
+# 49% -> 92%: a big rise, but from level, not from behind.
+LEVEL_START = [0.49, 0.5, 0.55, 0.8, 0.92, 0.95]
+
+
+def _turning_point(probs: list[float] | None, **overrides: object) -> str | None:
+    """The turning-point beat text for ``SKIP_WINS`` (Skip & CoreDawg are team A)."""
+    curve = corpus.win_prob_over_time(probs) if probs is not None else None
+    narrative = match_narrative.build_narrative(
+        SKIP_WINS, _details(win_prob_over_time=curve, **overrides)
+    )
+    beats = [b for b in narrative.beats if b.kind == "turning_point"]
+    return beats[0].text if beats else None
+
+
+def test_the_turning_point_names_the_window_the_odds_and_what_was_destroyed() -> None:
+    text = _turning_point(
+        COMEBACK,
+        kill_events=[
+            _kill(3000, "Skip", "Syn", at_minute=2.0),
+            _kill(500, "Syn", "Skip", at_minute=2.5),
+        ],
+    )
+    assert text is not None
+    assert text.startswith("Turning point:")
+    assert "odds for Skip & CoreDawg went from 25% to 90%" in text
+    assert "between 1.5 and 3.0 min" in text
+    assert "they destroyed $3,000 and lost $500" in text
+
+
+def test_kills_outside_the_window_are_not_attributed_to_it() -> None:
+    text = _turning_point(
+        COMEBACK,
+        kill_events=[
+            _kill(3000, "Skip", "Syn", at_minute=2.0),
+            _kill(99_000, "Skip", "Syn", at_minute=20.0),
+        ],
+    )
+    assert text is not None and "$3,000" in text and "99,000" not in text
+
+
+def test_only_a_swing_from_clearly_behind_is_a_turning_point() -> None:
+    kills = [_kill(3000, "Skip", "Syn", at_minute=2.0)]
+    assert (_turning_point(COMEBACK, kill_events=kills) or "").startswith(
+        "Turning point:"
+    )
+    for level in (WIRE_TO_WIRE, LEVEL_START):
+        assert (_turning_point(level, kill_events=kills) or "").startswith(
+            "Decisive stretch:"
+        )
+
+
+def test_a_swing_with_nothing_under_it_is_not_a_moment() -> None:
+    """The model catching up to a game that had already been decided."""
+    assert _turning_point(COMEBACK) is None
+
+
+def test_cheap_trades_alone_do_not_explain_a_swing() -> None:
+    cheap = _kill(match_narrative.TURNING_POINT_MIN_VALUE - 1, at_minute=2.0)
+    assert _turning_point(COMEBACK, kill_events=[cheap]) is None
+
+
+def test_a_launch_inside_the_window_explains_it_and_one_outside_does_not() -> None:
+    text = _turning_point(
+        COMEBACK,
+        timeline_events=[
+            _activation("Skip", "ScudStorm", 2.5),
+            _activation("Syn", "NuclearMissile", 20.0),
+        ],
+    )
+    assert text is not None
+    assert "Skip launched the ScudStorm superweapon" in text
+    assert "NuclearMissile" not in text
+
+
+def test_a_player_going_hunted_inside_the_window_is_named() -> None:
+    text = _turning_point(COMEBACK, time_to_hunted={"Syn": 2.2})
+    assert text is not None and "Syn went hunted" in text
+
+
+def test_no_curve_means_no_turning_point() -> None:
+    assert _turning_point(None, kill_events=[_kill(3000, at_minute=2.0)]) is None

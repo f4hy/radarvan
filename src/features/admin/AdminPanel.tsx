@@ -401,6 +401,21 @@ const SECTIONS: readonly TaskSection[] = [
         confirmLabel: "spends money",
       },
       {
+        id: "backfill_match_blurbs",
+        title: "Backfill match blurbs",
+        description:
+          "Caption the top matches (at most 3 a night) of the last N closed game nights, newest first, spending at most Max calls across the whole run. Never overwrites, and never touches the night still being played. Max calls 0 is a dry run: nothing is spent and the report shows what each night would cost.",
+        method: "POST",
+        path: () => "/api/backfill_match_blurbs",
+        query: ["days", "max_to_update"],
+        fields: [
+          num("days", "Days", "7"),
+          num("max_to_update", "Max calls", "0", 150),
+        ],
+        confirmWord: () => "SPEND",
+        confirmLabel: "spends money",
+      },
+      {
         id: "generate_game_night_summary",
         title: "Generate one night",
         description:
