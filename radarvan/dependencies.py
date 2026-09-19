@@ -22,6 +22,7 @@ from .repositories import (
     BracketRepo,
     BracketSummaryRepo,
     GameNightSummaryRepo,
+    MatchBlurbRepo,
     MapVoteRepo,
     TournamentRepo,
     UserRepo,
@@ -227,6 +228,13 @@ def get_game_night_summary_repo(
 ) -> GameNightSummaryRepo:
     """Dependency that provides a GameNightSummaryRepo instance."""
     return GameNightSummaryRepo(session)
+
+
+def get_match_blurb_repo(
+    session: Session = Depends(get_db_session),
+) -> MatchBlurbRepo:
+    """Dependency that provides a MatchBlurbRepo instance."""
+    return MatchBlurbRepo(session)
 
 
 def get_tournament_repo(session: Session = Depends(get_db_session)) -> TournamentRepo:

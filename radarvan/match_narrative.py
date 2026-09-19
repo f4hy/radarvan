@@ -30,6 +30,7 @@ from .api_types import (
 )
 from .game_composition import RosterSlot
 from .player_ids import resolve_player_name
+from . import win_curve
 from .replay_files import map_display_name
 from .replay_helpers import clean_object_name
 from .timeline_events import BASE_SUPERWEAPON_LAUNCHES
@@ -42,6 +43,13 @@ MAX_SUPERWEAPON_BEATS = 6
 # Only call out a single kill when it's actually a moment - anything cheaper
 # than a tech structure is just a skirmish trade.
 BIG_KILL_MIN_VALUE = 1500
+
+# The destroyed-value line on a turning point is only worth saying when
+# something real was destroyed in the window.
+TURNING_POINT_MIN_VALUE = 1000
+
+# The turning point names at most this many launches/powers from its window.
+MAX_TURNING_POINT_LAUNCHES = 2
 
 
 def _canonical_names(match: MatchInfo) -> dict[str, str]:
@@ -255,6 +263,14 @@ def is_base_superweapon(event_name: str) -> bool:
     return any(kw in event_name for kw in BASE_SUPERWEAPON_LAUNCHES)
 
 
+def _launch_clause(who: str, weapon: str, times: int = 1) -> str:
+    """The category is named in the words, not left to ``kind`` - see ``_superweapon_beats``."""
+    repeat = f" (x{times})" if times > 1 else ""
+    if is_base_superweapon(weapon):
+        return f"{who} launched the {weapon} superweapon{repeat}"
+    return f"{who} called in the {weapon} generals power{repeat}"
+
+
 def _grouped_activations(
     details: MatchDetails, *, base_superweapons: bool
 ) -> list[tuple[tuple[str, str], _Launches]]:
@@ -300,13 +316,12 @@ def _superweapon_beats(
     for (raw, weapon), launches in _grouped_activations(
         details, base_superweapons=True
     )[:MAX_SUPERWEAPON_BEATS]:
-        repeat = f" (x{launches.times})" if launches.times > 1 else ""
         beats.append(
             NarrativeBeat(
                 kind="superweapon",
                 at_minute=launches.first_minute,
                 player_name=_name(canonical, raw),
-                text=f"{_name(canonical, raw)} launched the {weapon} superweapon{repeat}.",
+                text=f"{_launch_clause(_name(canonical, raw), weapon, launches.times)}.",
             )
         )
     return beats
@@ -325,13 +340,12 @@ def _power_beats(
     for (raw, power), launches in _grouped_activations(
         details, base_superweapons=False
     )[:MAX_SUPERWEAPON_BEATS]:
-        repeat = f" (x{launches.times})" if launches.times > 1 else ""
         beats.append(
             NarrativeBeat(
                 kind="power",
                 at_minute=launches.first_minute,
                 player_name=_name(canonical, raw),
-                text=f"{_name(canonical, raw)} called in the {power} generals power{repeat}.",
+                text=f"{_launch_clause(_name(canonical, raw), power, launches.times)}.",
             )
         )
     return beats
@@ -363,6 +377,73 @@ def _biggest_kill_beat(
             f"(${best.value:,})."
         ),
     )
+
+
+def _launches_between(
+    details: MatchDetails, canonical: dict[str, str], swing: win_curve.Swing
+) -> list[str]:
+    fired = dict.fromkeys(
+        (event.player_name, event.event_name)
+        for event in details.timeline_events
+        if event.event_type == "superweapon_activated"
+        and swing.contains(event.at_minute)
+    )
+    return [
+        _launch_clause(_name(canonical, raw), weapon)
+        for raw, weapon in list(fired)[:MAX_TURNING_POINT_LAUNCHES]
+    ]
+
+
+def _turning_point_beat(
+    match: MatchInfo, details: MatchDetails, canonical: dict[str, str]
+) -> NarrativeBeat | None:
+    """Where the model's read moved most toward the winners, and what was in that window.
+
+    A swing with nothing under it is the model catching up, not a moment, so it
+    yields no beat. The odds are worded as the model's read, never as fact.
+    """
+    curve = win_curve.winner_curve(details.win_prob_over_time)
+    swing = win_curve.biggest_swing(curve) if curve is not None else None
+    if swing is None:
+        return None
+    sides = _sides(match)
+    winning = [side for side in sides if side.won]
+    if len(sides) != 2 or len(winning) != 1:
+        return None
+    winners = winning[0]
+    winner_raw = {slot.name for slot in winners.slots}
+    loser_raw = {slot.name for side in sides if not side.won for slot in side.slots}
+
+    won_value = lost_value = 0
+    for event in details.kill_events:
+        if not swing.contains(event.at_minute):
+            continue
+        if event.killer_player in winner_raw:
+            won_value += event.value
+        elif event.killer_player in loser_raw:
+            lost_value += event.value
+
+    evidence = []
+    if max(won_value, lost_value) >= TURNING_POINT_MIN_VALUE:
+        evidence.append(f"they destroyed ${won_value:,} and lost ${lost_value:,}")
+    evidence.extend(_launches_between(details, canonical, swing))
+    evidence.extend(
+        f"{_name(canonical, raw)} went hunted"
+        for raw, minute in sorted(details.time_to_hunted.items(), key=lambda kv: kv[1])
+        if swing.contains(minute)
+    )
+
+    if not evidence:
+        return None
+
+    label = "Turning point" if swing.flipped_lead else "Decisive stretch"
+    text = (
+        f"{label}: the model's odds for {_side(winners.slots, canonical)} went from "
+        f"{swing.start_prob * 100:.0f}% to {swing.end_prob * 100:.0f}% between "
+        f"{swing.start_minute:.1f} and {swing.end_minute:.1f} min - "
+        f"{'; '.join(evidence)}."
+    )
+    return NarrativeBeat(kind="turning_point", at_minute=swing.start_minute, text=text)
 
 
 def _leader(totals: dict[str, int | float]) -> tuple[str, float] | None:
@@ -474,6 +555,9 @@ def build_narrative(match: MatchInfo, details: MatchDetails | None) -> MatchNarr
     big_kill = _biggest_kill_beat(details, canonical)
     if big_kill is not None:
         timed.append(big_kill)
+    turning_point = _turning_point_beat(match, details, canonical)
+    if turning_point is not None:
+        timed.append(turning_point)
     # `at_minute` is set on every beat in `timed` by construction; the `or 0.0`
     # is for the type checker rather than a real case.
     timed.sort(key=lambda beat: beat.at_minute or 0.0)

@@ -19,6 +19,7 @@ from .api_types import (
     SuperweaponLaunch,
     Statistic,
 )
+from . import win_curve
 from .db_utils import DatabaseManager
 from .player_ids import HUMAN_NAMES, resolve_player_name
 from .player_rating import GameUpset, RatingDailyChange, RatingsAndCounts
@@ -131,16 +132,12 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
     loser_players: list[str] | None = None
     winner_min_win_prob: float | None = None
     loser_max_win_prob: float | None = None
-    wpot = d.win_prob_over_time
-    if wpot is not None and wpot.actual_winner is not None and wpot.points:
-        winner_is_a = wpot.actual_winner == "team_a"
-        winner_probs = [
-            p.prob_team_a if winner_is_a else 1 - p.prob_team_a for p in wpot.points
-        ]
-        winner_players = wpot.team_a_players if winner_is_a else wpot.team_b_players
-        loser_players = wpot.team_b_players if winner_is_a else wpot.team_a_players
-        winner_min_win_prob = min(winner_probs)
-        loser_max_win_prob = max(1 - p for p in winner_probs)
+    curve = win_curve.winner_curve(d.win_prob_over_time)
+    if curve is not None:
+        winner_players = curve.winners
+        loser_players = curve.losers
+        winner_min_win_prob = min(curve.probs)
+        loser_max_win_prob = 1 - winner_min_win_prob
 
     return SuperlativeData(
         match_id=d.match_id,

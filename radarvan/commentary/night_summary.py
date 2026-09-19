@@ -152,16 +152,13 @@ def _render_break(previous: MatchNarrative, current: MatchNarrative) -> str | No
     return f"-- {minutes:.0f} min break --"
 
 
-def _render_narrative(game: NightGame) -> list[str]:
-    narrative = game.narrative
-    span = _render_span(narrative)
-    label = f"[TOURNAMENT: {narrative.tournament}] " if narrative.tournament else ""
-    if game.uncounted is not None:
-        # Ahead of the tournament tag because it is the stronger caveat: this
-        # game happened and its beats are real, but its result is in none of
-        # the numbers above.
-        label = f"[NOT IN THE STANDINGS - {game.uncounted}] {label}"
-    lines = [f"  {span}{label}{narrative.headline}"]
+def tournament_tag(narrative: MatchNarrative) -> str:
+    return f"[TOURNAMENT: {narrative.tournament}] " if narrative.tournament else ""
+
+
+def render_timeline(narrative: MatchNarrative, indent: str) -> list[str]:
+    """The narrative's stamped beats, one line each, minus the two the headline restates."""
+    lines = []
     for beat in narrative.beats:
         # The setup beat restates the lineup the headline already carries, and
         # the result beat restates the result - both are noise once the
@@ -169,8 +166,23 @@ def _render_narrative(game: NightGame) -> list[str]:
         if beat.kind in {"setup", "result"}:
             continue
         stamp = f"{beat.at_minute:.1f}min - " if beat.at_minute is not None else ""
-        lines.append(f"    {stamp}{beat.text}")
+        lines.append(f"{indent}{stamp}{beat.text}")
     return lines
+
+
+def _render_narrative(game: NightGame) -> list[str]:
+    narrative = game.narrative
+    span = _render_span(narrative)
+    label = tournament_tag(narrative)
+    if game.uncounted is not None:
+        # Ahead of the tournament tag because it is the stronger caveat: this
+        # game happened and its beats are real, but its result is in none of
+        # the numbers above.
+        label = f"[NOT IN THE STANDINGS - {game.uncounted}] {label}"
+    return [
+        f"  {span}{label}{narrative.headline}",
+        *render_timeline(narrative, "    "),
+    ]
 
 
 def render_night(recap: GameNightRecap, games: list[NightGame]) -> str:

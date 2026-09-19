@@ -136,7 +136,7 @@ export class PlayersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Win probability for every way of splitting `players` into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation.
+     * Win probability for every way of splitting `players` into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation, which posts the most even split and its favoured side to the notify webhook.
      * Balance Teams
      */
     async balanceTeamsApiBalanceTeamsGetRaw(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
@@ -147,7 +147,7 @@ export class PlayersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Win probability for every way of splitting `players` into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation.
+     * Win probability for every way of splitting `players` into two teams.  Held for six hours per roster: ask again with the same players and you get the same numbers back, even if games have landed in between. Change the roster and you get a fresh computation, which posts the most even split and its favoured side to the notify webhook.
      * Balance Teams
      */
     async balanceTeamsApiBalanceTeamsGet(requestParameters: BalanceTeamsApiBalanceTeamsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {

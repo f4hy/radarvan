@@ -785,3 +785,19 @@ class GameNightSummaryCache(Base):
             f"<GameNightSummaryCache(night_date={self.night_date!r}, "
             f"match_count={self.match_count!r})>"
         )
+
+
+class MatchBlurbCache(Base):
+    """LLM caption for one match; written by the nightly job / ops endpoint, never on read."""
+
+    __tablename__ = "match_blurb_cache"
+
+    match_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    blurb: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<MatchBlurbCache(match_id={self.match_id!r})>"

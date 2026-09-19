@@ -67,6 +67,12 @@ export interface MatchNarrative {
      * @memberof MatchNarrative
      */
     tournament?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof MatchNarrative
+     */
+    blurb?: string | null;
 }
 
 /**
@@ -94,6 +100,7 @@ export function MatchNarrativeFromJSONTyped(json: any, ignoreDiscriminator: bool
         'startedAt': json['startedAt'] == null ? undefined : (new Date(json['startedAt'])),
         'durationMinutes': json['durationMinutes'] == null ? undefined : json['durationMinutes'],
         'tournament': json['tournament'] == null ? undefined : json['tournament'],
+        'blurb': json['blurb'] == null ? undefined : json['blurb'],
     };
 }
 
@@ -114,6 +121,7 @@ export function MatchNarrativeToJSONTyped(value?: MatchNarrative | null, ignoreD
         'startedAt': value['startedAt'] == null ? value['startedAt'] : value['startedAt'].toISOString(),
         'durationMinutes': value['durationMinutes'],
         'tournament': value['tournament'],
+        'blurb': value['blurb'],
     };
 }
 
