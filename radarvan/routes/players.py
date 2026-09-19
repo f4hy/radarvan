@@ -8,7 +8,7 @@ from enum import Enum
 from cachetools import TTLCache
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from .. import (
     create_teams,
@@ -43,6 +43,7 @@ from ..queries import (
 )
 from ..db_utils import ReplayManager
 from ..dependencies import cache_short, get_replay_manager
+from ..notify import notify
 
 router = APIRouter(tags=["players"])
 
@@ -316,8 +317,27 @@ _balance_cache: TTLCache[frozenset[str], dict[tuple[str, ...], float]] = TTLCach
 _balance_cache_lock = threading.Lock()
 
 
+def _balance_notice(
+    roster: frozenset[str], team_scores: dict[tuple[str, ...], float]
+) -> str | None:
+    """Discord line for the most even split; keys are the favoured side."""
+    if not team_scores:
+        return None
+    team, win_prob = min(team_scores.items(), key=lambda kv: kv[1])
+    other = sorted(roster - set(team))
+    lines = [
+        f"⚖️ Balanced {len(roster)} players: {', '.join(team)} vs {', '.join(other)}"
+    ]
+    if abs(win_prob - 0.5) < 0.0005:
+        lines.append("Advantage: none, dead even")
+    else:
+        lines.append(f"Advantage: {', '.join(team)} ({win_prob:.1%})")
+    return "\n".join(lines)
+
+
 @router.get("/api/balance_teams/")
 def balance_teams(
+    background_tasks: BackgroundTasks,
     players: list[str] = Query(default=[]),
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> dict[str, float]:
@@ -325,7 +345,8 @@ def balance_teams(
 
     Held for six hours per roster: ask again with the same players and you get
     the same numbers back, even if games have landed in between. Change the
-    roster and you get a fresh computation.
+    roster and you get a fresh computation, which posts the most even split and
+    its favoured side to the notify webhook.
     """
     if len(players) < 4:
         return {}
@@ -346,6 +367,8 @@ def balance_teams(
         )
         with _balance_cache_lock:
             _balance_cache[roster] = team_scores
+        if notice := _balance_notice(roster, team_scores):
+            background_tasks.add_task(notify, notice)
     return {
         ",".join(resolved_to_raw.get(p, p) for p in team): score
         for team, score in team_scores.items()
