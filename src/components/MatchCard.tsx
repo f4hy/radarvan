@@ -16,7 +16,6 @@ import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
 import Divider from "@mui/material/Divider"
 import IconButton from "@mui/material/IconButton"
-import Link from "@mui/material/Link"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import { Tooltip } from "@mui/material"
@@ -24,7 +23,6 @@ import Typography from "@mui/material/Typography"
 
 import groupBy from "lodash/groupBy"
 import * as React from "react"
-import { Link as RouterLink } from "react-router"
 
 import { type MatchInfo, type Player, Team } from "../api"
 import { FilesClient } from "../clients/files"
@@ -32,17 +30,12 @@ import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
 import { MatchRowLoading } from "./Loading"
 import { PlayerDot } from "./PlayerChip"
-import { useIsAdmin } from "../lib/AuthContext"
 import { useColorMode } from "../lib/ColorModeContext"
-import { usePlayerColors } from "../lib/PlayerColorsContext"
 import { toGeneralName } from "../lib/general_utils"
-import { gameNightHref } from "../lib/links"
 import {
-  displayMapName,
   getColorHex,
   isCompetitor,
   isObserver,
-  localDate,
   playerPalette,
 } from "../lib/utils"
 
@@ -74,9 +67,12 @@ function buildPlayerPositions(
     players
       // Observers carry a starting position too, and since these are keyed by
       // it a spectator can otherwise overwrite the real player standing there.
-      .filter((p) => isCompetitor(p) && p.startingPosition != null)
+      .filter(
+        (p): p is Player & { startingPosition: number } =>
+          isCompetitor(p) && p.startingPosition != null,
+      )
       .map((p) => [
-        p.startingPosition!,
+        p.startingPosition,
         {
           name: normalizePlayerName(p.name),
           color: p.color,
