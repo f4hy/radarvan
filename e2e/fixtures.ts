@@ -139,6 +139,13 @@ export const GAME_NIGHT = wire<GameNightRecap>({
   maps: { "maps/tournament island": 6 },
   players: [],
   highlights: [
+    // Listed first on purpose: the page must still put the match of the night on top.
+    {
+      kind: "longest_game",
+      title: "Longest game",
+      detail: "40.7 min on tournament island",
+      match_id: 99,
+    },
     {
       kind: "match_of_the_night",
       title: "Match of the night",
