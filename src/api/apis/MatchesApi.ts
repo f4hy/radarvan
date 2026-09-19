@@ -376,7 +376,7 @@ export class MatchesApi extends runtime.BaseAPI {
     }
 
     /**
-     * The match retold as an ordered list of beats.  A projection of the cached ``MatchDetails`` (see ``match_narrative``), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as ``get_build_orders`` above. Entirely deterministic: no model call, identical on every request.  A match that isn\'t in the corpus returns an empty narrative uncached; one whose replay hasn\'t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
+     * The match retold as an ordered list of beats.  A projection of the cached ``MatchDetails`` (see ``match_narrative``), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as ``get_build_orders`` above. The beats are deterministic; the only model text is the stored ``blurb``, attached when a row exists and never generated here.  A match that isn\'t in the corpus returns an empty narrative uncached; one whose replay hasn\'t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
      * Get Match Narrative
      */
     async getMatchNarrativeApiNarrativeMatchIdGetRaw(requestParameters: GetMatchNarrativeApiNarrativeMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MatchNarrative>> {
@@ -387,7 +387,7 @@ export class MatchesApi extends runtime.BaseAPI {
     }
 
     /**
-     * The match retold as an ordered list of beats.  A projection of the cached ``MatchDetails`` (see ``match_narrative``), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as ``get_build_orders`` above. Entirely deterministic: no model call, identical on every request.  A match that isn\'t in the corpus returns an empty narrative uncached; one whose replay hasn\'t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
+     * The match retold as an ordered list of beats.  A projection of the cached ``MatchDetails`` (see ``match_narrative``), so it shares the durable, versioned details cache and runs no extra computation - the same arrangement as ``get_build_orders`` above. The beats are deterministic; the only model text is the stored ``blurb``, attached when a row exists and never generated here.  A match that isn\'t in the corpus returns an empty narrative uncached; one whose replay hasn\'t been parsed yet returns the headline with no beats, and picks up the rest once details exist.
      * Get Match Narrative
      */
     async getMatchNarrativeApiNarrativeMatchIdGet(requestParameters: GetMatchNarrativeApiNarrativeMatchIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MatchNarrative> {

@@ -27,7 +27,7 @@ import { alpha, useTheme } from "@mui/material/styles"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import type { GameNightHighlight, GameNightRecap } from "../../api"
-import { renderAiText } from "../../components/aiText"
+import { AiBlurb, renderAiText } from "../../components/aiText"
 import { GameNightClient } from "../../clients/game-night"
 import { MatchesClient } from "../../clients/matches"
 import Loading from "../../components/Loading"
@@ -56,6 +56,7 @@ const HIGHLIGHT_ICONS: { [key: string]: string } = {
   power: "✴️",
   hunted: "🚜",
   momentum: "🎢",
+  match_of_the_night: "🍿",
 }
 
 function longDate(key: string): string {
@@ -118,6 +119,7 @@ function HighlightCard(props: {
           <MomentumSparkline points={highlight.points} />
         )}
       </Stack>
+      {highlight.blurb && <AiBlurb text={highlight.blurb} mt={1} />}
     </Paper>
   )
 }
