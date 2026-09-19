@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Read the source file directly rather than chaining several `grep`/`sed`/`awk` shell commands. Use `grep`/`Bash` only for repo-wide searches; once you know the file, read it.
 - **Playwright (MCP tool or `e2e/` tests) must use Firefox — never Chrome/Chromium.** Driving the UI and `/api` cache behaviour are covered by the **`run-radarvan`** skill.
 - **Never call `GET /api/matchup_commentary/` (or anything that reaches `matchup_commentary.generate_commentary`) without asking first — a cache *miss* still generates and spends real tokens/money**, against whichever provider `COMMENTARY_PROVIDER` currently selects. Each call needs its own explicit confirmation. Use the free `GET /api/matchup_commentary/prompt_preview` for prompt content/size/structure instead.
-- **Same rule for `POST /api/generate_game_night_summary/{night}` and `POST /api/backfill_game_night_summaries`** — the only other routes that bill a call. Every read path for that feature (`GET /api/game_night/{night}`) is free and never generates.
+- **Same rule for `POST /api/generate_game_night_summary/{night}`, `POST /api/backfill_game_night_summaries`, `POST /api/generate_match_blurbs/{night}` and `POST /api/backfill_match_blurbs` (`max_to_update=0` is a free dry run)** — the only other routes that bill a call. Every read path for those features (`GET /api/game_night/{night}`, `GET /api/narrative/{id}`) is free and never generates; the nightly scheduler is the only other caller.
 
 See `ENVIRONMENT.md` for environment variables.
 

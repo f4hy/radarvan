@@ -11,14 +11,16 @@ import type {
   NarrativeBeat,
 } from "../api"
 import { MatchesClient } from "../clients/matches"
+import { AiBlurb } from "./aiText"
 import { usePlayerAccentColor } from "../lib/PlayerColorsContext"
 
 /**
  * The match retold as a timeline of sentences.
  *
- * Entirely deterministic — every beat is a fact already in the parsed replay,
- * assembled server-side (`radarvan/match_narrative.py`). No model call, so this
- * is free to render anywhere and identical on every load.
+ * The beats are deterministic — every one is a fact already in the parsed
+ * replay, assembled server-side (`radarvan/match_narrative.py`), so they are
+ * free to render anywhere and identical on every load. The only model text is
+ * the optional `blurb`, which the server attaches from storage.
  */
 
 // `kind` is a stable backend slug. An unknown one falls back to a plain bullet
@@ -29,6 +31,7 @@ const BEAT_ICONS: { [key: string]: string } = {
   first_blood: "🩸",
   milestone: "🎖️",
   superweapon: "☢️",
+  turning_point: "🔄",
   // A generals-panel power (gunship, EMP, anthrax) is not a superweapon —
   // separate icon so the two never read as the same event.
   power: "✴️",
@@ -161,6 +164,7 @@ export default function MatchNarrative(props: {
           )}
         </Stack>
       )}
+      {narrative.blurb && <AiBlurb text={narrative.blurb} mb={1.5} />}
       <NarrativeBody narrative={narrative} />
     </Paper>
   )

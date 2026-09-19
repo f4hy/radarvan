@@ -17,6 +17,7 @@ from .game_night import (
     night_narratives,
     uncounted_reason,
     on_night,
+    with_blurbs,
 )
 from .powers import (
     PowerIndex,
@@ -58,4 +59,5 @@ __all__ = [
     "power_stats",
     "profile_for",
     "uncounted_reason",
+    "with_blurbs",
 ]

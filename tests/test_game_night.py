@@ -260,6 +260,44 @@ def test_detail_highlights_come_from_the_parsed_replay() -> None:
     assert kinds["hunted"].detail == "Syn went hunted at 20.0 min"
 
 
+BACK_AND_FORTH = corpus.BACK_AND_FORTH
+STOMP = corpus.STOMP
+
+
+def test_the_match_of_the_night_is_the_most_retellable_game_with_its_reasons() -> None:
+    games = [corpus.match(1, day=5), corpus.match(2, day=5), corpus.match(3, day=5)]
+    details = {
+        1: corpus.curve_details(1, STOMP),
+        2: corpus.curve_details(2, BACK_AND_FORTH),
+        3: corpus.curve_details(3, STOMP),
+    }
+    card = next(
+        h for h in _recap(games, details=details).highlights
+        if h.kind == "match_of_the_night"
+    )
+    assert card.match_id == 2
+    assert card.detail.startswith("Skip & CoreDawg on ")
+    assert "the lead changed hands 3 times" in card.detail
+    assert card.points is not None and len(card.points) > 1
+
+
+def test_a_night_of_stomps_has_no_match_of_the_night() -> None:
+    games = [corpus.match(1, day=5), corpus.match(2, day=5)]
+    details = {i: corpus.curve_details(i, STOMP) for i in (1, 2)}
+    assert "match_of_the_night" not in {
+        h.kind for h in _recap(games, details=details).highlights
+    }
+
+
+def test_the_recap_prompt_carries_the_match_of_the_night_and_the_turning_point() -> None:
+    """Fed as data rather than taught as a rule: the model reads it off the page."""
+    games = [corpus.match(1, day=5), corpus.match(2, day=5)]
+    details = {1: corpus.curve_details(1, STOMP), 2: corpus.curve_details(2, BACK_AND_FORTH)}
+    rendered = _rendered(games, details=details)
+    assert "Match of the night: Skip & CoreDawg on " in rendered
+    assert "Turning point: the model's odds for Skip & CoreDawg" in rendered
+
+
 def _activation(player: str, name: str, minute: float) -> TimelineEvent:
     return TimelineEvent(
         player_name=player,

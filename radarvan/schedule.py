@@ -9,9 +9,9 @@ process-lifetime session would poison every later run.
 from .db_utils import DatabaseManager, ReplayManager
 from .cache import competitive_matches, invalidate_match_caches
 from .matches import get_match_infos, register_matches
-from .repositories import BracketRepo, GameNightSummaryRepo
+from .repositories import BracketRepo, GameNightSummaryRepo, MatchBlurbRepo
 from . import computed_stats, queries
-from .commentary import llm, night_summary
+from .commentary import llm, match_blurb, night_summary
 from . import tournament_membership
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
@@ -171,6 +171,29 @@ async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
     await notify_async(f"Wrote the game night recap for {night} ({len(played)} games).")
 
 
+async def compute_match_blurbs(db_manager: DatabaseManager) -> None:
+    """Caption the top matches of the latest *closed* night. Billed; capped per night."""
+    if not llm.commentary_available():
+        logger.info("skipping match blurbs: no LLM provider configured")
+        return
+    with db_manager.get_replay_manager() as replay_manager:
+        all_games = await asyncio.to_thread(queries.all_games, replay_manager)
+        night = queries.latest_closed_night(all_games)
+        if night is None:
+            logger.info("no closed game night to caption")
+            return
+        competitive = await asyncio.to_thread(queries.competitive_games, replay_manager)
+        try:
+            night_games = await queries.build_night_recap(
+                night, all_games, competitive, db_manager
+            )
+            await match_blurb.generate_night_blurbs(
+                night_games, MatchBlurbRepo(replay_manager.session)
+            )
+        except Exception:
+            logger.exception("match blurb generation failed", night=str(night))
+
+
 def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
     """Get the scheduler with the tasks on it."""
 
@@ -222,6 +245,15 @@ def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
         minute=0,
         args=[db_manager],
         id="compute_game_night_summary",
+    )
+    # After the recap job, so a recap failure can't take the blurbs down with it.
+    scheduler.add_job(
+        compute_match_blurbs,
+        "cron",
+        hour=11,
+        minute=10,
+        args=[db_manager],
+        id="compute_match_blurbs",
     )
     logger.info("Setup scheduler.")
     return scheduler

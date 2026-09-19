@@ -109,6 +109,9 @@ from .game_night import (
     GameNightPlayerLine,
     GameNightRecap,
     GameNightSummaryStatus,
+    MatchBlurbBackfill,
+    MatchBlurbBackfillNight,
+    MatchBlurbRun,
 )
 from .generals import (
     GeneralMatchupCell,
@@ -356,6 +359,9 @@ __all__ = [
     "MapVoteOption",
     "MapVotePage",
     "MapsByPlayerCount",
+    "MatchBlurbBackfill",
+    "MatchBlurbBackfillNight",
+    "MatchBlurbRun",
     "MatchDetails",
     "MatchInfo",
     "MatchListing",

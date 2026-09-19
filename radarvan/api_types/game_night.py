@@ -55,8 +55,10 @@ class GameNightHighlight(BaseModel):
     title: str
     detail: str
     match_id: int | None = Field(default=None, alias="matchId")
-    # Winner's win-prob sparkline, for the "momentum" highlight only.
+    # Winner's win-prob sparkline, for the "momentum" and "match_of_the_night" highlights.
     points: list[float] | None = Field(default=None)
+    # The stored LLM blurb for this highlight's match, on "match_of_the_night" only.
+    blurb: str | None = None
 
 
 class GameNightRecap(BaseModel):
@@ -107,6 +109,44 @@ class GameNightSummaryStatus(BaseModel):
     has_summary: bool = Field(alias="hasSummary")
     provider: str | None = None
     computed_at: datetime | None = Field(default=None, alias="computedAt")
+
+
+class MatchBlurbRun(BaseModel):
+    """What one night's match-blurb run picked and wrote."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    date: date_type
+    # The night's most interesting matches, best first - what the run may blurb.
+    picked: list[int]
+    # The subset a real LLM call was spent on; the rest already had a blurb.
+    generated: list[int]
+
+
+class MatchBlurbBackfillNight(BaseModel):
+    """What the blurb backfill did about one night: its picks, what it wrote, what is left."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    date: date_type
+    picked: int
+    generated: int
+    # Picks still without a blurb: the budget ran out, or the provider failed.
+    pending: int
+
+
+class MatchBlurbBackfill(BaseModel):
+    """The result of one blurb backfill run over the last N closed game nights."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    days: int
+    # LLM calls this run billed.
+    generated: int
+    pending: int
+    # True if a provider error ended the run early; later nights are not listed.
+    stopped: bool
+    nights: list[MatchBlurbBackfillNight] = Field(default_factory=list)
 
 
 # generated: a real LLM call was spent and a row written.

@@ -74,3 +74,25 @@ def test_the_night_key_is_a_game_night_not_a_calendar_date() -> None:
     assert utils.game_night_date_of(datetime(2026, 1, 6, 7, 0, tzinfo=UTC)) == date(
         2026, 1, 5
     )
+
+
+# --- the nightly match-blurb job ----------------------------------------------
+
+
+def test_match_blurbs_with_no_provider_stop_before_touching_the_database(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(llm, "commentary_available", lambda: False)
+    asyncio.run(schedule.compute_match_blurbs(_ExplodingDbManager()))  # type: ignore[arg-type]
+
+
+def test_the_blurb_job_runs_after_the_recap_job() -> None:
+    """Later, so the night's details are warm and a recap failure can't take it down."""
+    jobs = {job.id: job for job in schedule.get_scheduler(_ExplodingDbManager()).get_jobs()}  # type: ignore[arg-type]
+
+    def at(job_id: str) -> tuple[str, str]:
+        fields = {f.name: str(f) for f in jobs[job_id].trigger.fields}
+        return fields["hour"], fields["minute"]
+
+    assert at("compute_game_night_summary") == ("11", "0")
+    assert at("compute_match_blurbs") == ("11", "10")
