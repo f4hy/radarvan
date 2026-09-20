@@ -32,6 +32,7 @@ import { GameNightClient } from "../../clients/game-night"
 import { MatchesClient } from "../../clients/matches"
 import Loading from "../../components/Loading"
 import MatchActivityCalendar from "../../components/MatchActivityCalendar"
+import { MatchCard } from "../../components/MatchCard"
 import MatchNarrative from "../../components/MatchNarrative"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
@@ -272,6 +273,10 @@ function GameByGame(props: {
   focusedMatchId: number | null
 }) {
   const [expanded, setExpanded] = React.useState(false)
+  // Which games have their full match card open, below the narrative. A Set
+  // rather than one active id: opening one game to compare generals shouldn't
+  // close another you already had open.
+  const [openCards, setOpenCards] = React.useState<Set<number>>(new Set())
   const rowRefs = React.useRef<{ [key: number]: HTMLDivElement | null }>({})
 
   // Fetched only once the row is open — `enabled` is what expresses the
@@ -295,8 +300,12 @@ function GameByGame(props: {
   const matches = query.data ?? null
 
   React.useEffect(() => {
-    if (props.focusedMatchId === null) return
+    const id = props.focusedMatchId
+    if (id === null) return
     setExpanded(true)
+    // A highlight names one specific game, so open its match card rather than
+    // just scrolling to the narrative — that's the whole reason to jump here.
+    setOpenCards((prev) => new Set(prev).add(id))
   }, [props.focusedMatchId])
 
   // Separate from the effect above: the row only exists once the fetch has
@@ -326,21 +335,53 @@ function GameByGame(props: {
           <Loading />
         ) : (
           <Stack spacing={1.5}>
-            {matches.map((match) => (
-              <Box
-                key={match.id}
-                ref={(el: HTMLDivElement | null) => {
-                  rowRefs.current[match.id] = el
-                }}
-                sx={
-                  match.id === props.focusedMatchId
-                    ? { outline: `2px solid ${BRAND_COLOR}`, borderRadius: 1 }
-                    : {}
-                }
-              >
-                <MatchNarrative matchId={match.id} />
-              </Box>
-            ))}
+            {matches.map((match) => {
+              const cardOpen = openCards.has(match.id)
+              return (
+                <Box
+                  key={match.id}
+                  ref={(el: HTMLDivElement | null) => {
+                    rowRefs.current[match.id] = el
+                  }}
+                  sx={
+                    match.id === props.focusedMatchId
+                      ? { outline: `2px solid ${BRAND_COLOR}`, borderRadius: 1 }
+                      : {}
+                  }
+                >
+                  <MatchNarrative matchId={match.id} />
+                  <Button
+                    fullWidth
+                    size="small"
+                    onClick={() =>
+                      setOpenCards((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(match.id)) {
+                          next.delete(match.id)
+                        } else {
+                          next.add(match.id)
+                        }
+                        return next
+                      })
+                    }
+                    endIcon={
+                      <ExpandMoreIcon
+                        sx={{
+                          transform: cardOpen ? "rotate(180deg)" : "none",
+                          transition: "transform 0.2s",
+                        }}
+                      />
+                    }
+                    sx={{ mt: 0.5, color: "text.secondary" }}
+                  >
+                    {cardOpen ? "Hide match card" : "Show match card"}
+                  </Button>
+                  <Collapse in={cardOpen} unmountOnExit>
+                    <MatchCard match={match} idx={0} />
+                  </Collapse>
+                </Box>
+              )
+            })}
           </Stack>
         )}
       </AccordionDetails>
