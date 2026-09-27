@@ -8,7 +8,7 @@ from enum import Enum
 from cachetools import TTLCache
 from pydantic import BaseModel
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from .. import (
     create_teams,
@@ -20,6 +20,7 @@ from .. import (
     player_synergy,
 )
 from ..api_types import (
+    DiscordPlayer,
     HeadToHead,
     HeadToHeadDetail,
     PlayerGameCount,
@@ -42,8 +43,9 @@ from ..queries import (
     WindowedCompetitiveGames,
 )
 from ..db_utils import ReplayManager
-from ..dependencies import cache_short, get_replay_manager
+from ..dependencies import cache_short, get_replay_manager, get_user_repo
 from ..notify import notify
+from ..repositories import UserRepo
 
 router = APIRouter(tags=["players"])
 
@@ -62,6 +64,17 @@ PlayerEnum = Enum(  # type: ignore[misc]
 
 class SelectedPlayers(BaseModel):
     players: list[PlayerEnum] = []
+
+
+@router.get("/api/v1/players/by_discord_id/{discord_id}")
+def get_player_by_discord_id(
+    discord_id: str, repo: UserRepo = Depends(get_user_repo)
+) -> DiscordPlayer:
+    """Canonical player name claimed by a Discord account; 404 if none."""
+    user = repo.get_by_discord_id(discord_id)
+    if user is None or user.player_name is None:
+        raise HTTPException(status_code=404, detail="No player for that Discord ID")
+    return DiscordPlayer(discord_id=user.discord_id, player_name=user.player_name)
 
 
 @router.get("/api/playerstats", dependencies=[Depends(cache_short)])
