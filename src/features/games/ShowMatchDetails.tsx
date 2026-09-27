@@ -848,7 +848,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
         <TableBody>
           {sortedData.map((row) => (
             <TableRow
-              key={row.player}
+              // Color is unique per player in a match; names aren't (twin CPUs).
+              key={`${row.player}-${row.color}`}
               sx={{ backgroundColor: alpha(getColorHex(row.color), 0.3) }}
             >
               {columns.map((column, i) => {
@@ -861,7 +862,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
                     sx={{
                       borderLeft:
                         groupStart && i !== 0 ? "2px solid" : undefined,
-                      borderLeftColor: "rgba(26, 34, 48, 0.12)",
+                      borderLeftColor: "divider",
                     }}
                   >
                     {column.render

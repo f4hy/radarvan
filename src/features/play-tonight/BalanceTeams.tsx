@@ -28,46 +28,6 @@ interface TeamWinRating {
   [key: string]: number
 }
 
-function getTeamWinRating(
-  players: PlayerEnum[],
-  callback: (m: TeamWinRating) => void,
-  onError = console.error,
-) {
-  if (players.length < 2) {
-    callback({})
-    return
-  }
-  PlayersClient.balanceTeamsApiBalanceTeamsGet({ players: players })
-    .then(callback)
-    .catch(onError)
-}
-
-function getTeamPartition(
-  players: PlayerEnum[],
-  teamSize: number,
-  callback: (m: string[][]) => void,
-  onError = console.error,
-) {
-  if (
-    players.length < 6 ||
-    players.length % 2 !== 0 ||
-    players.length % teamSize !== 0
-  ) {
-    callback([])
-    return
-  }
-  PlayersClient.partitionTeamsApiPartitionTeamsTeamSizeGet({
-    teamSize: teamSize,
-    players: players,
-  })
-    .then((result) =>
-      callback(
-        result.map((team) => team.filter((p): p is string => p !== null)),
-      ),
-    )
-    .catch(onError)
-}
-
 const getScoreStyle = (score: number) => {
   if (score >= 90) {
     return "success"
@@ -154,18 +114,23 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
   const isAdmin = useIsAdmin()
 
   React.useEffect(() => {
-    if (props.selectedPlayers.length >= 2) {
-      setLoading(true)
-      getTeamWinRating(
-        props.selectedPlayers,
-        (data) => {
-          setTeamRating(data)
-          setLoading(false)
-        },
-        showError,
-      )
-    } else {
+    if (props.selectedPlayers.length < 2) {
       setTeamRating({})
+      setLoading(false)
+      return
+    }
+    // Ticking boxes quickly fires overlapping requests; only the latest
+    // selection's answer may land.
+    let stale = false
+    setLoading(true)
+    PlayersClient.balanceTeamsApiBalanceTeamsGet({
+      players: props.selectedPlayers,
+    })
+      .then((data) => !stale && setTeamRating(data))
+      .catch((e) => !stale && showError(e))
+      .finally(() => !stale && setLoading(false))
+    return () => {
+      stale = true
     }
   }, [props.selectedPlayers, showError])
 
@@ -225,19 +190,28 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
       props.selectedPlayers.length >= 6 &&
       props.selectedPlayers.length % 2 === 0 &&
       props.selectedPlayers.length % teamSize === 0
-    if (eligible) {
-      setLoading(true)
-      getTeamPartition(
-        props.selectedPlayers,
-        teamSize,
-        (data) => {
-          setTeamPartition(data)
-          setLoading(false)
-        },
-        showError,
-      )
-    } else {
+    if (!eligible) {
       setTeamPartition([])
+      setLoading(false)
+      return
+    }
+    let stale = false
+    setLoading(true)
+    PlayersClient.partitionTeamsApiPartitionTeamsTeamSizeGet({
+      teamSize,
+      players: props.selectedPlayers,
+    })
+      .then(
+        (result) =>
+          !stale &&
+          setTeamPartition(
+            result.map((team) => team.filter((p): p is string => p !== null)),
+          ),
+      )
+      .catch((e) => !stale && showError(e))
+      .finally(() => !stale && setLoading(false))
+    return () => {
+      stale = true
     }
   }, [props.selectedPlayers, teamSize, showError])
 
