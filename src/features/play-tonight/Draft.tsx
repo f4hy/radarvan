@@ -17,7 +17,6 @@ import Stack from "@mui/material/Stack"
 import * as React from "react"
 import type {
   DraftAssignment,
-  MapDataPayload,
   MapsByPlayerCount,
   PlayerGameCount,
 } from "../../api"
@@ -30,6 +29,7 @@ import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "../../components/Generals"
 import GameMap from "../../components/Map"
 import Page from "../../components/Page"
+import { useErrorSnackbar } from "../../lib/useErrorSnackbar"
 
 const VALID_PLAYER_NAMES = new Set<string>(Object.values(PlayerEnum))
 
@@ -56,7 +56,6 @@ export default function DisplayDraft() {
   >(6)
   const [selectedMap, setSelectedMap] = React.useState<string | null>(null)
   const [players, setPlayers] = React.useState<DraftPlayer[]>([])
-  const [_mapData, setMapData] = React.useState<MapDataPayload | null>(null)
   const [assignments, setAssignments] = React.useState<DraftAssignment[]>([])
   const [randomizedAt, setRandomizedAt] = React.useState<string | null>(null)
   const [teamRating, setTeamRating] = React.useState<Record<
@@ -64,6 +63,7 @@ export default function DisplayDraft() {
     number
   > | null>(null)
   const [balanceLoading, setBalanceLoading] = React.useState(false)
+  const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
     MapClient.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
@@ -93,15 +93,10 @@ export default function DisplayDraft() {
     )
   }, [selectedPlayerCount, topPlayers])
 
+  // GameMap fetches its own overlay data; this only resets the draft.
   React.useEffect(() => {
-    setMapData(null)
     setAssignments([])
     setRandomizedAt(null)
-    if (!selectedMap) return
-    MapClient.getMapDataApiMapDataMapNameGet({ mapName: selectedMap }).then(
-      (data) => setMapData(data),
-      () => setMapData(null),
-    )
   }, [selectedMap])
 
   const allNamesValid =
@@ -117,23 +112,29 @@ export default function DisplayDraft() {
 
   React.useEffect(() => {
     setTeamRating(null)
-    if (!allNamesValid || !teamsBalanced) return
+    if (!allNamesValid || !teamsBalanced) {
+      setBalanceLoading(false)
+      return
+    }
     const team1 = players
       .filter((p) => p.team === 1)
       .map((p) => p.name as PlayerEnum)
     const team2 = players
       .filter((p) => p.team === 2)
       .map((p) => p.name as PlayerEnum)
+    // Editing names or teams fires overlapping requests; only the latest
+    // roster's answer may land.
+    let stale = false
     setBalanceLoading(true)
     PlayersClient.balanceTeamsApiBalanceTeamsGet({
       players: [...team1, ...team2],
-    }).then(
-      (data) => {
-        setTeamRating(data)
-        setBalanceLoading(false)
-      },
-      () => setBalanceLoading(false),
-    )
+    })
+      .then((data) => !stale && setTeamRating(data))
+      .catch(() => {})
+      .finally(() => !stale && setBalanceLoading(false))
+    return () => {
+      stale = true
+    }
   }, [players, allNamesValid, teamsBalanced])
 
   function clearDraft() {
@@ -171,14 +172,18 @@ export default function DisplayDraft() {
 
   async function randomize() {
     if (!selectedMap || players.length === 0) return
-    const result = await DraftClient.randomizeDraftApiDraftRandomizePost({
-      draftRequest: {
-        mapName: selectedMap,
-        players: players.map((p) => ({ name: p.name, team: p.team })),
-      },
-    })
-    setAssignments(result.assignments)
-    setRandomizedAt(new Date(result.randomizedAt).toLocaleTimeString())
+    try {
+      const result = await DraftClient.randomizeDraftApiDraftRandomizePost({
+        draftRequest: {
+          mapName: selectedMap,
+          players: players.map((p) => ({ name: p.name, team: p.team })),
+        },
+      })
+      setAssignments(result.assignments)
+      setRandomizedAt(new Date(result.randomizedAt).toLocaleTimeString())
+    } catch (e) {
+      showError(e)
+    }
   }
 
   const knownMaps = React.useMemo(() => {
@@ -394,7 +399,7 @@ export default function DisplayDraft() {
             <Button
               variant="contained"
               startIcon={<CasinoIcon />}
-              disabled={false}
+              disabled={!selectedMap || players.length === 0}
               onClick={randomize}
             >
               Randomize
@@ -421,6 +426,7 @@ export default function DisplayDraft() {
           )}
         </>
       )}
+      {errorSnackbar}
     </Page>
   )
 }

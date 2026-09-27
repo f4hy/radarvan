@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import GameMap from "../../components/Map"
 import Page from "../../components/Page"
+import { errorMessage } from "../../lib/apiError"
 import { useAuth } from "../../lib/AuthContext"
 import { startDiscordLogin } from "../../lib/auth"
 import { useUrlParam } from "../../lib/useUrlState"
@@ -53,7 +54,7 @@ function MapSearch() {
     try {
       await downloadMapFile(mapName)
     } catch (e) {
-      setDownloadError(e instanceof Error ? e.message : "Download failed")
+      setDownloadError(await errorMessage(e))
     } finally {
       setDownloading(false)
     }

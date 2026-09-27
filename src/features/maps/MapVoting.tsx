@@ -21,6 +21,7 @@ import GameMap from "../../components/Map"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
 import PlayerCountPicker from "../../components/PlayerCountPicker"
+import { errorMessage } from "../../lib/apiError"
 import { startDiscordLogin } from "../../lib/auth"
 import { displayMapName } from "../../lib/utils"
 import {
@@ -126,7 +127,7 @@ export default function MapVoting() {
   React.useEffect(() => {
     setQuery("")
     setShowAll(false)
-  }, [])
+  }, [selected])
 
   // Voting is a user action, so its failure is a snackbar rather than a panel.
   // The server returns the whole updated page, so it goes straight into the
@@ -142,7 +143,8 @@ export default function MapVoting() {
     }) => setVote(selected as number, mapName, choice),
     onSuccess: (updated) =>
       queryClient.setQueryData(["mapVotePage", selected], updated),
-    onError: (e) => setError(e instanceof Error ? e.message : "Vote failed"),
+    // errorMessage, not e.message: the 409 vote-limit text lives in the body.
+    onError: (e) => void errorMessage(e).then(setError),
   })
   const pending = vote.isPending
 
