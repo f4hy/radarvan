@@ -91,8 +91,9 @@ export default function Menu() {
   )
 
   // The app bar names the page, and takes that name from the same route entry
-  // the sidebar and the page's own <h1> use.
-  const current = routeBySlug(pathname.replace(/^\//, ""))
+  // the sidebar and the page's own <h1> use. First segment only, so
+  // `/match/123` still finds its route.
+  const current = routeBySlug(pathname.split("/")[1])
 
   // After returning from Discord without an in-game name yet, drop the user
   // straight onto the Account page to finish the one-time selection.

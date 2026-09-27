@@ -35,6 +35,12 @@ export function mapStatsHref(mapName: string): string {
   return `/map-stats?${new URLSearchParams({ map: mapName })}`
 }
 
+/** One match on its own page — what the copy-link button on a match card puts
+ * on the clipboard. */
+export function matchHref(matchId: number): string {
+  return `/match/${matchId}`
+}
+
 /**
  * The imperative form, for the few places that navigate from something that
  * isn't a link (a chart segment, a dialog action).
