@@ -275,7 +275,7 @@ function EventChart(props: {
   const tickInterval = max > 30 ? 10 : max > 15 ? 5 : max > 5 ? 2 : 1
   const ticks: number[] = []
   for (let t = 0; t <= max; t += tickInterval) ticks.push(t)
-  const LABEL_WIDTH = 200
+  const LABEL_WIDTH = { xs: 72, sm: 200 }
   const pct = (m: number) => (max > 0 ? (m / max) * 100 : 0)
   return (
     <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
@@ -570,11 +570,11 @@ function DisplayFirstBlood(props: {
   }
   return (
     <Stack
-      direction="row"
+      direction={{ xs: "column", md: "row" }}
       spacing={0}
       sx={{
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: "stretch",
       }}
     >
       {msgs.map((m) => (
@@ -991,7 +991,7 @@ function KillMap(props: {
     return <Typography>No kill event data for this replay</Typography>
   }
   return (
-    <Box sx={{ maxWidth: "60%" }}>
+    <Box sx={{ maxWidth: { xs: "100%", md: "60%" } }}>
       <GameMap mapname={props.mapName} eventDots={eventDots} />
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
         {props.playerSummaries.map((ps) => (
@@ -1219,7 +1219,12 @@ function BuildOrderTab(props: {
                 ({p.side})
               </Typography>
             </Stack>
-            <Stack direction="row" spacing={3}>
+            <Stack
+              direction="row"
+              spacing={3}
+              useFlexGap
+              sx={{ flexWrap: "wrap", rowGap: 2 }}
+            >
               <BuildOrderColumn title="Buildings" entries={order.buildings} />
               <BuildOrderColumn title="Units" entries={order.units} />
               <BuildOrderColumn title="Upgrades" entries={order.upgrades} />

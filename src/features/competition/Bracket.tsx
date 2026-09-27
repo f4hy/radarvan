@@ -32,7 +32,8 @@ import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
-import { alpha } from "@mui/material/styles"
+import { alpha, useTheme } from "@mui/material/styles"
+import useMediaQuery from "@mui/material/useMediaQuery"
 import Tab from "@mui/material/Tab"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
@@ -322,7 +323,8 @@ function TournamentMapListPanel() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fill, minmax(min(300px, 100%), 1fr))",
           gap: 2,
         }}
       >
@@ -1802,6 +1804,8 @@ export default function DisplayBracket() {
   )
   const isTournamentAdmin = useIsTournamentAdmin()
   const { showError, errorSnackbar } = useErrorSnackbar()
+  const theme = useTheme()
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"))
   const [pageTab, setPageTab] = React.useState<
     "bracket" | "rules" | "maps" | "agenda"
   >("bracket")
@@ -2155,7 +2159,14 @@ export default function DisplayBracket() {
         bracketData={bracketData}
         onClick={() => setPageTab("agenda")}
       />
-      <Tabs value={pageTab} onChange={(_e, v) => setPageTab(v)} sx={{ mb: 2 }}>
+      <Tabs
+        value={pageTab}
+        onChange={(_e, v) => setPageTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ mb: 2 }}
+      >
         <Tab
           value="bracket"
           label="Bracket"
@@ -2262,7 +2273,7 @@ export default function DisplayBracket() {
                 <Chip
                   label={`Seed ${idx + 1}`}
                   size="small"
-                  sx={{ width: 80 }}
+                  sx={{ width: 72, flexShrink: 0 }}
                 />
                 <Autocomplete
                   options={eligiblePlayers}
@@ -2277,7 +2288,7 @@ export default function DisplayBracket() {
                   renderInput={(params) => (
                     <TextField {...params} size="small" label="Player" />
                   )}
-                  sx={{ width: 220 }}
+                  sx={{ flex: 1, minWidth: 0 }}
                 />
                 <IconButton
                   size="small"
@@ -2453,6 +2464,7 @@ export default function DisplayBracket() {
         onClose={() => setDetailsMatchId(null)}
         maxWidth="lg"
         fullWidth
+        fullScreen={isPhone}
       >
         {detailsMatch && (
           <MatchupPopup

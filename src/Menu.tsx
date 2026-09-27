@@ -177,25 +177,50 @@ export default function Menu() {
             {current?.title ?? "Radarvan"}
           </Typography>
           <ColorModeToggle />
+          {/* Icon-only on phones: a long player name here squeezed the page
+              title down to a few characters. */}
           {status?.loggedIn ? (
-            <Button
-              color="inherit"
-              startIcon={<AccountCircleIcon />}
-              component={Link}
-              to="/account"
-            >
-              {status.user?.playerName ??
-                status.user?.discordUsername ??
-                "Account"}
-            </Button>
+            <>
+              <IconButton
+                color="inherit"
+                aria-label="Account"
+                component={Link}
+                to="/account"
+                sx={{ display: { xs: "inline-flex", sm: "none" } }}
+              >
+                <AccountCircleIcon />
+              </IconButton>
+              <Button
+                color="inherit"
+                startIcon={<AccountCircleIcon />}
+                component={Link}
+                to="/account"
+                sx={{ display: { xs: "none", sm: "inline-flex" } }}
+              >
+                {status.user?.playerName ??
+                  status.user?.discordUsername ??
+                  "Account"}
+              </Button>
+            </>
           ) : (
-            <Button
-              color="inherit"
-              startIcon={<LoginIcon />}
-              onClick={startDiscordLogin}
-            >
-              Login
-            </Button>
+            <>
+              <IconButton
+                color="inherit"
+                aria-label="Login"
+                onClick={startDiscordLogin}
+                sx={{ display: { xs: "inline-flex", sm: "none" } }}
+              >
+                <LoginIcon />
+              </IconButton>
+              <Button
+                color="inherit"
+                startIcon={<LoginIcon />}
+                onClick={startDiscordLogin}
+                sx={{ display: { xs: "none", sm: "inline-flex" } }}
+              >
+                Login
+              </Button>
+            </>
           )}
         </Toolbar>
       </AppBar>
@@ -243,7 +268,10 @@ export default function Menu() {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minWidth: 0,
           bgcolor: "background.default",
+          // dvh excludes the mobile browser's collapsing toolbar, so a short
+          // page doesn't scroll by the toolbar's height.
           minHeight: "100vh",
+          "@supports (min-height: 100dvh)": { minHeight: "100dvh" },
         }}
       >
         <Toolbar />
