@@ -63,16 +63,32 @@ function WinRateRow(props: {
       : null
   return (
     <Box sx={{ mb: 1 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 1,
+          mb: 0.25,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            flexShrink: 0,
+          }}
+        >
           {props.label}
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}
+        >
           <Typography
             variant="caption"
             sx={{
               color: "text.secondary",
-              whiteSpace: "nowrap",
+              textAlign: "right",
             }}
           >
             {(rate * 100).toFixed(0)}% ({props.wins}W–{props.losses}L)
@@ -380,13 +396,15 @@ const MapCard = React.memo(function MapCard(props: {
       </AccordionSummary>
       <AccordionDetails>
         <Stack
-          direction="row"
+          direction={{ xs: "column", md: "row" }}
           spacing={2}
           sx={{
-            alignItems: "flex-start",
+            alignItems: { xs: "stretch", md: "flex-start" },
           }}
         >
-          <GameMap mapname={map.mapName} />
+          <Box sx={{ width: { xs: "100%", md: 360 }, flexShrink: 0 }}>
+            <GameMap mapname={map.mapName} />
+          </Box>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
               <Tab value="generals" label="Generals" />
@@ -518,26 +536,28 @@ export default function DisplayMapStats() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search maps"
-            sx={{ width: 240 }}
+            sx={{ width: { xs: "100%", sm: 240 } }}
           />
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Min games
-          </Typography>
-          <ToggleButtonGroup
-            value={minGames}
-            exclusive
-            size="small"
-            disabled={query !== ""}
-            onChange={(_, next: MinGames | null) =>
-              next !== null && setMinGames(next)
-            }
-          >
-            {MIN_GAMES_OPTIONS.map((n) => (
-              <ToggleButton key={n} value={n}>
-                {n}+
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Min games
+            </Typography>
+            <ToggleButtonGroup
+              value={minGames}
+              exclusive
+              size="small"
+              disabled={query !== ""}
+              onChange={(_, next: MinGames | null) =>
+                next !== null && setMinGames(next)
+              }
+            >
+              {MIN_GAMES_OPTIONS.map((n) => (
+                <ToggleButton key={n} value={n}>
+                  {n}+
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Stack>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
             {visibleMaps.length} of {mapStats?.maps.length ?? 0} maps
             {query === "" && hiddenCount > 0
