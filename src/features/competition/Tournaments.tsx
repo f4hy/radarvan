@@ -456,7 +456,9 @@ function MatchupButtonGrid(props: {
               teamAlias(tn.split(",").join("+")),
             )
             const first_record = Object.values(outcome)[0]
-            const record = `${first_record.wins} - ${first_record.losses}`
+            const record = first_record
+              ? `${first_record.wins} - ${first_record.losses}`
+              : ""
             const disabled = !Object.entries(outcome).some(
               ([_tb, wl]) => wl.wins + wl.losses > 0,
             )
@@ -489,7 +491,15 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
   const [selected, setSelected] = React.useState<number>(0)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+  const matchup = props.matchups[selected]
 
+  if (!matchup) {
+    return (
+      <Typography sx={{ color: "text.secondary" }}>
+        No matchups played yet.
+      </Typography>
+    )
+  }
   return (
     <Stack>
       <Divider />
@@ -499,7 +509,7 @@ function DisplayMatchupsPlayed(props: { matchups: MatchupResult[] }) {
         onChange={setSelected}
         isMobile={isMobile}
       />
-      <DisplayMatchup matchup={props.matchups[selected]} />
+      <DisplayMatchup matchup={matchup} />
     </Stack>
   )
 }
@@ -598,7 +608,9 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
         complete={props.result.complete}
       />
       <Divider sx={{ height: "100px" }} />
-      <Typography sx={{ bgcolor: "lightblue" }}>Matchups</Typography>
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Matchups
+      </Typography>
       <DisplayMatchupsPlayed matchups={props.result.matchups} />
       <Divider />
       <DisplayTournamentStats result={props.result} />
