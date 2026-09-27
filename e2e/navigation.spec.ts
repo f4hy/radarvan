@@ -112,3 +112,23 @@ test.describe("the URL is the state", () => {
     await expect(page).toHaveURL("/player-profile?player=Skip")
   })
 })
+
+test.describe("a match has its own page", () => {
+  test("an unknown ID says so instead of erroring", async ({ page }) => {
+    const problems = watchForProblems(page)
+    // The server answers an unknown ID with 200 and `null`.
+    await mockApi(page, { "/api/match/": null })
+    await page.goto("/match/999")
+    expect(await heading(page)).toBe("Match")
+    await expect(page.getByText("There's no match with ID")).toBeVisible()
+    await expect(page.locator("header")).toContainText("Match")
+    expectClean(problems)
+  })
+
+  test("a non-numeric ID never reaches the server", async ({ page }) => {
+    const mock = await mockApi(page)
+    await page.goto("/match/abc")
+    await expect(page.getByText("There's no match with ID")).toBeVisible()
+    expect(mock.calls.filter((p) => p.startsWith("/api/match/"))).toEqual([])
+  })
+})
