@@ -1,3 +1,4 @@
+import Stack from "@mui/material/Stack"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
@@ -24,25 +25,29 @@ export default function FormatToggle<T extends string>(props: {
   /** Omit for a bare group, where the surrounding row already says what it is. */
   label?: string
 }) {
+  const group = (
+    <ToggleButtonGroup
+      value={props.value}
+      exclusive
+      size="small"
+      onChange={(_, next: T | null) => next !== null && props.onChange(next)}
+    >
+      {props.options.map((option) => (
+        <ToggleButton key={option} value={option}>
+          {option}
+        </ToggleButton>
+      ))}
+    </ToggleButtonGroup>
+  )
+  if (!props.label) return group
+  // One flex item, so a wrapping actions row can't strand the label at the end
+  // of one line and its buttons at the start of the next.
   return (
-    <>
-      {props.label && (
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          {props.label}
-        </Typography>
-      )}
-      <ToggleButtonGroup
-        value={props.value}
-        exclusive
-        size="small"
-        onChange={(_, next: T | null) => next !== null && props.onChange(next)}
-      >
-        {props.options.map((option) => (
-          <ToggleButton key={option} value={option}>
-            {option}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
-    </>
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        {props.label}
+      </Typography>
+      {group}
+    </Stack>
   )
 }

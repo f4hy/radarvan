@@ -190,22 +190,22 @@ function TeamRecordsTable(props: {
 }) {
   return (
     <TableContainer component={Paper} sx={{ maxHeight: "50%" }}>
-      <Table stickyHeader sx={{ maxHeight: "50%", tableLayout: "fixed" }}>
+      <Table stickyHeader sx={{ maxHeight: "50%" }}>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: "10%" }}>
+            <TableCell>
               <Typography>Team</Typography>
             </TableCell>
-            <TableCell sx={{ width: "5%" }}>
+            <TableCell sx={{ whiteSpace: "nowrap" }}>
               <Typography>W-L</Typography>
             </TableCell>
-            <TableCell sx={{ width: "5%" }}>
+            <TableCell sx={{ whiteSpace: "nowrap" }}>
               <Typography>Win %</Typography>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ minWidth: 160 }}>
               <Typography>Progress</Typography>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ minWidth: 160 }}>
               <Typography>Max possible wins</Typography>
             </TableCell>
           </TableRow>
@@ -546,11 +546,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
       return null
     }
     return (
-      <Button
-        sx={{ minWidth: 200 }}
-        variant="contained"
-        onClick={() => setSelectedMatch(mId)}
-      >
+      <Button variant="contained" onClick={() => setSelectedMatch(mId)}>
         {" "}
         {mId}{" "}
       </Button>

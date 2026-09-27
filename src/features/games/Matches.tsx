@@ -314,7 +314,7 @@ function MatchFilterBar(props: {
         value={filters.player}
         onChange={(_, player) => onChange({ ...filters, player })}
         size="small"
-        sx={{ width: 200 }}
+        sx={{ width: { xs: "100%", sm: 200 } }}
         renderInput={(params) => <TextField {...params} label="Player" />}
       />
       <Autocomplete
@@ -323,7 +323,7 @@ function MatchFilterBar(props: {
         onChange={(_, mapName) => onChange({ ...filters, mapName })}
         getOptionLabel={displayMapName}
         size="small"
-        sx={{ width: 260 }}
+        sx={{ width: { xs: "100%", sm: 260 } }}
         renderInput={(params) => <TextField {...params} label="Map" />}
       />
       <FormatToggle

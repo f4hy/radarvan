@@ -506,25 +506,55 @@ export default function GameNight() {
       : undefined
 
   const picker = (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      <IconButton size="small" disabled={!goOlder} onClick={goOlder}>
-        <ArrowBackIosNewIcon fontSize="inherit" />
-      </IconButton>
-      <Select
-        size="small"
-        value={selected ?? ""}
-        onChange={(e) => setSelected(e.target.value)}
-        sx={{ minWidth: 220 }}
+    <Stack
+      direction="row"
+      spacing={1}
+      useFlexGap
+      sx={{
+        alignItems: "center",
+        flexWrap: "wrap",
+        width: { xs: "100%", sm: "auto" },
+      }}
+    >
+      {/* Arrows and menu never split across lines; only "All nights" wraps. */}
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          minWidth: 0,
+          flex: { xs: "1 1 100%", sm: "0 0 auto" },
+        }}
       >
-        {nights.map((night) => (
-          <MenuItem key={night} value={night}>
-            {longDate(night)}
-          </MenuItem>
-        ))}
-      </Select>
-      <IconButton size="small" disabled={!goNewer} onClick={goNewer}>
-        <ArrowForwardIosIcon fontSize="inherit" />
-      </IconButton>
+        <IconButton
+          size="small"
+          aria-label="Older night"
+          disabled={!goOlder}
+          onClick={goOlder}
+        >
+          <ArrowBackIosNewIcon fontSize="inherit" />
+        </IconButton>
+        <Select
+          size="small"
+          value={selected ?? ""}
+          onChange={(e) => setSelected(e.target.value)}
+          sx={{ minWidth: { xs: 0, sm: 220 }, flex: { xs: 1, sm: "0 0 auto" } }}
+        >
+          {nights.map((night) => (
+            <MenuItem key={night} value={night}>
+              {longDate(night)}
+            </MenuItem>
+          ))}
+        </Select>
+        <IconButton
+          size="small"
+          aria-label="Newer night"
+          disabled={!goNewer}
+          onClick={goNewer}
+        >
+          <ArrowForwardIosIcon fontSize="inherit" />
+        </IconButton>
+      </Stack>
       <Button
         size="small"
         startIcon={<CalendarMonthIcon />}

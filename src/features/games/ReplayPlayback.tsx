@@ -128,13 +128,16 @@ export default function ReplayPlayback(props: {
   ).length
 
   return (
-    <Box sx={{ maxWidth: "60%" }}>
+    <Box sx={{ maxWidth: { xs: "100%", md: "60%" } }}>
       <GameMap mapname={props.mapName} eventDots={dots} />
       <Stack
         direction="row"
         spacing={1.5}
+        useFlexGap
         sx={{
           alignItems: "center",
+          flexWrap: "wrap",
+          rowGap: 0.5,
           mt: 1,
         }}
       >
@@ -168,7 +171,7 @@ export default function ReplayPlayback(props: {
             setPlaying(false)
             setCurrent(v as number)
           }}
-          sx={{ flex: 1 }}
+          sx={{ flex: "1 1 140px" }}
         />
         <Typography
           variant="body2"
