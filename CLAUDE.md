@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Dev workflow
 
-- The dev servers are **already running** in the user's own terminals: Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit). Never launch your own instances to verify changes — connect to the running ones. Those hand-run servers use the `DATABASE_URL` from `.env`, which points at **production** Postgres — treat writes through them accordingly. `make up` starts an alternative local stack with its own Postgres (`LOCAL_DEV.md`) — the safe place to try schema changes — but binds the same ports, so it and the hand-run servers can't both be up unless `API_PORT`/`WEB_PORT` are set.
+- The dev servers are normally **already running** via `make up` (`LOCAL_DEV.md`): Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit), backed by a local Postgres container. Never launch your own instances to verify changes — connect to the running ones. `.env`'s `DATABASE_URL` is that local database; production is only in `PROD_DATABASE_URL`, read by `make db-snapshot`. Never copy it into `DATABASE_URL` or point a server at it.
 - **Migrations**: alembic revisions apply themselves on deploy and the chain cannot build a schema from an empty database. Invoke the **`db-migrations`** skill before writing one.
 - Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree.
 - **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.**
