@@ -12,6 +12,7 @@ from .auth import (
     AdminUser,
     AuthStatus,
     CurrentUser,
+    DiscordPlayer,
     SelectPlayerRequest,
 )
 from .bracket import (
@@ -282,6 +283,7 @@ __all__ = [
     "CreateBracketRequest",
     "CurrentUser",
     "DateMessage",
+    "DiscordPlayer",
     "DraftAssignment",
     "DraftPlayerRequest",
     "DraftRequest",
