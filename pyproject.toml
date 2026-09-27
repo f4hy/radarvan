@@ -10,7 +10,6 @@ dependencies = [
     # installs only [project] dependencies (uv sync --no-dev).
     "alembic>=1.19.1",
     "anthropic>=1.0.0,<2",
-    "apscheduler>=3.11.3",
     "beautifulsoup4>=4.15.0",
     # Capped in practice by s3fs -> aiobotocore, which pins a narrow botocore
     # range (aiobotocore 3.9.0 allows botocore <1.43.57). Raising this past the
@@ -254,7 +253,6 @@ module = [
     "alembic.*",
     "fsspec.*",   # no stubs available: https://github.com/fsspec/filesystem_spec/issues/451
     "s3fs.*",     # built on fsspec, no stubs
-    "apscheduler.*",  # no stubs available
     "onnxruntime.*",  # no stubs available
 ]
 ignore_missing_imports = true
