@@ -20,7 +20,7 @@ import { MapClient } from "../../clients/map"
 import { MatchesClient } from "../../clients/matches"
 import { PlayersClient } from "../../clients/players"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
-import { MatchesLoading, MatchRowLoading } from "../../components/Loading"
+import { MatchesLoading } from "../../components/Loading"
 import { MatchCard, normalizePlayerName } from "../../components/MatchCard"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
@@ -272,8 +272,12 @@ function DisplayMatchesForDate(props: {
       </AccordionSummary>
       <AccordionDetails sx={{ bgcolor: "background.default" }}>
         {queryFallback(matchesQuery, "this night's games") ??
+          // Loaded and empty: /api/dates counts dev builds that this list hides
+          // from non-admins, so a dev-only night lands here.
           (matchList.matches.length === 0 ? (
-            <MatchRowLoading />
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              No games to show for this night.
+            </Typography>
           ) : (
             matchList.matches.map((m, matchIdx) => (
               <MatchCard match={m} key={m.id} idx={matchIdx} />
@@ -415,7 +419,9 @@ export default function DisplayMatches() {
         />
       }
     >
-      {dates === null ? (
+      {datesQuery.isError ? (
+        queryFallback(datesQuery, "the match history")
+      ) : dates === null ? (
         <MatchesLoading />
       ) : nights.length === 0 ? (
         <Typography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
