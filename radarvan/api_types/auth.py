@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from ..player_ids import (
     is_admin as _is_admin_player,
     is_ops_admin as _is_ops_admin_player,
@@ -55,6 +55,13 @@ class AuthStatus(BaseModel):
 
 class SelectPlayerRequest(BaseModel):
     player_name: str
+
+
+class DiscordPlayer(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    discord_id: str = Field(alias="discordId")
+    player_name: str = Field(alias="playerName")
 
 
 class AdminUser(BaseModel):
