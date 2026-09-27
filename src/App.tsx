@@ -74,7 +74,7 @@ export default function App() {
                       {ROUTES.map((route) => (
                         <Route
                           key={route.slug}
-                          path={route.slug}
+                          path={route.path ?? route.slug}
                           element={<route.Component />}
                         />
                       ))}
