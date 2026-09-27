@@ -33,6 +33,7 @@ import Typography from "@mui/material/Typography"
 import LoginIcon from "@mui/icons-material/Login"
 import PlayArrowIcon from "@mui/icons-material/PlayArrow"
 import WarningAmberIcon from "@mui/icons-material/WarningAmber"
+import { errorMessage } from "../../lib/apiError"
 import { useAuth, useIsOpsAdmin } from "../../lib/AuthContext"
 import { startDiscordLogin } from "../../lib/auth"
 import type { AdminUser } from "../../api"
@@ -693,7 +694,7 @@ function UserManagement() {
         setUsers(loaded)
       })
       .catch((e: unknown) => {
-        if (active) setError(e instanceof Error ? e.message : String(e))
+        if (active) void errorMessage(e).then(setError)
       })
       .finally(() => {
         if (active) setLoading(false)
