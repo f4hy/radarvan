@@ -289,7 +289,13 @@ export default function DisplayDraft() {
             {players.map((p, idx) => (
               <Box
                 key={p.id}
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  mb: 1,
+                }}
               >
                 <Autocomplete
                   options={availablePlayersBySlot[idx]}
@@ -300,7 +306,7 @@ export default function DisplayDraft() {
                   renderInput={(params) => (
                     <TextField {...params} size="small" label="Name" />
                   )}
-                  sx={{ width: 200 }}
+                  sx={{ flex: { xs: "1 1 100%", sm: "0 0 200px" } }}
                 />
                 <ToggleButtonGroup
                   size="small"
