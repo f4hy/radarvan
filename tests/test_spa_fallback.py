@@ -14,8 +14,8 @@ from radarvan.main import app
 
 @pytest.fixture(scope="module")
 def client() -> TestClient:
-    # Not context-managed: the lifespan starts the scheduler and warms caches
-    # against a real database. Static serving needs none of that.
+    # Not context-managed: the lifespan warms caches against a real database.
+    # Static serving needs none of that.
     return TestClient(app, raise_server_exceptions=False)
 
 
