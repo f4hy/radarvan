@@ -52,8 +52,11 @@ The backend reads configuration from environment variables (set them in your
 shell or a `.env` file):
 
 - `DATABASE_URL` — PostgreSQL connection string (**required**).
-- `DEV=1` — disables scheduled scraping; also relaxes the session cookie so login
-  works over plain HTTP for local development.
+- `DEV=1` — relaxes the session cookie so login works over plain HTTP for local
+  development.
+
+Scheduled jobs (scraping, nightly stats, game-night recaps) are not run by the web
+server; Heroku Scheduler runs `python -m radarvan.jobs <job>` on one-off dynos.
 
 Discord OAuth login needs additional variables (`DISCORD_CLIENT_ID`,
 `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `SESSION_SECRET`) — see the
