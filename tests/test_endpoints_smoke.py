@@ -31,6 +31,7 @@ os.environ["DATABASE_URL"] = "postgresql://stub:stub@127.0.0.1:1/stub-not-used"
 
 import logging
 from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 import structlog
@@ -39,6 +40,7 @@ from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
 
 from radarvan import derived, dependencies as deps, matches as matches_mod
+from radarvan import missing_maps, replay_files
 from radarvan.main import app
 from radarvan.repositories.maps import MapRegistryRevision
 
@@ -89,6 +91,7 @@ PATH_VALUES = {
     "team_size": "2",
     "tournament_name": "spring-cup",
     "slug": "spring-cup",
+    "discord_id": "1234",
 }
 
 QUERY_VALUES = {
@@ -179,6 +182,10 @@ class _StubRepo:
         # the catch-all below would hand back a list and fail response validation.
         return None
 
+    def get_by_discord_id(self, discord_id: str) -> SimpleNamespace:
+        # A claimed account; the catch-all's empty list has no `.player_name`.
+        return SimpleNamespace(discord_id=discord_id, player_name=corpus.A_PLAYER)
+
     def list_maps_by_player_count(self) -> dict[int, list[str]]:
         return {len(corpus.CORPUS[0].players): list(corpus.MAPS)}
 
@@ -249,7 +256,13 @@ def client() -> TestClient:
     real_get_match_infos = matches_mod.get_match_infos
     real_db_manager_get = deps.db_manager.get_replay_manager
     real_session_local = deps.db_manager.SessionLocal
+    real_find_s3_asset = missing_maps.find_s3_asset
+    real_presigned_url = replay_files.presigned_url
     matches_mod.get_match_infos = lambda replay_manager: list(corpus.CORPUS)
+    # S3 lookups and presigning: a developer shell has real credentials and CI
+    # has none, so left real these pass locally and fail in CI.
+    missing_maps.find_s3_asset = lambda name, ext: f"s3://stub/{name}.{ext}"
+    replay_files.presigned_url = lambda uri, **kwargs: f"https://stub/{uri}"
     deps.db_manager.get_replay_manager = _forbid_db
     deps.db_manager.SessionLocal = _forbid_db
     _clear_caches()
@@ -259,6 +272,8 @@ def client() -> TestClient:
     yield TestClient(app, raise_server_exceptions=False)
 
     matches_mod.get_match_infos = real_get_match_infos
+    missing_maps.find_s3_asset = real_find_s3_asset
+    replay_files.presigned_url = real_presigned_url
     deps.db_manager.get_replay_manager = real_db_manager_get
     deps.db_manager.SessionLocal = real_session_local
     app.dependency_overrides.clear()
