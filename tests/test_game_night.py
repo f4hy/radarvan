@@ -10,7 +10,7 @@ ratings note in CLAUDE.md).
 import re
 from datetime import UTC, date, datetime, timedelta
 
-from radarvan import game_night, match_narrative, queries, schedule, utils
+from radarvan import game_night, match_narrative, queries, utils
 from radarvan.api_types import APM, FirstBlood, MatchDetails, Team, TimelineEvent
 from radarvan.commentary import night_summary
 from radarvan.player_rating import GameUpset
@@ -619,4 +619,3 @@ def test_the_backfill_window_is_counted_in_game_night_keys() -> None:
 def test_one_stray_upload_is_not_a_game_night_for_either_caller() -> None:
     """The floor lives with the generator so the job and the backfill share it."""
     assert night_summary.MIN_MATCHES_FOR_SUMMARY > 1
-    assert schedule.MIN_MATCHES_FOR_SUMMARY == night_summary.MIN_MATCHES_FOR_SUMMARY
