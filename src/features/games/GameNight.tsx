@@ -40,7 +40,7 @@ import MomentumSparkline from "../../components/MomentumSparkline"
 import PlayerChip from "../../components/PlayerChip"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
 import { formatPercent, localDate, winRateTone } from "../../lib/utils"
-import { useUrlParam } from "../../lib/useUrlState"
+import { useUrlId, useUrlParam } from "../../lib/useUrlState"
 
 // Emoji per highlight kind. `kind` is a stable backend slug; an unrecognised
 // one still renders (with the fallback), so adding a highlight server-side
@@ -277,7 +277,25 @@ function GameByGame(props: {
   // rather than one active id: opening one game to compare generals shouldn't
   // close another you already had open.
   const [openCards, setOpenCards] = React.useState<Set<number>>(new Set())
+  // Set by clicking a "Game N" chip, as opposed to props.focusedMatchId which
+  // comes from a highlight card up in the parent. Either one outlines the row.
+  const [jumpedMatchId, setJumpedMatchId] = React.useState<number | null>(null)
   const rowRefs = React.useRef<{ [key: number]: HTMLDivElement | null }>({})
+  const highlightedMatchId = props.focusedMatchId ?? jumpedMatchId
+
+  // This component isn't remounted when the night changes (no key), so its
+  // per-game state would otherwise leak across nights — a card opened on
+  // Tuesday still marked "open" for whatever match happens to reuse that slot
+  // on Wednesday. Only fires on an actual change, not the initial mount, so a
+  // `?date=&match=` link naming a specific game isn't wiped the instant it lands.
+  const previousDateRef = React.useRef(props.date)
+  React.useEffect(() => {
+    if (previousDateRef.current !== props.date) {
+      previousDateRef.current = props.date
+      setOpenCards(new Set())
+      setJumpedMatchId(null)
+    }
+  }, [props.date])
 
   // Fetched only once the row is open — `enabled` is what expresses the
   // laziness the old `if (matches !== null) return` guard did by hand, and it
@@ -318,6 +336,15 @@ function GameByGame(props: {
     })
   }, [props.focusedMatchId, matches])
 
+  // Unlike the highlight-driven jump above, the section is already expanded
+  // and matches already loaded whenever this can be clicked, so it can scroll
+  // immediately rather than waiting on an effect.
+  function jumpToMatch(id: number) {
+    setJumpedMatchId(id)
+    setOpenCards((prev) => new Set(prev).add(id))
+    rowRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }
+
   return (
     <Accordion
       expanded={expanded}
@@ -335,6 +362,30 @@ function GameByGame(props: {
           <Loading />
         ) : (
           <Stack spacing={1.5}>
+            {matches.length > 1 && (
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{ flexWrap: "wrap" }}
+              >
+                {matches.map((match, i) => (
+                  <Chip
+                    key={match.id}
+                    label={`Game ${i + 1}`}
+                    size="small"
+                    clickable
+                    onClick={() => jumpToMatch(match.id)}
+                    color={
+                      match.id === highlightedMatchId ? "primary" : "default"
+                    }
+                    variant={
+                      match.id === highlightedMatchId ? "filled" : "outlined"
+                    }
+                  />
+                ))}
+              </Stack>
+            )}
             {matches.map((match) => {
               const cardOpen = openCards.has(match.id)
               return (
@@ -344,7 +395,7 @@ function GameByGame(props: {
                     rowRefs.current[match.id] = el
                   }}
                   sx={
-                    match.id === props.focusedMatchId
+                    match.id === highlightedMatchId
                       ? { outline: `2px solid ${BRAND_COLOR}`, borderRadius: 1 }
                       : {}
                   }
@@ -390,9 +441,9 @@ function GameByGame(props: {
 }
 
 export default function GameNight() {
-  const [focusedMatchId, setFocusedMatchId] = React.useState<number | null>(
-    null,
-  )
+  // In the URL, like `date` below — so "Match of the night" is a link that
+  // lands directly on that game, expanded, not just "the right evening".
+  const [focusedMatchId, setFocusedMatchId] = useUrlId("match")
   // The night lives in the URL — dropping a link to one evening in chat is
   // this page's whole point, so it can't be component state. `replace` because
   // the initial redirect to "latest night" isn't a step to go Back to.
@@ -426,10 +477,16 @@ export default function GameNight() {
   })
   const recap = recapQuery.data ?? null
 
-  // A different night means the previously focused match is not on this page.
+  // A different night means the previously focused match is not on this page
+  // — but only once the night actually changes, not on the initial mount,
+  // since a `?date=&match=` link naming a specific game must survive landing.
+  const previousNightRef = React.useRef(selected)
   React.useEffect(() => {
-    setFocusedMatchId(null)
-  }, [])
+    if (previousNightRef.current !== selected) {
+      previousNightRef.current = selected
+      setFocusedMatchId(null)
+    }
+  }, [selected, setFocusedMatchId])
 
   const index = selected ? nights.indexOf(selected) : -1
   // nights is newest-first, so the *later* night is at a lower index.
