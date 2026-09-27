@@ -53,6 +53,8 @@ export interface AppRoute {
   /** URL path, without the leading slash. Also the old `?page=` value, so
    * links already pasted into Discord keep resolving — see LEGACY_PAGE_PARAM. */
   slug: string
+  /** Router pattern, when the page takes a path parameter. Defaults to `slug`. */
+  path?: string
   title: string
   icon: React.ReactNode
   heading: string
@@ -78,6 +80,7 @@ const ManageMaps = React.lazy(() => import("./features/maps/ManageMaps"))
 const MapStats = React.lazy(() => import("./features/maps/MapStats"))
 const MapVoting = React.lazy(() => import("./features/maps/MapVoting"))
 const Matches = React.lazy(() => import("./features/games/Matches"))
+const MatchPage = React.lazy(() => import("./features/games/MatchPage"))
 const OpeningBookPage = React.lazy(() => import("./features/stats/OpeningBook"))
 const PlayerProfile = React.lazy(
   () => import("./features/players/PlayerProfile"),
@@ -337,6 +340,16 @@ export const ROUTES: AppRoute[] = [
     heading: "",
     gate: "public",
     Component: Account,
+  },
+  // Reached from a match card's copy-link button, not the sidebar.
+  {
+    slug: "match",
+    path: "match/:matchId",
+    title: "Match",
+    icon: <ListIcon />,
+    heading: "",
+    gate: "public",
+    Component: MatchPage,
   },
 ]
 
