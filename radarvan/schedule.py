@@ -1,5 +1,5 @@
-"""APScheduler-backed scheduled tasks - periodically scrapes new games, registers
-matches, and recomputes superlatives/ratings (``get_scheduler``).
+"""Scheduled tasks - scrape and register new games, recompute superlatives,
+profiles and the game-night LLM recaps. Run on one-off dynos via ``radarvan.jobs``.
 
 Every job run opens its own DB session via the DatabaseManager: sessions are
 not safe to share between overlapping jobs, and a failed transaction on a
@@ -7,13 +7,11 @@ process-lifetime session would poison every later run.
 """
 
 from .db_utils import DatabaseManager, ReplayManager
-from .cache import competitive_matches, invalidate_match_caches
+from .cache import competitive_matches
 from .matches import get_match_infos, register_matches
 from .repositories import BracketRepo, GameNightSummaryRepo, MatchBlurbRepo
 from . import computed_stats, queries
-from .commentary import llm, match_blurb, night_summary
 from . import tournament_membership
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import UTC, datetime
 import asyncio
 from . import scrape_games
@@ -29,9 +27,7 @@ def _sync_tournament_links(replay_manager: ReplayManager) -> dict[str, int]:
 
     Builds its own match list via ``get_match_infos`` rather than reading the
     cache: it needs the games registered moments ago, which the cached list
-    predates. Going direct costs one rebuild here, instead of clearing the
-    caches first - which kicks a full background re-warm - only to invalidate
-    and re-warm them again once the links land. Admin-set links are untouched.
+    predates. Admin-set links are untouched.
     """
     games = get_match_infos(replay_manager)
     return tournament_membership.sync_links(
@@ -39,12 +35,10 @@ def _sync_tournament_links(replay_manager: ReplayManager) -> dict[str, int]:
     )
 
 
-async def update_games(
-    db_manager: DatabaseManager,
-    days: int = 0,
-    do_notify: bool = False,
-) -> None:
-    """Get latest updates."""
+async def update_games(db_manager: DatabaseManager, days: int = 1) -> None:
+    """Scrape the last ``days`` of replays, register them and link tournaments."""
+    # Doesn't invalidate: a job process is about to exit, and the web dyno sees
+    # new matches through the CORPUS probe. In-process callers invalidate after.
     logger.info("Updating games.")
     base = scrape_games.BASE
     with db_manager.get_replay_manager() as replay_manager:
@@ -55,25 +49,19 @@ async def update_games(
         # Sequential to_thread calls may share this session; concurrent ones
         # may not.
         await asyncio.to_thread(_sync_tournament_links, replay_manager)
-    # Once, at the end: covers both the new matches and the links just written
-    # (a link doesn't move the corpus probe, which is what derivations key on).
-    invalidate_match_caches()
     logger.info("done updating", found=len(paths))
-    if do_notify:
-        await notify_async(f"DEBUG:Done updating, found {len(paths)}.")
 
 
 async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:
     """Nightly records/generals/opening-book refresh.
 
-    Skips rather than queues behind a manual run: blocking would redo the
-    identical full-corpus pass and push it into the 4:30 profile job, which
-    assumes it has the corpus to itself.
+    Skips rather than queues behind a manual run: waiting would only redo the
+    identical full-corpus pass.
     """
-    if computed_stats.recompute_pending():
-        logger.info("skipping scheduled recompute; one is already running")
-        return
-    await computed_stats.recompute(db_manager)
+    try:
+        await computed_stats.recompute(db_manager)
+    except computed_stats.RecomputeBusy:
+        logger.info("skipping scheduled recompute; another process is running one")
 
 
 async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
@@ -110,10 +98,6 @@ async def compute_and_save_player_profiles(db_manager: DatabaseManager) -> None:
         await notify_async(f"Saved {len(profiles)} player profiles, took {duration}.")
 
 
-# The floor on what is worth a call, shared with the ops backfill endpoint.
-MIN_MATCHES_FOR_SUMMARY = night_summary.MIN_MATCHES_FOR_SUMMARY
-
-
 async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
     """Write the LLM game-night recap for the most recent *closed* night.
 
@@ -131,8 +115,12 @@ async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
       several calls; the deterministic recap still renders for every night.
 
     Scheduled well after the 5am US Eastern game-night rollover for that
-    reason - see ``get_scheduler``.
+    reason - see ``radarvan.jobs``.
     """
+    # Imported here, not at module scope: the LLM SDKs cost ~1s and ~54 MB,
+    # which the non-LLM jobs' 512 MB one-off dynos shouldn't pay.
+    from .commentary import llm, night_summary
+
     if not llm.commentary_available():
         logger.info("skipping game night summary: no LLM provider configured")
         return
@@ -147,7 +135,7 @@ async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
             logger.info("game night already summarized", night=str(night))
             return
         played = [game for game in all_games if game.date == night]
-        if len(played) < MIN_MATCHES_FOR_SUMMARY:
+        if len(played) < night_summary.MIN_MATCHES_FOR_SUMMARY:
             logger.info(
                 "skipping game night summary: too few games",
                 night=str(night),
@@ -158,21 +146,19 @@ async def compute_game_night_summary(db_manager: DatabaseManager) -> None:
         logger.info(
             "generating game night summary", night=str(night), games=len(played)
         )
-        try:
-            night_games = await queries.build_night_recap(
-                night, all_games, competitive, db_manager
-            )
-            await night_summary.generate_and_store(
-                night_games.recap, queries.night_narratives(night_games), summaries
-            )
-        except Exception:
-            logger.exception("game night summary generation failed", night=str(night))
-            return
+        night_games = await queries.build_night_recap(
+            night, all_games, competitive, db_manager
+        )
+        await night_summary.generate_and_store(
+            night_games.recap, queries.night_narratives(night_games), summaries
+        )
     await notify_async(f"Wrote the game night recap for {night} ({len(played)} games).")
 
 
 async def compute_match_blurbs(db_manager: DatabaseManager) -> None:
     """Caption the top matches of the latest *closed* night. Billed; capped per night."""
+    from .commentary import llm, match_blurb
+
     if not llm.commentary_available():
         logger.info("skipping match blurbs: no LLM provider configured")
         return
@@ -183,77 +169,10 @@ async def compute_match_blurbs(db_manager: DatabaseManager) -> None:
             logger.info("no closed game night to caption")
             return
         competitive = await asyncio.to_thread(queries.competitive_games, replay_manager)
-        try:
-            night_games = await queries.build_night_recap(
-                night, all_games, competitive, db_manager
-            )
-            await match_blurb.generate_night_blurbs(
-                night_games, MatchBlurbRepo(replay_manager.session)
-            )
-        except Exception:
-            logger.exception("match blurb generation failed", night=str(night))
-
-
-def get_scheduler(db_manager: DatabaseManager) -> AsyncIOScheduler:
-    """Get the scheduler with the tasks on it."""
-
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        update_games,
-        "date",
-        run_date=datetime.now(UTC),
-        args=[db_manager, 1],
-        id="update_games_init",
-    )
-    scheduler.add_job(
-        update_games,
-        "interval",
-        minutes=60 * 6,
-        args=[db_manager, 1, False],
-        id="update_games",
-    )
-    scheduler.add_job(
-        compute_and_save_superlatives,
-        "cron",
-        hour=4,
-        minute=0,
-        args=[db_manager],
-        id="compute_superlatives",
-    )
-    # After superlatives: that run leaves match_details_cache warm, so this
-    # second full pass over the same matches is DB-read-only.
-    scheduler.add_job(
-        compute_and_save_player_profiles,
-        "cron",
-        hour=4,
-        minute=30,
-        args=[db_manager],
-        id="compute_player_profiles",
-    )
-    # The one billed job. 11:00 in the process timezone (UTC on Heroku) is
-    # after the 5am US Eastern game-night rollover in both EST and EDT, which
-    # is what makes "the most recent closed night" mean last night rather than
-    # the one still being played - see compute_game_night_summary. Running it
-    # with the 4am jobs instead would summarize an evening mid-session, or (if
-    # it skipped that one) leave every recap a full day late. It also lands
-    # after the superlatives pass, so the match details it needs are already in
-    # match_details_cache.
-    scheduler.add_job(
-        compute_game_night_summary,
-        "cron",
-        hour=11,
-        minute=0,
-        args=[db_manager],
-        id="compute_game_night_summary",
-    )
-    # After the recap job, so a recap failure can't take the blurbs down with it.
-    scheduler.add_job(
-        compute_match_blurbs,
-        "cron",
-        hour=11,
-        minute=10,
-        args=[db_manager],
-        id="compute_match_blurbs",
-    )
-    logger.info("Setup scheduler.")
-    return scheduler
+        night_games = await queries.build_night_recap(
+            night, all_games, competitive, db_manager
+        )
+        # Each blurb commits as it is written, so a failure keeps the paid ones.
+        await match_blurb.generate_night_blurbs(
+            night_games, MatchBlurbRepo(replay_manager.session)
+        )

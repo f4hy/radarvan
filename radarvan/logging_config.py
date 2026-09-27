@@ -1,7 +1,7 @@
 """Structlog + stdlib logging configuration.
 
-Our code logs via structlog; third-party libraries (uvicorn, sqlalchemy,
-apscheduler, ...) log via stdlib logging. Both are rendered through the same
+Our code logs via structlog; third-party libraries (uvicorn, sqlalchemy, ...)
+log via stdlib logging. Both are rendered through the same
 ``ProcessorFormatter`` so output is consistent and contextvars bound in the
 request middleware (``request_id``, ``client``) are merged into every line.
 """

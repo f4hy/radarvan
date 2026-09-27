@@ -3,7 +3,7 @@
 | Var | Purpose |
 |---|---|
 | `DATABASE_URL` | Postgres (required; `postgres://` auto-rewritten to `postgresql://`) |
-| `DEV` | Set = dev mode: no scheduler, ops routes visible in OpenAPI |
+| `DEV` | Set = dev mode: ops routes visible in OpenAPI |
 | `API_KEY_NORMAL` / `API_KEY_ADMIN` | Comma-separated keys for `X-API-Key`, by privilege tier (admin implies normal); `ENFORCE_AUTH` set = actually reject. The old `API_KEY_READ`/`API_KEY_WRITE` names still work as a fallback |
 | `SESSION_SECRET` | Signs the session cookie (random per-process fallback in dev) |
 | `DISCORD_CLIENT_ID/SECRET`, `DISCORD_REDIRECT_URI` | Discord OAuth login (see `auth.md`) |
