@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
@@ -10,10 +11,28 @@ import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import LoginIcon from "@mui/icons-material/Login"
 import LogoutIcon from "@mui/icons-material/Logout"
+import { errorMessage } from "../../lib/apiError"
 import { useAuth } from "../../lib/AuthContext"
 import { logout, selectPlayer, startDiscordLogin } from "../../lib/auth"
 import Loading from "../../components/Loading"
 import Page from "../../components/Page"
+
+// Cached reads carry the viewer's own state (their prediction picks, their
+// votes, admin-only previews), so a change of identity drops them. The billed
+// commentary queries are left alone: they don't depend on who is asking, and
+// resetting one would ask the server for it again.
+function useResetUserData(): () => Promise<void> {
+  const queryClient = useQueryClient()
+  return React.useCallback(
+    () =>
+      queryClient.resetQueries({
+        predicate: (q) =>
+          q.queryKey[0] !== "matchupCommentary" &&
+          q.queryKey[0] !== "bracketSummary",
+      }),
+    [queryClient],
+  )
+}
 
 // Center a single card; the account flows are all narrow.
 function AccountCard({ children }: { children: React.ReactNode }) {
@@ -59,6 +78,7 @@ function LoginPrompt() {
 
 function PlayerSelection({ players }: { players: string[] }) {
   const { setStatus } = useAuth()
+  const resetUserData = useResetUserData()
   const [name, setName] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
@@ -70,8 +90,9 @@ function PlayerSelection({ players }: { players: string[] }) {
     try {
       // The POST already returns the updated status — apply it directly.
       setStatus(await selectPlayer(name))
+      await resetUserData()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save")
+      setError(await errorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -123,9 +144,18 @@ function Profile({
   playerName: string
 }) {
   const { refresh } = useAuth()
+  const resetUserData = useResetUserData()
+  const [error, setError] = React.useState<string | null>(null)
   const handleLogout = async () => {
-    await logout()
+    setError(null)
+    try {
+      await logout()
+    } catch (e) {
+      setError(await errorMessage(e))
+      return
+    }
     await refresh()
+    await resetUserData()
   }
   return (
     <AccountCard>
@@ -137,6 +167,7 @@ function Profile({
         <Typography variant="body2">
           Playing as: <strong>{playerName}</strong>
         </Typography>
+        {error && <Alert severity="error">{error}</Alert>}
         <Button
           variant="outlined"
           startIcon={<LogoutIcon />}

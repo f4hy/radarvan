@@ -412,7 +412,7 @@ function MatchIdInput(props: {
     <FormGroup>
       <TextField
         label="matchId"
-        value={props.value}
+        value={props.value ?? ""}
         onChange={props.onChange}
         type="text"
         slotProps={{
