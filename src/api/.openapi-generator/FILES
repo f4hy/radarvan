@@ -43,6 +43,7 @@ models/CostsBuiltObject.ts
 models/CreateBracketRequest.ts
 models/CurrentUser.ts
 models/DateMessage.ts
+models/DiscordPlayer.ts
 models/DraftAssignment.ts
 models/DraftPlayerRequest.ts
 models/DraftRequest.ts

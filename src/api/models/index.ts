@@ -22,6 +22,7 @@ export * from './CostsBuiltObject';
 export * from './CreateBracketRequest';
 export * from './CurrentUser';
 export * from './DateMessage';
+export * from './DiscordPlayer';
 export * from './DraftAssignment';
 export * from './DraftPlayerRequest';
 export * from './DraftRequest';
