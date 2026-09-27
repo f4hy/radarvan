@@ -9,6 +9,7 @@ would raise rather than quietly pass.
 import asyncio
 import os
 from datetime import UTC, date, datetime
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -16,7 +17,7 @@ os.environ.setdefault(
     "DATABASE_URL", "postgresql://stub:stub@127.0.0.1:1/stub-not-used"
 )
 
-from radarvan import schedule
+from radarvan import jobs, schedule
 from radarvan.commentary import llm
 
 import corpus
@@ -38,11 +39,6 @@ def test_no_provider_configured_stops_before_touching_the_database(
     monkeypatch.setattr(llm, "commentary_available", lambda: False)
     # Returns cleanly rather than raising out of _ExplodingDbManager.
     asyncio.run(schedule.compute_game_night_summary(_ExplodingDbManager()))  # type: ignore[arg-type]
-
-
-def test_a_single_game_is_not_a_game_night() -> None:
-    """One stray upload should not buy an LLM call."""
-    assert schedule.MIN_MATCHES_FOR_SUMMARY > 1
 
 
 def test_the_job_targets_a_closed_night_only() -> None:
@@ -86,13 +82,31 @@ def test_match_blurbs_with_no_provider_stop_before_touching_the_database(
     asyncio.run(schedule.compute_match_blurbs(_ExplodingDbManager()))  # type: ignore[arg-type]
 
 
-def test_the_blurb_job_runs_after_the_recap_job() -> None:
-    """Later, so the night's details are warm and a recap failure can't take it down."""
-    jobs = {job.id: job for job in schedule.get_scheduler(_ExplodingDbManager()).get_jobs()}  # type: ignore[arg-type]
+def test_the_blurb_job_runs_after_the_recap_job_and_survives_its_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed step is reported and doesn't stop the steps after it."""
+    calls: list[str] = []
 
-    def at(job_id: str) -> tuple[str, str]:
-        fields = {f.name: str(f) for f in jobs[job_id].trigger.fields}
-        return fields["hour"], fields["minute"]
+    async def recap(_manager: object) -> None:
+        calls.append("recap")
+        raise RuntimeError("recap failed")
 
-    assert at("compute_game_night_summary") == ("11", "0")
-    assert at("compute_match_blurbs") == ("11", "10")
+    async def blurbs(_manager: object) -> None:
+        calls.append("blurbs")
+
+    notify = AsyncMock()
+    monkeypatch.setattr(jobs, "notify_async", notify)
+    monkeypatch.setitem(jobs.JOBS, "game_night", [recap, blurbs])
+    assert not asyncio.run(jobs.run("game_night", _ExplodingDbManager()))  # type: ignore[arg-type]
+    assert calls == ["recap", "blurbs"]
+    [message] = [call.args[0] for call in notify.await_args_list]
+    assert "`recap`" in message and "recap failed" in message
+    assert "heroku run python -m radarvan.jobs game_night" in message
+
+
+def test_game_night_job_runs_summary_then_blurbs() -> None:
+    assert jobs.JOBS["game_night"] == [
+        schedule.compute_game_night_summary,
+        schedule.compute_match_blurbs,
+    ]

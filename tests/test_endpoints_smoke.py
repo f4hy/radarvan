@@ -254,8 +254,8 @@ def client() -> TestClient:
     deps.db_manager.SessionLocal = _forbid_db
     _clear_caches()
 
-    # Not a context-managed TestClient: that would run the lifespan, which starts
-    # the scheduler and warms caches against a real database.
+    # Not a context-managed TestClient: that would run the lifespan, which warms
+    # caches against a real database.
     yield TestClient(app, raise_server_exceptions=False)
 
     matches_mod.get_match_infos = real_get_match_infos
