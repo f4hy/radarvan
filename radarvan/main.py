@@ -1,8 +1,8 @@
 """FastAPI app construction.
 
 Route handlers live in radarvan.routes.*. This module composes them, wires
-middleware/exception handlers, and manages the app lifecycle (scheduler,
-cache warming, S3 connection test).
+middleware/exception handlers, and manages the app lifecycle (cache warming,
+S3 connection test). Scheduled jobs run on their own dynos - see radarvan.jobs.
 """
 
 from collections.abc import AsyncIterator
@@ -18,10 +18,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
-from . import cncstats_client, middleware, replay_files, schedule
+from . import cncstats_client, middleware, replay_files
 from .auth_notify import notify_auth_event
 from .cache import warm_caches
-from .dependencies import IS_DEV, SESSION_SECRET, db_manager, verify_api_key
+from .dependencies import IS_DEV, SESSION_SECRET, verify_api_key
 from .http_cache import CachedStaticFiles
 from .logging_config import configure_logging
 from .notify import notify_async
@@ -61,14 +61,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     cncstats_client.cncstats_client()
     replay_files.test_connection()
     logger.info("connection tested")
-    # Jobs open their own sessions per run (see radarvan.schedule).
-    scheduler = schedule.get_scheduler(db_manager)
-    if not IS_DEV:
-        scheduler.start()
     warm_caches()
     yield
-    if not IS_DEV:
-        scheduler.shutdown()
     logger.info("goodbye!")
 
 

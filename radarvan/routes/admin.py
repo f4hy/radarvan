@@ -91,6 +91,8 @@ def scrape(
     # gets the db_manager and opens its own session.
     invalidate_match_caches()
     background_tasks.add_task(schedule.update_games, db_manager, days)
+    # Runs after the scrape: covers links written for matches that already existed.
+    background_tasks.add_task(invalidate_match_caches)
     return {"scheduled": "ok"}
 
 
