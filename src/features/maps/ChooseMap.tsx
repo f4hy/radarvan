@@ -7,13 +7,16 @@ import Chip from "@mui/material/Chip"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
+import { alpha } from "@mui/material/styles"
 import CasinoIcon from "@mui/icons-material/Casino"
 import ThumbUpIcon from "@mui/icons-material/ThumbUp"
 import BlockIcon from "@mui/icons-material/Block"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import GameMap from "../../components/Map"
+import { errorMessage } from "../../lib/apiError"
 import Page from "../../components/Page"
+import { queryFallback } from "../../components/QueryState"
 import PlayerCountPicker from "../../components/PlayerCountPicker"
 import { displayMapName } from "../../lib/utils"
 import {
@@ -25,6 +28,8 @@ import {
 } from "./voting"
 
 type Phase = "pick" | "ready" | "reveal" | "spin" | "done"
+
+const NO_PLAYERS: string[] = []
 
 // Animation timing. Both phases are bounded to a fixed total time so they don't
 // balloon when there are lots of maps.
@@ -68,8 +73,10 @@ function CandidateRow({
             ? "primary.main"
             : undefined,
         borderWidth: winner || highlighted ? 2 : 1,
+        // A tint rather than warning.light, which is a pale fill that light
+        // dark-mode text can't be read on.
         bgcolor: winner
-          ? "warning.light"
+          ? (theme) => alpha(theme.palette.warning.main, 0.16)
           : highlighted
             ? "action.selected"
             : undefined,
@@ -123,14 +130,15 @@ export default function ChooseMap() {
   const [spinIndex, setSpinIndex] = React.useState(0)
   const [error, setError] = React.useState<string | null>(null)
 
-  const { data: counts = null } = useQuery({
+  const countsQuery = useQuery({
     queryKey: ["mapVotePlayerCounts"],
     queryFn: fetchPlayerCounts,
   })
-  const { data: players = [] } = useQuery({
+  const playersQuery = useQuery({
     queryKey: ["votingPlayers"],
     queryFn: fetchVotingPlayers,
   })
+  const players = playersQuery.data ?? NO_PLAYERS
 
   // Default to everyone selected; the host deselects whoever isn't playing.
   // Seeded once the roster arrives rather than on every render, so a host who
@@ -218,7 +226,7 @@ export default function ChooseMap() {
       setResult(await chooseMap(selected, [...participants]))
       setPhase("reveal")
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Draw failed")
+      setError(await errorMessage(e))
     }
   }
 
@@ -230,14 +238,6 @@ export default function ChooseMap() {
     if (toPick) setSelected(null)
   }
 
-  if (error && counts === null) {
-    return (
-      <Page title="Choose Map" width="narrow">
-        <Alert severity="error">{error}</Alert>
-      </Page>
-    )
-  }
-
   if (phase === "pick" || selected === null) {
     return (
       <Page
@@ -245,14 +245,16 @@ export default function ChooseMap() {
         title="Choose Map"
         description="Draw tonight's map from what everyone voted for."
       >
-        <PlayerCountPicker
-          title="How many players?"
-          counts={counts ?? []}
-          onPick={(c) => {
-            setSelected(c)
-            setPhase("ready")
-          }}
-        />
+        {queryFallback(countsQuery, "the player counts") ?? (
+          <PlayerCountPicker
+            title="How many players?"
+            counts={countsQuery.data ?? []}
+            onPick={(c) => {
+              setSelected(c)
+              setPhase("ready")
+            }}
+          />
+        )}
       </Page>
     )
   }
@@ -333,7 +335,9 @@ export default function ChooseMap() {
                 None
               </Button>
             </Stack>
-            {players.length === 0 ? (
+            {playersQuery.isError || playersQuery.isPending ? (
+              queryFallback(playersQuery, "the player list")
+            ) : players.length === 0 ? (
               <Alert severity="warning">
                 No players have signed in and claimed a name yet, so there are
                 no votes to draw from.

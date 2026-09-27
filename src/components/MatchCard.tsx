@@ -460,9 +460,11 @@ export const MatchCard = React.memo(function MatchCard(props: {
           mt: 1,
         }}
       >
-        {Object.values(teams).map((team) => (
+        {/* Keyed on the group, not team[0].team: historical observers sit on
+            team 0 beside any unknown-team players, which would collide. */}
+        {Object.entries(teams).map(([group, team]) => (
           <TeamCard
-            key={team[0].team}
+            key={group}
             players={team}
             won={team[0].team === props.match.winningTeam}
           />

@@ -26,6 +26,7 @@ import type {
 } from "../../api"
 import { PlayersClient } from "../../clients/players"
 import DisplayGeneral from "../../components/Generals"
+import PlayerChip from "../../components/PlayerChip"
 import { toGeneralName } from "../../lib/general_utils"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import Page from "../../components/Page"
@@ -271,13 +272,10 @@ function GameRow(props: {
   game: HeadToHeadGame
   player1: string
   player2: string
-  color1: string
-  color2: string
 }) {
   const { game } = props
   const [open, setOpen] = React.useState(false)
   const winnerName = game.player1Won ? props.player1 : props.player2
-  const winnerColor = game.player1Won ? props.color1 : props.color2
   return (
     <>
       <TableRow
@@ -314,11 +312,12 @@ function GameRow(props: {
           </Stack>
         </TableCell>
         <TableCell>
-          <Chip
-            size="small"
-            label={`${winnerName} won`}
-            sx={{ bgcolor: winnerColor, color: "common.white" }}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+            <PlayerChip name={winnerName} />
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              won
+            </Typography>
+          </Stack>
         </TableCell>
         <TableCell align="right">
           <Button size="small" onClick={() => setOpen((v) => !v)}>
@@ -347,9 +346,6 @@ export function GamesTable(props: {
   player1: string
   player2: string
 }) {
-  // Constant for the whole table, so they are resolved here rather than per row.
-  const color1 = usePlayerPalette(props.player1).ink
-  const color2 = usePlayerPalette(props.player2).ink
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -384,8 +380,6 @@ export function GamesTable(props: {
                 game={g}
                 player1={props.player1}
                 player2={props.player2}
-                color1={color1}
-                color2={color2}
               />
             ))}
           </TableBody>
