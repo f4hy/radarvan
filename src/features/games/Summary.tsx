@@ -1,8 +1,8 @@
 import Box from "@mui/material/Box"
 import Divider from "@mui/material/Divider"
 import Stack from "@mui/material/Stack"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
+import Tab from "@mui/material/Tab"
+import Tabs from "@mui/material/Tabs"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import {
@@ -15,6 +15,18 @@ import {
   YAxis,
 } from "recharts"
 import type { KillEventOutput, ObjectSummary, PlayerSummary } from "../../api"
+
+// The Sankey and unit charts reserve 200-300px of fixed margin for labels,
+// which leaves nothing on a phone; below this they scroll sideways instead.
+const WIDE_CHART_MIN_WIDTH = 560
+
+function WideChart(props: { children: React.ReactNode }) {
+  return (
+    <Box sx={{ overflowX: "auto" }}>
+      <Box sx={{ minWidth: WIDE_CHART_MIN_WIDTH }}>{props.children}</Box>
+    </Box>
+  )
+}
 
 function removeUnitPrefix(s: string): string {
   return s
@@ -38,7 +50,7 @@ function BuiltChart(props: {
   return (
     <>
       <Typography>{props.title}</Typography>
-      <Stack direction="row">
+      <WideChart>
         <ResponsiveContainer width="90%" height={300}>
           <BarChart
             title={props.title}
@@ -66,7 +78,7 @@ function BuiltChart(props: {
             />
           </BarChart>
         </ResponsiveContainer>
-      </Stack>
+      </WideChart>
     </>
   )
 }
@@ -249,22 +261,24 @@ function PlayerSankeyChart(props: {
   if (links.length === 0) return <div>{props.emptyMessage}</div>
   const height = Math.max(props.minHeight ?? 400, nodes.length * 18)
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <Sankey
-        data={{ nodes, links }}
-        nodePadding={10}
-        margin={{ left: 100, right: 200 }}
-        nodeWidth={15}
-        iterations={32}
-        node={<SankeyNode />}
-        link={<SankeyLink />}
-        linkCurvature={0.7}
-        title={props.description}
-        desc={props.description}
-      >
-        <Tooltip formatter={props.formatter} />
-      </Sankey>
-    </ResponsiveContainer>
+    <WideChart>
+      <ResponsiveContainer width="100%" height={height}>
+        <Sankey
+          data={{ nodes, links }}
+          nodePadding={10}
+          margin={{ left: 100, right: 200 }}
+          nodeWidth={15}
+          iterations={32}
+          node={<SankeyNode />}
+          link={<SankeyLink />}
+          linkCurvature={0.7}
+          title={props.description}
+          desc={props.description}
+        >
+          <Tooltip formatter={props.formatter} />
+        </Sankey>
+      </ResponsiveContainer>
+    </WideChart>
   )
 }
 
@@ -518,28 +532,21 @@ export default function ShowPlayerSummaries(props: {
   const [selectedKind, setSelectedKind] = React.useState<ChartKind>(
     CHART_KINDS[0].key,
   )
-  const handleClick = React.useCallback(
-    (
-      _event: React.MouseEvent<HTMLElement>,
-      newSelection: ChartKind | undefined,
-    ) => {
-      setSelectedKind((prev) => newSelection ?? prev)
-    },
-    [],
-  )
-  const buttonGroup = (
-    <ToggleButtonGroup
-      exclusive
+  // A scrolling tab strip rather than nine large toggle buttons, which ran
+  // off the side of a phone - same idiom as the detail tabs above it.
+  const chartTabs = (
+    <Tabs
       value={selectedKind}
-      onChange={handleClick}
-      color="warning"
+      onChange={(_, next: ChartKind) => setSelectedKind(next)}
+      variant="scrollable"
+      scrollButtons="auto"
+      allowScrollButtonsMobile
+      sx={{ borderBottom: 1, borderColor: "divider" }}
     >
       {CHART_KINDS.map(({ key, label }) => (
-        <ToggleButton key={key} size="large" value={key}>
-          {label}
-        </ToggleButton>
+        <Tab key={key} value={key} label={label} />
       ))}
-    </ToggleButtonGroup>
+    </Tabs>
   )
   const validSummaries = props.playerSummaries.filter(
     (sum): sum is PlayerSummary => sum?.name !== undefined,
@@ -549,8 +556,7 @@ export default function ShowPlayerSummaries(props: {
   }
   return (
     <>
-      <Typography>Select chart type</Typography>
-      {buttonGroup}
+      {chartTabs}
       <Stack spacing={3} sx={{ mt: 2 }}>
         {validSummaries.map((sum, i) => (
           // Color is unique per player in a match; names aren't (twin CPUs).

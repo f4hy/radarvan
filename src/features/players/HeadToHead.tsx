@@ -41,6 +41,16 @@ import { useUrlChoice, useUrlParam } from "../../lib/useUrlState"
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
+// Phones only, leaving the theme's own responsive sizes alone above that.
+const PHONE = "@media (max-width: 599.95px)"
+
+// Long names wrap inside their half instead of pushing the score off-screen.
+const NAME_SX = {
+  fontWeight: "bold",
+  overflowWrap: "anywhere",
+  [PHONE]: { fontSize: "1.1rem" },
+} as const
+
 // The big "12 — 7" scoreboard with a win-share bar colored per player.
 function Scoreboard(props: { data: HeadToHeadDetail }) {
   const {
@@ -77,8 +87,8 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
           justifyContent: "space-between",
         }}
       >
-        <Box sx={{ flex: 1, textAlign: "left" }}>
-          <Typography variant="h5" sx={{ color: c1, fontWeight: "bold" }}>
+        <Box sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+          <Typography variant="h5" sx={{ ...NAME_SX, color: c1 }}>
             {player1}
           </Typography>
           <Typography
@@ -92,7 +102,11 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
         </Box>
         <Typography
           variant="h3"
-          sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+          sx={{
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+            [PHONE]: { fontSize: "2rem" },
+          }}
         >
           <Box component="span" sx={{ color: c1 }}>
             {player1Wins}
@@ -104,8 +118,8 @@ function Scoreboard(props: { data: HeadToHeadDetail }) {
             {player2Wins}
           </Box>
         </Typography>
-        <Box sx={{ flex: 1, textAlign: "right" }}>
-          <Typography variant="h5" sx={{ color: c2, fontWeight: "bold" }}>
+        <Box sx={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+          <Typography variant="h5" sx={{ ...NAME_SX, color: c2 }}>
             {player2}
           </Typography>
           <Typography

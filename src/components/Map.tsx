@@ -135,6 +135,10 @@ export function useMapSupplyTotal(mapname: string): number | null {
   return data ? totalMapSupply(data.supply) : null
 }
 
+// Smaller on phones: the floor must not exceed the image's rendered height,
+// or the percentage-positioned dots drift below where they belong.
+const MAP_FLOOR = { xs: 220, sm: 300 }
+
 export type EventDot = {
   x: number
   y: number
@@ -200,7 +204,11 @@ export default function GameMap(props: {
   return (
     <Tooltip title={tooltipTitle}>
       <Card
-        sx={{ minHeight: 300, minWidth: 300, position: "relative" }}
+        sx={{
+          minHeight: MAP_FLOOR,
+          minWidth: { xs: 0, sm: 300 },
+          position: "relative",
+        }}
         onMouseEnter={
           props.deferData ? () => setDataRequested(true) : undefined
         }
@@ -208,7 +216,7 @@ export default function GameMap(props: {
         {showPlaceholder ? (
           <Box
             sx={{
-              minHeight: 300,
+              minHeight: MAP_FLOOR,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -240,7 +248,7 @@ export default function GameMap(props: {
               // aspect-ratio box on purpose: the overlay dots below are
               // positioned as a percentage of *this* element, so forcing a
               // ratio that differs from the image's own would move every dot.
-              minHeight: 300,
+              minHeight: MAP_FLOOR,
             }}
           >
             <img

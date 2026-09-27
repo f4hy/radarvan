@@ -432,7 +432,7 @@ function FieldToggle(props: {
   onChange: (value: Field) => void
 }) {
   return (
-    <>
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
         Field:
       </Typography>
@@ -451,7 +451,7 @@ function FieldToggle(props: {
         ))}
       </ToggleButtonGroup>
       <InfoTip title="Humans only counts free-for-alls with no AI in them. All FFA adds the games that had AI players, counting each AI as a full entrant: it sizes the field, holds its own leaderboard row, and a game an AI won is that AI's win." />
-    </>
+    </Stack>
   )
 }
 
