@@ -17,6 +17,15 @@ import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts"
 import type {
   HeadToHeadDetail,
   HeadToHeadGame,
@@ -25,18 +34,19 @@ import type {
   PlayerGameCount,
 } from "../../api"
 import { PlayersClient } from "../../clients/players"
-import DisplayGeneral from "../../components/Generals"
-import PlayerChip from "../../components/PlayerChip"
-import { toGeneralName } from "../../lib/general_utils"
+import { ProfileClient } from "../../clients/profile"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
+import DisplayGeneral from "../../components/Generals"
 import Page from "../../components/Page"
+import PlayerChip from "../../components/PlayerChip"
 import QueryState from "../../components/QueryState"
-import ShowMatchDetails from "../games/ShowMatchDetails"
-import { usePlayerPalette } from "../../lib/PlayerColorsContext"
-import { displayMapName, formatCash, formatPercent } from "../../lib/utils"
 import WinRateChip from "../../components/WinRateChip"
 import WinShareBar from "../../components/WinShareBar"
+import { toGeneralName } from "../../lib/general_utils"
+import { usePlayerPalette } from "../../lib/PlayerColorsContext"
 import { useUrlChoice, useUrlParam } from "../../lib/useUrlState"
+import { displayMapName, formatCash, formatPercent } from "../../lib/utils"
+import ShowMatchDetails from "../games/ShowMatchDetails"
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -232,6 +242,104 @@ function GeneralBreakdown(props: {
         ))}
       </Stack>
     </Box>
+  )
+}
+
+// Below this, one side's rate on a general in the matchup is mostly noise.
+const H2H_RADAR_MIN_GAMES = 3
+// Same floor as the profile page's radar.
+const PROFILE_RADAR_MIN_GAMES = 5
+
+type GeneralRecord = { general: number; wins: number; losses: number }
+
+// Both players' per-general win rates overlaid in their colors. Only generals
+// both sides have played enough get an axis, so every point on the shape is a
+// real rate rather than a missing one drawn as 0%.
+function GeneralRadar(props: {
+  title: string
+  player1: string
+  player2: string
+  records1: GeneralRecord[]
+  records2: GeneralRecord[]
+  minGames: number
+}) {
+  const { player1, player2, minGames } = props
+  // Raw hue for the fill, ink for the outline: a yellow line vanishes on white.
+  const p1 = usePlayerPalette(player1)
+  const p2 = usePlayerPalette(player2)
+  const byGeneral2 = new Map(props.records2.map((r) => [r.general, r]))
+  const rows = props.records1
+    .flatMap((r1) => {
+      const r2 = byGeneral2.get(r1.general)
+      if (r2 == null) return []
+      if (r1.wins + r1.losses < minGames) return []
+      if (r2.wins + r2.losses < minGames) return []
+      return [
+        {
+          general: r1.general,
+          name: toGeneralName(r1.general),
+          p1: Math.round((100 * r1.wins) / (r1.wins + r1.losses)),
+          p2: Math.round((100 * r2.wins) / (r2.wins + r2.losses)),
+        },
+      ]
+    })
+    .sort((a, b) => a.general - b.general)
+  if (rows.length < 3) return null
+  return (
+    <Box>
+      <Typography variant="subtitle1" sx={{ mb: 1, textAlign: "center" }}>
+        {props.title}
+      </Typography>
+      <ResponsiveContainer width="99%" aspect={1}>
+        <RadarChart data={rows} outerRadius="72%">
+          <PolarGrid />
+          <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
+          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+          <Radar
+            dataKey="p1"
+            name={player1}
+            fill={p1.dot}
+            fillOpacity={0.25}
+            stroke={p1.ink}
+            strokeWidth={2}
+          />
+          <Radar
+            dataKey="p2"
+            name={player2}
+            fill={p2.dot}
+            fillOpacity={0.25}
+            stroke={p2.ink}
+            strokeWidth={2}
+            strokeDasharray="4 3"
+          />
+          <Tooltip formatter={(value, name) => [`${value}%`, name]} />
+        </RadarChart>
+      </ResponsiveContainer>
+    </Box>
+  )
+}
+
+// Each player's win rate by general across all their games, as their profile
+// radar draws it. Shares the profile page's query key, so it's one cache entry.
+function OverallGeneralRadar(props: { player1: string; player2: string }) {
+  const profile = (player: string) => ({
+    queryKey: ["playerProfile", player],
+    queryFn: () =>
+      ProfileClient.getPlayerProfileApiPlayerProfileGet({ player }),
+  })
+  const q1 = useQuery(profile(props.player1))
+  const q2 = useQuery(profile(props.player2))
+  // Secondary panel: a player without a profile just means no overall shape.
+  if (q1.data == null || q2.data == null) return null
+  return (
+    <GeneralRadar
+      title="Win rate by general, all games"
+      player1={props.player1}
+      player2={props.player2}
+      records1={q1.data.generals}
+      records2={q2.data.generals}
+      minGames={PROFILE_RADAR_MIN_GAMES}
+    />
   )
 }
 
@@ -514,17 +622,20 @@ function MatchupResults(props: { data: HeadToHeadDetail; format: GameFormat }) {
     <>
       <Scoreboard data={data} />
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <MapBreakdown
-            records={data.byMap}
-            player1={data.player1}
-            player2={data.player2}
-          />
-        </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <GeneralBreakdown
             player={data.player1}
             records={data.player1ByGeneral}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <GeneralRadar
+            title="Win rate by general, head to head"
+            player1={data.player1}
+            player2={data.player2}
+            records1={data.player1ByGeneral}
+            records2={data.player2ByGeneral}
+            minGames={H2H_RADAR_MIN_GAMES}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -532,6 +643,16 @@ function MatchupResults(props: { data: HeadToHeadDetail; format: GameFormat }) {
             player={data.player2}
             records={data.player2ByGeneral}
           />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <MapBreakdown
+            records={data.byMap}
+            player1={data.player1}
+            player2={data.player2}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <OverallGeneralRadar player1={data.player1} player2={data.player2} />
         </Grid>
       </Grid>
       <GamesTable
