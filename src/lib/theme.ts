@@ -239,6 +239,12 @@ let theme = createTheme({
         }),
       },
     },
+    // MUI's default wants a 700ms long-press before a tooltip shows on touch,
+    // which nobody discovers; a lot of the app's detail (confidence
+    // intervals, badge text, map markers) lives only in tooltips.
+    MuiTooltip: {
+      defaultProps: { enterTouchDelay: 0, leaveTouchDelay: 3000 },
+    },
     MuiTab: {
       styleOverrides: {
         root: { textTransform: "none", fontWeight: 600, minHeight: 44 },

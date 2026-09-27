@@ -83,6 +83,14 @@ export default function MatchActivityCalendar(props: {
     [props.dateCounts],
   )
 
+  // On a phone the year is wider than the screen; open the newest one at its
+  // recent end rather than at January.
+  const newestYearRef = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    const el = newestYearRef.current
+    if (el) el.scrollLeft = el.scrollWidth
+  }, [years])
+
   const renderBlock = React.useCallback(
     (block: React.ReactElement, activity: { date: string; count: number }) => {
       const playable = activity.count > 0
@@ -145,7 +153,10 @@ export default function MatchActivityCalendar(props: {
     <Grid container spacing={2}>
       {years.map(({ year, data }, idx) => (
         <Grid key={year} size={{ xs: 12, lg: 6 }}>
-          <Box sx={{ overflowX: "auto", pb: 1 }}>
+          <Box
+            ref={idx === 0 ? newestYearRef : undefined}
+            sx={{ overflowX: "auto", pb: 1 }}
+          >
             <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
               {year}
             </Typography>
@@ -166,7 +177,7 @@ export default function MatchActivityCalendar(props: {
                 activity: {
                   text: (activity) =>
                     activity.count > 0
-                      ? `${activity.count} games on ${activity.date}. Click to open.`
+                      ? `${activity.count} games on ${activity.date}`
                       : `Nothing played on ${activity.date}`,
                   placement: "bottom",
                   offset: 6,
