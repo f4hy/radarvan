@@ -63,6 +63,8 @@ def provider(monkeypatch: pytest.MonkeyPatch) -> _FakeProvider:
     fake = _FakeProvider()
     monkeypatch.setattr(llm, "generate", fake)
     monkeypatch.setattr(llm, "active_provider", lambda: "test")
+    # Otherwise the backfill 503s wherever no real API key is set, as in CI.
+    monkeypatch.setattr(llm, "commentary_available", lambda: True)
     return fake
 
 
