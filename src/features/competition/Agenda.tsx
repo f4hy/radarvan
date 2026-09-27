@@ -462,7 +462,7 @@ export function agendaMatches(
 ): BracketMatchOutput[] {
   return (bracketData?.matches ?? [])
     .filter(
-      (m) => m.status === "ready" && m.playerA !== null && m.playerB !== null,
+      (m) => m.status === "ready" && m.playerA != null && m.playerB != null,
     )
     .sort((a, b) => {
       // Unscheduled matches (nothing to sort by) sort after all scheduled
@@ -631,7 +631,7 @@ function CompletedMatchRow({
             {playerLabel(match, "b")}
           </Box>
         </Typography>
-        {match.scoreA !== null && match.scoreB !== null && (
+        {match.scoreA != null && match.scoreB != null && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {match.scoreA} – {match.scoreB}
           </Typography>

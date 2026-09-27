@@ -46,7 +46,11 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import DateTimeField from "../../components/DateTimeField"
 import dayjs, { type Dayjs } from "dayjs"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import { renderAiText, renderBoldSegments } from "../../components/aiText"
@@ -82,6 +86,7 @@ import { PredictClient } from "../../clients/predict"
 import { toGeneralName } from "../../lib/general_utils"
 import { mapKey } from "../../lib/mapName"
 import Loading from "../../components/Loading"
+import { queryFallback } from "../../components/QueryState"
 import GameMap from "../../components/Map"
 import { MatchCard } from "../../components/MatchCard"
 import { PlayerChip, PlayerDot } from "../../components/PlayerChip"
@@ -529,7 +534,7 @@ function PlayerRow({
           {name}
         </Typography>
       </Stack>
-      {score !== null && (
+      {score != null && (
         <Typography
           variant="body2"
           sx={{ fontWeight: isWinner ? 700 : 400, color, ml: 1, flexShrink: 0 }}
@@ -1771,10 +1776,15 @@ function NextMatchBanner({
   )
 }
 
+// setTimeout overflows past 2^31-1 ms (~24.8 days) and fires at once, so a
+// far-off reveal is waited out in hour-long steps instead.
+const MAX_REVEAL_WAIT_MS = 60 * 60_000
+
+function bracketQueryKey(preview: boolean) {
+  return ["bracket", preview] as const
+}
+
 export default function DisplayBracket() {
-  const [bracketData, setBracketData] =
-    React.useState<BracketTournamentOutput | null>(null)
-  const [loading, setLoading] = React.useState(true)
   const [seedNames, setSeedNames] =
     React.useState<(string | null)[]>(DEFAULT_SEEDS)
   const [creating, setCreating] = React.useState(false)
@@ -1806,13 +1816,27 @@ export default function DisplayBracket() {
   const [revealAtInput, setRevealAtInput] = React.useState<Dayjs | null>(null)
   const [savingRevealAt, setSavingRevealAt] = React.useState(false)
 
-  React.useEffect(() => {
-    setLoading(true)
-    fetchBracket()
-      .then(setBracketData)
-      .catch(showError)
-      .finally(() => setLoading(false))
-  }, [showError])
+  const queryClient = useQueryClient()
+  const bracketQuery = useQuery({
+    queryKey: bracketQueryKey(previewActive),
+    queryFn: () => fetchBracket(previewActive),
+    // Toggling preview swaps the key; keep the current bracket on screen
+    // rather than blanking the page while the other view loads.
+    placeholderData: keepPreviousData,
+  })
+  const bracketData = bracketQuery.data ?? null
+  // Writes return the updated tournament, which goes straight into the cache
+  // for the view it was requested under.
+  const setBracketData = React.useCallback(
+    (data: BracketTournamentOutput | null, preview: boolean) => {
+      queryClient.setQueryData(bracketQueryKey(preview), data)
+      // The other view is now out of date too; it refetches when next shown.
+      void queryClient.invalidateQueries({
+        queryKey: bracketQueryKey(!preview),
+      })
+    },
+    [queryClient],
+  )
 
   // Single source of truth for "there's an unrevealed countdown in play" -
   // both the poll effect below and the render gate at the bottom key off
@@ -1826,15 +1850,20 @@ export default function DisplayBracket() {
   // schedules a re-fetch at the target time (plus a little slack). If the
   // server still disagrees afterward (clock skew), it falls back to a slow
   // 5s poll rather than retrying every second indefinitely.
+  // Keyed on dataUpdatedAt, not the data: a refetch that returns an identical
+  // payload keeps the same reference, and the timer still has to re-arm.
+  const revealAt = bracketData?.revealAt ?? null
+  const { refetch: refetchBracket, dataUpdatedAt } = bracketQuery
   React.useEffect(() => {
-    if (!revealPending || !bracketData?.revealAt) return
-    const msUntilTarget = new Date(bracketData.revealAt).getTime() - Date.now()
-    const delay = msUntilTarget > 0 ? msUntilTarget + 1000 : 5000
-    const timer = setTimeout(() => {
-      fetchBracket(previewActive).then(setBracketData).catch(showError)
-    }, delay)
+    if (!revealPending || revealAt === null) return
+    const msUntilTarget = new Date(revealAt).getTime() - Date.now()
+    const delay =
+      msUntilTarget > 0
+        ? Math.min(msUntilTarget + 1000, MAX_REVEAL_WAIT_MS)
+        : 5000
+    const timer = setTimeout(() => void refetchBracket(), delay)
     return () => clearTimeout(timer)
-  }, [revealPending, bracketData, previewActive, showError])
+  }, [revealPending, revealAt, refetchBracket, dataUpdatedAt])
 
   // Keep the create/reset form in sync with whichever tournament is
   // actually active — otherwise editing (e.g. removing a player) operates on
@@ -1866,33 +1895,19 @@ export default function DisplayBracket() {
   // Opening the admin tools implies wanting to see/edit the real roster and
   // seeding, even before the public reveal - so it also switches on preview
   // (same request the "Preview bracket" button makes).
-  const handleOpenAdminTools = async () => {
+  const handleOpenAdminTools = () => {
     setAdminDialogOpen(true)
-    if (!previewActive) {
-      try {
-        setBracketData(await fetchBracket(true))
-        setPreviewActive(true)
-      } catch (e) {
-        showError(e)
-      }
-    }
+    setPreviewActive(true)
   }
 
-  const handleTogglePreview = async () => {
-    const next = !previewActive
-    try {
-      setBracketData(await fetchBracket(next))
-      setPreviewActive(next)
-    } catch (e) {
-      showError(e)
-    }
-  }
+  const handleTogglePreview = () => setPreviewActive((active) => !active)
 
   const handleSaveRevealAt = async () => {
     setSavingRevealAt(true)
     try {
       setBracketData(
         await setBracketRevealAt(revealAtInput ? revealAtInput.toDate() : null),
+        true,
       )
       setPreviewActive(true)
     } catch (e) {
@@ -1916,7 +1931,7 @@ export default function DisplayBracket() {
         seed: idx + 1,
         playerName: name as string,
       }))
-      setBracketData(await createBracket(players))
+      setBracketData(await createBracket(players), true)
       setPreviewActive(true)
     } catch (e) {
       showError(e)
@@ -1928,13 +1943,13 @@ export default function DisplayBracket() {
   const handleSaveMatch = React.useCallback(
     async (matchId: string, req: SetBracketMatchRequest) => {
       try {
-        setBracketData(await setBracketMatch(matchId, req))
+        setBracketData(await setBracketMatch(matchId, req), previewActive)
         setEditingMatchId(null)
       } catch (e) {
         showError(e)
       }
     },
-    [showError],
+    [showError, setBracketData, previewActive],
   )
 
   // Shared by every BracketNodeView so opening the edit dialog doesn't need
@@ -2093,14 +2108,9 @@ export default function DisplayBracket() {
     return () => observer.disconnect()
   }, [dropConnections])
 
-  if (loading) {
-    return (
-      <>
-        <Loading />
-        {errorSnackbar}
-      </>
-    )
-  }
+  // A failed load used to fall through to "No tournament has been created yet".
+  const bracketFallback = queryFallback(bracketQuery, "the bracket")
+  if (bracketFallback) return bracketFallback
 
   const editingMatch = editingMatchId
     ? (matchesById.get(editingMatchId) ?? null)
