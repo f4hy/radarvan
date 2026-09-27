@@ -2,10 +2,13 @@
 
 import asyncio
 from collections import Counter
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import NamedTuple
 
 import structlog
+from sqlalchemy import text
 
 from . import general_stats, opening_book, player_rating, superlatives
 from .api_types import General, MatchInfo, Statistic, SuperlativeData
@@ -16,11 +19,17 @@ from .repositories.stats import StatsRepo
 
 logger = structlog.get_logger(__name__)
 
-# Manual and scheduled runs must not interleave whole-table replacements.
-recompute_lock = asyncio.Lock()
-# BackgroundTasks only start after the response is sent, so the lock alone
-# leaves a window in which two quick POSTs both see it free and both queue.
+# Set from the manual trigger's claim until its background run ends, so a
+# second POST gets its 409 before BackgroundTasks has started the first.
 _queued = False
+
+# pg advisory-lock key: runs must not interleave whole-table replacements, and
+# the scheduled run is a one-off dyno while the manual trigger is the web dyno.
+_ADVISORY_LOCK_KEY = 0x5AD0_57A7
+
+
+class RecomputeBusy(Exception):
+    """Another process holds the recompute."""
 
 
 class IncompleteSnapshot(Exception):
@@ -106,6 +115,29 @@ def _publish(db_manager: DatabaseManager, stats: list[Statistic]) -> None:
         repo.replace_computed_stats(stats)
 
 
+@contextmanager
+def _cross_process_lock(db_manager: DatabaseManager) -> Iterator[None]:
+    if db_manager.engine.dialect.name != "postgresql":
+        yield
+        return
+    with db_manager.engine.connect() as conn:
+        held = conn.execute(
+            text("SELECT pg_try_advisory_lock(:key)"), {"key": _ADVISORY_LOCK_KEY}
+        ).scalar()
+        # Session-level lock: commit so the connection doesn't sit idle in a
+        # transaction for the whole run.
+        conn.commit()
+        if not held:
+            raise RecomputeBusy
+        try:
+            yield
+        finally:
+            conn.execute(
+                text("SELECT pg_advisory_unlock(:key)"), {"key": _ADVISORY_LOCK_KEY}
+            )
+            conn.commit()
+
+
 async def recompute(db_manager: DatabaseManager) -> superlatives.Superlatives:
     """Compute every projection and publish it in one transaction.
 
@@ -113,7 +145,7 @@ async def recompute(db_manager: DatabaseManager) -> superlatives.Superlatives:
     and would commit a truncated replacement over good data. Refuse instead, so
     the previous snapshot survives until a complete run succeeds.
     """
-    async with recompute_lock:
+    with _cross_process_lock(db_manager):
         start = datetime.now(UTC)
         games, stale = await asyncio.to_thread(_load_inputs, db_manager)
         if stale:
@@ -170,8 +202,8 @@ async def recompute(db_manager: DatabaseManager) -> superlatives.Superlatives:
 
 
 def recompute_pending() -> bool:
-    """True while a run is queued or running."""
-    return _queued or recompute_lock.locked()
+    """True while a manual run is queued or running in this process."""
+    return _queued
 
 
 def try_reserve_recompute() -> bool:
@@ -192,5 +224,8 @@ async def reserved_recompute(db_manager: DatabaseManager) -> None:
     global _queued
     try:
         await recompute(db_manager)
+    except RecomputeBusy:
+        # The POST already answered "started", so say it in the channel instead.
+        await notify_async("Manual recompute skipped: a scheduled run is in progress.")
     finally:
         _queued = False

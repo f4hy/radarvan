@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException
-from sqlalchemy import event
+from sqlalchemy import event, text
 
 from radarvan import computed_stats, general_stats, opening_book, schedule, superlatives
 from radarvan.api_types import (
@@ -90,8 +90,6 @@ def inputs(monkeypatch: pytest.MonkeyPatch, manager: DatabaseManager) -> AsyncMo
 
     monkeypatch.setattr(superlatives, "load_many_superlative_data", details)
     monkeypatch.setattr(opening_book, "load_opening_tallies", tallies)
-    # Reset the lock between asyncio.run loops; contention binds it to a loop.
-    monkeypatch.setattr(computed_stats, "recompute_lock", asyncio.Lock())
     monkeypatch.setattr(computed_stats, "_queued", False)
     monkeypatch.setattr(routes, "db_manager", manager)
     notify = AsyncMock()
@@ -237,6 +235,8 @@ def test_failed_loader_cancels_its_sibling(manager, inputs, monkeypatch) -> None
 def test_manual_and_scheduled_runs_share_exclusion(
     manager, inputs, monkeypatch
 ) -> None:
+    if manager.engine.dialect.name != "postgresql":
+        pytest.skip("the exclusion is a postgres advisory lock")
     original = opening_book.load_opening_tallies
 
     async def exercise():
@@ -278,7 +278,6 @@ def test_queued_run_rejects_a_second_trigger_before_it_starts(manager, inputs) -
     async def exercise():
         tasks = BackgroundTasks()
         assert await routes.recompute_superlatives(tasks) == {"status": "started"}
-        assert not computed_stats.recompute_lock.locked()
         with pytest.raises(HTTPException) as exc:
             await routes.recompute_superlatives(BackgroundTasks())
         assert exc.value.status_code == 409
@@ -286,6 +285,33 @@ def test_queued_run_rejects_a_second_trigger_before_it_starts(manager, inputs) -
         assert not computed_stats.recompute_pending()
 
     asyncio.run(exercise())
+
+
+def test_a_run_in_another_process_blocks_both_entry_points(manager, inputs) -> None:
+    """The scheduled run is a one-off dyno and the manual trigger the web dyno."""
+    if manager.engine.dialect.name != "postgresql":
+        pytest.skip("advisory locks are postgres-only")
+    previous = _seed(manager)
+    with manager.engine.connect() as other:
+        other.execute(
+            text("SELECT pg_advisory_lock(:key)"),
+            {"key": computed_stats._ADVISORY_LOCK_KEY},
+        )
+        other.commit()
+        with pytest.raises(computed_stats.RecomputeBusy):
+            asyncio.run(computed_stats.recompute(manager))
+        asyncio.run(schedule.compute_and_save_superlatives(manager))
+        asyncio.run(_manual())
+        assert "Manual recompute skipped" in _messages(inputs)[-1]
+        assert _identity(_stored(manager)) == _identity(previous)
+        assert not computed_stats.recompute_pending()
+        other.execute(
+            text("SELECT pg_advisory_unlock(:key)"),
+            {"key": computed_stats._ADVISORY_LOCK_KEY},
+        )
+        other.commit()
+    asyncio.run(computed_stats.recompute(manager))
+    assert _identity(_stored(manager)) != _identity(previous)
 
 
 @pytest.mark.parametrize("entry", ["manual", "scheduled"])
