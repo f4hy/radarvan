@@ -60,6 +60,9 @@ const HIGHLIGHT_ICONS: { [key: string]: string } = {
   match_of_the_night: "🍿",
 }
 
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/
+const NO_DATES: Record<string, number> = {}
+
 function longDate(key: string): string {
   return localDate(key).toLocaleDateString("en-US", {
     weekday: "long",
@@ -357,84 +360,85 @@ function GameByGame(props: {
         <Typography sx={{ fontWeight: 600 }}>Game by game</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        {queryFallback(query, "this night's games")}
-        {matches === null ? (
-          <Loading />
-        ) : (
-          <Stack spacing={1.5}>
-            {matches.length > 1 && (
-              <Stack
-                direction="row"
-                spacing={1}
-                useFlexGap
-                sx={{ flexWrap: "wrap" }}
-              >
-                {matches.map((match, i) => (
-                  <Chip
-                    key={match.id}
-                    label={`Game ${i + 1}`}
-                    size="small"
-                    clickable
-                    onClick={() => jumpToMatch(match.id)}
-                    color={
-                      match.id === highlightedMatchId ? "primary" : "default"
-                    }
-                    variant={
-                      match.id === highlightedMatchId ? "filled" : "outlined"
-                    }
-                  />
-                ))}
-              </Stack>
-            )}
-            {matches.map((match) => {
-              const cardOpen = openCards.has(match.id)
-              return (
-                <Box
-                  key={match.id}
-                  ref={(el: HTMLDivElement | null) => {
-                    rowRefs.current[match.id] = el
-                  }}
-                  sx={
-                    match.id === highlightedMatchId
-                      ? { outline: `2px solid ${BRAND_COLOR}`, borderRadius: 1 }
-                      : {}
-                  }
+        {queryFallback(query, "this night's games") ??
+          (matches !== null && (
+            <Stack spacing={1.5}>
+              {matches.length > 1 && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ flexWrap: "wrap" }}
                 >
-                  <MatchNarrative matchId={match.id} />
-                  <Button
-                    fullWidth
-                    size="small"
-                    onClick={() =>
-                      setOpenCards((prev) => {
-                        const next = new Set(prev)
-                        if (next.has(match.id)) {
-                          next.delete(match.id)
-                        } else {
-                          next.add(match.id)
-                        }
-                        return next
-                      })
+                  {matches.map((match, i) => (
+                    <Chip
+                      key={match.id}
+                      label={`Game ${i + 1}`}
+                      size="small"
+                      clickable
+                      onClick={() => jumpToMatch(match.id)}
+                      color={
+                        match.id === highlightedMatchId ? "primary" : "default"
+                      }
+                      variant={
+                        match.id === highlightedMatchId ? "filled" : "outlined"
+                      }
+                    />
+                  ))}
+                </Stack>
+              )}
+              {matches.map((match) => {
+                const cardOpen = openCards.has(match.id)
+                return (
+                  <Box
+                    key={match.id}
+                    ref={(el: HTMLDivElement | null) => {
+                      rowRefs.current[match.id] = el
+                    }}
+                    sx={
+                      match.id === highlightedMatchId
+                        ? {
+                            outline: `2px solid ${BRAND_COLOR}`,
+                            borderRadius: 1,
+                          }
+                        : {}
                     }
-                    endIcon={
-                      <ExpandMoreIcon
-                        sx={{
-                          transform: cardOpen ? "rotate(180deg)" : "none",
-                          transition: "transform 0.2s",
-                        }}
-                      />
-                    }
-                    sx={{ mt: 0.5, color: "text.secondary" }}
                   >
-                    {cardOpen ? "Hide match card" : "Show match card"}
-                  </Button>
-                  <Collapse in={cardOpen} unmountOnExit>
-                    <MatchCard match={match} idx={0} />
-                  </Collapse>
-                </Box>
-              )
-            })}
-          </Stack>
-        )}
+                    <MatchNarrative matchId={match.id} />
+                    <Button
+                      fullWidth
+                      size="small"
+                      onClick={() =>
+                        setOpenCards((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(match.id)) {
+                            next.delete(match.id)
+                          } else {
+                            next.add(match.id)
+                          }
+                          return next
+                        })
+                      }
+                      endIcon={
+                        <ExpandMoreIcon
+                          sx={{
+                            transform: cardOpen ? "rotate(180deg)" : "none",
+                            transition: "transform 0.2s",
+                          }}
+                        />
+                      }
+                      sx={{ mt: 0.5, color: "text.secondary" }}
+                    >
+                      {cardOpen ? "Hide match card" : "Show match card"}
+                    </Button>
+                    <Collapse in={cardOpen} unmountOnExit>
+                      <MatchCard match={match} idx={0} />
+                    </Collapse>
+                  </Box>
+                )
+              })}
+            </Stack>
+          ))}
       </AccordionDetails>
     </Accordion>
   )
@@ -447,15 +451,20 @@ export default function GameNight() {
   // The night lives in the URL — dropping a link to one evening in chat is
   // this page's whole point, so it can't be component state. `replace` because
   // the initial redirect to "latest night" isn't a step to go Back to.
-  const [selected, setSelected] = useUrlParam("date", { replace: true })
+  const [dateParam, setSelected] = useUrlParam("date", { replace: true })
+  // A malformed `?date=` reads as absent, so the page lands on the latest night
+  // instead of handing `new Date("garbage")` to the client's toISOString().
+  const selected =
+    dateParam !== null && DATE_KEY.test(dateParam) ? dateParam : null
   const [calendarOpen, setCalendarOpen] = React.useState(false)
 
   // Already newest-first from the API. Same payload the night list comes from —
   // the counts feed the calendar too.
-  const { data: dateCounts = {} } = useQuery({
+  const datesQuery = useQuery({
     queryKey: ["dates"],
     queryFn: () => MatchesClient.getDatesApiDatesGet(),
   })
+  const dateCounts = datesQuery.data ?? NO_DATES
 
   const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])
 
@@ -553,7 +562,13 @@ export default function GameNight() {
     >
       <Stack spacing={2}>
         {calendar}
-        {recap === null ? (
+        {datesQuery.isError ? (
+          queryFallback(datesQuery, "the list of game nights")
+        ) : datesQuery.isSuccess && nights.length === 0 ? (
+          <Typography color="text.secondary">No games played yet.</Typography>
+        ) : recapQuery.isError ? (
+          queryFallback(recapQuery, "this night's recap")
+        ) : recap === null ? (
           <Loading />
         ) : recap.matchCount === 0 ? (
           <Typography color="text.secondary">

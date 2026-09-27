@@ -3,6 +3,7 @@ import Grid from "@mui/material/Grid"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { ActivityCalendar } from "react-activity-calendar"
+import { useColorMode } from "../lib/ColorModeContext"
 import { BRAND_COLOR } from "../lib/theme"
 
 /**
@@ -72,6 +73,7 @@ export default function MatchActivityCalendar(props: {
   selected?: string | null
 }) {
   const { onSelect, selected } = props
+  const { mode } = useColorMode()
   // Newest year first, matching every other listing in the app.
   const years = React.useMemo(
     () =>
@@ -155,9 +157,10 @@ export default function MatchActivityCalendar(props: {
               blockMargin={4}
               showColorLegend={idx === 0}
               labels={{ totalCount: "{{count}} games in {{year}}" }}
-              colorScheme="light"
+              colorScheme={mode}
               theme={{
                 light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
+                dark: ["#232b38", "#0e4429", "#006d32", "#26a641", "#39d353"],
               }}
               tooltips={{
                 activity: {
