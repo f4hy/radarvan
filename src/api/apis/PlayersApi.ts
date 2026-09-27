@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  DiscordPlayer,
   HTTPValidationError,
   HeadToHead,
   HeadToHeadDetail,
@@ -28,6 +29,8 @@ import type {
   RatingUpset,
 } from '../models/index';
 import {
+    DiscordPlayerFromJSON,
+    DiscordPlayerToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
     HeadToHeadFromJSON,
@@ -58,6 +61,10 @@ export interface BalanceTeamsApiBalanceTeamsGetRequest {
 
 export interface GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest {
     gameFormat?: string | null;
+}
+
+export interface GetPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRequest {
+    discordId: string;
 }
 
 export interface GetPlayerHeadToHeadApiPlayerHeadToHeadGetRequest {
@@ -199,6 +206,57 @@ export class PlayersApi extends runtime.BaseAPI {
      */
     async getHeadToHeadApiPlayerRatingsHeadToHeadGet(requestParameters: GetHeadToHeadApiPlayerRatingsHeadToHeadGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: { [key: string]: HeadToHead; }; }> {
         const response = await this.getHeadToHeadApiPlayerRatingsHeadToHeadGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGet without sending the request
+     */
+    async getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRequestOpts(requestParameters: GetPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['discordId'] == null) {
+            throw new runtime.RequiredError(
+                'discordId',
+                'Required parameter "discordId" was null or undefined when calling getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-API-Key"] = await this.configuration.apiKey("X-API-Key"); // APIKeyHeader authentication
+        }
+
+
+        let urlPath = `/api/v1/players/by_discord_id/{discord_id}`;
+        urlPath = urlPath.replace(`{${"discord_id"}}`, encodeURIComponent(String(requestParameters['discordId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Canonical player name claimed by a Discord account; 404 if none.
+     * Get Player By Discord Id
+     */
+    async getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRaw(requestParameters: GetPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DiscordPlayer>> {
+        const requestOptions = await this.getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DiscordPlayerFromJSON(jsonValue));
+    }
+
+    /**
+     * Canonical player name claimed by a Discord account; 404 if none.
+     * Get Player By Discord Id
+     */
+    async getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGet(requestParameters: GetPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DiscordPlayer> {
+        const response = await this.getPlayerByDiscordIdApiV1PlayersByDiscordIdDiscordIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
