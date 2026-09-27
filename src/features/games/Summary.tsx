@@ -62,7 +62,7 @@ function BuiltChart(props: {
             <Bar
               dataKey="count"
               fill="#8884d8"
-              label={{ fill: "black", fontSize: 20 }}
+              label={{ fill: "currentColor", fontSize: 20 }}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -553,7 +553,8 @@ export default function ShowPlayerSummaries(props: {
       {buttonGroup}
       <Stack spacing={3} sx={{ mt: 2 }}>
         {validSummaries.map((sum, i) => (
-          <React.Fragment key={sum.name}>
+          // Color is unique per player in a match; names aren't (twin CPUs).
+          <React.Fragment key={`${sum.name}-${sum.color}`}>
             {i > 0 && <Divider />}
             <Box>
               <Typography variant="h6">
