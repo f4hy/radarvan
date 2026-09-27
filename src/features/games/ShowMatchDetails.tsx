@@ -647,45 +647,46 @@ const columns: Array<{
     },
   },
   { key: "xp", label: "XP", group: "XP" },
-  { key: "unitsBuilt", label: "🛻 Built", group: "Built" },
-  { key: "buildingsBuilt", label: "🏢 Built", group: "Built" },
-  { key: "unitsLost", label: "🛻 Lost", group: "Lost" },
-  { key: "buildingsLost", label: "🏢 Lost", group: "Lost" },
-  { key: "unitsKilled", label: "🛻 Killed", group: "Killed" },
-  { key: "buildingsKilled", label: "🏢 Killed", group: "Killed" },
-  { key: "tech_buildings_captured", label: "⭐ 🚩", group: "Captured" },
-  { key: "faction_buildings_captured", label: "🏢 🚩", group: "Captured" },
+  // The group header already says Built/Lost/Killed, so the icon is enough.
+  { key: "unitsBuilt", label: "🛻", group: "Built" },
+  { key: "buildingsBuilt", label: "🏢", group: "Built" },
+  { key: "unitsLost", label: "🛻", group: "Lost" },
+  { key: "buildingsLost", label: "🏢", group: "Lost" },
+  { key: "unitsKilled", label: "🛻", group: "Killed" },
+  { key: "buildingsKilled", label: "🏢", group: "Killed" },
+  { key: "tech_buildings_captured", label: "⭐", group: "Captured" },
+  { key: "faction_buildings_captured", label: "🏢", group: "Captured" },
   {
     key: "moneySpent",
-    label: "$ Spent",
+    label: "Spent",
     group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number | null),
   },
   {
     key: "moneyCollected",
-    label: "$ Collected",
+    label: "Collected",
     group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number | null),
   },
   {
     key: "valueDestroyed",
-    label: "$ Destroyed",
+    label: "Destroyed",
     group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number),
   },
   {
     key: "valueLost",
-    label: "$ Lost",
+    label: "Lost",
     group: "Economy",
     align: "right",
     render: (v) => renderCash(v as number),
   },
   {
     key: "efficiency",
-    label: "Efficiency",
+    label: "Eff.",
     group: "Economy",
     align: "right",
     render: (v) => renderRatio(v as number | null),
@@ -792,7 +793,7 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
         size="small"
         sx={{
           "& .MuiTableCell-root": {
-            px: 1,
+            px: 0.75,
             whiteSpace: "nowrap",
             fontSize: "0.75rem",
           },
@@ -833,7 +834,10 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
                     borderLeftColor: "divider",
                   }}
                 >
+                  {/* Otherwise every column reserves room for an arrow it isn't
+                      showing, which alone was enough to overflow the table. */}
                   <TableSortLabel
+                    hideSortIcon
                     active={column.key === sortBy}
                     direction={column.key === sortBy ? sortDir : "desc"}
                     onClick={() => handleSort(column.key)}
