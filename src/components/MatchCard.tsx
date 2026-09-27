@@ -3,6 +3,7 @@ import DownloadIcon from "@mui/icons-material/Download"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import ErrorIcon from "@mui/icons-material/Error"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import LinkIcon from "@mui/icons-material/Link"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import SmartToyIcon from "@mui/icons-material/SmartToy"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -16,6 +17,7 @@ import Chip from "@mui/material/Chip"
 import Collapse from "@mui/material/Collapse"
 import Divider from "@mui/material/Divider"
 import IconButton from "@mui/material/IconButton"
+import Link from "@mui/material/Link"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import { Tooltip } from "@mui/material"
@@ -23,6 +25,7 @@ import Typography from "@mui/material/Typography"
 
 import groupBy from "lodash/groupBy"
 import * as React from "react"
+import { Link as RouterLink } from "react-router"
 
 import { type MatchInfo, type Player, Team } from "../api"
 import { FilesClient } from "../clients/files"
@@ -31,6 +34,7 @@ import GameMap, { type PlayerPosition } from "./Map"
 import { MatchRowLoading } from "./Loading"
 import { PlayerDot } from "./PlayerChip"
 import { useColorMode } from "../lib/ColorModeContext"
+import { matchHref } from "../lib/links"
 import { toGeneralName } from "../lib/general_utils"
 import {
   getColorHex,
@@ -288,7 +292,10 @@ function MatchHeader(props: {
           }}
         >
           {match.durationMinutes.toFixed(1)} min · {date} · v{match.gameVersion}{" "}
-          · ID {match.id}
+          ·{" "}
+          <Link component={RouterLink} to={matchHref(match.id)} color="inherit">
+            ID {match.id}
+          </Link>
         </Typography>
       </Stack>
       {props.action}
@@ -296,19 +303,72 @@ function MatchHeader(props: {
   )
 }
 
-// Small, secondary download action that lives in the header rather than as a
-// full-width button below the match.
-function DownloadReplayButton(props: { matchId: number }) {
+type CopyState = "idle" | "copied" | "failed"
+
+const COPY_TOOLTIP: Record<CopyState, string> = {
+  idle: "Copy link to this match",
+  copied: "Link copied",
+  failed: "Couldn't copy — use the ID link instead",
+}
+
+function CopyMatchLinkButton(props: { matchId: number }) {
+  const [open, setOpen] = React.useState(false)
+  const [state, setState] = React.useState<CopyState>("idle")
+  // Controlled and self-closing, so the confirmation shows after a tap on a
+  // phone too, where there is no hover to open or close it.
+  React.useEffect(() => {
+    if (state === "idle") return
+    const t = setTimeout(() => {
+      setOpen(false)
+      setState("idle")
+    }, 2000)
+    return () => clearTimeout(t)
+  }, [state])
+  const copy = () => {
+    const url = `${window.location.origin}${matchHref(props.matchId)}`
+    // `navigator.clipboard` is undefined outside a secure context.
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(url))
+      .then(
+        () => setState("copied"),
+        () => setState("failed"),
+      )
+      .finally(() => setOpen(true))
+  }
   return (
-    <Tooltip title="Download replay">
+    <Tooltip
+      title={COPY_TOOLTIP[state]}
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+    >
       <IconButton
         size="small"
-        aria-label="Download replay"
-        onClick={() => downloadReplay(props.matchId)}
+        aria-label="Copy link to this match"
+        onClick={copy}
       >
-        <DownloadIcon fontSize="small" />
+        <LinkIcon fontSize="small" />
       </IconButton>
     </Tooltip>
+  )
+}
+
+// Small, secondary actions that live in the header rather than as full-width
+// buttons below the match.
+function MatchActions(props: { matchId: number }) {
+  return (
+    <Stack direction="row" sx={{ flexShrink: 0 }}>
+      <CopyMatchLinkButton matchId={props.matchId} />
+      <Tooltip title="Download replay">
+        <IconButton
+          size="small"
+          aria-label="Download replay"
+          onClick={() => downloadReplay(props.matchId)}
+        >
+          <DownloadIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Stack>
   )
 }
 
@@ -344,9 +404,12 @@ function DetailsExpander(props: { open: boolean; onToggle: () => void }) {
   )
 }
 
-function FfaMatchDisplay(props: { match: MatchInfo }) {
+function FfaMatchDisplay(props: {
+  match: MatchInfo
+  defaultDetailsOpen: boolean
+}) {
   const { match } = props
-  const [details, setDetails] = React.useState<boolean>(false)
+  const [details, setDetails] = React.useState(props.defaultDetailsOpen)
   const playerPositions = React.useMemo(
     () => buildPlayerPositions(match.players),
     [match.players],
@@ -356,7 +419,7 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
       <MatchHeader
         match={match}
         formatLabel="FFA"
-        action={<DownloadReplayButton matchId={match.id} />}
+        action={<MatchActions matchId={match.id} />}
       />
       <Stack
         direction="row"
@@ -405,15 +468,23 @@ function downloadReplay(matchId: number) {
 export const MatchCard = React.memo(function MatchCard(props: {
   match: MatchInfo
   idx: number
+  /** For a page showing just this match; lists keep details collapsed. */
+  defaultDetailsOpen?: boolean
 }) {
-  const [details, setDetails] = React.useState<boolean>(false)
+  const defaultDetailsOpen = props.defaultDetailsOpen ?? false
+  const [details, setDetails] = React.useState(defaultDetailsOpen)
   const playerPositions = React.useMemo(
     () => buildPlayerPositions(props.match.players),
     [props.match.players],
   )
 
   if (props.match.composition?.isFfa && !props.match.incomplete) {
-    return <FfaMatchDisplay match={props.match} />
+    return (
+      <FfaMatchDisplay
+        match={props.match}
+        defaultDetailsOpen={defaultDetailsOpen}
+      />
+    )
   }
 
   const header = (
@@ -444,7 +515,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
       <MatchHeader
         match={props.match}
         formatLabel={props.match.composition?.category ?? "?"}
-        action={<DownloadReplayButton matchId={props.match.id} />}
+        action={<MatchActions matchId={props.match.id} />}
       />
       {props.match?.notes?.length ? (
         <Typography
@@ -502,7 +573,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
 
   if (props.match.incomplete) {
     return (
-      <Accordion defaultExpanded={false}>
+      <Accordion defaultExpanded={defaultDetailsOpen}>
         <AccordionSummary
           expandIcon={<ArrowDownwardIcon />}
           sx={{ bgcolor: "action.hover" }}
