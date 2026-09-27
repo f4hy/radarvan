@@ -180,7 +180,15 @@ function FfaPlayerCard(props: { player: Player }) {
   const { mode } = useColorMode()
   const { player } = props
   return (
-    <Card sx={{ minWidth: 150, overflow: "hidden" }}>
+    // Grows on phones so two share a row instead of one 150px card per line;
+    // fixed above that, or the cards would crowd the map onto its own line.
+    <Card
+      sx={{
+        flex: { xs: "1 1 130px", sm: "0 0 auto" },
+        minWidth: { xs: 130, sm: 150 },
+        overflow: "hidden",
+      }}
+    >
       <StatusBand
         color={player.won ? WON_BAND : NEUTRAL_BAND}
         icon={player.won ? <EmojiEventsIcon /> : <ErrorIcon />}
@@ -221,7 +229,7 @@ const MATCH_CARD_SX = {
   maxWidth: 1600,
   borderRadius: 2,
   bgcolor: "background.paper",
-  p: 1.5,
+  p: { xs: 1, sm: 1.5 },
   mb: 2.5,
   boxShadow: 1,
 } as const
@@ -362,7 +370,9 @@ function FfaMatchDisplay(props: { match: MatchInfo }) {
           // Color is unique per player in a match; names aren't (twin CPUs).
           <FfaPlayerCard key={`${p.name}-${p.color}`} player={p} />
         ))}
-        <GameMap mapname={match.map} playerPositions={playerPositions} />
+        <Box sx={{ width: { xs: "100%", sm: "auto" } }}>
+          <GameMap mapname={match.map} playerPositions={playerPositions} />
+        </Box>
       </Stack>
       <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
       <Collapse in={details} unmountOnExit>
@@ -421,10 +431,16 @@ export const MatchCard = React.memo(function MatchCard(props: {
     isObserver(p) ? "observers" : p.team,
   )
 
-  const paperprops: Record<string, string | number> = { ...MATCH_CARD_SX }
   const incomplete = (props.match.incomplete ?? "").length !== 0
+  const paperSx = incomplete
+    ? {
+        ...MATCH_CARD_SX,
+        bgcolor: "action.disabledBackground",
+        borderColor: "error.main",
+      }
+    : MATCH_CARD_SX
   const matchDisplay = (
-    <Paper sx={paperprops} variant="outlined">
+    <Paper sx={paperSx} variant="outlined">
       <MatchHeader
         match={props.match}
         formatLabel={props.match.composition?.category ?? "?"}
@@ -457,6 +473,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
         sx={{
           justifyContent: "flex-start",
           flexWrap: { xs: "wrap", md: "nowrap" },
+          rowGap: 1,
           mt: 1,
         }}
       >
@@ -469,7 +486,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
             won={team[0].team === props.match.winningTeam}
           />
         ))}
-        <Box sx={{ flexShrink: 0 }}>
+        <Box sx={{ flexShrink: 0, width: { xs: "100%", md: "auto" } }}>
           <GameMap
             mapname={props.match.map}
             playerPositions={playerPositions}
@@ -484,8 +501,6 @@ export const MatchCard = React.memo(function MatchCard(props: {
   )
 
   if (props.match.incomplete) {
-    paperprops.bgcolor = "action.disabledBackground"
-    paperprops.borderColor = "error.main"
     return (
       <Accordion defaultExpanded={false}>
         <AccordionSummary
