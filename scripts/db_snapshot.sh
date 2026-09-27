@@ -14,7 +14,7 @@
 # Source URL resolution, in order:
 #   1. --source <url>
 #   2. $PROD_DATABASE_URL
-#   3. DATABASE_URL from ./.env
+#   3. PROD_DATABASE_URL from ./.env (DATABASE_URL there is the local stack)
 #   4. `heroku config:get DATABASE_URL -a $HEROKU_APP`
 set -euo pipefail
 
@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$SOURCE_URL" && -f .env ]]; then
-  raw="$(grep -E '^DATABASE_URL=' .env | tail -1 | cut -d= -f2- || true)"
+  raw="$(grep -E '^PROD_DATABASE_URL=' .env | tail -1 | cut -d= -f2- || true)"
   raw="${raw%\"}"; raw="${raw#\"}"; raw="${raw%\'}"; raw="${raw#\'}"
   SOURCE_URL="$raw"
 fi
@@ -48,7 +48,7 @@ if [[ -z "$SOURCE_URL" ]] && command -v heroku >/dev/null 2>&1 && [[ -n "${HEROK
 fi
 
 if [[ -z "$SOURCE_URL" ]]; then
-  echo "no source database URL found. Set PROD_DATABASE_URL, or DATABASE_URL in .env," >&2
+  echo "no source database URL found. Set PROD_DATABASE_URL (env or .env)," >&2
   echo "or pass --source postgres://..." >&2
   exit 1
 fi
