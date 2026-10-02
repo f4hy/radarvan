@@ -13,20 +13,18 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
 # Bump when the on-disk snapshot record schema changes incompatibly.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # --- Time bucketing ---------------------------------------------------------
 # The match is discretised into fixed real-time windows. Each window becomes one
 # timestep in the sequence; the model emits a win probability per window.
 BUCKET_SECONDS = 30.0
-# Hard cap on sequence length (windows). Longer games are truncated; this bounds
-# memory and keeps a handful of 90-minute outliers from dominating padding.
-MAX_BUCKETS = 80  # 40 minutes at 30s/bucket
+# Sanity cap on sequence length (windows); the longest game in the corpus is
+# ~66 minutes. Events past it are dropped, never folded into the last window.
+MAX_BUCKETS = 240  # 2 hours at 30s/bucket
 
-# Number of per-timestep input features produced by ``features.match_to_sequence``.
-# 7 cumulative features per side (a, b), their 7 differences, elapsed minutes,
-# and the frozen pre-game prior (constant across the match — see pregame.py).
-N_FEATURES = 7 * 2 + 7 + 1 + 1  # = 23
+# The GBDT's ONNX output (skl2onnx, zipmap off): [rows, 2], P(side a wins) in column 1.
+GBDT_OUTPUT = "probabilities"
 
 
 @dataclass(slots=True)
