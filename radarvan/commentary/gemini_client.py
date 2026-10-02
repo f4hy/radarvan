@@ -27,7 +27,7 @@ API_KEY_ENV = "GEMINI_API_KEY"
 # resolve to the non-streaming Interaction return type (a plain `str`
 # annotation doesn't match the SDK's closed model-ID Literal union, and
 # overload resolution falls back to the broader Interaction | Stream[...]).
-MODEL: Final = "gemini-3.6-flash"
+MODEL: Final = "gemini-3.8-flash"
 
 
 def commentary_available() -> bool:
