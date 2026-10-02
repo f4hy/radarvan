@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import structlog
@@ -27,8 +28,8 @@ from radarvan.db_utils import DatabaseManager
 from radarvan.logging_config import configure_logging
 from radarvan.replay_files import parse_json
 
-from .config import BUCKET_SECONDS, N_FEATURES, Config, ModelConfig, TrainConfig
 from .baselines import coin_flip_probs, static_logistic_probs
+from .config import BUCKET_SECONDS, Config, ModelConfig, TrainConfig
 from .dataset import encode_all
 from .features import FeatureStats, match_to_sequence
 from .model import WinProbLitModule
@@ -38,21 +39,32 @@ from .snapshot import record_from_replay
 logger = structlog.get_logger(__name__)
 
 
-def load_run(run_dir: Path) -> tuple[WinProbLitModule, FeatureStats, PregamePrior]:
+class LoadedRun(NamedTuple):
+    module: WinProbLitModule
+    stats: FeatureStats
+    prior: PregamePrior
+    temperature: float  # fitted on the held-out tail; 1.0 if never fitted
+
+
+def load_run(run_dir: Path) -> LoadedRun:
     cfg_d = json.loads((run_dir / "config.json").read_text())
     cfg = Config(
         model=ModelConfig(**cfg_d["model"]), train=TrainConfig(**cfg_d["train"])
     )
-    module = WinProbLitModule(cfg, N_FEATURES)
+    stats = FeatureStats.load(run_dir / "feature_stats.json")
+    module = WinProbLitModule(cfg, len(stats.names))
     ckpt = torch.load(run_dir / "best.ckpt", map_location="cpu", weights_only=False)
     module.load_state_dict(ckpt["state_dict"])
     module.eval()
-    stats = FeatureStats.load(run_dir / "feature_stats.json")
     prior_path = run_dir / "pregame_prior.json"
     prior = (
         PregamePrior.load(prior_path) if prior_path.exists() else PregamePrior.neutral()
     )
-    return module, stats, prior
+    calib = run_dir / "calibration.json"
+    temperature = (
+        float(json.loads(calib.read_text())["temperature"]) if calib.exists() else 1.0
+    )
+    return LoadedRun(module, stats, prior, temperature)
 
 
 def win_prob_curve(
@@ -71,7 +83,7 @@ def win_prob_curve(
     seq = match_to_sequence(record, prior_logit=logit)
     if seq is None:
         return []
-    x = torch.from_numpy(stats.apply(seq.x).astype(np.float32))[None]  # [1, T, F]
+    x = torch.from_numpy(stats.apply(seq.x))[None]  # [1, T, F]
     with torch.no_grad():
         probs = torch.sigmoid(module.model(x)[0] / temperature).tolist()
     return [((b + 1) * BUCKET_SECONDS / 60.0, p) for b, p in enumerate(probs)]
@@ -102,21 +114,31 @@ PHASES = (
 )
 
 
-def _log_loss(p: np.ndarray, y: np.ndarray) -> float:
+def log_loss_terms(p: np.ndarray, y: np.ndarray | float) -> np.ndarray:
+    """Per-window log-loss."""
     p = np.clip(p, 1e-7, 1 - 1e-7)
-    return float(-(y * np.log(p) + (1 - y) * np.log(1 - p)).mean())
+    return -(y * np.log(p) + (1 - y) * np.log(1 - p))
 
 
-def _flatten(
-    curves: list[np.ndarray], dev: list
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Every timestep of every match as (prob, label, phase-in-match)."""
+def in_phase(phase: np.ndarray, lo: float, hi: float) -> np.ndarray:
+    """Windows whose fraction-of-match falls in ``PHASES``' (lo, hi]."""
+    return (phase > lo) & (phase <= hi)
+
+
+class _Flat(NamedTuple):
+    p: np.ndarray
+    y: np.ndarray
+    phase: np.ndarray
+
+
+def _flatten(curves: list[np.ndarray], dev: list) -> _Flat:
+    """Every timestep of every match."""
     p, y, ph = [], [], []
     for c, s in zip(curves, dev, strict=True):
         p.append(np.asarray(c, float))
         y.append(np.full(s.length, float(s.label)))
         ph.append(np.arange(1, s.length + 1) / s.length)
-    return np.concatenate(p), np.concatenate(y), np.concatenate(ph)
+    return _Flat(np.concatenate(p), np.concatenate(y), np.concatenate(ph))
 
 
 def model_curves(
@@ -125,7 +147,7 @@ def model_curves(
     out = []
     with torch.no_grad():
         for seq in dev:
-            x = torch.from_numpy(stats.apply(seq.x).astype(np.float32))[None]
+            x = torch.from_numpy(stats.apply(seq.x))[None]
             out.append(torch.sigmoid(module.model(x)[0] / temperature).numpy())
     return out
 
@@ -143,15 +165,10 @@ def evaluate(run_dir: Path) -> dict[str, object]:
     the weighted one (``TrainConfig.late_weight``), so quoting only the flat one
     scores the model on something it was not asked to do.
     """
-    module, stats, prior = load_run(run_dir)
+    module, stats, _, temperature = load_run(run_dir)
     split_dir = run_dir.parent.parent
-    dev = encode_all(split_dir / "dev.jsonl.gz", stats, prior)
-    train = encode_all(split_dir / "train.jsonl.gz", stats, prior)
-
-    temperature = 1.0
-    calib = run_dir / "calibration.json"
-    if calib.exists():
-        temperature = float(json.loads(calib.read_text())["temperature"])
+    dev = encode_all(split_dir / "dev.jsonl.gz")
+    train = encode_all(split_dir / "train.jsonl.gz")
 
     curves = {
         "coin_flip": coin_flip_probs(dev),
@@ -168,26 +185,21 @@ def evaluate(run_dir: Path) -> dict[str, object]:
     print(header)
     for name, cs in curves.items():
         p, y, ph = _flatten(cs, dev)
+        ll = log_loss_terms(p, y)
         w = 1.0 + (TrainConfig().late_weight - 1.0) * ph
-        pc = np.clip(p, 1e-7, 1 - 1e-7)
-        weighted = float(
-            (-(y * np.log(pc) + (1 - y) * np.log(1 - pc)) * w).sum() / w.sum()
-        )
+        weighted = float((ll * w).sum() / w.sum())
         final_acc = float(
             np.mean(
                 [(c[-1] > 0.5) == bool(s.label) for c, s in zip(cs, dev, strict=True)]
             )
         )
-        by_phase = [
-            _log_loss(p[(ph >= lo) & (ph < hi)], y[(ph >= lo) & (ph < hi)])
-            for lo, hi, _ in PHASES
-        ]
+        by_phase = [float(ll[in_phase(ph, lo, hi)].mean()) for lo, hi, _ in PHASES]
         print(
-            f"{name:<20}{_log_loss(p, y):>10.4f}{weighted:>10.4f}{final_acc:>11.3f}   "
+            f"{name:<20}{ll.mean():>10.4f}{weighted:>10.4f}{final_acc:>11.3f}   "
             + "".join(f"{v:>11.3f}" for v in by_phase)
         )
         rows[name] = {
-            "log_loss": _log_loss(p, y),
+            "log_loss": float(ll.mean()),
             "weighted_log_loss": weighted,
             "final_acc": final_acc,
             "by_phase": dict(zip([n for _, _, n in PHASES], by_phase, strict=True)),
@@ -215,13 +227,7 @@ def main() -> None:
         )
         return
     if args.match_id is not None:
-        module, stats, prior = load_run(args.run_dir)
-        calib = args.run_dir / "calibration.json"
-        temperature = (
-            float(json.loads(calib.read_text())["temperature"])
-            if calib.exists()
-            else 1.0
-        )
+        module, stats, prior, temperature = load_run(args.run_dir)
         record = _record_for_match(args.match_id)
         if record is None:
             raise SystemExit(f"No usable replay for match {args.match_id}")

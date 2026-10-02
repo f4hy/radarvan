@@ -66,7 +66,9 @@ logger = structlog.get_logger(__name__)
 # `s.team == Team.OBSERVER` check missed any whose summary team wasn't -1).
 # v7: timeline_events emits hunted/unhunted markers; MatchDetails gained
 # time_to_hunted (cncstats statsVersion 3 added stats.huntedEvents).
-_DETAILS_LOGIC_VERSION = 7
+# v8: uneven teams no longer get a win_prob_over_time curve. (A retrained model
+# needs no bump: winprob_inference.bundle_version() is part of the version.)
+_DETAILS_LOGIC_VERSION = 8
 
 
 def _compute_details_version() -> str:
@@ -76,7 +78,8 @@ def _compute_details_version() -> str:
     """
     schema_json = json.dumps(MatchDetails.model_json_schema(), sort_keys=True)
     schema_hash = hashlib.sha256(schema_json.encode()).hexdigest()[:12]
-    return f"{_DETAILS_LOGIC_VERSION}-{schema_hash}"
+    model = winprob_inference.bundle_version()
+    return f"{_DETAILS_LOGIC_VERSION}-{schema_hash}-{model}"
 
 
 DETAILS_VERSION = _compute_details_version()
