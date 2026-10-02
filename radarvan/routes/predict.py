@@ -164,7 +164,7 @@ def predict_over_time(
     if result is None:
         raise HTTPException(
             status_code=422,
-            detail="match is not a usable 2-team game (cannot predict over time)",
+            detail="match is not a usable game of two even teams (cannot predict over time)",
         )
     return result
 
