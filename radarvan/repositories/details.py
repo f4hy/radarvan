@@ -9,17 +9,33 @@ caller's current version, so bumping the derivation invalidates every row.
 """
 
 from datetime import UTC, datetime
+from typing import NamedTuple
 
 import structlog
+from pydantic import TypeAdapter
+from sqlalchemy import ColumnElement, Text, cast, delete as sa_delete, func, select
 
-from sqlalchemy import ColumnElement, delete as sa_delete, func, select
-
-from ..api_types import MatchDetails
+from ..api_types import KillEventOutput, MatchDetails, MatchPowers, PlayerSummary
 from ..db import Match, MatchDetailsCache
 
 from .base import BaseRepo
 
 logger = structlog.get_logger(__name__)
+
+# Reads fetch JSON *text* and parse it with pydantic: about twice as fast as
+# psycopg2 decoding to dicts and validating those, and it allocates less.
+_KILL_EVENTS = TypeAdapter(list[KillEventOutput])
+_PLAYER_SUMMARY = TypeAdapter(list[PlayerSummary])
+
+
+def _stored_key(field: str) -> str:
+    """The key a MatchDetails field is stored under (rows are dumped by_alias)."""
+    return MatchDetails.model_fields[field].alias or field
+
+
+class KillData(NamedTuple):
+    kill_events: list[KillEventOutput]
+    player_summary: list[PlayerSummary]
 
 
 def _stale_details(version: str) -> ColumnElement[bool]:
@@ -36,20 +52,22 @@ class MatchDetailsRepo(BaseRepo):
         A version mismatch (stale derivation) is treated as a miss so the caller
         recomputes and overwrites the row.
         """
-        row = self.session.get(MatchDetailsCache, match_id)
-        if row is None or row.version != version:
-            return None
-        return MatchDetails.model_validate(row.data)
+        text = self.session.scalar(
+            select(cast(MatchDetailsCache.data, Text)).where(
+                MatchDetailsCache.match_id == match_id,
+                MatchDetailsCache.version == version,
+            )
+        )
+        return None if text is None else MatchDetails.model_validate_json(text)
 
     def get_cached_kill_data_rows(
         self, match_ids: list[int], version: str
-    ) -> dict[int, tuple[list[object], list[object]]]:
-        """Return (killEvents, playerSummary) - as raw JSON, unvalidated - for
-        whichever of `match_ids` have a cached row at `version`, in one query.
+    ) -> dict[int, KillData]:
+        """Return kill events + player summaries for whichever of `match_ids`
+        have a cached row at `version`, in one query.
 
-        Pulls those two JSONB paths server-side (`data['killEvents']` /
-        `data['playerSummary']`) rather than selecting the whole `data`
-        column: `data` is the *full* MatchDetails payload (build_orders,
+        Pulls those two JSONB paths server-side rather than selecting the whole
+        `data` column: `data` is the *full* MatchDetails payload (build_orders,
         apm_over_time, timeline_events, stats_data, ...), and for a caller
         that only wants these two fields across many matches (e.g.
         head_to_head's value_destroyed_by_match, which can span hundreds of
@@ -63,15 +81,18 @@ class MatchDetailsRepo(BaseRepo):
             return {}
         stmt = select(
             MatchDetailsCache.match_id,
-            MatchDetailsCache.data["killEvents"],
-            MatchDetailsCache.data["playerSummary"],
+            MatchDetailsCache.data[_stored_key("kill_events")].astext,
+            MatchDetailsCache.data[_stored_key("player_summary")].astext,
         ).where(
             MatchDetailsCache.match_id.in_(match_ids),
             MatchDetailsCache.version == version,
         )
         rows = self.session.execute(stmt).all()
         return {
-            match_id: (kill_events or [], player_summary or [])
+            match_id: KillData(
+                _KILL_EVENTS.validate_json(kill_events) if kill_events else [],
+                _PLAYER_SUMMARY.validate_json(player_summary) if player_summary else [],
+            )
             for match_id, kill_events, player_summary in rows
         }
 
@@ -123,8 +144,8 @@ class MatchDetailsRepo(BaseRepo):
 
     def get_cached_powers_rows(
         self, match_ids: list[int], version: str
-    ) -> dict[int, object]:
-        """Return the raw `powers` payload for whichever of `match_ids` have a
+    ) -> dict[int, MatchPowers]:
+        """Return the `powers` projection for whichever of `match_ids` have a
         cached row at `version`, in one query.
 
         Same reasoning as `get_cached_kill_data_rows`: the powers page
@@ -138,13 +159,13 @@ class MatchDetailsRepo(BaseRepo):
             return {}
         stmt = select(
             MatchDetailsCache.match_id,
-            MatchDetailsCache.data["powers"],
+            MatchDetailsCache.data[_stored_key("powers")].astext,
         ).where(
             MatchDetailsCache.match_id.in_(match_ids),
             MatchDetailsCache.version == version,
         )
         return {
-            match_id: powers
+            match_id: MatchPowers.model_validate_json(powers)
             for match_id, powers in self.session.execute(stmt).all()
             if powers is not None
         }

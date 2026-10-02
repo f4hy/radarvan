@@ -211,8 +211,8 @@ def power_index(replay_manager: ReplayManager, coverage: int) -> PowerIndex:
         [game.id for game in games], DETAILS_VERSION
     )
     index = PowerIndex()
-    for raw in rows.values():
-        _fold(index, MatchPowers.model_validate(raw))
+    for powers in rows.values():
+        _fold(index, powers)
         index.matches += 1
     return index
 
