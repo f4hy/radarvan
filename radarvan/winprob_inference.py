@@ -14,6 +14,7 @@ from pathlib import Path
 
 import onnxruntime as ort
 import structlog
+from opentelemetry import trace
 
 from ml_win_prediction_over_time.config import BUCKET_SECONDS, GBDT_OUTPUT
 from ml_win_prediction_over_time.features import (
@@ -31,9 +32,10 @@ from .api_types import WinProbOverTime, WinProbPoint
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .ml_inference import cpu_session
 from .player_ids import resolve_player_name
-from .utils import players_from_replay
+from .utils import log_duration, players_from_replay
 
 logger = structlog.get_logger(__name__)
+tracer = trace.get_tracer(__name__)
 
 MODEL_PATH = Path(os.getenv("WINPROB_MODEL_PATH", "ml_winprob_over_time.onnx"))
 STATS_PATH = Path(os.getenv("WINPROB_STATS_PATH", "ml_winprob_over_time_stats.json"))
@@ -101,6 +103,7 @@ def _resolved_names(replay: EnhancedReplayV2, names: list[str]) -> list[str]:
     return [resolve_player_name(n, color_by_name.get(n, "")) for n in names]
 
 
+@log_duration
 def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
     """Win-probability curve, or ``None`` unless two even teams with a decided winner.
 
@@ -116,8 +119,11 @@ def predict_over_time(replay: EnhancedReplayV2) -> WinProbOverTime | None:
         return None
 
     x = _stats().apply(seq.x)  # [T, F] float32
-    gru_probs = _session().run(["prob_team_a"], {"x": x[None]})[0][0]  # [T]
-    tree_probs = _gbdt_session().run([GBDT_OUTPUT], {"x": with_deltas(x)})[0][:, 1]
+    with tracer.start_as_current_span(
+        "winprob onnx inference", attributes={"winprob.timesteps": len(x)}
+    ):
+        gru_probs = _session().run(["prob_team_a"], {"x": x[None]})[0][0]  # [T]
+        tree_probs = _gbdt_session().run([GBDT_OUTPUT], {"x": with_deltas(x)})[0][:, 1]
     probs = (gru_probs + tree_probs) / 2
 
     flip = higher_slot_is_side_a(int(record["match_id"]))
