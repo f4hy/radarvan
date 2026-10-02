@@ -102,6 +102,8 @@ def test_module_parses_under_the_ml_venv_python(path: Path) -> None:
         "ml_win_prediction_over_time.train",
         "ml_win_prediction_over_time.predict",
         "ml_win_prediction_over_time.export",
+        "ml_win_prediction_over_time.rolling_eval",
+        "ml_win_prediction_over_time.gbdt",
     ],
 )
 def test_module_imports_under_ml_venv(module: str) -> None:
