@@ -24,7 +24,14 @@ from typing import Any, NamedTuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import matches, replay_files, schedule, tournament_membership, utils
+from .. import (
+    match_details,
+    matches,
+    replay_files,
+    schedule,
+    tournament_membership,
+    utils,
+)
 from ..api_types import (
     AdminUser,
     MatchInfo,
@@ -194,6 +201,38 @@ def clear_details_cache(
     invalidate_match_caches()
     logger.info("cleared details cache", deleted=deleted)
     return {"deleted": deleted}
+
+
+@session_router.post("/api/backfill/match_details", dependencies=OPS_ADMIN)
+def backfill_match_details(
+    max_to_update: int = 25,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> dict[str, int]:
+    """Rebuild details rows left stale by a DETAILS_VERSION bump, newest first.
+
+    Serial on purpose: each rebuild parses a multi-MB replay, and the point is
+    to warm the table without the memory spike of bulk pages doing it on read.
+    """
+    version = match_details.DETAILS_VERSION
+    updated = skipped = failed = 0
+    for match_id in replay_manager.list_stale_details_match_ids(version, max_to_update):
+        try:
+            details = match_details.load_match_details(match_id, replay_manager)
+        except Exception:
+            logger.exception("details backfill failed", match_id=match_id)
+            replay_manager.session.rollback()
+            failed += 1
+            continue
+        if details is None:
+            skipped += 1
+        else:
+            updated += 1
+    return {
+        "updated": updated,
+        "skipped": skipped,
+        "failed": failed,
+        "remaining": replay_manager.count_stale_details(version),
+    }
 
 
 @session_router.post("/api/reparse_recent/", dependencies=OPS_ADMIN)

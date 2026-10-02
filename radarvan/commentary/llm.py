@@ -22,11 +22,13 @@ from typing import NamedTuple
 
 import structlog
 from anthropic.types import TextBlock
+from opentelemetry import trace
 
 from ..notify import notify
 from . import anthropic_client, gemini_client
 
 logger = structlog.get_logger(__name__)
+tracer = trace.get_tracer(__name__)
 
 PROVIDER_ENV = "COMMENTARY_PROVIDER"
 # Evaluating Gemini vs Claude for commentary quality/cost - Gemini default
@@ -90,6 +92,18 @@ def _notify_generated(
     )
 
 
+def _record_usage(
+    provider: str, model: str, input_tokens: int | None, output_tokens: int | None
+) -> None:
+    span = trace.get_current_span()
+    span.set_attribute("gen_ai.provider.name", provider)
+    span.set_attribute("gen_ai.request.model", model)
+    if input_tokens is not None:
+        span.set_attribute("gen_ai.usage.input_tokens", input_tokens)
+    if output_tokens is not None:
+        span.set_attribute("gen_ai.usage.output_tokens", output_tokens)
+
+
 def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
     start = time.monotonic()
     try:
@@ -113,6 +127,9 @@ def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
         raise CommentaryGenerationError(str(e)) from e
 
     usage = response.usage
+    _record_usage(
+        "anthropic", anthropic_client.MODEL, usage.input_tokens, usage.output_tokens
+    )
     logger.info(
         "llm text generated",
         provider="anthropic",
@@ -169,6 +186,7 @@ def _generate_with_gemini(prompt: Prompt, kind: str, label: str) -> str:
     input_tokens = usage.total_input_tokens if usage else None
     output_tokens = usage.total_output_tokens if usage else None
     thought_tokens = usage.total_thought_tokens if usage else None
+    _record_usage("gemini", gemini_client.MODEL, input_tokens, output_tokens)
     logger.info(
         "llm text generated",
         provider="gemini",
@@ -198,6 +216,9 @@ def generate(prompt: Prompt, *, kind: str, label: str) -> str:
     matchup it's about) only ever reach the logs and the Discord notification
     - the model sees nothing but ``prompt``.
     """
-    if active_provider() == "anthropic":
-        return _generate_with_anthropic(prompt, kind, label)
-    return _generate_with_gemini(prompt, kind, label)
+    with tracer.start_as_current_span(
+        f"llm {kind}", attributes={"llm.kind": kind, "llm.label": label}
+    ):
+        if active_provider() == "anthropic":
+            return _generate_with_anthropic(prompt, kind, label)
+        return _generate_with_gemini(prompt, kind, label)

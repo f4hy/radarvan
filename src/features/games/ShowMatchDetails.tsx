@@ -1271,8 +1271,9 @@ function incomeSourceColor(key: string): string {
   )
 }
 
-// Shared time grid: union of every source's minute keys. Every non-empty
-// series shares this same sparse grid (see radarvan.stats_extraction).
+// Shared time grid: union of every source's minute keys. Each (source, player)
+// only sends its own change points (see radarvan.stats_extraction), so a
+// value is absent wherever it is unchanged.
 function incomeMinutes(income: IncomeBySource): number[] {
   const all = new Set<number>()
   for (const series of Object.values(income)) {

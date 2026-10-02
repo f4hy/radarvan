@@ -262,6 +262,16 @@ const SECTIONS: readonly TaskSection[] = [
         fields: [num("match_id", "Match ID", "")],
       },
       {
+        id: "backfill_match_details",
+        title: "Match details",
+        description:
+          "Rebuild details rows left stale by a DETAILS_VERSION bump, newest matches first, one at a time. Reads S3 only. Run after a deploy that changes match details or retrains the win-prob model.",
+        method: "POST",
+        path: () => "/api/backfill/match_details",
+        query: ["max_to_update"],
+        fields: [num("max_to_update", "Max", "25")],
+      },
+      {
         id: "backfill_player_roles",
         title: "Player roles",
         description:
