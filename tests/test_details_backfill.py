@@ -1,10 +1,13 @@
-"""`MatchDetailsRepo`'s stale-row listing, which drives the details backfill."""
+"""`MatchDetailsRepo` against PostgreSQL: JSON round trips and stale-row listing."""
 
+import json
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from radarvan.api_types import MatchDetails, MatchPowers, PlayerPowers
 from radarvan.db import (
     Base,
     Match,
@@ -67,5 +70,33 @@ def test_stale_details_are_missing_or_old_rows_newest_first(
             assert repo.list_stale_details_match_ids("v2", limit=2) == [4, 3]
             assert repo.count_stale_details("v2") == 3
             assert repo.count_stale_details("v1") == 2
+    finally:
+        engine.dispose()
+
+
+def test_cached_reads_round_trip_through_pydantic(postgres_db_url: str) -> None:
+    raw = json.loads(Path("references/example_api_match_details.json").read_text())
+    powers = MatchPowers(
+        players=[PlayerPowers(player_name="P1", faction="F", general=1, minutes=12.0)]
+    )
+    details = MatchDetails.model_validate(raw).model_copy(update={"powers": powers})
+    # Storing rounds Minute/Rate (their json serializers), so compare against
+    # what was stored rather than the unrounded fixture.
+    stored = MatchDetails.model_validate(details.model_dump(mode="json", by_alias=True))
+    engine = create_engine(sqlalchemy_url(postgres_db_url))
+    try:
+        MatchDetailsCache.__table__.create(engine)  # type: ignore[attr-defined]
+        with Session(engine) as session:
+            repo = MatchDetailsRepo(session)
+            repo.save_cached_details(details.match_id, details, "v1")
+
+            assert repo.get_cached_details(details.match_id, "v1") == stored
+            assert repo.get_cached_details(details.match_id, "v2") is None
+            kills = repo.get_cached_kill_data_rows([details.match_id, 999], "v1")
+            assert list(kills) == [details.match_id]
+            assert kills[details.match_id].kill_events == stored.kill_events
+            assert kills[details.match_id].player_summary == stored.player_summary
+            powers = repo.get_cached_powers_rows([details.match_id], "v1")
+            assert powers == {details.match_id: stored.powers}
     finally:
         engine.dispose()

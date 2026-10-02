@@ -268,18 +268,10 @@ def load_kill_data_batch_threadsafe(
     try:
         with db_manager.get_session() as session:
             rm = _ReplayManager(session)
-            rows = rm.get_cached_kill_data_rows(match_ids, DETAILS_VERSION)
+            return dict(rm.get_cached_kill_data_rows(match_ids, DETAILS_VERSION))
     except Exception:
         logger.exception("failed to load kill data batch", match_count=len(match_ids))
         return {}
-
-    result: dict[int, tuple[list[KillEventOutput], list[APIPlayerSummary]]] = {}
-    for match_id, (raw_kill_events, raw_player_summary) in rows.items():
-        result[match_id] = (
-            [KillEventOutput.model_validate(k) for k in raw_kill_events],
-            [APIPlayerSummary.model_validate(p) for p in raw_player_summary],
-        )
-    return result
 
 
 async def load_many_kill_data(
