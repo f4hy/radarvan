@@ -24,7 +24,7 @@ import torch
 import torch.nn.functional as F
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 
-from .config import N_FEATURES, Config
+from .config import Config
 from .dataset import WinProbDataModule, collate
 from .features import FeatureStats, SeqMatch
 from .model import WinProbLitModule
@@ -87,7 +87,7 @@ def _refit_on_full_train(
     """Retrain from scratch on train + the validation tail, for a fixed budget."""
     dm = WinProbDataModule(split_dir, batch_size=cfg.train.batch_size, val_frac=0.0)
     dm.setup()
-    module = WinProbLitModule(cfg, N_FEATURES)
+    module = WinProbLitModule(cfg, len(dm.stats.names))
     trainer = L.Trainer(
         max_epochs=max(1, epochs),
         accelerator=accelerator,
@@ -146,9 +146,10 @@ def train(split_dir: Path, cfg: Config, accelerator: str = "auto") -> Path:
         val_frac=cfg.train.val_frac,
     )
 
-    module = WinProbLitModule(cfg, N_FEATURES)
+    module = WinProbLitModule(cfg, len(dm.stats.names))
 
-    run_dir = split_dir / "runs" / datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    run_dir = split_dir / "runs" / f"{stamp}-s{cfg.train.seed}"
     run_dir.mkdir(parents=True, exist_ok=True)
     ckpt_cb = ModelCheckpoint(
         dirpath=run_dir, filename="best", monitor="val_loss", mode="min", save_top_k=1
@@ -208,6 +209,7 @@ def main() -> None:
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--accelerator", choices=("auto", "cpu", "gpu"), default="auto")
     args = parser.parse_args()
 
@@ -218,6 +220,8 @@ def main() -> None:
         cfg.model.hidden = args.hidden
     if args.lr is not None:
         cfg.train.lr = args.lr
+    if args.seed is not None:
+        cfg.train.seed = args.seed
 
     train(args.split_dir, cfg, accelerator=args.accelerator)
 

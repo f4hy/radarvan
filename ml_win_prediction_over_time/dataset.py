@@ -15,7 +15,6 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from .features import FeatureStats, SeqMatch, match_to_sequence
-from .pregame import PregamePrior
 from .snapshot import load_snapshot
 
 # One standardized, label-tagged sequence ready for collation.
@@ -58,22 +57,12 @@ def collate(items: list[_Item]) -> Batch:
     return Batch(x=x, mask=mask, label=label)
 
 
-def encode_all(
-    path: Path, stats: FeatureStats, prior: PregamePrior | None = None
-) -> list[SeqMatch]:
-    """Encode a jsonl.gz of records, injecting the frozen pre-game prior.
-
-    ``prior=None`` means an even prior for every match (logit 0) — the right
-    behaviour for a split written before ``pregame_prior.json`` existed.
-    """
-    seqs = []
-    for r in load_snapshot(path):
-        logit = (
-            prior.logit(r["team_a_players"], r["team_b_players"])
-            if prior is not None
-            else 0.0
-        )
-        seqs.append(match_to_sequence(r, prior_logit=logit))
+def encode_all(path: Path) -> list[SeqMatch]:
+    """Encode a split's jsonl.gz; each record carries its frozen ``prior_logit``."""
+    seqs = [
+        match_to_sequence(r, prior_logit=float(r["prior_logit"]))
+        for r in load_snapshot(path)
+    ]
     return [s for s in seqs if s is not None]
 
 
@@ -100,21 +89,13 @@ class WinProbDataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.val_frac = val_frac
         self.stats = FeatureStats.load(self.split_dir / "feature_stats.json")
-        prior_path = self.split_dir / "pregame_prior.json"
-        self.prior = (
-            PregamePrior.load(prior_path)
-            if prior_path.exists()
-            else PregamePrior.neutral()
-        )
         self._train: list[SeqMatch] = []
         self._val: list[SeqMatch] = []
         self._dev: list[SeqMatch] = []
 
     def setup(self, stage: str | None = None) -> None:
-        train_all = encode_all(
-            self.split_dir / "train.jsonl.gz", self.stats, self.prior
-        )
-        self._dev = encode_all(self.split_dir / "dev.jsonl.gz", self.stats, self.prior)
+        train_all = encode_all(self.split_dir / "train.jsonl.gz")
+        self._dev = encode_all(self.split_dir / "dev.jsonl.gz")
         if self.val_frac > 0 and len(train_all) > 20:
             n_val = max(1, int(len(train_all) * self.val_frac))
             self._train, self._val = train_all[:-n_val], train_all[-n_val:]
