@@ -17,7 +17,7 @@ Two properties are worth keeping:
   endpoint in ``NOT_EXERCISED`` - which ``test_excused_list_does_not_grow``
   turns into a visible decision rather than a quiet one.
 
-Of the 111 ``/api`` routes: 47 GETs run here, 26 are excused with a reason, and
+Of the 111 ``/api`` routes: 48 GETs run here, 25 are excused with a reason, and
 the rest are mutating (checked for a usable response model, not executed).
 """
 
@@ -124,7 +124,6 @@ NOT_EXERCISED = {
     "/api/replay_url/{match_id}": "needs a real S3 object to presign",
     "/api/debug/json_url/{match_id}": "needs a real S3 object to presign",
     "/api/debug/match/{match_id}": "returns raw parsed JSON read from S3",
-    "/api/map_image/{map_name}": "streams a webp from S3",
     "/api/map_data/{map_name}": "needs stored map geometry, not match data",
     "/api/predict/match/{match_id}": "ONNX inference over details loaded from S3",
     "/api/predict/over_time/{match_id}": "ONNX inference over details loaded from S3",
@@ -232,6 +231,9 @@ class _StubRepo:
         return _empty
 
 
+STUB_WEBP = b"RIFF\x00\x00\x00\x00WEBP"
+
+
 def _forbid_db(*args: object, **kwargs: object):
     raise AssertionError(
         "a handler reached radarvan.dependencies.db_manager directly; "
@@ -258,11 +260,13 @@ def client() -> TestClient:
     real_session_local = deps.db_manager.SessionLocal
     real_find_s3_asset = missing_maps.find_s3_asset
     real_presigned_url = replay_files.presigned_url
+    real_get_fs = replay_files.get_fs
     matches_mod.get_match_infos = lambda replay_manager: list(corpus.CORPUS)
     # S3 lookups and presigning: a developer shell has real credentials and CI
     # has none, so left real these pass locally and fail in CI.
     missing_maps.find_s3_asset = lambda name, ext: f"s3://stub/{name}.{ext}"
     replay_files.presigned_url = lambda uri, **kwargs: f"https://stub/{uri}"
+    replay_files.get_fs = lambda: SimpleNamespace(cat_file=lambda uri: STUB_WEBP)
     deps.db_manager.get_replay_manager = _forbid_db
     deps.db_manager.SessionLocal = _forbid_db
     _clear_caches()
@@ -274,6 +278,7 @@ def client() -> TestClient:
     matches_mod.get_match_infos = real_get_match_infos
     missing_maps.find_s3_asset = real_find_s3_asset
     replay_files.presigned_url = real_presigned_url
+    replay_files.get_fs = real_get_fs
     deps.db_manager.get_replay_manager = real_db_manager_get
     deps.db_manager.SessionLocal = real_session_local
     app.dependency_overrides.clear()
@@ -319,7 +324,7 @@ def test_get_endpoint_returns_a_valid_response(
 # lose coverage is to add an entry to NOT_EXERCISED. This ceiling is what makes
 # that a deliberate act: lower it as endpoints become testable, and treat raising
 # it as a change worth justifying in review.
-MAX_EXCUSED = 26
+MAX_EXCUSED = 25
 
 
 def test_excused_list_does_not_grow() -> None:
@@ -375,3 +380,16 @@ def test_excused_routes_still_exist() -> None:
     live = {r.path for r in ALL_ROUTES}
     stale = sorted(set(NOT_EXERCISED) - live)
     assert not stale, f"NOT_EXERCISED names routes that no longer exist: {stale}"
+
+
+def test_map_image_is_served_same_origin_and_revalidates(client: TestClient) -> None:
+    url = _url(next(r for r in GET_ROUTES if r.path == "/api/map_image/{map_name}"))
+    first = client.get(url)
+    assert first.headers["content-type"] == "image/webp"
+    assert first.content == STUB_WEBP
+    assert "max-age" in first.headers["cache-control"]
+    etag = first.headers["etag"]
+
+    again = client.get(url, headers={"If-None-Match": etag})
+    assert again.status_code == 304
+    assert again.content == b""

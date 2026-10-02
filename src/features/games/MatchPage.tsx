@@ -9,6 +9,14 @@ import Page from "../../components/Page"
 import QueryState from "../../components/QueryState"
 import { gameNightHref } from "../../lib/links"
 
+function matchupLabel(match: MatchInfo): string {
+  const teams = new Map<number, string[]>()
+  for (const p of match.players) {
+    teams.set(p.team, [...(teams.get(p.team) ?? []), p.name])
+  }
+  return [...teams.values()].map((names) => names.join(", ")).join(" vs ")
+}
+
 export default function MatchPage() {
   const { matchId = "" } = useParams()
   const valid = /^\d+$/.test(matchId)
@@ -31,6 +39,7 @@ export default function MatchPage() {
   return (
     <Page
       title="Match"
+      tabTitle={match ? matchupLabel(match) : undefined}
       surface={false}
       description={
         match && (

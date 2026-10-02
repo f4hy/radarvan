@@ -13,11 +13,13 @@ core recomputing the same thing on a burst. (Not for thread safety: the
 decorator already locks every cache and single-flights concurrent misses.)
 """
 
+import hashlib
 import structlog
 import threading
+from typing import NamedTuple
 from opentelemetry import trace
 
-from . import game_composition, matches, player_rating
+from . import game_composition, matches, missing_maps, player_rating, replay_files
 from .api_types import MatchInfo, MatchDetails
 from .db_utils import ReplayManager
 from . import match_details
@@ -58,6 +60,30 @@ def map_name_index(replay_manager: ReplayManager) -> dict[str, str]:
 def resolve_map_name_cached(replay_manager: ReplayManager, map_name: str) -> str | None:
     """Like `ReplayManager.resolve_map_name`, but served from `map_name_index`."""
     return map_name_index(replay_manager).get(normalize_map_name(map_name))
+
+
+class MapImage(NamedTuple):
+    webp: bytes
+    etag: str
+
+
+class MapImageNotFound(LookupError):
+    pass
+
+
+@derived(on=MAPS, maxsize=128)
+def map_image(replay_manager: ReplayManager, map_name: str) -> MapImage:
+    """A map's WebP bytes. Most are ~2 KB, the largest ~100 KB.
+
+    Raises rather than returning None so a miss isn't cached: a map can get its
+    image uploaded without its MapData row (and so the MAPS token) moving.
+    """
+    canonical = resolve_map_name_cached(replay_manager, map_name) or map_name
+    s3_uri = missing_maps.find_s3_webp(canonical)
+    if s3_uri is None:
+        raise MapImageNotFound(map_name)
+    webp = replay_files.get_fs().cat_file(s3_uri)
+    return MapImage(webp=webp, etag=f'"{hashlib.sha256(webp).hexdigest()[:20]}"')
 
 
 @derived(on=CORPUS, maxsize=1)

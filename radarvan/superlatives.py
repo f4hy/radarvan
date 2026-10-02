@@ -3,7 +3,7 @@ matches."""
 
 import asyncio
 from collections import Counter, defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import NamedTuple
@@ -80,12 +80,6 @@ class Superlatives(BaseModel):
 def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
     """Convert a full MatchDetails into the smaller SuperlativeData used by superlatives."""
 
-    def _last_total(key: str) -> int:
-        data = d.stats_data.get(key, {})
-        if not data:
-            return 0
-        return sum(data[max(data)].values())
-
     def _last_per_player(key: str) -> dict[str, int]:
         data = d.stats_data.get(key, {})
         if not data:
@@ -150,10 +144,8 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
             for player_name, upgrades in d.upgrade_events.items()
             if upgrades.upgrades
         },
-        total_units_killed=_last_total("units_killed"),
-        total_buildings_killed=_last_total("buildings_killed"),
-        total_xp=_last_total("xp"),
-        match_money_spent=sum(d.player_money_spent.values()),
+        player_units_killed=_last_per_player("units_killed"),
+        player_buildings_killed=_last_per_player("buildings_killed"),
         player_money_collected=d.player_money_collected,
         player_xp_final=_last_per_player("xp"),
         time_to_rank_5=dict(d.time_to_rank_5),
@@ -771,84 +763,51 @@ def get_apm_stats(
     return stats
 
 
+def _best_player_in_match(
+    details: list[SuperlativeData],
+    values: Callable[[SuperlativeData], Mapping[str, int]],
+) -> PlayerMatchRecord | None:
+    best: PlayerMatchRecord | None = None
+    for d in details:
+        color_map = {ps.name: ps.color for ps in d.player_summary}
+        for name, value in values(d).items():
+            if value <= 0 or (best is not None and value <= best.value):
+                continue
+            resolved = resolve_player_name(name, color_map.get(name, ""))
+            if holds_records(resolved):
+                best = PlayerMatchRecord(
+                    player=resolved, value=value, match_id=d.match_id
+                )
+    return best
+
+
 def get_activity_stats(
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Most units killed, buildings destroyed, XP earned, and upgrades by one player."""
-    if not details:
-        return []
+    """Most units killed, buildings destroyed, and upgrades by one player in one match.
 
+    There is no XP counterpart: XP caps at 5,000 per player, so the "record"
+    is a tie between every game in which everyone reached it.
+    """
+    records = [
+        ("💀 Most Units Killed in a Match", lambda d: d.player_units_killed),
+        ("🏚️ Most Buildings Destroyed in a Match", lambda d: d.player_buildings_killed),
+        ("🔬 Most Upgrades in a Match", lambda d: d.upgrade_counts),
+    ]
     stats: list[Statistic] = []
-
-    # Most units killed total in a match
-    best_uk, uk_count = max(
-        ((d, d.total_units_killed) for d in details),
-        key=lambda x: x[1],
-    )
-    if uk_count > 0:
-        stats.append(
-            Statistic(
-                stat_name="💀 Most Units Killed",
-                date_computed=computed_at,
-                value=uk_count,
-                match_id=best_uk.match_id,
-            )
-        )
-
-    # Most buildings destroyed total in a match
-    best_bk, bk_count = max(
-        ((d, d.total_buildings_killed) for d in details),
-        key=lambda x: x[1],
-    )
-    if bk_count > 0:
-        stats.append(
-            Statistic(
-                stat_name="🏚️ Most Buildings Destroyed",
-                date_computed=computed_at,
-                value=bk_count,
-                match_id=best_bk.match_id,
-            )
-        )
-
-    # Most XP earned total in a match
-    best_xp, xp_total = max(
-        ((d, d.total_xp) for d in details),
-        key=lambda x: x[1],
-    )
-    if xp_total > 0:
-        stats.append(
-            Statistic(
-                stat_name="⭐ Most XP Earned",
-                date_computed=computed_at,
-                value=xp_total,
-                match_id=best_xp.match_id,
-            )
-        )
-
-    # Most upgrades purchased by a single player in any match
-    best_upg: PlayerMatchRecord | None = None
-    for d in details:
-        color_map = {ps.name: ps.color for ps in d.player_summary}
-        for player_name, count in d.upgrade_counts.items():
-            if best_upg is None or count > best_upg.value:
-                resolved = resolve_player_name(
-                    player_name, color_map.get(player_name, "")
+    for stat_name, values in records:
+        best = _best_player_in_match(details, values)
+        if best is not None:
+            stats.append(
+                Statistic(
+                    stat_name=stat_name,
+                    date_computed=computed_at,
+                    value=best.value,
+                    player=best.player,
+                    match_id=best.match_id,
                 )
-                best_upg = PlayerMatchRecord(
-                    player=resolved, value=count, match_id=d.match_id
-                )
-    if best_upg and best_upg.value > 0:
-        stats.append(
-            Statistic(
-                stat_name="🔬 Most Upgrades in a Match",
-                date_computed=computed_at,
-                value=best_upg.value,
-                player=best_upg.player,
-                match_id=best_upg.match_id,
             )
-        )
-
     return stats
 
 
@@ -1193,28 +1152,25 @@ def get_money_stats(
     details: list[SuperlativeData],
     computed_at: date,
 ) -> list[Statistic]:
-    """Match with the most total money spent.
+    """Most money one player spent in one match.
 
     There is deliberately no "least spent" counterpart: it read $12,200 across
     a 42-minute 2v2, which is not a frugal game but a replay whose per-player
     `moneySpent` never populated. A floor can't separate the two, so the
     minimum is measuring data coverage rather than play.
     """
-    if not details:
+    best = _best_player_in_match(
+        details, lambda d: {ps.name: ps.money_spent for ps in d.player_summary}
+    )
+    if best is None:
         return []
-
-    valued = [(d, d.match_money_spent) for d in details if d.match_money_spent > 0]
-    if not valued:
-        return []
-
-    most = max(valued, key=lambda x: x[1])
-
     return [
         Statistic(
-            stat_name="💰 Most Money Spent",
+            stat_name="💰 Most Money Spent in a Match",
             date_computed=computed_at,
-            value=_fmt_money(most[1]),
-            match_id=most[0].match_id,
+            value=_fmt_money(best.value),
+            player=best.player,
+            match_id=best.match_id,
         ),
     ]
 

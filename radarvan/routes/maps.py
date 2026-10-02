@@ -4,8 +4,7 @@ import asyncio
 from typing import NamedTuple
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from .. import map_stats as map_stats_module
 from .. import ml_inference
@@ -28,7 +27,9 @@ from ..api_types import (
     ReparseMapsResponse,
 )
 from ..cache import (
+    MapImageNotFound,
     competitive_matches,
+    map_image,
     maps_by_player_count,
     resolve_map_name_cached,
     sorted_deduped_matches,
@@ -56,13 +57,10 @@ public_router = APIRouter(tags=["map"])
 # `dependencies=OPS_ADMIN`.
 session_router = APIRouter(tags=["map"])
 
-# Map images are static. Presign for the S3 max (7 days) and let browsers cache
-# the redirect - max-age must stay under the presign TTL. We keep the cache to
-# 1h (well under the 7-day presign) so that if the deployment ever runs on
-# temporary/STS credentials - which silently cap the presign at the credential
-# lifetime - a cached redirect is unlikely to outlive its presigned URL.
-_MAP_IMAGE_PRESIGN_TTL = 7 * 24 * 3600
-_MAP_IMAGE_CACHE_MAX_AGE = 3600
+# A day, then a revalidation that is a 304 while the ETag holds - so a
+# re-rendered map shows up within a day without the image ever being re-sent
+# unchanged.
+_MAP_IMAGE_CACHE_MAX_AGE = 24 * 3600
 
 
 @router.get("/api/map_stats/", dependencies=[Depends(cache_short)])
@@ -429,25 +427,32 @@ def get_map_download(
     )
 
 
-@public_router.get("/api/map_image/{map_name}", response_model=None)
+@public_router.get(
+    "/api/map_image/{map_name}",
+    response_class=Response,
+    responses={200: {"content": {"image/webp": {}}}},
+)
 def get_map_image(
-    map_name: str, replay_manager: ReplayManager = Depends(get_replay_manager)
-) -> RedirectResponse:
-    """Return the WebP for a map, redirecting to its presigned S3 URL.
+    map_name: str,
+    request: Request,
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> Response:
+    """Return a map's WebP, served same-origin from an in-process cache.
 
     Resolves to the canonical `MapData.map_name` first (case-/whitespace-
     insensitive), since that's stored as the exact S3 asset base name; falls
     back to case-insensitive variant guesses in S3 for maps with no MapData row.
     """
-    # Map images are static, so cache aggressively. The browser caches the
-    # redirect, reusing its presigned URL for up to max-age - which must stay
-    # under the presign TTL or a cached redirect would point at an expired URL.
-    cache_headers = {"Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}"}
-    canonical = resolve_map_name_cached(replay_manager, map_name) or map_name
-    s3_uri = missing_maps_module.find_s3_webp(canonical)
-    if s3_uri is not None:
-        presigned = replay_files.presigned_url(
-            s3_uri, expires_in=_MAP_IMAGE_PRESIGN_TTL
-        )
-        return RedirectResponse(presigned, status_code=302, headers=cache_headers)
-    raise HTTPException(status_code=404, detail=f"No image for map '{map_name}'")
+    try:
+        image = map_image(replay_manager, map_name)
+    except MapImageNotFound:
+        raise HTTPException(
+            status_code=404, detail=f"No image for map '{map_name}'"
+        ) from None
+    headers = {
+        "Cache-Control": f"public, max-age={_MAP_IMAGE_CACHE_MAX_AGE}",
+        "ETag": image.etag,
+    }
+    if request.headers.get("if-none-match") == image.etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=image.webp, media_type="image/webp", headers=headers)

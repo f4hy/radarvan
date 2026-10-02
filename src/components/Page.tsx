@@ -2,7 +2,7 @@ import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
-import type * as React from "react"
+import * as React from "react"
 
 /**
  * The one page shell.
@@ -58,8 +58,12 @@ function PageHeader(props: {
   )
 }
 
+const SITE_NAME = "Radarvan"
+
 export default function Page(props: {
   title: string
+  /** Browser tab text when it should say more than `title` (which player, which night). */
+  tabTitle?: string
   description?: React.ReactNode
   actions?: React.ReactNode
   width?: PageWidth
@@ -71,6 +75,13 @@ export default function Page(props: {
   surface?: boolean
   children: React.ReactNode
 }) {
+  const tab = props.tabTitle ?? props.title
+  React.useEffect(() => {
+    document.title = `${tab} · ${SITE_NAME}`
+    return () => {
+      document.title = SITE_NAME
+    }
+  }, [tab])
   const maxWidth = props.width === "narrow" ? NARROW_WIDTH : undefined
   // A surface-less page sits straight on the canvas so it can compose its own
   // cards; otherwise it gets the single white surface most pages still use.

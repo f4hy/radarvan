@@ -570,7 +570,8 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
             {touramentStats.stats.map((s) => {
               return (
                 <TableRow
-                  key={s.statName}
+                  // Per-team stats repeat one statName ("Average match duration").
+                  key={`${s.statName}-${s.player}`}
                   sx={{
                     "&:nth-of-type(odd)": {
                       backgroundColor: "action.hover", // Uses theme's hover color
