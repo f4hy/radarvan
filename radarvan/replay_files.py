@@ -125,7 +125,7 @@ def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
 def parse_json(json_path: str) -> EnhancedReplayV2:
     fs = get_fs()
     with log_time("reading json", logger, path=json_path):
-        json_data = fs.read_text(json_path)
+        json_data = fs.read_bytes(json_path)
     with log_time("validating json", logger, path=json_path):
         return EnhancedReplayV2.model_validate_json(json_data)
 
@@ -149,7 +149,7 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
     existing = replay_manager.get_parsed_file(json_path)
     if existing and existing.is_v2 is True:
         with log_time("reading json", logger, path=json_path):
-            json_data = fs.read_text(json_path)
+            json_data = fs.read_bytes(json_path)
         with log_time("validating json", logger, path=json_path):
             parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
     else:
@@ -184,7 +184,7 @@ def reparse(
     fs = get_fs()
     existing_replay: EnhancedReplayV2 | None = None
     if existing.is_v2:
-        existing_data = fs.read_text(json_path)
+        existing_data = fs.read_bytes(json_path)
         existing_replay = EnhancedReplayV2.model_validate_json(existing_data)
         if not utils.is_long_enough(existing_replay):
             logger.warning("Too short, skipping")

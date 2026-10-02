@@ -17,8 +17,10 @@ from .player_role import (
 import structlog
 import time
 import functools
+from opentelemetry import trace
 
 logger = structlog.get_logger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 def log_duration[F: Callable[..., Any]](func: F) -> F:
@@ -29,7 +31,8 @@ def log_duration[F: Callable[..., Any]](func: F) -> F:
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         start_time = time.time()
-        result = func(*args, **kwargs)
+        with tracer.start_as_current_span(func.__name__):
+            result = func(*args, **kwargs)
         end_time = time.time()
         duration = end_time - start_time
         logger.debug(
