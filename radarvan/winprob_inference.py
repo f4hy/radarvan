@@ -29,6 +29,7 @@ from ml_win_prediction_over_time.snapshot import (
 
 from .api_types import WinProbOverTime, WinProbPoint
 from .cncstats_model.zhreplay import EnhancedReplayV2
+from .ml_inference import cpu_session
 from .player_ids import resolve_player_name
 from .utils import players_from_replay
 
@@ -53,7 +54,7 @@ def _require(path: Path) -> Path:
 
 
 def _onnx(path: Path) -> ort.InferenceSession:
-    return ort.InferenceSession(str(_require(path)), providers=["CPUExecutionProvider"])
+    return cpu_session(_require(path))
 
 
 @lru_cache(maxsize=1)

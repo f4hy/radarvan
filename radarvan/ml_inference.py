@@ -50,14 +50,25 @@ class ModelUnavailable(RuntimeError):
     """Raised when the ONNX ensemble / vocab files are missing."""
 
 
+def cpu_session(path: Path) -> ort.InferenceSession:
+    """A single-threaded CPU session.
+
+    By default every session starts its own intra/inter-op thread pools, sized
+    to the host's cores - 96 idle threads across our 32 sessions. These models
+    are too small for a split inference to beat one thread.
+    """
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = 1
+    options.inter_op_num_threads = 1
+    return ort.InferenceSession(str(path), options, providers=["CPUExecutionProvider"])
+
+
 @lru_cache(maxsize=1)
 def _ensemble_sessions() -> list[ort.InferenceSession]:
     paths = sorted(ENSEMBLE_DIR.glob("model-*.onnx"))
     if not paths:
         raise ModelUnavailable(f"no ensemble models found under {ENSEMBLE_DIR}")
-    return [
-        ort.InferenceSession(str(p), providers=["CPUExecutionProvider"]) for p in paths
-    ]
+    return [cpu_session(p) for p in paths]
 
 
 @lru_cache(maxsize=1)
