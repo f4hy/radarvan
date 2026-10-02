@@ -12,7 +12,7 @@ import structlog
 
 from pydantic import BaseModel
 
-from sqlalchemy import and_, desc, func, nulls_last, or_, select, update
+from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.orm import contains_eager, joinedload
 
 from ..cncstats_model.zhreplay import EnhancedReplayV2
@@ -83,7 +83,7 @@ class ReplayRepo(BaseRepo):
             .where(ParsedReplayJson.match_id == match_id)
             .order_by(
                 desc(ParsedReplayJson.json_s3_uri.like("%upload%")),
-                nulls_last(desc(ParsedReplayJson.num_time_stamps)),
+                ParsedReplayJson.num_time_stamps.desc().nulls_last(),
             )
             .limit(1)
         )

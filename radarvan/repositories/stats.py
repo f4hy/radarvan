@@ -1,6 +1,6 @@
 """ComputedStatistic repository (pre-baked superlatives)."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import delete as sa_delete, func, select
 
@@ -49,7 +49,9 @@ class StatsRepo(BaseRepo):
 
     def computed_stats_are_stale(self, days: int = 3) -> bool:
         """Return True if no computed stats exist or the newest is older than `days` days."""
-        latest = self.session.scalar(select(func.max(ComputedStatistic.date_computed)))
+        latest: date | None = self.session.scalar(
+            select(func.max(ComputedStatistic.date_computed))
+        )
         if latest is None:
             return True
         return (datetime.now(UTC).date() - latest).days > days

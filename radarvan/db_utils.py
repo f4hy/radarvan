@@ -16,7 +16,7 @@ import structlog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from .db import Base
+from .db import Base, sqlalchemy_url
 from .repositories import (
     AllFilesForId,
     FileListing,
@@ -51,8 +51,7 @@ class DatabaseManager:
 
         Example: DatabaseManager('postgresql://user:password@localhost:5432/cnc_stats')
         """
-        con_str = connection_string.replace("postgres://", "postgresql://")
-        self.engine = create_engine(con_str, echo=False)
+        self.engine = create_engine(sqlalchemy_url(connection_string), echo=False)
         self.SessionLocal = sessionmaker(bind=self.engine)
 
     def create_all_tables(self) -> None:

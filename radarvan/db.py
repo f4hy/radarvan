@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, date
 import enum
 from enum import IntEnum
+import re
 from sqlalchemy import (
     ARRAY,
     CheckConstraint,
@@ -25,6 +26,12 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
+
+def sqlalchemy_url(url: str) -> str:
+    # Heroku hands out `postgres://`, and SQLAlchemy 2.1 maps a bare
+    # `postgresql://` to psycopg 3 - we ship psycopg2.
+    return re.sub(r"^postgres(ql)?://", "postgresql+psycopg2://", url)
 
 
 def _utcnow() -> datetime:

@@ -10,10 +10,8 @@ authenticated backends like Honeycomb/Grafana Cloud) to turn tracing on.
 import os
 
 import structlog
-from fastapi import FastAPI
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import (
     HTTPX2ClientInstrumentor,
     HTTPXClientInstrumentor,
@@ -27,10 +25,11 @@ logger = structlog.get_logger(__name__)
 _OTLP_ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 
 
-def configure_tracing(app: FastAPI) -> None:
-    """Set up OTLP HTTP tracing and instrument FastAPI + both HTTP clients.
+def configure_tracing() -> None:
+    """Install the global tracer provider and instrument both HTTP clients.
 
-    Call once, right after the ``FastAPI`` app is constructed.
+    Server spans come from FastAPI's native telemetry, which reads this global
+    provider per request.
     """
     endpoint = os.environ.get(_OTLP_ENDPOINT_ENV)
     if not endpoint:
@@ -44,7 +43,6 @@ def configure_tracing(app: FastAPI) -> None:
     provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
     trace.set_tracer_provider(provider)
 
-    FastAPIInstrumentor.instrument_app(app)
     # Two independent instrumentors, because two HTTP stacks are in the
     # process: our own code and the anthropic SDK are on httpx2, while
     # google-genai and fastapi[standard] still pull plain httpx.

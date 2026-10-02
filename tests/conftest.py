@@ -17,6 +17,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
+from radarvan.db import sqlalchemy_url
+
 os.environ.setdefault("DATABASE_URL", "postgresql://localhost:5432/radarvan_test")
 
 _skipped_postgres = 0
@@ -39,7 +41,9 @@ def postgres_db_url() -> Iterator[str]:
         pytest.fail("TEST_POSTGRES_URL must point to PostgreSQL")
     database = f"radarvan_test_{uuid4().hex}"
     admin = create_engine(
-        url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5}
+        sqlalchemy_url(configured),
+        isolation_level="AUTOCOMMIT",
+        connect_args={"connect_timeout": 5},
     )
     try:
         with admin.connect() as connection:

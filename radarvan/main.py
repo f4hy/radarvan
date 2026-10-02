@@ -71,9 +71,12 @@ app = FastAPI(
     description="Stats for generals",
     version="0.1.0",
     lifespan=lifespan,
+    # tracing.py owns the provider and exporter; auto_configure would attach a
+    # second OTLP exporter to it (every span sent twice).
+    telemetry={"auto_configure": False},
 )
 
-configure_tracing(app)
+configure_tracing()
 
 PROTECTED = [Depends(verify_api_key)]
 

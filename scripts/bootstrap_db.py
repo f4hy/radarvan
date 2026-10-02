@@ -30,7 +30,9 @@ from sqlalchemy import create_engine, inspect
 
 
 def main() -> int:
-    url = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://")
+    from radarvan.db import sqlalchemy_url
+
+    url = sqlalchemy_url(os.environ["DATABASE_URL"])
     engine = create_engine(url)
     tables = set(inspect(engine).get_table_names())
 
