@@ -92,7 +92,9 @@ app.add_middleware(
     https_only=not IS_DEV,
 )
 app.add_middleware(middleware.RateLimitMiddleware)
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# Starlette defaults to level 9: ~100ms on a 1.1 MB /api/details body vs ~16ms
+# at 5, for a 6% larger payload.
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 app.add_middleware(middleware.RequestContextMiddleware)
 app.add_middleware(
     CORSMiddleware,
