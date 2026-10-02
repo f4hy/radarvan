@@ -1271,6 +1271,7 @@ export default function DisplayPlayerProfile() {
   return (
     <Page
       title="Player Profile"
+      tabTitle={player || undefined}
       description="What a player is known for. The units and powers they reach for more than anyone else, who they beat, who beats them, and how each general has gone over time."
     >
       <Autocomplete

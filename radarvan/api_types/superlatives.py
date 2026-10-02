@@ -35,10 +35,8 @@ class SuperlativeData(BaseModel):
     apms: list[APM]
     player_summary: list[SuperlativePlayerSummary]
     upgrade_counts: dict[str, int]
-    total_units_killed: int
-    total_buildings_killed: int
-    total_xp: int
-    match_money_spent: int
+    player_units_killed: dict[str, int] = Field(default_factory=dict)
+    player_buildings_killed: dict[str, int] = Field(default_factory=dict)
     player_money_collected: dict[str, int]
     player_xp_final: dict[str, int] = Field(default_factory=dict)
     time_to_rank_5: dict[str, Minute] = Field(default_factory=dict)

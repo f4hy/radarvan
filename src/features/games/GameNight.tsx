@@ -587,6 +587,7 @@ export default function GameNight() {
     <Page
       surface={false}
       title="Game Night"
+      tabTitle={selected ? `Game Night ${selected}` : undefined}
       description="How one evening went. The standings, the highlights, and every game retold."
       actions={picker}
     >

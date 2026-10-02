@@ -276,12 +276,39 @@ def _efficiency_details(match_id: int, *, units: int, name: str = "Skip"):
             _summary(name=name, won=True, units_created_count=units),
         ],
         upgrade_counts={},
-        total_units_killed=0,
-        total_buildings_killed=0,
-        total_xp=0,
-        match_money_spent=0,
         player_money_collected={},
     )
+
+
+def test_match_records_name_one_human_player() -> None:
+    """These used to be whole-match sums with no holder, and "Most XP Earned"
+    was eight players each at the 5,000 cap."""
+    from radarvan.superlatives import get_activity_stats, get_money_stats
+
+    details = [
+        SuperlativeData.model_construct(
+            match_id=1,
+            apms=[],
+            player_summary=[
+                _summary(name="Skip", won=True, units_created_count=10),
+                _summary(name="HardArmy", won=False, units_created_count=10),
+            ],
+            upgrade_counts={"Skip": 3},
+            player_money_collected={},
+            player_units_killed={"Skip": 40, "HardArmy": 900},
+            player_buildings_killed={"Skip": 7},
+        ),
+    ]
+    stats = {s.stat_name: s for s in get_activity_stats(details, COMPUTED_AT)}
+    assert set(stats) == {
+        "💀 Most Units Killed in a Match",
+        "🏚️ Most Buildings Destroyed in a Match",
+        "🔬 Most Upgrades in a Match",
+    }
+    killed = stats["💀 Most Units Killed in a Match"]
+    assert (killed.player, killed.value, killed.match_id) == ("Skip", 40, 1)
+    [money] = get_money_stats(details, COMPUTED_AT)
+    assert money.player == "Skip"
 
 
 def _summary(*, name: str, won: bool, units_created_count: int):
@@ -491,10 +518,6 @@ def test_only_one_money_podium_survives() -> None:
                 _summary(name="Skip", won=True, units_created_count=10),
             ],
             upgrade_counts={},
-            total_units_killed=0,
-            total_buildings_killed=0,
-            total_xp=0,
-            match_money_spent=1000 * i,
             player_money_collected={"Skip": 900 * i},
         )
         for i in (1, 2, 3)
@@ -505,4 +528,4 @@ def test_only_one_money_podium_survives() -> None:
     # "Least Money Spent" read $12,200 across a 42-minute 2v2 - a replay whose
     # per-player moneySpent never populated, not a frugal game.
     match_money = get_money_stats(details, COMPUTED_AT)
-    assert [str(s.stat_name) for s in match_money] == ["💰 Most Money Spent"]
+    assert [str(s.stat_name) for s in match_money] == ["💰 Most Money Spent in a Match"]

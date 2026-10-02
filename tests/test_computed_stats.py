@@ -63,10 +63,6 @@ def inputs(monkeypatch: pytest.MonkeyPatch, manager: DatabaseManager) -> AsyncMo
             )
         ],
         upgrade_counts={},
-        total_units_killed=0,
-        total_buildings_killed=0,
-        total_xp=0,
-        match_money_spent=0,
         player_money_collected={},
     )
     winnerless = corpus.match(2, day=6, winner=Team.NONE)

@@ -138,10 +138,6 @@ def _details(match_id: int, hunted: dict[str, float]) -> SuperlativeData:
         apms=[],
         player_summary=[],
         upgrade_counts={},
-        total_units_killed=0,
-        total_buildings_killed=0,
-        total_xp=0,
-        match_money_spent=0,
         player_money_collected={},
         time_to_hunted=hunted,
     )

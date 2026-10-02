@@ -548,6 +548,7 @@ export default function HeadToHead() {
   return (
     <Page
       title="Head to Head"
+      tabTitle={bothPicked ? `${player1} vs ${player2}` : undefined}
       description="Two players' record against each other, split by map and by general, with every game they have played on opposite sides."
     >
       <Stack

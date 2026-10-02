@@ -244,11 +244,16 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
   )
 }
 
-export default function AIPredictions(props: { matchId: number }) {
-  // Each panel carries its own error rather than throwing: a model can be
-  // unavailable (503) for one prediction and fine for the other, and the panel
-  // says which. That's why the failure is folded into the value here instead of
-  // reaching QueryState — and why neither retries.
+export default function AIPredictions(props: {
+  matchId: number
+  // Already computed and cached server-side with the match details; null for a
+  // match the sequence model can't score.
+  winProbOverTime: WinProbOverTime | null | undefined
+}) {
+  // The pregame panel carries its own error rather than throwing: the model can
+  // be unavailable (503) while the over-time curve is fine, and the panel says
+  // which. That's why the failure is folded into the value here instead of
+  // reaching QueryState — and why it doesn't retry.
   const pregameQuery = useQuery<Panel<MatchPrediction>>({
     queryKey: ["predictMatch", props.matchId],
     queryFn: () =>
@@ -257,20 +262,11 @@ export default function AIPredictions(props: { matchId: number }) {
       }).catch((e) => ({ error: describeError(e) })),
     retry: false,
   })
-  const overTimeQuery = useQuery<Panel<WinProbOverTime>>({
-    queryKey: ["predictOverTime", props.matchId],
-    queryFn: () =>
-      PredictClient.predictOverTimeApiPredictOverTimeMatchIdGet({
-        matchId: props.matchId,
-      }).catch((e) => ({ error: describeError(e) })),
-    retry: false,
-  })
 
-  if (pregameQuery.isPending || overTimeQuery.isPending) {
+  if (pregameQuery.isPending) {
     return <Loading />
   }
   const pregame = pregameQuery.data as Panel<MatchPrediction>
-  const overTime = overTimeQuery.data as Panel<WinProbOverTime>
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 760 }}>
@@ -283,10 +279,13 @@ export default function AIPredictions(props: { matchId: number }) {
       </Paper>
       <Divider />
       <Paper variant="outlined" sx={{ p: 2 }}>
-        {"error" in overTime ? (
-          <Alert severity="info">{overTime.error}</Alert>
+        {props.winProbOverTime ? (
+          <OverTimePrediction data={props.winProbOverTime} />
         ) : (
-          <OverTimePrediction data={overTime} />
+          <Alert severity="info">
+            No win-probability curve for this match: it isn't a game of two even
+            teams, or the model wasn't available when it was processed.
+          </Alert>
         )}
       </Paper>
     </Stack>

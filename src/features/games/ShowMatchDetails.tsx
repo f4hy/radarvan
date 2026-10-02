@@ -1748,7 +1748,10 @@ function DetailViewSelector(props: {
         />
       )}
       {props.selectedDisplay === "AI" && (
-        <AIPredictions matchId={props.details.matchId} />
+        <AIPredictions
+          matchId={props.details.matchId}
+          winProbOverTime={props.details.winProbOverTime}
+        />
       )}
       {props.selectedDisplay === "Academy" && (
         <AcademyTable playerSummaries={props.details.playerSummary} />

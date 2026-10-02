@@ -384,27 +384,22 @@ export class MapApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the WebP for a map, redirecting to its presigned S3 URL.  Resolves to the canonical `MapData.map_name` first (case-/whitespace- insensitive), since that\'s stored as the exact S3 asset base name; falls back to case-insensitive variant guesses in S3 for maps with no MapData row.
+     * Return a map\'s WebP, served same-origin from an in-process cache.  Resolves to the canonical `MapData.map_name` first (case-/whitespace- insensitive), since that\'s stored as the exact S3 asset base name; falls back to case-insensitive variant guesses in S3 for maps with no MapData row.
      * Get Map Image
      */
-    async getMapImageApiMapImageMapNameGetRaw(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getMapImageApiMapImageMapNameGetRaw(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const requestOptions = await this.getMapImageApiMapImageMapNameGetRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
-     * Return the WebP for a map, redirecting to its presigned S3 URL.  Resolves to the canonical `MapData.map_name` first (case-/whitespace- insensitive), since that\'s stored as the exact S3 asset base name; falls back to case-insensitive variant guesses in S3 for maps with no MapData row.
+     * Return a map\'s WebP, served same-origin from an in-process cache.  Resolves to the canonical `MapData.map_name` first (case-/whitespace- insensitive), since that\'s stored as the exact S3 asset base name; falls back to case-insensitive variant guesses in S3 for maps with no MapData row.
      * Get Map Image
      */
-    async getMapImageApiMapImageMapNameGet(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getMapImageApiMapImageMapNameGetRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getMapImageApiMapImageMapNameGet(requestParameters: GetMapImageApiMapImageMapNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getMapImageApiMapImageMapNameGetRaw(requestParameters, initOverrides);
     }
 
     /**

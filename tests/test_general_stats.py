@@ -51,10 +51,6 @@ def _superlative(match_id: int, summaries: list[SuperlativePlayerSummary]):
         apms=[],
         player_summary=summaries,
         upgrade_counts={},
-        total_units_killed=0,
-        total_buildings_killed=0,
-        total_xp=0,
-        match_money_spent=0,
         player_money_collected={},
     )
 
