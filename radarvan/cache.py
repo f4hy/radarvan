@@ -84,7 +84,7 @@ def competitive_matches(replay_manager: ReplayManager) -> dict[int, MatchInfo]:
     }
 
 
-@derived(on=CORPUS, maxsize=30)
+@derived(on=CORPUS, maxsize=12)
 def details_from_id(
     match_id: int, replay_manager: ReplayManager
 ) -> MatchDetails | None:
