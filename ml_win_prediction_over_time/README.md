@@ -1,145 +1,205 @@
 # Win-probability-over-time model
 
-Predict **P(team A wins) at every point in a match** from the in-game event
-stream — an esports-style win-probability curve. This is distinct from the
-pre-game outcome model in [`../ml`](../ml): that one predicts the winner from the
-match's *inputs* (players, generals, map); this one *watches the game unfold*
-(builds, kills, captures, money) and updates its prediction over time.
+Predicts **P(team A wins) at every 30-second window of a match** from the
+in-game event stream: an esports-style win-probability curve. It is separate
+from the pre-game model in [`../ml`](../ml). That one predicts the winner from
+the match's inputs (players, generals, map). This one watches the game unfold
+and updates as it goes.
 
-ML deps live in the non-default `ml` dependency-group (they never ship to the
-production app):
+The curve is served on the match page's AI tab and in `MatchDetails`. It also
+feeds the narrative, match-interest, game-night and superlatives code through
+`radarvan/win_curve.py`.
+
+## Setup
+
+Training needs torch, which has no Python 3.14 wheel, so it runs in a separate
+3.13 venv at `.venv-ml/`. The project's lockfile is resolved for 3.14 only and
+doesn't contain torch, so name the torch packages explicitly:
 
 ```bash
-uv sync --group ml
+uv venv --python 3.13 .venv-ml
+uv export --group ml --no-hashes --no-emit-project > /tmp/ml-req.txt
+uv pip install --python .venv-ml/bin/python \
+  --index-strategy unsafe-best-match \
+  --extra-index-url https://download.pytorch.org/whl/cu124 \
+  -r /tmp/ml-req.txt "torch==2.6.0" "lightning>=2.6.5" "torchmetrics>=1.9.0"
 ```
 
-## How it works
-
-- **Source data**: the parsed replay JSON in S3 (`EnhancedReplayV2.stats`), which
-  carries frame-stamped `buildEvents` / `killEvents` / `captureEvents` and a
-  per-player money `timeSeries`. Only `player_rating.is_ratable_team_game`
-  matches with exactly two human sides are used (label = did team A win).
-- **Features** (`features.py`): the match is bucketed into 30-second windows.
-  Each window holds, per side, cumulative *money, units built, structures built,
-  build value, kills, value destroyed, captures* (log1p), plus the side-vs-side
-  differences, **minutes elapsed**, and the **frozen pre-game prior** →
-  `N_FEATURES` = 23 per timestep.
-- **The pre-game prior** (`pregame.py`): a 17-parameter Bradley-Terry fit on the
-  rosters, frozen from the train split like `FeatureStats`, fed in as a constant
-  column. Measured: for the first ~4 minutes the sequence model was *worse* than
-  simply knowing who was playing (log-loss 0.698 vs 0.644 over minutes 0-2),
-  because almost nothing has happened yet. With the prior as an input the GRU
-  learns how fast to discount it instead of spending four minutes catching up.
-- **Elapsed time is minutes, not fraction-of-match.** The old feature was
-  `bucket / n_buckets`, and `n_buckets` came from the match's *total* duration -
-  so the model was told how long the game would last, which no live bar can
-  know. Swapping it is a dead heat on log-loss (+0.0006, 95% CI [-0.0082,
-  +0.0094]), so it costs nothing and makes the "same information a live bar
-  would have" claim true.
-- **Model** (`model.py`): a **causal GRU** (only sees the past, like a live bar)
-  emitting a win logit per timestep, trained with a time-weighted masked BCE —
-  every timestep is supervised against the final outcome, later windows weighted
-  more since the game is more decided. A post-hoc temperature is fitted on the
-  held-out validation tail and **baked into the ONNX graph**, so the served curve
-  is calibrated rather than merely claiming to be.
+torch is pinned to the cu124 build because it still runs on Pascal GPUs (see
+`pyproject.toml`). Every command below runs from the repo root with
+`PYTHONPATH=.`. Only the snapshot step needs the database and S3.
 
 ## Pipeline
 
 ```bash
-# 1. Snapshot competitive matches' event streams from the DB + S3 (frozen file).
-DATABASE_URL=... uv run --group ml python -m ml_win_prediction_over_time.snapshot
-#   -> data/snapshot-<date>.jsonl.gz (+ .manifest.json)
+D=ml_win_prediction_over_time/data
 
-# 2. Temporal train/dev split; freezes feature-standardization stats from train.
-uv run --group ml python -m ml_win_prediction_over_time.split \
-    data/snapshot-<date>.jsonl.gz
-#   -> data/split-<date>-temporal/{train,dev}.jsonl.gz, feature_stats.json, split.json
+# 1. Snapshot: DB + S3 -> $D/snapshot-<UTC date>.jsonl.gz (+ manifest with skip counts)
+set -a; . ./.env; set +a
+PYTHONPATH=. uv run python -m ml_win_prediction_over_time.snapshot
 
-# 3. Train (uses the GPU automatically; falls back to CPU if it can't launch a kernel).
-uv run --group ml python -m ml_win_prediction_over_time.train \
-    data/split-<date>-temporal/
-#   -> .../runs/<ts>/{best.ckpt,feature_stats.json,config.json}
+# 2. Split. --dev-frac 0 trains on everything (the rolling eval is the evaluation).
+#    --drop kills alive is the shipped feature set.
+PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.split \
+    $D/snapshot-<date>.jsonl.gz --dev-frac 0 --drop kills alive --out-dir $D/split-<name>
 
-# 4a. Win-probability curve for one match (fetches the replay; needs DATABASE_URL).
-DATABASE_URL=... uv run --group ml python -m ml_win_prediction_over_time.predict \
-    data/split-<date>-temporal/runs/<ts>/ --match-id 12345
+# 3. Train the GRU seed bag, then the GBDT.
+for s in 11 22 33 44 55 66; do
+  PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.train $D/split-<name> --seed $s
+done
+PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.gbdt $D/split-<name>
 
-# 4b. Evaluate on dev vs the 0.5 coin-flip baseline.
-uv run --group ml python -m ml_win_prediction_over_time.predict \
-    data/split-<date>-temporal/runs/<ts>/ --eval
+# 4. Export the bag into one ONNX graph and deploy the bundle to the repo root.
+PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.export $D/split-<name>/runs/*
 ```
 
-**Early stopping does not watch dev.** `TrainConfig.val_frac` (default 0.15)
-holds back the most recent slice of *train* for the best-checkpoint pick and the
-temperature fit, so `--eval` scores a set that had no hand in choosing the
-weights. This trainer used to validate on `dev.jsonl.gz` itself — the same bug as
-in `../ml`, where removing it cost the headline AUC ~0.06 of inflation. Any
-number produced before this fix is optimistic.
-`TrainConfig.refit_on_full` (default on) then refits on the whole train split for
-the chosen number of epochs, so holding the tail back costs no training data.
+Export deploys four files together: `ml_winprob_over_time.onnx` (the GRU bag),
+`_stats.json`, `_prior.json` and `_gbdt.onnx`. Serving requires all four, and
+export refuses a GBDT that was fit on different feature columns or delta lags
+than the GRU. `winprob_inference.bundle_version()` hashes the bundle into
+`match_details.DETAILS_VERSION`, so cached curves are recomputed after any
+redeploy without a manual version bump.
 
-## Results (rolling origin, snapshot-20260828)
+## How it works
 
-Five cuts across the corpus, three seeds bagged at each, scoring the block after
-each cut: **435 held-out matches, 12,776 timesteps.** Reported by game phase,
-because a single pooled number hides everything interesting — late in a decided
-game every predictor looks brilliant.
+- **Data.** Parsed replay JSON (`EnhancedReplayV2.stats`): build, kill, capture
+  and death events plus per-player money and income series. Only
+  `player_rating.is_ratable_team_game` matches with **two equal-sized human
+  teams** are used. Uneven games get no curve at serving either. That gate is
+  in `snapshot.record_from_replay`, which training and serving share.
+- **Labels are the winner the app shows** (`MatchInfo`, admin overrides
+  included), applied in `snapshot.app_label`. A match is dropped if cncstats
+  only estimated its winner (`estimatedWinner`) and no admin ruled on it, or if
+  the replay's own win flags disagree with the app.
+- **Kills** count only enemy units and structures with a build cost. That
+  drops projectiles, debris, wrecks and mines: in one fixture a Tunnel
+  Defender's missiles made up 90 of 571 "kills". Kills of structures are
+  tagged so they get their own feature.
+- **Features** (`features.py`). Per side, as running totals up to each window:
+  money on hand, income, units built, structures built, build value, value
+  destroyed, structure value destroyed and captures. All are log1p'd, and each
+  comes as side A, side B and A minus B. On top of that: minutes elapsed (never
+  the fraction of the match, which would leak the final length) and the
+  pre-game prior. The feature groups are named, and `split --drop` and the
+  rolling eval can drop any of them. `FeatureStats` stores the chosen columns,
+  so training and serving always read the same ones.
+- **No 40-minute cap.** Games run to their real end (the longest is about 66
+  minutes). Events past the 2-hour safety cap are dropped, never folded into
+  the last window.
+- **The pre-game prior** (`pregame.py`) is a Bradley-Terry fit on the rosters,
+  fed in as a constant column so the GRU learns how fast to discount it.
+  Training games get **out-of-fold** logits: scored on its own training games
+  the prior looks about 40% sharper than on unseen ones (logit spread 0.90 vs
+  0.63), and the GRU would learn to over-trust it.
+- **The model is the average of two halves.**
+  - A causal GRU (`model.py`), bagged over 6 seeds. It's trained with a
+    time-weighted masked BCE, and a held-out temperature is built into the
+    ONNX graph.
+  - A heavily regularised GBDT (`gbdt.py`) on the current window plus its
+    change over the last 1 and 2 minutes.
 
-| | log-loss | acc | AUC | first 20% | 20-40% | 40-60% | 60-80% | last 20% |
+  The GRU is better in the opening minutes, where it passes the prior through
+  smoothly. The trees are better mid-game.
+
+## Results
+
+These come from a rolling-origin evaluation of `snapshot-20260928`: 5 cuts,
+each scoring the block after it, giving 370 held-out matches. Log-loss is per
+30-second window. Lower is better.
+
+| | log-loss | AUC | 0-2m | 2-4m | 4-8m | 8-15m | 15-25m | 25m+ |
 |---|---|---|---|---|---|---|---|---|
-| coin flip | 0.6931 | 0.501 | 0.500 | 0.693 | 0.693 | 0.693 | 0.693 | 0.693 |
-| pre-game prior alone | 0.6636 | 0.599 | 0.639 | 0.667 | 0.663 | 0.662 | 0.663 | 0.662 |
-| `static_logistic` | 0.5563 | 0.681 | 0.769 | 0.718 | 0.673 | 0.626 | 0.546 | 0.265 |
-| GRU, previous design | 0.4843 | 0.752 | 0.850 | 0.702 | 0.640 | 0.534 | 0.398 | 0.199 |
-| **GRU, shipped** | **0.4568** | **0.763** | **0.861** | **0.678** | **0.615** | **0.496** | 0.373 | 0.174 |
+| coin flip | 0.693 | 0.500 | 0.693 | 0.693 | 0.693 | 0.693 | 0.693 | 0.693 |
+| pre-game prior alone | 0.636 | 0.665 | 0.613 | 0.613 | 0.619 | 0.652 | 0.679 | 0.644 |
+| static logistic (current window only) | 0.477 | 0.845 | 0.664 | 0.583 | 0.466 | 0.416 | 0.352 | 0.425 |
+| GRU, 6 seeds | 0.389 | 0.901 | **0.598** | 0.521 | 0.378 | 0.315 | 0.246 | 0.331 |
+| GBDT | 0.388 | 0.905 | 0.638 | 0.537 | 0.391 | 0.302 | 0.235 | **0.152** |
+| **GRU + GBDT (served)** | **0.367** | **0.913** | 0.603 | **0.511** | **0.366** | **0.284** | **0.213** | 0.201 |
 
-Paired bootstrap over matches, shipped minus previous design:
+- **The GRU and GBDT tie on their own.** The GRU's memory of the whole game adds
+  little over the current state plus its recent change.
+- **Averaging them beats the GRU alone.** Paired bootstrap over matches:
+  −0.022 [−0.044, −0.003]. Their errors differ, so averaging cancels some.
 
-| window | difference | 95% CI | P(better) |
-|---|---|---|---|
-| whole match | −0.0314 | [−0.0624, +0.0006] | 0.97 |
-| first 4 minutes | **−0.0499** | [−0.0785, −0.0194] | **1.00** |
-| first 2 minutes | **−0.0626** | [−0.0883, −0.0361] | **1.00** |
+**Read these numbers with the noise floor in mind.** The same configuration
+retrained with different seeds moves the whole-match log-loss by about 0.005,
+and the 15-25m bin by about 0.024. The bootstrap intervals cover sampling
+of matches only, not seed variance. Treat any difference under about 0.01, or
+any difference after minute 15, as noise.
 
-The gain is exactly where it was designed to be — the opening minutes — and the
-whole-match figure straddles zero, so quote the early-game numbers, not the
-pooled one. Against the bars it must clear the model is unambiguous: −0.118
-against `static_logistic` and −0.215 against the pre-game prior, both P = 1.00.
+**Why the shipped feature set is what it is.** Each row is one change against
+the full feature set, bagged over 3 seeds. A positive number means the change
+made the model worse.
 
-Two things that are *not* wins and should not be reported as such: the
-temperature is worth 0.025 log-loss on a single dev slice but ±0.000 under the
-rolling protocol (`refit_on_full` already absorbs most of the overconfidence), and
-the elapsed-time swap is a dead heat. Both were kept for correctness, not score.
+| change | whole-match log-loss vs full | verdict |
+|---|---|---|
+| in-sample prior instead of out-of-fold | +0.014 | out-of-fold kept |
+| drop income | +0.011 | kept |
+| drop structure value destroyed | +0.013 | kept |
+| drop kill **count** | −0.005 | dropped: value destroyed already carries it |
+| drop players alive | −0.001 | dropped: no measurable effect |
+| flat time weights instead of late ×3 | +0.008 | within noise; late ×3 kept |
 
-**Final-timestep accuracy is not a metric here.** It is 0.98 for the GRU *and*
-0.99 for the memoryless logistic: by the last window the loser has no buildings
-left. The old `--eval` reported it as a headline.
+Final-window accuracy is not a useful metric here. By the last window the
+loser usually has nothing left, so even the memoryless logistic scores 0.99.
 
+### Tried and not shipped: an uncertainty band
+
+Seed-to-seed disagreement didn't flag worse predictions at all. Disagreement
+between **bootstrap**-trained members did, from minute 4 on: at the same stated
+confidence, log-loss was +0.074 higher where the band was wide, CI [+0.027,
++0.122]. Before minute 4 it predicted nothing. The band worked, but we chose
+the cleaner chart without it. Bringing it back would mean bootstrap members in
+training, per-member ONNX outputs and a range area on the chart.
+
+## Evaluating a change
+
+```bash
+D=ml_win_prediction_over_time/data
+PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.rolling_eval run \
+    $D/snapshot-<date>.jsonl.gz --name <name> [--drop <groups>] [--seeds 11 22 33] \
+    [--late-weight 3] [--in-sample-prior]
+PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.rolling_eval compare \
+    $D/rolling-<a>:blend $D/rolling-<b>:blend
+```
+
+`run` trains the served model at every cut and scores it next to the baselines,
+saving every window's prediction. `compare` runs a paired bootstrap over
+matches, by minute bin. Compare against a reseeded run of the same
+configuration before believing a small difference.
 
 ## Layout
 
 | file | role |
 |---|---|
-| `config.py` | bucketing constants + hyperparameters (torch-free dataclasses) |
-| `snapshot.py` | DB + S3 → frozen per-match event records (`record_from_replay` is pure) |
-| `features.py` | record → `[T, N_FEATURES]` sequence; `FeatureStats` standardization (torch-free) |
-| `pregame.py` | the frozen roster prior fed in as a feature (torch-free) |
-| `baselines.py` | coin flip + the memoryless "read the scoreboard" logistic (torch-free) |
-| `dataset.py` | torch `Dataset` / ragged-pad collate / `DataModule` |
-| `model.py` | causal GRU + Lightning module (time-weighted masked BCE) |
-| `split.py` | snapshot → temporal train/dev + frozen feature stats |
-| `train.py` | training CLI (GPU) |
-| `predict.py` | CPU inference (win-prob curve) + dev evaluation |
+| `config.py` | bucketing constants and hyperparameters (torch-free) |
+| `snapshot.py` | DB + S3 → per-match event records; `record_from_replay` (shared with serving), `app_label` |
+| `features.py` | record → feature sequence; named feature groups; `FeatureStats`; `with_deltas` for the GBDT (torch-free) |
+| `pregame.py` | the roster prior and its out-of-fold logits (torch-free) |
+| `baselines.py` | coin flip, prior alone, static logistic, GBDT |
+| `split.py` | snapshot → train/dev, freezing the prior and feature stats from train |
+| `dataset.py`, `model.py`, `train.py` | the GRU: data module, model, training CLI |
+| `gbdt.py` | the GBDT: fit and ONNX export |
+| `predict.py` | `load_run`, CPU curves, a single-split `--eval`, a curve for one `--match-id` |
+| `rolling_eval.py` | rolling-origin evaluation and paired comparison |
+| `export.py` | GRU bag → ONNX, plus deploying the serving bundle |
 
-## Notes / next steps
+Serving lives in `radarvan/winprob_inference.py`. It is torch-free and
+sklearn-free: onnxruntime plus this package's torch-free modules.
 
-- First cut handles **two-sided** games only (most ratable team games). FFA and
-  >2 teams are skipped in `record_from_replay`.
-- Natural extensions: add categorical general/faction embeddings, and surface the
-  curve in the match-detail UI alongside the replay playback.
-- The serving bundle is three files, all deployed together by
-  `export.py`: `ml_winprob_over_time.onnx`, `..._stats.json`, and
-  `..._prior.json`. A model exported before the prior existed still loads —
-  `PregamePrior.neutral()` reproduces the all-zero column it was trained on —
-  but the shapes differ (22 vs 23 features), so old and new artifacts cannot be
-  mixed.
+## Known gaps
+
+- **Serving's winner comes from the replay, not the app.** The curve's
+  `actual_winner`, and serving's requirement that a winner exists, come from
+  the replay's win flags, while training uses the app's result. For a match an
+  admin overrode after it was parsed, the chart can name a different winner
+  than the match header, or show no curve at all.
+- **The blend rule is written twice.** The GRU+GBDT average appears by hand in
+  `winprob_inference` and in `rolling_eval`. Building the GBDT into the single
+  ONNX graph would leave one definition.
+- **The skl2onnx export carries a workaround.** `gbdt.export_gbdt` patches a
+  skl2onnx 1.20 bug (it passes a Python bool where onnx ≥ 1.20 requires an
+  int), and `pyproject.toml` caps skl2onnx below 1.21 so that an upgrade forces
+  someone to check whether the patch is still needed.
+- **Only even two-sided team games are covered.** FFA, more than two teams, and
+  uneven teams get no curve.
