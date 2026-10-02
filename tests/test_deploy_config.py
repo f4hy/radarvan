@@ -11,6 +11,8 @@ production.
 import tomllib
 from pathlib import Path
 
+from radarvan.db import sqlalchemy_url
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -57,11 +59,20 @@ def test_alembic_env_normalizes_the_legacy_postgres_scheme() -> None:
     environment variable in its own process.
     """
     env = (ROOT / "alembic" / "env.py").read_text()
-    assert 'os.environ["DATABASE_URL"].replace("postgres://", "postgresql://")' in env
+    assert 'sqlalchemy_url(os.environ["DATABASE_URL"])' in env
 
 
 def test_alembic_env_does_not_log_the_password() -> None:
     """Release-phase output is app log, readable by anyone with access."""
     env = (ROOT / "alembic" / "env.py").read_text()
-    assert "print(\"using db url\", _redacted(db_url))" in env
-    assert "print(\"using db url\", db_url)" not in env
+    assert 'print("using db url", _redacted(db_url))' in env
+    assert 'print("using db url", db_url)' not in env
+
+
+def test_sqlalchemy_url_pins_psycopg2() -> None:
+    for scheme in ("postgres", "postgresql"):
+        assert (
+            sqlalchemy_url(f"{scheme}://u:p@h:5432/db")
+            == "postgresql+psycopg2://u:p@h:5432/db"
+        )
+    assert sqlalchemy_url("sqlite:///x.db") == "sqlite:///x.db"

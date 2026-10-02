@@ -82,7 +82,9 @@ class ProfileRepo(BaseRepo):
 
     def player_profiles_are_stale(self, days: int = 3) -> bool:
         """True if no profiles exist or the newest is older than `days` days."""
-        latest = self.session.scalar(select(func.max(PlayerProfileCache.computed_at)))
+        latest: datetime | None = self.session.scalar(
+            select(func.max(PlayerProfileCache.computed_at))
+        )
         if latest is None:
             return True
         return (datetime.now(UTC) - latest).days > days

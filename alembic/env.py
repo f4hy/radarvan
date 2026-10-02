@@ -5,19 +5,15 @@ from sqlalchemy import pool
 
 from alembic import context
 import os
-from radarvan.db import Base
+from radarvan.db import Base, sqlalchemy_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Heroku's addon-managed DATABASE_URL uses the legacy ``postgres://`` scheme,
-# which SQLAlchemy 2.x refuses to load a dialect for. `db_utils` and
-# `scripts/bootstrap_db.py` both normalize it; this file has to do it too
-# rather than rely on them, because `alembic upgrade` re-reads the raw
-# environment variable in its own process - normalizing before shelling out to
-# alembic does nothing for the subprocess.
-db_url = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://")
+# Normalized here too, not just in `db_utils`/`scripts/bootstrap_db.py`:
+# `alembic upgrade` re-reads the raw environment variable in its own process.
+db_url = sqlalchemy_url(os.environ["DATABASE_URL"])
 
 
 def _redacted(url: str) -> str:

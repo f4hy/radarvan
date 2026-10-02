@@ -102,7 +102,7 @@ class TournamentRepo(BaseRepo):
             .where(TournamentGame.excluded.is_(False))
             .group_by(Tournament.slug)
         )
-        return dict(self.session.execute(stmt).all())  # type: ignore[arg-type]
+        return dict(self.session.execute(stmt).all())
 
     def list_links(
         self,

@@ -8,53 +8,51 @@ dependencies = [
     # Runtime, not tooling: the Procfile's release phase runs
     # `alembic upgrade head` on every deploy, and Heroku's buildpack
     # installs only [project] dependencies (uv sync --no-dev).
-    "alembic>=1.19.1",
-    "anthropic>=1.0.0,<2",
+    "alembic>=1.20.0",
+    "anthropic>=1.11.0,<2",
     "beautifulsoup4>=4.15.0",
     # Capped in practice by s3fs -> aiobotocore, which pins a narrow botocore
-    # range (aiobotocore 3.9.0 allows botocore <1.43.57). Raising this past the
+    # range (aiobotocore 3.9.2 allows botocore <1.43.107). Raising this past the
     # matching boto3 makes the lock unsolvable; bump it when aiobotocore does.
-    "boto3>=1.43.56",
-    "cachetools>=7.1.7",
+    "boto3>=1.43.106",
+    "cachetools>=7.2.0",
     "cachetools-async>=0.0.5",
-    "fastapi[standard]>=0.141.1",
-    "fsspec[s3]>=2026.7.0",
-    "google-genai>=2.19.0",
+    "fastapi[standard]>=0.142.2",
+    "fsspec[s3]>=2026.9.0",
+    "google-genai>=2.27.0",
     # Pydantic's maintained fork of httpx (upstream is frozen at 0.28.1).
     # Plain httpx is NOT a direct dependency: nothing of ours imports it,
     # but it stays in the tree via google-genai and fastapi[standard].
-    "httpx2>=2.12.0",
+    "httpx2>=2.13.1",
     "itsdangerous>=2.2.0",
-    "numpy>=2.5.2",
-    "onnxruntime>=1.29.0",
+    "numpy>=2.5.3",
+    "onnxruntime>=1.30.0",
     "openskill>=6.2.0",
-    "opentelemetry-api>=1.44.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
-    "opentelemetry-instrumentation-fastapi>=0.65b0",
-    "opentelemetry-instrumentation-httpx>=0.65b0",
-    "opentelemetry-sdk>=1.44.0",
+    "opentelemetry-api>=1.45.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.0",
+    "opentelemetry-instrumentation-httpx>=0.66b0",
+    "opentelemetry-sdk>=1.45.0",
     "pillow>=12.3.0",
-    "psycopg2-binary>=2.9.12",
-    "pydantic>=2.13.4",
-    "s3fs>=2026.7.0",
-    "sqlalchemy>=2.0.52",
+    "psycopg2-binary>=2.9.13",
+    "pydantic>=2.13.5",
+    "s3fs>=2026.9.0",
+    "sqlalchemy>=2.1.1",
     "structlog>=26.1.0",
 ]
 [dependency-groups]
 dev = [
-  "boto3-stubs[s3]>=1.43.78",
-  "mypy>=2.3.1",
+  "boto3-stubs[s3]>=1.43.106",
+  "mypy>=2.4.0",
   "pylsp-mypy>=0.8.0",
   "pytest>=9.1.1,<10",
-  "python-lsp-ruff>=2.3.3",
+  "python-lsp-ruff>=2.3.4",
   "python-lsp-server[all]>=1.15.0",
-  "ruff>=0.16.4",
+  "ruff>=0.16.10",
   "s3cmd>=2.4.0",
-  "sqlalchemy[mypy]>=2.0.52",
-  "tqdm>=4.70.0",
+  "tqdm>=4.70.1",
   "types-cachetools>=7.0.0.20260713",
-  "types-tqdm>=4.70.0.20260805",
-  "datamodel-code-generator>=0.74.0",
+  "types-tqdm>=4.70.0.20260906",
+  "datamodel-code-generator>=0.83.0",
   "pg-activity>=3.6.2",
 ]
 
@@ -74,15 +72,15 @@ ml = [
   "torch==2.6.0; python_version < '3.14'",
   "lightning>=2.6.5; python_version < '3.14'",
   "torchmetrics>=1.9.0; python_version < '3.14'",
-  "scikit-learn>=1.9.0",
-  "pandas>=3.0.5",
+  "scikit-learn>=1.9.1",
+  "pandas>=3.0.6",
   "pyarrow>=25.0.1",
   # ONNX export + a torch-free CPU runtime for serving the exported model.
-  "onnx>=1.22.0",
-  "onnxruntime>=1.29.0",
+  "onnx>=1.23.1",
+  "onnxruntime>=1.30.0",
   # sklearn -> ONNX for the win-prob-over-time GBDT; served by onnxruntime alone.
   # Capped: gbdt.export_gbdt patches a 1.20 bug; recheck it before raising this.
-  "skl2onnx>=1.19.1,<1.21",
+  "skl2onnx>=1.20.0,<1.21",
 ]
 
 [tool.black]
@@ -242,7 +240,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
-plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+plugins = ["pydantic.mypy"]
 
 show_error_codes = true
 show_column_numbers = true

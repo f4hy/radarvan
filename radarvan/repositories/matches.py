@@ -146,10 +146,7 @@ class MatchRepo(BaseRepo):
             )
             .limit(limit)
         )
-        # Row[tuple[...]] is a tuple subclass at runtime but SQLAlchemy stubs
-        # don't express this, so the Sequence[Row[...]] → list[tuple[...]] conversion
-        # isn't accepted without an ignore.
-        return list(self.session.execute(stmt).all())  # type: ignore[arg-type]
+        return list(self.session.execute(stmt).all())
 
     def list_matches_with_player_unk(self, limit: int = 10) -> list[int]:
         stmt = (
@@ -177,7 +174,7 @@ class MatchRepo(BaseRepo):
             .limit(limit)
             .distinct()
         )
-        return list(self.session.execute(stmt).all())  # type: ignore[arg-type]
+        return list(self.session.execute(stmt).all())
 
     def set_player_roles(
         self, match_id: int, entries: list[tuple[PlayerKey, int]]
