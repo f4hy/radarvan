@@ -11,14 +11,17 @@ the match, holding the log-odds that side A wins from the players alone. The GRU
 then learns for itself how fast to discount it as evidence arrives, instead of
 starting from an uninformative prior and spending four minutes catching up.
 
-The model is the same 17-parameter Bradley-Terry fit that ``ml/baselines.py``
+The model is the same Bradley-Terry fit that ``ml/baselines.py``
 uses for the pre-game task - one signed indicator per player, mean-pooled over
 the team - and it is deliberately **not** imported from there: this one is fit
 on *this* module's records (rosters and labels are all it needs), so training
 here never depends on the other pipeline's snapshot being present or current.
 
 Like ``FeatureStats``, it is fit on the train split only and frozen into the
-split directory, so nothing about the dev block reaches the features.
+split directory, so nothing about the dev block reaches the features. The train
+games themselves get *out-of-fold* logits (``oof_logits``): scored in-sample the
+prior looks ~40% sharper than it ever is on unseen games (logit std 0.90 vs
+0.63), and the GRU would learn to trust it that much.
 
 Names are alias-resolved without colour, because the snapshot record stores
 in-game names and not colours. That is deterministic and identical at training
@@ -38,10 +41,11 @@ import numpy as np
 
 from radarvan import player_ids
 
-# Ridge strength on the summed log-likelihood (matches sklearn's C=1.0), and the
-# recency half-life in days. Both mirror ml/baselines.py; the corpus cannot
-# separate anything between C=0.5 and C=4 (see ml/model_design.md).
+# Ridge strength on the summed log-likelihood (matches sklearn's C=1.0), as in
+# ml/baselines.py; the corpus cannot separate anything between C=0.5 and C=4
+# (see ml/model_design.md).
 L2 = 1.0
+OOF_FOLDS = 5
 
 
 @dataclass(slots=True)
@@ -124,3 +128,18 @@ def fit(records: list[dict[str, Any]], l2: float = L2) -> PregamePrior:
                     x[i, j] += sign / max(len(team), 1)
         y[i] = float(r["label_a_win"])
     return PregamePrior(players=index, coef=_newton(x, y, l2).tolist())
+
+
+def oof_logits(
+    records: list[dict[str, Any]], folds: int = OOF_FOLDS, seed: int = 0
+) -> list[float]:
+    """Each record's prior logit from a fit that never saw it (random K-fold)."""
+    fold_of = np.random.default_rng(seed).permutation(len(records)) % folds
+    out = [0.0] * len(records)
+    for k in range(folds):
+        held = [i for i in range(len(records)) if fold_of[i] == k]
+        prior = fit([r for i, r in enumerate(records) if fold_of[i] != k])
+        for i in held:
+            r = records[i]
+            out[i] = prior.logit(r["team_a_players"], r["team_b_players"])
+    return out

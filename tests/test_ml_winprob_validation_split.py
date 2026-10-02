@@ -38,6 +38,7 @@ def record(i: int) -> dict:
         "frame_count": 3600,
         "snapshot_interval": 30,
         "label_a_win": i % 2,
+        "prior_logit": 0.0,
         "team_a_players": ["alpha"],
         "team_b_players": ["bravo"],
         "events": [[10, 0, 0, 100], [20, 2, 1, 50]],
