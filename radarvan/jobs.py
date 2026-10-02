@@ -6,14 +6,17 @@ import sys
 from collections.abc import Awaitable, Callable
 
 import structlog
+from opentelemetry import trace
 
 from . import schedule
 from .db_utils import DatabaseManager
 from .dependencies import IS_DEV, db_manager
 from .logging_config import configure_logging
 from .notify import notify_async
+from .tracing import configure_tracing
 
 logger = structlog.get_logger(__name__)
+tracer = trace.get_tracer(__name__)
 
 type Step = Callable[[DatabaseManager], Awaitable[None]]
 
@@ -47,14 +50,18 @@ def _failed_message(job: str, step: str, exc: BaseException) -> str:
 
 async def run(job: str, manager: DatabaseManager) -> bool:
     ok = True
-    for step in JOBS[job]:
-        logger.info("job step starting", job=job, step=step.__name__)
-        try:
-            await step(manager)
-        except Exception as exc:
-            logger.exception("job step failed", job=job, step=step.__name__)
-            await notify_async(_failed_message(job, step.__name__, exc))
-            ok = False
+    with tracer.start_as_current_span(f"job {job}") as job_span:
+        for step in JOBS[job]:
+            logger.info("job step starting", job=job, step=step.__name__)
+            try:
+                with tracer.start_as_current_span(f"job step {step.__name__}"):
+                    await step(manager)
+            except Exception as exc:
+                logger.exception("job step failed", job=job, step=step.__name__)
+                await notify_async(_failed_message(job, step.__name__, exc))
+                ok = False
+        if not ok:
+            job_span.set_status(trace.StatusCode.ERROR)
     return ok
 
 
@@ -63,6 +70,8 @@ def main() -> None:
     parser.add_argument("job", choices=JOBS)
     job = parser.parse_args().job
     configure_logging(dev=IS_DEV)
+    # The SDK provider flushes queued spans at interpreter exit, sys.exit included.
+    configure_tracing()
     if not asyncio.run(run(job, db_manager)):
         sys.exit(1)
 

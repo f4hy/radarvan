@@ -68,7 +68,9 @@ logger = structlog.get_logger(__name__)
 # time_to_hunted (cncstats statsVersion 3 added stats.huntedEvents).
 # v8: uneven teams no longer get a win_prob_over_time curve. (A retrained model
 # needs no bump: winprob_inference.bundle_version() is part of the version.)
-_DETAILS_LOGIC_VERSION = 8
+# v9: income_by_source emits each (source, player)'s own plateau edges instead
+# of every source at every point of the shared grid.
+_DETAILS_LOGIC_VERSION = 9
 
 
 def _compute_details_version() -> str:

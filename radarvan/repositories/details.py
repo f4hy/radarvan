@@ -12,14 +12,19 @@ from datetime import UTC, datetime
 
 import structlog
 
-from sqlalchemy import delete as sa_delete, func, select
+from sqlalchemy import ColumnElement, delete as sa_delete, func, select
 
 from ..api_types import MatchDetails
-from ..db import MatchDetailsCache
+from ..db import Match, MatchDetailsCache
 
 from .base import BaseRepo
 
 logger = structlog.get_logger(__name__)
+
+
+def _stale_details(version: str) -> ColumnElement[bool]:
+    """For a Match outer-joined to MatchDetailsCache: no row, or an old one."""
+    return MatchDetailsCache.match_id.is_(None) | (MatchDetailsCache.version != version)
 
 
 class MatchDetailsRepo(BaseRepo):
@@ -85,6 +90,33 @@ class MatchDetailsRepo(BaseRepo):
                 select(func.count())
                 .select_from(MatchDetailsCache)
                 .where(MatchDetailsCache.version == version)
+            ).scalar_one()
+            or 0
+        )
+
+    def list_stale_details_match_ids(self, version: str, limit: int) -> list[int]:
+        """Newest-first matches with no details row at `version`."""
+        return list(
+            self.session.scalars(
+                select(Match.match_id)
+                .outerjoin(
+                    MatchDetailsCache, MatchDetailsCache.match_id == Match.match_id
+                )
+                .where(_stale_details(version))
+                .order_by(Match.timestamp.desc())
+                .limit(limit)
+            )
+        )
+
+    def count_stale_details(self, version: str) -> int:
+        return (
+            self.session.execute(
+                select(func.count())
+                .select_from(Match)
+                .outerjoin(
+                    MatchDetailsCache, MatchDetailsCache.match_id == Match.match_id
+                )
+                .where(_stale_details(version))
             ).scalar_one()
             or 0
         )

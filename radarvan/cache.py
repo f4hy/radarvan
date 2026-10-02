@@ -15,6 +15,7 @@ decorator already locks every cache and single-flights concurrent misses.)
 
 import structlog
 import threading
+from opentelemetry import trace
 
 from . import game_composition, matches, player_rating
 from .api_types import MatchInfo, MatchDetails
@@ -25,6 +26,7 @@ from .derived import CORPUS, MAPS, derived, invalidate
 from .repositories.maps import normalize_map_name
 
 logger = structlog.get_logger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 @derived(on=MAPS, maxsize=1)
@@ -107,6 +109,7 @@ def details_from_id(
     return match_details.load_match_details(match_id, replay_manager)
 
 
+@tracer.start_as_current_span("warm_caches")
 def _warm_caches() -> None:
     with db_manager.get_replay_manager() as rm:
         sorted_deduped_matches(rm)

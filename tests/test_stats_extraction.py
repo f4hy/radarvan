@@ -123,6 +123,27 @@ def test_income_by_source_sparsifies_unchanged_snapshots() -> None:
     assert series[round(5 * minute_per_snap, 3)] == {"P1": 200}
 
 
+def test_income_by_source_flat_series_skip_the_shared_grid() -> None:
+    """A trickle source puts every snapshot on the grid; a flat source or a
+    flat player must still emit only its own plateau edges on it."""
+    supply = [0, 10, 20, 30, 40, 50]
+    p1 = _income(n=6, supply=supply, salvage=[0, 50, 50, 50, 50, 50])
+    p2 = _income(n=6, supply=[0, 100, 100, 100, 100, 100])
+    replay = _replay([_ts_player(1, p1, money=supply), _ts_player(2, p2, money=supply)])
+
+    result = stats_data_from_replay(replay)
+    assert result is not None
+    income = result.income_by_source
+
+    minute_per_snap = SNAPSHOT_INTERVAL * DURATION_MINUTES / FRAME_COUNT
+    minutes = [i * minute_per_snap for i in range(6)]
+    assert list(income["salvage"]) == [minutes[0], minutes[1], minutes[5]]
+    assert income["salvage"][minutes[5]] == {"P1": 50}
+    # P2's flat supply is absent from the rows where only P1 changed.
+    assert income["supply"][minutes[3]] == {"P1": 30}
+    assert income["supply"][minutes[5]] == {"P1": 50, "P2": 100}
+
+
 def test_income_by_source_caps_snapshot_count() -> None:
     """A trickle source that changes on every snapshot must still come back
     with a bounded number of points (thinned grid), keeping the wire payload

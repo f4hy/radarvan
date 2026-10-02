@@ -114,6 +114,16 @@ def _sparse_keep_indices(
     return kept
 
 
+def _plateau_edges(values: list[int]) -> list[int]:
+    """Positions of both ends and of the first and last point of every flat run."""
+    last = len(values) - 1
+    return [
+        k
+        for k, v in enumerate(values)
+        if k in (0, last) or v != values[k - 1] or v != values[k + 1]
+    ]
+
+
 def _is_building(name: str | None) -> bool:
     return name == "structure"
 
@@ -215,14 +225,18 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
             num_snapshots,
             _MAX_INCOME_SNAPSHOTS,
         )
-        for snap_idx in kept:
-            minute = snap_idx * interval * scale
-            for src, entries in pruned.items():
-                income_by_source[src][minute] = {
-                    name: vals[snap_idx]
-                    for name, vals in entries
-                    if snap_idx < len(vals)
-                }
+        # The grid is shared so the chart's union of minutes stays capped, but
+        # each (source, player) only emits its own plateau edges on it.
+        for src, entries in pruned.items():
+            rows: dict[float, dict[str, int]] = {}
+            for name, vals in entries:
+                grid = [i for i in kept if i < len(vals)]
+                for pos in _plateau_edges([vals[i] for i in grid]):
+                    snap_idx = grid[pos]
+                    rows.setdefault(snap_idx * interval * scale, {})[name] = vals[
+                        snap_idx
+                    ]
+            income_by_source[src] = dict(sorted(rows.items()))
 
     # xp from skillPointsEvents - each event records the player's current total
     xp: dict[float, dict[str, int]] = {}
