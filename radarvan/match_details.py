@@ -43,6 +43,7 @@ from .stats_extraction import (
 from .powers import powers_from_replay
 from .timeline_events import timeline_events_from_replay
 from .game_composition import MatchRoster
+from .log_time import log_time
 from .utils import minutes_per_step
 from . import winprob_inference
 import structlog
@@ -211,7 +212,8 @@ def load_match_details(
     if rep is None:
         return None
     replay = replay_files.parse_replay(rep.replay_file_url, replay_manager)
-    details = match_details_from_replay(replay)
+    with log_time("deriving match details", logger, match_id=match_id):
+        details = match_details_from_replay(replay)
     if details is not None:
         replay_manager.save_cached_details(match_id, details, DETAILS_VERSION)
     return details

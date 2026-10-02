@@ -21,11 +21,13 @@ import time
 from typing import NamedTuple
 
 import structlog
-from anthropic.types import TextBlock
 from opentelemetry import trace
 
 from ..notify import notify
-from . import anthropic_client, gemini_client
+from . import gemini_client
+
+# The anthropic SDK costs ~23 MB resident just to import, so it is imported
+# only on the anthropic branches below - never while gemini is the provider.
 
 logger = structlog.get_logger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -67,6 +69,8 @@ def active_provider() -> str:
 def commentary_available() -> bool:
     """True if the currently-selected provider has its API key configured."""
     if active_provider() == "anthropic":
+        from . import anthropic_client
+
         return anthropic_client.commentary_available()
     return gemini_client.commentary_available()
 
@@ -105,6 +109,10 @@ def _record_usage(
 
 
 def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
+    from anthropic.types import TextBlock
+
+    from . import anthropic_client
+
     start = time.monotonic()
     try:
         with anthropic_client.anthropic_client().messages.stream(
