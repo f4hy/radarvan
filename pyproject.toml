@@ -80,6 +80,9 @@ ml = [
   # ONNX export + a torch-free CPU runtime for serving the exported model.
   "onnx>=1.22.0",
   "onnxruntime>=1.29.0",
+  # sklearn -> ONNX for the win-prob-over-time GBDT; served by onnxruntime alone.
+  # Capped: gbdt.export_gbdt patches a 1.20 bug; recheck it before raising this.
+  "skl2onnx>=1.19.1,<1.21",
 ]
 
 [tool.black]

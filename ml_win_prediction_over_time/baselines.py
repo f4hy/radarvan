@@ -15,19 +15,23 @@ whether watching the game unfold beats the two cheap answers:
     recurrence, no memory of how the game got here. If the GRU cannot beat this,
     it is an expensive way to read a scoreboard.
 
-The third bar - the pre-game model's prediction held flat for the whole match,
-i.e. "does watching add anything to knowing who is playing" - needs the other
-pipeline's snapshot, so it lives in the rolling harness rather than here; see
-``README.md``.
+``prior_only``
+    The frozen roster prior held flat for the whole match: does watching add
+    anything to knowing who is playing?
 
-Torch-free (numpy + a Newton solve), so this imports cleanly anywhere.
+``gbdt``
+    Gradient-boosted trees on the current row plus its change over the last one
+    and two minutes. Nonlinear, with a little hand-built memory: if the GRU
+    cannot beat this, its recurrence is not earning anything.
+
+Torch-free (numpy + a Newton solve + sklearn), so this imports cleanly anywhere.
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from .features import FeatureStats, SeqMatch
+from .features import FEATURE_NAMES, FeatureStats, SeqMatch, with_deltas
 
 # Ridge strength on the summed log-likelihood, matching
 # ``sklearn.linear_model.LogisticRegression(C=1.0)``.
@@ -72,3 +76,17 @@ def static_logistic_probs(
         logit = np.hstack([xd, np.ones((len(xd), 1))]) @ beta
         out.append(1.0 / (1.0 + np.exp(-logit)))
     return out
+
+
+def prior_only_probs(dev: list[SeqMatch]) -> list[np.ndarray]:
+    col = FEATURE_NAMES.index("prior")
+    return [1.0 / (1.0 + np.exp(-s.x[:, col].astype(float))) for s in dev]
+
+
+def gbdt_probs(
+    train: list[SeqMatch], dev: list[SeqMatch], stats: FeatureStats, seed: int = 0
+) -> list[np.ndarray]:
+    from .gbdt import fit_gbdt  # sklearn; the rest of this module is numpy-only
+
+    clf = fit_gbdt(train, stats, seed)
+    return [clf.predict_proba(with_deltas(stats.apply(s.x)))[:, 1] for s in dev]
