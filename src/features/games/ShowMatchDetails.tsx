@@ -22,8 +22,10 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  type LegendPayload,
+  type TickItem,
+  type TooltipPayloadEntry,
 } from "recharts"
-import CostBreakdown from "./CostBreakdown"
 import ShowPlayerSummaries from "./Summary"
 import { MatchesClient } from "../../clients/matches"
 import type {
@@ -70,8 +72,57 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
-import { buildPlayerColorMap, formatCash, getColorHex } from "../../lib/utils"
+import {
+  buildPlayerColorMap,
+  formatCash,
+  formatCompact,
+  getColorHex,
+} from "../../lib/utils"
 import { BRAND_COLOR } from "../../lib/theme"
+
+// recharts' "value" sync needs an exact label match, but the timelines sample
+// on different grids (APM is 10s windows), so snap to the nearest point.
+function syncToNearestMinute(
+  ticks: ReadonlyArray<TickItem>,
+  data: { activeLabel?: string | number },
+): number {
+  const target = Number(data.activeLabel)
+  if (!Number.isFinite(target) || ticks.length === 0) return -1
+  let best = 0
+  for (let i = 1; i < ticks.length; i++) {
+    if (
+      Math.abs(ticks[i].value - target) < Math.abs(ticks[best].value - target)
+    ) {
+      best = i
+    }
+  }
+  return best
+}
+
+const TIMELINE_CHART_PROPS = {
+  margin: { top: 5, right: 10, left: 0, bottom: 5 },
+  syncId: "match-timeline",
+  syncMethod: syncToNearestMinute,
+}
+// Fixed width (not "auto") so stacked, synced charts keep their time axes aligned.
+const TIMELINE_Y_AXIS_PROPS = { width: 60, tickFormatter: formatCompact }
+
+const formatMinute = (t: unknown) => `${Number(t).toFixed(1)}m`
+
+const byValueDesc = (item: TooltipPayloadEntry) => -(Number(item.value) || 0)
+
+// Hovering a legend entry dims every other series.
+function useLegendHighlight() {
+  const [active, setActive] = React.useState<string | null>(null)
+  return {
+    legendProps: {
+      onMouseEnter: (entry: LegendPayload) =>
+        setActive(String(entry.dataKey ?? entry.value)),
+      onMouseLeave: () => setActive(null),
+    },
+    opacityFor: (key: string) => (active == null || active === key ? 1 : 0.15),
+  }
+}
 
 function MoneyChart(props: {
   money: { [key: string]: { [key: string]: number } }
@@ -79,10 +130,14 @@ function MoneyChart(props: {
   playerSummaries: PlayerSummary[]
   horizontalLines?: number[]
 }) {
-  const lines = props.horizontalLines ?? []
-  if (props.money && Object.keys(props.money).length > 0) {
-    const players = Object.keys(Object.values(props.money)[0])
-    const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
+  // Memoized so a legend hover re-renders only the line opacities.
+  const { legendProps, opacityFor } = useLegendHighlight()
+  const colors = React.useMemo(
+    () => buildPlayerColorMap(props.playerSummaries, getColorHex),
+    [props.playerSummaries],
+  )
+  const series = React.useMemo(() => {
+    if (!props.money || Object.keys(props.money).length === 0) return null
     // atMinute must be numeric (the XAxis is type="number") and the rows must
     // be sorted by time — object key order isn't guaranteed (e.g. after a
     // Postgres jsonb round-trip), and unsorted points draw zig-zag lines.
@@ -92,10 +147,19 @@ function MoneyChart(props: {
         atMinute: Number(atMinute),
       }))
       .sort((a, b) => a.atMinute - b.atMinute)
-    const max = Object.values(props.money).reduce((acc, cur) => {
-      return Math.max(acc, ...Object.values(cur))
-    }, 0)
-    const max_time = Math.max(...Object.keys(props.money).map((k) => Number(k)))
+    return {
+      players: Object.keys(Object.values(props.money)[0]),
+      data,
+      max: Object.values(props.money).reduce(
+        (acc, cur) => Math.max(acc, ...Object.values(cur)),
+        0,
+      ),
+      maxTime: data[data.length - 1].atMinute,
+    }
+  }, [props.money])
+  const lines = props.horizontalLines ?? []
+  if (series) {
+    const { players, data, max, maxTime } = series
     return (
       <>
         <Typography variant="h5">{props.title}</Typography>
@@ -104,33 +168,25 @@ function MoneyChart(props: {
             title={props.title}
             height={300}
             data={data}
-            margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
+            {...TIMELINE_CHART_PROPS}
           >
             <XAxis
               type="number"
               dataKey="atMinute"
-              domain={[0, max_time]}
-              tickFormatter={(atMinute) => `${atMinute.toFixed(1)}m`}
+              domain={[0, maxTime]}
+              tickFormatter={formatMinute}
               name="minutes"
             />
-            <YAxis
-              label={{
-                value: props.title,
-                position: "insideLeft",
-                fontSize: 25,
-                offset: -30,
-                angle: -90,
-              }}
-              domain={[0, max]}
-            />
-            <Tooltip labelFormatter={(t) => `${Number(t).toFixed(1)}m`} />
-            <Legend />
-            {players.map((n, _i) => (
+            <YAxis domain={[0, max]} {...TIMELINE_Y_AXIS_PROPS} />
+            <Tooltip labelFormatter={formatMinute} itemSorter={byValueDesc} />
+            <Legend {...legendProps} />
+            {players.map((n) => (
               <Line
                 key={n}
                 dataKey={n}
                 strokeWidth={2.5}
                 stroke={colors[n]}
+                strokeOpacity={opacityFor(n)}
                 dot={false}
               />
             ))}
@@ -456,44 +512,54 @@ function ApmChart(props: {
   apms: APM[]
   playerSummaries: PlayerSummary[]
 }) {
-  const minuteKeys = Object.keys(props.apmOverTime)
-  if (minuteKeys.length === 0) {
+  const { legendProps, opacityFor } = useLegendHighlight()
+  const colors = React.useMemo(
+    () => buildPlayerColorMap(props.playerSummaries, getColorHex),
+    [props.playerSummaries],
+  )
+  const series = React.useMemo(() => {
+    if (Object.keys(props.apmOverTime).length === 0) return null
+    const players = Object.keys(Object.values(props.apmOverTime)[0])
+    const data: { atMinute: number; [player: string]: number }[] =
+      Object.entries(props.apmOverTime)
+        .map(([atMinute, values]) => ({
+          ...values,
+          atMinute: Number(atMinute),
+        }))
+        .sort((a, b) => a.atMinute - b.atMinute)
+    const averageByPlayer = new Map(
+      props.apms.map((a) => [a.playerName, a.apm]),
+    )
+    const seriesMax = data.reduce(
+      (acc, row) => Math.max(acc, ...players.map((p) => row[p] ?? 0)),
+      0,
+    )
+    // Include the average lines in the domain, but ignore pathological outliers
+    // so a single bad average can't collapse the whole chart (a degenerate
+    // active window used to yield averages in the hundreds of millions). Averages
+    // can legitimately exceed the per-minute series max, so allow generous slack.
+    const saneAverages = Array.from(averageByPlayer.values()).filter(
+      (v) => Number.isFinite(v) && v <= seriesMax * 5,
+    )
+    return {
+      players,
+      data,
+      averageByPlayer,
+      max: Math.max(seriesMax, ...saneAverages, 0),
+      maxTime: data[data.length - 1].atMinute,
+    }
+  }, [props.apmOverTime, props.apms])
+  if (!series) {
     return <div>APM data not available for this replay</div>
   }
-  const players = Object.keys(Object.values(props.apmOverTime)[0])
-  const colors = buildPlayerColorMap(props.playerSummaries, getColorHex)
-  const data: { atMinute: number; [player: string]: number }[] = Object.entries(
-    props.apmOverTime,
-  )
-    .map(([atMinute, values]) => ({
-      ...values,
-      atMinute: Number(atMinute),
-    }))
-    .sort((a, b) => a.atMinute - b.atMinute)
-  const averageByPlayer = new Map(props.apms.map((a) => [a.playerName, a.apm]))
-  const seriesMax = data.reduce(
-    (acc, row) => Math.max(acc, ...players.map((p) => row[p] ?? 0)),
-    0,
-  )
-  // Include the average lines in the domain, but ignore pathological outliers
-  // so a single bad average can't collapse the whole chart (a degenerate
-  // active window used to yield averages in the hundreds of millions). Averages
-  // can legitimately exceed the per-minute series max, so allow generous slack.
-  const saneAverages = Array.from(averageByPlayer.values()).filter(
-    (v) => Number.isFinite(v) && v <= seriesMax * 5,
-  )
-  const max = Math.max(seriesMax, ...saneAverages, 0)
-  const maxTime = data[data.length - 1].atMinute
+  const { players, data, averageByPlayer, max, maxTime } = series
   return (
     <>
       <Typography variant="h5">
         APM Over Time (10s windows, dotted = match average)
       </Typography>
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart
-          data={data}
-          margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
-        >
+        <LineChart data={data} {...TIMELINE_CHART_PROPS}>
           <XAxis
             type="number"
             dataKey="atMinute"
@@ -501,29 +567,22 @@ function ApmChart(props: {
             tickFormatter={(t) => `${t.toFixed(0)}m`}
             name="minutes"
           />
-          <YAxis
-            label={{
-              value: "APM",
-              position: "insideLeft",
-              fontSize: 25,
-              offset: -30,
-              angle: -90,
-            }}
-            domain={[0, max]}
-          />
+          <YAxis domain={[0, max]} {...TIMELINE_Y_AXIS_PROPS} />
           <Tooltip
-            labelFormatter={(t) => `${Number(t).toFixed(0)}m`}
+            labelFormatter={formatMinute}
             formatter={(value) =>
               typeof value === "number" ? value.toFixed(0) : value
             }
+            itemSorter={byValueDesc}
           />
-          <Legend />
+          <Legend {...legendProps} />
           {players.map((n) => (
             <Line
               key={n}
               dataKey={n}
               strokeWidth={2}
               stroke={colors[n]}
+              strokeOpacity={opacityFor(n)}
               dot={false}
             />
           ))}
@@ -535,6 +594,7 @@ function ApmChart(props: {
                 key={`avg-${n}`}
                 y={avg}
                 stroke={colors[n]}
+                strokeOpacity={opacityFor(n)}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
                 ifOverflow="hidden"
@@ -963,8 +1023,6 @@ function DetailedGraphs(props: { details: MatchDetails }) {
         playerSummaries={details.playerSummary}
       />
       <Divider />
-      <CostBreakdown costs={details.costs} />
-      <Divider />
       <MoneyCharts details={details} />
       <XpCharts details={details} />
       <UnitCharts details={details} />
@@ -1348,19 +1406,16 @@ function PlayerIncomeChart(props: {
     <>
       <Typography variant="h6">{playerName}</Typography>
       <ResponsiveContainer width="100%" height={260}>
-        <AreaChart
-          data={data}
-          margin={{ top: 5, right: 10, left: 50, bottom: 5 }}
-        >
+        <AreaChart data={data} {...TIMELINE_CHART_PROPS}>
           <XAxis
             type="number"
             dataKey="atMinute"
             domain={[0, maxTime]}
-            tickFormatter={(atMinute) => `${atMinute.toFixed(1)}m`}
+            tickFormatter={formatMinute}
             name="minutes"
           />
-          <YAxis domain={[0, yMax]} />
-          <Tooltip labelFormatter={(t) => `${Number(t).toFixed(1)}m`} />
+          <YAxis domain={[0, yMax]} {...TIMELINE_Y_AXIS_PROPS} />
+          <Tooltip labelFormatter={formatMinute} />
           <Legend />
           {sources.map((s) => (
             <Area

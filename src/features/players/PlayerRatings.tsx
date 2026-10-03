@@ -809,7 +809,8 @@ function SkillScatterChart(props: { data: RatingEntry[]; isMobile: boolean }) {
             dataKey="sigma"
             width={isMobile ? 4 : 10}
             strokeWidth={isMobile ? 2 : 5}
-            stroke="skyblue"
+            stroke={BRAND_COLOR}
+            strokeOpacity={0.4}
             direction="y"
           />
         </Scatter>
