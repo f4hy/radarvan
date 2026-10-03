@@ -15,8 +15,17 @@ import {
   YAxis,
 } from "recharts"
 import type { KillEventOutput, ObjectSummary, PlayerSummary } from "../../api"
+import {
+  BRAND_COLOR,
+  CHART_PALETTE,
+  LOSS_COLOR,
+  LOSS_COLOR_SOFT,
+  NEUTRAL_COLOR,
+  WIN_COLOR,
+  WIN_COLOR_SOFT,
+} from "../../lib/theme"
 
-// The Sankey and unit charts reserve 200-300px of fixed margin for labels,
+// The Sankey's fixed label margins and the unit chart's name axis take ~300px,
 // which leaves nothing on a phone; below this they scroll sideways instead.
 const WIDE_CHART_MIN_WIDTH = 560
 
@@ -57,11 +66,12 @@ function BuiltChart(props: {
             height={300}
             layout="vertical"
             data={data}
-            margin={{ top: 5, right: 5, left: 200, bottom: 5 }}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
           >
             <YAxis
               dataKey="unit"
               type="category"
+              width="auto"
               tickFormatter={removeUnitPrefix}
             />
             <XAxis
@@ -73,7 +83,7 @@ function BuiltChart(props: {
             <Tooltip />
             <Bar
               dataKey="count"
-              fill="#8884d8"
+              fill={BRAND_COLOR}
               label={{ fill: "currentColor", fontSize: 20 }}
             />
           </BarChart>
@@ -127,16 +137,17 @@ function buildCategorySankeyData(
   return { nodes: nodeNames.map((name) => ({ name })), links }
 }
 
+// Kills read as wins and losses as losses, matching the rest of the app.
 const CATEGORY_COLORS: Record<string, string> = {
-  Units: "#4e79a7",
-  Buildings: "#e15759",
-  Upgrades: "#f28e2b",
-  "Units Destroyed": "#9467bd",
-  "Buildings Destroyed": "#bcbd22",
-  "Units Lost": "#d62728",
-  "Buildings Lost": "#8c564b",
-  "Destroyed From": "#59a14f",
-  "Lost To": "#e15759",
+  Units: CHART_PALETTE[0],
+  Buildings: CHART_PALETTE[1],
+  Upgrades: CHART_PALETTE[3],
+  "Units Destroyed": WIN_COLOR,
+  "Buildings Destroyed": WIN_COLOR_SOFT,
+  "Units Lost": LOSS_COLOR,
+  "Buildings Lost": LOSS_COLOR_SOFT,
+  "Destroyed From": WIN_COLOR,
+  "Lost To": LOSS_COLOR,
 }
 
 type SankeyLinkProps = {
@@ -163,7 +174,7 @@ function SankeyLink({
   const color =
     CATEGORY_COLORS[payload?.target?.name ?? ""] ??
     CATEGORY_COLORS[payload?.source?.name ?? ""] ??
-    "#aaa"
+    NEUTRAL_COLOR
   const d = [
     `M${sourceX},${sourceY - linkWidth / 2}`,
     `C${sourceControlX},${sourceY - linkWidth / 2}`,
@@ -185,25 +196,11 @@ function SankeyLink({
   )
 }
 
-const NODE_COLORS = [
-  "#4e79a7",
-  "#f28e2b",
-  "#e15759",
-  "#76b7b2",
-  "#59a14f",
-  "#edc948",
-  "#b07aa1",
-  "#ff9da7",
-  "#9c755f",
-  "#bab0ac",
-]
-
 type SankeyNodeProps = {
   x?: number
   y?: number
   width?: number
   height?: number
-  index?: number
   payload?: { name: string; value?: number; sourceLinks?: unknown[] }
 }
 
@@ -212,11 +209,11 @@ function SankeyNode({
   y = 0,
   width = 0,
   height = 0,
-  index = 0,
   payload,
 }: SankeyNodeProps) {
   if (!payload) return null
-  const color = NODE_COLORS[index % NODE_COLORS.length]
+  // The links carry the category color; only category nodes repeat it.
+  const color = CATEGORY_COLORS[payload.name] ?? NEUTRAL_COLOR
   const isLeaf = (payload.sourceLinks?.length ?? 0) === 0
   const textX = isLeaf ? x - 6 : x + width + 6
   const anchor = isLeaf ? "end" : "start"

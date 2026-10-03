@@ -33,14 +33,19 @@ export function isCompetitor(p: Player): boolean {
   return !isObserver(p)
 }
 
-const compactCash = new Intl.NumberFormat("en-US", {
+const compactNumber = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
 })
 
+// e.g. 1400000 -> "1.4M".
+export function formatCompact(n: number): string {
+  return compactNumber.format(n)
+}
+
 // Format a dollar amount compactly, e.g. 1400000 -> "$1.4M".
 export function formatCash(amount: number): string {
-  return `$${compactCash.format(amount)}`
+  return `$${formatCompact(amount)}`
 }
 
 // Sum of cash available across a map's supply piles (mapparse's `supply`

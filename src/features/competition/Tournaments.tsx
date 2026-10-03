@@ -349,7 +349,7 @@ function TeamProgressChart(props: {
         margin={{
           top: 5,
           right: 30,
-          left: props.isMobile ? 5 : 150,
+          left: 5,
           bottom: 5,
         }}
       >
@@ -358,7 +358,7 @@ function TeamProgressChart(props: {
         <YAxis
           dataKey="team"
           type="category"
-          width={props.isMobile ? 65 : 140}
+          width={props.isMobile ? 65 : "auto"}
           tick={{ fontSize: props.isMobile ? 10 : 14 }}
         />
         <Tooltip content={<TeamProgressTooltip total={props.total} />} />
