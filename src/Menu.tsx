@@ -27,6 +27,7 @@ import { useColorMode } from "./lib/ColorModeContext"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { startDiscordLogin } from "./lib/auth"
 import radarvanLogo from "./img/radarvan_logo.webp"
+import radarvanLogoDark from "./img/radarvan_logo_dark.webp"
 import Loading from "./components/Loading"
 import { navGroups, routeBySlug } from "./routes"
 
@@ -116,7 +117,23 @@ export default function Menu() {
             component="img"
             src={radarvanLogo}
             alt="radarvan"
-            sx={{ width: "100%", height: "auto", display: "block" }}
+            sx={(t) => ({
+              width: "100%",
+              height: "auto",
+              display: "block",
+              ...t.applyStyles("dark", { display: "none" }),
+            })}
+          />
+          <Box
+            component="img"
+            src={radarvanLogoDark}
+            alt="radarvan"
+            sx={(t) => ({
+              width: "100%",
+              height: "auto",
+              display: "none",
+              ...t.applyStyles("dark", { display: "block" }),
+            })}
           />
         </Box>
       </Toolbar>
