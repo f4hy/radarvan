@@ -102,7 +102,7 @@ def test_the_blurb_job_runs_after_the_recap_job_and_survives_its_failure(
     assert calls == ["recap", "blurbs"]
     [message] = [call.args[0] for call in notify.await_args_list]
     assert "`recap`" in message and "recap failed" in message
-    assert "heroku run python -m radarvan.jobs game_night" in message
+    assert "heroku run -a radarvan -- python -m radarvan.jobs game_night" in message
 
 
 def test_game_night_job_runs_summary_then_blurbs() -> None:
