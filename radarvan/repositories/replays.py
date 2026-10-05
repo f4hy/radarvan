@@ -239,8 +239,7 @@ class ReplayRepo(BaseRepo):
         return result.rowcount > 0  # type: ignore[attr-defined, no-any-return]
 
     def list_files(self) -> list[ReplayFile]:
-        query = self.session.query(ReplayFile)
-        return list(self.session.execute(query).scalars().all())
+        return list(self.session.scalars(select(ReplayFile)).all())
 
     def list_jsons(
         self,
@@ -278,8 +277,7 @@ class ReplayRepo(BaseRepo):
         return list(self.session.scalars(stmt).all())
 
     def already_scraped(self) -> set[str]:
-        query = self.session.query(ReplayFile.original_url)
-        return set(self.session.execute(query).scalars().all())
+        return set(self.session.scalars(select(ReplayFile.original_url)).all())
 
     def list_dates_with_games(self) -> list[date]:
         """Get the set of dates which have games."""
