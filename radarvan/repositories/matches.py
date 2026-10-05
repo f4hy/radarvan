@@ -12,6 +12,7 @@ from typing import NamedTuple
 import structlog
 
 from sqlalchemy import or_, select, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
@@ -251,21 +252,32 @@ class MatchRepo(BaseRepo):
         if match is None:
             return None
         comp = compute_match_composition(match.players)
-        db_comp = MatchCompostion(
-            match_id=match_id,
-            category=comp.category,
-            is_comp_stomp=comp.is_comp_stomp,
-            is_ffa=comp.is_ffa,
-            num_teams=comp.num_teams,
-            team_sizes=comp.team_sizes,
-            total_players=comp.total_players,
-            num_humans=comp.num_humans,
-            num_computers=comp.num_computers,
-            is_balanced=comp.is_balanced,
-            is_1v1=comp.is_1v1,
-            is_team_game=comp.is_team_game,
-        )
-        self.session.merge(db_comp)
+        values = {
+            "category": comp.category,
+            "is_comp_stomp": comp.is_comp_stomp,
+            "is_ffa": comp.is_ffa,
+            "num_teams": comp.num_teams,
+            "team_sizes": comp.team_sizes,
+            "total_players": comp.total_players,
+            "num_humans": comp.num_humans,
+            "num_computers": comp.num_computers,
+            "is_balanced": comp.is_balanced,
+            "is_1v1": comp.is_1v1,
+            "is_team_game": comp.is_team_game,
+        }
+        # An atomic upsert, not merge(): every player's client uploads the same
+        # match at once, and merge's SELECT-then-INSERT races into a
+        # UniqueViolation. Concurrent writers compute from the same committed
+        # players, so last-writer-wins is harmless.
+        stmt = pg_insert(MatchCompostion).values(match_id=match_id, **values)
+        upsert = stmt.on_conflict_do_update(
+            index_elements=[MatchCompostion.match_id],
+            set_={k: stmt.excluded[k] for k in values},
+        ).returning(MatchCompostion)
+        # populate_existing refreshes an already-loaded row; the expire covers a
+        # relationship that was loaded as None before the insert.
+        self.session.execute(upsert, execution_options={"populate_existing": True})
+        self.session.expire(match, ["composition"])
         self._commit_if_auto()
         return comp
 

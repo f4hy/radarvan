@@ -44,7 +44,7 @@ def _failed_message(job: str, step: str, exc: BaseException) -> str:
     detail = f"{type(exc).__name__}: {exc}"[:500]
     return (
         f"Scheduled job `{job}` failed in `{step}`: {detail}\n"
-        f"Rerun: `heroku run python -m radarvan.jobs {job} -a radarvan`"
+        f"Rerun: `heroku run -a radarvan -- python -m radarvan.jobs {job}`"
     )
 
 
