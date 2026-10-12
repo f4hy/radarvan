@@ -16,6 +16,7 @@ decorator already locks every cache and single-flights concurrent misses.)
 import hashlib
 import structlog
 import threading
+from collections.abc import Callable
 from typing import NamedTuple
 from opentelemetry import trace
 
@@ -135,12 +136,22 @@ def details_from_id(
     return match_details.load_match_details(match_id, replay_manager)
 
 
+# For derivations in modules that import this one (and so can't be named here).
+_extra_warmers: list[Callable[[], object]] = []
+
+
+def register_warmer(fn: Callable[[], object]) -> None:
+    _extra_warmers.append(fn)
+
+
 @tracer.start_as_current_span("warm_caches")
 def _warm_caches() -> None:
     with db_manager.get_replay_manager() as rm:
         sorted_deduped_matches(rm)
         comp = competitive_matches(rm)
         player_rating.compute_player_ratings(list(comp.values()))
+    for fn in _extra_warmers:
+        fn()
 
 
 # Cache warming runs on a single long-lived background thread driven by an

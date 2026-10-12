@@ -11,7 +11,7 @@ middleware.py into every router's import graph.
 
 from fastapi import Request
 
-from .middleware import client_key
+from .middleware import client_key, is_crawler
 from .notify import notify_throttled
 
 API_KEY_HEADER = "X-API-Key"
@@ -40,6 +40,9 @@ def notify_auth_event(request: Request, status: int | None, detail: str) -> None
     it out of the throttle key, where a caller wording it differently would
     silently earn its own bucket.
     """
+    # Crawlers following /api URLs they found in the page are expected, not news.
+    if is_crawler(request):
+        return
     outcome = f"rejected {status}" if status is not None else "allowed"
     client = client_key(request)
     method, path = request.method, request.scope["path"]

@@ -18,7 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
-from . import cncstats_client, middleware, replay_files
+from . import cncstats_client, middleware, replay_files, seo
 from .auth_notify import notify_auth_event
 from .cache import warm_caches
 from .dependencies import IS_DEV, SESSION_SECRET, verify_api_key
@@ -43,6 +43,7 @@ from .routes import (
     players,
     predict,
     profile,
+    seo as seo_routes,
     superlatives,
     teams,
     tournaments,
@@ -203,7 +204,14 @@ app.include_router(game_night.session_router)
 app.include_router(superlatives.session_router)
 app.include_router(tournaments.session_router)
 
+# robots/sitemap - public, for crawlers.
+app.include_router(seo_routes.router)
+
 
 # html=True serves dist/index.html for "/". Cache-Control rules for the built
 # frontend live in radarvan.http_cache.
-app.mount("/", CachedStaticFiles(directory="dist", html=True), name="dist")
+app.mount(
+    "/",
+    CachedStaticFiles(directory="dist", html=True, shell=seo.shell_page),
+    name="dist",
+)
