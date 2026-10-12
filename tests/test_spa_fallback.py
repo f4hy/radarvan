@@ -9,7 +9,15 @@ real answers, and turning either into HTML hides the failure somewhere worse.
 import pytest
 from fastapi.testclient import TestClient
 
+from radarvan import seo
 from radarvan.main import app
+
+
+@pytest.fixture(autouse=True)
+def _no_db(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The shell's per-page tags read the corpus; without one they degrade to
+    # page-level tags, which is all these tests look at.
+    monkeypatch.setattr(seo, "load_index", lambda: None)
 
 
 @pytest.fixture(scope="module")
@@ -26,9 +34,6 @@ def client() -> TestClient:
         "/player-profile",
         "/head-to-head",
         "/matches",
-        # A path the router doesn't know either: still the app's to answer, and
-        # it renders the client's own not-found rather than the server's.
-        "/no-such-page",
     ],
 )
 def test_a_client_route_serves_the_app_shell(client: TestClient, path: str) -> None:
@@ -40,12 +45,20 @@ def test_a_client_route_serves_the_app_shell(client: TestClient, path: str) -> N
     assert resp.headers["cache-control"] == "no-cache"
 
 
-def test_query_string_links_still_reach_the_shell(client: TestClient) -> None:
-    """The old ``?page=`` links pasted into chat resolve at the root, which has
-    a real index.html; the client redirects them to the path form."""
-    resp = client.get("/?page=game-night&date=2026-08-28")
-    assert resp.status_code == 200
+def test_an_unknown_path_is_a_404_that_still_renders_the_app(
+    client: TestClient,
+) -> None:
+    """The client draws its own not-found, but crawlers need the real status."""
+    resp = client.get("/no-such-page")
+    assert resp.status_code == 404
     assert '<div id="root">' in resp.text
+
+
+def test_query_string_links_redirect_to_the_path_form(client: TestClient) -> None:
+    """The old ``?page=`` links pasted into chat keep working."""
+    resp = client.get("/?page=game-night&date=2026-08-28", follow_redirects=False)
+    assert resp.status_code == 301
+    assert resp.headers["location"] == "/game-night?date=2026-08-28"
 
 
 def test_an_unknown_api_path_still_404s_as_json(client: TestClient) -> None:

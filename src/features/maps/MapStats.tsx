@@ -528,6 +528,7 @@ export default function DisplayMapStats() {
   return (
     <Page
       title="Map Stats"
+      tabTitle={focusedMap ? `${focusedMap} · Map Stats` : undefined}
       description="Which generals and which players do well on each map. A player needs at least 3 games on a map to appear."
       actions={
         <>

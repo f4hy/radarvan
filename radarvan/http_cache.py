@@ -30,12 +30,20 @@ the explicit ``/api`` exclusion rather than a blanket fallback.
 """
 
 import os
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
-from starlette.responses import Response
+from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
+
+from .seo import ShellPage
+
+# (index.html template, request path, query string) -> what to send.
+ShellRenderer = Callable[[str, str, str], ShellPage]
 
 _IMMUTABLE = "public, max-age=31536000, immutable"
 
@@ -47,6 +55,10 @@ _API_PREFIX = "api"
 class CachedStaticFiles(StaticFiles):
     """StaticFiles that says how long each kind of file may be kept, and serves
     ``index.html`` for client-routed paths."""
+
+    def __init__(self, *, shell: ShellRenderer | None = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.shell = shell
 
     def file_response(
         self,
@@ -61,16 +73,35 @@ class CachedStaticFiles(StaticFiles):
         return response
 
     async def get_response(self, path: str, scope: Scope) -> Response:
+        # "." is the mount root.
+        if self.shell is not None and path in (".", "index.html"):
+            return await self._shell_response(self.shell, scope)
         try:
             return await super().get_response(path, scope)
         except HTTPException as exc:
             if exc.status_code != 404 or not self._is_client_route(path):
                 raise
-            # Serve the app shell and let the router decide what the path
-            # means. 200, not 404: this *is* a real page as far as the client
-            # is concerned, and a 404 status would keep it out of history and
-            # confuse anything reading the status (link unfurlers included).
-            return await super().get_response("index.html", scope)
+            if self.shell is None:
+                return await super().get_response("index.html", scope)
+            # The shell renderer picks the status: 200 for a real page, 404
+            # (still the app shell, so the client shows its not-found) otherwise.
+            return await self._shell_response(self.shell, scope)
+
+    async def _shell_response(self, shell: ShellRenderer, scope: Scope) -> Response:
+        template = (Path(self.directory or "") / "index.html").read_text()
+        page = await run_in_threadpool(
+            shell,
+            template,
+            scope["path"],
+            scope.get("query_string", b"").decode("latin-1"),
+        )
+        if page.location is not None:
+            return RedirectResponse(page.location, status_code=page.status)
+        return HTMLResponse(
+            page.html or template,
+            status_code=page.status,
+            headers={"Cache-Control": "no-cache"},
+        )
 
     @staticmethod
     def _is_client_route(path: str) -> bool:

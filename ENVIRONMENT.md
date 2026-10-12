@@ -5,6 +5,7 @@
 | `DATABASE_URL` | Postgres (required; `postgres://` auto-rewritten to `postgresql://`) |
 | `DEV` | Set = dev mode: ops routes visible in OpenAPI |
 | `API_KEY_NORMAL` / `API_KEY_ADMIN` | Comma-separated keys for `X-API-Key`, by privilege tier (admin implies normal); `ENFORCE_AUTH` set = actually reject. The old `API_KEY_READ`/`API_KEY_WRITE` names still work as a fallback |
+| `SITE_URL` | Canonical origin for `<link rel=canonical>`, `og:url` and the sitemap (`seo.py`); default `https://www.radarvan.com` |
 | `SESSION_SECRET` | Signs the session cookie (random per-process fallback in dev) |
 | `DISCORD_CLIENT_ID/SECRET`, `DISCORD_REDIRECT_URI` | Discord OAuth login (see `auth.md`) |
 | `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_VOICE_CHANNEL_ID` | Bot creds for syncing bracket match schedules to Discord Guild Scheduled Events (`discord_events.py`); all three required or it's a no-op |
