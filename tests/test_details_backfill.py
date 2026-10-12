@@ -75,7 +75,7 @@ def test_stale_details_are_missing_or_old_rows_newest_first(
 
 
 def test_cached_reads_round_trip_through_pydantic(postgres_db_url: str) -> None:
-    raw = json.loads(Path("references/example_api_match_details.json").read_text())
+    raw = json.loads((Path(__file__).parent / "example_api_match_details.json").read_text())
     powers = MatchPowers(
         players=[PlayerPowers(player_name="P1", faction="F", general=1, minutes=12.0)]
     )
