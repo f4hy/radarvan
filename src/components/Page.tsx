@@ -58,7 +58,9 @@ function PageHeader(props: {
   )
 }
 
-const SITE_NAME = "Radarvan"
+// Mirrors radarvan/seo.py's TITLE_SUFFIX, so the title a crawler renders
+// matches the one the server sent.
+const TITLE_SUFFIX = "Radarvan – C&C Generals Zero Hour Stats"
 
 export default function Page(props: {
   title: string
@@ -77,9 +79,9 @@ export default function Page(props: {
 }) {
   const tab = props.tabTitle ?? props.title
   React.useEffect(() => {
-    document.title = `${tab} · ${SITE_NAME}`
+    document.title = `${tab} · ${TITLE_SUFFIX}`
     return () => {
-      document.title = SITE_NAME
+      document.title = TITLE_SUFFIX
     }
   }, [tab])
   const maxWidth = props.width === "narrow" ? NARROW_WIDTH : undefined

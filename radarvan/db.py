@@ -76,9 +76,7 @@ class ReplayFile(Base):
 
     __tablename__ = "replay_files"
 
-    original_url: Mapped[str] = mapped_column(
-        String, primary_key=True, unique=True, index=True
-    )
+    original_url: Mapped[str] = mapped_column(String, primary_key=True)
     s3_uri: Mapped[str] = mapped_column(String, unique=True, index=True)
     status: Mapped[ProcessingStatus] = mapped_column(
         Enum(ProcessingStatus),
@@ -154,7 +152,7 @@ class Match(Base):
 
     match_id: Mapped[int] = mapped_column(primary_key=True)
     json_s3_uri: Mapped[str] = mapped_column(
-        ForeignKey("parsed_replay_json.json_s3_uri", ondelete="CASCADE"),
+        ForeignKey("parsed_replay_json.json_s3_uri", ondelete="CASCADE"), index=True
     )
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     map: Mapped[str] = mapped_column(String(100))
@@ -333,7 +331,7 @@ class TournamentGame(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tournament_id: Mapped[int] = mapped_column(
-        ForeignKey("tournaments.id", ondelete="CASCADE"), index=True
+        ForeignKey("tournaments.id", ondelete="CASCADE")
     )
     match_id: Mapped[int] = mapped_column(index=True)
     stage: Mapped[str | None] = mapped_column(String(16), nullable=True)
@@ -539,12 +537,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    discord_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    discord_id: Mapped[str] = mapped_column(String, unique=True)
     discord_username: Mapped[str] = mapped_column(String)
     discord_avatar: Mapped[str | None] = mapped_column(String, nullable=True)
-    player_name: Mapped[str | None] = mapped_column(
-        String, unique=True, index=True, nullable=True
-    )
+    player_name: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -571,9 +567,7 @@ class MapVote(Base):
     __tablename__ = "map_votes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     player_count: Mapped[int] = mapped_column(SmallInteger, index=True)
     map_name: Mapped[str] = mapped_column(String)
     choice: Mapped[str] = mapped_column(String(8))
@@ -583,7 +577,6 @@ class MapVote(Base):
 
     __table_args__ = (
         CheckConstraint("choice in ('vote', 'veto')", name="check_vote_choice"),
-        Index("idx_map_votes_user_count", "user_id", "player_count"),
         Index(
             "uq_map_votes_user_count_map",
             "user_id",
@@ -673,7 +666,7 @@ class BracketPlayer(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tournament_id: Mapped[int] = mapped_column(
-        ForeignKey("bracket_tournaments.id", ondelete="CASCADE"), index=True
+        ForeignKey("bracket_tournaments.id", ondelete="CASCADE")
     )
     seed: Mapped[int] = mapped_column(SmallInteger)
     player_name: Mapped[str] = mapped_column(String(100))
@@ -733,7 +726,7 @@ class BracketPrediction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tournament_id: Mapped[int] = mapped_column(
-        ForeignKey("bracket_tournaments.id", ondelete="CASCADE"), index=True
+        ForeignKey("bracket_tournaments.id", ondelete="CASCADE")
     )
     match_id: Mapped[str] = mapped_column(String(16))
     user_id: Mapped[int] = mapped_column(

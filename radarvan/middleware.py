@@ -34,6 +34,22 @@ def client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+_CRAWLER_MARKERS = (
+    "bot",
+    "crawler",
+    "spider",
+    "slurp",
+    "bingpreview",
+    "facebookexternalhit",
+    "embedly",
+)
+
+
+def is_crawler(request: Request) -> bool:
+    ua = request.headers.get("user-agent", "").lower()
+    return any(marker in ua for marker in _CRAWLER_MARKERS)
+
+
 # Rate-limit config (env-overridable). 0 disables the limiter entirely.
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "1200"))
 # Max random seconds added to the advertised Retry-After so a burst of throttled
@@ -69,6 +85,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             status = response.status_code
             response.headers[REQUEST_ID_HEADER] = request_id
+            # The SPA's data, not pages; map images may still be indexed.
+            path = request.url.path
+            if path.startswith("/api") and not path.startswith("/api/map_image/"):
+                response.headers["X-Robots-Tag"] = "noindex"
             return response
         finally:
             logger.info(

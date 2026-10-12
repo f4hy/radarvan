@@ -9,31 +9,35 @@
     <!-- Matches the app bar (theme.ts APPBAR_BG) so mobile chrome blends into
          the page instead of framing it in black. -->
     <meta name="theme-color" content="#1f2733" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- In production the server replaces everything between the seo markers
+         with per-page tags (radarvan/seo.py); these are the fallback. -->
+    <!--seo:start-->
+    <title>Radarvan – Command &amp; Conquer Generals Zero Hour Stats &amp; Replays</title>
     <meta
       name="description"
-      content="Match history, player and general stats for our Command &amp; Conquer: Generals Zero Hour games."
+      content="Radarvan tracks every Command &amp; Conquer: Generals Zero Hour game our group plays on Generals Online: match history, replay stats, player profiles, win rates by general and map, build orders and game night recaps."
     />
-    <link rel="manifest" href="/manifest.json" />
-    <title>Radarvan</title>
-    <!-- The app ships shareable links by design (?page=game-night&date=… is
-         meant to be pasted into chat), so those pastes need a card rather than
-         a bare URL. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Radarvan" />
-    <meta property="og:title" content="Radarvan" />
+    <meta property="og:title" content="Radarvan – C&amp;C Generals Zero Hour Stats" />
     <meta
       property="og:description"
-      content="Match history, player and general stats for our Command &amp; Conquer: Generals Zero Hour games."
+      content="Match history, replay stats, player profiles and win rates for our Command &amp; Conquer: Generals Zero Hour games."
     />
     <!-- Unfurlers need an absolute URL and don't reliably render WebP. -->
     <meta property="og:image" content="https://www.radarvan.com/img/og-image.png" />
     <meta property="og:image:width" content="400" />
     <meta property="og:image:height" content="210" />
     <meta name="twitter:card" content="summary" />
+    <!--seo:end-->
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <noscript>
+      Radarvan is a stats site for Command &amp; Conquer: Generals Zero Hour.
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"><!--seo:body--></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
