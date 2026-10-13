@@ -272,7 +272,8 @@ def test_the_match_of_the_night_is_the_most_retellable_game_with_its_reasons() -
         3: corpus.curve_details(3, STOMP),
     }
     card = next(
-        h for h in _recap(games, details=details).highlights
+        h
+        for h in _recap(games, details=details).highlights
         if h.kind == "match_of_the_night"
     )
     assert card.match_id == 2
@@ -289,10 +290,15 @@ def test_a_night_of_stomps_has_no_match_of_the_night() -> None:
     }
 
 
-def test_the_recap_prompt_carries_the_match_of_the_night_and_the_turning_point() -> None:
+def test_the_recap_prompt_carries_the_match_of_the_night_and_the_turning_point() -> (
+    None
+):
     """Fed as data rather than taught as a rule: the model reads it off the page."""
     games = [corpus.match(1, day=5), corpus.match(2, day=5)]
-    details = {1: corpus.curve_details(1, STOMP), 2: corpus.curve_details(2, BACK_AND_FORTH)}
+    details = {
+        1: corpus.curve_details(1, STOMP),
+        2: corpus.curve_details(2, BACK_AND_FORTH),
+    }
     rendered = _rendered(games, details=details)
     assert "Match of the night: Skip & CoreDawg on " in rendered
     assert "Turning point: the model's odds for Skip & CoreDawg" in rendered
@@ -527,7 +533,7 @@ def test_an_uncounted_game_still_appears_on_the_timeline() -> None:
 
 
 def test_the_uncounted_reason_names_the_format_before_the_filter() -> None:
-    """"uneven teams" would invite a lopsided 3v1 that never happened."""
+    """ "uneven teams" would invite a lopsided 3v1 that never happened."""
     ffa = corpus.match(
         1,
         day=5,

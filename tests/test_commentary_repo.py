@@ -30,15 +30,16 @@ def test_save_then_get_round_trips(engine) -> None:  # type: ignore[no-untyped-d
         repo = MatchupCommentaryRepo(session)
         repo.save_commentary("Alice", "Bob", "Winners Round 1", "**Hype!**", "gemini")
         assert (
-            repo.get_cached_commentary("Alice", "Bob", "Winners Round 1")
-            == "**Hype!**"
+            repo.get_cached_commentary("Alice", "Bob", "Winners Round 1") == "**Hype!**"
         )
 
 
 def test_different_round_name_is_a_different_cache_key(engine) -> None:  # type: ignore[no-untyped-def]
     with Session(engine) as session:
         repo = MatchupCommentaryRepo(session)
-        repo.save_commentary("Alice", "Bob", "Winners Round 1", "**Round 1 hype.**", "gemini")
+        repo.save_commentary(
+            "Alice", "Bob", "Winners Round 1", "**Round 1 hype.**", "gemini"
+        )
         assert repo.get_cached_commentary("Alice", "Bob", "Losers Final") is None
         assert (
             repo.get_cached_commentary("Alice", "Bob", "Winners Round 1")
@@ -49,8 +50,12 @@ def test_different_round_name_is_a_different_cache_key(engine) -> None:  # type:
 def test_save_commentary_upserts_existing_row(engine) -> None:  # type: ignore[no-untyped-def]
     with Session(engine) as session:
         repo = MatchupCommentaryRepo(session)
-        repo.save_commentary("Alice", "Bob", "Winners Round 1", "**First draft.**", "gemini")
-        repo.save_commentary("Alice", "Bob", "Winners Round 1", "**Regenerated.**", "anthropic")
+        repo.save_commentary(
+            "Alice", "Bob", "Winners Round 1", "**First draft.**", "gemini"
+        )
+        repo.save_commentary(
+            "Alice", "Bob", "Winners Round 1", "**Regenerated.**", "anthropic"
+        )
         assert (
             repo.get_cached_commentary("Alice", "Bob", "Winners Round 1")
             == "**Regenerated.**"

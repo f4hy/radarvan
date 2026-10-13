@@ -113,7 +113,9 @@ def test_a_guest_who_actually_lost_moves_off_the_seed() -> None:
     """The whole point of seeding rather than asserting forever: a real losing
     streak against clearly weaker opponents has to pull the rating down, not
     leave it pinned at the starting value."""
-    computed = player_rating.compute_player_ratings(rated_corpus() + _excal_losing_streak())
+    computed = player_rating.compute_player_ratings(
+        rated_corpus() + _excal_losing_streak()
+    )
     assert computed.rating_for("Excal").mu < player_rating.GUEST_INITIAL_MU["Excal"]
 
 
@@ -151,7 +153,9 @@ def test_a_guest_who_has_played_shows_up_in_rating_over_time() -> None:
     """`over_time` normally cuts anyone under 30 tracked entries - guests are
     exempted from that cut too, since the point of a starting seed instead of
     a forever-asserted number is to be able to see it move."""
-    computed = player_rating.compute_player_ratings(rated_corpus() + _excal_losing_streak())
+    computed = player_rating.compute_player_ratings(
+        rated_corpus() + _excal_losing_streak()
+    )
     assert "Excal" in computed.over_time
     assert len(computed.over_time["Excal"]) == 4
 

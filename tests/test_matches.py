@@ -46,7 +46,7 @@ def _replay(
     metadata = header.Metadata.model_construct(
         # seed is the match id, which the mismatch paths log.
         seed=42,
-        players=[_header_player(n, t) for n, t in zip(names, teams)],
+        players=[_header_player(n, t) for n, t in zip(names, teams, strict=True)],
     )
     head = header.GeneralsHeader.model_construct(
         desync=desync,
@@ -60,7 +60,7 @@ def _replay(
     # player_role.team_from_header.
     summary = [
         _summary_player(i + 1, n, int(t) + 1, w)
-        for i, (n, t, w) in enumerate(zip(names, teams, wins))
+        for i, (n, t, w) in enumerate(zip(names, teams, wins, strict=True))
     ]
     return EnhancedReplayV2.model_construct(
         header=head, stats=stats, summary=summary, body=body_chunks or []
@@ -81,9 +81,7 @@ def test_disconnect_with_a_surviving_teammate_is_not_flagged() -> None:
 def test_disconnect_of_a_solo_slot_with_a_winner_is_not_flagged() -> None:
     # 1v1 (each side is a "team" of one) - a disconnect on a slot with no
     # teammate doesn't invalidate the match as long as a winner was decided.
-    replay = _replay(
-        teams=["0", "1"], player_discons=[True, False], wins=[True, False]
-    )
+    replay = _replay(teams=["0", "1"], player_discons=[True, False], wins=[True, False])
     assert is_incomplete(replay) == ""
 
 
@@ -209,17 +207,13 @@ def test_undescribed_slot_still_playing_keeps_the_flag() -> None:
 def test_undescribed_slot_pushes_the_decision_point_out_to_its_death() -> None:
     # It died after the last listed player, so the game cannot have been
     # decided before then - which is still before the divergence here.
-    replay = _mismatch_replay(
-        decided_at=1000, diverged_at=1100, unlisted_death_at=1050
-    )
+    replay = _mismatch_replay(decided_at=1000, diverged_at=1100, unlisted_death_at=1050)
     assert is_incomplete(replay) == ""
 
     # Same match, but the clients diverge between the listed players dying and
     # the unlisted one - the flag has to stand (603038953's shape, had its AI
     # outlived the mismatch).
-    replay = _mismatch_replay(
-        decided_at=1000, diverged_at=1020, unlisted_death_at=1050
-    )
+    replay = _mismatch_replay(decided_at=1000, diverged_at=1020, unlisted_death_at=1050)
     assert is_incomplete(replay) == "Replay header Mismatch"
 
 

@@ -8,7 +8,9 @@ from radarvan.player_rating import GameUpset, _detect_upset
 
 def _game(match_id: int, winning_team: int) -> SimpleNamespace:
     # _detect_upset only reads id, date, winning_team off the game.
-    return SimpleNamespace(id=match_id, date=date(2024, 1, 1), winning_team=winning_team)
+    return SimpleNamespace(
+        id=match_id, date=date(2024, 1, 1), winning_team=winning_team
+    )
 
 
 def test_favored_team_winning_is_not_an_upset() -> None:

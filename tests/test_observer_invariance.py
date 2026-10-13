@@ -103,16 +103,14 @@ def observer(request: pytest.FixtureRequest) -> Player:
     return _observer() if request.param == "caster" else _observer("Syn")
 
 
-def test_composition_ignores_observers(
-    slots: list[Player], observer: Player
-) -> None:
+def test_composition_ignores_observers(slots: list[Player], observer: Player) -> None:
     without = _match(slots).composition
     with_obs = _match([observer, *slots]).composition
     assert without is not None and with_obs is not None
     # total_players counts every slot by design; everything else must match.
-    assert with_obs.model_dump(
+    assert with_obs.model_dump(exclude={"total_players"}) == without.model_dump(
         exclude={"total_players"}
-    ) == without.model_dump(exclude={"total_players"})
+    )
 
 
 def test_filter_for_rating_ignores_observers(

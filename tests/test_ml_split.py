@@ -73,9 +73,7 @@ def test_dev_frac_applies_to_the_splittable_games() -> None:
 
 def test_dev_is_the_most_recent_team_games() -> None:
     train, dev = temporal_split(_corpus(), dev_frac=0.2)
-    assert max(m.timestamp for m in train if m.id < 100) < min(
-        m.timestamp for m in dev
-    )
+    assert max(m.timestamp for m in train if m.id < 100) < min(m.timestamp for m in dev)
     assert [m.id for m in dev] == list(range(72, 90))
 
 

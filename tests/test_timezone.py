@@ -31,11 +31,11 @@ EXAMPLE_UTC = datetime.datetime(2026, 5, 28, 3, 21, 3, tzinfo=datetime.UTC)
 EXAMPLE_GAME_NIGHT = datetime.date(2026, 5, 27)
 
 
-def _eastern_epoch(year: int, month: int, day: int, hour: int, minute: int = 0) -> float:
+def _eastern_epoch(
+    year: int, month: int, day: int, hour: int, minute: int = 0
+) -> float:
     """POSIX (UTC) epoch for a given US Eastern wall-clock time."""
-    return datetime.datetime(
-        year, month, day, hour, minute, tzinfo=EASTERN
-    ).timestamp()
+    return datetime.datetime(year, month, day, hour, minute, tzinfo=EASTERN).timestamp()
 
 
 class TestGameNightDate:

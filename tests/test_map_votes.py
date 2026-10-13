@@ -161,7 +161,9 @@ def test_choose_map_resolves_player_aliases(
     assert result.chosen_map_crc is None
 
     # An unknown name resolves to itself, matches no account -> no eligible maps.
-    empty = choose_map(4, ChooseMapRequest(players=["nobody"]), rm, vote_repo, user_repo)  # type: ignore[arg-type]
+    empty = choose_map(
+        4, ChooseMapRequest(players=["nobody"]), rm, vote_repo, user_repo
+    )  # type: ignore[arg-type]
     assert empty.chosen_map is None
 
 

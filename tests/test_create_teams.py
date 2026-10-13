@@ -70,7 +70,10 @@ def test_the_fudge_applies_to_whichever_side_holds_the_pair() -> None:
 
 
 def test_an_unlisted_pairing_is_untouched() -> None:
-    assert create_teams._apply_fudge(0.60, ["Skip", "Syn"], ["CoreDawg", "Pancake"]) == 0.60
+    assert (
+        create_teams._apply_fudge(0.60, ["Skip", "Syn"], ["CoreDawg", "Pancake"])
+        == 0.60
+    )
 
 
 def test_a_split_pair_is_untouched() -> None:
@@ -85,9 +88,7 @@ def test_a_split_pair_is_untouched() -> None:
 
 def _rated(**mus: float) -> dict[str, PlackettLuceRating]:
     model = player_rating.get_model()
-    return {
-        name: model.rating(name=name, mu=mu, sigma=1.0) for name, mu in mus.items()
-    }
+    return {name: model.rating(name=name, mu=mu, sigma=1.0) for name, mu in mus.items()}
 
 
 def test_a_lopsided_split_scores_worse_than_an_even_one() -> None:
@@ -100,7 +101,9 @@ def test_a_lopsided_split_scores_worse_than_an_even_one() -> None:
         [["strong1", "strong2"], ["weak1", "weak2"]], rated
     )
     assert even < lopsided
-    assert even == pytest.approx(0.0, abs=1e-9), "an identical split should be a coin flip"
+    assert even == pytest.approx(0.0, abs=1e-9), (
+        "an identical split should be a coin flip"
+    )
 
 
 def test_every_player_on_a_team_is_counted() -> None:
@@ -192,6 +195,7 @@ def test_balance_teams_resolves_aliases(rated_games) -> None:
     element order comes from frozenset iteration, so it is not stable between two
     differently-spelled inputs even when the teams are identical.
     """
+
     def normalized(player_list):
         return {
             frozenset(team): round(score, 12)

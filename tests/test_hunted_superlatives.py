@@ -165,7 +165,9 @@ def test_most_hunted_counts_matches_per_player() -> None:
 
 def test_hunted_stats_empty_when_nothing_is_hunted() -> None:
     games = [match(1, day=5)]
-    assert get_hunted_stats({g.id: g for g in games}, [_details(1, {})], COMPUTED_AT) == []
+    assert (
+        get_hunted_stats({g.id: g for g in games}, [_details(1, {})], COMPUTED_AT) == []
+    )
 
 
 def test_hunted_player_names_are_alias_resolved() -> None:

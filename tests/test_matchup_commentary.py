@@ -393,7 +393,9 @@ def test_generate_with_gemini_raises_on_empty_text(
         output_text=None,
         status="budget_exceeded",
         usage=SimpleNamespace(
-            total_input_tokens=123, total_output_tokens=16000, total_thought_tokens=16000
+            total_input_tokens=123,
+            total_output_tokens=16000,
+            total_thought_tokens=16000,
         ),
     )
 
@@ -417,8 +419,8 @@ def test_generate_commentary_dispatches_by_provider(
     monkeypatch.setattr(
         matchup_commentary,
         "build_prompt",
-        lambda replay_manager, player1, player2, round_name: matchup_commentary.MatchupPrompt(
-            system="sys", user_message="user"
+        lambda replay_manager, player1, player2, round_name: (
+            matchup_commentary.MatchupPrompt(system="sys", user_message="user")
         ),
     )
     monkeypatch.setattr(

@@ -62,11 +62,13 @@ def test_input_is_not_mutated() -> None:
 
 def test_absolute_dates_do_not_matter_only_gaps() -> None:
     """Re-scoring the same block years later must not change its weights."""
+
     def pair(start: date) -> list[float]:
         later = date.fromordinal(start.toordinal() + 365)
-        return [m.weight for m in recency_weighted(
-            [_encoded(1, start), _encoded(2, later)], 365
-        )]
+        return [
+            m.weight
+            for m in recency_weighted([_encoded(1, start), _encoded(2, later)], 365)
+        ]
 
     assert pair(date(2024, 1, 1)) == pytest.approx(pair(date(2019, 1, 1)))
 
@@ -86,10 +88,22 @@ def test_encode_match_carries_the_date() -> None:
 
     when = datetime(2026, 3, 4, 12, 0, 0)
     players = [
-        Player(name="Skip", general=General.USA, team=Team.ONE, color="red",
-               won=True, role=PlayerRole.HUMAN),
-        Player(name="Neo", general=General.TANK, team=Team.TWO, color="blue",
-               won=False, role=PlayerRole.HUMAN),
+        Player(
+            name="Skip",
+            general=General.USA,
+            team=Team.ONE,
+            color="red",
+            won=True,
+            role=PlayerRole.HUMAN,
+        ),
+        Player(
+            name="Neo",
+            general=General.TANK,
+            team=Team.TWO,
+            color="blue",
+            won=False,
+            role=PlayerRole.HUMAN,
+        ),
     ]
     match = MatchInfo(
         id=7,

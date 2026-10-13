@@ -56,7 +56,12 @@ class _FakeAsyncClient:
         self.exists_checks: list[int] = []
 
     async def add_map_async(
-        self, crc_decimal: int, file_type: str, data: bytes, *, map_name: str | None = None
+        self,
+        crc_decimal: int,
+        file_type: str,
+        data: bytes,
+        *,
+        map_name: str | None = None,
     ) -> None:
         self.calls.append((crc_decimal, file_type, data, map_name))
 
@@ -180,8 +185,9 @@ def test_upload_pushes_to_cncstats_when_enabled(
     monkeypatch.setattr(
         missing_maps,
         "push_map_to_cncstats",
-        lambda map_bytes, **k: pushed.append((map_bytes, k))
-        or missing_maps.compute_map_crc_hex(map_bytes),
+        lambda map_bytes, **k: (
+            pushed.append((map_bytes, k)) or missing_maps.compute_map_crc_hex(map_bytes)
+        ),
     )
     uploads = [MapUpload(base_name="Brand New", tga=b"t", map_file=b"\x01\x01")]
     items, errors = map_upload.process(uploads, True, object(), is_admin=False)  # type: ignore[arg-type]

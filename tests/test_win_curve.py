@@ -19,7 +19,9 @@ def _curve(winner_probs: list[float]) -> win_curve.WinnerCurve:
 
 
 def test_the_curve_is_read_from_the_winning_side() -> None:
-    curve = win_curve.winner_curve(corpus.win_prob_over_time([0.2, 0.9], winner="team_b"))
+    curve = win_curve.winner_curve(
+        corpus.win_prob_over_time([0.2, 0.9], winner="team_b")
+    )
     assert curve is not None
     assert curve.probs == pytest.approx([0.8, 0.1])
     assert curve.winners == ["Syn", "Pancake"]

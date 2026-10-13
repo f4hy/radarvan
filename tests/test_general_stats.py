@@ -238,7 +238,10 @@ def test_value_stats_are_attached_to_the_matching_general() -> None:
         games, value_stats={General.CHINA: (777, 77)}
     )
     by_general = {s.general: s for s in stats.general_stats}
-    assert (by_general[General.CHINA].value_destroyed, by_general[General.CHINA].value_lost) == (777, 77)
+    assert (
+        by_general[General.CHINA].value_destroyed,
+        by_general[General.CHINA].value_lost,
+    ) == (777, 77)
     assert by_general[General.GLA].value_destroyed == 0, (
         "a general with no value row should read zero, not inherit another's"
     )
@@ -249,9 +252,7 @@ def test_a_non_competitive_game_is_skipped() -> None:
     games = [_match_with_generals(9000 + i, day=5 + i) for i in range(3)]
     baseline = _records(games)
     games.append(
-        _match_with_generals(
-            9103, day=23, comp=composition(is_comp_stomp=True)
-        )
+        _match_with_generals(9103, day=23, comp=composition(is_comp_stomp=True))
     )
     assert _records(games) == baseline
 

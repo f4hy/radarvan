@@ -286,7 +286,9 @@ def test_an_ffa_names_every_player_as_their_own_side() -> None:
 
 
 def test_the_map_is_shown_as_a_name_not_a_stored_path() -> None:
-    match = corpus.match(1, day=5, map_name="userdata/maps/bitter winter/bitter winter.map")
+    match = corpus.match(
+        1, day=5, map_name="userdata/maps/bitter winter/bitter winter.map"
+    )
     narrative = match_narrative.build_narrative(match, _details())
     assert "bitter winter" in narrative.headline
     assert "userdata/maps" not in narrative.headline
