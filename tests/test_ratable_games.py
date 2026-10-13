@@ -91,7 +91,9 @@ def test_casual_1v1_is_not_ratable() -> None:
 def test_incomplete_tournament_1v1_is_not_ratable(incomplete: str) -> None:
     """A tournament link doesn't make a disconnect a result."""
     assert (
-        player_rating.is_ratable_team_game(_1v1(tournament=BRACKET, incomplete=incomplete))
+        player_rating.is_ratable_team_game(
+            _1v1(tournament=BRACKET, incomplete=incomplete)
+        )
         is False
     )
 

@@ -49,8 +49,12 @@ def _full_profile(player: str) -> PlayerProfile:
         wins=25,
         losses=15,
         generals=[
-            GeneralProfileStat(general=General.STEALTH, games=17, wins=11, losses=6, win_rate=0.647),
-            GeneralProfileStat(general=General.GLA, games=23, wins=10, losses=13, win_rate=0.303),
+            GeneralProfileStat(
+                general=General.STEALTH, games=17, wins=11, losses=6, win_rate=0.647
+            ),
+            GeneralProfileStat(
+                general=General.GLA, games=23, wins=10, losses=13, win_rate=0.303
+            ),
         ],
         favorite_teammate=TeammateProfileStat(
             name="Carol", games_together=42, wins_together=30, synergy=1.2
@@ -113,7 +117,10 @@ def test_render_player_data_is_not_json_and_has_key_sections() -> None:
 
     assert "Player: Gorn" in rendered
     assert "STEALTH: 17 games, 11 wins (64.7%)" in rendered
-    assert "Favorite teammate: Carol (42 games together, 30 wins, synergy 1.20)" in rendered
+    assert (
+        "Favorite teammate: Carol (42 games together, 30 wins, synergy 1.20)"
+        in rendered
+    )
     assert "Nemesis: Dave (3 wins, 9 losses)" in rendered
     assert "Avg win duration: 8.4 min | Avg loss duration: 11.2 min" in rendered
     assert "Favorite unit: Vehicle Bomb Truck (STEALTH)" in rendered
@@ -140,8 +147,12 @@ def test_build_hype_head_to_head_caps_recent_matches_and_maps_winner() -> None:
         player1_wins=12,
         player2_wins=12,
         games=games,
-        player1_by_general=[HeadToHeadGeneralRecord(general=General.GLA, wins=5, losses=3)],
-        player2_by_general=[HeadToHeadGeneralRecord(general=General.INFANTRY, wins=3, losses=5)],
+        player1_by_general=[
+            HeadToHeadGeneralRecord(general=General.GLA, wins=5, losses=3)
+        ],
+        player2_by_general=[
+            HeadToHeadGeneralRecord(general=General.INFANTRY, wins=3, losses=5)
+        ],
         by_map=[],
         teammate_games=10,
         teammate_wins=6,

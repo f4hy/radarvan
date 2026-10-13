@@ -1,4 +1,4 @@
-.PHONY: help format lint lint-fix typecheck check \
+.PHONY: help format lint lint-fix typecheck ty check \
         ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check \
         build clean install test all \
         up up-build down logs ps shell db-shell db-snapshot db-snapshot-full \
@@ -20,16 +20,21 @@ install: ## Install Python and Node dependencies
 # ── Python ────────────────────────────────────────────────────────────────────
 
 format: ## Format Python code with ruff
-	uv run ruff format radarvan/
+	uv run ruff format radarvan/ tests/
 
 lint: ## Lint Python code with ruff
-	uv run ruff check radarvan/
+	uv run ruff check --no-fix radarvan/ tests/
 
 lint-fix: ## Lint and auto-fix Python issues with ruff
-	uv run ruff check --fix radarvan/
+	uv run ruff check --fix radarvan/ tests/
 
 typecheck: ## Type-check Python code with mypy
 	uv run mypy radarvan/
+
+# Trial alongside mypy, not a gate: ty is pre-1.0 and still reports false
+# positives mypy doesn't (no pydantic plugin, weak SQLAlchemy/onnxruntime types).
+ty: ## Type-check Python code with ty (advisory; mypy is the gate)
+	uv run ty check radarvan/
 
 check: lint typecheck ## Run all Python checks (no formatting)
 	@echo "✓ Python checks passed!"

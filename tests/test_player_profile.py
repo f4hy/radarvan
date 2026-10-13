@@ -2,6 +2,7 @@
 
 import json
 from datetime import date, datetime
+from pathlib import Path
 
 from radarvan.api_types import (
     AcademyStats,
@@ -1106,7 +1107,7 @@ class TestDropZeroCostObjects:
 class TestProjection:
     def test_projection_from_reference_fixture(self) -> None:
         replay = EnhancedReplayV2.model_validate(
-            json.load(open("references/example_cncstats_output.json"))
+            json.loads(Path("references/example_cncstats_output.json").read_text())
         )
         details = match_details_from_replay(replay)
         assert details is not None

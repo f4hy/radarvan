@@ -46,8 +46,7 @@ def test_each_filter_narrows_independently() -> None:
 def test_filters_compose() -> None:
     games = _games()
     assert [
-        g.id
-        for g in filter_matches(games, player="Skip", map_name="maps/defcon6")
+        g.id for g in filter_matches(games, player="Skip", map_name="maps/defcon6")
     ] == [1, 3]
     assert (
         filter_matches(

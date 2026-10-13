@@ -178,7 +178,9 @@ def test_upsert_tournament_keeps_id_and_links(session: Session) -> None:
     repo.link_match(t.id, 7)
 
     again = repo.upsert_tournament(
-        slug="cup", name="Renamed Cup", tournament_format=tournament_membership.DOUBLE_ELIM
+        slug="cup",
+        name="Renamed Cup",
+        tournament_format=tournament_membership.DOUBLE_ELIM,
     )
     assert again.id == t.id
     assert again.name == "Renamed Cup"
@@ -417,7 +419,9 @@ def test_exclusion_keeps_round_and_series(session: Session) -> None:
 # --- detector: round robin ---
 
 
-def _2v2(match_id: int, team_one: list[str], team_two: list[str], **kw: object) -> MatchInfo:
+def _2v2(
+    match_id: int, team_one: list[str], team_two: list[str], **kw: object
+) -> MatchInfo:
     players = [_player(n, Team.ONE, won=True) for n in team_one]
     players += [_player(n, Team.TWO, color="blue") for n in team_two]
     return _match(

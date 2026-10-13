@@ -14,9 +14,7 @@ from radarvan.cncstats_model.zhreplay import EnhancedReplayV2
 from radarvan.match_details import match_details_from_replay
 
 _FIXTURE = (
-    Path(__file__).resolve().parents[1]
-    / "references"
-    / "example_cncstats_output.json"
+    Path(__file__).resolve().parents[1] / "references" / "example_cncstats_output.json"
 )
 
 _skip_no_fixture = pytest.mark.skipif(

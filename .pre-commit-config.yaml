@@ -1,15 +1,15 @@
 # Pre-commit hooks for Radarvan.
 #
 # Setup (one time):
-#   pip install pre-commit        # or: uv tool install pre-commit
+#   uv tool install pre-commit
 #   pre-commit install            # install the git hook
 #
 # Run against everything on demand:
 #   pre-commit run --all-files
 #
-# These hooks wire up the tools the project already uses (ruff, ruff-format,
-# prettier) so they run automatically on `git commit`. Ruff reads its config
-# from pyproject.toml; we intentionally do NOT duplicate those settings here.
+# ruff and biome run as local hooks through uv/npx, so they use the versions
+# locked in uv.lock / package-lock.json and read their config from
+# pyproject.toml / biome.json - nothing here to keep in sync.
 
 exclude: |
   (?x)^(
@@ -31,29 +31,31 @@ repos:
         # (mapparse ~3.2MB, ml_ensemble/*.onnx ~44KB each) are not flagged.
         args: [--maxkb=5000]
 
-  # Python: lint + format via ruff. Pinned to match `ruff>=0.14.0` in pyproject.
-  # Ruff reads all of its settings from pyproject.toml.
-  #
-  # Scoped to radarvan/ to match the project's canonical lint scope (Makefile:
-  # `ruff check radarvan/` / `ruff format radarvan/`). tests/ is intentionally
-  # excluded: the project's ruff config selects bandit `S` rules with no
-  # per-file-ignore, so linting tests/ would flag every `assert` (S101).
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+  - repo: local
     hooks:
       - id: ruff
-        args: [--fix]
-        files: ^radarvan/
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        files: ^(radarvan|tests)/
       - id: ruff-format
-        files: ^radarvan/
-
-  # Frontend: prettier (matches .prettierrc.json -> semi: false).
-  # Scoped to src/ and respects .prettierignore (which excludes src/api/).
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        additional_dependencies:
-          - prettier@3.6.2
-        files: ^src/
-        exclude: ^src/api/
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        files: ^(radarvan|tests)/
+      # format + lint, not `biome check`: that also runs import sorting, which
+      # the make targets and CI don't, and would reorder most of src/.
+      - id: biome-format
+        name: biome format
+        entry: npx biome format --write --no-errors-on-unmatched
+        language: system
+        types_or: [ts, tsx, javascript, jsx, json]
+        files: ^(src|e2e)/|^playwright\.config\.ts$
+      - id: biome-lint
+        name: biome lint
+        entry: npx biome lint --write --no-errors-on-unmatched
+        language: system
+        types_or: [ts, tsx, javascript, jsx, json]
+        files: ^(src|e2e)/|^playwright\.config\.ts$

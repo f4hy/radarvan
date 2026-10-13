@@ -26,9 +26,7 @@ from radarvan.generals_powers import clean_power_name
 from radarvan.timeline_events import timeline_events_from_replay
 
 _FIXTURE = (
-    Path(__file__).resolve().parents[1]
-    / "references"
-    / "example_cncstats_output.json"
+    Path(__file__).resolve().parents[1] / "references" / "example_cncstats_output.json"
 )
 
 

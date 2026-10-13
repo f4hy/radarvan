@@ -11,7 +11,9 @@ import corpus
 
 
 def test_buckets_cover_the_range_including_empty_bars() -> None:
-    buckets = durations.bucket_durations([1.0, 1.5], bucket_minutes=2.0, max_minutes=10.0)
+    buckets = durations.bucket_durations(
+        [1.0, 1.5], bucket_minutes=2.0, max_minutes=10.0
+    )
     # Five 2-minute bars plus the overflow bin.
     assert len(buckets) == 6
     assert buckets[0].count == 2

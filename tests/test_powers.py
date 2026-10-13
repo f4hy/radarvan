@@ -162,13 +162,15 @@ def _header_player(slot: Slot, index: int) -> HeaderPlayer:
     )
 
 
-def _replay(slots: list[Slot], body: list[BodyChunk], deaths: list[DeathEvent] = []):
+def _replay(
+    slots: list[Slot], body: list[BodyChunk], deaths: list[DeathEvent] | None = None
+):
     """A replay with `minutes_per_step` of exactly 1/60 - one frame, one second."""
     stats = EnrichedStats.model_construct(
         battle_plan_events=[],
         build_events=[],
         capture_events=[],
-        death_events=deaths,
+        death_events=deaths or [],
         energy_events=[],
         hunted_events=[],
         kill_events=[],
@@ -320,9 +322,7 @@ def test_first_use_minute_comes_from_the_body() -> None:
 
 def test_counts_survive_a_replay_with_no_body_stream() -> None:
     """cncstats drops the order stream on some replays; `powersUsed` survives."""
-    replay = _replay(
-        [Slot("Alice", "FactionAmerica", {"SpecialPowerSpyDrone": 4})], []
-    )
+    replay = _replay([Slot("Alice", "FactionAmerica", {"SpecialPowerSpyDrone": 4})], [])
     (player,) = powers_from_replay(replay).players
     assert [(u.name, u.count, u.first_minute) for u in player.uses] == [
         ("Spy Drone", 4, None)
@@ -363,9 +363,7 @@ def test_an_observer_changes_nothing_about_the_players() -> None:
     body = [_purchase("Alice", 14, 60)]
     without = powers_from_replay(_replay(players, body))
     with_observer = powers_from_replay(
-        _replay(
-            [*players, Slot("Caster", "FactionAmerica", {}, observer=True)], body
-        )
+        _replay([*players, Slot("Caster", "FactionAmerica", {}, observer=True)], body)
     )
     assert with_observer == without
 
@@ -488,7 +486,7 @@ def test_a_building_granted_power_is_marked_unpurchasable() -> None:
 
 
 def test_a_power_only_the_group_uses_still_gets_a_row() -> None:
-    """"Everyone else sweeps with the satellite and you never do" is a finding.
+    """ "Everyone else sweeps with the satellite and you never do" is a finding.
 
     A building-granted power has no pick rate, so the only way it can surface
     is its usage - and filtering untouched rows on pick rate alone dropped it
@@ -545,6 +543,4 @@ def test_an_unusual_pick_needs_both_a_gap_and_the_games_to_back_it() -> None:
     assert unusual["Artillery Barrage"].direction == "over"
     assert unusual["Battlemaster Training"].direction == "under"
     # Sorted by how much evidence backs the gap, not by the gap alone.
-    assert profile.unusual == sorted(
-        profile.unusual, key=lambda u: -abs(u.surprise)
-    )
+    assert profile.unusual == sorted(profile.unusual, key=lambda u: -abs(u.surprise))

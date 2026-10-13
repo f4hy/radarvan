@@ -116,7 +116,7 @@ def test_json_ld_cannot_close_its_script() -> None:
 
 
 def test_sitemap_is_valid_and_lists_entities() -> None:
-    root = ET.fromstring(seo.sitemap_xml(INDEX))
+    root = ET.fromstring(seo.sitemap_xml(INDEX))  # noqa: S314 - our own output
     ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
     locs = {el.text for el in root.iter(f"{ns}loc")}
     assert "https://www.radarvan.com/" in locs

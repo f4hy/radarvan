@@ -177,7 +177,9 @@ def test_a_provider_error_keeps_what_was_already_paid_for(
 def test_a_night_of_stomps_picks_nothing_and_makes_no_call(
     provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
-    run = asyncio.run(match_blurb.generate_night_blurbs(_night({1: STOMP, 2: STOMP}), repo))
+    run = asyncio.run(
+        match_blurb.generate_night_blurbs(_night({1: STOMP, 2: STOMP}), repo)
+    )
     assert run.picked == [] and run.generated == []
     assert provider.prompts == []
 
@@ -189,14 +191,20 @@ def _card(kind: str, match_id: int) -> GameNightHighlight:
     return GameNightHighlight(kind=kind, title="t", detail="d", match_id=match_id)
 
 
-def test_only_the_match_of_the_night_card_carries_the_blurb(repo: MatchBlurbRepo) -> None:
+def test_only_the_match_of_the_night_card_carries_the_blurb(
+    repo: MatchBlurbRepo,
+) -> None:
     repo.save_blurb(5, "A caption.", "test")
     cards = [
         _card(game_night.MATCH_OF_THE_NIGHT, 5),
         _card("momentum", 5),
         _card("apm", 6),
     ]
-    assert [c.blurb for c in queries.with_blurbs(cards, repo)] == ["A caption.", None, None]
+    assert [c.blurb for c in queries.with_blurbs(cards, repo)] == [
+        "A caption.",
+        None,
+        None,
+    ]
 
 
 def test_attaching_blurbs_does_not_mutate_its_input(repo: MatchBlurbRepo) -> None:
@@ -224,7 +232,11 @@ def test_a_zero_budget_reports_what_would_be_spent_and_calls_nothing(
     provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
     result = asyncio.run(match_blurb.caption_night(_night_on(5, range(1, 4)), repo, 0))
-    assert (result.report.picked, result.report.generated, result.report.pending) == (3, 0, 3)
+    assert (result.report.picked, result.report.generated, result.report.pending) == (
+        3,
+        0,
+        3,
+    )
     assert not result.failed
     assert provider.prompts == []
 
@@ -232,7 +244,9 @@ def test_a_zero_budget_reports_what_would_be_spent_and_calls_nothing(
 def test_the_budget_stops_a_night_part_way(
     provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
-    report = asyncio.run(match_blurb.caption_night(_night_on(5, range(1, 4)), repo, 2)).report
+    report = asyncio.run(
+        match_blurb.caption_night(_night_on(5, range(1, 4)), repo, 2)
+    ).report
     assert (report.generated, report.pending) == (2, 1)
     assert len(provider.prompts) == 2
 
@@ -247,7 +261,10 @@ def test_a_provider_error_still_reports_what_was_written_before_it(
 
 
 def _backfill(
-    monkeypatch: pytest.MonkeyPatch, repo: MatchBlurbRepo, nights: dict, **kwargs: object
+    monkeypatch: pytest.MonkeyPatch,
+    repo: MatchBlurbRepo,
+    nights: dict,
+    **kwargs: object,
 ):  # type: ignore[no-untyped-def]
     from radarvan.routes.game_night import backfill_match_blurbs
 
@@ -266,7 +283,10 @@ def test_the_backfill_shares_one_budget_across_nights_newest_first(
 ) -> None:
     older, newer = _night_on(5, range(1, 4)), _night_on(6, range(11, 13))
     report = _backfill(
-        monkeypatch, repo, {older.recap.date: older, newer.recap.date: newer}, max_to_update=4
+        monkeypatch,
+        repo,
+        {older.recap.date: older, newer.recap.date: newer},
+        max_to_update=4,
     )
     assert [n.date for n in report.nights] == [newer.recap.date, older.recap.date]
     assert [n.generated for n in report.nights] == [2, 2]
@@ -301,7 +321,10 @@ def test_a_provider_error_stops_the_backfill_and_hides_later_nights(
     provider.fail_on_call = 1
     older, newer = _night_on(5, range(1, 4)), _night_on(6, range(11, 14))
     report = _backfill(
-        monkeypatch, repo, {older.recap.date: older, newer.recap.date: newer}, max_to_update=9
+        monkeypatch,
+        repo,
+        {older.recap.date: older, newer.recap.date: newer},
+        max_to_update=9,
     )
     assert report.stopped
     assert [n.date for n in report.nights] == [newer.recap.date]

@@ -23,7 +23,9 @@ def _team(mu: float, n: int, sigma: float = 2.1):
 
 def test_equal_teams_are_a_coin_flip() -> None:
     for n in (1, 2, 3, 4):
-        assert displayed_win_probs([_team(25, n), _team(25, n)])[0] == pytest.approx(0.5)
+        assert displayed_win_probs([_team(25, n), _team(25, n)])[0] == pytest.approx(
+            0.5
+        )
 
 
 def test_swapping_teams_gives_complementary_probabilities() -> None:
@@ -68,7 +70,9 @@ def test_favoured_team_matches_predict_win() -> None:
 
 def test_more_uncertain_players_widen_the_interval() -> None:
     """A high-sigma (new/rarely-seen) player pulls the prediction toward 0.5."""
-    confident = displayed_win_probs([_team(35, 2, sigma=2.0), _team(15, 2, sigma=2.0)])[0]
+    confident = displayed_win_probs([_team(35, 2, sigma=2.0), _team(15, 2, sigma=2.0)])[
+        0
+    ]
     unsure = displayed_win_probs([_team(35, 2, sigma=8.0), _team(15, 2, sigma=2.0)])[0]
     assert 0.5 < unsure < confident
 

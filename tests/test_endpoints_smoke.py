@@ -32,6 +32,7 @@ os.environ["DATABASE_URL"] = "postgresql://stub:stub@127.0.0.1:1/stub-not-used"
 import logging
 from datetime import datetime
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pytest
 import structlog
@@ -165,7 +166,7 @@ class _StubRepo:
     point is to exercise the handler, not to assert on data.
     """
 
-    _EMPTY: dict[str, object] = {}
+    _EMPTY: ClassVar[dict[str, object]] = {}
 
     def latest_match_created_at(self) -> datetime:
         return corpus.LATEST

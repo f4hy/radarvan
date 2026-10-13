@@ -16,7 +16,9 @@ STOMP = corpus.STOMP
 
 
 def _details(winner_probs: list[float] | None, **overrides: object) -> MatchDetails:
-    curve = corpus.win_prob_over_time(winner_probs) if winner_probs is not None else None
+    curve = (
+        corpus.win_prob_over_time(winner_probs) if winner_probs is not None else None
+    )
     return corpus.details(win_prob_over_time=curve, **overrides)
 
 
@@ -90,7 +92,9 @@ def test_a_generals_power_is_not_spectacle_but_a_superweapon_is() -> None:
     assert nuke.score > plain.score
 
 
-def test_an_underdog_win_that_never_trailed_after_the_prior_settles_is_no_comeback() -> None:
+def test_an_underdog_win_that_never_trailed_after_the_prior_settles_is_no_comeback() -> (
+    None
+):
     interest = _interest([0.15, 0.2, 0.3, 0.45, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99])
     assert interest is not None
     assert not any("were down to" in reason for reason in interest.reasons)

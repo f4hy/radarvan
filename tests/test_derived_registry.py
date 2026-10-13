@@ -117,7 +117,10 @@ def test_key_is_every_parameter_the_dependency_does_not_bind() -> None:
         "MODEL binds no parameter, so every argument of _faction_grid is key"
     )
 
-    for name in ("radarvan.cache.sorted_deduped_matches", "radarvan.cache.map_name_index"):
+    for name in (
+        "radarvan.cache.sorted_deduped_matches",
+        "radarvan.cache.map_name_index",
+    ):
         assert by_name[name].key_params == (), (
             f"{name} takes only a manager, so its key should be the token alone"
         )
@@ -136,7 +139,9 @@ def test_probe_bound_derivations_with_no_key_hold_one_entry() -> None:
     competitive vs a format filter) are distinct live keys.
     """
     for d in _registered():
-        probe_bound = d.bound_param is not None and d.bound_param == d.dependency.probe_param
+        probe_bound = (
+            d.bound_param is not None and d.bound_param == d.dependency.probe_param
+        )
         if probe_bound and not d.key_params:
             assert d.maxsize == 1, (
                 f"{d.qualified_name} keys on a probe token alone but declares "
@@ -254,8 +259,12 @@ def test_a_dependency_offering_both_bindings_picks_by_signature() -> None:
     derivation tries to iterate its ReplayManager.
     """
     by_name = {d.qualified_name: d for d in _registered()}
-    assert by_name["radarvan.cache.sorted_deduped_matches"].bound_param == "replay_manager"
-    assert by_name["radarvan.player_rating.compute_player_ratings"].bound_param == "games"
+    assert (
+        by_name["radarvan.cache.sorted_deduped_matches"].bound_param == "replay_manager"
+    )
+    assert (
+        by_name["radarvan.player_rating.compute_player_ratings"].bound_param == "games"
+    )
     assert by_name["radarvan.routes.predict._faction_grid"].bound_param is None
 
 
@@ -289,8 +298,9 @@ def test_star_args_are_rejected_at_decoration() -> None:
 def test_probe_input_binds_from_a_keyword_argument() -> None:
     """Handlers call these positionally, but nothing stops a keyword call."""
     seen: list[object] = []
-    dep = versions.Dependency("test-kwarg", lambda rm: seen.append(rm) or "v",
-                              probe_param="replay_manager")
+    dep = versions.Dependency(
+        "test-kwarg", lambda rm: seen.append(rm) or "v", probe_param="replay_manager"
+    )
 
     @derived.derived(on=dep, maxsize=2)
     def probe(replay_manager: object) -> int:
@@ -492,7 +502,9 @@ def test_no_functools_memo_over_a_keyed_function() -> None:
     offenders: set[str] = set()
     for path in _python_files():
         module = _relative(path).removesuffix(".py").replace("/", ".")
-        offenders |= _functools_cached_with_arguments(ast.parse(path.read_text()), module)
+        offenders |= _functools_cached_with_arguments(
+            ast.parse(path.read_text()), module
+        )
     unexpected = offenders - FUNCTOOLS_ALLOWLIST.keys()
     assert not unexpected, (
         "these functions are memoized by functools but take arguments:\n  "
@@ -510,9 +522,7 @@ def test_functools_allowlist_entries_still_exist() -> None:
     for dotted in FUNCTOOLS_ALLOWLIST:
         module_name, _, attr = dotted.rpartition(".")
         module = importlib.import_module(f"radarvan.{module_name}")
-        assert hasattr(module, attr), (
-            f"{dotted} is allow-listed but no longer exists"
-        )
+        assert hasattr(module, attr), f"{dotted} is allow-listed but no longer exists"
 
 
 def test_allowlist_entries_still_exist_and_still_cache() -> None:
