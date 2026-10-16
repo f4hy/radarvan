@@ -9,17 +9,17 @@ dependencies = [
     # `alembic upgrade head` on every deploy, and Heroku's buildpack
     # installs only [project] dependencies (uv sync --no-dev).
     "alembic>=1.20.0",
-    "anthropic>=1.13.0,<2",
+    "anthropic>=1.15.0,<2",
     "beautifulsoup4>=4.15.0",
     # Capped in practice by s3fs -> aiobotocore, which pins a narrow botocore
     # range (aiobotocore 3.9.2 allows botocore <1.43.107). Raising this past the
     # matching boto3 makes the lock unsolvable; bump it when aiobotocore does.
     "boto3>=1.43.106",
-    "cachetools>=7.2.1",
+    "cachetools>=7.2.2",
     "cachetools-async>=0.0.5",
-    "fastapi[standard]>=0.143.0",
+    "fastapi[standard]>=0.143.2",
     "fsspec[s3]>=2026.9.0",
-    "google-genai>=2.30.0",
+    "google-genai>=2.31.0",
     # Pydantic's maintained fork of httpx (upstream is frozen at 0.28.1).
     # Plain httpx is NOT a direct dependency: nothing of ours imports it,
     # but it stays in the tree via google-genai and fastapi[standard].
@@ -42,20 +42,20 @@ dependencies = [
 ]
 [dependency-groups]
 dev = [
-  "boto3-stubs[s3]>=1.43.112",
+  "boto3-stubs[s3]>=1.43.114",
   "mypy>=2.4.0",
   "pylsp-mypy>=0.8.2",
   "pytest>=9.1.1,<10",
   "python-lsp-ruff>=2.3.4",
   "python-lsp-server[all]>=1.15.0",
-  "ruff>=0.17.0",
+  "ruff>=0.17.1",
   "s3cmd>=2.4.0",
   "tqdm>=4.70.1",
   "types-cachetools>=7.0.0.20260713",
   "types-tqdm>=4.70.0.20260906",
-  "datamodel-code-generator>=0.83.0",
+  "datamodel-code-generator>=0.84.0",
   "pg-activity>=3.6.2",
-  "ty>=0.0.86",
+  "ty>=0.0.88",
 ]
 
 # ML / model-training deps. Deliberately a NON-default group (not `dev`) so they
