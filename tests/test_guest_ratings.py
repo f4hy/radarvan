@@ -173,11 +173,7 @@ def test_a_guest_does_reach_the_published_leaderboard(computed) -> None:
 
 
 def test_a_guest_does_not_reach_synergy() -> None:
-    """`player_synergy` filters on `.ratings` membership to keep out anyone
-    under MIN_GAMES - since a guest now sits on `.ratings` regardless of games
-    played, that filter alone no longer excludes them, so `compute_player_synergy`
-    has its own explicit guest exclusion. A guest's handful of real games must
-    not seed a pair coefficient off so little data."""
+    """A guest's seeded rating is a guess, so games with a guest never score a pair."""
     games = rated_corpus() + [
         match(9800 + i, day=28 + i, winner=Team.ONE, team_one=("Excal", "Skip"))
         for i in range(4)

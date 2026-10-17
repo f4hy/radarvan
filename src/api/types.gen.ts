@@ -3182,27 +3182,27 @@ export type Player = {
  * PlayerEnum
  */
 export const PlayerEnum = {
-    WILD_CARD: 'WildCard',
-    MEDIUM_ARMY: 'MediumArmy',
-    SHIFTY: 'Shifty',
+    ONE_THREE111: 'OneThree111',
+    WILY_WOLF: 'WilyWolf',
     STM: 'STM',
-    TYTAN: 'Tytan',
-    CORE_DAWG: 'CoreDawg',
-    EASY_ARMY: 'EasyArmy',
-    MARAKAR: 'Marakar',
+    PANCAKE: 'Pancake',
     NEO: 'Neo',
+    GORN: 'Gorn',
+    PCAP: 'pcap',
+    MARAKAR: 'Marakar',
+    WILD_CARD: 'WildCard',
+    EASY_ARMY: 'EasyArmy',
+    SKIP: 'Skip',
+    SHIFTY: 'Shifty',
+    TACTICAL_AI: 'TacticalAI',
+    DOMI: 'Domi',
+    TYTAN: 'Tytan',
     SYN: 'Syn',
     EXCAL: 'Excal',
-    GORN: 'Gorn',
-    MODUS: 'Modus',
-    ONE_THREE111: 'OneThree111',
-    DOMI: 'Domi',
-    WILY_WOLF: 'WilyWolf',
+    MEDIUM_ARMY: 'MediumArmy',
     ENRAGED_FERRET: 'EnragedFerret',
-    SKIP: 'Skip',
-    PCAP: 'pcap',
-    TACTICAL_AI: 'TacticalAI',
-    PANCAKE: 'Pancake',
+    CORE_DAWG: 'CoreDawg',
+    MODUS: 'Modus',
     HARD_ARMY: 'HardArmy'
 } as const;
 
@@ -3692,13 +3692,10 @@ export type PlayerSummary = {
 /**
  * PlayerSynergy
  *
- * Whether a pair of players over- or under-performs their combined ratings.
+ * A pair's wins together minus the rating model's pregame expectation.
  *
- * ``synergy`` is the extra log-odds the pair's team gets purely because the two
- * are paired, beyond what their individual ratings predict (positive = chemistry,
- * negative = anti-synergy). ``win_prob_delta`` expresses the same effect as a
- * win-probability shift at an even (50/50) matchup. See
- * ``SYNERGY_METHODOLOGY.md``.
+ * ``solo_a``/``solo_b`` are each player's per-game excess without the other.
+ * See ``SYNERGY_METHODOLOGY.md``.
  */
 export type PlayerSynergy = {
     /**
@@ -3709,14 +3706,6 @@ export type PlayerSynergy = {
      * Player B
      */
     player_b: string;
-    /**
-     * Synergy
-     */
-    synergy: number;
-    /**
-     * Win Prob Delta
-     */
-    win_prob_delta: number;
     /**
      * Games Together
      */
@@ -3730,29 +3719,25 @@ export type PlayerSynergy = {
      */
     expected_wins: number;
     /**
-     * Std Error
+     * Excess Wins
      */
-    std_error: number;
+    excess_wins: number;
+    /**
+     * Win Rate Delta
+     */
+    win_rate_delta: number;
     /**
      * Z Score
      */
     z_score: number;
     /**
-     * Games Apart
+     * Solo A
      */
-    games_apart: number;
+    solo_a: number | null;
     /**
-     * Main A
+     * Solo B
      */
-    main_a: number;
-    /**
-     * Main B
-     */
-    main_b: number;
-    /**
-     * Adjusted Expected Wins
-     */
-    adjusted_expected_wins: number;
+    solo_b: number | null;
 };
 
 /**
@@ -5741,23 +5726,9 @@ export type getPlayerSynergyApiPlayerRatingsSynergyGetData = {
          */
         min_games_together?: number;
         /**
-         * Regularization
-         *
-         * L2 shrinkage for pair synergy; higher = more conservative
-         */
-        regularization?: number;
-        /**
-         * Main Regularization
-         *
-         * L2 shrinkage for per-player main effects; raise to stop strong players' main effects running away and saturating pair synergy
-         */
-        main_regularization?: number;
-        /**
          * Game Format
-         *
-         * Filter by game format: 1v1, 2v2, 3v3, 4v4
          */
-        game_format?: string | null;
+        game_format?: '2v2' | '3v3' | '4v4' | null;
     };
     url: '/api/player_ratings/synergy/';
 };
