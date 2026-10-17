@@ -290,3 +290,10 @@ def test_two_aliases_for_one_player_are_one_person(rated_games) -> None:
     assert doubled == single
     for team in doubled:
         assert len(set(team)) == len(team), f"{team} lists the same player twice"
+
+
+def test_create_balanced_teams_collapses_aliases(rated_games) -> None:
+    teams = create_teams.create_balanced_teams(
+        rated_games, {"skp", "Skip", "Syn", "Pancake", "CoreDawg"}, team_size=2
+    )
+    assert sorted(p for t in teams for p in t) == sorted(FOUR)

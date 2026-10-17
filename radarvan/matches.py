@@ -17,7 +17,7 @@ from .cncstats_model.header import GeneralsHeader
 from .cncstats_model.zhreplay import EnhancedReplayV2, WinEstimation
 from .db_utils import DatabaseManager, ReplayManager
 from .game_composition import GameComposition, MatchRoster
-from .player_role import PlayerRole
+from .player_role import PlayerRole, team_from_header
 from .logging_config import configure_logging
 from dataclasses import dataclass
 from collections.abc import Callable
@@ -74,14 +74,18 @@ def _every_multi_member_team_has_a_survivor(head: GeneralsHeader) -> bool:
     """
     header_players = head.metadata.players if head.metadata else []
     discons = head.player_discons or []
-    team_total: Counter[str] = Counter()
-    team_survivors: Counter[str] = Counter()
+    team_total: Counter[int] = Counter()
+    team_survivors: Counter[int] = Counter()
     for i, p in enumerate(header_players):
-        if p.type not in ("H", "C"):
+        if p.type not in ("H", "C") or not utils.is_competitor(p):
             continue
-        team_total[p.team] += 1
+        team = team_from_header(p)
+        # Teamless slots (0) are each their own side, not one shared team.
+        if team == 0:
+            continue
+        team_total[team] += 1
         if i >= len(discons) or not discons[i]:
-            team_survivors[p.team] += 1
+            team_survivors[team] += 1
     return all(
         team_survivors[team] > 0 for team, total in team_total.items() if total > 1
     )

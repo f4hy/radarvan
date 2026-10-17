@@ -130,7 +130,7 @@ def superlative_data_from_details(d: MatchDetails) -> SuperlativeData:
     if curve is not None:
         winner_players = curve.winners
         loser_players = curve.losers
-        winner_min_win_prob = min(curve.probs)
+        winner_min_win_prob = win_curve.deepest_deficit(curve)
         loser_max_win_prob = 1 - winner_min_win_prob
 
     return SuperlativeData(

@@ -93,6 +93,8 @@ def compute_head_to_head(
     (0, 0).
     """
     value_by_match = value_by_match or {}
+    if player1 == player2:
+        games = []
     h2h_games: list[HeadToHeadGame] = []
     # [wins, losses] from each player's own perspective, keyed by their general.
     p1_by_general: dict[General, list[int]] = defaultdict(lambda: [0, 0])

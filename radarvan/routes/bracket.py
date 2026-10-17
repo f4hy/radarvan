@@ -701,6 +701,11 @@ def set_bracket_prediction(
 ) -> BracketMatchPrediction:
     """Set (or clear, with null) the caller's prediction for a match."""
     tournament, raw_states, _result, m = load_match(repo, match_id)
+    # Checked first: the 400s below would otherwise reveal placements early.
+    if not is_revealed(tournament, allow_preview=False):
+        raise HTTPException(
+            status_code=409, detail="Predictions open once the bracket is revealed"
+        )
     if m.player_a is None or m.player_b is None:
         raise HTTPException(
             status_code=400, detail="This match's players aren't determined yet"

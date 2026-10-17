@@ -408,7 +408,7 @@ function GameRow(props: {
             toISOString() dates a 9pm US game as the next day. Same reasoning as
             Matches.tsx:MatchDateSummary and GameNight.tsx:localDate. */}
         <TableCell sx={{ whiteSpace: "nowrap" }}>
-          {game.date.toLocaleDateString("en-CA")}
+          {game.timestamp.toLocaleDateString("en-CA")}
         </TableCell>
         <TableCell>{displayMapName(game.map)}</TableCell>
         <TableCell>

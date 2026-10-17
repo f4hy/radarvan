@@ -367,7 +367,9 @@ def set_override(
 ) -> WinnerOverride:
     """Set a winner and/or incomplete override for a match. Persists through re-parses."""
     saved = replay_manager.set_override(
-        match_id, winner=winner.value if winner else None, incomplete=incomplete
+        match_id,
+        winner=winner.value if winner is not None else None,
+        incomplete=incomplete,
     )
     invalidate_match_caches()
     return WinnerOverride(

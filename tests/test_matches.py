@@ -22,11 +22,11 @@ from radarvan.matches import filter_by_months_back, is_incomplete, matches_diffe
 from radarvan.player_role import PlayerRole
 
 
-def _header_player(name: str, team: str) -> header.Player:
-    # player_template is read by utils.is_competitor on is_incomplete's
-    # no-winner path; "2" is an ordinary competitor (-2 would be a spectator).
+def _header_player(name: str, team: str, template: str = "2") -> header.Player:
+    # player_template is read by utils.is_competitor; "2" is an ordinary
+    # competitor, "-2" a spectator.
     return header.Player.model_construct(
-        name=name, team=team, type="H", starting_position="0", player_template="2"
+        name=name, team=team, type="H", starting_position="0", player_template=template
     )
 
 
@@ -94,6 +94,17 @@ def test_whole_team_disconnecting_is_still_flagged() -> None:
         wins=[False, False, True, True],
     )
     assert is_incomplete(replay) == "Disconnect"
+
+
+def test_spectators_dropping_out_is_not_a_disconnect() -> None:
+    replay = _replay(
+        teams=["0", "0", "1", "1"],
+        player_discons=[False, False, False, False, True, True],
+        wins=[True, True, False, False],
+    )
+    observers = [_header_player(f"S{i}", "-1", template="-2") for i in range(2)]
+    replay.header.metadata.players.extend(observers)
+    assert is_incomplete(replay) == ""
 
 
 def _checksum(frame: int, player_id: int, value: int) -> body.BodyChunk:

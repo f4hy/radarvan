@@ -208,7 +208,7 @@ def _detail_highlights(
         canonical = _canonical_names(match)
         curve = win_curve.winner_curve(details.win_prob_over_time)
         if curve is not None:
-            min_prob = min(curve.probs)
+            min_prob = win_curve.deepest_deficit(curve)
             if best_momentum is None or min_prob < best_momentum[0]:
                 best_momentum = (min_prob, curve.winners, curve.probs, match.id)
         blood = details.first_blood

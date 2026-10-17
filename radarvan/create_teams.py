@@ -155,7 +155,7 @@ def partition_into_teams(
 def create_balanced_teams(
     games: list[MatchInfo], player_list: set[str], team_size: int = 2
 ) -> list[list[str]]:
-    resolved_players = [player_ids.resolve_player_name(n) for n in player_list]
+    resolved_players = sorted({player_ids.resolve_player_name(n) for n in player_list})
     rated = rate_roster(resolved_players, compute_player_ratings(games))
     team_configs = dict(enumerate(partition_into_teams(resolved_players, team_size)))
 

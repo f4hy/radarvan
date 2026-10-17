@@ -307,19 +307,15 @@ def highest_ave_apm(matches: list[MatchDetails], computed_at: date) -> Statistic
 
 
 def faction_stats(matches: list[MatchInfo], computed_at: date) -> list[Statistic]:
-    all_zeros = Counter({General(i): 0 for i in range(12)})
-    generals_played = (
-        Counter(General(p.general) for m in matches for p in m.roster().participants)
-        + all_zeros
+    # update(), not +: Counter addition drops zero counts, so unplayed/winless
+    # generals would never be picked as "least".
+    generals_played = Counter({General(i): 0 for i in range(12)})
+    generals_played.update(
+        General(p.general) for m in matches for p in m.roster().participants
     )
-    generals_won = (
-        Counter(
-            General(p.general)
-            for m in matches
-            for p in m.roster().participants
-            if p.won
-        )
-        + all_zeros
+    generals_won = Counter({General(i): 0 for i in range(12)})
+    generals_won.update(
+        General(p.general) for m in matches for p in m.roster().participants if p.won
     )
 
     most_played, most_count = generals_played.most_common(1)[0]
