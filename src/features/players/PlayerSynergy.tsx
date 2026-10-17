@@ -17,8 +17,8 @@ import Slider from "@mui/material/Slider"
 import Typography from "@mui/material/Typography"
 import { Tooltip as MuiTooltip } from "@mui/material"
 
-import type { PlayerSynergy } from "../../api"
-import { PlayersClient } from "../../clients/players"
+import type { PlayerSynergy } from "../../api/types.gen"
+import { getPlayerSynergyApiPlayerRatingsSynergyGetOptions } from "../../api/@tanstack/react-query.gen"
 import QueryState from "../../components/QueryState"
 import { PlayerLabel } from "../../components/PlayerChip"
 import { WIN_COLOR, LOSS_COLOR } from "../../lib/theme"
@@ -143,22 +143,22 @@ export default function DisplayPlayerSynergy() {
     max: 100,
   })
 
-  const query = useQuery({
-    queryKey: ["playerSynergy", format, minGames, pairReg, mainReg],
-    queryFn: () =>
-      PlayersClient.getPlayerSynergyApiPlayerRatingsSynergyGet({
-        minGamesTogether: minGames,
+  const query = useQuery(
+    getPlayerSynergyApiPlayerRatingsSynergyGetOptions({
+      query: {
+        min_games_together: minGames,
         regularization: pairReg,
-        mainRegularization: mainReg,
-        ...(format === "All" ? {} : { gameFormat: format }),
-      }),
-  })
+        main_regularization: mainReg,
+        ...(format === "All" ? {} : { game_format: format }),
+      },
+    }),
+  )
   const pairs = query.data
 
   const visible = React.useMemo(() => {
     if (!pairs) return []
     return significantOnly
-      ? pairs.filter((p) => Math.abs(p.zScore) >= SIGNIFICANT_Z)
+      ? pairs.filter((p) => Math.abs(p.z_score) >= SIGNIFICANT_Z)
       : pairs
   }, [pairs, significantOnly])
 
@@ -287,13 +287,12 @@ const SIMPLE_MIN_GAMES = 10
 const SIMPLE_MIN_Z = 1
 
 export function SimplePlayerSynergy() {
-  const query = useQuery({
-    queryKey: ["playerSynergy", "simple", SIMPLE_MIN_GAMES],
-    queryFn: () =>
-      PlayersClient.getPlayerSynergyApiPlayerRatingsSynergyGet({
-        minGamesTogether: SIMPLE_MIN_GAMES,
-      }),
-  })
+  const query = useQuery(
+    getPlayerSynergyApiPlayerRatingsSynergyGetOptions({
+      query: { min_games_together: SIMPLE_MIN_GAMES },
+    }),
+  )
+
   if (query.isPending || query.isError) {
     return (
       <QueryState query={query} what="synergy">
@@ -302,7 +301,7 @@ export function SimplePlayerSynergy() {
     )
   }
   const pairs = query.data
-  const strong = pairs.filter((p) => Math.abs(p.zScore) > SIMPLE_MIN_Z)
+  const strong = pairs.filter((p) => Math.abs(p.z_score) > SIMPLE_MIN_Z)
   if (strong.length === 0) {
     return (
       <Typography
@@ -339,13 +338,13 @@ export function SimplePlayerSynergy() {
           </TableHead>
           <TableBody>
             {strong.map((p) => (
-              <TableRow key={`${p.playerA}|${p.playerB}`} hover>
-                <PairCell a={p.playerA} b={p.playerB} />
+              <TableRow key={`${p.player_a}|${p.player_b}`} hover>
+                <PairCell a={p.player_a} b={p.player_b} />
                 <TableCell
                   align="right"
                   sx={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  {p.gamesTogether}
+                  {p.games_together}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -355,7 +354,7 @@ export function SimplePlayerSynergy() {
                     color: p.synergy >= 0 ? WIN_COLOR : LOSS_COLOR,
                   }}
                 >
-                  {signedPct(p.winProbDelta)}
+                  {signedPct(p.win_prob_delta)}
                 </TableCell>
               </TableRow>
             ))}
@@ -418,36 +417,36 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
         </TableHead>
         <TableBody>
           {props.pairs.map((p, i) => {
-            const losses = p.gamesTogether - p.winsTogether
-            const actualRate = p.winsTogether / p.gamesTogether
-            const expectedRate = p.expectedWins / p.gamesTogether
-            const adjustedRate = p.adjustedExpectedWins / p.gamesTogether
+            const losses = p.games_together - p.wins_together
+            const actualRate = p.wins_together / p.games_together
+            const expectedRate = p.expected_wins / p.games_together
+            const adjustedRate = p.adjusted_expected_wins / p.games_together
             const color = p.synergy >= 0 ? WIN_COLOR : LOSS_COLOR
-            const significant = Math.abs(p.zScore) >= SIGNIFICANT_Z
+            const significant = Math.abs(p.z_score) >= SIGNIFICANT_Z
             return (
-              <TableRow key={`${p.playerA}|${p.playerB}`} hover>
+              <TableRow key={`${p.player_a}|${p.player_b}`} hover>
                 <TableCell sx={{ color: "text.secondary" }}>{i + 1}</TableCell>
-                <PairCell a={p.playerA} b={p.playerB} />
+                <PairCell a={p.player_a} b={p.player_b} />
                 <TableCell
                   align="right"
                   sx={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  {p.gamesTogether}
+                  {p.games_together}
                 </TableCell>
                 <TableCell
                   align="right"
                   sx={{
                     fontVariantNumeric: "tabular-nums",
-                    color: p.gamesApart === 0 ? LOSS_COLOR : "text.secondary",
+                    color: p.games_apart === 0 ? LOSS_COLOR : "text.secondary",
                   }}
                 >
-                  {p.gamesApart}
+                  {p.games_apart}
                 </TableCell>
                 <TableCell
                   align="right"
                   sx={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  {p.winsTogether}–{losses}
+                  {p.wins_together}–{losses}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -480,7 +479,7 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                     color,
                   }}
                 >
-                  {signedPct(p.winProbDelta)}
+                  {signedPct(p.win_prob_delta)}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -489,7 +488,7 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                     color: "text.secondary",
                   }}
                 >
-                  {p.mainA.toFixed(1)} · {p.mainB.toFixed(1)}
+                  {p.main_a.toFixed(1)} · {p.main_b.toFixed(1)}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -499,7 +498,7 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                     color: significant ? color : "text.secondary",
                   }}
                 >
-                  {p.zScore.toFixed(1)}
+                  {p.z_score.toFixed(1)}
                 </TableCell>
               </TableRow>
             )

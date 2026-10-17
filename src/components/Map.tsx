@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography"
 import DownloadIcon from "@mui/icons-material/Download"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { MapClient } from "../clients/map"
+import { getMapDataApiMapDataMapNameGetOptions } from "../api/@tanstack/react-query.gen"
 import { formatCash, getColorHex, totalMapSupply } from "../lib/utils"
 
 export type PlayerPosition = {
@@ -18,7 +18,7 @@ export type PlayerPosition = {
   general?: string
 }
 
-type PointCategory = "playerStarts" | "supply" | "tech" | "garrison"
+type PointCategory = "player_starts" | "supply" | "tech" | "garrison"
 
 type PointStyle = {
   color: string
@@ -28,7 +28,7 @@ type PointStyle = {
 }
 
 const BASE_STYLES: Record<PointCategory, PointStyle> = {
-  playerStarts: { color: "#000000", size: 12 },
+  player_starts: { color: "#000000", size: 12 },
   supply: { color: "#32CD32", size: 14, symbol: "$" },
   tech: { color: "#ffdd00", size: 14, symbol: "★" },
   garrison: { color: "#FFFFFF", size: 5, border: "2px solid #333333" },
@@ -113,10 +113,9 @@ const MAP_DATA_STALE_MS = 60 * 60_000
 
 function mapDataQueryOptions(mapname: string) {
   return {
-    queryKey: ["mapData", mapname],
-    queryFn: () =>
-      MapClient.getMapDataApiMapDataMapNameGet({ mapName: mapname }),
+    ...getMapDataApiMapDataMapNameGetOptions({ path: { map_name: mapname } }),
     staleTime: MAP_DATA_STALE_MS,
+
     gcTime: MAP_DATA_STALE_MS,
     // A map with no data row 404s; that is an answer, not a failure to retry.
     retry: false,
@@ -274,8 +273,8 @@ export default function GameMap(props: {
                       name,
                     )
                     const playerEntry =
-                      !symbol && "playerNumber" in pt
-                        ? props.playerPositions?.[pt.playerNumber]
+                      !symbol && "player_number" in pt
+                        ? props.playerPositions?.[pt.player_number]
                         : undefined
                     const playerColor = playerEntry?.color
                       ? getColorHex(playerEntry.color)
@@ -284,7 +283,7 @@ export default function GameMap(props: {
                       <Tooltip
                         key={`${category}-${i}`}
                         title={
-                          "name" in pt ? pt.name : `Player ${pt.playerNumber}`
+                          "name" in pt ? pt.name : `Player ${pt.player_number}`
                         }
                       >
                         <Box
@@ -344,7 +343,7 @@ export default function GameMap(props: {
                                 lineHeight: 1,
                               }}
                             >
-                              {"playerNumber" in pt ? pt.playerNumber : ""}
+                              {"player_number" in pt ? pt.player_number : ""}
                             </Box>
                           )}
                           {playerEntry?.general && (

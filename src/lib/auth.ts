@@ -1,20 +1,21 @@
 // Cookie-based auth helpers.
 //
-// These go through the generated client like everything else. The types are
-// the generated `AuthStatus`/`CurrentUser` (camelCase, regenerated from the
-// backend's own models) rather than the hand-written snake_case copies that
-// used to live here — those could drift from the API with nothing to catch it,
-// and they were the reason the app spelled the same object two ways.
+// These go through the generated client like everything else, typed by the
+// generated `AuthStatus`/`CurrentUser` rather than hand-written copies.
 
-import { AuthClient } from "../clients/auth"
-import type { AuthStatus, CurrentUser } from "../api"
+import {
+  logoutApiAuthLogoutPost,
+  meApiAuthMeGet,
+  selectPlayerApiAuthSelectPlayerPost,
+} from "../api/sdk.gen"
+import type { AuthStatus, CurrentUser } from "../api/types.gen"
 
 export type { AuthStatus, CurrentUser }
 
 const LOGGED_OUT: AuthStatus = {
-  loggedIn: false,
+  logged_in: false,
   user: null,
-  availablePlayers: [],
+  available_players: [],
 }
 
 export async function fetchAuthStatus(): Promise<AuthStatus> {
@@ -22,7 +23,7 @@ export async function fetchAuthStatus(): Promise<AuthStatus> {
   // session (401, a network blip) reads as logged out rather than throwing
   // into AuthProvider, which has no error branch and gates the whole nav.
   try {
-    return await AuthClient.meApiAuthMeGet()
+    return (await meApiAuthMeGet()).data
   } catch {
     return LOGGED_OUT
   }
@@ -37,11 +38,12 @@ export function startDiscordLogin(): void {
 }
 
 export async function selectPlayer(playerName: string): Promise<AuthStatus> {
-  return AuthClient.selectPlayerApiAuthSelectPlayerPost({
-    selectPlayerRequest: { playerName },
+  const { data } = await selectPlayerApiAuthSelectPlayerPost({
+    body: { player_name: playerName },
   })
+  return data
 }
 
 export async function logout(): Promise<void> {
-  await AuthClient.logoutApiAuthLogoutPost()
+  await logoutApiAuthLogoutPost()
 }

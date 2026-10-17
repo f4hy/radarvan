@@ -26,10 +26,13 @@ import Typography from "@mui/material/Typography"
 import { alpha, useTheme } from "@mui/material/styles"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import type { GameNightHighlight, GameNightRecap } from "../../api"
+import type { GameNightHighlight, GameNightRecap } from "../../api/types.gen"
 import { AiBlurb, renderAiText } from "../../components/aiText"
-import { GameNightClient } from "../../clients/game-night"
-import { MatchesClient } from "../../clients/matches"
+import {
+  getDatesApiDatesGetOptions,
+  getGameNightRecapApiGameNightNightGetOptions,
+  getMatchesByDateApiMatchesByDateDateGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import Loading from "../../components/Loading"
 import MatchActivityCalendar from "../../components/MatchActivityCalendar"
 import { MatchCard } from "../../components/MatchCard"
@@ -304,18 +307,14 @@ function GameByGame(props: {
   // laziness the old `if (matches !== null) return` guard did by hand, and it
   // also means a night reopened later renders from cache instead of refetching.
   const query = useQuery({
-    queryKey: ["matchesByDate", props.date],
-    queryFn: async () => {
-      const result =
-        await MatchesClient.getMatchesByDateApiMatchesByDateDateGet({
-          // The generated client serializes Date params via toISOString() (UTC),
-          // so the param must be UTC midnight of the backend's date key — which
-          // is what new Date("YYYY-MM-DD") produces.
-          date: new Date(props.date),
-          excludeDev: true,
-        })
-      return result.matches
-    },
+    ...getMatchesByDateApiMatchesByDateDateGetOptions({
+      // The generated client serializes Date params via toISOString() (UTC),
+      // so the param must be UTC midnight of the backend's date key — which
+      // is what new Date("YYYY-MM-DD") produces.
+      path: { date: new Date(props.date) },
+      query: { exclude_dev: true },
+    }),
+    select: (result) => result.matches,
     enabled: expanded,
   })
   const matches = query.data ?? null
@@ -460,10 +459,7 @@ export default function GameNight() {
 
   // Already newest-first from the API. Same payload the night list comes from —
   // the counts feed the calendar too.
-  const datesQuery = useQuery({
-    queryKey: ["dates"],
-    queryFn: () => MatchesClient.getDatesApiDatesGet(),
-  })
+  const datesQuery = useQuery(getDatesApiDatesGetOptions())
   const dateCounts = datesQuery.data ?? NO_DATES
 
   const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])
@@ -477,13 +473,12 @@ export default function GameNight() {
   }, [selected, nights, setSelected])
 
   const recapQuery = useQuery({
-    queryKey: ["gameNightRecap", selected],
-    queryFn: () =>
-      GameNightClient.getGameNightRecapApiGameNightNightGet({
-        night: new Date(selected as string),
-      }),
+    ...getGameNightRecapApiGameNightNightGetOptions({
+      path: { night: new Date(selected as string) },
+    }),
     enabled: selected !== null,
   })
+
   const recap = recapQuery.data ?? null
 
   // A different night means the previously focused match is not on this page

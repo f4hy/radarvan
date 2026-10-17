@@ -27,7 +27,7 @@ import {
   type TooltipPayloadEntry,
 } from "recharts"
 import ShowPlayerSummaries from "./Summary"
-import { MatchesClient } from "../../clients/matches"
+import { getMatchDetailsApiDetailsMatchIdGetOptions } from "../../api/@tanstack/react-query.gen"
 import type {
   KillEventOutput,
   MatchDetails,
@@ -37,7 +37,7 @@ import type {
   BuildOrder,
   BuildOrderEntry,
   TimelineEvent,
-} from "../../api"
+} from "../../api/types.gen"
 import GameMap, { useMapSupplyTotal } from "../../components/Map"
 import ReplayPlayback from "./ReplayPlayback"
 import AIPredictions from "./AIPredictions"
@@ -778,7 +778,8 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
   }
 
   const data: StyledTableRow[] = React.useMemo(() => {
-    const { playerSummary: summaries, statsData } = props.matchDetails
+    const { player_summary: summaries, stats_data: statsData } =
+      props.matchDetails
     function extractFromStatsData(key: string, name: string) {
       const d = statsData[key]
       if (d === undefined) {
@@ -799,40 +800,40 @@ function GameDetailsTable(props: { matchDetails: MatchDetails }) {
       }
       return last[name]
     }
-    const sumValue = (d: Record<string, { totalSpent: number }>) =>
-      Object.values(d).reduce((acc, o) => acc + o.totalSpent, 0)
+    const sumValue = (d: Record<string, { TotalSpent: number }>) =>
+      Object.values(d).reduce((acc, o) => acc + o.TotalSpent, 0)
     return summaries.map((s) => {
       const valueDestroyed =
-        sumValue(s.unitsDestroyed ?? {}) + sumValue(s.buildingsDestroyed ?? {})
+        sumValue(s.UnitsDestroyed ?? {}) + sumValue(s.BuildingsDestroyed ?? {})
       const valueLost =
-        sumValue(s.unitsLost ?? {}) + sumValue(s.buildingsLost ?? {})
-      const moneyCollected = extractFromStatsData("money_earned", s.name)
+        sumValue(s.UnitsLost ?? {}) + sumValue(s.BuildingsLost ?? {})
+      const moneyCollected = extractFromStatsData("money_earned", s.Name)
       const efficiency =
         moneyCollected && moneyCollected > 0
           ? valueDestroyed / moneyCollected
           : null
       return {
-        player: s.name,
-        team: s.team,
-        color: s.color,
-        won: s.win,
-        general: s.side,
-        moneySpent: extractFromStatsData("money_spent", s.name),
+        player: s.Name,
+        team: s.Team,
+        color: s.Color,
+        won: s.Win,
+        general: s.Side,
+        moneySpent: extractFromStatsData("money_spent", s.Name),
         moneyCollected,
-        xp: extractFromStatsData("xp", s.name),
-        unitsBuilt: extractFromStatsData("units_built", s.name),
-        buildingsBuilt: extractFromStatsData("buildings_built", s.name),
-        unitsLost: extractFromStatsData("units_lost", s.name),
-        buildingsLost: extractFromStatsData("buildings_lost", s.name),
-        unitsKilled: extractFromStatsData("units_killed", s.name),
-        buildingsKilled: extractFromStatsData("buildings_killed", s.name),
+        xp: extractFromStatsData("xp", s.Name),
+        unitsBuilt: extractFromStatsData("units_built", s.Name),
+        buildingsBuilt: extractFromStatsData("buildings_built", s.Name),
+        unitsLost: extractFromStatsData("units_lost", s.Name),
+        buildingsLost: extractFromStatsData("buildings_lost", s.Name),
+        unitsKilled: extractFromStatsData("units_killed", s.Name),
+        buildingsKilled: extractFromStatsData("buildings_killed", s.Name),
         tech_buildings_captured: extractFromStatsData(
           "tech_buildings_captured",
-          s.name,
+          s.Name,
         ),
         faction_buildings_captured: extractFromStatsData(
           "faction_buildings_captured",
-          s.name,
+          s.Name,
         ),
         valueDestroyed,
         valueLost,
@@ -948,18 +949,18 @@ function MoneyCharts(props: { details: MatchDetails }) {
     <>
       <MoneyChart
         title="Money"
-        money={props.details.statsData.money}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.money}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="$ Earned"
-        money={props.details.statsData.money_earned}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.money_earned}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="$ spent"
-        money={props.details.statsData.money_spent}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.money_spent}
+        playerSummaries={props.details.player_summary}
       />
     </>
   )
@@ -969,8 +970,8 @@ function XpCharts(props: { details: MatchDetails }) {
   return (
     <MoneyChart
       title="XP"
-      money={props.details.statsData.xp}
-      playerSummaries={props.details.playerSummary}
+      money={props.details.stats_data.xp}
+      playerSummaries={props.details.player_summary}
       horizontalLines={[800, 1500, 2500, 5000]}
     />
   )
@@ -981,33 +982,33 @@ function UnitCharts(props: { details: MatchDetails }) {
     <>
       <MoneyChart
         title="Units Killed"
-        money={props.details.statsData.units_killed}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.units_killed}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="Units Built"
-        money={props.details.statsData.units_built}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.units_built}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="Units Lost"
-        money={props.details.statsData.units_lost}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.units_lost}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="Buildings Killed"
-        money={props.details.statsData.buildings_killed}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.buildings_killed}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="Buildings Built"
-        money={props.details.statsData.buildings_built}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.buildings_built}
+        playerSummaries={props.details.player_summary}
       />
       <MoneyChart
         title="Buildings Lost"
-        money={props.details.statsData.buildings_lost}
-        playerSummaries={props.details.playerSummary}
+        money={props.details.stats_data.buildings_lost}
+        playerSummaries={props.details.player_summary}
       />
     </>
   )
@@ -1020,7 +1021,7 @@ function DetailedGraphs(props: { details: MatchDetails }) {
       <ApmChart
         apmOverTime={details.apmOverTime ?? {}}
         apms={details.apms}
-        playerSummaries={details.playerSummary}
+        playerSummaries={details.player_summary}
       />
       <Divider />
       <MoneyCharts details={details} />
@@ -1059,7 +1060,7 @@ function KillMap(props: {
         {props.playerSummaries.map((ps) => (
           <Stack
             // Color is unique per player in a match; names aren't (twin CPUs).
-            key={`${ps.name}-${ps.color}`}
+            key={`${ps.Name}-${ps.Color}`}
             direction="row"
             spacing={0.5}
             sx={{
@@ -1071,11 +1072,11 @@ function KillMap(props: {
                 width: 12,
                 height: 12,
                 borderRadius: "50%",
-                bgcolor: getColorHex(ps.color),
+                bgcolor: getColorHex(ps.Color),
                 flexShrink: 0,
               }}
             />
-            <Typography variant="caption">{ps.name}</Typography>
+            <Typography variant="caption">{ps.Name}</Typography>
           </Stack>
         ))}
       </Stack>
@@ -1084,7 +1085,8 @@ function KillMap(props: {
 }
 
 const ACADEMY_ROWS: {
-  key: keyof NonNullable<PlayerSummary["academy"]>
+  key: keyof NonNullable<PlayerSummary["Academy"]>
+
   label: string
 }[] = [
   { key: "supplyCentersBuilt", label: "Supply Centers Built" },
@@ -1112,7 +1114,7 @@ const ACADEMY_ROWS: {
 
 function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
   const players = props.playerSummaries
-  const anyData = players.some((p) => p.academy != null)
+  const anyData = players.some((p) => p.Academy != null)
   if (!anyData) {
     return <Typography>No academy stats available for this replay.</Typography>
   }
@@ -1124,7 +1126,7 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
             <TableCell>Stat</TableCell>
             {players.map((p) => (
               // Color is unique per player in a match; names aren't (twin CPUs).
-              <TableCell key={`${p.name}-${p.color}`} align="right">
+              <TableCell key={`${p.Name}-${p.Color}`} align="right">
                 <Stack
                   direction="row"
                   spacing={0.5}
@@ -1138,11 +1140,11 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
                       width: 10,
                       height: 10,
                       borderRadius: "50%",
-                      bgcolor: getColorHex(p.color),
+                      bgcolor: getColorHex(p.Color),
                       flexShrink: 0,
                     }}
                   />
-                  <span>{p.name}</span>
+                  <span>{p.Name}</span>
                 </Stack>
               </TableCell>
             ))}
@@ -1153,8 +1155,8 @@ function AcademyTable(props: { playerSummaries: PlayerSummary[] }) {
             <TableRow key={row.key}>
               <TableCell>{row.label}</TableCell>
               {players.map((p) => (
-                <TableCell key={`${p.name}-${p.color}`} align="right">
-                  {p.academy ? p.academy[row.key].toLocaleString() : "—"}
+                <TableCell key={`${p.Name}-${p.Color}`} align="right">
+                  {p.Academy ? p.Academy[row.key].toLocaleString() : "—"}
                 </TableCell>
               ))}
             </TableRow>
@@ -1241,7 +1243,7 @@ function BuildOrderTab(props: {
   playerSummaries: PlayerSummary[]
 }) {
   const players = props.playerSummaries.filter(
-    (p) => props.buildOrders[p.name] !== undefined,
+    (p) => props.buildOrders[p.Name] !== undefined,
   )
   if (players.length === 0) {
     return (
@@ -1255,10 +1257,10 @@ function BuildOrderTab(props: {
       sx={{ flexWrap: "wrap", alignItems: "flex-start" }}
     >
       {players.map((p) => {
-        const order = props.buildOrders[p.name]
+        const order = props.buildOrders[p.Name]
         return (
           // Color is unique per player in a match; names aren't (twin CPUs).
-          <Paper key={`${p.name}-${p.color}`} sx={{ p: 2, mb: 2 }}>
+          <Paper key={`${p.Name}-${p.Color}`} sx={{ p: 2, mb: 2 }}>
             <Stack
               direction="row"
               spacing={1}
@@ -1272,13 +1274,13 @@ function BuildOrderTab(props: {
                   width: 12,
                   height: 12,
                   borderRadius: "50%",
-                  bgcolor: getColorHex(p.color),
+                  bgcolor: getColorHex(p.Color),
                   flexShrink: 0,
                 }}
               />
-              <Typography variant="h6">{p.name}</Typography>
+              <Typography variant="h6">{p.Name}</Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                ({p.side})
+                ({p.Side})
               </Typography>
             </Stack>
             <Stack
@@ -1461,7 +1463,7 @@ function IncomeBySourceTab(props: { details: MatchDetails }) {
   // scale and directly comparable.
   const yMax = Math.max(
     0,
-    ...Object.values(props.details.playerMoneyCollected ?? {}),
+    ...Object.values(props.details.player_money_collected ?? {}),
   )
   return (
     <>
@@ -1470,11 +1472,11 @@ function IncomeBySourceTab(props: { details: MatchDetails }) {
           Total map supply: {formatCash(mapSupplyTotal)}
         </Typography>
       )}
-      {props.details.playerSummary.map((ps) => (
+      {props.details.player_summary.map((ps) => (
         <PlayerIncomeChart
           // Color is unique per player in a match; names aren't (twin CPUs).
-          key={`${ps.name}-${ps.color}`}
-          playerName={ps.name}
+          key={`${ps.Name}-${ps.Color}`}
+          playerName={ps.Name}
           income={income}
           minutes={minutes}
           yMax={yMax}
@@ -1632,19 +1634,19 @@ function EconTab(props: { details: MatchDetails }) {
     () => econCategories(secondaryKeys),
     [secondaryKeys],
   )
-  const colors = buildPlayerColorMap(props.details.playerSummary, getColorHex)
+  const colors = buildPlayerColorMap(props.details.player_summary, getColorHex)
   const data = React.useMemo(
     () =>
-      props.details.playerSummary.map((ps) => {
+      props.details.player_summary.map((ps) => {
         const row: { name: string; [key: string]: string | number } = {
-          name: ps.name,
+          name: ps.Name,
         }
         for (const c of categories) {
-          row[c.label] = finalValueForPlayer(income, c.keys, ps.name, minutes)
+          row[c.label] = finalValueForPlayer(income, c.keys, ps.Name, minutes)
         }
         return row
       }),
-    [props.details.playerSummary, income, minutes, categories],
+    [props.details.player_summary, income, minutes, categories],
   )
   if (!hasIncomeBySourceData(props.details)) {
     return <Typography>No econ data for this replay</Typography>
@@ -1770,14 +1772,14 @@ function DetailViewSelector(props: {
       </Tabs>
       {props.selectedDisplay === "Player Unit and spending breakdown" && (
         <ShowPlayerSummaries
-          playerSummaries={props.details.playerSummary}
+          playerSummaries={props.details.player_summary}
           killEvents={props.details.killEvents ?? []}
         />
       )}
       {props.selectedDisplay === "Event Chart" && (
         <EventChart
           timelineEvents={props.details.timelineEvents ?? []}
-          playerSummaries={props.details.playerSummary}
+          playerSummaries={props.details.player_summary}
         />
       )}
       {props.selectedDisplay === "Detailed Graphs" && (
@@ -1790,7 +1792,7 @@ function DetailViewSelector(props: {
       {props.selectedDisplay === "Kill Map" && (
         <KillMap
           killEvents={props.details.killEvents ?? []}
-          playerSummaries={props.details.playerSummary}
+          playerSummaries={props.details.player_summary}
           mapName={props.details.mapName ?? ""}
         />
       )}
@@ -1799,7 +1801,7 @@ function DetailViewSelector(props: {
           mapName={props.details.mapName ?? ""}
           mapEvents={props.details.mapEvents ?? []}
           killEvents={props.details.killEvents ?? []}
-          playerSummaries={props.details.playerSummary}
+          playerSummaries={props.details.player_summary}
         />
       )}
       {props.selectedDisplay === "AI" && (
@@ -1809,12 +1811,12 @@ function DetailViewSelector(props: {
         />
       )}
       {props.selectedDisplay === "Academy" && (
-        <AcademyTable playerSummaries={props.details.playerSummary} />
+        <AcademyTable playerSummaries={props.details.player_summary} />
       )}
       {props.selectedDisplay === "Build Order" && (
         <BuildOrderTab
           buildOrders={props.details.buildOrders ?? {}}
-          playerSummaries={props.details.playerSummary}
+          playerSummaries={props.details.player_summary}
         />
       )}
     </>
@@ -1830,11 +1832,12 @@ export default function ShowMatchDetails(props: { id: number }) {
   // Keyed on the match id, so switching matches shows the new match's details
   // rather than leaving the previous one's charts on screen under the new id —
   // and a response that lands after the id moved on belongs to its own key.
-  const query = useQuery({
-    queryKey: ["matchDetails", props.id],
-    queryFn: () =>
-      MatchesClient.getMatchDetailsApiDetailsMatchIdGet({ matchId: props.id }),
-  })
+  const query = useQuery(
+    getMatchDetailsApiDetailsMatchIdGetOptions({
+      path: { match_id: props.id },
+    }),
+  )
+
   const fallback = queryFallback(query, `match #${props.id}`)
   if (fallback) return fallback
   const details = query.data as MatchDetails
@@ -1883,8 +1886,8 @@ export default function ShowMatchDetails(props: { id: number }) {
         </AccordionDetails>
       </Accordion>
       <DisplayFirstBlood
-        first_blood={details.firstBlood ?? undefined}
-        building_first_blood={details.buildingFirstBlood ?? undefined}
+        first_blood={details.first_blood ?? undefined}
+        building_first_blood={details.building_first_blood ?? undefined}
       />
       <GameDetailsTable matchDetails={details} />
       <DetailViewSelector

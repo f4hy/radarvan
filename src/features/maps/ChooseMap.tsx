@@ -23,8 +23,8 @@ import {
   type ChooseMapCandidate,
   type ChooseMapResult,
   chooseMap,
-  fetchPlayerCounts,
-  fetchVotingPlayers,
+  playerCountsQuery,
+  votingPlayersQuery,
 } from "./voting"
 
 type Phase = "pick" | "ready" | "reveal" | "spin" | "done"
@@ -93,9 +93,9 @@ function CandidateRow({
         }}
         noWrap
       >
-        {displayMapName(candidate.mapName)}
+        {displayMapName(candidate.map_name)}
       </Typography>
-      {candidate.recentlyPlayed && (
+      {candidate.recently_played && (
         <Chip
           size="small"
           color="warning"
@@ -130,14 +130,9 @@ export default function ChooseMap() {
   const [spinIndex, setSpinIndex] = React.useState(0)
   const [error, setError] = React.useState<string | null>(null)
 
-  const countsQuery = useQuery({
-    queryKey: ["mapVotePlayerCounts"],
-    queryFn: fetchPlayerCounts,
-  })
-  const playersQuery = useQuery({
-    queryKey: ["votingPlayers"],
-    queryFn: fetchVotingPlayers,
-  })
+  const countsQuery = useQuery(playerCountsQuery())
+  const playersQuery = useQuery(votingPlayersQuery())
+
   const players = playersQuery.data ?? NO_PLAYERS
 
   // Default to everyone selected; the host deselects whoever isn't playing.
@@ -196,7 +191,7 @@ export default function ChooseMap() {
     }
     const target = Math.max(
       0,
-      eligible.findIndex((c) => c.mapName === result.chosenMap),
+      eligible.findIndex((c) => c.map_name === result.chosen_map),
     )
     // Total index advances; lands on `target` at t=1 (advance % len === target).
     const totalAdvance = eligible.length * SPIN_LOOPS + target
@@ -226,7 +221,7 @@ export default function ChooseMap() {
       setResult(await chooseMap(selected, [...participants]))
       setPhase("reveal")
     } catch (e) {
-      setError(await errorMessage(e))
+      setError(errorMessage(e))
     }
   }
 
@@ -265,8 +260,8 @@ export default function ChooseMap() {
       : (result?.candidates ?? [])
   const spinning = phase === "spin"
   const spotlightName = spinning
-    ? eligible[spinIndex]?.mapName
-    : (result?.chosenMap ?? undefined)
+    ? eligible[spinIndex]?.map_name
+    : (result?.chosen_map ?? undefined)
 
   return (
     <Page
@@ -409,12 +404,12 @@ export default function ChooseMap() {
             </Typography>
             {revealed.map((c) => (
               <CandidateRow
-                key={c.mapName}
+                key={c.map_name}
                 candidate={c}
                 highlighted={
-                  spinning && eligible[spinIndex]?.mapName === c.mapName
+                  spinning && eligible[spinIndex]?.map_name === c.map_name
                 }
-                winner={phase === "done" && result?.chosenMap === c.mapName}
+                winner={phase === "done" && result?.chosen_map === c.map_name}
               />
             ))}
           </Stack>

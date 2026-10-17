@@ -56,16 +56,19 @@ import * as React from "react"
 import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import { renderAiText, renderBoldSegments } from "../../components/aiText"
 import { useIsTournamentAdmin } from "../../lib/AuthContext"
-import type { BracketMatchGames, FactionMatchupOption } from "../../api"
+import type {
+  BracketMatchGames,
+  FactionMatchupOption,
+} from "../../api/types.gen"
 import {
   type BracketMatchOutput,
   type BracketMatchStatus,
   type BracketPlayerEntry,
   type BracketTournamentOutput,
+  bracketQuery as bracketQueryOptions,
+  bracketQueryKey,
   createBracket,
-  fetchBracket,
-  fetchBracketMapRecords,
-  fetchEligiblePlayers,
+  eligiblePlayersQuery,
   type MapPlayerRecords,
   type MatchSource,
   type SetBracketMatchRequest,
@@ -81,9 +84,15 @@ import {
   sourceMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
-import { BracketClient } from "../../clients/bracket"
-import { CommentaryClient } from "../../clients/commentary"
-import { PredictClient } from "../../clients/predict"
+import {
+  getBracketMapRecordsApiBracketMapRecordsGetOptions,
+  getMatchupCommentaryApiMatchupCommentaryGetOptions,
+  predictFactionMatchupApiPredictFactionMatchupGetOptions,
+} from "../../api/@tanstack/react-query.gen"
+import {
+  getBracketGamesApiBracketGamesMatchIdGet,
+  getBracketSummaryApiBracketSummaryMatchIdGet,
+} from "../../api/sdk.gen"
 import { toGeneralName } from "../../lib/general_utils"
 import { mapKey } from "../../lib/mapName"
 import Loading from "../../components/Loading"
@@ -227,7 +236,7 @@ function recordColor(wins: number, losses: number): string {
 function mapSections(
   records: MapPlayerRecords[],
 ): { key: string; name: string; record: MapPlayerRecords | undefined }[] {
-  const byKey = new Map(records.map((r) => [r.mapKey, r]))
+  const byKey = new Map(records.map((r) => [r.map_key, r]))
   return [
     ...TOURNAMENT_MAP_LIST.map((name) => ({
       key: mapKey(name),
@@ -235,8 +244,8 @@ function mapSections(
       record: byKey.get(mapKey(name)),
     })),
     ...records
-      .filter((r) => !POOL_NAME_BY_KEY.has(r.mapKey))
-      .map((r) => ({ key: r.mapKey, name: r.mapName, record: r })),
+      .filter((r) => !POOL_NAME_BY_KEY.has(r.map_key))
+      .map((r) => ({ key: r.map_key, name: r.map_name, record: r })),
   ]
 }
 
@@ -246,8 +255,7 @@ function mapSections(
 // membership.
 function MapPlayerRecordList() {
   const { data: records = null, isError: failed } = useQuery({
-    queryKey: ["bracketMapRecords"],
-    queryFn: fetchBracketMapRecords,
+    ...getBracketMapRecordsApiBracketMapRecordsGetOptions(),
     retry: false,
   })
 
@@ -277,7 +285,7 @@ function MapPlayerRecordList() {
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {record
-                ? `${record.totalGames} game${record.totalGames === 1 ? "" : "s"}`
+                ? `${record.total_games} game${record.total_games === 1 ? "" : "s"}`
                 : "not played yet"}
             </Typography>
           </Stack>
@@ -394,7 +402,7 @@ function sliderSx(color: string) {
 function bracketNodeKey(node: BracketNode): string {
   switch (node.kind) {
     case "match":
-      return `match-${node.match.matchId}`
+      return `match-${node.match.match_id}`
     case "seed":
       return `seed-${node.seed}`
     case "ref":
@@ -420,7 +428,7 @@ function loserOf(match: BracketMatchOutput): string | null {
   // widening every consumer.
   if (match.winner == null) return null
   return (
-    (match.winner === match.playerA ? match.playerB : match.playerA) ?? null
+    (match.winner === match.player_a ? match.player_b : match.player_a) ?? null
   )
 }
 
@@ -441,9 +449,9 @@ function buildChild(
       name: seedToName.get(source.seed),
     }
   }
-  const refMatch = matchesById.get(source.matchId)
+  const refMatch = matchesById.get(source.match_id)
   if (refMatch && refMatch.bracket === ownBracket) {
-    return buildNode(source.matchId, matchesById, seedToName, ownBracket)
+    return buildNode(source.match_id, matchesById, seedToName, ownBracket)
   }
   const playerName =
     (refMatch
@@ -453,7 +461,7 @@ function buildChild(
       : null) ?? null
   return {
     kind: "ref",
-    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${sourceMatchLabel(source.matchId, matchesById)}`,
+    label: `${source.kind === "winner" ? "Winner" : "Loser"} of ${sourceMatchLabel(source.match_id, matchesById)}`,
     playerName,
   }
 }
@@ -472,8 +480,8 @@ function buildNode(
       playerName: null,
     }
   }
-  const { sourceA, sourceB } = match
-  if (match.bracket === "W" && match.roundNumber === 1) {
+  const { source_a: sourceA, source_b: sourceB } = match
+  if (match.bracket === "W" && match.round_number === 1) {
     // Winners Round 1 is always the tree's true leaf level — nothing
     // earlier to draw. (Can't tell this from "both slots are raw seeds":
     // with enough byes, two bye seeds can also meet directly in a LATER
@@ -569,16 +577,16 @@ function expectedBestOf(
 ): 5 | 7 | 9 {
   if (match.bracket === "GF") return 9
   if (match.bracket === "W") {
-    return match.roundName === "Winners Semifinal" ||
-      match.roundName === "Winners Final"
+    return match.round_name === "Winners Semifinal" ||
+      match.round_name === "Winners Final"
       ? 7
       : 5
   }
-  if (match.roundName === "Losers Final") return 7
+  if (match.round_name === "Losers Final") return 7
   const maxLosersRound = Math.max(
-    ...allMatches.filter((m) => m.bracket === "L").map((m) => m.roundNumber),
+    ...allMatches.filter((m) => m.bracket === "L").map((m) => m.round_number),
   )
-  return match.roundNumber === maxLosersRound - 1 ? 7 : 5
+  return match.round_number === maxLosersRound - 1 ? 7 : 5
 }
 
 type Side = "a" | "b"
@@ -625,30 +633,30 @@ function topDraws(
   count: number,
 ): RankedDraw[] {
   if (options.length === 0) return []
-  const probs = options.map((o) => o.probPlayer1Wins).sort((a, b) => a - b)
+  const probs = options.map((o) => o.prob_player1_wins).sort((a, b) => a - b)
   const mid = Math.floor(probs.length / 2)
   const median =
     probs.length % 2 === 0 ? (probs[mid - 1] + probs[mid]) / 2 : probs[mid]
 
   const favorsA = [...options]
-    .sort((a, b) => b.probPlayer1Wins - a.probPlayer1Wins)
+    .sort((a, b) => b.prob_player1_wins - a.prob_player1_wins)
     .slice(0, count)
     .map((o) => ({
-      playerAGeneral: o.player1General,
-      playerBGeneral: o.player2General,
+      playerAGeneral: o.player1_general,
+      playerBGeneral: o.player2_general,
       favors: "a" as const,
-      deltaAboveMedian: o.probPlayer1Wins - median,
-      std: o.probPlayer1WinsStd ?? 0,
+      deltaAboveMedian: o.prob_player1_wins - median,
+      std: o.prob_player1_wins_std ?? 0,
     }))
   const favorsB = [...options]
-    .sort((a, b) => a.probPlayer1Wins - b.probPlayer1Wins)
+    .sort((a, b) => a.prob_player1_wins - b.prob_player1_wins)
     .slice(0, count)
     .map((o) => ({
-      playerAGeneral: o.player1General,
-      playerBGeneral: o.player2General,
+      playerAGeneral: o.player1_general,
+      playerBGeneral: o.player2_general,
       favors: "b" as const,
-      deltaAboveMedian: median - o.probPlayer1Wins,
-      std: o.probPlayer1WinsStd ?? 0,
+      deltaAboveMedian: median - o.prob_player1_wins,
+      std: o.prob_player1_wins_std ?? 0,
     }))
   return [...favorsA, ...favorsB]
 }
@@ -742,7 +750,7 @@ function UnlinkedGames({
               sx={{ flexGrow: 1, color: linked ? undefined : "text.secondary" }}
             >
               {new Date(m.timestamp).toLocaleTimeString()} ·{" "}
-              {m.durationMinutes.toFixed(0)} min{linked ? "" : " · not linked"}
+              {m.duration_minutes.toFixed(0)} min{linked ? "" : " · not linked"}
             </Typography>
             <Button
               size="small"
@@ -804,9 +812,9 @@ function MatchupPopup({
   onClose: () => void
 }) {
   const nav = usePlayerNav()
-  const playerA = match.playerA
-  const playerB = match.playerB
-  const scheduledAt = match.scheduledAt
+  const playerA = match.player_a
+  const playerB = match.player_b
+  const scheduledAt = match.scheduled_at
 
   const [saving, setSaving] = React.useState(false)
   const { showError, errorSnackbar } = useErrorSnackbar()
@@ -819,15 +827,10 @@ function MatchupPopup({
   // failure just hides the section rather than erroring the popup, so no retry
   // and no error surface.
   const { data: factionMatchup = null } = useQuery({
-    queryKey: ["factionMatchup", playerA, playerB],
-    queryFn: async () => {
-      const res =
-        await PredictClient.predictFactionMatchupApiPredictFactionMatchupGet({
-          player1: playerA as string,
-          player2: playerB as string,
-        })
-      return res.options
-    },
+    ...predictFactionMatchupApiPredictFactionMatchupGetOptions({
+      query: { player1: playerA as string, player2: playerB as string },
+    }),
+    select: (res) => res.options,
     enabled: Boolean(playerA && playerB),
     retry: false,
   })
@@ -844,16 +847,14 @@ function MatchupPopup({
   // remount, so re-opening a popup or tabbing back can never bill a call. It is
   // asked exactly once per (pair, round) per session.
   const commentaryQuery = useQuery({
-    queryKey: ["matchupCommentary", playerA, playerB, match.roundName],
-    queryFn: async () => {
-      const res =
-        await CommentaryClient.getMatchupCommentaryApiMatchupCommentaryGet({
-          player1: playerA as string,
-          player2: playerB as string,
-          roundName: match.roundName,
-        })
-      return res.commentary ?? null
-    },
+    ...getMatchupCommentaryApiMatchupCommentaryGetOptions({
+      query: {
+        player1: playerA as string,
+        player2: playerB as string,
+        round_name: match.round_name,
+      },
+    }),
+    select: (res) => res.commentary ?? null,
     enabled: Boolean(playerA && playerB),
     // A disabled provider (503) or a generation failure (502) also just hides
     // the section; BILLED_QUERY_OPTIONS' `retry: false` is what stops a failure
@@ -872,13 +873,12 @@ function MatchupPopup({
   // because a score edit changes what "all the games" means and so is a
   // genuinely different question — but nothing else re-asks it.
   const summaryQuery = useQuery({
-    queryKey: ["bracketSummary", match.matchId, match.scoreA, match.scoreB],
+    queryKey: ["bracketSummary", match.match_id, match.score_a, match.score_b],
     queryFn: async () => {
-      const res =
-        await CommentaryClient.getBracketSummaryApiBracketSummaryMatchIdGet({
-          matchId: match.matchId,
-        })
-      return res.summary ?? null
+      const { data } = await getBracketSummaryApiBracketSummaryMatchIdGet({
+        path: { match_id: match.match_id },
+      })
+      return data.summary ?? null
     },
     enabled: isCompleted,
     ...BILLED_QUERY_OPTIONS,
@@ -898,19 +898,21 @@ function MatchupPopup({
   const gamesKey = React.useMemo(
     () => [
       "bracketGames",
-      match.matchId,
+      match.match_id,
       scheduledAt?.toISOString() ?? null,
       playerA,
       playerB,
     ],
-    [match.matchId, scheduledAt, playerA, playerB],
+    [match.match_id, scheduledAt, playerA, playerB],
   )
   const gamesQuery = useQuery({
     queryKey: gamesKey,
-    queryFn: () =>
-      BracketClient.getBracketGamesApiBracketGamesMatchIdGet({
-        matchId: match.matchId,
-      }),
+    queryFn: async () => {
+      const { data } = await getBracketGamesApiBracketGamesMatchIdGet({
+        path: { match_id: match.match_id },
+      })
+      return data
+    },
   })
   const gamesData = gamesQuery.data ?? null
   const loading = gamesQuery.isPending
@@ -923,12 +925,12 @@ function MatchupPopup({
   const handleLinkGames = React.useCallback(
     (matchIds: number[]) => {
       setSaving(true)
-      setBracketGames(match.matchId, matchIds)
+      setBracketGames(match.match_id, matchIds)
         .then((updated) => queryClient.setQueryData(gamesKey, updated))
         .catch(showError)
         .finally(() => setSaving(false))
     },
-    [match.matchId, showError, queryClient, gamesKey],
+    [match.match_id, showError, queryClient, gamesKey],
   )
 
   const handleGoToPlayer = (playerName: string) => {
@@ -946,7 +948,7 @@ function MatchupPopup({
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="subtitle2" sx={{ color: "text.secondary" }}>
-            {match.roundName}
+            {match.round_name}
           </Typography>
           <Typography variant="h6">
             {playerLabel(match, "a")} vs {playerLabel(match, "b")}
@@ -1082,12 +1084,12 @@ function MatchEditor({
   // Locked, not admin-editable - see expectedBestOf.
   const bestOf = expectedBestOf(match, allMatches)
   const [gamesPlayed, setGamesPlayed] = React.useState<number | null>(
-    match.scoreA != null && match.scoreB != null
-      ? match.scoreA + match.scoreB
+    match.score_a != null && match.score_b != null
+      ? match.score_a + match.score_b
       : null,
   )
   const [winnerSide, setWinnerSide] = React.useState<Side | null>(
-    match.winner == null ? null : match.winner === match.playerA ? "a" : "b",
+    match.winner == null ? null : match.winner === match.player_a ? "a" : "b",
   )
   const [saving, setSaving] = React.useState(false)
 
@@ -1126,9 +1128,9 @@ function MatchEditor({
     setSaving(true)
     try {
       await onSave({
-        bestOf,
-        scoreA,
-        scoreB,
+        best_of: bestOf,
+        score_a: scoreA,
+        score_b: scoreB,
       })
     } finally {
       setSaving(false)
@@ -1258,10 +1260,10 @@ const MatchBox = React.memo(function MatchBox({
   const accent = statusAccent(match.status)
   return (
     <Paper
-      ref={(el: HTMLElement | null) => registerBox?.(match.matchId, el)}
+      ref={(el: HTMLElement | null) => registerBox?.(match.match_id, el)}
       variant="outlined"
       onClick={notApplicable ? undefined : () => onShowDetails(match)}
-      onMouseEnter={() => onHoverMatch(match.matchId)}
+      onMouseEnter={() => onHoverMatch(match.match_id)}
       onMouseLeave={() => onHoverMatch(null)}
       sx={{
         p: 1.5,
@@ -1299,7 +1301,7 @@ const MatchBox = React.memo(function MatchBox({
           <Box component="span" sx={{ fontWeight: 700 }}>
             {shortMatchLabel(match)}
           </Box>
-          {match.scheduledAt && ` [${formatScheduledAt(match.scheduledAt)}]`}
+          {match.scheduled_at && ` [${formatScheduledAt(match.scheduled_at)}]`}
         </Typography>
         {editable && (
           <IconButton
@@ -1317,17 +1319,17 @@ const MatchBox = React.memo(function MatchBox({
       </Stack>
       <PlayerRow
         name={playerLabel(match, "a", matchesById)}
-        realName={match.playerA}
-        score={match.scoreA}
-        isWinner={match.winner != null && match.winner === match.playerA}
-        isLoser={match.winner != null && match.winner !== match.playerA}
+        realName={match.player_a}
+        score={match.score_a}
+        isWinner={match.winner != null && match.winner === match.player_a}
+        isLoser={match.winner != null && match.winner !== match.player_a}
       />
       <PlayerRow
         name={playerLabel(match, "b", matchesById)}
-        realName={match.playerB}
-        score={match.scoreB}
-        isWinner={match.winner != null && match.winner === match.playerB}
-        isLoser={match.winner != null && match.winner !== match.playerB}
+        realName={match.player_b}
+        score={match.score_b}
+        isWinner={match.winner != null && match.winner === match.player_b}
+        isLoser={match.winner != null && match.winner !== match.player_b}
       />
       {notApplicable && (
         <Typography
@@ -1625,16 +1627,16 @@ function LosersBracketColumns({
   const rounds = React.useMemo(() => {
     const byRound = new Map<number, BracketMatchOutput[]>()
     for (const m of matches) {
-      const list = byRound.get(m.roundNumber) ?? []
+      const list = byRound.get(m.round_number) ?? []
       list.push(m)
-      byRound.set(m.roundNumber, list)
+      byRound.set(m.round_number, list)
     }
     return [...byRound.entries()]
       .sort(([a], [b]) => a - b)
       .map(([roundNumber, roundMatches]) => ({
         roundNumber,
         matches: [...roundMatches].sort((a, b) =>
-          a.matchId.localeCompare(b.matchId, undefined, { numeric: true }),
+          a.match_id.localeCompare(b.match_id, undefined, { numeric: true }),
         ),
       }))
   }, [matches])
@@ -1651,13 +1653,13 @@ function LosersBracketColumns({
             variant="subtitle2"
             sx={{ color: "text.secondary", textAlign: "center" }}
           >
-            {roundMatches[0]?.roundName ?? `Losers Round ${roundNumber}`}
+            {roundMatches[0]?.round_name ?? `Losers Round ${roundNumber}`}
             {roundMatches[0] &&
               ` (Bo${expectedBestOf(roundMatches[0], matches)})`}
           </Typography>
           {roundMatches.map((m) => (
             <MatchBox
-              key={m.matchId}
+              key={m.match_id}
               match={m}
               isAdmin={isAdmin}
               onEdit={onEdit}
@@ -1735,7 +1737,7 @@ function NextMatchBanner({
   onClick: () => void
 }) {
   const upcoming = agendaMatches(bracketData)
-  const nextMatch = upcoming[0]?.scheduledAt ? upcoming[0] : null
+  const nextMatch = upcoming[0]?.scheduled_at ? upcoming[0] : null
   if (!nextMatch) return null
 
   return (
@@ -1765,7 +1767,7 @@ function NextMatchBanner({
             variant="overline"
             sx={{ color: "text.secondary", lineHeight: 1.4 }}
           >
-            Next match — {nextMatch.roundName}
+            Next match — {nextMatch.round_name}
           </Typography>
           <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
             {playerLabel(nextMatch, "a")} vs {playerLabel(nextMatch, "b")}
@@ -1773,7 +1775,7 @@ function NextMatchBanner({
         </Stack>
       </Stack>
       {/* scheduledAt is narrowed non-null by the nextMatch guard above */}
-      <AgendaCountdown scheduledAt={nextMatch.scheduledAt as Date} />
+      <AgendaCountdown scheduledAt={nextMatch.scheduled_at as Date} />
     </Paper>
   )
 }
@@ -1781,10 +1783,6 @@ function NextMatchBanner({
 // setTimeout overflows past 2^31-1 ms (~24.8 days) and fires at once, so a
 // far-off reveal is waited out in hour-long steps instead.
 const MAX_REVEAL_WAIT_MS = 60 * 60_000
-
-function bracketQueryKey(preview: boolean) {
-  return ["bracket", preview] as const
-}
 
 export default function DisplayBracket() {
   const [seedNames, setSeedNames] =
@@ -1822,8 +1820,7 @@ export default function DisplayBracket() {
 
   const queryClient = useQueryClient()
   const bracketQuery = useQuery({
-    queryKey: bracketQueryKey(previewActive),
-    queryFn: () => fetchBracket(previewActive),
+    ...bracketQueryOptions(previewActive),
     // Toggling preview swaps the key; keep the current bracket on screen
     // rather than blanking the page while the other view loads.
     placeholderData: keepPreviousData,
@@ -1846,7 +1843,9 @@ export default function DisplayBracket() {
   // both the poll effect below and the render gate at the bottom key off
   // this instead of each re-deriving the same condition independently.
   const revealPending =
-    bracketData != null && !bracketData.revealed && bracketData.revealAt != null
+    bracketData != null &&
+    !bracketData.revealed &&
+    bracketData.reveal_at != null
 
   // Once placements are revealed, everyone (not just admins editing scores)
   // needs `bracketData.revealed` to flip from false to true without a manual
@@ -1856,7 +1855,7 @@ export default function DisplayBracket() {
   // 5s poll rather than retrying every second indefinitely.
   // Keyed on dataUpdatedAt, not the data: a refetch that returns an identical
   // payload keeps the same reference, and the timer still has to re-arm.
-  const revealAt = bracketData?.revealAt ?? null
+  const revealAt = bracketData?.reveal_at ?? null
   const { refetch: refetchBracket, dataUpdatedAt } = bracketQuery
   React.useEffect(() => {
     if (!revealPending || revealAt === null) return
@@ -1878,21 +1877,23 @@ export default function DisplayBracket() {
       setSeedNames(
         [...bracketData.players]
           .sort((a, b) => a.seed - b.seed)
-          .map((p) => p.playerName),
+          .map((p) => p.player_name),
       )
     }
   }, [bracketData])
 
   // Same idea for the reveal-time field, from whatever's actually stored.
   React.useEffect(() => {
-    setRevealAtInput(bracketData?.revealAt ? dayjs(bracketData.revealAt) : null)
-  }, [bracketData?.revealAt])
+    setRevealAtInput(
+      bracketData?.reveal_at ? dayjs(bracketData.reveal_at) : null,
+    )
+  }, [bracketData?.reveal_at])
 
   // Only an admin can seed a bracket, so only an admin needs the roster.
   const { data: eligiblePlayers = [] } = useQuery({
-    queryKey: ["bracketEligiblePlayers"],
-    queryFn: fetchEligiblePlayers,
+    ...eligiblePlayersQuery(),
     enabled: isTournamentAdmin,
+
     retry: false,
   })
 
@@ -1933,7 +1934,7 @@ export default function DisplayBracket() {
     try {
       const players: BracketPlayerEntry[] = seedNames.map((name, idx) => ({
         seed: idx + 1,
-        playerName: name as string,
+        player_name: name as string,
       }))
       setBracketData(await createBracket(players), true)
       setPreviewActive(true)
@@ -1959,7 +1960,7 @@ export default function DisplayBracket() {
   // Shared by every BracketNodeView so opening the edit dialog doesn't need
   // a fresh closure per section (Winners/Losers/Grand Final).
   const handleEdit = React.useCallback(
-    (match: BracketMatchOutput) => setEditingMatchId(match.matchId),
+    (match: BracketMatchOutput) => setEditingMatchId(match.match_id),
     [],
   )
 
@@ -1972,7 +1973,7 @@ export default function DisplayBracket() {
   // day's games) - this is what a card click does for everyone, admin or
   // not; only the edit icon itself opens the score editor.
   const handleShowDetails = React.useCallback(
-    (match: BracketMatchOutput) => setDetailsMatchId(match.matchId),
+    (match: BracketMatchOutput) => setDetailsMatchId(match.match_id),
     [],
   )
 
@@ -1984,10 +1985,10 @@ export default function DisplayBracket() {
   const { matchesById, winnersTree, losersMatches, grandFinalNodes } =
     React.useMemo(() => {
       const matchesById = new Map(
-        (bracketData?.matches ?? []).map((m) => [m.matchId, m]),
+        (bracketData?.matches ?? []).map((m) => [m.match_id, m]),
       )
       const seedToName = new Map(
-        (bracketData?.players ?? []).map((p) => [p.seed, p.playerName]),
+        (bracketData?.players ?? []).map((p) => [p.seed, p.player_name]),
       )
       // WB4-1/GF-1/GF-2 are safe to hardcode: the bracket is always a fixed
       // 16-slot shape, so the winners bracket always has exactly 4 rounds
@@ -2031,14 +2032,14 @@ export default function DisplayBracket() {
     const conns: { id: string; from: string; to: string; color: string }[] = []
     for (const m of bracketData?.matches ?? []) {
       if (m.status === "not_applicable") continue
-      for (const source of [m.sourceA, m.sourceB]) {
+      for (const source of [m.source_a, m.source_b]) {
         if (source.kind === "seed") continue
-        const src = matchesById.get(source.matchId)
+        const src = matchesById.get(source.match_id)
         if (!src || (m.bracket !== "L" && src.bracket !== "L")) continue
         conns.push({
-          id: `${source.matchId}->${m.matchId}`,
-          from: source.matchId,
-          to: m.matchId,
+          id: `${source.match_id}->${m.match_id}`,
+          from: source.match_id,
+          to: m.match_id,
           color: source.kind === "loser" ? LOSS_COLOR : BRAND_COLOR,
         })
       }
@@ -2198,7 +2199,7 @@ export default function DisplayBracket() {
         <AgendaPanel
           bracketData={bracketData}
           onSchedule={(matchId, scheduledAt) =>
-            handleSaveMatch(matchId, { scheduledAt })
+            handleSaveMatch(matchId, { scheduled_at: scheduledAt })
           }
         />
       )}
@@ -2213,10 +2214,10 @@ export default function DisplayBracket() {
         </Typography>
       )}
       {pageTab === "bracket" && bracketData && (
-        <TournamentRoster names={bracketData.participantNames} />
+        <TournamentRoster names={bracketData.participant_names} />
       )}
-      {pageTab === "bracket" && revealPending && bracketData?.revealAt && (
-        <RevealCountdown revealAt={bracketData.revealAt} />
+      {pageTab === "bracket" && revealPending && bracketData?.reveal_at && (
+        <RevealCountdown revealAt={bracketData.reveal_at} />
       )}
       <Dialog
         open={adminDialogOpen}
@@ -2334,14 +2335,14 @@ export default function DisplayBracket() {
                 <Typography variant="h6" sx={{ color: WIN_COLOR }}>
                   Champion: {bracketData.champion}
                 </Typography>
-                {bracketData.runnerUp && (
+                {bracketData.runner_up && (
                   <Typography
                     variant="body2"
                     sx={{
                       color: "text.secondary",
                     }}
                   >
-                    Runner-up: {bracketData.runnerUp}
+                    Runner-up: {bracketData.runner_up}
                   </Typography>
                 )}
               </Paper>
@@ -2438,7 +2439,7 @@ export default function DisplayBracket() {
                     color: "text.secondary",
                   }}
                 >
-                  {editingMatch.roundName}
+                  {editingMatch.round_name}
                 </Typography>
                 <Typography variant="h6">
                   {playerLabel(editingMatch, "a")} vs{" "}
@@ -2453,7 +2454,7 @@ export default function DisplayBracket() {
               <MatchEditor
                 match={editingMatch}
                 allMatches={bracketData?.matches ?? []}
-                onSave={(req) => handleSaveMatch(editingMatch.matchId, req)}
+                onSave={(req) => handleSaveMatch(editingMatch.match_id, req)}
               />
             </DialogContent>
           </>

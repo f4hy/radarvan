@@ -56,11 +56,13 @@ import type {
   GeneralWinRateSeries,
   ObjectSummary,
   ObjectUsageStat,
-  ObjectUsageStatCategoryEnum,
   PlayerProfile,
   ProfileBadge,
-} from "../../api"
-import { ProfileClient } from "../../clients/profile"
+} from "../../api/types.gen"
+import {
+  getEligiblePlayersApiPlayerProfileEligiblePlayersGetOptions,
+  getPlayerProfileApiPlayerProfileGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import DisplayGeneral from "../../components/Generals"
 import { toGeneralName } from "../../lib/general_utils"
 import Page from "../../components/Page"
@@ -839,7 +841,7 @@ function ObjectUsageList(props: {
   )
 }
 
-const USAGE_CATEGORY_LABEL: Record<ObjectUsageStatCategoryEnum, string> = {
+const USAGE_CATEGORY_LABEL: Record<ObjectUsageStat["category"], string> = {
   units: "Units",
   buildings: "Buildings",
   upgrades: "Upgrades",
@@ -850,7 +852,7 @@ function ObjectUsageSection(props: {
   markerColor: string
 }) {
   const [category, setCategory] =
-    React.useState<ObjectUsageStatCategoryEnum>("units")
+    React.useState<ObjectUsageStat["category"]>("units")
   if (props.objectUsage.length === 0) {
     return null
   }
@@ -883,7 +885,7 @@ function ObjectUsageSection(props: {
           onChange={(_, v) => setCategory(v)}
           sx={{ mb: 1.5 }}
         >
-          {(Object.keys(byCategory) as ObjectUsageStatCategoryEnum[]).map(
+          {(Object.keys(byCategory) as ObjectUsageStat["category"][]).map(
             (key) => (
               <Tab
                 key={key}
@@ -913,7 +915,7 @@ function DamageByUnitSection(props: {
     () =>
       Object.entries(props.damageByUnit)
         .map(([name, obj]) => ({ name, ...obj }))
-        .sort((a, b) => b.totalSpent - a.totalSpent),
+        .sort((a, b) => b.TotalSpent - a.TotalSpent),
     [props.damageByUnit],
   )
   if (rows.length === 0) {
@@ -950,9 +952,9 @@ function DamageByUnitSection(props: {
             {rows.map((r) => (
               <TableRow key={r.name} hover>
                 <TableCell>{prettyObjectName(r.name)}</TableCell>
-                <TableCell align="right">{r.count}</TableCell>
+                <TableCell align="right">{r.Count}</TableCell>
                 <TableCell align="right">
-                  ${r.totalSpent.toLocaleString()}
+                  ${r.TotalSpent.toLocaleString()}
                 </TableCell>
               </TableRow>
             ))}
@@ -1250,20 +1252,15 @@ export default function DisplayPlayerProfile() {
   // is shared with every other page that offers a player picker, so it comes
   // out of the cache after the first one.
   const { data: players = [] } = useQuery({
-    queryKey: ["eligiblePlayers"],
-    queryFn: async () => {
-      const names =
-        await ProfileClient.getEligiblePlayersApiPlayerProfileEligiblePlayersGet()
-      return names.filter((n): n is string => n != null)
-    },
+    ...getEligiblePlayersApiPlayerProfileEligiblePlayersGetOptions(),
+    select: (names) => names.filter((n): n is string => n != null),
   })
 
   const profileQuery = useQuery({
-    queryKey: ["playerProfile", player],
-    queryFn: () =>
-      ProfileClient.getPlayerProfileApiPlayerProfileGet({
-        player: player as string,
-      }),
+    ...getPlayerProfileApiPlayerProfileGetOptions({
+      query: { player: player as string },
+    }),
+
     // Nothing to fetch until someone is picked; the empty state below covers it.
     enabled: player !== null && player !== "",
   })

@@ -21,10 +21,10 @@ function roundCode(match: BracketMatchOutput): {
   singleton: boolean
 } {
   return (
-    ROUND_CODE[match.roundName] ??
+    ROUND_CODE[match.round_name] ??
     (match.bracket === "L"
-      ? { code: `LR${match.roundNumber}`, singleton: false }
-      : { code: match.roundName, singleton: false })
+      ? { code: `LR${match.round_number}`, singleton: false }
+      : { code: match.round_name, singleton: false })
   )
 }
 
@@ -38,7 +38,7 @@ function indexToLetter(idx: number): string {
 export function shortMatchLabel(match: BracketMatchOutput): string {
   const { code, singleton } = roundCode(match)
   if (singleton) return code
-  const suffix = match.matchId.match(/-(\d+)$/)
+  const suffix = match.match_id.match(/-(\d+)$/)
   const idx = suffix ? Number(suffix[1]) : 1
   return `${code}-${indexToLetter(idx)}`
 }
@@ -65,12 +65,12 @@ export function playerLabel(
   side: "a" | "b",
   matchesById?: Map<string, BracketMatchOutput>,
 ): string {
-  const name = side === "a" ? match.playerA : match.playerB
+  const name = side === "a" ? match.player_a : match.player_b
   if (name) return name
   if (match.status === "not_applicable") return "—"
-  const source = side === "a" ? match.sourceA : match.sourceB
+  const source = side === "a" ? match.source_a : match.source_b
   if (matchesById && source.kind !== "seed") {
-    const refLabel = sourceMatchLabel(source.matchId, matchesById)
+    const refLabel = sourceMatchLabel(source.match_id, matchesById)
     return `${source.kind === "winner" ? "Winner" : "Loser"} of ${refLabel}`
   }
   return "TBD"
@@ -116,13 +116,13 @@ const DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000
 // creation UI pre-filled, no API/auth needed since it's just a URL the
 // browser navigates to.
 export function googleCalendarUrl(match: BracketMatchOutput): string | null {
-  if (!match.scheduledAt) return null
-  const start = match.scheduledAt
+  if (!match.scheduled_at) return null
+  const start = match.scheduled_at
   const end = new Date(start.getTime() + DEFAULT_EVENT_DURATION_MS)
   const title = `${playerLabel(match, "a")} vs ${playerLabel(match, "b")} (${shortMatchLabel(match)})`
   const details = [
-    match.roundName,
-    match.bestOf ? `Best of ${match.bestOf}` : null,
+    match.round_name,
+    match.best_of ? `Best of ${match.best_of}` : null,
   ]
     .filter(Boolean)
     .join(" - ")

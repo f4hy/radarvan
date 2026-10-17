@@ -38,8 +38,13 @@ import type {
   PlayerRatingData,
   PlayerSkill,
   RatingUpset,
-} from "../../api"
-import { PlayersClient } from "../../clients/players"
+} from "../../api/types.gen"
+import { getPlayerSkillsApiPlayerSkillsGet } from "../../api/sdk.gen"
+import {
+  getHeadToHeadApiPlayerRatingsHeadToHeadGetOptions,
+  getPlayerRatingsApiPlayerRatingsGetOptions,
+  getRatingUpsetsApiPlayerRatingsUpsetsGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import FormatToggle from "../../components/FormatToggle"
 import Page from "../../components/Page"
 import { PlayerLabel } from "../../components/PlayerChip"
@@ -60,15 +65,6 @@ type GameFormat = (typeof FORMAT_OPTIONS)[number]
 // The rating-history chart opens here; earlier years exist but are mostly a
 // different group of players.
 const DEFAULT_START_YEAR = 2024
-
-function fetchPlayerRatings(
-  gameFormat: GameFormat,
-  cutoff: HistoryCutoff,
-): Promise<PlayerRatingData> {
-  return PlayersClient.getPlayerRatingsApiPlayerRatingsGet(
-    statsQueryParams(gameFormat, cutoff),
-  )
-}
 
 function formatLabel(val: unknown): string {
   if (typeof val === "number") {
@@ -95,7 +91,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
-  const allEntries = Object.entries(props.data.playerRatingOvertime ?? {})
+  const allEntries = Object.entries(props.data.player_rating_overtime ?? {})
   const earliestYear =
     allEntries.length > 0
       ? Math.min(
@@ -175,14 +171,6 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                 const isPositive = (entry.delta ?? 0) >= 0
                 return (
                   <Box
-                    // `atdate` is typed `Date` but arrives as a string: the
-                    // generated converter passes `player_rating_overtime`
-                    // through raw (it is a dict of arrays of models, which the
-                    // generator does not map), so nothing ever calls
-                    // ShortPlayerRatingFromJSON on these. Every other use in
-                    // this file already goes through `new Date(...)` for the
-                    // same reason — don't "simplify" this to a method call on
-                    // the value, which is what broke the page.
                     key={new Date(entry.atdate ?? 0).getTime()}
                     sx={{ textAlign: "center" }}
                   >
@@ -320,10 +308,10 @@ type RatingEntry = {
   sigma: number
   name: string
   ordinal: number
-  gameCount: number
-  recentDeltas?: { [key: string]: number }
-  highOrdinal?: number | null
-  lowOrdinal?: number | null
+  game_count: number
+  recent_deltas?: { [key: string]: number }
+  high_ordinal?: number | null
+  low_ordinal?: number | null
 }
 
 function DeltaCell(props: { delta: number | null | undefined }) {
@@ -423,20 +411,20 @@ function PlayerLeaderboard(props: {
                   fontSize: "0.8em",
                 }}
               >
-                {r.highOrdinal != null && r.lowOrdinal != null
-                  ? `${Math.round(r.highOrdinal * 10)} / ${Math.round(r.lowOrdinal * 10)}`
+                {r.high_ordinal != null && r.low_ordinal != null
+                  ? `${Math.round(r.high_ordinal * 10)} / ${Math.round(r.low_ordinal * 10)}`
                   : "—"}
               </TableCell>
               <TableCell
                 align="right"
                 sx={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {r.gameCount}
+                {r.game_count}
               </TableCell>
               <TableCell>
                 <FormDots results={props.form[r.name] ?? []} />
               </TableCell>
-              <DeltaCell delta={r.recentDeltas?.[14]} />
+              <DeltaCell delta={r.recent_deltas?.[14]} />
             </TableRow>
           ))}
         </TableBody>
@@ -494,7 +482,7 @@ function UpsetsTable(props: { upsets: RatingUpset[] }) {
         </TableHead>
         <TableBody>
           {props.upsets.map((u, i) => (
-            <TableRow key={u.matchId} hover>
+            <TableRow key={u.match_id} hover>
               <TableCell>{i + 1}</TableCell>
               <TableCell sx={{ whiteSpace: "nowrap" }}>
                 {u.atdate ? formatDate(new Date(u.atdate).getTime()) : "—"}
@@ -506,25 +494,25 @@ function UpsetsTable(props: { upsets: RatingUpset[] }) {
                   color: "text.secondary",
                 }}
               >
-                {u.matchId}
+                {u.match_id}
               </TableCell>
               <TableCell>
-                <TeamPlayers names={u.favoredPlayers} />
+                <TeamPlayers names={u.favored_players} />
               </TableCell>
               <TableCell
                 align="right"
                 sx={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {pct(u.favoredWinProb)}
+                {pct(u.favored_win_prob)}
               </TableCell>
               <TableCell>
-                <TeamPlayers names={u.winnerPlayers} />
+                <TeamPlayers names={u.winner_players} />
               </TableCell>
               <TableCell
                 align="right"
                 sx={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {pct(u.winnerWinProb)}
+                {pct(u.winner_win_prob)}
               </TableCell>
               <TableCell
                 align="right"
@@ -546,16 +534,16 @@ function UpsetsTable(props: { upsets: RatingUpset[] }) {
 
 // Recent big shocks: last RECENT_UPSET_DAYS days, surprise >= RECENT_UPSET_MIN_PCT%.
 function RecentUpsets(props: { format: GameFormat }) {
-  const query = useQuery({
-    queryKey: ["ratingUpsets", "recent", props.format],
-    queryFn: () =>
-      PlayersClient.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+  const query = useQuery(
+    getRatingUpsetsApiPlayerRatingsUpsetsGetOptions({
+      query: {
         limit: 200,
-        withinDays: RECENT_UPSET_DAYS,
-        minSurprise: RECENT_UPSET_MIN_PCT / 100,
-        ...(props.format === "All" ? {} : { gameFormat: props.format }),
-      }),
-  })
+        within_days: RECENT_UPSET_DAYS,
+        min_surprise: RECENT_UPSET_MIN_PCT / 100,
+        ...(props.format === "All" ? {} : { game_format: props.format }),
+      },
+    }),
+  )
   const fallback = queryFallback(query, "recent upsets")
   if (fallback) return fallback
   const upsets = query.data as RatingUpset[]
@@ -593,14 +581,14 @@ function RecentUpsets(props: { format: GameFormat }) {
 // Top games where the rating model's favored team lost. The "surprise" is the
 // favorite's pre-game win-probability edge over the team that actually won.
 function BiggestUpsets(props: { format: GameFormat }) {
-  const query = useQuery({
-    queryKey: ["ratingUpsets", "biggest", props.format],
-    queryFn: () =>
-      PlayersClient.getRatingUpsetsApiPlayerRatingsUpsetsGet({
+  const query = useQuery(
+    getRatingUpsetsApiPlayerRatingsUpsetsGetOptions({
+      query: {
         limit: 15,
-        ...(props.format === "All" ? {} : { gameFormat: props.format }),
-      }),
-  })
+        ...(props.format === "All" ? {} : { game_format: props.format }),
+      },
+    }),
+  )
   const fallback = queryFallback(query, "upsets")
   if (fallback) return fallback
   const upsets = query.data as RatingUpset[]
@@ -635,13 +623,11 @@ function BiggestUpsets(props: { format: GameFormat }) {
 }
 
 function HeadToHeadMatrix(props: { format: GameFormat }) {
-  const query = useQuery({
-    queryKey: ["ratingsHeadToHead", props.format],
-    queryFn: () =>
-      PlayersClient.getHeadToHeadApiPlayerRatingsHeadToHeadGet(
-        props.format === "All" ? {} : { gameFormat: props.format },
-      ),
-  })
+  const query = useQuery(
+    getHeadToHeadApiPlayerRatingsHeadToHeadGetOptions({
+      query: props.format === "All" ? {} : { game_format: props.format },
+    }),
+  )
   const fallback = queryFallback(query, "the head-to-head matrix")
   if (fallback) return fallback
   const h2h = query.data as { [k: string]: { [k: string]: HeadToHead } }
@@ -851,7 +837,7 @@ function GameCountBarChart(props: { data: RatingEntry[]; isMobile: boolean }) {
         margin={{ top: 5, right: 5, left: leftMargin, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="5 5" vertical={false} />
-        <Bar dataKey="gameCount" fill={BRAND_COLOR} />
+        <Bar dataKey="game_count" fill={BRAND_COLOR} />
         <XAxis dataKey="name" tick={{ fontSize: isMobile ? 11 : 14 }} />
         <YAxis
           label={
@@ -881,9 +867,9 @@ function WhrTable() {
     queryFn: async () => {
       const results = await Promise.all(
         WHR_FORMATS.map((f) =>
-          PlayersClient.getPlayerSkillsApiPlayerSkillsGet(
-            f === "All" ? {} : { gameFormat: f },
-          ),
+          getPlayerSkillsApiPlayerSkillsGet({
+            query: f === "All" ? {} : { game_format: f },
+          }).then((r) => r.data),
         ),
       )
       const byPlayer: Record<
@@ -965,20 +951,23 @@ export function DisplayPlayerRatingTrend() {
     FORMAT_OPTIONS,
     "All",
   )
-  const query = useQuery({
-    queryKey: ["playerRatings", format, "All"],
-    queryFn: () => fetchPlayerRatings(format, "All"),
-  })
+  const query = useQuery(
+    getPlayerRatingsApiPlayerRatingsGetOptions({
+      query: statsQueryParams(format, "All"),
+    }),
+  )
   const fallback = queryFallback(query, "rating trends")
   if (fallback) return fallback
   const playerRatings = query.data as PlayerRatingData
 
-  const data = [...playerRatings.playerRating].sort(
-    (a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0),
+  const data = [...playerRatings.player_rating].sort(
+    (a, b) => (b.game_count ?? 0) - (a.game_count ?? 0),
   )
-  const form = playerRatings.playerForm ?? {}
+  const form = playerRatings.player_form ?? {}
   const trendDays = Array.from(
-    new Set(data.flatMap((r) => Object.keys(r.recentDeltas ?? {}).map(Number))),
+    new Set(
+      data.flatMap((r) => Object.keys(r.recent_deltas ?? {}).map(Number)),
+    ),
   ).sort((a, b) => a - b)
 
   return (
@@ -1018,13 +1007,13 @@ export function DisplayPlayerRatingTrend() {
                   align="right"
                   sx={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  {r.gameCount}
+                  {r.game_count}
                 </TableCell>
                 <TableCell>
                   <FormDots results={form[r.name] ?? []} />
                 </TableCell>
                 {trendDays.map((d) => (
-                  <DeltaCell key={d} delta={r.recentDeltas?.[d]} />
+                  <DeltaCell key={d} delta={r.recent_deltas?.[d]} />
                 ))}
               </TableRow>
             ))}
@@ -1050,10 +1039,11 @@ export default function DisplayPlayerRatings() {
     HISTORY_CUTOFFS,
     DEFAULT_HISTORY_CUTOFF,
   )
-  const query = useQuery({
-    queryKey: ["playerRatings", format, cutoff],
-    queryFn: () => fetchPlayerRatings(format, cutoff),
-  })
+  const query = useQuery(
+    getPlayerRatingsApiPlayerRatingsGetOptions({
+      query: statsQueryParams(format, cutoff),
+    }),
+  )
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -1064,7 +1054,7 @@ export default function DisplayPlayerRatings() {
   // Loaded but empty (e.g. a narrow months-back window where nobody clears
   // the rating minimum): keep the selectors rendered so the user can switch
   // back, instead of spinning forever.
-  if (playerRatings.playerRating.length === 0) {
+  if (playerRatings.player_rating.length === 0) {
     return (
       <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
         <FormatToggle
@@ -1087,7 +1077,7 @@ export default function DisplayPlayerRatings() {
       </Paper>
     )
   }
-  const data = [...playerRatings.playerRating].sort((a, b) => b.mu - a.mu)
+  const data = [...playerRatings.player_rating].sort((a, b) => b.mu - a.mu)
   return (
     <Paper sx={{ flexGrow: 1, maxWidth: 2000, p: 1 }}>
       <FormatToggle
@@ -1110,7 +1100,7 @@ export default function DisplayPlayerRatings() {
       </Accordion>
       <FormatSelector format={format} onChange={setFormat} />
       <Typography variant="h4">Player Ratings</Typography>
-      <PlayerLeaderboard data={data} form={playerRatings.playerForm ?? {}} />
+      <PlayerLeaderboard data={data} form={playerRatings.player_form ?? {}} />
       <SkillScatterChart data={data} isMobile={isMobile} />
       <GameCountBarChart data={data} isMobile={isMobile} />
       <Typography variant="h6" sx={{ mt: 2 }}>

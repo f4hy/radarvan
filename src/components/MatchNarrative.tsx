@@ -9,8 +9,8 @@ import { useQuery } from "@tanstack/react-query"
 import type {
   MatchNarrative as MatchNarrativeData,
   NarrativeBeat,
-} from "../api"
-import { MatchesClient } from "../clients/matches"
+} from "../api/types.gen"
+import { getMatchNarrativeApiNarrativeMatchIdGetOptions } from "../api/@tanstack/react-query.gen"
 import { AiBlurb } from "./aiText"
 import { usePlayerAccentColor } from "../lib/PlayerColorsContext"
 
@@ -123,11 +123,9 @@ export default function MatchNarrative(props: {
   // is nothing to say, so it renders nothing rather than an error panel over
   // the match details it sits above.
   const { data: narrative, isPending } = useQuery({
-    queryKey: ["matchNarrative", props.matchId],
-    queryFn: () =>
-      MatchesClient.getMatchNarrativeApiNarrativeMatchIdGet({
-        matchId: props.matchId,
-      }),
+    ...getMatchNarrativeApiNarrativeMatchIdGetOptions({
+      path: { match_id: props.matchId },
+    }),
     retry: false,
   })
 

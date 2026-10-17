@@ -1,37 +1,70 @@
-import { describe, expect, it } from "vitest"
-import {
-  AdminUserFromJSON,
-  AuthStatusFromJSON,
-  MapVotePageFromJSON,
-  SetBracketMatchRequestToJSON,
-} from "../../api"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import { client } from "../../api/client.gen"
+import { fetchAuthStatus } from "../../lib/auth"
+import { setBracketMatch } from "./bracketApi"
 
 /**
- * These pin the two things the move onto the generated client depends on, both
- * of which used to be guaranteed by hand-written code that no longer exists.
+ * These go through the real generated client with only `fetch` stubbed, so
+ * they pin what actually goes over the wire and what comes back out.
  */
 
-describe("SetBracketMatchRequest PATCH semantics", () => {
-  // routes/bracket.py's set_bracket_match only changes the keys present in the
-  // body. The generated serializer names all four fields unconditionally, so
-  // the omission has to survive JSON.stringify rather than the object literal —
-  // which is what the runtime actually sends.
-  const sent = (req: Parameters<typeof SetBracketMatchRequestToJSON>[0]) =>
-    JSON.parse(JSON.stringify(SetBracketMatchRequestToJSON(req)))
+function stubFetch(body: unknown) {
+  const requests: Request[] = []
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (req: Request) => {
+      requests.push(req)
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    }),
+  )
+  return requests
+}
 
-  it("sends only the field the caller set", () => {
+const EMPTY_BRACKET = {
+  participant_names: [],
+  players: [],
+  matches: [],
+  bye_advances: [],
+  needs_reset: false,
+  revealed: true,
+}
+
+// Node's Request, unlike a browser's, can't resolve the app's relative URLs.
+beforeAll(() => {
+  client.setConfig({ baseUrl: "http://localhost" })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe("setBracketMatch PATCH semantics", () => {
+  // routes/bracket.py's set_bracket_match only changes the keys present in the
+  // body, so an omitted key must not be sent at all.
+  async function sent(req: Parameters<typeof setBracketMatch>[1]) {
+    const requests = stubFetch(EMPTY_BRACKET)
+    await setBracketMatch("WB1-1", req)
+    expect(requests).toHaveLength(1)
+    expect(new URL(requests[0].url).pathname).toBe("/api/bracket/WB1-1")
+    return requests[0].json()
+  }
+
+  it("sends only the field the caller set", async () => {
     const at = new Date("2026-08-05T19:00:00.000Z")
-    expect(sent({ scheduledAt: at })).toEqual({
+    expect(await sent({ scheduled_at: at })).toEqual({
       scheduled_at: "2026-08-05T19:00:00.000Z",
     })
   })
 
-  it("keeps an explicit null, which is how a field is cleared", () => {
-    expect(sent({ scheduledAt: null })).toEqual({ scheduled_at: null })
+  it("keeps an explicit null, which is how a field is cleared", async () => {
+    expect(await sent({ scheduled_at: null })).toEqual({ scheduled_at: null })
   })
 
-  it("sends a score update without touching the schedule", () => {
-    expect(sent({ bestOf: 5, scoreA: 3, scoreB: 2 })).toEqual({
+  it("sends a score update without touching the schedule", async () => {
+    expect(await sent({ best_of: 5, score_a: 3, score_b: 2 })).toEqual({
       best_of: 5,
       score_a: 3,
       score_b: 2,
@@ -39,25 +72,19 @@ describe("SetBracketMatchRequest PATCH semantics", () => {
   })
 })
 
-describe("wire snake_case maps to the camelCase models", () => {
-  it("reads an admin user association", () => {
-    const user = AdminUserFromJSON({
-      id: 7,
-      discord_id: "123456789",
-      discord_username: "discord-name",
-      player_name: "Modus",
-      created_at: "2026-06-14T12:00:00Z",
-    })
-    expect(user.discordId).toBe("123456789")
-    expect(user.discordUsername).toBe("discord-name")
-    expect(user.playerName).toBe("Modus")
-    expect(user.createdAt.toISOString()).toBe("2026-06-14T12:00:00.000Z")
+describe("responses keep the wire's own field names", () => {
+  // The previous generator renamed every field to camelCase and turned a null
+  // into undefined; this one does neither, which is why the logged-out check
+  // is `!status.user` (true either way).
+  it("reads an auth status with a null user", async () => {
+    stubFetch({ logged_in: false, user: null, available_players: [] })
+    const status = await fetchAuthStatus()
+    expect(status.logged_in).toBe(false)
+    expect(status.user).toBeNull()
   })
 
-  // The app reads `status.user.isAdmin`; the backend sends `is_admin`. Nothing
-  // else checks that these line up.
-  it("reads an auth status", () => {
-    const status = AuthStatusFromJSON({
+  it("reads an auth status", async () => {
+    stubFetch({
       logged_in: true,
       user: {
         discord_id: "1",
@@ -71,50 +98,10 @@ describe("wire snake_case maps to the camelCase models", () => {
       },
       available_players: ["Skip"],
     })
-    expect(status.loggedIn).toBe(true)
-    expect(status.user?.isAdmin).toBe(true)
-    expect(status.user?.isOpsAdmin).toBe(true)
-    expect(status.user?.isTournamentAdmin).toBe(false)
-    expect(status.user?.playerName).toBe("Skip")
-    expect(status.availablePlayers).toEqual(["Skip"])
-  })
-
-  // A null user arrives as undefined, not null — which is why the logged-out
-  // check is `!status.user` rather than `status.user === null`.
-  it("turns a null user into undefined", () => {
-    const status = AuthStatusFromJSON({
-      logged_in: false,
-      user: null,
-      available_players: [],
-    })
-    expect(status.user).toBeUndefined()
-    expect(status.loggedIn).toBe(false)
-  })
-
-  it("reads a map vote page", () => {
-    const page = MapVotePageFromJSON({
-      player_count: 6,
-      logged_in: true,
-      vote_limit: 3,
-      veto_limit: 1,
-      votes_used: 2,
-      vetoes_used: 0,
-      maps: [
-        {
-          map_name: "maps/defcon6",
-          game_count: 41,
-          last_played: "2026-08-01T00:00:00Z",
-          days_since_last_played: 28,
-          my_choice: "vote",
-        },
-      ],
-    })
-    expect(page.playerCount).toBe(6)
-    expect(page.loggedIn).toBe(true)
-    expect(page.votesUsed).toBe(2)
-    expect(page.voteLimit).toBe(3)
-    expect(page.maps?.[0].mapName).toBe("maps/defcon6")
-    expect(page.maps?.[0].daysSinceLastPlayed).toBe(28)
-    expect(page.maps?.[0].myChoice).toBe("vote")
+    const status = await fetchAuthStatus()
+    expect(status.user?.is_admin).toBe(true)
+    expect(status.user?.is_ops_admin).toBe(true)
+    expect(status.user?.player_name).toBe("Skip")
+    expect(status.available_players).toEqual(["Skip"])
   })
 })

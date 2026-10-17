@@ -11,7 +11,7 @@ import {
   isCompetitor,
   PLAYER_ROLE,
 } from "./utils"
-import type { Player } from "../api"
+import type { Player } from "../api/types.gen"
 
 describe("winRate", () => {
   it("computes the ratio of wins to total games", () => {
@@ -154,8 +154,8 @@ describe("playerColor", () => {
 describe("buildPlayerColorMap", () => {
   it("maps player names to their colors", () => {
     const summaries = [
-      { name: "Alice", color: "red" },
-      { name: "Bob", color: "#abc" },
+      { Name: "Alice", Color: "red" },
+      { Name: "Bob", Color: "#abc" },
     ]
     expect(buildPlayerColorMap(summaries)).toEqual({
       Alice: "red",
@@ -165,8 +165,8 @@ describe("buildPlayerColorMap", () => {
 
   it("applies the optional transform to each color", () => {
     const summaries = [
-      { name: "Alice", color: "red" },
-      { name: "Bob", color: "blue" },
+      { Name: "Alice", Color: "red" },
+      { Name: "Bob", Color: "blue" },
     ]
     expect(buildPlayerColorMap(summaries, getColorHex)).toEqual({
       Alice: "#FF0000",

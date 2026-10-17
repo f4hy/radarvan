@@ -1,26 +1,22 @@
-// Imported from the runtime module rather than the `./api` barrel on purpose.
-// The barrel re-exports every generated API class, so a *value* import through
-// it pulls all of them into whatever chunk this lands in — and this module is
-// eagerly loaded (queryClient depends on it), which put the app's whole endpoint
-// surface in the initial payload. Same reason `utils.ts` reaches for the model
-// files directly.
-import { ResponseError } from "../api/runtime"
-
 /**
- * Turn anything thrown by the generated client into a message worth showing.
- *
- * The generated runtime throws `ResponseError` with the fixed text "Response
- * returned an error code" and hands the raw `Response` along, so every failure
- * on a generated call used to reach the snackbar as that one useless sentence.
- * The hand-written same-origin modules each pulled FastAPI's `{"detail": ...}`
- * out of the body themselves — that is the part worth keeping from them, so it
- * lives here once instead of five times.
+ * What every failed API call throws (`apiConfig.apiFetch` raises it on any
+ * non-2xx), with FastAPI's `{"detail": ...}` already rendered into `message`.
  *
  * `detail` is a string for a raised HTTPException (the 409 vote-limit message,
  * "Admin API key required", …) and a list of error objects for a request that
  * failed validation; both are rendered rather than one falling back to the
  * status line.
  */
+export class ApiError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+  }
+}
+
 type ValidationIssue = { msg?: string; loc?: (string | number)[] }
 
 function renderDetail(detail: unknown): string | null {
@@ -40,23 +36,20 @@ function renderDetail(detail: unknown): string | null {
   return null
 }
 
-/** The message for a failed `Response`, for the one caller that builds its own
- * request (`mapUpload.ts`, which the generator can't express). */
-export async function responseErrorMessage(resp: Response): Promise<string> {
+export async function readApiError(resp: Response): Promise<ApiError> {
   try {
     // Clone: a caller that catches this may still want to read the body.
     const body = (await resp.clone().json()) as { detail?: unknown }
     const detail = renderDetail(body?.detail)
-    if (detail) return detail
+    if (detail) return new ApiError(resp.status, detail)
   } catch {
     // Non-JSON error body (a proxy 502, an HTML error page) — fall through to
     // the status line, which at least says what happened.
   }
-  return `Request failed (${resp.status})`
+  return new ApiError(resp.status, `Request failed (${resp.status})`)
 }
 
-export async function errorMessage(e: unknown): Promise<string> {
-  if (e instanceof ResponseError) return responseErrorMessage(e.response)
+export function errorMessage(e: unknown): string {
   if (e instanceof Error) return e.message
   return String(e)
 }

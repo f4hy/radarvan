@@ -10,7 +10,7 @@ import type {
   PlayerRatingData,
   Superlatives,
   TeamStatsResponse,
-} from "../src/api"
+} from "../src/api/types.gen"
 
 /**
  * The smallest payloads that render each page.
@@ -22,13 +22,22 @@ import type {
  * and accessibility, not about whether a win rate is computed correctly, which
  * is what the Python suite is for.
  *
- * Note the wire is snake_case and the generated *models* are camelCase: mocks
- * fulfil raw HTTP, so everything here is written the way the server writes it
- * and typed via `wire<T>()`, which documents that pairing rather than hiding it.
+ * The generated types use the wire's own field names, so the one gap between a
+ * model and its JSON is that the response transformers turn date strings into
+ * `Date`. Mocks fulfil raw HTTP, so everything here is written the way the
+ * server writes it, with dates as strings, and `wire<T>()` checks exactly that.
  */
 
-/** A raw JSON body that the generated converter will turn into `T`. */
-export function wire<T>(body: unknown): { __model?: T; body: unknown } {
+type Wire<T> = T extends Date
+  ? string
+  : T extends readonly (infer U)[]
+    ? Wire<U>[]
+    : T extends object
+      ? { [K in keyof T]: Wire<T[K]> }
+      : T
+
+/** A raw JSON body that the response transformers will turn into `T`. */
+export function wire<T>(body: Wire<T>): { __model?: T; body: Wire<T> } {
   return { body }
 }
 
@@ -57,15 +66,17 @@ export const ADMIN_USER = wire<AuthStatus>({
  * something to expand. */
 export const DATES = { "2026-08-29": 6, "2026-08-28": 18 }
 
-export const MATCH: MatchInfo = {
+export const MATCH = wire<MatchInfo>({
   id: 1,
-  mapName: "maps/tournament island",
-  durationMinutes: 21.5,
+  timestamp: "2026-08-29T02:00:00Z",
+  date: "2026-08-28",
+  map: "maps/tournament island",
+  winning_team: 1,
   players: [],
-  teams: {},
-  winners: ["Skip"],
-  losers: ["CoreDawg"],
-} as unknown as MatchInfo
+  duration_minutes: 21.5,
+  filename: "upload:fixture",
+  has_ai: false,
+})
 
 export const MATCHES = wire<{ matches: MatchInfo[] }>({ matches: [] })
 
@@ -83,6 +94,7 @@ export const SUPERLATIVES = wire<Superlatives>({
   stats: [
     {
       stat_name: "Most Games",
+      date_computed: "2026-08-29",
       value: "412",
       player: "Skip",
       match_id: null,
@@ -91,15 +103,18 @@ export const SUPERLATIVES = wire<Superlatives>({
 })
 
 export const DURATIONS = wire<DurationDistribution>({
-  buckets: [{ start_minutes: 0, end_minutes: 2, count: 3 }],
+  bucketMinutes: 2,
+  buckets: [{ startMinutes: 0, endMinutes: 2, count: 3 }],
   stats: {
     count: 3,
-    median_minutes: 21,
-    mean_minutes: 22,
-    p10_minutes: 10,
-    p90_minutes: 40,
-    shortest_minutes: 5,
-    longest_minutes: 55,
+    totalMinutes: 66,
+    medianMinutes: 21,
+
+    meanMinutes: 22,
+    p10Minutes: 10,
+    p90Minutes: 40,
+    shortestMinutes: 5,
+    longestMinutes: 55,
   },
 })
 
@@ -130,12 +145,12 @@ export const MATCH_OF_THE_NIGHT_BLURB =
 // omitted from a fixture is a bug in the fixture, not a discovery about the app.
 export const GAME_NIGHT = wire<GameNightRecap>({
   date: "2026-08-28",
-  match_count: 6,
-  counted_matches: 6,
-  total_minutes: 128,
-  median_minutes: 21,
-  started_at: "2026-08-28T23:10:00Z",
-  ended_at: "2026-08-29T01:18:00Z",
+  matchCount: 6,
+  countedMatches: 6,
+  totalMinutes: 128,
+  medianMinutes: 21,
+  startedAt: "2026-08-28T23:10:00Z",
+  endedAt: "2026-08-29T01:18:00Z",
   formats: { "2v2": 6 },
   maps: { "maps/tournament island": 6 },
   players: [],
@@ -145,21 +160,21 @@ export const GAME_NIGHT = wire<GameNightRecap>({
       kind: "longest_game",
       title: "Longest game",
       detail: "40.7 min on tournament island",
-      match_id: 99,
+      matchId: 99,
     },
     {
       kind: "match_of_the_night",
       title: "Match of the night",
       detail:
         "Skip & Syn on tournament island: the lead changed hands 3 times; they were down to 12% to win before taking it",
-      match_id: 1234,
+      matchId: 1234,
       points: [0.5, 0.3, 0.12, 0.4, 0.7, 0.95],
       blurb: MATCH_OF_THE_NIGHT_BLURB,
     },
   ],
-  ai_summary: null,
-  ai_summary_provider: null,
-  ai_summary_computed_at: null,
+  aiSummary: null,
+  aiSummaryProvider: null,
+  aiSummaryComputedAt: null,
 })
 
 /** A profile that names *another* player, so the suite can click through from
@@ -172,16 +187,16 @@ export function playerProfile(player: string, nemesis: string) {
     wins: 70,
     losses: 50,
     generals: [],
-    general_win_rate_over_time: [],
-    most_played_general: null,
-    best_general: null,
-    favorite_map: null,
-    best_map: null,
-    favorite_teammate: null,
+    generalWinRateOverTime: [],
+    mostPlayedGeneral: null,
+    bestGeneral: null,
+    favoriteMap: null,
+    bestMap: null,
+    favoriteTeammate: null,
     nemesis: { name: nemesis, wins: 4, losses: 11 },
-    favorite_victim: null,
-    avg_win_duration_minutes: 20,
-    avg_loss_duration_minutes: 25,
+    favoriteVictim: null,
+    avgWinDurationMinutes: 20,
+    avgLossDurationMinutes: 25,
     computed: null,
   })
 }
@@ -203,8 +218,8 @@ export const PLAYER_RATINGS = wire<PlayerRatingData>({
       mu: 30.2,
       sigma: 2.1,
       ordinal: 23.9,
-      ordinal_high: 26,
-      ordinal_low: 21,
+      high_ordinal: 26,
+      low_ordinal: 21,
       game_count: 120,
       recent_deltas: {},
     },
@@ -237,7 +252,7 @@ export const MAP_STATS = wire<MapStatsResponse>({
   ].map((m) => ({
     ...m,
     playerStats: [{ player: "Skip", wins: 3, losses: 1 }],
-    generalStats: [{ general: "USA", wins: 3, losses: 1 }],
+    generalStats: [{ general: 0, wins: 3, losses: 1 }],
   })),
 })
 

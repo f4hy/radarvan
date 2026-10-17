@@ -1,4 +1,4 @@
-import type { MapData } from "../api"
+import type { MapData } from "../api/types.gen"
 import { winRate } from "./utils"
 
 // Shared by MapStats (pivoted by map) and GeneralStats (pivoted by general) -

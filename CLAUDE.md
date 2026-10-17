@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `make help` lists every target. `make all` — format + auto-fix lint + type-check **both** Python and TypeScript; run this before pushing.
 
-**Client codegen**: `./gen_client.sh` regenerates the TypeScript client in `src/api/` from the running server's OpenAPI spec — the FastAPI server must already be running and serving your changed code. Always use this script (not `npm run openapi-ts` or a manual generator invocation). Never hand-edit `src/api/` (auto-generated). `PlayerEnum.ts` reorders on every regen (Python set iteration) — that churn is normal.
+**Client codegen**: `./gen_client.sh` regenerates the TypeScript client in `src/api/` from the running server's OpenAPI spec — the FastAPI server must already be running and serving your changed code. Always use this script (it pins `@hey-api/openapi-ts` and the TypeScript it needs; config in `openapi-ts.config.mjs`). Never hand-edit `src/api/` (auto-generated). `PlayerEnum` in `types.gen.ts` reorders on every regen (Python set iteration) — that churn is normal. Usage patterns are in `src/CLAUDE.md`.
 
 ## Dev workflow
 

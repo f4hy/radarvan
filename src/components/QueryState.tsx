@@ -3,7 +3,7 @@ import Alert from "@mui/material/Alert"
 import AlertTitle from "@mui/material/AlertTitle"
 import Button from "@mui/material/Button"
 import type { UseQueryResult } from "@tanstack/react-query"
-import * as React from "react"
+import type * as React from "react"
 import { errorMessage } from "../lib/apiError"
 import Loading from "./Loading"
 
@@ -21,31 +21,13 @@ import Loading from "./Loading"
  * null checks that only ever existed to model loading.
  */
 
-/** Reads FastAPI's `detail` off the thrown ResponseError. Async (it reads the
- * response body) and a render isn't, so the status line shows until it lands. */
-function useErrorText(error: unknown): string {
-  const [text, setText] = React.useState<string | null>(null)
-  React.useEffect(() => {
-    if (error == null) {
-      setText(null)
-      return
-    }
-    let stale = false
-    void errorMessage(error).then((m) => !stale && setText(m))
-    return () => {
-      stale = true
-    }
-  }, [error])
-  return text ?? "Loading the error…"
-}
-
 export function ErrorState(props: {
   error: unknown
   onRetry?: () => void
   /** What failed, in the reader's terms — "Player Stats", "this match". */
   what?: string
 }) {
-  const text = useErrorText(props.error)
+  const text = errorMessage(props.error)
   return (
     <Alert
       severity="error"
@@ -71,7 +53,7 @@ export function ErrorState(props: {
 }
 
 export default function QueryState<T>(props: {
-  query: UseQueryResult<T>
+  query: UseQueryResult<T, unknown>
   what?: string
   /** Override the skeleton — a list page wants its own shape. */
   loading?: React.ReactNode
@@ -112,7 +94,7 @@ export default function QueryState<T>(props: {
  * non-nullable value instead of leaving the assertion to the caller.
  */
 export function queryFallback<T>(
-  query: UseQueryResult<T>,
+  query: UseQueryResult<T, unknown>,
   what?: string,
 ): React.ReactElement | null {
   if (query.isPending) return <Loading />

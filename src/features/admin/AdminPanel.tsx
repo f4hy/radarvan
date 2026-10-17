@@ -36,8 +36,8 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber"
 import { errorMessage } from "../../lib/apiError"
 import { useAuth, useIsOpsAdmin } from "../../lib/AuthContext"
 import { startDiscordLogin } from "../../lib/auth"
-import type { AdminUser } from "../../api"
-import { AdminClient } from "../../clients/admin"
+import type { AdminUser } from "../../api/types.gen"
+import { listUsersApiAdminUsersGet } from "../../api/sdk.gen"
 import { type AdminMethod, type QueryValues, adminRequest } from "./adminApi"
 
 type Values = Record<string, string>
@@ -698,13 +698,13 @@ function UserManagement() {
 
   React.useEffect(() => {
     let active = true
-    void AdminClient.listUsersApiAdminUsersGet()
-      .then((loaded) => {
+    void listUsersApiAdminUsersGet()
+      .then(({ data: loaded }) => {
         if (!active) return
         setUsers(loaded)
       })
       .catch((e: unknown) => {
-        if (active) void errorMessage(e).then(setError)
+        if (active) setError(errorMessage(e))
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -744,12 +744,12 @@ function UserManagement() {
             <TableBody>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>{user.playerName ?? "—"}</TableCell>
-                  <TableCell>{user.discordUsername}</TableCell>
+                  <TableCell>{user.player_name ?? "—"}</TableCell>
+                  <TableCell>{user.discord_username}</TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>
-                    {user.discordId}
+                    {user.discord_id}
                   </TableCell>
-                  <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                  <TableCell>{user.created_at.toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -769,11 +769,11 @@ function NotAuthorized() {
   return (
     <Box sx={{ maxWidth: 560 }}>
       <Alert severity="warning" sx={{ mb: 2 }}>
-        {status?.loggedIn
+        {status?.logged_in
           ? "Your account isn't an operations admin, so these tasks aren't available to you."
           : "Log in with Discord to check whether your account can run admin tasks."}
       </Alert>
-      {!status?.loggedIn && (
+      {!status?.logged_in && (
         <Button
           variant="contained"
           startIcon={<LoginIcon />}

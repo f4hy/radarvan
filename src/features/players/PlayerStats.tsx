@@ -23,15 +23,13 @@ import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import {
+import type {
   General,
-  GeneralFromJSON,
-  instanceOfGeneral,
-  type PlayerStat,
-  type PlayerStats,
-  type WinLoss,
-} from "../../api"
-import { PlayersClient } from "../../clients/players"
+  PlayerStat,
+  PlayerStats,
+  WinLoss,
+} from "../../api/types.gen"
+import { getPlayerStatsApiPlayerstatsGetOptions } from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { TEAM_FORMATS } from "../../components/FormatToggle"
 import DisplayGeneral from "../../components/Generals"
 import Page from "../../components/Page"
@@ -53,21 +51,9 @@ import {
 const FORMAT_OPTIONS = TEAM_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
 
-function fetchPlayerStats(
-  gameFormat: GameFormat,
-  cutoff: HistoryCutoff,
-): Promise<PlayerStats> {
-  return PlayersClient.getPlayerStatsApiPlayerstatsGet(
-    statsQueryParams(gameFormat, cutoff),
-  )
-}
-
 function toGeneral(s: string | number): General {
   const num = typeof s === "string" ? parseInt(s, 10) : s
-  if (instanceOfGeneral(num)) {
-    return GeneralFromJSON(num)
-  }
-  return General.NUMBER_MINUS_1
+  return Number.isInteger(num) && num >= 0 && num <= 11 ? (num as General) : -1
 }
 
 const FORMAT_ORDER = ["total", "1v1", "2v2", "3v3", "4v4"]
@@ -826,10 +812,11 @@ export default function DisplayPlayerStats() {
     HISTORY_CUTOFFS,
     DEFAULT_HISTORY_CUTOFF,
   )
-  const query = useQuery({
-    queryKey: ["playerStats", format, cutoff],
-    queryFn: () => fetchPlayerStats(format, cutoff),
-  })
+  const query = useQuery(
+    getPlayerStatsApiPlayerstatsGetOptions({
+      query: statsQueryParams(format, cutoff),
+    }),
+  )
 
   // The toggle renders in every state on purpose: a failed load is itself a
   // reason to try another format, so the control must not go away with the data.

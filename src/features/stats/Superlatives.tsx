@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import type { Statistic, Superlatives } from "../../api"
-import { MatchesClient } from "../../clients/matches"
-import { SuperlativesClient } from "../../clients/superlatives"
+import type { Statistic, Superlatives } from "../../api/types.gen"
+import {
+  getMatchByIdApiMatchMatchIdGetOptions,
+  getSuperlativesApiSuperlativesGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import Page from "../../components/Page"
 import { useUrlId } from "../../lib/useUrlState"
 import QueryState from "../../components/QueryState"
@@ -53,13 +55,12 @@ function categorize(statName: string): string {
 }
 
 function LoadAndShowMatch({ matchId }: { matchId: number }) {
-  const query = useQuery({
-    queryKey: ["match", matchId],
-    queryFn: () => MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId }),
-  })
+  const query = useQuery(
+    getMatchByIdApiMatchMatchIdGetOptions({ path: { match_id: matchId } }),
+  )
   return (
     <QueryState query={query} what={`match #${matchId}`}>
-      {(match) => <MatchCard match={match} idx={matchId} />}
+      {(match) => match && <MatchCard match={match} idx={matchId} />}
     </QueryState>
   )
 }
@@ -87,7 +88,7 @@ const StatCard = React.memo(function StatCard({
             display: "block",
           }}
         >
-          {stat.statName}
+          {stat.stat_name}
         </Typography>
         <Typography
           variant="h4"
@@ -100,16 +101,16 @@ const StatCard = React.memo(function StatCard({
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
           {stat.player && <PlayerChip name={stat.player} />}
-          {stat.matchId != null && (
+          {stat.match_id != null && (
             <Chip
               icon={<SportsScoreIcon />}
-              label={`Match #${stat.matchId}`}
+              label={`Match #${stat.match_id}`}
               size="small"
               variant="outlined"
               color="primary"
               clickable
               onClick={() => {
-                const matchId = stat.matchId
+                const matchId = stat.match_id
                 if (matchId != null) {
                   onMatchClick(matchId)
                 }
@@ -138,7 +139,7 @@ function CategorySection({
       </Typography>
       <Grid container spacing={2}>
         {stats.map((stat) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={stat.statName}>
+          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={stat.stat_name}>
             <StatCard stat={stat} onMatchClick={onMatchClick} />
           </Grid>
         ))}
@@ -166,7 +167,7 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
   const grouped = React.useMemo(() => {
     const map = new Map<string, Statistic[]>()
     for (const stat of data.stats) {
-      const cat = categorize(stat.statName)
+      const cat = categorize(stat.stat_name)
       const bucket = map.get(cat)
       if (bucket) {
         bucket.push(stat)
@@ -201,7 +202,7 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
     <>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
         All-time bests across 2v2, 3v3 and 4v4 team games. Updated nightly, last
-        on {data.computedAt.toLocaleDateString()}.
+        on {data.computed_at.toLocaleDateString()}.
       </Typography>
       <Divider sx={{ mb: 3 }} />
       {selectedMatch !== null && (
@@ -234,10 +235,8 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
 }
 
 export default function DisplaySuperlatives() {
-  const query = useQuery({
-    queryKey: ["superlatives"],
-    queryFn: () => SuperlativesClient.getSuperlativesApiSuperlativesGet(),
-  })
+  const query = useQuery(getSuperlativesApiSuperlativesGetOptions())
+
   return (
     <Page title="Records">
       <QueryState query={query} what="records">

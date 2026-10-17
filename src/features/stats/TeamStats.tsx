@@ -7,18 +7,14 @@ import Tabs from "@mui/material/Tabs"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import type { TeamRecord, TeamSizeGroup, TeamStatsResponse } from "../../api"
-import { TeamsClient } from "../../clients/teams"
+import type { TeamRecord, TeamSizeGroup } from "../../api/types.gen"
+import { getTeamStatsApiTeamStatsGetOptions } from "../../api/@tanstack/react-query.gen"
 import Page from "../../components/Page"
 import { useUrlNumber } from "../../lib/useUrlState"
 import QueryState from "../../components/QueryState"
 import { WinRateBar } from "../../components/WinRateChip"
 import { PlayerChip } from "../../components/PlayerChip"
 import { formatPercent, wilsonLowerBound, winRateTone } from "../../lib/utils"
-
-function fetchTeamStats(): Promise<TeamStatsResponse> {
-  return TeamsClient.getTeamStatsApiTeamStatsGet()
-}
 
 function TeamRow(props: { team: TeamRecord }) {
   const { team } = props
@@ -103,10 +99,7 @@ export default function DisplayTeamStats() {
   // actually resolved, never from this, so an absent size selects no tab rather
   // than pointing at one that isn't there.
   const [tab, setTab] = useUrlNumber("size", 2)
-  const query = useQuery({
-    queryKey: ["teamStats"],
-    queryFn: fetchTeamStats,
-  })
+  const query = useQuery(getTeamStatsApiTeamStatsGetOptions())
 
   return (
     <Page

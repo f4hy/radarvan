@@ -54,7 +54,7 @@ function MapSearch() {
     try {
       await downloadMapFile(mapName)
     } catch (e) {
-      setDownloadError(await errorMessage(e))
+      setDownloadError(errorMessage(e))
     } finally {
       setDownloading(false)
     }
@@ -161,13 +161,13 @@ function PreviewGrid({
       }}
     >
       {(result.maps ?? []).map((m) => (
-        <Paper key={m.baseName} variant="outlined" sx={{ p: 1 }}>
+        <Paper key={m.base_name} variant="outlined" sx={{ p: 1 }}>
           <Stack spacing={1}>
             {m.image ? (
               <Box
                 component="img"
                 src={m.image}
-                alt={m.baseName}
+                alt={m.base_name}
                 sx={{ width: "100%", height: "auto", borderRadius: 1 }}
               />
             ) : (
@@ -191,8 +191,8 @@ function PreviewGrid({
                 </Typography>
               </Box>
             )}
-            <Typography variant="subtitle2" noWrap title={m.baseName}>
-              {m.baseName}
+            <Typography variant="subtitle2" noWrap title={m.base_name}>
+              {m.base_name}
             </Typography>
             <Stack
               direction="row"
@@ -201,10 +201,10 @@ function PreviewGrid({
                 flexWrap: "wrap",
               }}
             >
-              {m.playerCount != null && (
-                <Chip size="small" label={`${m.playerCount} players`} />
+              {m.player_count != null && (
+                <Chip size="small" label={`${m.player_count} players`} />
               )}
-              {m.alreadyExists && (
+              {m.already_exists && (
                 <Chip
                   size="small"
                   color="warning"
@@ -264,10 +264,10 @@ function MapUploadSection() {
     return null
   }
 
-  const isAdmin = status?.user?.isAdmin ?? false
+  const isAdmin = status?.user?.is_admin ?? false
   const savedCount = (result?.maps ?? []).filter((m) => m.saved).length
 
-  if (!status?.loggedIn) {
+  if (!status?.logged_in) {
     return (
       <Alert
         severity="info"

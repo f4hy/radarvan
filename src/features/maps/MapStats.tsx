@@ -17,8 +17,8 @@ import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { useIsAdmin } from "../../lib/AuthContext"
-import type { MapData, MapStatsResponse } from "../../api"
-import { MapClient } from "../../clients/map"
+import type { MapData } from "../../api/types.gen"
+import { getMapStatsApiMapStatsGetOptions } from "../../api/@tanstack/react-query.gen"
 import DisplayGeneral from "../../components/Generals"
 import { toGeneralName } from "../../lib/general_utils"
 import GameMap, { MapThumbnail } from "../../components/Map"
@@ -34,10 +34,6 @@ import { queryFallback } from "../../components/QueryState"
 import { useUrlChoice, useUrlParam } from "../../lib/useUrlState"
 import { displayMapName, winRate } from "../../lib/utils"
 import { WinRateBar } from "../../components/WinRateChip"
-
-function fetchMapStats(): Promise<MapStatsResponse> {
-  return MapClient.getMapStatsApiMapStatsGet()
-}
 
 function mapId(mapName: string): string {
   return `map-${mapName.replace(/[^a-zA-Z0-9]/g, "-")}`
@@ -449,10 +445,8 @@ export default function DisplayMapStats() {
   // that map is one of the thin ones the floor is there to hide.
   const [pinned, setPinned] = React.useState<Set<string>>(new Set())
   const [scrollTo, setScrollTo] = React.useState<string | null>(null)
-  const mapStatsQuery = useQuery({
-    queryKey: ["mapStats"],
-    queryFn: fetchMapStats,
-  })
+  const mapStatsQuery = useQuery(getMapStatsApiMapStatsGetOptions())
+
   const mapStats = mapStatsQuery.data
 
   React.useEffect(() => {

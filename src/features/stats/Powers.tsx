@@ -19,8 +19,8 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
-import type { GeneralPowers, PowerRow, UnusualPick } from "../../api"
-import { PowersClient } from "../../clients/powers"
+import type { GeneralPowers, PowerRow, UnusualPick } from "../../api/types.gen"
+import { getPowerStatsApiPowerStatsGetOptions } from "../../api/@tanstack/react-query.gen"
 import DisplayGeneral from "../../components/Generals"
 import { toGeneralName } from "../../lib/general_utils"
 import Page from "../../components/Page"
@@ -354,11 +354,12 @@ function PlayerPicker(props: {
 
 export default function Powers() {
   const [player, setPlayer] = useUrlParam("player")
-  const query = useQuery({
-    queryKey: ["powerStats", player],
-    queryFn: () =>
-      PowersClient.getPowerStatsApiPowerStatsGet(player ? { player } : {}),
-  })
+  const query = useQuery(
+    getPowerStatsApiPowerStatsGetOptions({
+      query: player ? { player } : {},
+    }),
+  )
+
   const stats = query.data
   const profile = stats?.profile ?? null
 

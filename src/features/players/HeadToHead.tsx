@@ -31,10 +31,12 @@ import type {
   HeadToHeadGame,
   HeadToHeadGeneralRecord,
   HeadToHeadMapRecord,
-  PlayerGameCount,
-} from "../../api"
-import { PlayersClient } from "../../clients/players"
-import { ProfileClient } from "../../clients/profile"
+} from "../../api/types.gen"
+import {
+  getPlayerGameCountsApiPlayerGameCountsGetOptions,
+  getPlayerHeadToHeadApiPlayerHeadToHeadGetOptions,
+  getPlayerProfileApiPlayerProfileGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import DisplayGeneral from "../../components/Generals"
 import Page from "../../components/Page"
@@ -320,13 +322,10 @@ function GeneralRadar(props: {
 }
 
 // Each player's win rate by general across all their games, as their profile
-// radar draws it. Shares the profile page's query key, so it's one cache entry.
+// radar draws it. Same query options as the profile page, so one cache entry.
 function OverallGeneralRadar(props: { player1: string; player2: string }) {
-  const profile = (player: string) => ({
-    queryKey: ["playerProfile", player],
-    queryFn: () =>
-      ProfileClient.getPlayerProfileApiPlayerProfileGet({ player }),
-  })
+  const profile = (player: string) =>
+    getPlayerProfileApiPlayerProfileGetOptions({ query: { player } })
   const q1 = useQuery(profile(props.player1))
   const q2 = useQuery(profile(props.player2))
   // Secondary panel: a player without a profile just means no overall shape.
@@ -523,25 +522,21 @@ export default function HeadToHead() {
   )
 
   const { data: players = [] } = useQuery({
-    queryKey: ["playerGameCounts"],
-    queryFn: async () => {
-      const counts: PlayerGameCount[] =
-        await PlayersClient.getPlayerGameCountsApiPlayerGameCountsGet()
-      return counts.map((c) => c.name)
-    },
+    ...getPlayerGameCountsApiPlayerGameCountsGetOptions(),
+    select: (counts) => counts.map((c) => c.name),
   })
 
   // A matchup needs two different people; until then there is nothing to ask
   // for, and the empty state below says so.
   const bothPicked = Boolean(player1 && player2 && player1 !== player2)
   const query = useQuery({
-    queryKey: ["headToHead", player1, player2, format],
-    queryFn: () =>
-      PlayersClient.getPlayerHeadToHeadApiPlayerHeadToHeadGet({
+    ...getPlayerHeadToHeadApiPlayerHeadToHeadGetOptions({
+      query: {
         player1: player1 as string,
         player2: player2 as string,
-        gameFormat: format === "All" ? undefined : format,
-      }),
+        game_format: format === "All" ? undefined : format,
+      },
+    }),
     enabled: bothPicked,
   })
 

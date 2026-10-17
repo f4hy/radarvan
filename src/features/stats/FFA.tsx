@@ -40,8 +40,8 @@ import WinRateChip from "../../components/WinRateChip"
 import WinRateRadar from "../../components/WinRateRadar"
 import DisplayGeneral from "../../components/Generals"
 import { toGeneralName } from "../../lib/general_utils"
-import type { FFAStats, FFAPlayerStat } from "../../api"
-import { FfaClient } from "../../clients/ffa"
+import type { FFAStats, FFAPlayerStat } from "../../api/types.gen"
+import { getFfaStatsApiFfastatsGetOptions } from "../../api/@tanstack/react-query.gen"
 import { CHART_PALETTE } from "../../lib/theme"
 
 function InfoTip(props: { title: string }) {
@@ -461,10 +461,9 @@ export default function DisplayFFAStats() {
   const [includeCpu, setIncludeCpu] = useUrlFlag("cpu")
   const field: Field = includeCpu ? "All FFA" : "Humans only"
   const setField = (next: Field) => setIncludeCpu(next === "All FFA")
-  const query = useQuery({
-    queryKey: ["ffaStats", includeCpu],
-    queryFn: () => FfaClient.getFfaStatsApiFfastatsGet({ includeCpu }),
-  })
+  const query = useQuery(
+    getFfaStatsApiFfastatsGetOptions({ query: { include_cpu: includeCpu } }),
+  )
 
   // The toggle renders in every state on purpose: an empty result is itself a
   // reason to reach for the other corpus, so it must not take the control away.

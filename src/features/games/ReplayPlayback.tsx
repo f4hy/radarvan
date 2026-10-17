@@ -10,7 +10,11 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow"
 import PauseIcon from "@mui/icons-material/Pause"
 import ReplayIcon from "@mui/icons-material/Replay"
 import GameMap, { type EventDot } from "../../components/Map"
-import type { KillEventOutput, MapEventOutput, PlayerSummary } from "../../api"
+import type {
+  KillEventOutput,
+  MapEventOutput,
+  PlayerSummary,
+} from "../../api/types.gen"
 import { buildPlayerColorMap, getColorHex } from "../../lib/utils"
 
 // Playback speed as a multiple of real game time: 1x advances the replay at
@@ -197,7 +201,7 @@ export default function ReplayPlayback(props: {
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
         {props.playerSummaries.map((ps) => (
           <Stack
-            key={ps.name}
+            key={ps.Name}
             direction="row"
             spacing={0.5}
             sx={{
@@ -209,11 +213,11 @@ export default function ReplayPlayback(props: {
                 width: 12,
                 height: 12,
                 borderRadius: "2px",
-                bgcolor: getColorHex(ps.color),
+                bgcolor: getColorHex(ps.Color),
                 flexShrink: 0,
               }}
             />
-            <Typography variant="caption">{ps.name}</Typography>
+            <Typography variant="caption">{ps.Name}</Typography>
           </Stack>
         ))}
       </Stack>

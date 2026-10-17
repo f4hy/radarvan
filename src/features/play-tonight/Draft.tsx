@@ -15,16 +15,16 @@ import CloseIcon from "@mui/icons-material/Close"
 import LinearProgress from "@mui/material/LinearProgress"
 import Stack from "@mui/material/Stack"
 import * as React from "react"
-import type {
-  DraftAssignment,
-  MapsByPlayerCount,
-  PlayerGameCount,
-} from "../../api"
+import {
+  balanceTeamsApiBalanceTeamsGet,
+  getMapsByPlayerCountApiMapsByPlayerCountGet,
+  getPlayerTeamGameCountsApiPlayerGameCountsTeamGet,
+  randomizeDraftApiDraftRandomizePost,
+} from "../../api/sdk.gen"
+import type { DraftAssignment, MapsByPlayerCount } from "../../api/types.gen"
 import Chip from "@mui/material/Chip"
-import { PlayerEnum } from "../../api"
-import { PlayersClient } from "../../clients/players"
-import { DraftClient } from "../../clients/draft"
-import { MapClient } from "../../clients/map"
+import { PlayerEnum } from "../../api/types.gen"
+
 import { ScoreBar } from "./BalanceTeams"
 import DisplayGeneral from "../../components/Generals"
 import GameMap from "../../components/Map"
@@ -66,12 +66,12 @@ export default function DisplayDraft() {
   const { showError, errorSnackbar } = useErrorSnackbar()
 
   React.useEffect(() => {
-    MapClient.getMapsByPlayerCountApiMapsByPlayerCountGet().then(
-      setMapsByCount,
+    getMapsByPlayerCountApiMapsByPlayerCountGet().then(
+      ({ data }) => setMapsByCount(data),
       () => {},
     )
-    PlayersClient.getPlayerTeamGameCountsApiPlayerGameCountsTeamGet().then(
-      (data: PlayerGameCount[]) => setTopPlayers(data.map((p) => p.name)),
+    getPlayerTeamGameCountsApiPlayerGameCountsTeamGet().then(
+      ({ data }) => setTopPlayers(data.map((p) => p.name)),
       () => {},
     )
   }, [])
@@ -126,10 +126,10 @@ export default function DisplayDraft() {
     // roster's answer may land.
     let stale = false
     setBalanceLoading(true)
-    PlayersClient.balanceTeamsApiBalanceTeamsGet({
-      players: [...team1, ...team2],
+    balanceTeamsApiBalanceTeamsGet({
+      query: { players: [...team1, ...team2] },
     })
-      .then((data) => !stale && setTeamRating(data))
+      .then(({ data }) => !stale && setTeamRating(data))
       .catch(() => {})
       .finally(() => !stale && setBalanceLoading(false))
     return () => {
@@ -173,12 +173,13 @@ export default function DisplayDraft() {
   async function randomize() {
     if (!selectedMap || players.length === 0) return
     try {
-      const result = await DraftClient.randomizeDraftApiDraftRandomizePost({
-        draftRequest: {
-          mapName: selectedMap,
+      const { data: result } = await randomizeDraftApiDraftRandomizePost({
+        body: {
+          map_name: selectedMap,
           players: players.map((p) => ({ name: p.name, team: p.team })),
         },
       })
+
       setAssignments(result.assignments)
       setRandomizedAt(new Date(result.randomizedAt).toLocaleTimeString())
     } catch (e) {

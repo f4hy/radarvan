@@ -35,7 +35,6 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.e2e.json",
-    "openapi-ts": "openapi-ts",
     "format": "biome format --write src/ e2e/ playwright.config.ts",
     "format:check": "biome format src/ e2e/ playwright.config.ts",
     "lint": "biome lint src/ e2e/ playwright.config.ts",

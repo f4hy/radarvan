@@ -1,7 +1,9 @@
 // Map search + download helpers over the generated client.
 
-import type { MapsByPlayerCount } from "../../api"
-import { MapClient } from "../../clients/map"
+import {
+  getMapDownloadApiMapDownloadMapNameGet,
+  getMapsByPlayerCountApiMapsByPlayerCountGet,
+} from "../../api/sdk.gen"
 
 export type MapOption = { name: string; playerCount: number }
 
@@ -11,8 +13,7 @@ export type MapOption = { name: string; playerCount: number }
 // and download. Deduped: a map only ever has one player count, but the
 // grouping shape allows repeats in principle.
 export async function fetchMapOptions(): Promise<MapOption[]> {
-  const groups: MapsByPlayerCount[] =
-    await MapClient.getMapsByPlayerCountApiMapsByPlayerCountGet()
+  const { data: groups } = await getMapsByPlayerCountApiMapsByPlayerCountGet()
   const byName = new Map<string, number>()
   for (const group of groups) {
     for (const name of group.maps) {
@@ -38,8 +39,9 @@ function downloadURI(uri: string, name: string) {
 // Content-Disposition - `download` alone is ignored on a cross-origin (S3)
 // href, same as the replay download in MatchCard.
 export async function downloadMapFile(mapName: string): Promise<void> {
-  const result = await MapClient.getMapDownloadApiMapDownloadMapNameGet({
-    mapName,
+  const { data: result } = await getMapDownloadApiMapDownloadMapNameGet({
+    path: { map_name: mapName },
   })
+
   downloadURI(result.url, result.filename)
 }
