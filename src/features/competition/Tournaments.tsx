@@ -35,9 +35,12 @@ import type {
   MatchupResult,
   WinLoss,
   MatchInfo,
-} from "../../api"
-import { MatchesClient } from "../../clients/matches"
-import { TournamentsClient } from "../../clients/tournaments"
+} from "../../api/types.gen"
+import {
+  getMatchByIdApiMatchMatchIdGetOptions,
+  getTournamentReportApiTournamentReportTournamentNameGetOptions,
+  getTournamentResultsApiTournamentResultsGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import { useIsAdmin } from "../../lib/AuthContext"
 import { WIN_COLOR, WIN_COLOR_SOFT, LOSS_COLOR } from "../../lib/theme"
 import { Typography } from "@mui/material"
@@ -126,19 +129,20 @@ function ShowMatchesForMatchup(props: { matches: MatchInfo[] }) {
 }
 
 function LoadAndShowMatch(props: { matchId: number }) {
-  // Shares the ["match", id] key with Records, so a match opened on either page
-  // is already in cache on the other.
-  const query = useQuery({
-    queryKey: ["match", props.matchId],
-    queryFn: () =>
-      MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId: props.matchId }),
-  })
+  // Same query options as Records, so a match opened on either page is
+  // already in cache on the other.
+  const query = useQuery(
+    getMatchByIdApiMatchMatchIdGetOptions({
+      path: { match_id: props.matchId },
+    }),
+  )
   const fallback = queryFallback(query, `match #${props.matchId}`)
   if (fallback) return fallback
-  const match = query.data as MatchInfo
+  const match = query.data
+  if (match == null) return null
   // A match with no duration hasn't finished parsing; keep waiting rather than
   // rendering a half-built card.
-  if (match.durationMinutes === undefined) return <Loading />
+  if (match.duration_minutes == null) return <Loading />
   return <MatchCard match={match} idx={props.matchId} />
 }
 
@@ -519,13 +523,9 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
   const debug = useIsAdmin()
   const show = props.result.complete === true || debug
   const reportQuery = useQuery({
-    queryKey: ["tournamentReport", props.result.tournament.name],
-    queryFn: () =>
-      TournamentsClient.getTournamentReportApiTournamentReportTournamentNameGet(
-        {
-          tournamentName: props.result.tournament.name,
-        },
-      ),
+    ...getTournamentReportApiTournamentReportTournamentNameGetOptions({
+      path: { tournament_name: props.result.tournament.name },
+    }),
     // An in-progress tournament has no report to show, so don't ask for one.
     enabled: show,
   })
@@ -571,7 +571,7 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
               return (
                 <TableRow
                   // Per-team stats repeat one statName ("Average match duration").
-                  key={`${s.statName}-${s.player}`}
+                  key={`${s.stat_name}-${s.player}`}
                   sx={{
                     "&:nth-of-type(odd)": {
                       backgroundColor: "action.hover", // Uses theme's hover color
@@ -579,10 +579,10 @@ function DisplayTournamentStats(props: { result: TournamentResult }) {
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
                 >
-                  <TableCell>{s.statName}</TableCell>
+                  <TableCell>{s.stat_name}</TableCell>
                   <TableCell>{`${s.value}`}</TableCell>
                   <TableCell>{s.player}</TableCell>
-                  <TableCell>{matchButton(s.matchId)}</TableCell>
+                  <TableCell>{matchButton(s.match_id)}</TableCell>
                 </TableRow>
               )
             })}
@@ -601,7 +601,7 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
       <Divider />
       <DisplayRecords
         records={props.result.records}
-        totalGames={props.result.tournament.totalGamesPlayedPerTeam}
+        totalGames={props.result.tournament.total_games_played_per_team}
         complete={props.result.complete}
       />
       <Divider sx={{ height: "100px" }} />
@@ -617,11 +617,8 @@ function DisplayTournamentResult(props: { result: TournamentResult }) {
 }
 
 export default function DisplayTournamentResults() {
-  const query = useQuery({
-    queryKey: ["tournamentResults"],
-    queryFn: () =>
-      TournamentsClient.getTournamentResultsApiTournamentResultsGet(),
-  })
+  const query = useQuery(getTournamentResultsApiTournamentResultsGetOptions())
+
   const fallback = queryFallback(query, "tournaments")
   if (fallback) return fallback
   const touramentResults = query.data as TournamentResult[]

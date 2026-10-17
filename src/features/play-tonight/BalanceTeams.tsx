@@ -18,8 +18,11 @@ import Stack from "@mui/material/Stack"
 import Tab from "@mui/material/Tab"
 import Tabs from "@mui/material/Tabs"
 import * as React from "react"
-import { PlayerEnum, PlayerEnumFromJSON } from "../../api"
-import { PlayersClient } from "../../clients/players"
+import {
+  balanceTeamsApiBalanceTeamsGet,
+  partitionTeamsApiPartitionTeamsTeamSizeGet,
+} from "../../api/sdk.gen"
+import { PlayerEnum } from "../../api/types.gen"
 import { useIsAdmin } from "../../lib/AuthContext"
 import { CHART_PALETTE } from "../../lib/theme"
 import { useErrorSnackbar } from "../../lib/useErrorSnackbar"
@@ -123,10 +126,10 @@ function BalanceTeams(props: { selectedPlayers: PlayerEnum[] }) {
     // selection's answer may land.
     let stale = false
     setLoading(true)
-    PlayersClient.balanceTeamsApiBalanceTeamsGet({
-      players: props.selectedPlayers,
+    balanceTeamsApiBalanceTeamsGet({
+      query: { players: props.selectedPlayers },
     })
-      .then((data) => !stale && setTeamRating(data))
+      .then(({ data }) => !stale && setTeamRating(data))
       .catch((e) => !stale && showError(e))
       .finally(() => !stale && setLoading(false))
     return () => {
@@ -197,12 +200,12 @@ function PartitionTeams(props: { selectedPlayers: PlayerEnum[] }) {
     }
     let stale = false
     setLoading(true)
-    PlayersClient.partitionTeamsApiPartitionTeamsTeamSizeGet({
-      teamSize,
-      players: props.selectedPlayers,
+    partitionTeamsApiPartitionTeamsTeamSizeGet({
+      path: { team_size: teamSize },
+      query: { players: props.selectedPlayers },
     })
       .then(
-        (result) =>
+        ({ data: result }) =>
           !stale &&
           setTeamPartition(
             result.map((team) => team.filter((p): p is string => p !== null)),
@@ -350,7 +353,8 @@ export default function DisplayBalanceTeams() {
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = event.target
-    const player = PlayerEnumFromJSON(value)
+    const player = value as PlayerEnum
+
     setSelectedPlayers((prevSelected) => {
       if (checked) {
         return [...prevSelected, player]

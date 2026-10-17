@@ -14,7 +14,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type { KillEventOutput, ObjectSummary, PlayerSummary } from "../../api"
+import type {
+  KillEventOutput,
+  ObjectSummary,
+  PlayerSummary,
+} from "../../api/types.gen"
 import {
   BRAND_COLOR,
   CHART_PALETTE,
@@ -120,16 +124,16 @@ function buildCategorySankeyData(
 
   const playerIdx = addNode(playerName)
   for (const { label, items } of categories) {
-    const catTotal = Object.values(items).reduce((s, x) => s + x.totalSpent, 0)
+    const catTotal = Object.values(items).reduce((s, x) => s + x.TotalSpent, 0)
     if (catTotal === 0) continue
     const catIdx = addNode(label)
     links.push({ source: playerIdx, target: catIdx, value: catTotal })
     for (const [name, obj] of Object.entries(items)) {
-      if (obj.totalSpent <= 0) continue
+      if (obj.TotalSpent <= 0) continue
       links.push({
         source: catIdx,
         target: addNode(name),
-        value: obj.totalSpent,
+        value: obj.TotalSpent,
       })
     }
   }
@@ -282,10 +286,10 @@ function PlayerSankeyChart(props: {
 function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
   const data = React.useMemo(
     () =>
-      buildCategorySankeyData(props.playerSummary.name, [
-        { label: "Units", items: props.playerSummary.unitsCreated },
-        { label: "Buildings", items: props.playerSummary.buildingsBuilt },
-        { label: "Upgrades", items: props.playerSummary.upgradesBuilt },
+      buildCategorySankeyData(props.playerSummary.Name, [
+        { label: "Units", items: props.playerSummary.UnitsCreated },
+        { label: "Buildings", items: props.playerSummary.BuildingsBuilt },
+        { label: "Upgrades", items: props.playerSummary.UpgradesBuilt },
       ]),
     [props.playerSummary],
   )
@@ -293,7 +297,7 @@ function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="Spending data unavailable for this replay"
-      description={`${props.playerSummary.name} spending breakdown across units, buildings, and upgrades`}
+      description={`${props.playerSummary.Name} spending breakdown across units, buildings, and upgrades`}
       formatter={cashFormatter}
     />
   )
@@ -302,14 +306,14 @@ function PlayerSpendingSankey(props: { playerSummary: PlayerSummary }) {
 function PlayerDestroyedSankey(props: { playerSummary: PlayerSummary }) {
   const data = React.useMemo(
     () =>
-      buildCategorySankeyData(props.playerSummary.name, [
+      buildCategorySankeyData(props.playerSummary.Name, [
         {
           label: "Units Destroyed",
-          items: props.playerSummary.unitsDestroyed ?? {},
+          items: props.playerSummary.UnitsDestroyed ?? {},
         },
         {
           label: "Buildings Destroyed",
-          items: props.playerSummary.buildingsDestroyed ?? {},
+          items: props.playerSummary.BuildingsDestroyed ?? {},
         },
       ]),
     [props.playerSummary],
@@ -318,7 +322,7 @@ function PlayerDestroyedSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="Value destroyed data unavailable for this replay"
-      description={`Value ${props.playerSummary.name} destroyed, broken down by units and buildings`}
+      description={`Value ${props.playerSummary.Name} destroyed, broken down by units and buildings`}
       formatter={cashFormatter}
     />
   )
@@ -327,11 +331,11 @@ function PlayerDestroyedSankey(props: { playerSummary: PlayerSummary }) {
 function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
   const data = React.useMemo(
     () =>
-      buildCategorySankeyData(props.playerSummary.name, [
-        { label: "Units Lost", items: props.playerSummary.unitsLost ?? {} },
+      buildCategorySankeyData(props.playerSummary.Name, [
+        { label: "Units Lost", items: props.playerSummary.UnitsLost ?? {} },
         {
           label: "Buildings Lost",
-          items: props.playerSummary.buildingsLost ?? {},
+          items: props.playerSummary.BuildingsLost ?? {},
         },
       ]),
     [props.playerSummary],
@@ -340,7 +344,7 @@ function PlayerLossesSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="Losses data unavailable for this replay"
-      description={`Value ${props.playerSummary.name} lost, broken down by units and buildings`}
+      description={`Value ${props.playerSummary.Name} lost, broken down by units and buildings`}
       formatter={cashFormatter}
     />
   )
@@ -363,8 +367,8 @@ function opponentValueMap(
       continue
     }
     const entry = result[opponent] ?? { count: 0, totalSpent: 0 }
-    entry.count += 1
-    entry.totalSpent += k.value ?? 0
+    entry.Count += 1
+    entry.TotalSpent += k.value ?? 0
     result[opponent] = entry
   }
   return result
@@ -443,9 +447,9 @@ function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
       nodeNames.push(name)
       return idx
     }
-    const playerIdx = addNode(props.playerSummary.name)
+    const playerIdx = addNode(props.playerSummary.Name)
     for (const [power, count] of Object.entries(
-      props.playerSummary.powersUsed,
+      props.playerSummary.PowersUsed,
     )) {
       if (count <= 0) continue
       links.push({ source: playerIdx, target: addNode(power), value: count })
@@ -456,7 +460,7 @@ function PlayerPowersSankey(props: { playerSummary: PlayerSummary }) {
     <PlayerSankeyChart
       data={data}
       emptyMessage="No powers used data"
-      description={`Special powers ${props.playerSummary.name} used`}
+      description={`Special powers ${props.playerSummary.Name} used`}
       minHeight={300}
     />
   )
@@ -500,25 +504,25 @@ function renderChartForPlayer(
     case "destroyedByOpponent":
       return (
         <PlayerDestroyedFromOpponentSankey
-          playerName={sum.name}
+          playerName={sum.Name}
           killEvents={killEvents}
         />
       )
     case "lostToOpponent":
       return (
         <PlayerLostToOpponentSankey
-          playerName={sum.name}
+          playerName={sum.Name}
           killEvents={killEvents}
         />
       )
     case "powers":
       return <PlayerPowersSankey playerSummary={sum} />
     case "unitsCreated":
-      return <BuiltChart title="Units Created" built={sum.unitsCreated} />
+      return <BuiltChart title="Units Created" built={sum.UnitsCreated} />
     case "buildingsCreated":
-      return <BuiltChart title="Buildings Created" built={sum.buildingsBuilt} />
+      return <BuiltChart title="Buildings Created" built={sum.BuildingsBuilt} />
     case "upgrades":
-      return <BuiltChart title="Upgrades" built={sum.upgradesBuilt} />
+      return <BuiltChart title="Upgrades" built={sum.UpgradesBuilt} />
   }
 }
 
@@ -546,7 +550,7 @@ export default function ShowPlayerSummaries(props: {
     </Tabs>
   )
   const validSummaries = props.playerSummaries.filter(
-    (sum): sum is PlayerSummary => sum?.name !== undefined,
+    (sum): sum is PlayerSummary => sum?.Name !== undefined,
   )
   if (validSummaries.length === 0) {
     return <Typography>No player summaries</Typography>
@@ -557,11 +561,11 @@ export default function ShowPlayerSummaries(props: {
       <Stack spacing={3} sx={{ mt: 2 }}>
         {validSummaries.map((sum, i) => (
           // Color is unique per player in a match; names aren't (twin CPUs).
-          <React.Fragment key={`${sum.name}-${sum.color}`}>
+          <React.Fragment key={`${sum.Name}-${sum.Color}`}>
             {i > 0 && <Divider />}
             <Box>
               <Typography variant="h6">
-                {sum.name} | {sum.side} | Team={sum.team} | Color={sum.color}
+                {sum.Name} | {sum.Side} | Team={sum.Team} | Color={sum.Color}
               </Typography>
               {renderChartForPlayer(selectedKind, sum, props.killEvents)}
             </Box>

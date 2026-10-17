@@ -84,8 +84,8 @@ export default function Menu() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  const isAdmin = status?.user?.isAdmin ?? false
-  const isOpsAdmin = status?.user?.isOpsAdmin ?? false
+  const isAdmin = status?.user?.is_admin ?? false
+  const isOpsAdmin = status?.user?.is_ops_admin ?? false
   const groups = React.useMemo(
     () => navGroups({ isAdmin, isOpsAdmin }),
     [isAdmin, isOpsAdmin],
@@ -98,7 +98,7 @@ export default function Menu() {
 
   // After returning from Discord without an in-game name yet, drop the user
   // straight onto the Account page to finish the one-time selection.
-  const needsSelection = status?.user?.needsPlayerSelection ?? false
+  const needsSelection = status?.user?.needs_player_selection ?? false
   React.useEffect(() => {
     if (needsSelection) navigate("/account")
   }, [needsSelection, navigate])
@@ -197,7 +197,7 @@ export default function Menu() {
           <ColorModeToggle />
           {/* Icon-only on phones: a long player name here squeezed the page
               title down to a few characters. */}
-          {status?.loggedIn ? (
+          {status?.logged_in ? (
             <>
               <IconButton
                 color="inherit"
@@ -215,8 +215,8 @@ export default function Menu() {
                 to="/account"
                 sx={{ display: { xs: "none", sm: "inline-flex" } }}
               >
-                {status.user?.playerName ??
-                  status.user?.discordUsername ??
+                {status.user?.player_name ??
+                  status.user?.discord_username ??
                   "Account"}
               </Button>
             </>

@@ -92,7 +92,7 @@ function PlayerSelection({ players }: { players: string[] }) {
       setStatus(await selectPlayer(name))
       await resetUserData()
     } catch (e) {
-      setError(await errorMessage(e))
+      setError(errorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -151,7 +151,7 @@ function Profile({
     try {
       await logout()
     } catch (e) {
-      setError(await errorMessage(e))
+      setError(errorMessage(e))
       return
     }
     await refresh()
@@ -185,14 +185,14 @@ export default function Account() {
 
   const body = () => {
     if (loading || status === null) return <Loading />
-    if (!status.loggedIn || !status.user) return <LoginPrompt />
-    if (status.user.needsPlayerSelection) {
-      return <PlayerSelection players={status.availablePlayers ?? []} />
+    if (!status.logged_in || !status.user) return <LoginPrompt />
+    if (status.user.needs_player_selection) {
+      return <PlayerSelection players={status.available_players ?? []} />
     }
     return (
       <Profile
-        username={status.user.discordUsername}
-        playerName={status.user.playerName ?? ""}
+        username={status.user.discord_username}
+        playerName={status.user.player_name ?? ""}
       />
     )
   }

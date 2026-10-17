@@ -1,21 +1,23 @@
-// Map-voting helpers over the generated client.
-//
-// The session cookie identifies the voter; `Client.ts` sends it because the
-// client's base path is relative and so same-origin. The response types are the
-// generated ones — the hand-written snake_case copies that used to live here
-// duplicated `MapVotePage`, `MapVoteOption`, `ChooseMapCandidate` and
-// `ChooseMapResult`, all of which the generator already emits from the same
-// backend models.
+// Map-voting helpers over the generated client. The session cookie identifies
+// the voter; it rides along because the client's base URL is relative.
 
-import { MapVoteClient } from "../../clients/map-vote"
-import type { MapVotePage, ChooseMapResult } from "../../api"
+import { queryOptions } from "@tanstack/react-query"
+import {
+  playerCountsApiMapVotePlayerCountsGetOptions,
+  votingPlayersApiMapVotePlayersGetOptions,
+} from "../../api/@tanstack/react-query.gen"
+import {
+  chooseMapApiMapVotePlayerCountChoosePost,
+  setVoteApiMapVotePlayerCountPost,
+} from "../../api/sdk.gen"
+import type { ChooseMapResult, MapVotePage } from "../../api/types.gen"
 
 export type {
   MapVotePage,
   MapVoteOption,
   ChooseMapCandidate,
   ChooseMapResult,
-} from "../../api"
+} from "../../api/types.gen"
 
 export type MapVoteChoice = "vote" | "veto"
 
@@ -23,20 +25,18 @@ export type MapVoteChoice = "vote" | "veto"
 // `Array<string | null>` because the backend's response models don't forbid a
 // null element; nothing ever sends one, so they're filtered here rather than
 // making every call site carry the null.
-export async function fetchPlayerCounts(): Promise<number[]> {
-  const counts = await MapVoteClient.playerCountsApiMapVotePlayerCountsGet()
-  return counts.filter((c): c is number => c != null)
-}
-
-export async function fetchVotePage(playerCount: number): Promise<MapVotePage> {
-  return MapVoteClient.getVotePageApiMapVotePlayerCountGet({ playerCount })
-}
+export const playerCountsQuery = () =>
+  queryOptions({
+    ...playerCountsApiMapVotePlayerCountsGetOptions(),
+    select: (counts) => counts.filter((c): c is number => c != null),
+  })
 
 // In-game names that have an account — the selectable draw participants.
-export async function fetchVotingPlayers(): Promise<string[]> {
-  const players = await MapVoteClient.votingPlayersApiMapVotePlayersGet()
-  return players.filter((p): p is string => p != null)
-}
+export const votingPlayersQuery = () =>
+  queryOptions({
+    ...votingPlayersApiMapVotePlayersGetOptions(),
+    select: (players) => players.filter((p): p is string => p != null),
+  })
 
 // Runs the authoritative weighted-random draw on the backend, counting only
 // the votes of the given participating players.
@@ -44,10 +44,11 @@ export async function chooseMap(
   playerCount: number,
   players: string[],
 ): Promise<ChooseMapResult> {
-  return MapVoteClient.chooseMapApiMapVotePlayerCountChoosePost({
-    playerCount,
-    chooseMapRequest: { players },
+  const { data } = await chooseMapApiMapVotePlayerCountChoosePost({
+    path: { player_count: playerCount },
+    body: { players },
   })
+  return data
 }
 
 export async function setVote(
@@ -55,8 +56,9 @@ export async function setVote(
   mapName: string,
   choice: MapVoteChoice | null,
 ): Promise<MapVotePage> {
-  return MapVoteClient.setVoteApiMapVotePlayerCountPost({
-    playerCount,
-    setMapVoteRequest: { mapName, choice },
+  const { data } = await setVoteApiMapVotePlayerCountPost({
+    path: { player_count: playerCount },
+    body: { map_name: mapName, choice },
   })
+  return data
 }

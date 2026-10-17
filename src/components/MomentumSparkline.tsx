@@ -4,12 +4,12 @@ import { WIN_COLOR } from "../lib/theme"
  * then recovers regardless of which side "team A" was. Null if the match
  * has no decisive two-team curve. */
 export function winnerProbSeries(wpot: {
-  actualWinner?: string | null
-  points: Array<{ probTeamA: number }>
+  actual_winner?: string | null
+  points: Array<{ prob_team_a: number }>
 }): number[] | null {
-  if (!wpot.actualWinner || wpot.points.length < 2) return null
-  const winnerIsA = wpot.actualWinner === "team_a"
-  return wpot.points.map((p) => (winnerIsA ? p.probTeamA : 1 - p.probTeamA))
+  if (!wpot.actual_winner || wpot.points.length < 2) return null
+  const winnerIsA = wpot.actual_winner === "team_a"
+  return wpot.points.map((p) => (winnerIsA ? p.prob_team_a : 1 - p.prob_team_a))
 }
 
 export default function MomentumSparkline(props: {

@@ -30,7 +30,7 @@ export const queryClient = new QueryClient({
       // connection, and anything past that is the server actually being down,
       // which the error state should say rather than hide behind a spinner.
       retry: 1,
-      // The rate limiter is handled in Client.ts (it waits out Retry-After and
+      // The rate limiter is handled in apiConfig.ts (it waits out Retry-After and
       // replays), so a 429 never reaches here as an error.
       refetchOnWindowFocus: true,
     },
@@ -65,9 +65,8 @@ export const BILLED_QUERY_OPTIONS = {
 /**
  * A query's error, as something worth showing a person.
  *
- * The generated runtime throws `ResponseError` carrying the raw `Response`, so
- * FastAPI's `detail` needs reading off the body — which is async, and a render
- * is not. Components render `useQueryErrorMessage(error)` instead, which
- * resolves it and falls back to the status line until it does.
+ * Every failed call throws an `ApiError` whose message is FastAPI's `detail`
+ * (see `apiConfig.apiFetch`).
  */
+
 export { errorMessage }

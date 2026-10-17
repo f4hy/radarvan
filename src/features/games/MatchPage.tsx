@@ -2,8 +2,8 @@ import Alert from "@mui/material/Alert"
 import Link from "@mui/material/Link"
 import { useQuery } from "@tanstack/react-query"
 import { Link as RouterLink, useParams } from "react-router"
-import type { MatchInfo } from "../../api"
-import { MatchesClient } from "../../clients/matches"
+import type { MatchInfo } from "../../api/types.gen"
+import { getMatchByIdApiMatchMatchIdGetOptions } from "../../api/@tanstack/react-query.gen"
 import { MatchCard } from "../../components/MatchCard"
 import Page from "../../components/Page"
 import QueryState from "../../components/QueryState"
@@ -21,15 +21,12 @@ export default function MatchPage() {
   const { matchId = "" } = useParams()
   const valid = /^\d+$/.test(matchId)
   const id = Number(matchId)
-  // Shares the ["match", id] key with Records and Tournaments.
+  // Shares its cache entry with Records and Tournaments.
   const query = useQuery({
-    queryKey: ["match", id],
-    // An unknown ID comes back as 200 with `null`, which the generated type
-    // doesn't admit.
-    queryFn: (): Promise<MatchInfo | null> =>
-      MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId: id }),
+    ...getMatchByIdApiMatchMatchIdGetOptions({ path: { match_id: id } }),
     enabled: valid,
   })
+
   const notFound = (
     <Alert severity="warning">
       There's no match with ID <code>{matchId}</code>.

@@ -9,8 +9,8 @@ import ListItem from "@mui/material/ListItem"
 import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
-import type { GeneralOpeningBook } from "../../api"
-import { OpeningBookClient } from "../../clients/openingBook"
+import type { GeneralOpeningBook } from "../../api/types.gen"
+import { getOpeningBookApiOpeningBookGetOptions } from "../../api/@tanstack/react-query.gen"
 import DisplayGeneral from "../../components/Generals"
 import Page from "../../components/Page"
 import { PlayerChip } from "../../components/PlayerChip"
@@ -146,10 +146,8 @@ function GeneralSection(props: {
 }
 
 export default function OpeningBookPage() {
-  const query = useQuery({
-    queryKey: ["openingBook"],
-    queryFn: () => OpeningBookClient.getOpeningBookApiOpeningBookGet(),
-  })
+  const query = useQuery(getOpeningBookApiOpeningBookGetOptions())
+
   const book = query.data
 
   return (

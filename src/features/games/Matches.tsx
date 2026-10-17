@@ -15,10 +15,13 @@ import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import { Link as RouterLink, useSearchParams } from "react-router"
 
-import type { MatchInfo, Matches, PlayerRatingDailyChange } from "../../api"
-import { MapClient } from "../../clients/map"
-import { MatchesClient } from "../../clients/matches"
-import { PlayersClient } from "../../clients/players"
+import type { MatchInfo, PlayerRatingDailyChange } from "../../api/types.gen"
+import {
+  getDatesApiDatesGetOptions,
+  getMapMatchCountsApiMapMatchCountsGetOptions,
+  getMatchesByDateApiMatchesByDateDateGetOptions,
+  getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import { MatchesLoading } from "../../components/Loading"
 import { MatchCard, normalizePlayerName } from "../../components/MatchCard"
@@ -62,26 +65,9 @@ function hasActiveFilters(filters: MatchFilters): boolean {
 function filterParams(filters: MatchFilters) {
   return {
     player: filters.player ?? undefined,
-    mapName: filters.mapName ?? undefined,
-    gameFormat: filters.format === "All" ? undefined : filters.format,
+    map_name: filters.mapName ?? undefined,
+    game_format: filters.format === "All" ? undefined : filters.format,
   }
-}
-
-function fetchDates(filters: MatchFilters): Promise<{ [key: string]: number }> {
-  return MatchesClient.getDatesApiDatesGet(filterParams(filters))
-}
-
-function fetchMatches(
-  date: Date,
-  filters: MatchFilters,
-  excludeDev: boolean,
-): Promise<Matches> {
-  // Hide dev-build matches (is_dev) for non-admins.
-  return MatchesClient.getMatchesByDateApiMatchesByDateDateGet({
-    date: date,
-    excludeDev: excludeDev,
-    ...filterParams(filters),
-  })
 }
 
 const empty = { matches: [] }
@@ -235,20 +221,21 @@ function DisplayMatchesForDate(props: {
   // exactly what new Date("YYYY-MM-DD") produces. Display uses the raw string.
   const apiDate = React.useMemo(() => new Date(props.dateStr), [props.dateStr])
 
-  // Both queries are keyed on the filter set as well as the night, which is
-  // what makes an already-expanded row refetch instead of showing what it
-  // loaded under the old filter. `enabled` keeps a collapsed night silent.
+  // The query key carries every param, filters included, which is what makes
+  // an already-expanded row refetch instead of showing what it loaded under
+  // the old filter. `enabled` keeps a collapsed night silent.
   const matchesQuery = useQuery({
-    queryKey: ["matchesByDate", props.dateStr, props.filters, isAdmin],
-    queryFn: () => fetchMatches(apiDate, props.filters, !isAdmin),
+    ...getMatchesByDateApiMatchesByDateDateGetOptions({
+      path: { date: apiDate },
+      // Hide dev-build matches (is_dev) for non-admins.
+      query: { exclude_dev: !isAdmin, ...filterParams(props.filters) },
+    }),
     enabled: expanded,
   })
   const ratingChangesQuery = useQuery({
-    queryKey: ["ratingDailyChanges", props.dateStr],
-    queryFn: () =>
-      PlayersClient.getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGet({
-        forDate: apiDate,
-      }),
+    ...getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetOptions({
+      query: { for_date: apiDate },
+    }),
     enabled: expanded,
   })
   const matchList = matchesQuery.data ?? empty
@@ -374,10 +361,10 @@ export default function DisplayMatches() {
   )
   const [visibleNights, setVisibleNights] = React.useState(NIGHTS_PER_PAGE)
 
-  const datesQuery = useQuery({
-    queryKey: ["dates", filters],
-    queryFn: () => fetchDates(filters),
-  })
+  const datesQuery = useQuery(
+    getDatesApiDatesGetOptions({ query: filterParams(filters) }),
+  )
+
   const dates = datesQuery.data ?? null
 
   // Changing the filter set starts the list over: page 3 of the old filter is
@@ -389,11 +376,8 @@ export default function DisplayMatches() {
   // Best-effort: without it the map filter is an empty picker, which is better
   // than failing the page.
   const { data: mapOptions = [] } = useQuery({
-    queryKey: ["mapMatchCounts"],
-    queryFn: async () => {
-      const counts = await MapClient.getMapMatchCountsApiMapMatchCountsGet()
-      return counts.map((c) => c.map)
-    },
+    ...getMapMatchCountsApiMapMatchCountsGetOptions(),
+    select: (counts) => counts.map((c) => c.map),
     retry: false,
   })
 

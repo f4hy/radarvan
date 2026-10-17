@@ -27,8 +27,8 @@ import groupBy from "lodash/groupBy"
 import * as React from "react"
 import { Link as RouterLink } from "react-router"
 
-import { type MatchInfo, type Player, Team } from "../api"
-import { FilesClient } from "../clients/files"
+import { getMatchReplayUrlApiReplayUrlMatchIdGet } from "../api/sdk.gen"
+import type { MatchInfo, Player } from "../api/types.gen"
 import DisplayGeneral from "./Generals"
 import GameMap, { type PlayerPosition } from "./Map"
 import { MatchRowLoading } from "./Loading"
@@ -72,11 +72,11 @@ function buildPlayerPositions(
       // Observers carry a starting position too, and since these are keyed by
       // it a spectator can otherwise overwrite the real player standing there.
       .filter(
-        (p): p is Player & { startingPosition: number } =>
-          isCompetitor(p) && p.startingPosition != null,
+        (p): p is Player & { starting_position: number } =>
+          isCompetitor(p) && p.starting_position != null,
       )
       .map((p) => [
-        p.startingPosition,
+        p.starting_position,
         {
           name: normalizePlayerName(p.name),
           color: p.color,
@@ -133,7 +133,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     label = "Observers"
     icon = <VisibilityIcon />
     bandColor = NEUTRAL_BAND
-  } else if (team === Team.NUMBER_0) {
+  } else if (team === 0) {
     label = "Unknown Team"
     icon = <QuestionMarkIcon />
     bandColor = NEUTRAL_BAND
@@ -280,7 +280,7 @@ function MatchHeader(props: {
         >
           {mapName}
         </Typography>
-        {match.hasAi && (
+        {match.has_ai && (
           <Tooltip title="AI player present — ratings for this game are only minorly impacted">
             <SmartToyIcon fontSize="small" sx={{ color: "text.secondary" }} />
           </Tooltip>
@@ -291,8 +291,8 @@ function MatchHeader(props: {
             color: "text.secondary",
           }}
         >
-          {match.durationMinutes.toFixed(1)} min · {date} · v{match.gameVersion}{" "}
-          ·{" "}
+          {match.duration_minutes.toFixed(1)} min · {date} · v
+          {match.game_version} ·{" "}
           <Link component={RouterLink} to={matchHref(match.id)} color="inherit">
             ID {match.id}
           </Link>
@@ -455,8 +455,8 @@ function downloadURI(uri: string, name: string) {
 }
 
 function downloadReplay(matchId: number) {
-  FilesClient.getMatchReplayUrlApiReplayUrlMatchIdGet({ matchId })
-    .then((result) => {
+  getMatchReplayUrlApiReplayUrlMatchIdGet({ path: { match_id: matchId } })
+    .then(({ data: result }) => {
       if (!result.url) return
       // The name is also signed into the presigned URL's Content-Disposition -
       // `download` alone is ignored on a cross-origin (S3) href.
@@ -554,7 +554,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
           <TeamCard
             key={group}
             players={team}
-            won={team[0].team === props.match.winningTeam}
+            won={team[0].team === props.match.winning_team}
           />
         ))}
         <Box sx={{ flexShrink: 0, width: { xs: "100%", md: "auto" } }}>

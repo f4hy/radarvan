@@ -1,19 +1,14 @@
-import type { MapPoint, Player } from "../api"
-// Direct model imports, not the `./api` barrel: see the note in apiError.ts —
-// a value import through the barrel drags every API class along, and this
-// module is on the eager path.
-import { PlayerRole } from "../api/models/PlayerRole"
-import { Team } from "../api/models/Team"
+import type { MapPoint, Player, PlayerRole } from "../api/types.gen"
 import { INK, INK_DARK, LOSS_COLOR, NEUTRAL_COLOR, WIN_COLOR } from "./theme"
 
-// The generated PlayerRole is NUMBER_0/1/2 - Python IntEnum member names don't
-// survive into the OpenAPI schema (same reason Team is NUMBER_MINUS_1). Alias
-// them so call sites read as something other than magic numbers.
+// The generated PlayerRole is a bare 0 | 1 | 2 - Python IntEnum member names
+// don't survive into the OpenAPI schema. Alias them so call sites read as
+// something other than magic numbers.
 export const PLAYER_ROLE = {
-  HUMAN: PlayerRole.NUMBER_0,
-  CPU: PlayerRole.NUMBER_1,
-  OBSERVER: PlayerRole.NUMBER_2,
-} as const
+  HUMAN: 0,
+  CPU: 1,
+  OBSERVER: 2,
+} as const satisfies Record<string, PlayerRole>
 
 /** True for a spectator slot - someone in the lobby who didn't play.
  *
@@ -25,7 +20,7 @@ export const PLAYER_ROLE = {
  */
 export function isObserver(p: Player): boolean {
   if (p.role != null) return p.role === PLAYER_ROLE.OBSERVER
-  return p.team === Team.NUMBER_MINUS_1
+  return p.team === -1
 }
 
 /** True for anyone who actually played - humans and AI, observers excluded. */
@@ -88,10 +83,10 @@ export function monthsBackFor(cutoff: HistoryCutoff): number | undefined {
 export function statsQueryParams<F extends string>(
   gameFormat: F,
   cutoff: HistoryCutoff,
-): { gameFormat?: F; monthsBack?: number } {
+): { game_format?: F; months_back?: number } {
   return {
-    ...(gameFormat === "All" ? {} : { gameFormat }),
-    monthsBack: monthsBackFor(cutoff),
+    ...(gameFormat === "All" ? {} : { game_format: gameFormat }),
+    months_back: monthsBackFor(cutoff),
   }
 }
 
@@ -271,11 +266,11 @@ export function playerColor(name: string): string {
 }
 
 export function buildPlayerColorMap(
-  playerSummaries: Array<{ name: string; color: string }>,
+  playerSummaries: Array<{ Name: string; Color: string }>,
   transform: (color: string) => string = (c) => c,
 ): Record<string, string> {
   return Object.fromEntries(
-    playerSummaries.map((ps) => [ps.name, transform(ps.color)]),
+    playerSummaries.map((ps) => [ps.Name, transform(ps.Color)]),
   )
 }
 

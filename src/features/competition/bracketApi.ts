@@ -1,22 +1,30 @@
 // 1v1 bracket tournament helpers over the generated client.
 //
-// The session cookie identifies the tournament admin; `Client.ts` sends it
-// because the client's base path is relative and so same-origin.
-// `scheduledAt` and `revealAt` arrive as `Date`, not an ISO string, because
-// the generated converters parse them.
+// The session cookie identifies the tournament admin; it rides along because
+// the client's base URL is relative. `scheduled_at` and `reveal_at` arrive as
+// `Date`, not an ISO string, because the response transformers parse them.
 
-import { BracketClient } from "../../clients/bracket"
+import { queryOptions } from "@tanstack/react-query"
+import {
+  eligiblePlayersApiBracketEligiblePlayersGetOptions,
+  getBracketApiBracketGetOptions,
+  getBracketApiBracketGetQueryKey,
+} from "../../api/@tanstack/react-query.gen"
+import {
+  createBracketApiBracketPost,
+  setBracketGamesApiBracketGamesMatchIdPost,
+  setBracketMatchApiBracketMatchIdPost,
+  setBracketPredictionApiBracketPredictionsMatchIdPost,
+  setBracketRevealAtApiBracketRevealAtPost,
+} from "../../api/sdk.gen"
 import type {
   BracketMatchGames,
+  BracketMatchOutput,
   BracketMatchPrediction,
   BracketPlayerEntry,
-  BracketPredictionLeaderboardEntry,
   BracketTournamentOutput,
-  MapPlayerRecords,
   SetBracketMatchRequest,
-  SourceA,
-  SourceB,
-} from "../../api"
+} from "../../api/types.gen"
 
 export type {
   BracketMatchOutput,
@@ -28,59 +36,53 @@ export type {
   MapPlayerWL,
   SetBracketMatchRequest,
   SetBracketRevealAtRequest,
-} from "../../api"
+} from "../../api/types.gen"
 
-// The generator emits a separate (structurally identical) union per slot;
-// callers that just want "where does this slot come from" take either.
-export type MatchSource = SourceA | SourceB
+// Where a slot's player comes from; `source_a` and `source_b` share the shape.
+export type MatchSource = BracketMatchOutput["source_a"]
+export type BracketSide = BracketMatchOutput["bracket"]
+export type BracketMatchStatus = BracketMatchOutput["status"]
 
-// `bracket` and `status` are generated as enum objects plus a value union; the
-// value union is what call sites compare against ("W", "completed", …).
-export type {
-  BracketMatchOutputBracketEnum as BracketSide,
-  BracketMatchOutputStatusEnum as BracketMatchStatus,
-} from "../../api"
+export const bracketQuery = (preview: boolean) =>
+  getBracketApiBracketGetOptions({ query: { preview } })
 
-export async function fetchBracket(
-  preview = false,
-): Promise<BracketTournamentOutput | null> {
-  return BracketClient.getBracketApiBracketGet({ preview })
-}
+export const bracketQueryKey = (preview: boolean) =>
+  getBracketApiBracketGetQueryKey({ query: { preview } })
 
-export async function fetchEligiblePlayers(): Promise<string[]> {
-  const players =
-    await BracketClient.eligiblePlayersApiBracketEligiblePlayersGet()
-  return players.filter((p): p is string => p != null)
-}
+export const eligiblePlayersQuery = () =>
+  queryOptions({
+    ...eligiblePlayersApiBracketEligiblePlayersGetOptions(),
+    select: (players) => players.filter((p): p is string => p != null),
+  })
 
 export async function createBracket(
   players: BracketPlayerEntry[],
 ): Promise<BracketTournamentOutput> {
-  return BracketClient.createBracketApiBracketPost({
-    createBracketRequest: { players },
-  })
+  const { data } = await createBracketApiBracketPost({ body: { players } })
+  return data
 }
 
 export async function setBracketRevealAt(
   revealAt: Date | null,
 ): Promise<BracketTournamentOutput> {
-  return BracketClient.setBracketRevealAtApiBracketRevealAtPost({
-    setBracketRevealAtRequest: { revealAt },
+  const { data } = await setBracketRevealAtApiBracketRevealAtPost({
+    body: { reveal_at: revealAt },
   })
+  return data
 }
 
-// PATCH semantics: only the keys present in `req` change. The generated
-// serializer emits every field, but `JSON.stringify` drops the ones left
-// `undefined`, so omitting a key still means "leave it alone" and passing an
-// explicit `null` still means "clear it" — same contract as before.
+// PATCH semantics: only the keys present in `req` change. The body goes out
+// through `JSON.stringify`, which drops keys left `undefined`, so omitting a
+// key means "leave it alone" and an explicit `null` means "clear it".
 export async function setBracketMatch(
   matchId: string,
   req: SetBracketMatchRequest,
 ): Promise<BracketTournamentOutput> {
-  return BracketClient.setBracketMatchApiBracketMatchIdPost({
-    matchId,
-    setBracketMatchRequest: req,
+  const { data } = await setBracketMatchApiBracketMatchIdPost({
+    path: { match_id: matchId },
+    body: req,
   })
+  return data
 }
 
 // Set the games played for a bracket match (tournament admin only). Written
@@ -89,29 +91,11 @@ export async function setBracketGames(
   matchId: string,
   gameMatchIds: number[],
 ): Promise<BracketMatchGames> {
-  return BracketClient.setBracketGamesApiBracketGamesMatchIdPost({
-    matchId,
-    setBracketGamesRequest: { matchIds: gameMatchIds },
+  const { data } = await setBracketGamesApiBracketGamesMatchIdPost({
+    path: { match_id: matchId },
+    body: { match_ids: gameMatchIds },
   })
-}
-
-// Each map's per-player records over the tournament's linked games. Empty
-// before the bracket is revealed (the session cookie is what lets an admin
-// previewing early see anything).
-export async function fetchBracketMapRecords(): Promise<MapPlayerRecords[]> {
-  return BracketClient.getBracketMapRecordsApiBracketMapRecordsGet()
-}
-
-export async function fetchBracketPredictions(): Promise<
-  BracketMatchPrediction[]
-> {
-  return BracketClient.getBracketPredictionsApiBracketPredictionsGet()
-}
-
-export async function fetchBracketPredictionLeaderboard(): Promise<
-  BracketPredictionLeaderboardEntry[]
-> {
-  return BracketClient.getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGet()
+  return data
 }
 
 // `predictedWinner: null` clears the caller's pick for this match.
@@ -119,8 +103,9 @@ export async function setBracketPrediction(
   matchId: string,
   predictedWinner: string | null,
 ): Promise<BracketMatchPrediction> {
-  return BracketClient.setBracketPredictionApiBracketPredictionsMatchIdPost({
-    matchId,
-    setMatchPredictionRequest: { predictedWinner },
+  const { data } = await setBracketPredictionApiBracketPredictionsMatchIdPost({
+    path: { match_id: matchId },
+    body: { predicted_winner: predictedWinner },
   })
+  return data
 }

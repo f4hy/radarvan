@@ -15,17 +15,19 @@ import Typography from "@mui/material/Typography"
 import * as React from "react"
 import RefreshIcon from "@mui/icons-material/Refresh"
 import {
-  type GameRecord,
-  type MatchInfo,
-  type MatchPrediction,
-  Team,
-} from "../../api"
+  debugMatchApiDebugMatchMatchIdGet,
+  getMapSummaryApiMapSummaryPost,
+  getMatchByIdApiMatchMatchIdGet,
+  getMatchJsonUrlApiDebugJsonUrlMatchIdGet,
+  listReplaysApiReplaysGet,
+  predictMatchApiPredictMatchMatchIdGet,
+} from "../../api/sdk.gen"
+import type {
+  GameRecord,
+  MatchInfo,
+  MatchPrediction,
+} from "../../api/types.gen"
 import { isCompetitor } from "../../lib/utils"
-import { AdminClient } from "../../clients/admin"
-import { FilesClient } from "../../clients/files"
-import { MapClient } from "../../clients/map"
-import { MatchesClient } from "../../clients/matches"
-import { PredictClient } from "../../clients/predict"
 import { reparseMatch } from "./adminApi"
 import { MatchCard } from "../../components/MatchCard"
 import Table from "@mui/material/Table"
@@ -44,8 +46,8 @@ function getGameData(
   callback: (m: GameRecord[]) => void,
   onError = console.error,
 ) {
-  FilesClient.listReplaysApiReplaysGet({ matchId: matchId })
-    .then(callback)
+  listReplaysApiReplaysGet({ query: { match_id: matchId } })
+    .then(({ data }) => callback(data))
     .catch(onError)
 }
 
@@ -54,8 +56,8 @@ function getDebugData(
   callback: (m: { [key: string]: unknown }) => void,
   onError = console.error,
 ) {
-  AdminClient.debugMatchApiDebugMatchMatchIdGet({ matchId: matchId })
-    .then(callback)
+  debugMatchApiDebugMatchMatchIdGet({ path: { match_id: matchId } })
+    .then(({ data }) => callback(data))
     .catch(onError)
 }
 
@@ -70,8 +72,8 @@ function getPrediction(
   callback: (p: MatchPrediction) => void,
   onError = console.error,
 ) {
-  PredictClient.predictMatchApiPredictMatchMatchIdGet({ matchId: matchId })
-    .then(callback)
+  predictMatchApiPredictMatchMatchIdGet({ path: { match_id: matchId } })
+    .then(({ data }) => callback(data))
     .catch(onError)
 }
 
@@ -80,23 +82,23 @@ function getMapSummary(
   callback: (s: string) => void,
   onError = console.error,
 ) {
-  MapClient.getMapSummaryApiMapSummaryPost({
-    mapSummaryRequest: {
-      mapName: match.map.split("/").pop() ?? match.map,
+  getMapSummaryApiMapSummaryPost({
+    body: {
+      map_name: match.map.split("/").pop() ?? match.map,
       players: match.players
         // Spectators aren't on the map. The team-0 filter caught most of them
         // by accident; isObserver catches the rest (see utils.isObserver).
-        .filter((p) => isCompetitor(p) && p.team !== Team.NUMBER_0)
+        .filter((p) => isCompetitor(p) && p.team !== 0)
         .map((p) => ({ name: p.name, general: p.general, team: p.team })),
     },
   })
-    .then(callback)
+    .then(({ data }) => callback(data))
     .catch(onError)
 }
 
 function PredictionDisplay(props: { prediction: MatchPrediction }) {
   const p = props.prediction
-  const favoredA = p.favoredTeam === p.teamA
+  const favoredA = p.favored_team === p.team_a
   return (
     <Paper sx={{ p: 2, my: 1 }} variant="outlined">
       <Typography variant="h6">🔮 Win prediction</Typography>
@@ -106,7 +108,7 @@ function PredictionDisplay(props: { prediction: MatchPrediction }) {
           color: "text.secondary",
         }}
       >
-        {p.mapName}
+        {p.map_name}
       </Typography>
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", my: 1 }}>
         <Box sx={{ fontWeight: favoredA ? "bold" : "normal" }}>
@@ -116,11 +118,11 @@ function PredictionDisplay(props: { prediction: MatchPrediction }) {
               color: "text.secondary",
             }}
           >
-            Team {p.teamA}
+            Team {p.team_a}
           </Typography>
-          <Typography variant="body2">{p.teamAPlayers.join(", ")}</Typography>
+          <Typography variant="body2">{p.team_a_players.join(", ")}</Typography>
           <Typography variant="h6">
-            {(p.probTeamAWins * 100).toFixed(1)}%
+            {(p.prob_team_a_wins * 100).toFixed(1)}%
           </Typography>
         </Box>
         <Typography
@@ -138,25 +140,26 @@ function PredictionDisplay(props: { prediction: MatchPrediction }) {
               color: "text.secondary",
             }}
           >
-            Team {p.teamB}
+            Team {p.team_b}
           </Typography>
-          <Typography variant="body2">{p.teamBPlayers.join(", ")}</Typography>
+          <Typography variant="body2">{p.team_b_players.join(", ")}</Typography>
           <Typography variant="h6">
-            {((1 - p.probTeamAWins) * 100).toFixed(1)}%
+            {((1 - p.prob_team_a_wins) * 100).toFixed(1)}%
           </Typography>
         </Box>
       </Box>
       <Typography variant="body2">
-        Favored: Team {p.favoredTeam} ({(p.favoredWinProb * 100).toFixed(1)}%)
+        Favored: Team {p.favored_team} ({(p.favored_win_prob * 100).toFixed(1)}
+        %)
       </Typography>
-      {p.unknownPlayers && p.unknownPlayers.length > 0 && (
+      {p.unknown_players && p.unknown_players.length > 0 && (
         <Typography
           variant="caption"
           sx={{
             color: "warning.main",
           }}
         >
-          Unknown to model: {p.unknownPlayers.join(", ")}
+          Unknown to model: {p.unknown_players.join(", ")}
         </Typography>
       )}
     </Paper>
@@ -232,46 +235,46 @@ function DisplayDataTable(props: {
           </TableHead>
           <TableBody>
             {data.map((row) => (
-              <TableRow key={row.matchId}>
+              <TableRow key={row.match_id}>
                 <TableCell>
-                  <Link>{row.matchId}</Link>
+                  <Link>{row.match_id}</Link>
                 </TableCell>
-                <TableCell>{row.gameVersion}</TableCell>
+                <TableCell>{row.game_version}</TableCell>
                 <TableCell>
-                  {row.createdAt.toISOString().split("T")[0]}
+                  {row.created_at.toISOString().split("T")[0]}
                 </TableCell>
                 <TableCell>
                   <IconButton
                     color="primary"
-                    onClick={() => reparse(row.matchId, props.onError)}
+                    onClick={() => reparse(row.match_id, props.onError)}
                   >
                     <RefreshIcon />
                   </IconButton>
                 </TableCell>
                 <TableCell>
-                  {row.gameDate.toISOString().split("T")[0]}
+                  {row.game_date.toISOString().split("T")[0]}
                 </TableCell>
                 <TableCell>
                   <DownloadButton
-                    url={row.replayPresignedUrl}
-                    title={row.replayFileUrl}
+                    url={row.replay_presigned_url}
+                    title={row.replay_file_url}
                     text="replay"
                   />
                 </TableCell>
                 <TableCell>
                   <DownloadButton
-                    url={row.jsonPresignedUrl}
-                    title={row.jsonS3Uri}
+                    url={row.json_presigned_url}
+                    title={row.json_s3_uri}
                     text="parsed json"
                   />
                 </TableCell>
-                <TableCell>{row.match?.durationMinutes.toFixed(1)}</TableCell>
+                <TableCell>{row.match?.duration_minutes.toFixed(1)}</TableCell>
                 <TableCell>{row.match?.map}</TableCell>
-                <TableCell>{row.match?.winningTeamId}</TableCell>
+                <TableCell>{row.match?.winning_team_id}</TableCell>
                 <TableCell>
                   {(
                     row.match?.players.map((p) =>
-                      p.teamId >= 0 ? `T${p.teamId}:${p.playerName}` : "",
+                      p.team_id >= 0 ? `T${p.team_id}:${p.player_name}` : "",
                     ) ?? []
                   ).join(", ")}
                 </TableCell>
@@ -479,12 +482,13 @@ export default function DisplayDebugData() {
         setMatchInfo(null)
         setPrediction(null)
         setMapSummary(null)
-        MatchesClient.getMatchByIdApiMatchMatchIdGet({ matchId: num })
-          .then(setMatchInfo)
+        getMatchByIdApiMatchMatchIdGet({ path: { match_id: num } })
+          .then(({ data }) => setMatchInfo(data))
           .catch(showError)
         setJsonDownloadUrl(null)
-        AdminClient.getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ matchId: num })
-          .then((result) => setJsonDownloadUrl(result.url))
+        getMatchJsonUrlApiDebugJsonUrlMatchIdGet({ path: { match_id: num } })
+          .then(({ data: result }) => setJsonDownloadUrl(result.url))
+
           .catch(showError)
       }
     }

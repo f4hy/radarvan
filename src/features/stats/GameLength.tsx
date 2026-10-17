@@ -25,8 +25,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type { DurationDistribution, DurationStats } from "../../api"
-import { MatchesClient } from "../../clients/matches"
+import type { DurationDistribution, DurationStats } from "../../api/types.gen"
+import { getDurationDistributionApiDurationDistributionGetOptions } from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
@@ -251,14 +251,15 @@ export default function GameLength() {
     BUCKET_OPTIONS,
     2,
   )
-  const query = useQuery({
-    queryKey: ["durationDistribution", gameFormat, bucketMinutes],
-    queryFn: () =>
-      MatchesClient.getDurationDistributionApiDurationDistributionGet({
-        bucketMinutes,
-        ...(gameFormat === "All" ? {} : { gameFormat }),
-      }),
-  })
+  const query = useQuery(
+    getDurationDistributionApiDurationDistributionGetOptions({
+      query: {
+        bucket_minutes: bucketMinutes,
+        ...(gameFormat === "All" ? {} : { game_format: gameFormat }),
+      },
+    }),
+  )
+
   const fallback = queryFallback(query, "game lengths")
   if (fallback) return fallback
   const distribution = query.data as DurationDistribution

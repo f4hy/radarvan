@@ -31,10 +31,13 @@ import type {
   GeneralMatchups,
   GeneralStat,
   GeneralStats,
-} from "../../api"
-import { GeneralsClient } from "../../clients/generals"
-import { MapClient } from "../../clients/map"
-import { PredictClient } from "../../clients/predict"
+} from "../../api/types.gen"
+import {
+  getGeneralMatchupsApiGeneralstatsMatchupsGetOptions,
+  getGeneralsStatsApiGeneralstatsGetOptions,
+  getMapStatsApiMapStatsGetOptions,
+  predictFactionMatrixApiPredictFactionMatrixGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import DisplayGeneral, { GeneralAvatar } from "../../components/Generals"
 import Loading from "../../components/Loading"
@@ -64,15 +67,6 @@ import {
 
 const FORMAT_OPTIONS = ALL_FORMATS
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
-
-function fetchGeneralStats(
-  gameFormat: GameFormat,
-  cutoff: HistoryCutoff,
-): Promise<GeneralStats> {
-  return GeneralsClient.getGeneralsStatsApiGeneralstatsGet(
-    statsQueryParams(gameFormat, cutoff),
-  )
-}
 
 type GeneralChartData = {
   name: string
@@ -136,7 +130,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
 
   const data = React.useMemo(
     () =>
-      props.stats.generalStats.map((x) => {
+      props.stats.general_stats.map((x) => {
         const wins = x?.total?.wins ?? 0
         const losses = x?.total?.losses ?? 0
         return {
@@ -146,7 +140,7 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
           rate: winRate(wins, losses),
         }
       }),
-    [props.stats.generalStats],
+    [props.stats.general_stats],
   )
 
   return <GeneralWinLossChart data={data} isMobile={isMobile} />
@@ -183,8 +177,8 @@ function DisplayGeneralStat(props: {
   const overall = props.stat.total
   const overallWins = overall?.wins ?? 0
   const overallLosses = overall?.losses ?? 0
-  const valueDestroyed = props.stat.valueDestroyed ?? 0
-  const valueLost = props.stat.valueLost ?? 0
+  const valueDestroyed = props.stat.value_destroyed ?? 0
+  const valueLost = props.stat.value_lost ?? 0
   const tradeRatio = valueLost > 0 ? valueDestroyed / valueLost : undefined
 
   return (
@@ -418,23 +412,15 @@ function EmpiricalMatchupTable(props: {
   )
 }
 
-function fetchGeneralMatchups(
-  gameFormat: GameFormat,
-  cutoff: HistoryCutoff,
-): Promise<GeneralMatchups> {
-  return GeneralsClient.getGeneralMatchupsApiGeneralstatsMatchupsGet(
-    statsQueryParams(gameFormat, cutoff),
-  )
-}
-
 function EmpiricalMatchupSection(props: {
   format: GameFormat
   cutoff: HistoryCutoff
 }) {
-  const { data: matchups, isPending } = useQuery({
-    queryKey: ["generalMatchups", props.format, props.cutoff],
-    queryFn: () => fetchGeneralMatchups(props.format, props.cutoff),
-  })
+  const { data: matchups, isPending } = useQuery(
+    getGeneralMatchupsApiGeneralstatsMatchupsGetOptions({
+      query: statsQueryParams(props.format, props.cutoff),
+    }),
+  )
 
   if (isPending) return <Loading />
   if (!matchups || matchups.cells.length === 0) return null
@@ -442,12 +428,12 @@ function EmpiricalMatchupSection(props: {
 }
 
 function FactionMatrixTable(props: { matrix: FactionMatrix }) {
-  const { cells, medianProbAWins } = props.matrix
+  const { cells, median_prob_a_wins: medianProbAWins } = props.matrix
 
   const generals = React.useMemo(() => {
     const order: number[] = []
     for (const c of cells) {
-      if (!order.includes(c.generalA)) order.push(c.generalA)
+      if (!order.includes(c.general_a)) order.push(c.general_a)
     }
     return order
   }, [cells])
@@ -458,9 +444,9 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
       { prob: number; std: number; significant: boolean }
     >()
     for (const c of cells) {
-      m.set(`${c.generalA}:${c.generalB}`, {
-        prob: c.probAWins,
-        std: c.probAWinsStd ?? 0,
+      m.set(`${c.general_a}:${c.general_b}`, {
+        prob: c.prob_a_wins,
+        std: c.prob_a_wins_std ?? 0,
         significant: c.significant ?? false,
       })
     }
@@ -469,11 +455,11 @@ function FactionMatrixTable(props: { matrix: FactionMatrix }) {
 
   const maxAbsDelta = React.useMemo(
     () =>
-      Math.max(...cells.map((c) => Math.abs(c.probAWins - medianProbAWins))),
+      Math.max(...cells.map((c) => Math.abs(c.prob_a_wins - medianProbAWins))),
     [cells, medianProbAWins],
   )
 
-  const ensembleSize = props.matrix.ensembleSize ?? 1
+  const ensembleSize = props.matrix.ensemble_size ?? 1
   const nSignificant = cells.filter((c) => c.significant).length
 
   return (
@@ -577,9 +563,7 @@ function FactionMatrixSection() {
   // means "no prediction available", not "this page failed". No retry either —
   // an unavailable model stays unavailable for the length of a visit.
   const { data: matrix, isPending } = useQuery({
-    queryKey: ["factionMatrix"],
-    queryFn: () =>
-      PredictClient.predictFactionMatrixApiPredictFactionMatrixGet(),
+    ...predictFactionMatrixApiPredictFactionMatrixGetOptions(),
     retry: false,
   })
 
@@ -599,21 +583,18 @@ function GeneralStatsBody({
 }) {
   const sorted = React.useMemo(
     () =>
-      [...generalStats.generalStats].sort(
+      [...generalStats.general_stats].sort(
         (a, b) =>
           wilsonLowerBound(b.total?.wins ?? 0, b.total?.losses ?? 0) -
           wilsonLowerBound(a.total?.wins ?? 0, a.total?.losses ?? 0),
       ),
-    [generalStats.generalStats],
+    [generalStats.general_stats],
   )
 
   // Map Stats isn't format-filtered on the backend (see MapStats.tsx), so
   // this best/worst-map read is the same across every format toggle here too
   // - a known, pre-existing limitation, not new to this section.
-  const { data: mapStats } = useQuery({
-    queryKey: ["mapStats"],
-    queryFn: () => MapClient.getMapStatsApiMapStatsGet(),
-  })
+  const { data: mapStats } = useQuery(getMapStatsApiMapStatsGetOptions())
   const bestWorstByGeneral = React.useMemo(
     () =>
       new Map(mapStats ? computeGeneralBestWorst(mapStats.maps) : undefined),
@@ -622,13 +603,13 @@ function GeneralStatsBody({
 
   const radarData = React.useMemo(
     () =>
-      generalStats.generalStats.map((x) => ({
+      generalStats.general_stats.map((x) => ({
         name: toGeneralName(x.general),
         winRate: Math.round(
           winRate(x?.total?.wins ?? 0, x?.total?.losses ?? 0) * 100,
         ),
       })),
-    [generalStats.generalStats],
+    [generalStats.general_stats],
   )
 
   return (
@@ -685,10 +666,11 @@ export default function DisplayGeneralStats() {
     HISTORY_CUTOFFS,
     DEFAULT_HISTORY_CUTOFF,
   )
-  const query = useQuery({
-    queryKey: ["generalStats", format, cutoff],
-    queryFn: () => fetchGeneralStats(format, cutoff),
-  })
+  const query = useQuery(
+    getGeneralsStatsApiGeneralstatsGetOptions({
+      query: statsQueryParams(format, cutoff),
+    }),
+  )
 
   return (
     <Page

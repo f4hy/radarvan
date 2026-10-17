@@ -1,5 +1,15 @@
 import type { Page, Route } from "@playwright/test"
+import type {
+  FFAStats,
+  GeneralMatchups,
+  GeneralStats,
+  MapDataPayload,
+  PlayerGameCount,
+  PlayerStats,
+  PowerStats,
+} from "../src/api/types.gen"
 import * as fx from "./fixtures"
+import { wire } from "./fixtures"
 
 /**
  * Serves `/api/**` from fixtures, so the suite needs no backend and no database.
@@ -22,7 +32,7 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/auth/me", fx.LOGGED_OUT.body],
   ["/api/dates/", fx.DATES],
   ["/api/matches/by_date/", fx.MATCHES.body],
-  ["/api/match/", fx.MATCH],
+  ["/api/match/", fx.MATCH.body],
   ["/api/team_stats/", fx.TEAM_STATS.body],
   ["/api/superlatives", fx.SUPERLATIVES.body],
   ["/api/duration_distribution/", fx.DURATIONS.body],
@@ -32,14 +42,32 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/player_colors/", { Skip: "red", CoreDawg: "blue" }],
   ["/api/player_profile/eligible_players", ["Skip", "CoreDawg"]],
   ["/api/player_game_counts/team/", []],
-  ["/api/player_game_counts/", [{ name: "Skip", count: 10 }]],
-  ["/api/playerstats", { player_stats: [] }],
-  ["/api/generalstats", { general_stats: [] }],
-  ["/api/ffastats", { total_games: 0, player_stats: [], distinct_players: 0 }],
+  [
+    "/api/player_game_counts/",
+    wire<PlayerGameCount[]>([{ name: "Skip", count: 10 }]).body,
+  ],
+  ["/api/playerstats", wire<PlayerStats>({ playerStats: [] }).body],
+  ["/api/generalstats", wire<GeneralStats>({ general_stats: [] }).body],
+  ["/api/generalstats/matchups", wire<GeneralMatchups>({ cells: [] }).body],
+
+  [
+    "/api/ffastats",
+    wire<FFAStats>({
+      totalGames: 0,
+      distinctPlayers: 0,
+      avgPlayersPerGame: 0,
+      playerStats: [],
+      generalStats: [],
+      mapStats: [],
+    }).body,
+  ],
   ["/api/map_stats/", fx.MAP_STATS.body],
   ["/api/map_match_counts", []],
   ["/api/maps_by_player_count", fx.MAPS_BY_PLAYER_COUNT.body],
-  ["/api/power_stats/", { players: [], profile: null }],
+  [
+    "/api/power_stats/",
+    wire<PowerStats>({ players: [], matches: 0, profile: null }).body,
+  ],
   ["/api/player_ratings/synergy/", []],
   ["/api/player_ratings/daily_changes/", []],
   ["/api/player_ratings/upsets", []],
@@ -55,7 +83,20 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/bracket_prediction_leaderboard", []],
   ["/api/bracket", null],
   ["/api/predict/faction_matrix", null],
-  ["/api/map_data/", { supply: [], extent: null, player_starts: [] }],
+  [
+    "/api/map_data/",
+    wire<MapDataPayload>({
+      supply: [],
+      extent: {
+        width: 1000,
+        height: 1000,
+        grid_width: 100,
+        grid_height: 100,
+        border_size: 0,
+      },
+      player_starts: [],
+    }).body,
+  ],
 ]
 
 export interface ApiMock {

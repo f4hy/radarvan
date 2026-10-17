@@ -18,12 +18,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { PredictClient } from "../../clients/predict"
-import {
-  type MatchPrediction,
-  ResponseError,
-  type WinProbOverTime,
-} from "../../api"
+import { predictMatchApiPredictMatchMatchIdGet } from "../../api/sdk.gen"
+import type { MatchPrediction, WinProbOverTime } from "../../api/types.gen"
+import { ApiError } from "../../lib/apiError"
 import { formatPercent } from "../../lib/utils"
 import WinShareBar from "../../components/WinShareBar"
 import Loading from "../../components/Loading"
@@ -32,7 +29,7 @@ import Loading from "../../components/Loading"
 type Panel<T> = T | { error: string }
 
 function describeError(e: unknown): string {
-  const status = e instanceof ResponseError ? e.response.status : undefined
+  const status = e instanceof ApiError ? e.status : undefined
   if (status === 503)
     return "The prediction model isn't deployed on this server yet."
   if (status === 404) return "Match not found."
@@ -46,8 +43,8 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
   const teamA = theme.palette.primary.main
   const teamB = theme.palette.error.main
   const { pred } = props
-  const probA = pred.probTeamAWins
-  const favoredA = pred.favoredTeam === pred.teamA
+  const probA = pred.prob_team_a_wins
+  const favoredA = pred.favored_team === pred.team_a
   return (
     <Box>
       <Typography variant="subtitle1" gutterBottom>
@@ -70,7 +67,7 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
           }}
         >
           <Typography sx={{ color: teamA, fontWeight: "bold" }}>
-            Team A: {pred.teamAPlayers.join(", ")}
+            Team A: {pred.team_a_players.join(", ")}
           </Typography>
           <Typography sx={{ color: teamA }}>{formatPercent(probA)}</Typography>
         </Stack>
@@ -83,7 +80,7 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
           }}
         >
           <Typography sx={{ color: teamB, fontWeight: "bold" }}>
-            Team B: {pred.teamBPlayers.join(", ")}
+            Team B: {pred.team_b_players.join(", ")}
           </Typography>
           <Typography sx={{ color: teamB }}>
             {formatPercent(1 - probA)}
@@ -94,16 +91,17 @@ function PregamePrediction(props: { pred: MatchPrediction }) {
           <strong style={{ color: favoredA ? teamA : teamB }}>
             Team {favoredA ? "A" : "B"}
           </strong>{" "}
-          ({formatPercent(pred.favoredWinProb)})
+          ({formatPercent(pred.favored_win_prob)})
         </Typography>
-        {pred.unknownPlayers && pred.unknownPlayers.length > 0 && (
+        {pred.unknown_players && pred.unknown_players.length > 0 && (
           <Typography
             variant="caption"
             sx={{
               color: "text.secondary",
             }}
           >
-            Unknown to the model (weak signal): {pred.unknownPlayers.join(", ")}
+            Unknown to the model (weak signal):{" "}
+            {pred.unknown_players.join(", ")}
           </Typography>
         )}
       </Stack>
@@ -119,19 +117,19 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
   const chart = React.useMemo(
     () =>
       data.points.map((p) => ({
-        minute: Number(p.atMinute.toFixed(2)),
-        probA: p.probTeamA * 100,
-        probB: (1 - p.probTeamA) * 100,
+        minute: Number(p.at_minute.toFixed(2)),
+        probA: p.prob_team_a * 100,
+        probB: (1 - p.prob_team_a) * 100,
       })),
     [data.points],
   )
-  const labelA = `Team A: ${data.teamAPlayers.join(", ")}`
-  const labelB = `Team B: ${data.teamBPlayers.join(", ")}`
+  const labelA = `Team A: ${data.team_a_players.join(", ")}`
+  const labelB = `Team B: ${data.team_b_players.join(", ")}`
   const winner =
-    data.actualWinner === "team_a"
-      ? `Team A (${data.teamAPlayers.join(", ")})`
-      : data.actualWinner === "team_b"
-        ? `Team B (${data.teamBPlayers.join(", ")})`
+    data.actual_winner === "team_a"
+      ? `Team A (${data.team_a_players.join(", ")})`
+      : data.actual_winner === "team_b"
+        ? `Team B (${data.team_b_players.join(", ")})`
         : null
   return (
     <Box>
@@ -235,7 +233,7 @@ function OverTimePrediction(props: { data: WinProbOverTime }) {
           <Chip
             size="small"
             label={`Actual winner: ${winner}`}
-            color={data.actualWinner === "team_a" ? "primary" : "error"}
+            color={data.actual_winner === "team_a" ? "primary" : "error"}
             variant="outlined"
           />
         )}
@@ -257,9 +255,13 @@ export default function AIPredictions(props: {
   const pregameQuery = useQuery<Panel<MatchPrediction>>({
     queryKey: ["predictMatch", props.matchId],
     queryFn: () =>
-      PredictClient.predictMatchApiPredictMatchMatchIdGet({
-        matchId: props.matchId,
-      }).catch((e) => ({ error: describeError(e) })),
+      predictMatchApiPredictMatchMatchIdGet({
+        path: { match_id: props.matchId },
+      }).then(
+        (r) => r.data,
+        (e) => ({ error: describeError(e) }),
+      ),
+
     retry: false,
   })
 
