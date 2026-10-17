@@ -107,10 +107,9 @@ def test_key_is_every_parameter_the_dependency_does_not_bind() -> None:
 
     synergy = by_name["radarvan.player_synergy.compute_player_synergy"]
     assert [p.name for p in synergy.key_params] == [
-        "lambda_pair",
-        "lambda_main",
         "min_games_together",
-    ], "synergy must key on its tuning params; `games` is bound by CORPUS"
+        "game_format",
+    ], "synergy must key on its filters; `games` is bound by CORPUS"
 
     grid = by_name["radarvan.routes.predict._faction_grid"]
     assert [p.name for p in grid.key_params] == ["map_name", "player1", "player2"], (

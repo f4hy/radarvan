@@ -46,30 +46,24 @@ class PlayerSkill(BaseModel):
 
 
 class PlayerSynergy(BaseModel):
-    """Whether a pair of players over- or under-performs their combined ratings.
+    """A pair's wins together minus the rating model's pregame expectation.
 
-    ``synergy`` is the extra log-odds the pair's team gets purely because the two
-    are paired, beyond what their individual ratings predict (positive = chemistry,
-    negative = anti-synergy). ``win_prob_delta`` expresses the same effect as a
-    win-probability shift at an even (50/50) matchup. See
-    ``SYNERGY_METHODOLOGY.md``.
+    ``solo_a``/``solo_b`` are each player's per-game excess without the other.
+    See ``SYNERGY_METHODOLOGY.md``.
     """
 
     model_config = _FROM_ATTRIBUTES
 
     player_a: str
     player_b: str
-    synergy: float
-    win_prob_delta: float
     games_together: int
     wins_together: int
     expected_wins: float
-    std_error: float
+    excess_wins: float
+    win_rate_delta: float
     z_score: float
-    games_apart: int
-    main_a: float
-    main_b: float
-    adjusted_expected_wins: float
+    solo_a: float | None
+    solo_b: float | None
 
 
 class PlayerRatingDailyChange(BaseModel):

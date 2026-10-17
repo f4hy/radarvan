@@ -1662,12 +1662,11 @@ def _pick_favorite_teammate(
     teammate_games: dict[str, list[int]],  # name -> [games together, wins together]
     synergy_pairs: list[PairSynergy] | None,
 ) -> TeammateProfileStat | None:
-    """Best-synergy teammate when the synergy model has a qualifying pair,
-    otherwise the most frequent teammate."""
+    """Highest-z synergy pair when one qualifies, otherwise the most frequent teammate."""
     if synergy_pairs:
         mine = [p for p in synergy_pairs if player in (p.player_a, p.player_b)]
         if mine:
-            best = max(mine, key=lambda p: p.synergy)
+            best = max(mine, key=lambda p: p.z_score)
             other = best.player_b if best.player_a == player else best.player_a
             counts = teammate_games.get(
                 other, [best.games_together, best.wins_together]
@@ -1676,7 +1675,7 @@ def _pick_favorite_teammate(
                 name=other,
                 games_together=counts[0],
                 wins_together=counts[1],
-                synergy=round(best.synergy, 3),
+                synergy=round(best.win_rate_delta, 3),
             )
     frequent = {
         name: counts
