@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="Losers Round 3 of the 2026 1v1 Bracket: Modus vs CoreDawg. Loser goes home.">
+<meta property="og:title" content="Modus vs CoreDawg · Losers Round 3">
+<meta property="og:description" content="Elimination night in the 2026 1v1 Bracket. Tale of the tape, map room, keys to victory.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c1118">
+<title>Modus vs CoreDawg</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: broadcast package. Full-bleed split hero, then a vertical rundown of segments on a steel ground, each segment a lower-third style band. */
+:root {
+  --ground: #0c1118;
+  --panel: #131b26;
+  --panel-2: #1a2432;
+  --line: #263243;
+  --ink: #e9eef5;
+  --ink-dim: #93a1b4;
+  --modus: #3fc98a;
+  --modus-deep: #0f3b2a;
+  --core: #4b8dff;
+  --core-deep: #12264a;
+  --signal: #f3b33d;
+  --loss: #e0605a;
+  --f-display: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.label { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.num { font-variant-numeric: tabular-nums; }
+.m { color: var(--modus); } .c { color: var(--core); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+/* ticker */
+.ticker { background: var(--signal); color: #1b1404; overflow: hidden; white-space: nowrap; font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.ticker-inner { display: inline-flex; gap: 48px; padding-block: 7px; padding-left: 100%; animation: tick 60s linear infinite; }
+.ticker-inner span::before { content: "■ "; opacity: .55; }
+@keyframes tick { to { transform: translateX(-100%); } }
+
+/* hero */
+.hero { position: relative; overflow: hidden; background: linear-gradient(105deg, var(--modus-deep) 0 50%, var(--core-deep) 50% 100%); border-bottom: 1px solid var(--line); }
+.hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px); pointer-events: none; }
+.hero .wrap { position: relative; z-index: 1; padding-block: 28px 32px; }
+.hero-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; }
+.live i { width: 10px; height: 10px; border-radius: 50%; background: var(--loss); box-shadow: 0 0 0 0 rgba(224,96,90,.7); animation: pulse 1.6s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(224,96,90,0); } 100% { box-shadow: 0 0 0 0 rgba(224,96,90,0); } }
+.stage-chip { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.3); }
+.versus { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 28px; }
+.fighter .seed { font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; }
+.fighter h1 { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(44px, 10vw, 112px); line-height: .88; letter-spacing: .01em; }
+.fighter .tag { font-family: var(--f-label); font-size: 17px; font-weight: 500; color: var(--ink); opacity: .85; margin-top: 8px; }
+.fighter.right { text-align: right; }
+.fighter.left h1 { color: var(--modus); } .fighter.right h1 { color: var(--core); }
+.vs { font-family: var(--f-display); font-weight: 800; font-size: clamp(28px, 5vw, 52px); color: var(--signal); }
+.countdown { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: end; }
+.cd-cells { display: flex; gap: 10px; }
+.cd-cell { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14); padding: 6px 12px; min-width: 66px; text-align: center; }
+.cd-cell b { display: block; font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1; }
+.cd-cell small { font-family: var(--f-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+.cd-meta { font-family: var(--f-label); font-size: 16px; }
+.cd-meta strong { color: var(--signal); font-weight: 700; }
+.stakes-line { margin-top: 18px; font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(22px, 3.6vw, 34px); letter-spacing: .02em; }
+.stakes-line em { font-style: normal; color: var(--loss); }
+
+/* segments */
+section.seg { padding-block: 44px 8px; }
+.seg-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.seg-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.4vw, 42px); line-height: 1; letter-spacing: .02em; }
+.seg-head .label { color: var(--signal); }
+.booth { background: var(--panel); border-left: 4px solid var(--signal); padding: 18px 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; }
+.booth p { margin: 0 0 10px; } .booth p:last-child { margin: 0; }
+.booth .who { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--signal); font-weight: 700; display: block; margin-bottom: 6px; }
+
+/* toggle */
+.seg-toggle { display: inline-flex; border: 1px solid var(--line); background: var(--panel); margin-bottom: 16px; flex-wrap: wrap; }
+.seg-toggle button { background: none; border: 0; padding: 8px 14px; cursor: pointer; font-family: var(--f-label); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; color: var(--ink-dim); }
+.seg-toggle button[aria-pressed="true"] { background: var(--signal); color: #1b1404; }
+
+/* tape */
+.tape { width: 100%; border-collapse: collapse; background: var(--panel); }
+.tape td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tape td:first-child { text-align: left; font-family: var(--f-display); font-weight: 800; font-size: 24px; color: var(--modus); width: 34%; }
+.tape td:last-child { text-align: right; font-family: var(--f-display); font-weight: 800; font-size: 24px; color: var(--core); width: 34%; }
+.tape td.mid { text-align: center; font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 13px; color: var(--ink-dim); font-weight: 600; }
+.tape td small { display: block; font-family: var(--f-body); font-weight: 400; font-size: 13px; color: var(--ink-dim); line-height: 1.35; }
+.tape td.edge { background: linear-gradient(90deg, rgba(243,179,61,.14), transparent); }
+.tape td:last-child.edge { background: linear-gradient(270deg, rgba(243,179,61,.14), transparent); }
+.tape-note { font-size: 14px; color: var(--ink-dim); margin-top: 10px; max-width: 70ch; }
+
+/* road */
+.road { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.road > div { min-width: 0; }
+.road h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 26px; margin-bottom: 10px; }
+.series { background: var(--panel); border: 1px solid var(--line); margin-bottom: 10px; }
+.series > button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; text-align: left; background: none; border: 0; padding: 12px 14px; cursor: pointer; }
+.series > button:hover { background: var(--panel-2); }
+.series .rnd { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+.series .opp { font-family: var(--f-label); font-size: 20px; font-weight: 600; }
+.series .score { grid-row: 1 / 3; grid-column: 2; align-self: center; font-family: var(--f-display); font-weight: 800; font-size: 30px; }
+.series .score.w { color: var(--signal); } .series .score.l { color: var(--loss); }
+.series .chev { font-size: 12px; color: var(--ink-dim); }
+.games { border-top: 1px solid var(--line); padding: 6px 0; }
+.game { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; padding: 6px 14px; align-items: center; font-size: 14px; }
+.game .r { font-family: var(--f-label); font-weight: 700; width: 22px; height: 22px; display: grid; place-items: center; font-size: 13px; }
+.game .r.w { background: var(--signal); color: #1b1404; } .game .r.l { background: transparent; border: 1px solid var(--loss); color: var(--loss); }
+.game .gm { min-width: 0; }
+.game .gm b { font-weight: 600; }
+.game .gm span { color: var(--ink-dim); }
+.game .t { font-family: var(--f-label); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.pending { border-style: dashed; border-color: var(--signal); }
+.pending .opp { color: var(--signal); }
+
+/* deciders */
+.deciders { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.decider { background: var(--panel); border: 1px solid var(--line); padding: 18px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.decider .big { font-family: var(--f-display); font-weight: 900; font-size: 56px; line-height: .9; color: var(--signal); }
+.decider .big small { font-size: 22px; color: var(--ink-dim); font-weight: 700; }
+.decider h3 { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; font-size: 20px; font-weight: 700; }
+.decider p { margin: 0; color: var(--ink-dim); font-size: 15px; }
+.duel { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; align-items: center; font-family: var(--f-label); font-size: 15px; }
+.duel .bar { height: 10px; background: var(--panel-2); position: relative; }
+.duel .bar i { position: absolute; inset: 0 auto 0 0; display: block; }
+.duel .val { font-variant-numeric: tabular-nums; text-align: right; min-width: 48px; }
+
+/* map room */
+.maproom { display: grid; grid-template-columns: 260px 1fr; gap: 18px; }
+.maplist { display: flex; flex-direction: column; gap: 6px; }
+.maplist button { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; font-family: var(--f-label); font-size: 16px; font-weight: 600; }
+.maplist button:hover { background: var(--panel-2); }
+.maplist button[aria-pressed="true"] { border-color: var(--signal); background: var(--panel-2); }
+.maplist .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.mapcard { background: var(--panel); border: 1px solid var(--line); padding: 20px; min-width: 0; }
+.mapcard .verdict { display: inline-block; font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; padding: 4px 10px; margin-bottom: 10px; }
+.mapcard h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4vw, 40px); line-height: 1; margin-bottom: 14px; }
+.recs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.rec { background: var(--panel-2); padding: 12px 14px; }
+.rec .who { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 13px; font-weight: 700; }
+.rec .wl { font-family: var(--f-display); font-weight: 800; font-size: 36px; line-height: 1.05; }
+.rec .wl.none { font-size: 22px; color: var(--ink-dim); padding-block: 6px; }
+.mapcard p { margin: 0 0 8px; max-width: 64ch; }
+.mapcard .fine { color: var(--ink-dim); font-size: 14px; }
+.format-note { margin-top: 14px; font-size: 14px; color: var(--ink-dim); max-width: 75ch; }
+
+/* plans */
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.plan { background: var(--panel); border-top: 5px solid; padding: 18px 20px; min-width: 0; }
+.plan.m { border-color: var(--modus); color: var(--ink); } .plan.c { border-color: var(--core); color: var(--ink); }
+.plan h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 28px; line-height: 1; margin-bottom: 4px; }
+.plan.m h3 { color: var(--modus); } .plan.c h3 { color: var(--core); }
+.plan ol { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; counter-reset: k; }
+.plan li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; counter-increment: k; }
+.plan li::before { content: counter(k); font-family: var(--f-display); font-weight: 900; font-size: 30px; line-height: 1; color: var(--signal); }
+.plan li b { display: block; font-family: var(--f-label); font-size: 19px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.plan li span { color: var(--ink-dim); font-size: 15px; }
+
+/* sim */
+.sim { background: var(--panel); border: 1px solid var(--line); padding: 20px; }
+.sim-ctrl { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.sim-ctrl .pct { font-family: var(--f-display); font-weight: 800; font-size: 34px; min-width: 80px; }
+.sim-ctrl input[type=range] { width: 100%; accent-color: var(--signal); }
+.sim-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.sim-presets button { background: var(--panel-2); border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; font-family: var(--f-label); font-size: 14px; font-weight: 600; letter-spacing: .04em; }
+.sim-presets button:hover { border-color: var(--signal); }
+.outcomes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 20px; align-items: end; height: 190px; }
+.oc { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 6px; min-width: 0; }
+.oc .bar { width: 100%; transition: height .35s ease; min-height: 2px; }
+.oc .p { font-family: var(--f-label); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.oc .s { font-family: var(--f-display); font-weight: 800; font-size: 20px; }
+.sim-total { display: flex; height: 36px; margin-top: 16px; font-family: var(--f-label); font-weight: 700; font-size: 15px; }
+.sim-total div { display: flex; align-items: center; padding: 0 10px; transition: flex-basis .35s ease; white-space: nowrap; overflow: hidden; min-width: 0; }
+.sim-total .tm { background: var(--modus); color: #062014; }
+.sim-total .tc { background: var(--core); color: #06122a; justify-content: flex-end; }
+.sim p.fine { color: var(--ink-dim); font-size: 14px; margin: 12px 0 0; max-width: 75ch; }
+
+/* stakes path */
+.path { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.step { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
+.step.now { border-color: var(--signal); }
+.step .rnd { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+.step .who { font-family: var(--f-display); font-weight: 800; font-size: 24px; text-transform: uppercase; line-height: 1.1; margin-top: 4px; }
+.step p { margin: 6px 0 0; font-size: 14px; color: var(--ink-dim); }
+.out { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--loss); color: var(--ink); font-size: 15px; }
+.out b { color: var(--loss); font-family: var(--f-label); text-transform: uppercase; letter-spacing: .08em; }
+
+.signoff { padding-block: 44px 56px; }
+.signoff .call { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(30px, 6vw, 60px); line-height: .95; margin-top: 18px; }
+footer { color: var(--ink-dim); font-size: 13px; border-top: 1px solid var(--line); padding-block: 16px 28px; }
+
+@media (max-width: 760px) {
+  .road, .plans, .deciders, .maproom { grid-template-columns: 1fr; }
+  .maplist { flex-direction: row; flex-wrap: wrap; }
+  .maplist button { flex: 1 1 140px; }
+  .path { grid-template-columns: 1fr 1fr; }
+  .tape td:first-child, .tape td:last-child { font-size: 19px; }
+  .tape td { padding: 10px 8px; }
+  .outcomes { height: 160px; }
+  .oc .s { font-size: 16px; } .oc .p { font-size: 13px; }
+}
+@media (max-width: 460px) {
+  .versus { grid-template-columns: 1fr; text-align: center; gap: 4px; }
+  .fighter.right { text-align: center; }
+  .cd-cell { min-width: 56px; padding: 6px 8px; }
+  .cd-cell b { font-size: 28px; }
+  .sim-ctrl { grid-template-columns: 1fr; }
+  .recs { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-inner { animation: none; padding-left: 16px; }
+  .live i { animation: none; }
+  .oc .bar, .sim-total div { transition: none; }
+}
+</style>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="ticker" aria-label="Headlines">
+  <div class="ticker-inner">
+    <span>Losers Round 3 · Modus vs CoreDawg · loser is eliminated</span>
+    <span>18 of 21: in these two players' tournament games, the bigger spender won</span>
+    <span>CoreDawg has drawn first blood in 8 of 11 tournament games</span>
+    <span>Modus hasn't played a tournament game since Aug 21</span>
+    <span>Winner draws Tytan in Losers Round 4</span>
+    <span>Career win rate: Modus 60.0%, CoreDawg 59.0%</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <span class="live"><i></i>Tonight · 2026 1v1 Bracket</span>
+      <span class="stage-chip">Losers Round 3 · Best of 5</span>
+    </div>
+    <div class="versus">
+      <div class="fighter left">
+        <div class="seed m">#1 Seed</div>
+        <h1>Modus</h1>
+        <div class="tag">6–4 in games · fell 3–4 to Gorn</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="fighter right">
+        <div class="seed c">#6 Seed</div>
+        <h1>CoreDawg</h1>
+        <div class="tag">7–4 in games · 6 wins in last 7</div>
+      </div>
+    </div>
+    <div class="countdown">
+      <div class="cd-cells" id="cd" aria-live="polite">
+        <div class="cd-cell"><b id="cd-h">--</b><small>Hours</small></div>
+        <div class="cd-cell"><b id="cd-m">--</b><small>Min</small></div>
+        <div class="cd-cell"><b id="cd-s">--</b><small>Sec</small></div>
+      </div>
+      <div class="cd-meta">Start time: <strong id="cd-local">Oct 18, 01:05 UTC</strong></div>
+    </div>
+    <div class="stakes-line">Win and face Tytan. Lose and <em>go home.</em></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="seg">
+    <div class="seg-head"><span class="label">Cold open</span><h2>From the booth</h2></div>
+    <div class="booth">
+      <span class="who">Play-by-play</span>
+      <p>Good evening and welcome to an elimination night in the 2026 1v1 Bracket. Ten players started this tournament. Five are left, and in about an hour there will be four.</p>
+      <p>In the green corner sits the number one seed. Modus swept Neo 3–0, then pushed Gorn to a seventh game in the Winners Semifinal. He led that series 3–2 and lost the last two. He has been waiting eight weeks to get that taste out of his mouth.</p>
+      <p>In the blue corner is the number six seed. CoreDawg lost his opener to WildCard, dropped into the losers bracket and started grinding. He beat Syn 3–1, swept Neo 3–0, and he has won six of his last seven games. He shows up early and he hits first.</p>
+      <p>Look at the career numbers. Modus is 382–255 lifetime, CoreDawg is 370–257. That's 60.0% against 59.0%, and the two of them have met just once in a 1v1. Tonight we settle it.</p>
+    </div>
+  </section>
+
+  <section class="seg" id="tape">
+    <div class="seg-head"><span class="label">Segment 1</span><h2>Tale of the tape</h2></div>
+    <div class="seg-toggle" role="group" aria-label="Stat scope">
+      <button id="tape-tour" aria-pressed="true" data-scope="tour">This tournament</button>
+      <button id="tape-1v1" aria-pressed="false" data-scope="duel">1v1 career</button>
+      <button id="tape-all" aria-pressed="false" data-scope="all">All formats</button>
+    </div>
+    <div style="overflow-x:auto"><table class="tape" id="tape-table"></table></div>
+    <p class="tape-note" id="tape-note"></p>
+  </section>
+
+  <section class="seg" id="road">
+    <div class="seg-head"><span class="label">Segment 2</span><h2>The road to tonight</h2></div>
+    <p class="tape-note" style="margin:-6px 0 16px">Tap a series to see every game: map, generals, length.</p>
+    <div class="road">
+      <div><h3 class="m">Modus</h3><div id="road-m"></div></div>
+      <div><h3 class="c">CoreDawg</h3><div id="road-c"></div></div>
+    </div>
+  </section>
+
+  <section class="seg" id="deciders">
+    <div class="seg-head"><span class="label">Segment 3</span><h2>Four numbers that decide it</h2></div>
+    <div class="deciders">
+      <div class="decider">
+        <div class="big num">18<small> of 21</small></div>
+        <h3>Money wins fights</h3>
+        <p>Across both players' 21 tournament games, whoever spent more money won 18 times. Modus outspent his opponent in all 6 of his wins. CoreDawg outspent his in 6 of 7.</p>
+      </div>
+      <div class="decider">
+        <h3>First blood</h3>
+        <div class="duel">
+          <span class="m">Modus</span><span class="bar"><i style="width:30%;background:var(--modus)"></i></span><span class="val num">3 / 10</span>
+          <span class="c">CoreDawg</span><span class="bar"><i style="width:72.7%;background:var(--core)"></i></span><span class="val num">8 / 11</span>
+        </div>
+        <p>CoreDawg draws the first kill almost every game. Modus rarely does and is still 6–4. The early skirmish will go blue. What matters is whether it turns into anything.</p>
+      </div>
+      <div class="decider">
+        <h3>The ten-minute mark</h3>
+        <div class="duel">
+          <span class="m">Under 10</span><span class="bar"><i style="width:71%;background:var(--modus)"></i></span><span class="val num m">5–2</span>
+          <span class="m">10+ min</span><span class="bar"><i style="width:33%;background:var(--modus)"></i></span><span class="val num m">1–2</span>
+          <span class="c">Under 10</span><span class="bar"><i style="width:60%;background:var(--core)"></i></span><span class="val num c">3–2</span>
+          <span class="c">10+ min</span><span class="bar"><i style="width:67%;background:var(--core)"></i></span><span class="val num c">4–2</span>
+        </div>
+        <p>Modus wins fast, in 8.8 minutes on average. CoreDawg's wins average 10.8. If a game is still going at ten minutes, it starts to look like CoreDawg's game.</p>
+      </div>
+      <div class="decider">
+        <div class="big num">3<small> of 4</small></div>
+        <h3>Modus losses he was winning</h3>
+        <p>In three of his four losses to Gorn, the win-probability model had Modus at 74% or better at some point. On the other side, CoreDawg has won three games after the model had him under 35%. One player has trouble closing and the other keeps coming back.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg" id="maps">
+    <div class="seg-head"><span class="label">Segment 4</span><h2>The map room</h2></div>
+    <div class="maproom">
+      <div class="maplist" id="maplist" role="group" aria-label="Maps"></div>
+      <div class="mapcard" id="mapcard" aria-live="polite"></div>
+    </div>
+    <p class="format-note">Format note: in this bracket every map is played twice with the generals swapped, so each matchup gets played from both sides. Picking a general means you also have to beat it. Records below are from this tournament only.</p>
+  </section>
+
+  <section class="seg" id="plans">
+    <div class="seg-head"><span class="label">Segment 5</span><h2>Keys to victory</h2></div>
+    <div class="plans">
+      <div class="plan m">
+        <div class="label">What Modus has to do</div>
+        <h3>Out-build him</h3>
+        <ol>
+          <li><div><b>Bank it, then spend it</b><span>Modus outspent the other player in every one of his six wins and was outspent in three of four losses. He holds the gold Expansionist badge for most supply centers per game. Build the economy first.</span></div></li>
+          <li><div><b>Survive minute two</b><span>CoreDawg's first kill usually lands around the two-minute mark. Losing a unit early is fine as long as Modus doesn't lose a supply truck or a dozer.</span></div></li>
+          <li><div><b>Make it Snowy Drought</b><span>Modus is 2–1 there this tournament and CoreDawg is 0–2. Their only career 1v1 was on Snowy Drought, and Modus won it in 4 minutes 27 seconds.</span></div></li>
+          <li><div><b>End it before ten</b><span>Modus is 5–2 in games under ten minutes and 1–2 in longer ones. When he's ahead he should push and end the game.</span></div></li>
+          <li><div><b>Close the door</b><span>Three times against Gorn the model had him at 74% or better and he lost. The skill he needs to show tonight is finishing a game he already leads.</span></div></li>
+        </ol>
+      </div>
+      <div class="plan c">
+        <div class="label">What CoreDawg has to do</div>
+        <h3>Hit first, make it count</h3>
+        <ol>
+          <li><div><b>Turn first blood into economy damage</b><span>He drew first blood in three of four games against WildCard and still lost that series 1–3. Killing a unit isn't enough. He has to kill trucks and supply lines so Modus falls behind on money.</span></div></li>
+          <li><div><b>Drag him to Dust Devil</b><span>CoreDawg is 3–1 on Dust Devil and Modus hasn't played it in the tournament. He opened both of his losers-bracket sets there. Liquid Gold, where he's 2–0, is the backup.</span></div></li>
+          <li><div><b>Make it long</b><span>He's 4–2 in games past ten minutes. He has the income to back it up: 126,500 collected in a 14-minute win over Syn. The longer the game, the more it suits him.</span></div></li>
+          <li><div><b>Bring the Raptors</b><span>Air Force is 2–0 for him in this tournament, including his only game win against WildCard. His USA-family core of Humvees and Missile Defenders shows up on four different generals.</span></div></li>
+          <li><div><b>Ride the momentum</b><span>He has won six of his last seven games and played two weeks ago. Modus hasn't played a tournament game since August 21. Pressure him early, before he settles in.</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg" id="sim">
+    <div class="seg-head"><span class="label">Segment 6</span><h2>Run the series</h2></div>
+    <div class="sim">
+      <div class="sim-ctrl">
+        <label for="sim-p" class="label">Modus wins any one game</label>
+        <input type="range" id="sim-p" min="5" max="95" step="1" value="67">
+        <span class="pct m num" id="sim-pct">67%</span>
+      </div>
+      <div class="sim-presets">
+        <button data-p="67">RadarVan model lean (67%)</button>
+        <button data-p="60">Career 1v1 form (60%)</button>
+        <button data-p="50">Coin flip (50%)</button>
+        <button data-p="40">CoreDawg momentum (40%)</button>
+      </div>
+      <div class="outcomes" id="outcomes" aria-live="polite"></div>
+      <div class="sim-total"><div class="tm" id="tot-m"></div><div class="tc" id="tot-c"></div></div>
+      <p class="fine">Drag the slider to set how often Modus takes a single game, and the bars show every way a best-of-5 can end. The RadarVan model gives Modus about 67% on any one game. That barely moves with map or general pick. The career and momentum presets are the booth's own guesses.</p>
+    </div>
+  </section>
+
+  <section class="seg" id="stakes">
+    <div class="seg-head"><span class="label">Segment 7</span><h2>What's on the line</h2></div>
+    <div class="path">
+      <div class="step now"><div class="rnd">Losers Round 3 · Tonight</div><div class="who"><span class="m">Modus</span> / <span class="c">CoreDawg</span></div><p>Elimination match.</p></div>
+      <div class="step"><div class="rnd">Losers Round 4</div><div class="who" style="color:var(--loss)">Tytan</div><p>Both of tonight's players list Tytan as their career nemesis. Tytan beat OneThree111 3–1 to get there.</p></div>
+      <div class="step"><div class="rnd">Losers Final</div><div class="who">WildCard</div><p>Beat CoreDawg 3–1 in round two. Modus is 6–0 against WildCard in career 1v1s.</p></div>
+      <div class="step"><div class="rnd">Grand Final</div><div class="who" style="color:#8fd3ff">Gorn</div><p>Unbeaten. Beat Modus 4–3 and WildCard 4–3. The winner of the losers bracket has to beat Gorn twice.</p></div>
+    </div>
+    <div class="out"><b>Loser:</b> eliminated, finishing tied for 5th with OneThree111.</div>
+  </section>
+
+  <section class="signoff">
+    <div class="booth">
+      <span class="who">Color commentary · The booth's call</span>
+      <p>The model likes Modus, and so does the map history. Snowy Drought, an edge on the economy and a 6–0 record against the player who knocked CoreDawg down are all reasons to pick him.</p>
+      <p>But CoreDawg shows up first in nearly every game, he keeps coming back from behind, and he's playing his third elimination set in seven weeks while Modus has been sitting since August. If game one goes past ten minutes, don't be surprised by a long night.</p>
+    </div>
+    <div class="call"><span class="m">Modus in 4.</span><br><span style="color:var(--ink-dim)">But keep an eye on minute ten.</span></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">Every number comes from the RadarVan replay database: 54 tournament games in the 2026 1v1 Bracket plus career records, as of October 17, 2026. Win-probability figures come from the RadarVan model.</div>
+</footer>
+
+<script>
+(function () {
+  const START = Date.parse("2026-10-18T01:05:00Z");
+  const pad = n => String(n).padStart(2, "0");
+  try {
+    document.getElementById("cd-local").textContent = new Date(START).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  } catch (e) {}
+  function tick() {
+    const d = START - Date.now();
+    const cd = document.getElementById("cd");
+    if (d <= 0) {
+      cd.innerHTML = '<div class="cd-cell" style="min-width:auto"><b style="color:var(--signal)">' + (d > -3 * 3600e3 ? "LIVE NOW" : "FINAL") + '</b><small>Losers Round 3</small></div>';
+      return;
+    }
+    const s = Math.floor(d / 1000);
+    document.getElementById("cd-h").textContent = pad(Math.floor(s / 3600));
+    document.getElementById("cd-m").textContent = pad(Math.floor(s / 60) % 60);
+    document.getElementById("cd-s").textContent = pad(s % 60);
+    setTimeout(tick, 1000);
+  }
+  tick();
+
+  // Tale of the tape: [modus, label, coredawg, edge: "m" | "c" | ""]
+  const TAPE = {
+    tour: {
+      rows: [
+        ["#1", "Seed", "#6", "m"],
+        ["1–1", "Series record", "2–1", "c"],
+        ["6–4", "Game record", "7–4", "c"],
+        ["61.7", "Avg APM", "64.9", "c"],
+        ["3 / 10", "First blood", "8 / 11", "c"],
+        ["8.8 min", "Avg win length", "10.8 min", ""],
+        ["GLA 2–0", "Best general", "Air Force 2–0", ""],
+        ["Aug 21", "Last tournament game", "Oct 3", "c"]
+      ],
+      note: "CoreDawg leads most of the activity numbers. He's played more, hits earlier and is fresher. Modus's edge is how quickly he finishes when he wins."
+    },
+    duel: {
+      rows: [
+        ["34–10", "1v1 record", "124–18", ""],
+        ["77%", "1v1 win rate", "87%<small>7–7 outside Syn</small>", "m"],
+        ["1–0", "Head to head", "0–1", "m"],
+        ["5–0", "vs Neo", "4–0", ""],
+        ["6–0", "vs WildCard", "2–6", "m"],
+        ["Tank 4–0 · GLA 4–0", "Best generals", "Tank 13–0 · USA 9–0", ""],
+        ["Laser 0–2", "Weak spot", "Nuke 7–3", ""]
+      ],
+      note: "That 124–18 needs context. 117–11 of it is against Syn. Against everyone else CoreDawg is 7–7 in 1v1s, and 2–6 against WildCard, a player Modus has never lost to. Their one meeting was April 25 on Snowy Drought: Modus on Stealth beat CoreDawg on Toxin in 4 minutes 27 seconds."
+    },
+    all: {
+      rows: [
+        ["637", "Career games", "627", ""],
+        ["60.0%", "Win rate", "59.0%", ""],
+        ["52.6<small>83rd percentile</small>", "Avg APM", "53.1<small>92nd percentile</small>", "c"],
+        ["Stealth 70%", "Best general", "USA 67%", ""],
+        ["16.5 min<small>fastest in the group</small>", "Time to rank 5", "18.3 min", "m"],
+        ["Expansionist", "Top badge", "Garrison Cmdr (silver)", ""],
+        ["65–47", "When on opposite teams", "47–65", "m"],
+        ["Tytan", "Career nemesis", "Tytan", ""]
+      ],
+      note: "Over 1,264 combined games they're almost dead even. In team games Modus's side has won 65 of 112. As teammates they're 34–23. Both have the same favorite teammate and the same nemesis, Tytan, who plays the winner next."
+    }
+  };
+  const tbl = document.getElementById("tape-table");
+  function renderTape(scope) {
+    const t = TAPE[scope];
+    tbl.innerHTML = t.rows.map(([a, l, b, e]) =>
+      `<tr><td class="num${e === "m" ? " edge" : ""}">${a}</td><td class="mid">${l}</td><td class="num${e === "c" ? " edge" : ""}">${b}</td></tr>`).join("");
+    document.getElementById("tape-note").textContent = t.note;
+    document.querySelectorAll("#tape .seg-toggle button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.scope === scope)));
+    try { localStorage.setItem("mc-tape", scope); } catch (e) {}
+  }
+  document.querySelectorAll("#tape .seg-toggle button").forEach(b => b.addEventListener("click", () => renderTape(b.dataset.scope)));
+  let saved = "tour";
+  try { saved = localStorage.getItem("mc-tape") || "tour"; } catch (e) {}
+  renderTape(TAPE[saved] ? saved : "tour");
+
+  // Road: games as [won, map, myGeneral, oppGeneral, minutes]
+  const ROAD = {
+    m: [
+      { rnd: "Winners Round 1", opp: "Bye (#1 seed)", bye: true },
+      { rnd: "Winners Round 2 · Bo5", opp: "Neo", score: "3–0", w: true, games: [
+        [1, "TD NoBugsCars", "GLA", "Air Force", 4.9], [1, "TD NoBugsCars", "Air Force", "GLA", 7.1], [1, "Snowy Drought", "China", "Nuke", 17.7]] },
+      { rnd: "Winners Semifinal · Bo7", opp: "Gorn", score: "3–4", w: false, games: [
+        [0, "Vendetta", "Superweapon", "GLA", 12.3], [1, "Vendetta", "GLA", "Superweapon", 8.7], [1, "Snowy Drought", "Infantry", "Demolition", 6.4], [0, "Snowy Drought", "Demolition", "Infantry", 8.0],
+        [1, "Natural Threats", "Tank", "China", 8.2], [0, "Natural Threats", "China", "Tank", 7.6], [0, "Oxygen 1", "Infantry", "Infantry", 10.6]] },
+      { rnd: "Losers Round 3 · Tonight", opp: "CoreDawg", pending: true }
+    ],
+    c: [
+      { rnd: "Winners Round 1", opp: "Bye (#6 seed)", bye: true },
+      { rnd: "Winners Round 2 · Bo5", opp: "WildCard", score: "1–3", w: false, games: [
+        [0, "Vendetta", "Laser", "Air Force", 5.1], [1, "Vendetta", "Air Force", "Laser", 7.4], [0, "Snowy Drought", "Demolition", "Laser", 10.7], [0, "Snowy Drought", "Laser", "Demolition", 8.5]] },
+      { rnd: "Losers Round 1 · Bo5", opp: "Syn", score: "3–1", w: true, games: [
+        [1, "Dust Devil", "Infantry", "China", 13.1], [0, "Dust Devil", "China", "Infantry", 15.3], [1, "Liquid Gold", "Tank", "USA", 14.5], [1, "Liquid Gold", "USA", "Tank", 9.1]] },
+      { rnd: "Losers Round 2 · Bo5", opp: "Neo", score: "3–0", w: true, games: [
+        [1, "Dust Devil", "Air Force", "Toxin", 8.6], [1, "Dust Devil", "Toxin", "Air Force", 10.7], [1, "TD NoBugsCars", "Superweapon", "Infantry", 12.5]] },
+      { rnd: "Losers Round 3 · Tonight", opp: "Modus", pending: true }
+    ]
+  };
+  const fmtMin = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ":" + pad(s % 60); };
+  function renderRoad(key) {
+    const el = document.getElementById("road-" + key);
+    el.innerHTML = ROAD[key].map((s, i) => {
+      if (s.bye) return `<div class="series"><button disabled style="cursor:default"><span class="rnd">${s.rnd}</span><span class="opp" style="color:var(--ink-dim)">${s.opp}</span></button></div>`;
+      if (s.pending) return `<div class="series pending"><button disabled style="cursor:default"><span class="rnd">${s.rnd}</span><span class="opp">vs ${s.opp}</span><span class="score" style="color:var(--signal)">?</span></button></div>`;
+      const id = `g-${key}-${i}`;
+      const games = s.games.map((g, n) => `<div class="game"><span class="r ${g[0] ? "w" : "l"}">${g[0] ? "W" : "L"}</span><span class="gm"><b>G${n + 1} · ${g[1]}</b><br><span>${g[2]} vs ${g[3]}</span></span><span class="t">${fmtMin(g[4])}</span></div>`).join("");
+      return `<div class="series"><button aria-expanded="false" aria-controls="${id}" id="b-${id}"><span class="rnd">${s.rnd} <span class="chev">▾</span></span><span class="opp">vs ${s.opp}</span><span class="score ${s.w ? "w" : "l"} num">${s.score}</span></button><div class="games" id="${id}" hidden>${games}</div></div>`;
+    }).join("");
+    el.querySelectorAll("button[aria-controls]").forEach(b => b.addEventListener("click", () => {
+      const panel = document.getElementById(b.getAttribute("aria-controls"));
+      const open = b.getAttribute("aria-expanded") === "true";
+      b.setAttribute("aria-expanded", String(!open));
+      panel.hidden = open;
+      b.querySelector(".chev").textContent = open ? "▾" : "▴";
+    }));
+  }
+  renderRoad("m"); renderRoad("c");
+  // Open the series that matters most by default
+  ["b-g-m-2", "b-g-c-1"].forEach(id => { const b = document.getElementById(id); if (b) b.click(); });
+
+  // Map room. side: "m" | "c" | "n"
+  const MAPS = [
+    { name: "Snowy Drought", side: "m", mod: "2–1", core: "0–2", verdict: "Modus country",
+      body: "This is Modus's map. He's gone to it in both of his series and won two of three, including a 6:26 win over Gorn on Infantry. CoreDawg's only games here were both losses to WildCard, and WildCard is 4–0 on this map.",
+      fine: "Their one career 1v1 was played here on April 25. Modus won in 4:27." },
+    { name: "Dust Devil", side: "c", mod: null, core: "3–1", verdict: "CoreDawg country",
+      body: "CoreDawg opened both of his losers-bracket sets on Dust Devil and went 3–1. He beat Neo here on Air Force in 8:36 and on Toxin in 10:42. Modus hasn't played it in the tournament.",
+      fine: "All four Dust Devil games in this bracket have been CoreDawg's." },
+    { name: "Liquid Gold", side: "c", mod: null, core: "2–0", verdict: "Leans CoreDawg",
+      body: "CoreDawg swept both games here against Syn, a 14:30 game on Tank and a 9:06 game on USA. He collected 126,500 in the Tank game, his biggest economy of the tournament.",
+      fine: "Only CoreDawg and Syn have played Liquid Gold in the bracket. It would be new ground for Modus." },
+    { name: "TD NoBugsCars", side: "m", mod: "2–0", core: "1–0", verdict: "Leans Modus",
+      body: "Both players are unbeaten here, but Modus's wins were quick. He beat Neo in 4:54 on GLA and 7:06 on Air Force. CoreDawg's win took 12:30 on Superweapon after the model had him at 25%.",
+      fine: "Neo's favorite map. Seven games played here in the bracket." },
+    { name: "Vendetta", side: "n", mod: "1–1", core: "1–1", verdict: "Dead even",
+      body: "This is the most-played map of the tournament with 12 games. Both players went 1–1 here, and both were in the same spot: losing game one and winning the general-swapped rematch. CoreDawg's win was a Raptor-heavy Air Force game against WildCard.",
+      fine: "Gorn and WildCard are both 4–2 here. It's the default map at the top of this bracket." },
+    { name: "Natural Threats", side: "n", mod: "1–1", core: null, verdict: "Neutral",
+      body: "Modus split two games with Gorn here, winning on Tank (Emperors and Gattling tanks) and losing the swapped side on China. CoreDawg hasn't played it.",
+      fine: "Only two games played here all tournament." },
+    { name: "Oxygen 1", side: "n", mod: "0–1", core: null, verdict: "Bad memories",
+      body: "This is where Modus's winners-bracket run ended, in the 10:36 game seven against Gorn in an Infantry mirror. CoreDawg hasn't played it.",
+      fine: "Tytan is 2–0 here, so the winner tonight should remember that." },
+    { name: "Canyon of the Dead", side: "n", mod: null, core: null, verdict: "Uncharted",
+      body: "This is the second most-played map of the bracket with 11 games, and neither player has touched it. Seven of its 11 games ended inside six minutes, so expect it to be fast and swingy.",
+      fine: "Tytan is 3–0 here. It's popular in the bottom half of the bracket." }
+  ];
+  const sideColor = { m: "var(--modus)", c: "var(--core)", n: "var(--ink-dim)" };
+  const list = document.getElementById("maplist");
+  list.innerHTML = MAPS.map((m, i) => `<button id="map-${i}" data-i="${i}" aria-pressed="false"><span>${m.name}</span><span class="dot" style="background:${sideColor[m.side]}"></span></button>`).join("");
+  function renderMap(i) {
+    const m = MAPS[i];
+    const rec = (v, who, cls) => `<div class="rec"><div class="who ${cls}">${who}</div><div class="wl num ${v ? cls : "none"}">${v || "Unplayed"}</div></div>`;
+    const bg = m.side === "m" ? "background:var(--modus);color:#062014" : m.side === "c" ? "background:var(--core);color:#06122a" : "background:var(--panel-2);color:var(--ink)";
+    document.getElementById("mapcard").innerHTML =
+      `<span class="verdict" style="${bg}">${m.verdict}</span><h3>${m.name}</h3><div class="recs">${rec(m.mod, "Modus", "m")}${rec(m.core, "CoreDawg", "c")}</div><p>${m.body}</p><p class="fine">${m.fine}</p>`;
+    list.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+  }
+  list.querySelectorAll("button").forEach(b => b.addEventListener("click", () => renderMap(+b.dataset.i)));
+  renderMap(0);
+
+  // Series simulator (best of 5)
+  const C = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
+  const slider = document.getElementById("sim-p");
+  function renderSim() {
+    const p = slider.value / 100, q = 1 - p;
+    document.getElementById("sim-pct").textContent = slider.value + "%";
+    // P(winner takes it 3-k): C(2+k, k) * w^3 * l^k
+    const out = [
+      ["3–0", C(2, 0) * p ** 3, "m"], ["3–1", C(3, 1) * p ** 3 * q, "m"], ["3–2", C(4, 2) * p ** 3 * q ** 2, "m"],
+      ["2–3", C(4, 2) * q ** 3 * p ** 2, "c"], ["1–3", C(3, 1) * q ** 3 * p, "c"], ["0–3", C(2, 0) * q ** 3, "c"]
+    ];
+    const max = Math.max(...out.map(o => o[1]));
+    document.getElementById("outcomes").innerHTML = out.map(([s, v, k]) =>
+      `<div class="oc"><span class="p">${Math.round(v * 100)}%</span><div class="bar" style="height:${Math.max(2, v / max * 100) * .72}%;background:${k === "m" ? "var(--modus)" : "var(--core)"}"></div><span class="s ${k}">${s}</span></div>`).join("");
+    const pm = out.slice(0, 3).reduce((a, o) => a + o[1], 0);
+    const tm = document.getElementById("tot-m"), tc = document.getElementById("tot-c");
+    tm.style.flexBasis = (pm * 100) + "%"; tc.style.flexBasis = ((1 - pm) * 100) + "%";
+    tm.textContent = pm > .14 ? `Modus ${Math.round(pm * 100)}%` : "";
+    tc.textContent = pm < .86 ? `CoreDawg ${Math.round((1 - pm) * 100)}%` : "";
+  }
+  slider.addEventListener("input", renderSim);
+  document.querySelectorAll(".sim-presets button").forEach(b => b.addEventListener("click", () => { slider.value = b.dataset.p; renderSim(); }));
+  renderSim();
+})();
+</script>
+</body>
+</html>
