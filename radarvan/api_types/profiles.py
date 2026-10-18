@@ -130,8 +130,8 @@ class TeammateProfileStat(BaseModel):
     name: str
     games_together: int = Field(alias="gamesTogether")
     wins_together: int = Field(alias="winsTogether")
-    # Pair synergy (log-odds) when the pair passes the synergy model's
-    # min-games gate; None when the teammate was picked by games played.
+    # Pair's per-game win rate above pregame expectation (0.08 = +8pp); None
+    # when the teammate was picked by games played.
     synergy: float | None = None
 
 

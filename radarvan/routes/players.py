@@ -4,6 +4,7 @@ import threading
 from collections import defaultdict
 from datetime import date, timedelta
 from enum import Enum
+from typing import Literal
 
 from cachetools import TTLCache
 from pydantic import BaseModel
@@ -183,35 +184,17 @@ def get_rating_upsets(
 
 @router.get("/api/player_ratings/synergy/", dependencies=[Depends(cache_short)])
 def get_player_synergy(
-    game_list: CompetitiveGames,
+    game_list: UnfilteredCompetitiveGames,
     min_games_together: int = Query(
         player_synergy.DEFAULT_MIN_GAMES_TOGETHER,
         ge=1,
         description="Only return pairs that have played at least this many games together",
     ),
-    regularization: float = Query(
-        player_synergy.DEFAULT_LAMBDA_PAIR,
-        gt=0.0,
-        description="L2 shrinkage for pair synergy; higher = more conservative",
-    ),
-    main_regularization: float = Query(
-        player_synergy.DEFAULT_LAMBDA_MAIN,
-        gt=0.0,
-        description="L2 shrinkage for per-player main effects; raise to stop strong "
-        "players' main effects running away and saturating pair synergy",
-    ),
+    game_format: Literal["2v2", "3v3", "4v4"] | None = Query(None),
 ) -> list[PlayerSynergy]:
-    """Pairwise synergy: do two players win more/less as teammates than their ratings predict.
-
-    Ridge logistic regression over team games with the rating model's log-odds as a
-    fixed offset, player main effects, and pairwise interaction terms. Sorted by
-    synergy descending. See ``SYNERGY_METHODOLOGY.md``.
-    """
+    """Pair wins above pregame expectations, sorted by z. See ``SYNERGY_METHODOLOGY.md``."""
     pairs = player_synergy.compute_player_synergy(
-        game_list,
-        lambda_pair=regularization,
-        lambda_main=main_regularization,
-        min_games_together=min_games_together,
+        game_list, min_games_together=min_games_together, game_format=game_format
     )
     return [PlayerSynergy.model_validate(p) for p in pairs]
 

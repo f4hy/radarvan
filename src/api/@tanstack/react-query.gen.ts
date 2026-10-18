@@ -594,11 +594,7 @@ export const getPlayerSynergyApiPlayerRatingsSynergyGetQueryKey = (options?: Opt
 /**
  * Get Player Synergy
  *
- * Pairwise synergy: do two players win more/less as teammates than their ratings predict.
- *
- * Ridge logistic regression over team games with the rating model's log-odds as a
- * fixed offset, player main effects, and pairwise interaction terms. Sorted by
- * synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+ * Pair wins above pregame expectations, sorted by z. See ``SYNERGY_METHODOLOGY.md``.
  */
 export const getPlayerSynergyApiPlayerRatingsSynergyGetOptions = (options?: Options<getPlayerSynergyApiPlayerRatingsSynergyGetData>) => queryOptions<getPlayerSynergyApiPlayerRatingsSynergyGetResponse, getPlayerSynergyApiPlayerRatingsSynergyGetError, getPlayerSynergyApiPlayerRatingsSynergyGetResponse, ReturnType<typeof getPlayerSynergyApiPlayerRatingsSynergyGetQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
