@@ -578,7 +578,11 @@ def render_player_data(data: HypePlayerData) -> str:
     lines.append("")
     if data.favorite_teammate is not None:
         t = data.favorite_teammate
-        synergy = f", synergy {t.synergy:.2f}" if t.synergy is not None else ""
+        synergy = (
+            f", {t.synergy * 100:+.1f}pp vs expected win rate"
+            if t.synergy is not None
+            else ""
+        )
         lines.append(
             f"Favorite teammate: {t.name} ({t.games_together} games together, "
             f"{t.wins_together} wins{synergy})"

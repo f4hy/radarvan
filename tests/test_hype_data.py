@@ -57,7 +57,7 @@ def _full_profile(player: str) -> PlayerProfile:
             ),
         ],
         favorite_teammate=TeammateProfileStat(
-            name="Carol", games_together=42, wins_together=30, synergy=1.2
+            name="Carol", games_together=42, wins_together=30, synergy=0.079
         ),
         nemesis=OpponentProfileStat(name="Dave", wins=3, losses=9),
         avg_win_duration_minutes=8.4,
@@ -118,8 +118,8 @@ def test_render_player_data_is_not_json_and_has_key_sections() -> None:
     assert "Player: Gorn" in rendered
     assert "STEALTH: 17 games, 11 wins (64.7%)" in rendered
     assert (
-        "Favorite teammate: Carol (42 games together, 30 wins, synergy 1.20)"
-        in rendered
+        "Favorite teammate: Carol (42 games together, 30 wins, "
+        "+7.9pp vs expected win rate)" in rendered
     )
     assert "Nemesis: Dave (3 wins, 9 losses)" in rendered
     assert "Avg win duration: 8.4 min | Avg loss duration: 11.2 min" in rendered
