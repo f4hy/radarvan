@@ -804,22 +804,17 @@ class TestLiveProfile:
         pair = PairSynergy(
             player_a="Alice",
             player_b="Bob",
-            synergy=0.42,
-            win_prob_delta=0.1,
             games_together=24,
             wins_together=13,
             expected_wins=11.0,
-            std_error=0.2,
-            z_score=2.1,
-            games_apart=0,
-            main_a=0.0,
-            main_b=0.0,
-            adjusted_expected_wins=11.5,
+            solo_a=None,
+            solo_b=None,
+            variance=5.0,
         )
         profile = compute_live_profile(self._games(), "Alice", synergy_pairs=[pair])
         assert profile.favorite_teammate is not None
         assert profile.favorite_teammate.name == "Bob"
-        assert profile.favorite_teammate.synergy == 0.42
+        assert profile.favorite_teammate.synergy == round(2 / 24, 3)
 
     def test_player_not_in_games(self) -> None:
         profile = compute_live_profile(self._games(), "Nobody")

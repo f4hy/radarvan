@@ -1128,7 +1128,7 @@ function ProfileBody(props: { profile: PlayerProfile }) {
               record={`${p.favoriteTeammate.winsTogether}W in ${p.favoriteTeammate.gamesTogether} games together`}
               extra={
                 p.favoriteTeammate.synergy != null
-                  ? `synergy ${p.favoriteTeammate.synergy}`
+                  ? `${p.favoriteTeammate.synergy >= 0 ? "+" : ""}${(p.favoriteTeammate.synergy * 100).toFixed(1)}pp vs expected`
                   : undefined
               }
             />

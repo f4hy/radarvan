@@ -13,7 +13,6 @@ import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import FormControlLabel from "@mui/material/FormControlLabel"
 import Switch from "@mui/material/Switch"
-import Slider from "@mui/material/Slider"
 import Typography from "@mui/material/Typography"
 import { Tooltip as MuiTooltip } from "@mui/material"
 
@@ -22,7 +21,7 @@ import { getPlayerSynergyApiPlayerRatingsSynergyGetOptions } from "../../api/@ta
 import QueryState from "../../components/QueryState"
 import { PlayerLabel } from "../../components/PlayerChip"
 import { WIN_COLOR, LOSS_COLOR } from "../../lib/theme"
-import { useUrlChoice, useUrlFlag, useUrlNumber } from "../../lib/useUrlState"
+import { useUrlChoice, useUrlFlag } from "../../lib/useUrlState"
 
 const FORMAT_OPTIONS = ["All", "2v2", "3v3", "4v4"] as const
 type GameFormat = (typeof FORMAT_OPTIONS)[number]
@@ -30,64 +29,10 @@ type GameFormat = (typeof FORMAT_OPTIONS)[number]
 const MIN_GAMES_OPTIONS = [3, 5, 10] as const
 const SIGNIFICANT_Z = 2
 
-// Must match the backend defaults (radarvan/player_synergy.py).
-const DEFAULT_PAIR_REG = 10
-const DEFAULT_MAIN_REG = 25
-
-// One regularization slider. Dragging updates only the label; the committed
-// value (which triggers the refetch) changes on release, so a drag doesn't fire
-// a heavy backend recompute on every step.
-//
-// The in-progress position is held here rather than by the page, because the
-// committed value now lives in the URL and the page has no business carrying a
-// second copy of it. That also fixes the case the split state got wrong: the
-// committed value can change without the slider being touched — Back, or a
-// pasted link — and the thumb has to follow.
-function RegSlider(props: {
-  label: string
-  tooltip: string
-  value: number
-  min: number
-  max: number
-  onCommit: (v: number) => void
-}) {
-  const [draft, setDraft] = React.useState(props.value)
-  // Adjusting state during render rather than in an effect: React's documented
-  // way to reset state when a prop changes, and it avoids rendering one frame
-  // with the stale thumb position.
-  const [seeded, setSeeded] = React.useState(props.value)
-  if (seeded !== props.value) {
-    setSeeded(props.value)
-    setDraft(props.value)
-  }
-  return (
-    <Box sx={{ minWidth: 170 }}>
-      <MuiTooltip title={props.tooltip}>
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.secondary",
-          }}
-        >
-          {props.label}: {draft}
-        </Typography>
-      </MuiTooltip>
-      <Slider
-        size="small"
-        value={draft}
-        min={props.min}
-        max={props.max}
-        step={1}
-        valueLabelDisplay="auto"
-        onChange={(_, v) => setDraft(v as number)}
-        onChangeCommitted={(_, v) => props.onCommit(v as number)}
-      />
-    </Box>
-  )
-}
-
-function signedPct(x: number): string {
-  return `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)}%`
+// Win-rate difference in percentage points.
+function signedPp(x: number | null | undefined): string {
+  if (x == null) return "—"
+  return `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)}pp`
 }
 
 function pct(x: number): string {
@@ -130,25 +75,11 @@ export default function DisplayPlayerSynergy() {
   )
   const [minGames, setMinGames] = useUrlChoice("minGames", MIN_GAMES_OPTIONS, 3)
   const [significantOnly, setSignificantOnly] = useUrlFlag("significant")
-  // `replace` on the two sliders: a drag that settles through several values
-  // shouldn't cost several presses of Back to leave the page.
-  const [pairReg, setPairReg] = useUrlNumber("pairReg", DEFAULT_PAIR_REG, {
-    replace: true,
-    min: 1,
-    max: 50,
-  })
-  const [mainReg, setMainReg] = useUrlNumber("mainReg", DEFAULT_MAIN_REG, {
-    replace: true,
-    min: 1,
-    max: 100,
-  })
 
   const query = useQuery(
     getPlayerSynergyApiPlayerRatingsSynergyGetOptions({
       query: {
         min_games_together: minGames,
-        regularization: pairReg,
-        main_regularization: mainReg,
         ...(format === "All" ? {} : { game_format: format }),
       },
     }),
@@ -174,13 +105,16 @@ export default function DisplayPlayerSynergy() {
             color: "text.secondary",
           }}
         >
-          Do two players win more (or less) often as teammates than their
-          individual ratings predict? <b>Synergy</b> is the shift in win
-          probability attributable to the pair, on top of what the rating model
-          already expects from their matchup. Positive (green) = chemistry,
-          negative (red) = anti-synergy. Pairs with little shared history are
-          shrunk toward zero, so trust rows with a high |z| and a meaningful
-          game count.
+          Do two players win more (or less) often as teammates than the rating
+          model expected? Before each game we record the team's win probability
+          from the ratings at that moment; a pair's <b>synergy</b> is its wins
+          together minus the sum of those probabilities, per game. Every pair on
+          a team shares the team's result, so a player who keeps beating their
+          rating lifts all their pairs — compare against <b>Solo</b>, each
+          player's same measure in games without the other. Sorted by <b>z</b>{" "}
+          (excess wins over the model's standard deviation), so small samples
+          don't dominate. Ratings are replayed over every format, so a 2v2 view
+          still uses earlier 3v3/4v4 history.
         </Typography>
       </Box>
       <Stack
@@ -242,23 +176,6 @@ export default function DisplayPlayerSynergy() {
           }
           label={`Significant only (|z| ≥ ${SIGNIFICANT_Z})`}
         />
-
-        <RegSlider
-          label="Pair shrinkage"
-          tooltip="L2 penalty on pair synergy. Higher = more conservative (pulls synergies toward 0)."
-          value={pairReg}
-          min={1}
-          max={50}
-          onCommit={setPairReg}
-        />
-        <RegSlider
-          label="Main-effect shrinkage"
-          tooltip="L2 penalty on per-player main effects. Raise this if Main A·B shows huge values — it stops strong players' main effects running away and saturating the synergy."
-          value={mainReg}
-          min={1}
-          max={100}
-          onCommit={setMainReg}
-        />
       </Stack>
       <QueryState query={query} what="synergy">
         {() =>
@@ -284,7 +201,7 @@ export default function DisplayPlayerSynergy() {
 // pairs with a strong, well-established effect — at least SIMPLE_MIN_GAMES games
 // together and |z| above SIMPLE_MIN_Z — shown as just games + synergy.
 const SIMPLE_MIN_GAMES = 10
-const SIMPLE_MIN_Z = 1
+const SIMPLE_MIN_Z = 2
 
 export function SimplePlayerSynergy() {
   const query = useQuery(
@@ -301,7 +218,7 @@ export function SimplePlayerSynergy() {
     )
   }
   const pairs = query.data
-  const strong = pairs.filter((p) => Math.abs(p.z_score) > SIMPLE_MIN_Z)
+  const strong = pairs.filter((p) => Math.abs(p.z_score) >= SIMPLE_MIN_Z)
   if (strong.length === 0) {
     return (
       <Typography
@@ -324,8 +241,8 @@ export function SimplePlayerSynergy() {
           mb: 1,
         }}
       >
-        Pairs who win more (green) or less (red) together than their individual
-        ratings predict, with enough shared games to be confident.
+        Pairs who win more (green) or less (red) together than the rating model
+        expected, with enough shared games to be confident.
       </Typography>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small">
@@ -351,10 +268,10 @@ export function SimplePlayerSynergy() {
                   sx={{
                     fontVariantNumeric: "tabular-nums",
                     fontWeight: "bold",
-                    color: p.synergy >= 0 ? WIN_COLOR : LOSS_COLOR,
+                    color: p.win_rate_delta >= 0 ? WIN_COLOR : LOSS_COLOR,
                   }}
                 >
-                  {signedPct(p.win_prob_delta)}
+                  {signedPp(p.win_rate_delta)}
                 </TableCell>
               </TableRow>
             ))}
@@ -379,37 +296,32 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
               </MuiTooltip>
             </TableCell>
             <TableCell align="right">
-              <MuiTooltip title="Games where the two were on opposing teams. A pair that rarely plays apart is the hard-to-identify case — treat its synergy with caution.">
-                <span>Apart</span>
-              </MuiTooltip>
-            </TableCell>
-            <TableCell align="right">
               <MuiTooltip title="Wins–losses while teamed up">
                 <span>W–L</span>
               </MuiTooltip>
             </TableCell>
             <TableCell align="right">
-              <MuiTooltip title="Actual win rate together vs. the rating model's expected win rate">
+              <MuiTooltip title="Actual win rate together vs. the average pregame win probability">
                 <span>Actual / Exp.</span>
               </MuiTooltip>
             </TableCell>
             <TableCell align="right">
-              <MuiTooltip title="Baseline the synergy is measured against: expected win rate from rating + each player's individual main effect, with no pair term. The gap between Actual and this is what the synergy explains.">
-                <span>Adj. Exp.</span>
+              <MuiTooltip title="Wins together minus expected wins">
+                <span>Excess</span>
               </MuiTooltip>
             </TableCell>
             <TableCell align="right">
-              <MuiTooltip title="Win-probability shift from the pairing, at an even matchup">
+              <MuiTooltip title="Win rate above expectation, per game together">
                 <span>Synergy</span>
               </MuiTooltip>
             </TableCell>
             <TableCell align="right">
-              <MuiTooltip title="Each player's individual main effect (log-odds), in pair order. Strongly negative mains cancelled by a large positive synergy = 'much better together than apart'.">
-                <span>Main A·B</span>
+              <MuiTooltip title="Each player's win rate above expectation in games without the other, in pair order. A pair's synergy close to the sum of these is mostly the players, not the pairing. — means too few games apart.">
+                <span>Solo A · B</span>
               </MuiTooltip>
             </TableCell>
             <TableCell align="right">
-              <MuiTooltip title="Synergy / standard error. |z| ≥ 2 ≈ statistically meaningful">
+              <MuiTooltip title="Excess wins / the model's standard deviation of wins. |z| ≥ 2 ≈ statistically meaningful">
                 <span>z</span>
               </MuiTooltip>
             </TableCell>
@@ -420,8 +332,7 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
             const losses = p.games_together - p.wins_together
             const actualRate = p.wins_together / p.games_together
             const expectedRate = p.expected_wins / p.games_together
-            const adjustedRate = p.adjusted_expected_wins / p.games_together
-            const color = p.synergy >= 0 ? WIN_COLOR : LOSS_COLOR
+            const color = p.win_rate_delta >= 0 ? WIN_COLOR : LOSS_COLOR
             const significant = Math.abs(p.z_score) >= SIGNIFICANT_Z
             return (
               <TableRow key={`${p.player_a}|${p.player_b}`} hover>
@@ -432,15 +343,6 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                   sx={{ fontVariantNumeric: "tabular-nums" }}
                 >
                   {p.games_together}
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontVariantNumeric: "tabular-nums",
-                    color: p.games_apart === 0 ? LOSS_COLOR : "text.secondary",
-                  }}
-                >
-                  {p.games_apart}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -469,7 +371,8 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                     color: "text.secondary",
                   }}
                 >
-                  {pct(adjustedRate)}
+                  {p.excess_wins >= 0 ? "+" : ""}
+                  {p.excess_wins.toFixed(1)}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -479,7 +382,7 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                     color,
                   }}
                 >
-                  {signedPct(p.win_prob_delta)}
+                  {signedPp(p.win_rate_delta)}
                 </TableCell>
                 <TableCell
                   align="right"
@@ -488,7 +391,7 @@ function SynergyTable(props: { pairs: PlayerSynergy[] }) {
                     color: "text.secondary",
                   }}
                 >
-                  {p.main_a.toFixed(1)} · {p.main_b.toFixed(1)}
+                  {signedPp(p.solo_a)} · {signedPp(p.solo_b)}
                 </TableCell>
                 <TableCell
                   align="right"

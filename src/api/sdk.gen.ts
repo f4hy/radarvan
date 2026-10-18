@@ -359,11 +359,7 @@ export const getRatingUpsetsApiPlayerRatingsUpsetsGet = <ThrowOnError extends bo
 /**
  * Get Player Synergy
  *
- * Pairwise synergy: do two players win more/less as teammates than their ratings predict.
- *
- * Ridge logistic regression over team games with the rating model's log-odds as a
- * fixed offset, player main effects, and pairwise interaction terms. Sorted by
- * synergy descending. See ``SYNERGY_METHODOLOGY.md``.
+ * Pair wins above pregame expectations, sorted by z. See ``SYNERGY_METHODOLOGY.md``.
  */
 export const getPlayerSynergyApiPlayerRatingsSynergyGet = <ThrowOnError extends boolean = true>(options?: Options<getPlayerSynergyApiPlayerRatingsSynergyGetData, ThrowOnError>): RequestResult<getPlayerSynergyApiPlayerRatingsSynergyGetResponses, getPlayerSynergyApiPlayerRatingsSynergyGetErrors, ThrowOnError> => (options?.client ?? client).get<getPlayerSynergyApiPlayerRatingsSynergyGetResponses, getPlayerSynergyApiPlayerRatingsSynergyGetErrors, ThrowOnError>({
     security: [{ name: 'X-API-Key', type: 'apiKey' }],

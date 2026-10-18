@@ -97,8 +97,8 @@ layout, data flow, key patterns, and gotchas. Other docs cover specific
 subsystems:
 
 - [`SYNERGY_METHODOLOGY.md`](SYNERGY_METHODOLOGY.md) — the statistical
-  methodology behind the player-synergy stats (ridge logistic regression over the
-  rating model's log-odds).
+  methodology behind the player-synergy stats (wins together minus the rating
+  model's pregame expectations).
 - `auth.md` — Discord OAuth2 login setup (app registration, env vars, the
   `users` table migration). Kept as a local, gitignored doc.
 
