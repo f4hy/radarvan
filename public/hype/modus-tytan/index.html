@@ -70,6 +70,13 @@ p { max-width: 70ch; }
 .tagline { margin-top: 22px; font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(24px, 4vw, 40px); letter-spacing: .02em; line-height: 1; }
 .tagline em { font-style: normal; color: var(--signal); }
 .hero-meta { margin-top: 10px; font-family: var(--f-label); font-size: 16px; color: var(--ink); opacity: .85; }
+.countdown { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: end; }
+.cd-cells { display: flex; gap: 10px; }
+.cd-cell { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14); padding: 6px 12px; min-width: 66px; text-align: center; }
+.cd-cell b { display: block; font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1; }
+.cd-cell small { font-family: var(--f-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+.cd-meta { font-family: var(--f-label); font-size: 16px; }
+.cd-meta strong { color: var(--signal); font-weight: 700; }
 
 .recap { background: var(--panel); border-bottom: 1px solid var(--line); }
 .recap .wrap { display: flex; gap: 10px 24px; align-items: center; flex-wrap: wrap; padding-block: 12px; }
@@ -269,6 +276,8 @@ footer { color: var(--ink-dim); font-size: 13px; border-top: 1px solid var(--lin
   .versus { grid-template-columns: 1fr; text-align: center; gap: 4px; }
   .fighter.right { text-align: center; }
   .sim-ctrl { grid-template-columns: 1fr; }
+  .cd-cell { min-width: 52px; padding: 6px 8px; }
+  .cd-cell b { font-size: 28px; }
   .recs { grid-template-columns: 1fr; }
   .lab-ctrl select { min-width: 0; width: 100%; }
   .lab-ctrl label { flex: 1 1 100%; }
@@ -317,7 +326,16 @@ img { max-width: 100%; }
       </div>
     </div>
     <div class="tagline">Unstoppable together. <em>Dead even apart.</em></div>
-    <div class="hero-meta">Start time to be announced. Winner goes to the Losers Final. Loser finishes 4th.</div>
+    <div class="countdown">
+      <div class="cd-cells" id="cd" aria-live="polite">
+        <div class="cd-cell"><b id="cd-d">--</b><small>Days</small></div>
+        <div class="cd-cell"><b id="cd-h">--</b><small>Hours</small></div>
+        <div class="cd-cell"><b id="cd-m">--</b><small>Min</small></div>
+        <div class="cd-cell"><b id="cd-s">--</b><small>Sec</small></div>
+      </div>
+      <div class="cd-meta">Start time: <strong id="cd-local">Oct 24, 01:05 UTC</strong></div>
+    </div>
+    <div class="hero-meta">Winner goes to the Losers Final. Loser finishes 4th.</div>
   </div>
 </header>
 
@@ -567,6 +585,25 @@ img { max-width: 100%; }
   const wl = r => r[0] + r[1] ? `${r[0]}–${r[1]}` : "—";
   const pct = x => Math.round(x * 100) + "%";
 
+  const START = Date.parse("2026-10-24T01:05:00Z");
+  try {
+    document.getElementById("cd-local").textContent = new Date(START).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  } catch (e) {}
+  function tick() {
+    const d = START - Date.now();
+    if (d <= 0) {
+      document.getElementById("cd").innerHTML = '<div class="cd-cell" style="min-width:auto"><b style="color:var(--signal)">' + (d > -4 * 3600e3 ? "LIVE NOW" : "FINAL") + '</b><small>Losers Round 4</small></div>';
+      return;
+    }
+    const s = Math.floor(d / 1000);
+    document.getElementById("cd-d").textContent = Math.floor(s / 86400);
+    document.getElementById("cd-h").textContent = pad(Math.floor(s / 3600) % 24);
+    document.getElementById("cd-m").textContent = pad(Math.floor(s / 60) % 60);
+    document.getElementById("cd-s").textContent = pad(s % 60);
+    setTimeout(tick, 1000);
+  }
+  tick();
+
   // Tale of the tape: [modus, label, tytan, edge]
   const TAPE = {
     tour: { rows: [
@@ -578,7 +615,7 @@ img { max-width: 100%; }
       ["7.3 min", "Avg win length", "7.9 min", ""],
       ["GLA 2–0 · Toxin 2–0", "Best generals", "Demolition 2–0", ""],
       ["Oct 17", "Last tournament game", "Sep 11", "m"]
-    ], note: "Modus has the better record, faster hands and fresh momentum. Tytan hasn't played a tournament game in five weeks, but he played six 1v1s on October 16, including a 3–0 over Gorn." },
+    ], note: "Modus has the better record, faster hands and fresh momentum. Tytan hasn't played a tournament game since September 11, but he played six 1v1s on October 16, including a 3–0 over Gorn." },
     duel: { rows: [
       ["36–10", "1v1 record", "20–9", "m"],
       ["78%", "1v1 win rate", "69%", "m"],
