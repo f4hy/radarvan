@@ -64,11 +64,6 @@ def summarize(durations: list[float]) -> DurationStats:
     )
 
 
-def playable_durations(games: list[MatchInfo]) -> list[float]:
-    """The durations worth charting, dropping mis-parses (see MIN_REAL_MINUTES)."""
-    return [g.duration_minutes for g in games if g.duration_minutes > MIN_REAL_MINUTES]
-
-
 def bucket_durations(
     durations: list[float],
     bucket_minutes: float = DEFAULT_BUCKET_MINUTES,

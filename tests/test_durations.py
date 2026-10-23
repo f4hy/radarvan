@@ -44,8 +44,9 @@ def test_near_zero_durations_are_dropped_as_misparses() -> None:
         corpus.match(2, day=5, duration_minutes=0.2),
         corpus.match(3, day=5, duration_minutes=12.0),
     ]
-    assert durations.playable_durations(games) == [12.0]
-    assert durations.duration_distribution(games).stats.count == 1
+    result = durations.duration_distribution(games)
+    assert result.stats.count == 1
+    assert result.stats.shortest_minutes == 12.0
 
 
 def test_summary_statistics_are_ordered_and_interpolated() -> None:
