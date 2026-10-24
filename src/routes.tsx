@@ -16,6 +16,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import NightlightRoundIcon from "@mui/icons-material/NightlightRound"
 import PersonIcon from "@mui/icons-material/Person"
+import ShuffleIcon from "@mui/icons-material/Shuffle"
 import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import TableView from "@mui/icons-material/TableView"
 import UploadFileIcon from "@mui/icons-material/UploadFile"
@@ -36,7 +37,7 @@ import * as React from "react"
  * drift; `Page` takes the same string.
  *
  * Every page is code-split. The initial bundle would otherwise carry all of
- * them (recharts, the bracket, html2canvas, …) just to render Matches.
+ * them (recharts, the bracket, html2canvas, …) just to render Game Night.
  */
 
 /** Who sees the *nav item*. The backend gate is the real boundary — a route is
@@ -68,7 +69,7 @@ const BalanceTeams = React.lazy(
   () => import("./features/play-tonight/BalanceTeams"),
 )
 const Bracket = React.lazy(() => import("./features/competition/Bracket"))
-const ChooseMap = React.lazy(() => import("./features/maps/ChooseMap"))
+const ChooseMap = React.lazy(() => import("./features/play-tonight/ChooseMap"))
 const DebugData = React.lazy(() => import("./features/admin/DebugData"))
 const Draft = React.lazy(() => import("./features/play-tonight/Draft"))
 const FFA = React.lazy(() => import("./features/stats/FFA"))
@@ -99,36 +100,28 @@ const PlayerSynergy = React.lazy(
 )
 const Powers = React.lazy(() => import("./features/stats/Powers"))
 const Superlatives = React.lazy(() => import("./features/stats/Superlatives"))
-const TeamStats = React.lazy(() => import("./features/stats/TeamStats"))
+const TeamStats = React.lazy(() => import("./features/players/TeamStats"))
 const Tournaments = React.lazy(
   () => import("./features/competition/Tournaments"),
 )
 
-// Grouped rather than one flat list of twenty-five: a newcomer scanning an
-// undivided column has no way to tell "Choose Map" (draw tonight's map) from
-// "Map Stats" (win rates per map). The split is by the question you arrived
-// with — Games is the log of what happened, Stats is everything derived from
-// it, Players is one person at a time, Maps is the map pool.
+// Grouped by the question you arrived with, and ordered by traffic — groups and
+// the pages within them: Games is what happened, Competition the running 1v1
+// bracket, Players is people and pairings, Stats is the game itself (generals,
+// records), Play tonight sets up the next game (Choose Map lives there, not in
+// Maps — it draws tonight's map), Maps is the pool.
 const HEADING_ORDER = [
   "Games",
   "Competition",
-  "Play tonight",
-  "Stats",
   "Players",
+  "Stats",
+  "Play tonight",
   "Maps",
   "Admin",
 ] as const
 
 export const ROUTES: AppRoute[] = [
   // Games
-  {
-    slug: "matches",
-    title: "Matches",
-    icon: <ListIcon />,
-    heading: "Games",
-    gate: "public",
-    Component: Matches,
-  },
   {
     slug: "game-night",
     title: "Game Night",
@@ -137,15 +130,15 @@ export const ROUTES: AppRoute[] = [
     gate: "public",
     Component: GameNight,
   },
-  // Competition
   {
-    slug: "tournaments",
-    title: "Tournaments",
-    icon: <EmojiEventsIcon />,
-    heading: "Competition",
+    slug: "matches",
+    title: "Matches",
+    icon: <ListIcon />,
+    heading: "Games",
     gate: "public",
-    Component: Tournaments,
+    Component: Matches,
   },
+  // Competition
   {
     slug: "bracket",
     title: "1v1 Bracket",
@@ -154,81 +147,13 @@ export const ROUTES: AppRoute[] = [
     gate: "public",
     Component: Bracket,
   },
-  // Play tonight
   {
-    slug: "balance-teams",
-    title: "Balance Teams",
-    icon: <BalanceIcon />,
-    heading: "Play tonight",
+    slug: "tournaments",
+    title: "Tournaments",
+    icon: <EmojiEventsIcon />,
+    heading: "Competition",
     gate: "public",
-    Component: BalanceTeams,
-  },
-  {
-    // Was "Skip In and Out" in the nav while the page called itself "Map
-    // Draft" — one name now, and it says what the page does.
-    slug: "draft",
-    title: "Map Draft",
-    icon: <CasinoIcon />,
-    heading: "Play tonight",
-    gate: "public",
-    Component: Draft,
-  },
-  // Stats
-  {
-    slug: "superlatives",
-    title: "Records",
-    icon: <WorkspacePremiumIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: Superlatives,
-  },
-  {
-    slug: "team-stats",
-    title: "Team Stats",
-    icon: <GroupsIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: TeamStats,
-  },
-  {
-    slug: "general-stats",
-    title: "General Stats",
-    icon: <MilitaryTechIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: GeneralStats,
-  },
-  {
-    slug: "powers",
-    title: "Generals Powers",
-    icon: <BoltIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: Powers,
-  },
-  {
-    slug: "game-length",
-    title: "Game Length",
-    icon: <HistoryToggleOffIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: GameLength,
-  },
-  {
-    slug: "ffa",
-    title: "Free-For-All",
-    icon: <SportsKabaddiIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: FFA,
-  },
-  {
-    slug: "opening-book",
-    title: "Build Orders",
-    icon: <MenuBookIcon />,
-    heading: "Stats",
-    gate: "public",
-    Component: OpeningBookPage,
+    Component: Tournaments,
   },
   // Players
   {
@@ -256,6 +181,14 @@ export const ROUTES: AppRoute[] = [
     Component: HeadToHead,
   },
   {
+    slug: "team-stats",
+    title: "Team Stats",
+    icon: <GroupsIcon />,
+    heading: "Players",
+    gate: "public",
+    Component: TeamStats,
+  },
+  {
     slug: "player-rating-trend",
     title: "Rating Trend",
     icon: <LeaderboardIcon />,
@@ -281,6 +214,82 @@ export const ROUTES: AppRoute[] = [
     gate: "admin",
     Component: PlayerSynergy,
   },
+  // Stats
+  {
+    slug: "general-stats",
+    title: "General Stats",
+    icon: <MilitaryTechIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: GeneralStats,
+  },
+  {
+    slug: "superlatives",
+    title: "Records",
+    icon: <WorkspacePremiumIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: Superlatives,
+  },
+  {
+    slug: "powers",
+    title: "Generals Powers",
+    icon: <BoltIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: Powers,
+  },
+  {
+    slug: "opening-book",
+    title: "Build Orders",
+    icon: <MenuBookIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: OpeningBookPage,
+  },
+  {
+    slug: "game-length",
+    title: "Game Length",
+    icon: <HistoryToggleOffIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: GameLength,
+  },
+  {
+    slug: "ffa",
+    title: "Free-For-All",
+    icon: <SportsKabaddiIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: FFA,
+  },
+  // Play tonight
+  {
+    slug: "balance-teams",
+    title: "Balance Teams",
+    icon: <BalanceIcon />,
+    heading: "Play tonight",
+    gate: "public",
+    Component: BalanceTeams,
+  },
+  {
+    // Was "Skip In and Out" in the nav while the page called itself "Map
+    // Draft" — one name now, and it says what the page does.
+    slug: "draft",
+    title: "Map Draft",
+    icon: <CasinoIcon />,
+    heading: "Play tonight",
+    gate: "public",
+    Component: Draft,
+  },
+  {
+    slug: "choose-map",
+    title: "Choose Map",
+    icon: <ShuffleIcon />,
+    heading: "Play tonight",
+    gate: "public",
+    Component: ChooseMap,
+  },
   // Maps
   {
     slug: "map-stats",
@@ -297,14 +306,6 @@ export const ROUTES: AppRoute[] = [
     heading: "Maps",
     gate: "public",
     Component: MapVoting,
-  },
-  {
-    slug: "choose-map",
-    title: "Choose Map",
-    icon: <CasinoIcon />,
-    heading: "Maps",
-    gate: "public",
-    Component: ChooseMap,
   },
   {
     slug: "manage-maps",
@@ -353,6 +354,7 @@ export const ROUTES: AppRoute[] = [
   },
 ]
 
+// The landing page: the latest night's story rather than the raw match log.
 export const DEFAULT_ROUTE = ROUTES[0]
 
 const BY_SLUG = new Map(ROUTES.map((r) => [r.slug, r]))
@@ -365,7 +367,7 @@ export function routeBySlug(
 
 /** The query param the app used to route on, before paths. A link pasted into
  * Discord months ago still carries it, so `LegacyPageRedirect` in App.tsx
- * translates it rather than letting it silently land on Matches. */
+ * translates it rather than letting it silently land on the default page. */
 export const LEGACY_PAGE_PARAM = "page"
 
 /** Nav groups in display order, with routes the viewer may not see removed.
