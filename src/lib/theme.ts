@@ -4,8 +4,8 @@ import { createTheme, responsiveFontSizes } from "@mui/material/styles"
  * Central design tokens for the whole app — light AND dark.
  *
  * Surface hierarchy: a cool canvas (`background.default`) with cards floating
- * on it, plus a neutral dark-slate top bar (never blue, in either mode) so
- * the blue stays reserved for interactive elements.
+ * on it. The top bar is the paper color, frosted, so it reads as one frame
+ * with the sidebar rather than a separate band (never blue, in either mode).
  *
  * Two color rules keep things consistent:
  *  1. Blue means "interactive" only (links, primary buttons, selected state).
@@ -69,10 +69,9 @@ export const INK_DARK = "#e7ebf2"
 export const BORDER_COLOR = "rgba(26, 34, 48, 0.10)"
 export const BORDER_COLOR_DARK = "rgba(231, 235, 242, 0.12)"
 
-// App chrome — deliberately the same dark slate in both modes.
-const APPBAR_BG = "#1f2733"
-
+// Self-hosted via @fontsource-variable/inter (imported in index.tsx).
 const FONT_STACK = [
+  '"Inter Variable"',
   "-apple-system",
   "BlinkMacSystemFont",
   "Segoe UI",
@@ -172,13 +171,20 @@ let theme = createTheme({
   },
   components: {
     MuiAppBar: {
-      defaultProps: { elevation: 0 },
+      defaultProps: { elevation: 0, color: "inherit" },
       styleOverrides: {
-        root: {
-          backgroundColor: APPBAR_BG,
+        root: ({ theme: t }) => ({
+          backgroundColor: "rgba(255, 255, 255, 0.82)",
+          backdropFilter: "saturate(180%) blur(8px)",
           backgroundImage: "none",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        },
+          color: LIGHT_SURFACES.ink,
+          borderBottom: `1px solid ${LIGHT_SURFACES.border}`,
+          ...t.applyStyles("dark", {
+            backgroundColor: "rgba(26, 33, 44, 0.82)",
+            color: DARK_SURFACES.ink,
+            borderBottom: `1px solid ${DARK_SURFACES.border}`,
+          }),
+        }),
       },
     },
     MuiPaper: {
@@ -252,6 +258,8 @@ let theme = createTheme({
     },
     MuiTableCell: {
       styleOverrides: {
+        // Digits of equal width so stat columns line up.
+        body: { fontVariantNumeric: "tabular-nums" },
         head: ({ theme: t }) => ({
           fontWeight: 700,
           color: t.palette.text.secondary,
