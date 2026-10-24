@@ -37,11 +37,19 @@ from .utils import log_duration, players_from_replay
 logger = structlog.get_logger(__name__)
 tracer = trace.get_tracer(__name__)
 
-MODEL_PATH = Path(os.getenv("WINPROB_MODEL_PATH", "ml_winprob_over_time.onnx"))
-STATS_PATH = Path(os.getenv("WINPROB_STATS_PATH", "ml_winprob_over_time_stats.json"))
+MODEL_PATH = Path(
+    os.getenv("WINPROB_MODEL_PATH", "ml_winprob_bundle/ml_winprob_over_time.onnx")
+)
+STATS_PATH = Path(
+    os.getenv("WINPROB_STATS_PATH", "ml_winprob_bundle/ml_winprob_over_time_stats.json")
+)
 # Frozen pre-game prior (rosters -> log-odds), one of the model's input features.
-PRIOR_PATH = Path(os.getenv("WINPROB_PRIOR_PATH", "ml_winprob_over_time_prior.json"))
-GBDT_PATH = Path(os.getenv("WINPROB_GBDT_PATH", "ml_winprob_over_time_gbdt.onnx"))
+PRIOR_PATH = Path(
+    os.getenv("WINPROB_PRIOR_PATH", "ml_winprob_bundle/ml_winprob_over_time_prior.json")
+)
+GBDT_PATH = Path(
+    os.getenv("WINPROB_GBDT_PATH", "ml_winprob_bundle/ml_winprob_over_time_gbdt.onnx")
+)
 _BUNDLE = (MODEL_PATH, STATS_PATH, PRIOR_PATH, GBDT_PATH)
 
 

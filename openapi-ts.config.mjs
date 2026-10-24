@@ -1,5 +1,5 @@
 export default {
-  input: "http://localhost:8000/openapi.json",
+  input: process.env.OPENAPI_INPUT ?? "http://localhost:8000/openapi.json",
   output: { path: "src/api" },
   plugins: [
     {

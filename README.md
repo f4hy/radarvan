@@ -21,8 +21,8 @@ predictor — to a React single-page app.
   `onnxruntime` - every prediction runs all N replicates and reports the mean
   plus the spread across them; player ratings use OpenSkill.
 - **Tooling:** Python ≥3.14 managed with `uv`, linted/formatted with `ruff` and
-  type-checked with `mypy` (strict); TypeScript in strict mode, formatted with
-  `prettier` and linted with `eslint`.
+  type-checked with `mypy` (strict); TypeScript in strict mode, formatted and linted
+  with Biome.
 
 ## Quick Start
 
@@ -81,14 +81,15 @@ The [`Makefile`](Makefile) is the canonical entry point for formatting, linting,
 type-checking, and CI. Run `make help` to list every target.
 
 - `make all` — format + auto-fix lint + type-check across both Python and TypeScript (run before pushing)
-- `make check` — Python lint + mypy
-- `make ts-check` — TS format-check + ESLint + tsc
-- `make test` — `uv run pytest`
+- `make check` — Python lint + format-check + mypy
+- `make ts-check` — TS format-check + Biome lint + tsc
+- `make test` — `uv run pytest` (`make test-fast` skips the slow ML tests)
 - `make build` — checks for both languages, then `uv build`
-- `make ci` — full pipeline: `clean install all build`
+- `make ci` — the same non-mutating gates CI runs
 
-To regenerate the TypeScript API client after changing backend routes, start the
-FastAPI dev server and run `./gen_client.sh`.
+To regenerate the TypeScript API client after changing backend routes or
+`api_types/`, run `make gen-client` (no server needed). CI fails if `src/api/` is
+stale.
 
 ## Architecture
 

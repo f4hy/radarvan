@@ -49,11 +49,11 @@ for s in 11 22 33 44 55 66; do
 done
 PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.gbdt $D/split-<name>
 
-# 4. Export the bag into one ONNX graph and deploy the bundle to the repo root.
+# 4. Export the bag into one ONNX graph and deploy the bundle to ml_winprob_bundle/.
 PYTHONPATH=. .venv-ml/bin/python -m ml_win_prediction_over_time.export $D/split-<name>/runs/*
 ```
 
-Export deploys four files together: `ml_winprob_over_time.onnx` (the GRU bag),
+Export deploys four files together into `ml_winprob_bundle/`: `ml_winprob_over_time.onnx` (the GRU bag),
 `_stats.json`, `_prior.json` and `_gbdt.onnx`. Serving requires all four, and
 export refuses a GBDT that was fit on different feature columns or delta lags
 than the GRU. `winprob_inference.bundle_version()` hashes the bundle into

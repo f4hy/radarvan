@@ -65,7 +65,7 @@ jobs:
       - name: Install dependencies
         run: make install
 
-      # Mirrors `make check` (ruff lint + mypy).
+      # Mirrors `make check` (ruff lint + ruff format --check + mypy).
       - name: Python checks (ruff + mypy)
         run: make check
 
@@ -73,11 +73,12 @@ jobs:
       - name: TypeScript checks (biome + tsc)
         run: make ts-check
 
-      # Mirrors `npm run build` (tsc && vite build). Must run before the pytest
-      # step below: radarvan/main.py mounts StaticFiles(directory="dist") at
-      # import time, and several tests (tests/test_auth_tiers.py) import
-      # radarvan.main - without a built dist/ that import raises
-      # RuntimeError("Directory 'dist' does not exist").
+      # Regenerates src/api from the spec the Python models produce and fails
+      # on any diff, so a changed api_types/ model can't ship with a stale client.
+      - name: Generated client is up to date
+        run: make client-check
+
+      # Mirrors `npm run build` (tsc && vite build).
       - name: Frontend build
         run: npm run build
 

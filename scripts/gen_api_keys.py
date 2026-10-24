@@ -2,7 +2,7 @@
 """Generate strong API keys for radarvan.
 
 Usage:
-    python gen_api_keys.py
+    python scripts/gen_api_keys.py
 
 Prints the generated keys and the Heroku CLI commands to set them.
 """

@@ -15,7 +15,7 @@
 # tests/test_apm.py and tests/test_matches.py, which build these with the
 # real constructor instead.
 #
-# Re-apply this after regenerating this directory via gen_cncstats_model.sh.
+# Re-apply this after regenerating this directory via scripts/gen_cncstats_model.sh.
 
 from __future__ import annotations
 

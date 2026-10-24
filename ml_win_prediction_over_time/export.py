@@ -16,7 +16,7 @@ Usage::
     uv run --group ml python -m ml_win_prediction_over_time.export <run_dir>...
 
 Writes ``<run_dir>/model.onnx`` + ``<run_dir>/onnx_meta.json`` and copies the
-serving bundle to the repo root: ``ml_winprob_over_time.onnx``, ``..._stats.json``,
+serving bundle to ``ml_winprob_bundle/``: ``ml_winprob_over_time.onnx``, ``..._stats.json``,
 ``..._prior.json`` and the split's GBDT, ``..._gbdt.onnx`` (see ``gbdt.py``).
 """
 
@@ -40,8 +40,8 @@ from .predict import load_run
 logger = structlog.get_logger(__name__)
 
 OPSET = 17
-# Deployable artifacts at the repo root (next to ml_ensemble/).
-ROOT = Path(__file__).resolve().parents[1]
+# Deployable artifacts, in ml_winprob_bundle/ next to ml_ensemble/.
+ROOT = Path(__file__).resolve().parents[1] / "ml_winprob_bundle"
 ROOT_MODEL = ROOT / "ml_winprob_over_time.onnx"
 ROOT_STATS = ROOT / "ml_winprob_over_time_stats.json"
 ROOT_PRIOR = ROOT / "ml_winprob_over_time_prior.json"
@@ -139,7 +139,7 @@ def export(run_dirs: list[Path]) -> Path:
 
 
 def deploy_to_root(run_dir: Path, model_path: Path) -> None:
-    """Copy the serving bundle to the repo root, GBDT included and checked."""
+    """Copy the serving bundle to ml_winprob_bundle/, GBDT included and checked."""
     split_dir = run_dir.parent.parent
     gbdt_src = split_dir / GBDT_FILE
     if not gbdt_src.exists():
@@ -171,7 +171,7 @@ def main() -> None:
     parser.add_argument(
         "--no-deploy",
         action="store_true",
-        help="don't copy the artifacts to the repo root",
+        help="don't copy the artifacts to ml_winprob_bundle/",
     )
     args = parser.parse_args()
     run_dirs = args.run_dirs or [find_latest_run()]

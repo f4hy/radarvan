@@ -89,6 +89,7 @@ def test_module_parses_under_the_ml_venv_python(path: Path) -> None:
         )
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     not ML_PYTHON.exists(), reason="ml training venv (.venv-ml) not built here"
 )

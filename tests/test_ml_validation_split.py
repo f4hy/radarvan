@@ -79,6 +79,7 @@ print(json.dumps({
 """
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     not ML_PYTHON.exists(), reason=".venv-ml (3.13 + torch) not present"
 )
