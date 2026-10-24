@@ -387,7 +387,7 @@ export type BracketPredictionLeaderboardEntry = {
  * ``summary`` is null while the set isn't recappable yet - not finished, or
  * finished but with fewer replays linked than games played. ``ready`` says
  * which of those it is, so the UI can promise a recap that's coming instead
- * of showing nothing.
+ * of showing nothing. ``pending`` means it is being written; poll until it clears.
  */
 export type BracketSummaryResponse = {
     /**
@@ -402,6 +402,10 @@ export type BracketSummaryResponse = {
      * Summary
      */
     summary?: string | null;
+    /**
+     * Pending
+     */
+    pending?: boolean;
 };
 
 /**
@@ -2894,12 +2898,18 @@ export type MatchupCommentaryPromptPreview = {
 
 /**
  * MatchupCommentaryResponse
+ *
+ * ``pending`` while generation runs in the background; poll until it clears.
  */
 export type MatchupCommentaryResponse = {
     /**
      * Commentary
      */
-    commentary: string;
+    commentary?: string | null;
+    /**
+     * Pending
+     */
+    pending?: boolean;
 };
 
 /**
