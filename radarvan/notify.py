@@ -10,6 +10,8 @@ for async code that shouldn't wait for the webhook at all, and
 
 import asyncio
 import os
+
+import httpx2
 import structlog
 
 from .discord_http import async_client, client
@@ -20,6 +22,22 @@ WEB_HOOK_ENV = "NOTIFY_WEB_HOOK"
 
 WEB_HOOK = os.environ.get(WEB_HOOK_ENV)
 
+# Discord rejects longer content with a 400.
+DISCORD_CONTENT_LIMIT = 2000
+
+
+def _payload(message: str) -> dict[str, str]:
+    if len(message) > DISCORD_CONTENT_LIMIT:
+        message = message[: DISCORD_CONTENT_LIMIT - 1] + "…"
+    return {"content": message}
+
+
+def _log_rejection(resp: httpx2.Response) -> None:
+    if resp.is_error:
+        logger.warning(
+            "notify webhook rejected", status=resp.status_code, body=resp.text[:200]
+        )
+
 
 def notify(message: str) -> None:
     """Best-effort: a webhook outage must never break the caller."""
@@ -27,7 +45,7 @@ def notify(message: str) -> None:
         logger.warning("web hook not set, skipping notify", message=message)
         return
     try:
-        client().post(WEB_HOOK, json={"content": message})
+        _log_rejection(client().post(WEB_HOOK, json=_payload(message)))
     except Exception:
         logger.exception("notify webhook failed", message=message)
 
@@ -38,7 +56,7 @@ async def notify_async(message: str) -> None:
         logger.warning("web hook not set, skipping notify", message=message)
         return
     try:
-        await async_client().post(WEB_HOOK, json={"content": message})
+        _log_rejection(await async_client().post(WEB_HOOK, json=_payload(message)))
     except Exception:
         logger.exception("notify webhook failed", message=message)
 
