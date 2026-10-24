@@ -87,7 +87,7 @@ def _keys_configured() -> bool:
     return bool(API_KEYS_NORMAL or API_KEYS_ADMIN)
 
 
-def _resolve_tier(key: str | None) -> AccessTier:
+def resolve_tier(key: str | None) -> AccessTier:
     """Map a presented key to its tier. An admin key also satisfies NORMAL."""
     if key is not None and key in API_KEYS_ADMIN:
         return AccessTier.ADMIN
@@ -109,7 +109,7 @@ async def verify_api_key(
     """
     if not _keys_configured():
         return
-    tier = _resolve_tier(key)
+    tier = resolve_tier(key)
     response.headers["X-Auth-Valid"] = "true" if tier != AccessTier.NONE else "false"
     response.headers["X-Auth-Access"] = tier.value
     if not ENFORCE_AUTH:
@@ -143,7 +143,7 @@ async def require_admin_key(
     """
     if not _keys_configured():
         return
-    tier = _resolve_tier(key)
+    tier = resolve_tier(key)
     if not ENFORCE_AUTH:
         logger.info(
             "admin auth not enforced",
@@ -177,7 +177,7 @@ def has_admin_access(key: str | None = Security(_api_key_header)) -> bool:
         return True
     if not ENFORCE_AUTH:
         return True
-    return _resolve_tier(key) == AccessTier.ADMIN
+    return resolve_tier(key) == AccessTier.ADMIN
 
 
 def get_db_session() -> Generator[Session]:
@@ -249,6 +249,17 @@ def get_bracket_prediction_repo(
     return BracketPredictionRepo(session)
 
 
+# Who the session belongs to, as request_tags.py writes it onto every span.
+# Kept in the cookie so tagging a request never costs a DB lookup.
+USER_LABEL_SESSION_KEY = "user_label"
+
+
+def remember_user_label(request: Request, user: db.User) -> None:
+    label = user.player_name or user.discord_username
+    if request.session.get(USER_LABEL_SESSION_KEY) != label:
+        request.session[USER_LABEL_SESSION_KEY] = label
+
+
 def get_current_user(
     request: Request, repo: UserRepo = Depends(get_user_repo)
 ) -> db.User | None:
@@ -259,7 +270,10 @@ def get_current_user(
     user_id = request.session.get("user_id")
     if user_id is None:
         return None
-    return repo.get_by_id(user_id)
+    user = repo.get_by_id(user_id)
+    if user is not None:
+        remember_user_label(request, user)
+    return user
 
 
 def require_current_user(

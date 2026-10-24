@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from starlette.requests import Request
 
 from radarvan.api_types import AdminUser, SelectPlayerRequest
 from radarvan.db import User
@@ -27,6 +28,10 @@ def session() -> Session:
         yield s
 
 
+def _request() -> Request:
+    return Request({"type": "http", "session": {}})
+
+
 def _make_user(session: Session, discord_id: str) -> User:
     user = User(discord_id=discord_id, discord_username=discord_id)
     session.add(user)
@@ -40,13 +45,17 @@ def test_second_user_cannot_claim_same_name(session: Session) -> None:
     bob = _make_user(session, "bob")
 
     # Alice claims "Skip".
-    status = select_player(SelectPlayerRequest(player_name="Skip"), alice, repo)
+    status = select_player(
+        SelectPlayerRequest(player_name="Skip"), alice, repo, request=_request()
+    )
     assert status.user is not None
     assert status.user.player_name == "Skip"
 
     # Bob tries to claim "Skip" -> rejected with 409.
     with pytest.raises(HTTPException) as exc:
-        select_player(SelectPlayerRequest(player_name="Skip"), bob, repo)
+        select_player(
+            SelectPlayerRequest(player_name="Skip"), bob, repo, request=_request()
+        )
     assert exc.value.status_code == 409
     assert session.get(User, bob.id).player_name is None
 
@@ -54,9 +63,13 @@ def test_second_user_cannot_claim_same_name(session: Session) -> None:
 def test_same_user_can_reselect_their_own_name(session: Session) -> None:
     repo = UserRepo(session, auto_commit=False)
     alice = _make_user(session, "alice")
-    select_player(SelectPlayerRequest(player_name="Skip"), alice, repo)
+    select_player(
+        SelectPlayerRequest(player_name="Skip"), alice, repo, request=_request()
+    )
     # Re-confirming the same name is fine (existing.id == user.id).
-    status = select_player(SelectPlayerRequest(player_name="Skip"), alice, repo)
+    status = select_player(
+        SelectPlayerRequest(player_name="Skip"), alice, repo, request=_request()
+    )
     assert status.user is not None
     assert status.user.player_name == "Skip"
 

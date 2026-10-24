@@ -31,6 +31,7 @@ import radarvanLogo from "./img/radarvan_logo.webp"
 import radarvanLogoDark from "./img/radarvan_logo_dark.webp"
 import Loading from "./components/Loading"
 import { navGroups, routeBySlug } from "./routes"
+import { usePageViewBeacon } from "./lib/usePageViewBeacon"
 
 // Cycles system -> light -> dark -> system on click, and shows the current
 // preference (not just the resolved mode) so "system" stays visible as a
@@ -89,6 +90,7 @@ export default function Menu() {
   const { status } = useAuth()
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  usePageViewBeacon()
 
   const isAdmin = status?.user?.is_admin ?? false
   const isOpsAdmin = status?.user?.is_ops_admin ?? false

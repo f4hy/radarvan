@@ -3120,6 +3120,24 @@ export type OpponentProfileStat = {
 };
 
 /**
+ * PageView
+ */
+export type PageView = {
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Query
+     */
+    query?: string;
+    /**
+     * Referrer
+     */
+    referrer?: string | null;
+};
+
+/**
  * ParsedReplayJsonSchema
  *
  * Public API representation of ParsedReplayJson
@@ -7115,6 +7133,31 @@ export type getGameNightSummaryStatusApiGameNightStatusNightGetResponses = {
 };
 
 export type getGameNightSummaryStatusApiGameNightStatusNightGetResponse = getGameNightSummaryStatusApiGameNightStatusNightGetResponses[keyof getGameNightSummaryStatusApiGameNightStatusNightGetResponses];
+
+export type pageViewApiPageViewPostData = {
+    body: PageView;
+    path?: never;
+    query?: never;
+    url: '/api/page_view';
+};
+
+export type pageViewApiPageViewPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type pageViewApiPageViewPostError = pageViewApiPageViewPostErrors[keyof pageViewApiPageViewPostErrors];
+
+export type pageViewApiPageViewPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type pageViewApiPageViewPostResponse = pageViewApiPageViewPostResponses[keyof pageViewApiPageViewPostResponses];
 
 export type getMapImageApiMapImageMapNameGetData = {
     body?: never;

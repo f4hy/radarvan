@@ -241,6 +241,7 @@ from .teams import (
     TeamStats,
     TeamStatsResponse,
 )
+from .telemetry import PageView
 from .tournaments import (
     GameRecord,
     MatchListing,
@@ -259,6 +260,7 @@ from .votes import (
     MapVotePage,
     SetMapVoteRequest,
 )
+
 
 __all__ = [
     "APM",
@@ -386,6 +388,7 @@ __all__ = [
     "Opening",
     "OpeningBook",
     "OpponentProfileStat",
+    "PageView",
     "PairFactionWinLoss",
     "PairFactionWinLosses",
     "PairWinLoss",

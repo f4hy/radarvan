@@ -43,7 +43,14 @@ async function apiFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<Response> {
-  const response = await fetchWithRateLimitRetry(new Request(input, init))
+  const request = new Request(input, init)
+  // Tags the server's trace with the page that asked (request_tags.py), so
+  // usage can be read per page rather than only per endpoint.
+  request.headers.set(
+    "X-Radarvan-Page",
+    window.location.pathname + window.location.search,
+  )
+  const response = await fetchWithRateLimitRetry(request)
   if (!response.ok) throw await readApiError(response)
   return response
 }

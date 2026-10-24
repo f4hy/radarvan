@@ -110,7 +110,7 @@ def _request(
     ],
 )
 def test_resolve_tier(keys: None, key: str | None, tier: AccessTier) -> None:
-    assert dependencies._resolve_tier(key) == tier
+    assert dependencies.resolve_tier(key) == tier
 
 
 @pytest.mark.parametrize("key", [NORMAL_KEY, ADMIN_KEY])
@@ -172,6 +172,7 @@ NORMAL_TIER_MUTATIONS = {
     ("POST", "/api/map_summary/"),  # pre-game summary for a hypothetical matchup
     ("POST", "/api/draft/randomize"),  # draft randomization
     ("POST", "/api/predict"),  # win prediction from raw features
+    ("POST", "/api/page_view"),  # usage beacon; records span attributes only
 }
 
 # Mutating routes on the cookie-session routers whose privilege check is done

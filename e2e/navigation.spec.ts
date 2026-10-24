@@ -132,3 +132,40 @@ test.describe("a match has its own page", () => {
     expect(mock.calls.filter((p) => p.startsWith("/api/match/"))).toEqual([])
   })
 })
+
+test.describe("page views are reported", () => {
+  test("each navigation sends one view, with the page and where it came from", async ({
+    page,
+  }) => {
+    await mockApi(page)
+    const views: unknown[] = []
+    page.on("request", (req) => {
+      if (new URL(req.url()).pathname === "/api/page_view") {
+        views.push(req.postDataJSON())
+      }
+    })
+    // "/" redirects to Game Night, which then writes ?date= in with a replace:
+    // that is one view of Game Night, not three.
+    await page.goto("/")
+    await expect(page).toHaveURL(/\/game-night\?date=/)
+    await page.locator('nav a[href="/team-stats"]').first().click()
+    await expect(page).toHaveURL("/team-stats")
+    await expect.poll(() => views.length).toBe(2)
+    expect(views).toEqual([
+      { path: "/game-night", query: "", referrer: null },
+      { path: "/team-stats", query: "", referrer: "/game-night" },
+    ])
+  })
+
+  test("API calls carry the page that made them", async ({ page }) => {
+    await mockApi(page)
+    const pages = new Set<string>()
+    page.on("request", (req) => {
+      if (new URL(req.url()).pathname === "/api/team_stats/") {
+        pages.add(req.headers()["x-radarvan-page"] ?? "")
+      }
+    })
+    await page.goto("/team-stats")
+    await expect.poll(() => [...pages]).toEqual(["/team-stats"])
+  })
+})

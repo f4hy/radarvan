@@ -130,6 +130,10 @@ export async function mockApi(
     if (path.startsWith("/api/map_image/")) {
       return route.fulfill({ status: 404, body: "" })
     }
+    // The page-view beacon answers 204 with no body, like the real route.
+    if (path === "/api/page_view") {
+      return route.fulfill({ status: 204, body: "" })
+    }
 
     const override = Object.entries(overrides).find(([p]) => path.startsWith(p))
     if (override) {

@@ -18,10 +18,12 @@ from ..dependencies import (
     FRONTEND_URL,
     get_current_user,
     get_user_repo,
+    remember_user_label,
     require_current_user,
 )
 from ..player_ids import PLAYER_NAMES
 from ..repositories import UserRepo
+from ..request_tags import VISITOR_SESSION_KEY
 
 logger = structlog.get_logger(__name__)
 
@@ -84,6 +86,8 @@ def select_player(
     req: SelectPlayerRequest,
     user: User = Depends(require_current_user),
     repo: UserRepo = Depends(get_user_repo),
+    *,
+    request: Request,
 ) -> AuthStatus:
     """Claim an in-game name (first-login step). Name must be in PLAYER_NAMES."""
     if req.player_name not in PLAYER_NAMES:
@@ -94,11 +98,16 @@ def select_player(
             status_code=409, detail="That player name is already claimed"
         )
     repo.set_player_name(user, req.player_name)
+    remember_user_label(request, user)
     return _logged_in_status(user)
 
 
 @router.post("/logout")
 def logout(request: Request) -> dict[str, bool]:
     """Clear the session cookie."""
+    # Logging out shouldn't make the same browser a new visitor.
+    visitor = request.session.get(VISITOR_SESSION_KEY)
     request.session.clear()
+    if visitor is not None:
+        request.session[VISITOR_SESSION_KEY] = visitor
     return {"ok": True}
