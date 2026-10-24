@@ -5,6 +5,7 @@ import LoginIcon from "@mui/icons-material/Login"
 import MenuIcon from "@mui/icons-material/Menu"
 import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness"
 import AppBar from "@mui/material/AppBar"
+import { keyframes } from "@mui/material/styles"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import CssBaseline from "@mui/material/CssBaseline"
@@ -67,6 +68,11 @@ function ColorModeToggle() {
 }
 
 const drawerWidth = 220
+
+const pageEnter = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+`
 
 /**
  * The app shell: top bar, sidebar, and the slot the routed page renders into.
@@ -173,7 +179,8 @@ export default function Menu() {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <CssBaseline />
+      {/* Native scrollbars, date pickers and form controls follow the mode. */}
+      <CssBaseline enableColorScheme />
       <AppBar
         position="fixed"
         sx={{
@@ -301,7 +308,17 @@ export default function Menu() {
         }}
       >
         <Toolbar />
-        <Box sx={{ maxWidth: 1700, mx: "auto", mt: { xs: 1, sm: 2 } }}>
+        {/* Keyed on the path so the fade replays on each navigation. */}
+        <Box
+          key={pathname}
+          sx={{
+            maxWidth: 1700,
+            mx: "auto",
+            mt: { xs: 1, sm: 2 },
+            animation: `${pageEnter} 180ms ease-out`,
+            "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+          }}
+        >
           {/* Keyed on the path so navigating away clears a caught error
               rather than pinning the boundary open on the next page. */}
           <ErrorBoundary key={pathname} what="this page">

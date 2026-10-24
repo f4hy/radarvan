@@ -52,8 +52,7 @@ export function usePlayerColors(): Record<string, string> {
  *
  * This is the *unmodified* game hue, so it is only safe for swatches, borders
  * and chart markers. Anything drawing text wants `usePlayerPalette().ink` —
- * `#FFFF00` and `#BFFF00` are real player colors and neither is readable on
- * white. */
+ * yellow and lime are real player colors and neither is readable on white. */
 export function usePlayerAccentColor(name: string): string {
   const actual = usePlayerColors()[name]
   return actual != null ? getColorHex(actual) : playerColor(name)

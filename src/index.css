@@ -3,8 +3,35 @@ body {
   font-family:
     "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
     "Helvetica Neue", sans-serif;
+  /* Inter's single-storey "a": softer than the default double-storey one. */
+  font-feature-settings: "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* No lone word on a heading's last line, and fewer orphans in prose.
+ * Browsers without support just ignore it. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background-color: rgba(47, 109, 240, 0.22);
+}
+
+/* MUI buttons get theirs from theme.ts (MuiButtonBase); this covers plain links. */
+:where(a):focus-visible {
+  outline: 2px solid #2f6df0;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 code {
