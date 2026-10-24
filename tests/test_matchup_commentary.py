@@ -223,6 +223,37 @@ def test_route_saves_commentary_after_generating(
     assert stub.saved == ("Alice", "Bob", "Winners Round 1", "**Hype.**", "gemini")
 
 
+def test_route_rechecks_cache_after_waiting_for_generation_lock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A request that missed the cache while another was generating must
+    serve the text that one saved rather than bill a second call."""
+    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
+
+    def _boom(*args: object, **kwargs: object) -> str:
+        raise AssertionError("generate_commentary should not run twice")
+
+    monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
+
+    class _FilledWhileWaiting(_StubReplayManager):
+        def __init__(self) -> None:
+            super().__init__()
+            self.reads = 0
+
+        def get_cached_commentary(
+            self, player1: str, player2: str, round_name: str
+        ) -> str | None:
+            self.reads += 1
+            return None if self.reads == 1 else "**From the other request.**"
+
+    stub = _FilledWhileWaiting()
+    result = commentary.get_matchup_commentary(
+        "Alice", "Bob", "Winners Round 1", replay_manager=cast(ReplayManager, stub)
+    )
+    assert result.commentary == "**From the other request.**"
+    assert stub.saved is None
+
+
 def test_route_400_on_unknown_round_name(monkeypatch: pytest.MonkeyPatch) -> None:
     """The route is a read-tier GET, so an arbitrary round_name would be an
     unbounded cache key - and every miss on a fresh key is a billed LLM

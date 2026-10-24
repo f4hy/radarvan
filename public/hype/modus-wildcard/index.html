@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="Losers Final of the 2026 1v1 Bracket: Modus vs WildCard, best of 7. Winner faces Gorn in the Grand Final.">
+<meta property="og:title" content="Modus vs WildCard · Losers Final">
+<meta property="og:description" content="Modus is 6–0 against WildCard in 1v1s. The faction war, the map room, keys to victory.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c1118">
+<title>Modus vs WildCard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: broadcast package. Split hero, then a rundown of segments; the faction war is the long centre segment with a heatmap and a pick lab. */
+:root {
+  --ground: #0c1118;
+  --panel: #131b26;
+  --panel-2: #1a2432;
+  --line: #263243;
+  --ink: #e9eef5;
+  --ink-dim: #93a1b4;
+  --modus: #2aa3c8;
+  --modus-ink: #6cc7e4;
+  --modus-deep: #0d3040;
+  --wild: #d9468f;
+  --wild-ink: #f47ab6;
+  --wild-deep: #3d0f26;
+  --neutral: #2a3442;
+  --signal: #f3b33d;
+  --loss: #e0605a;
+  --f-display: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.label { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.num { font-variant-numeric: tabular-nums; }
+.m { color: var(--modus-ink); } .t { color: var(--wild-ink); }
+button, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+p { max-width: 70ch; }
+
+.ticker { background: var(--signal); color: #1b1404; overflow: hidden; white-space: nowrap; font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.ticker-inner { display: inline-flex; gap: 48px; padding-block: 7px; padding-left: 100%; animation: tick 70s linear infinite; }
+.ticker-inner span::before { content: "■ "; opacity: .55; }
+@keyframes tick { to { transform: translateX(-100%); } }
+
+.hero { position: relative; overflow: hidden; background: linear-gradient(105deg, var(--modus-deep) 0 50%, var(--wild-deep) 50% 100%); border-bottom: 1px solid var(--line); }
+.hero::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px); pointer-events: none; }
+.hero .wrap { position: relative; z-index: 1; padding-block: 28px 32px; }
+.hero-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; }
+.live i { width: 10px; height: 10px; border-radius: 50%; background: var(--signal); }
+.stage-chip { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.3); }
+.versus { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 28px; }
+.fighter .seed { font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; }
+.fighter h1 { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(48px, 11vw, 124px); line-height: .88; }
+.fighter .tag { font-family: var(--f-label); font-size: 17px; font-weight: 500; opacity: .88; margin-top: 8px; }
+.fighter.right { text-align: right; }
+.fighter.left h1 { color: var(--modus-ink); } .fighter.right h1 { color: var(--wild-ink); }
+.vs { font-family: var(--f-display); font-weight: 800; font-size: clamp(28px, 5vw, 52px); color: var(--signal); }
+.tagline { margin-top: 22px; font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(24px, 4vw, 40px); letter-spacing: .02em; line-height: 1; }
+.tagline em { font-style: normal; color: var(--signal); }
+.hero-meta { margin-top: 10px; font-family: var(--f-label); font-size: 16px; color: var(--ink); opacity: .85; }
+.countdown { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: end; }
+.cd-cells { display: flex; gap: 10px; }
+.cd-cell { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14); padding: 6px 12px; min-width: 66px; text-align: center; }
+.cd-cell b { display: block; font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1; }
+.cd-cell small { font-family: var(--f-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+.cd-meta { font-family: var(--f-label); font-size: 16px; }
+.cd-meta strong { color: var(--signal); font-weight: 700; }
+
+.recap { background: var(--panel); border-bottom: 1px solid var(--line); }
+.recap .wrap { display: flex; gap: 6px 18px; align-items: center; flex-wrap: wrap; padding-block: 12px; }
+.recap b { font-family: var(--f-display); font-weight: 800; font-size: 24px; text-transform: uppercase; }
+.recap span { color: var(--ink-dim); font-size: 15px; }
+
+section.seg { padding-block: 44px 8px; }
+.seg-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.seg-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.4vw, 42px); line-height: 1; letter-spacing: .02em; }
+.seg-head .label { color: var(--signal); }
+.sub { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 24px; margin: 34px 0 10px; letter-spacing: .02em; }
+.sub small { display: block; font-family: var(--f-label); font-size: 13px; letter-spacing: .12em; color: var(--signal); font-weight: 700; margin-bottom: 2px; }
+.lede { color: var(--ink-dim); margin: 0 0 14px; }
+.booth { background: var(--panel); border-left: 4px solid var(--signal); padding: 18px 22px; font-size: 18px; line-height: 1.6; max-width: 72ch; }
+.booth p { margin: 0 0 10px; } .booth p:last-child { margin: 0; }
+.booth .who { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--signal); font-weight: 700; display: block; margin-bottom: 6px; }
+
+.seg-toggle { display: inline-flex; border: 1px solid var(--line); background: var(--panel); margin-bottom: 16px; flex-wrap: wrap; }
+.seg-toggle button { background: none; border: 0; padding: 8px 14px; cursor: pointer; font-family: var(--f-label); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; color: var(--ink-dim); }
+.seg-toggle button[aria-pressed="true"] { background: var(--signal); color: #1b1404; }
+.tape { width: 100%; border-collapse: collapse; background: var(--panel); }
+.tape td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tape td:first-child { text-align: left; font-family: var(--f-display); font-weight: 800; font-size: 24px; color: var(--modus-ink); width: 34%; }
+.tape td:last-child { text-align: right; font-family: var(--f-display); font-weight: 800; font-size: 24px; color: var(--wild-ink); width: 34%; }
+.tape td.mid { text-align: center; font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 13px; color: var(--ink-dim); font-weight: 600; }
+.tape td small { display: block; font-family: var(--f-body); font-weight: 400; font-size: 13px; color: var(--ink-dim); line-height: 1.35; }
+.tape td.edge { background: linear-gradient(90deg, rgba(243,179,61,.14), transparent); }
+.tape td:last-child.edge { background: linear-gradient(270deg, rgba(243,179,61,.14), transparent); }
+.note { font-size: 14px; color: var(--ink-dim); margin-top: 10px; }
+
+/* faction war */
+.tri-row { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 24px; align-items: center; }
+.tri svg { width: 100%; height: auto; display: block; }
+.tri text { font-family: var(--f-label); }
+.facgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.faccard { background: var(--panel); border: 1px solid var(--line); padding: 16px; min-width: 0; }
+.faccard h4 { margin: 0 0 10px; font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 22px; }
+.fbars { display: grid; grid-template-columns: 74px 1fr 64px; gap: 6px 10px; align-items: center; font-family: var(--f-label); font-size: 15px; }
+.fbars .grp { grid-column: 1 / -1; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; font-weight: 700; margin-top: 6px; }
+.fbars .bar { height: 10px; background: var(--panel-2); border-radius: 0 4px 4px 0; position: relative; overflow: hidden; }
+.fbars .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 0 4px 4px 0; }
+.fbars .bar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--ink-dim); opacity: .5; }
+.fbars .v { text-align: right; font-variant-numeric: tabular-nums; }
+
+.gtable-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); }
+.gtable { width: 100%; border-collapse: collapse; min-width: 640px; font-size: 15px; }
+.gtable th { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--ink-dim); font-weight: 700; text-align: right; padding: 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.gtable th:first-child, .gtable td:first-child { text-align: left; }
+.gtable td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gtable tr.fac td { background: var(--panel-2); font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink-dim); font-weight: 700; text-align: left; padding-block: 6px; }
+.gtable td.gname { font-family: var(--f-label); font-weight: 700; font-size: 17px; }
+.edgebar { display: inline-grid; grid-template-columns: 60px 60px; width: 120px; height: 12px; vertical-align: middle; margin-left: 8px; }
+.edgebar span { position: relative; background: var(--panel-2); }
+.edgebar span:first-child i { position: absolute; right: 0; top: 0; bottom: 0; background: var(--wild); border-radius: 4px 0 0 4px; }
+.edgebar span:last-child i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--modus); border-radius: 0 4px 4px 0; }
+.edgebar span:last-child { border-left: 1px solid var(--ink-dim); }
+.zone { display: inline-block; font-family: var(--f-label); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; }
+.zone.mz { background: var(--modus); color: #04161d; } .zone.tz { background: var(--wild); color: #2a0718; } .zone.nz { border: 1px solid var(--line); color: var(--ink-dim); }
+
+.cancel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.leg { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
+.leg .label { display: block; }
+.leg .big { font-family: var(--f-display); font-weight: 900; font-size: 48px; line-height: 1; margin-top: 4px; }
+.leg p { margin: 6px 0 0; font-size: 14px; color: var(--ink-dim); }
+.leg.sum { border-color: var(--signal); }
+.leg.sum .big { color: var(--signal); }
+
+.heat-wrap { overflow-x: auto; }
+.heat { display: grid; grid-template-columns: 56px repeat(12, minmax(30px, 1fr)); gap: 2px; min-width: 470px; font-family: var(--f-label); }
+.heat .hl { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--ink-dim); display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
+.heat .hl.row { justify-content: flex-start; }
+.heat button { aspect-ratio: 1; border: 0; padding: 0; cursor: pointer; font-size: 11px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; border-radius: 2px; min-width: 0; }
+.heat button:hover, .heat button[aria-pressed="true"] { outline: 2px solid var(--signal); outline-offset: 0; position: relative; z-index: 1; }
+.heat-legend { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-family: var(--f-label); font-size: 14px; flex-wrap: wrap; }
+.heat-legend .ramp { width: 200px; max-width: 50vw; height: 10px; background: linear-gradient(90deg, var(--wild), var(--neutral), var(--modus)); }
+.heat-read { margin-top: 10px; font-family: var(--f-label); font-size: 16px; min-height: 1.5em; }
+
+.lab { background: var(--panel); border: 1px solid var(--line); padding: 18px; margin-top: 18px; }
+.lab-ctrl { display: flex; gap: 12px 20px; flex-wrap: wrap; align-items: end; }
+.lab-ctrl label { display: flex; flex-direction: column; gap: 4px; }
+.lab-ctrl select { background: var(--panel-2); border: 1px solid var(--line); padding: 8px 10px; font-family: var(--f-label); font-size: 17px; font-weight: 600; min-width: 170px; }
+.legs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.legcard { background: var(--panel-2); padding: 14px; min-width: 0; }
+.legcard h4 { margin: 0 0 8px; font-family: var(--f-label); font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.legcard dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: 14px; }
+.legcard dt { color: var(--ink-dim); } .legcard dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.legcard .meter { height: 8px; background: var(--wild); margin: 10px 0 4px; display: flex; }
+.legcard .meter i { background: var(--modus); display: block; border-right: 2px solid var(--panel-2); }
+.verdict { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--signal); background: var(--panel-2); }
+.verdict b { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; }
+
+.mirror { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mcard { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
+.mcard .label { display: block; }
+.mcard .who { font-family: var(--f-display); font-weight: 800; font-size: 26px; text-transform: uppercase; line-height: 1.1; margin-top: 4px; }
+.mcard p { margin: 4px 0 0; font-size: 14px; color: var(--ink-dim); }
+
+.road { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.road > div { min-width: 0; }
+.road h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 26px; margin-bottom: 10px; }
+.series { background: var(--panel); border: 1px solid var(--line); margin-bottom: 10px; }
+.series > button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; text-align: left; background: none; border: 0; padding: 12px 14px; cursor: pointer; }
+.series > button:hover:not(:disabled) { background: var(--panel-2); }
+.series .rnd { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+.series .opp { font-family: var(--f-label); font-size: 20px; font-weight: 600; }
+.series .score { grid-row: 1 / 3; grid-column: 2; align-self: center; font-family: var(--f-display); font-weight: 800; font-size: 30px; }
+.series .score.w { color: var(--signal); } .series .score.l { color: var(--loss); }
+.games { border-top: 1px solid var(--line); padding: 6px 0; }
+.game { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; padding: 6px 14px; align-items: center; font-size: 14px; }
+.game .r { font-family: var(--f-label); font-weight: 700; width: 22px; height: 22px; display: grid; place-items: center; font-size: 13px; }
+.game .r.w { background: var(--signal); color: #1b1404; } .game .r.l { border: 1px solid var(--loss); color: var(--loss); }
+.game .gm { min-width: 0; } .game .gm b { font-weight: 600; } .game .gm span { color: var(--ink-dim); }
+.game .tm { font-family: var(--f-label); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.pending { border-style: dashed; border-color: var(--signal); } .pending .opp { color: var(--signal); }
+
+.deciders { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.decider { background: var(--panel); border: 1px solid var(--line); padding: 18px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.decider .big { font-family: var(--f-display); font-weight: 900; font-size: 56px; line-height: .9; color: var(--signal); }
+.decider .big small { font-size: 22px; color: var(--ink-dim); font-weight: 700; }
+.decider h3 { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; font-size: 20px; font-weight: 700; }
+.decider p { margin: 0; color: var(--ink-dim); font-size: 15px; }
+.duel { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; align-items: center; font-family: var(--f-label); font-size: 15px; }
+.duel .bar { height: 10px; background: var(--panel-2); position: relative; }
+.duel .bar i { position: absolute; inset: 0 auto 0 0; display: block; border-radius: 0 4px 4px 0; }
+.duel .val { font-variant-numeric: tabular-nums; text-align: right; min-width: 48px; }
+
+.maproom { display: grid; grid-template-columns: 260px 1fr; gap: 18px; }
+.maplist { display: flex; flex-direction: column; gap: 6px; }
+.maplist button { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; font-family: var(--f-label); font-size: 16px; font-weight: 600; }
+.maplist button:hover { background: var(--panel-2); }
+.maplist button[aria-pressed="true"] { border-color: var(--signal); background: var(--panel-2); }
+.maplist .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.mapcard { background: var(--panel); border: 1px solid var(--line); padding: 20px; min-width: 0; }
+.mapcard .vtag { display: inline-block; font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; padding: 4px 10px; margin-bottom: 10px; }
+.mapcard h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4vw, 40px); line-height: 1; margin-bottom: 14px; }
+.recs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.rec { background: var(--panel-2); padding: 12px 14px; }
+.rec .who { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 13px; font-weight: 700; }
+.rec .wl { font-family: var(--f-display); font-weight: 800; font-size: 36px; line-height: 1.05; }
+.rec .wl.none { font-size: 22px; color: var(--ink-dim); padding-block: 6px; }
+.mapcard p { margin: 0 0 8px; }
+.mapcard .fine { color: var(--ink-dim); font-size: 14px; }
+
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.plan { background: var(--panel); border-top: 5px solid; padding: 18px 20px; min-width: 0; }
+.plan.pm { border-color: var(--modus); } .plan.pt { border-color: var(--wild); }
+.plan h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 28px; line-height: 1; margin-bottom: 4px; }
+.plan.pm h3 { color: var(--modus-ink); } .plan.pt h3 { color: var(--wild-ink); }
+.plan ol { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; counter-reset: k; }
+.plan li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; counter-increment: k; }
+.plan li::before { content: counter(k); font-family: var(--f-display); font-weight: 900; font-size: 30px; line-height: 1; color: var(--signal); }
+.plan li b { display: block; font-family: var(--f-label); font-size: 19px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.plan li span { color: var(--ink-dim); font-size: 15px; }
+
+.sim { background: var(--panel); border: 1px solid var(--line); padding: 20px; }
+.sim-ctrl { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.sim-ctrl .pct { font-family: var(--f-display); font-weight: 800; font-size: 34px; min-width: 80px; }
+.sim-ctrl input[type=range] { width: 100%; accent-color: var(--signal); }
+.sim-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.sim-presets button { background: var(--panel-2); border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; font-family: var(--f-label); font-size: 14px; font-weight: 600; letter-spacing: .04em; }
+.sim-presets button:hover { border-color: var(--signal); }
+.outcomes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 20px; align-items: end; height: 190px; }
+.oc { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 6px; min-width: 0; }
+.oc .bar { width: 100%; transition: height .35s ease; min-height: 2px; border-radius: 4px 4px 0 0; }
+.oc .p { font-family: var(--f-label); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.oc .s { font-family: var(--f-display); font-weight: 800; font-size: 20px; }
+.sim-total { display: flex; gap: 2px; height: 36px; margin-top: 16px; font-family: var(--f-label); font-weight: 700; font-size: 15px; }
+.sim-total div { display: flex; align-items: center; padding: 0 10px; transition: flex-basis .35s ease; white-space: nowrap; overflow: hidden; min-width: 0; }
+.sim-total .tm { background: var(--modus); color: #04161d; }
+.sim-total .tt { background: var(--wild); color: #2a0718; justify-content: flex-end; }
+
+.path { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.step { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
+.step.now { border-color: var(--signal); }
+.step .rnd { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+.step .who { font-family: var(--f-display); font-weight: 800; font-size: 24px; text-transform: uppercase; line-height: 1.1; margin-top: 4px; }
+.step p { margin: 6px 0 0; font-size: 14px; color: var(--ink-dim); }
+.out { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--loss); font-size: 15px; }
+.out b { color: var(--loss); font-family: var(--f-label); text-transform: uppercase; letter-spacing: .08em; }
+
+.signoff { padding-block: 44px 56px; }
+.signoff .call { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(30px, 6vw, 60px); line-height: .95; margin-top: 18px; }
+footer { color: var(--ink-dim); font-size: 13px; border-top: 1px solid var(--line); padding-block: 16px 28px; }
+
+@media (max-width: 760px) {
+  .road, .plans, .deciders, .maproom, .facgrid, .tri-row, .legs { grid-template-columns: 1fr; }
+  .maplist { flex-direction: row; flex-wrap: wrap; }
+  .maplist button { flex: 1 1 140px; }
+  .cancel, .mirror, .path { grid-template-columns: 1fr; }
+  .tape td:first-child, .tape td:last-child { font-size: 19px; }
+  .tape td { padding: 10px 8px; }
+  .outcomes { height: 160px; }
+  .oc .s { font-size: 16px; } .oc .p { font-size: 13px; }
+  .tri { max-width: 340px; }
+}
+@media (max-width: 460px) {
+  .versus { grid-template-columns: 1fr; text-align: center; gap: 4px; }
+  .fighter.right { text-align: center; }
+  .sim-ctrl { grid-template-columns: 1fr; }
+  .cd-cell { min-width: 52px; padding: 6px 8px; }
+  .cd-cell b { font-size: 28px; }
+  .recs { grid-template-columns: 1fr; }
+  .lab-ctrl select { min-width: 0; width: 100%; }
+  .lab-ctrl label { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-inner { animation: none; padding-left: 16px; }
+  .oc .bar, .sim-total div { transition: none; }
+}
+</style>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="ticker" aria-label="Headlines">
+  <div class="ticker-inner">
+    <span>Losers Final · Modus vs WildCard · best of 7 · loser finishes 3rd</span>
+    <span>Modus leads their 1v1 history 6–0, but the last one was seven weeks ago</span>
+    <span>Modus beat Tytan 4–2 to get here</span>
+    <span>WildCard swept Tytan 4–0, then took Gorn to seven</span>
+    <span>Both have lost a game-seven mirror to Gorn</span>
+    <span>Every deciding game in this bracket has been a mirror match</span>
+    <span>Winner faces Gorn in the Grand Final</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <span class="live"><i></i>Coming up · 2026 1v1 Bracket</span>
+      <span class="stage-chip">Losers Final · Best of 7</span>
+    </div>
+    <div class="versus">
+      <div class="fighter left">
+        <div class="seed m">#1 Seed</div>
+        <h1>Modus</h1>
+        <div class="tag">13–6 in games · nine different generals</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="fighter right">
+        <div class="seed t">#3 Seed</div>
+        <h1>WildCard</h1>
+        <div class="tag">10–5 in games · Laser and USA</div>
+      </div>
+    </div>
+    <div class="tagline">One road to Gorn. <em>Two ways to get there.</em></div>
+    <div class="countdown">
+      <div class="cd-cells" id="cd" aria-live="polite">
+        <div class="cd-cell"><b id="cd-d">--</b><small>Days</small></div>
+        <div class="cd-cell"><b id="cd-h">--</b><small>Hours</small></div>
+        <div class="cd-cell"><b id="cd-m">--</b><small>Min</small></div>
+        <div class="cd-cell"><b id="cd-s">--</b><small>Sec</small></div>
+      </div>
+      <div class="cd-meta">Start time: <strong id="cd-local">to be announced</strong></div>
+    </div>
+    <div class="hero-meta">Winner goes to the Grand Final against Gorn. Loser finishes 3rd.</div>
+  </div>
+</header>
+
+<div class="recap">
+  <div class="wrap">
+    <span class="label" style="color:var(--signal)">Last time out</span>
+    <b><span class="m">Modus</span> 4–2 Tytan</b>
+    <span>Dropped the opener, then won four of the last five, three of them from behind.</span>
+    <b><span class="t">WildCard</span> 3–4 Gorn</b>
+    <span>Every swapped pair split, then a 21:54 Demolition mirror decided it.</span>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section class="seg">
+    <div class="seg-head"><span class="label">Cold open</span><h2>From the booth</h2></div>
+    <div class="booth">
+      <span class="who">Play-by-play</span>
+      <p>Good evening, and welcome to the Losers Final of the 2026 1v1 Bracket. Three players remain. Gorn is unbeaten and waiting in the Grand Final. Tonight decides who gets to go after Gorn.</p>
+      <p>Modus took the long way here. After losing the Winners Semifinal to Gorn in a game-seven Infantry mirror, Modus swept CoreDawg 3–0 and then beat Tytan 4–2 on October 23. Modus lost the opener on Snowy Drought, then won four of the last five, three of them after falling behind on the win-probability chart.</p>
+      <p>WildCard took the short way. WildCard beat CoreDawg 3–1, swept Tytan 4–0 in the Winners Semifinal, and then went the distance with Gorn in the Winners Final. Each of the first three map pairs split 1–1, and game seven was a Demolition mirror on TD NoBugsCars. It ran 21:54, the longest game of the bracket, and Gorn won it.</p>
+      <p>Here's the number hanging over tonight. In 1v1s, Modus is 6–0 against WildCard. That's the only opponent WildCard has never beaten one on one. But that record is old. Five of those games were played on a single night, April 24, six months ago. The most recent was September 5, seven weeks ago, two days before WildCard swept Tytan. WildCard needs four wins tonight.</p>
+    </div>
+  </section>
+
+  <section class="seg" id="tape">
+    <div class="seg-head"><span class="label">Segment 1</span><h2>Tale of the tape</h2></div>
+    <div class="seg-toggle" role="group" aria-label="Stat scope">
+      <button id="tape-tour" aria-pressed="true" data-scope="tour">This tournament</button>
+      <button id="tape-1v1" aria-pressed="false" data-scope="duel">1v1 career</button>
+      <button id="tape-all" aria-pressed="false" data-scope="all">All formats</button>
+    </div>
+    <div style="overflow-x:auto"><table class="tape" id="tape-table"></table></div>
+    <p class="note" id="tape-note"></p>
+  </section>
+
+  <section class="seg" id="factions">
+    <div class="seg-head"><span class="label">Segment 2 · The main event</span><h2>The faction war</h2></div>
+    <p class="lede">Modus has played nine different generals in this bracket. WildCard's best generals are on the USA side: Laser and plain USA. Here's how those two pools collide.</p>
+
+    <h3 class="sub"><small>2a · The battlefield</small>Rock, paper, scud storm</h3>
+    <div class="tri-row">
+      <div class="tri" aria-label="Community 1v1 faction triangle">
+        <svg viewBox="0 0 340 300" role="img">
+          <title>Faction matchups in community 1v1 games: China beats USA 38 to 28, USA beats GLA 47 to 41, GLA beats China 42 to 37.</title>
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f3b33d"/></marker>
+          </defs>
+          <line x1="150" y1="68" x2="66" y2="208" stroke="#f3b33d" stroke-width="2" marker-end="url(#ah)"/>
+          <line x1="96" y1="246" x2="244" y2="246" stroke="#f3b33d" stroke-width="2" marker-end="url(#ah)"/>
+          <line x1="274" y1="208" x2="190" y2="68" stroke="#f3b33d" stroke-width="2" marker-end="url(#ah)"/>
+          <circle cx="170" cy="44" r="34" fill="#1a2432" stroke="#263243" stroke-width="2"/>
+          <text x="170" y="50" text-anchor="middle" fill="#e9eef5" font-size="19" font-weight="700">CHINA</text>
+          <circle cx="62" cy="246" r="34" fill="#1a2432" stroke="#263243" stroke-width="2"/>
+          <text x="62" y="252" text-anchor="middle" fill="#e9eef5" font-size="19" font-weight="700">USA</text>
+          <circle cx="278" cy="246" r="34" fill="#1a2432" stroke="#263243" stroke-width="2"/>
+          <text x="278" y="252" text-anchor="middle" fill="#e9eef5" font-size="19" font-weight="700">GLA</text>
+          <text x="76" y="130" text-anchor="middle" fill="#e9eef5" font-size="17" font-weight="700">38–28</text>
+          <text x="76" y="148" text-anchor="middle" fill="#93a1b4" font-size="13">58%</text>
+          <text x="170" y="276" text-anchor="middle" fill="#e9eef5" font-size="17" font-weight="700">47–41</text>
+          <text x="170" y="293" text-anchor="middle" fill="#93a1b4" font-size="13">53%</text>
+          <text x="266" y="130" text-anchor="middle" fill="#e9eef5" font-size="17" font-weight="700">42–37</text>
+          <text x="266" y="148" text-anchor="middle" fill="#93a1b4" font-size="13">53%</text>
+        </svg>
+      </div>
+      <div>
+        <p>Across 298 community 1v1 games in the RadarVan database, the three factions form a loop. China beats USA. USA edges GLA. GLA edges China. Each arrow points from the winner to the loser.</p>
+        <p>At the general level, the community's best 1v1 generals are Infantry (63%), Demolition (55%) and USA (54%). The worst are Laser (41%) and Nuke (42%). That makes WildCard's Laser the most interesting pick in the series: the community loses with it, and it's WildCard's best career general at 57.6%.</p>
+      </div>
+    </div>
+
+    <h3 class="sub"><small>2b · Who wins on what</small>Faction by faction</h3>
+    <p class="lede">1v1 career records. The left block is the faction they played; the right block is the faction their opponent played. The tick marks 50%.</p>
+    <div class="facgrid">
+      <div class="faccard"><h4 class="m">Modus</h4><div class="fbars" id="fac-m"></div></div>
+      <div class="faccard"><h4 class="t">WildCard</h4><div class="fbars" id="fac-t"></div></div>
+    </div>
+    <p class="note">Look at the bottom of both cards. Modus is 17–1 against GLA generals and WildCard is 24–3, so neither player gets a free game by picking GLA. The real fault line is USA. It's Modus's weakest faction to play (9–4), and WildCard's best (17–7).</p>
+
+    <h3 class="sub"><small>2c · All twelve generals</small>The scouting report</h3>
+    <p class="lede">The career column covers every format, with 43 to 115 games per general, so it's the steadier signal. The 1v1 columns are small samples, but they come from real duels. "Edge" is Modus's career win rate on that general minus WildCard's.</p>
+    <div class="gtable-wrap"><table class="gtable" id="gtable"></table></div>
+    <p class="note">Modus has the higher career number on ten of the twelve generals. The two exceptions belong to WildCard: Laser (+4.7 for WildCard) and USA (+4.0). The biggest gap on the board is Toxin, at 66.7% for Modus and 43.7% for WildCard. WildCard is 4–1 on Toxin in 1v1s, though, so that gap is mostly from team games.</p>
+
+    <h3 class="sub"><small>2d · The twist</small>The swap cancels the generals</h3>
+    <p class="lede">In this bracket every map is played twice with the generals swapped. The RadarVan model thinks generals matter in this matchup, with single games ranging from 44.3% to 66.5% for Modus. But both players play both sides.</p>
+    <div class="cancel">
+      <div class="leg"><span class="label">Game A · Modus Stealth vs WildCard China</span><div class="big m num">66.5%</div><p>The model's single best game for Modus.</p></div>
+      <div class="leg"><span class="label">Game B · Modus China vs WildCard Stealth</span><div class="big t num">44.3%</div><p>Same pair, swapped. The model's worst game for Modus.</p></div>
+      <div class="leg sum"><span class="label">The pair, averaged</span><div class="big num">55.4%</div><p>Every one of the 78 possible pairs lands between 54.7% and 57.1% for Modus.</p></div>
+    </div>
+    <p class="note">So the model favors Modus in every pair, and no pick moves it much. What can move it is player comfort, which the model sees only partly. A pair works for you when you're comfortable on both generals and your opponent isn't. That's what the heatmap below measures.</p>
+
+    <h3 class="sub"><small>2e · Pair finder</small>Which general pairs favor whom</h3>
+    <p class="lede">Each cell is one general pair, played both ways. Color shows the comfort index: each player's career win rate on each general, compared head to head. Blue favors Modus, pink favors WildCard. Hover or tap a cell, then use the lab below.</p>
+    <div class="heat-wrap"><div class="heat" id="heat" role="grid" aria-label="General pair heatmap"></div></div>
+    <div class="heat-legend"><span class="t">WildCard 40%</span><span class="ramp" aria-hidden="true"></span><span class="m">Modus 60%</span><span style="color:var(--ink-dim)">· neutral grey is 50%</span></div>
+    <div class="heat-read" id="heat-read" aria-live="polite"></div>
+    <p class="note">The board is mostly blue, because Modus's career win rate (60.2%) is well above WildCard's (52.3%). The only pink cells are pairs built from Laser and USA. That's where WildCard has to fight.</p>
+
+    <div class="lab" id="lab">
+      <div class="label" style="color:var(--signal)">The pick lab</div>
+      <div class="lab-ctrl">
+        <label for="lab-m"><span class="label m">Modus plays (game 1)</span><select id="lab-m"></select></label>
+        <label for="lab-t"><span class="label t">WildCard plays (game 1)</span><select id="lab-t"></select></label>
+      </div>
+      <div class="legs" id="legs"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <h3 class="sub"><small>2f · Sweep a pair</small>Splits are the default</h3>
+    <p class="lede">The bracket's best-of-7s have produced 12 swapped map pairs so far, and 9 of them split 1–1. Whoever wins both sides of a map usually wins the series. WildCard owns two of the three sweeps, both against Tytan on Vendetta and Snowy Drought. Modus owns the third, against Tytan on Canyon of the Dead.</p>
+
+    <h3 class="sub"><small>2g · If it goes the distance</small>Game seven is a mirror</h3>
+    <p class="lede">In a best of 7, maps come in swapped pairs for games one to six, which leaves game seven as the only unpaired game. Every series in this bracket that reached its final game settled it with both players on the same general, and both of tonight's players have lost one to Gorn. Modus lost an Infantry mirror on Oxygen 1. WildCard lost the 21:54 Demolition mirror.</p>
+    <div class="mirror" id="mirror"></div>
+  </section>
+
+  <section class="seg" id="road">
+    <div class="seg-head"><span class="label">Segment 3</span><h2>The road to tonight</h2></div>
+    <p class="note" style="margin:-6px 0 16px">Tap a series to see every game: map, generals, length.</p>
+    <div class="road">
+      <div><h3 class="m">Modus</h3><div id="road-m"></div></div>
+      <div><h3 class="t">WildCard</h3><div id="road-t"></div></div>
+    </div>
+  </section>
+
+  <section class="seg" id="deciders">
+    <div class="seg-head"><span class="label">Segment 4</span><h2>Four more numbers</h2></div>
+    <div class="deciders">
+      <div class="decider">
+        <div class="big num">25<small> of 34</small></div>
+        <h3>The bigger spender wins</h3>
+        <p>In both players' 34 tournament games, whoever spent more money won 25 times. Modus outspent the opponent in 11 of 13 wins.</p>
+      </div>
+      <div class="decider">
+        <h3>First blood</h3>
+        <div class="duel">
+          <span class="m">Modus</span><span class="bar"><i style="width:36.8%;background:var(--modus)"></i></span><span class="val num">7 / 19</span>
+          <span class="t">WildCard</span><span class="bar"><i style="width:53.3%;background:var(--wild)"></i></span><span class="val num">8 / 15</span>
+        </div>
+        <p>WildCard draws the first kill more often. Modus usually doesn't, and is 13–6 anyway.</p>
+      </div>
+      <div class="decider">
+        <h3>Different clocks</h3>
+        <div class="duel">
+          <span class="m">Under 10</span><span class="bar"><i style="width:81.8%;background:var(--modus)"></i></span><span class="val num">9–2</span>
+          <span class="m">10+ min</span><span class="bar"><i style="width:50%;background:var(--modus)"></i></span><span class="val num">4–4</span>
+          <span class="t">Under 10</span><span class="bar"><i style="width:62.5%;background:var(--wild)"></i></span><span class="val num">5–3</span>
+          <span class="t">10+ min</span><span class="bar"><i style="width:71.4%;background:var(--wild)"></i></span><span class="val num">5–2</span>
+        </div>
+        <p>Modus wins fast. WildCard gets better as the game goes on. Across all formats, WildCard's wins average 16.6 minutes to Modus's 12.9. Every minute past ten leans a little more toward WildCard.</p>
+      </div>
+      <div class="decider">
+        <div class="big num">5<small> blown leads</small></div>
+        <h3>No lead is safe</h3>
+        <p>Modus has lost five bracket games after the model had Modus above 70% to win: three to Gorn and two to Tytan. WildCard has won four games from 30% or worse, including a comeback from 15% against Tytan on Vendetta.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg" id="maps">
+    <div class="seg-head"><span class="label">Segment 5</span><h2>The map room</h2></div>
+    <div class="maproom">
+      <div class="maplist" id="maplist" role="group" aria-label="Maps"></div>
+      <div class="mapcard" id="mapcard" aria-live="polite"></div>
+    </div>
+    <p class="note">Records are from this tournament only, unless noted.</p>
+  </section>
+
+  <section class="seg" id="plans">
+    <div class="seg-head"><span class="label">Segment 6</span><h2>Keys to victory</h2></div>
+    <div class="plans">
+      <div class="plan pm">
+        <div class="label">What Modus has to do</div>
+        <h3>Make WildCard play GLA</h3>
+        <ol>
+          <li><div><b>Put Toxin or Stealth in the pair</b><span>The swap means WildCard has to play whatever Modus picks. Toxin is WildCard's worst career general (43.7%) and Modus wins 66.7% on it. Stealth is Modus's best (69.1%). Toxin with Stealth is the bluest non-mirror pair on the board at 68%, and the Toxin mirror tops the mirror list at 70%.</span></div></li>
+          <li><div><b>Keep it under ten minutes</b><span>Modus is 9–2 in bracket games under ten minutes and 4–4 in longer ones. WildCard is 5–2 past ten. One of the wins over Tytan took 5:12, on Infantry on Vendetta.</span></div></li>
+          <li><div><b>Keep WildCard off Infantry and Air Force</b><span>In 1v1s, Modus is 0–4 against Infantry and 1–3 against Air Force. Both of Modus's losses to Tytan came against those two generals. WildCard is 3–1 on Infantry and 2–0 on Air Force.</span></div></li>
+          <li><div><b>Stay away from Laser and USA</b><span>They're the only pink cells on the board. Modus is 0–2 on Laser in 1v1s and wins only 50% on USA overall, which is Modus's lowest number.</span></div></li>
+          <li><div><b>Trust the 6–0, carefully</b><span>Six 1v1s, six wins, on five different generals, and two of them on Snowy Drought. But five came on April 24, six months ago, and the last one was September 5. They haven't met one on one since.</span></div></li>
+        </ol>
+      </div>
+      <div class="plan pt">
+        <div class="label">What WildCard has to do</div>
+        <h3>Laser focus</h3>
+        <ol>
+          <li><div><b>Build pairs from Laser and USA</b><span>Laser is WildCard's best career general (57.6%, 6–4 in 1v1s) and plain USA is 8–2 in 1v1s. Laser with USA is the pinkest non-mirror pair on the board, about 52% WildCard, and the Laser mirror is WildCard's best game-seven option.</span></div></li>
+          <li><div><b>Reach for Infantry and Air Force</b><span>Modus is 1–7 against those two generals in 1v1s, and both of Modus's losses to Tytan came against them. Infantry is also the community's best 1v1 general at 63%.</span></div></li>
+          <li><div><b>Drag it past ten minutes</b><span>WildCard is 5–2 in long bracket games, and WildCard's career wins average 16.6 minutes. Modus is 4–4 once a game goes long.</span></div></li>
+          <li><div><b>Take it to Vendetta</b><span>WildCard is 4–2 on the bracket's most-played map, including the 2–0 sweep of Tytan. Modus is 2–2 there.</span></div></li>
+          <li><div><b>Sweep one pair</b><span>Most map pairs split. WildCard swept two of them against Tytan. Do that once and WildCard needs only a split on the other two maps to win the series.</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg" id="sim">
+    <div class="seg-head"><span class="label">Segment 7</span><h2>Run the series</h2></div>
+    <div class="sim">
+      <div class="sim-ctrl">
+        <label for="sim-p" class="label">Modus wins any one game</label>
+        <input type="range" id="sim-p" min="5" max="95" step="1" value="55">
+        <span class="pct m num" id="sim-pct">55%</span>
+      </div>
+      <div class="sim-presets">
+        <button data-p="55">RadarVan model (55.4%)</button>
+        <button data-p="68">Modus gets Toxin pairs (68%)</button>
+        <button data-p="48">WildCard gets Laser pairs (48%)</button>
+        <button data-p="50">Coin flip (50%)</button>
+      </div>
+      <div class="outcomes" id="outcomes" aria-live="polite"></div>
+      <div class="sim-total"><div class="tm" id="tot-m"></div><div class="tt" id="tot-t"></div></div>
+      <p class="note">Drag the slider to set how often Modus takes a single game, and the bars show every way a best of 7 can end. The model's figure is its average across all general pairs. The Toxin and Laser presets use the comfort index for the best pair each player could force, so treat them as the range if one player wins every pick.</p>
+    </div>
+  </section>
+
+  <section class="seg" id="stakes">
+    <div class="seg-head"><span class="label">Segment 8</span><h2>What's on the line</h2></div>
+    <div class="path">
+      <div class="step now"><div class="rnd">Losers Final · Next</div><div class="who"><span class="m">Modus</span> / <span class="t">WildCard</span></div><p>Best of 7. Elimination match.</p></div>
+      <div class="step"><div class="rnd">Grand Final · Best of 9</div><div class="who">Gorn</div><p>Unbeaten. Coming from the losers bracket, tonight's winner has to beat Gorn twice: once to force the reset, then again.</p></div>
+      <div class="step"><div class="rnd">The rematch</div><div class="who">Either way</div><p>Both lost to Gorn 3–4 with a game-seven mirror. Modus is 3–4 against Gorn in career 1v1s. WildCard is 14–12.</p></div>
+    </div>
+    <div class="out"><b>Loser:</b> eliminated in 3rd place.</div>
+  </section>
+
+  <section class="signoff">
+    <div class="booth">
+      <span class="who">Color commentary · The booth's call</span>
+      <p>The model makes Modus a 55% favorite in every game, which works out to about 62% for the series. The comfort index leans further toward Modus, because Modus has the better career number on ten of twelve generals. And there's the 6–0, even if the last of those six was seven weeks ago.</p>
+      <p>But WildCard is rested, was one game from beating Gorn, and swept both map pairs against Tytan. If WildCard can keep the picks on Laser, USA and Infantry and drag games past ten minutes, this becomes a different series.</p>
+    </div>
+    <div class="call"><span class="m">Modus 4–2.</span><br><span style="color:var(--ink-dim)">Unless WildCard sweeps a pair.</span></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">Every number comes from the RadarVan replay database, as of October 24, 2026: 63 tournament games in the 2026 1v1 Bracket, each player's career records, and 298 community 1v1 games. Model figures come from the RadarVan win-probability model. The comfort index compares each player's career win rate on each general, smoothed toward their overall rate.</div>
+</footer>
+
+<script>
+(function () {
+  const D = {"model":[[0.556,0.499,0.515,0.541,0.633,0.555,0.563,0.535,0.582,0.542,0.479,0.57],[0.604,0.549,0.585,0.6,0.636,0.609,0.585,0.568,0.576,0.582,0.539,0.6],[0.588,0.512,0.549,0.603,0.654,0.607,0.575,0.555,0.596,0.604,0.512,0.595],[0.568,0.501,0.498,0.555,0.615,0.578,0.518,0.523,0.536,0.541,0.495,0.533],[0.489,0.478,0.457,0.507,0.571,0.524,0.485,0.475,0.552,0.51,0.443,0.523],[0.561,0.498,0.5,0.537,0.606,0.562,0.543,0.507,0.531,0.52,0.478,0.551],[0.546,0.517,0.526,0.589,0.635,0.572,0.554,0.51,0.545,0.557,0.496,0.587],[0.57,0.531,0.542,0.58,0.639,0.602,0.593,0.55,0.598,0.568,0.528,0.609],[0.531,0.529,0.508,0.575,0.576,0.587,0.565,0.507,0.557,0.582,0.475,0.566],[0.569,0.522,0.499,0.568,0.613,0.596,0.552,0.536,0.531,0.556,0.524,0.565],[0.62,0.558,0.582,0.604,0.665,0.626,0.604,0.569,0.625,0.578,0.548,0.615],[0.541,0.503,0.508,0.576,0.602,0.566,0.522,0.494,0.546,0.546,0.485,0.556]],"comfort":[[0.48,0.457,0.448,0.532,0.548,0.522,0.488,0.48,0.476,0.573,0.494,0.452],[0.585,0.562,0.552,0.634,0.648,0.624,0.592,0.585,0.58,0.671,0.597,0.556],[0.503,0.479,0.47,0.555,0.57,0.544,0.511,0.503,0.498,0.595,0.516,0.474],[0.537,0.514,0.505,0.588,0.603,0.578,0.545,0.537,0.533,0.628,0.55,0.508],[0.528,0.504,0.495,0.579,0.594,0.569,0.536,0.528,0.523,0.619,0.541,0.499],[0.606,0.583,0.574,0.654,0.668,0.644,0.613,0.606,0.601,0.69,0.618,0.578],[0.57,0.546,0.537,0.62,0.634,0.61,0.577,0.57,0.565,0.658,0.582,0.541],[0.538,0.514,0.505,0.589,0.604,0.579,0.546,0.538,0.533,0.628,0.551,0.509],[0.615,0.593,0.584,0.663,0.677,0.654,0.623,0.615,0.611,0.699,0.628,0.588],[0.621,0.599,0.59,0.669,0.682,0.659,0.629,0.621,0.617,0.704,0.633,0.593],[0.643,0.621,0.612,0.689,0.702,0.68,0.65,0.643,0.638,0.723,0.655,0.616],[0.556,0.533,0.524,0.607,0.622,0.597,0.564,0.556,0.552,0.645,0.569,0.528]],"m1":[[3,0],[3,1],[0,2],[3,1],[4,2],[3,0],[4,1],[5,1],[4,0],[5,1],[4,1],[2,2]],"mv":[[5,1],[1,3],[1,0],[4,1],[2,1],[4,0],[6,1],[0,4],[5,1],[4,0],[4,0],[4,0]],"t1":[[8,2],[2,0],[6,4],[1,1],[2,1],[4,2],[3,0],[3,1],[5,2],[4,1],[2,3],[6,4]],"tv":[[3,4],[2,1],[6,3],[3,3],[0,0],[3,2],[1,2],[4,3],[11,1],[5,0],[4,1],[4,1]],"mall":[50.0,62.5,52.9,57.1,56.1,65.1,60.8,57.1,66.0,66.7,69.1,59.3],"tall":[54.0,56.5,57.6,48.2,46.6,49.4,53.1,54.0,54.5,43.7,52.6,57.4],"mgames":[44,56,51,70,66,43,51,56,53,54,55,54],"tgames":[87,115,85,85,103,87,96,100,88,87,78,68],"comm":[[null,[2,2],[3,1],null,[3,7],[1,2],[3,3],[2,2],[9,2],[0,1],[2,1],[3,3]],[[2,2],null,[3,0],[1,0],[2,5],[0,1],[1,1],null,[3,6],[5,2],[2,1],[2,1]],[[1,3],[0,3],null,[1,1],[1,1],[4,4],[3,3],[0,4],[7,5],[2,2],[0,2],[2,2]],[null,[0,1],[1,1],null,[2,0],[1,1],[1,1],[4,3],[2,5],[4,5],[2,0],[2,3]],[[7,3],[5,2],[1,1],[0,2],null,[3,2],[2,5],[0,3],[0,2],[3,3],[0,3],[5,6]],[[2,1],[1,0],[4,4],[1,1],[2,3],null,[2,2],[1,6],[0,3],[2,2],[1,0],[2,3]],[[3,3],[1,1],[3,3],[1,1],[5,2],[2,2],null,[0,2],[5,3],[3,1],[1,1],[2,5]],[[2,2],null,[4,0],[3,4],[3,0],[6,1],[2,0],null,[5,4],[2,2],[2,2],[4,2]],[[2,9],[6,3],[5,7],[5,2],[2,0],[3,0],[3,5],[4,5],null,[3,4],[1,2],[2,3]],[[1,0],[2,5],[2,2],[5,4],[3,3],[2,2],[1,3],[2,2],[4,3],null,[3,3],[0,1]],[[1,2],[1,2],[2,0],[0,2],[3,0],[0,1],[1,1],[2,2],[2,1],[3,3],null,[0,1]],[[3,3],[1,2],[2,2],[3,2],[6,5],[3,2],[5,2],[2,4],[3,2],[1,0],[1,0],null]],"cw":[[28,24],[24,21],[21,30],[19,20],[27,33],[18,25],[27,24],[39,23],[37,41],[26,29],[15,15],[31,25]]};
+  const G = ["USA", "Air Force", "Laser", "Superweapon", "China", "Nuke", "Tank", "Infantry", "GLA", "Toxin", "Stealth", "Demolition"];
+  const AB = ["USA", "AF", "LSR", "SW", "CHN", "NUK", "TNK", "INF", "GLA", "TOX", "STL", "DEM"];
+  const FAC = [["USA", [0, 1, 2, 3]], ["China", [4, 5, 6, 7]], ["GLA", [8, 9, 10, 11]]];
+  const pad = n => String(n).padStart(2, "0");
+  const wl = r => r[0] + r[1] ? `${r[0]}–${r[1]}` : "—";
+  const pct = x => Math.round(x * 100) + "%";
+
+  // Set to the scheduled start (UTC) once the match has a time; null shows "to be announced".
+  const START = null;
+  if (START === null) {
+    document.getElementById("cd").hidden = true;
+  } else {
+    try {
+      document.getElementById("cd-local").textContent = new Date(START).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+    } catch (e) {}
+    const tick = () => {
+      const d = START - Date.now();
+      if (d <= 0) {
+        document.getElementById("cd").innerHTML = '<div class="cd-cell" style="min-width:auto"><b style="color:var(--signal)">' + (d > -4 * 3600e3 ? "LIVE NOW" : "FINAL") + '</b><small>Losers Final</small></div>';
+        return;
+      }
+      const s = Math.floor(d / 1000);
+      document.getElementById("cd-d").textContent = Math.floor(s / 86400);
+      document.getElementById("cd-h").textContent = pad(Math.floor(s / 3600) % 24);
+      document.getElementById("cd-m").textContent = pad(Math.floor(s / 60) % 60);
+      document.getElementById("cd-s").textContent = pad(s % 60);
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
+
+  // Tale of the tape: [modus, label, wildcard, edge]
+  const TAPE = {
+    tour: { rows: [
+      ["#1", "Seed", "#3", "m"],
+      ["3–1", "Series record", "2–1", ""],
+      ["13–6", "Game record", "10–5", ""],
+      ["61.5", "Avg APM", "57.4", "m"],
+      ["7 / 19", "First blood", "8 / 15", "t"],
+      ["8.2 min", "Avg win length", "9.5 min", ""],
+      ["Toxin 2–0 · Nuke 2–0", "Best generals", "GLA 2–0 · Laser 2–2", ""],
+      ["Oct 23", "Last tournament game", "Sep 26", ""]
+    ], note: "Modus is 7–2 in games since dropping to the losers bracket and played a best of 7 on October 23. WildCard hasn't played a tournament game since September 26, but has gone 5–2 in 1v1s since October 16, including 2–1 against Gorn and 2–1 against Tytan." },
+    duel: { rows: [
+      ["40–12", "1v1 record", "46–21", "m"],
+      ["77%", "1v1 win rate", "69%", "m"],
+      ["6–0", "Head to head", "0–6", "m"],
+      ["3–4", "vs Gorn", "14–12", "t"],
+      ["5–3", "vs Tytan", "6–1", "t"],
+      ["17–1", "vs GLA generals", "24–3", ""],
+      ["Infantry 5–1 · Toxin 5–1", "Best 1v1 generals", "USA 8–2 · Laser 6–4", ""],
+      ["Laser 0–2", "Weak spot", "Stealth 2–3", ""]
+    ], note: "Modus won five of the six on April 24, 2026: once on Tiny Tactics, twice on Sand Scorpion and twice on Snowy Drought. The sixth, and most recent, was on September 5, seven weeks ago: Modus on Infantry against WildCard on Demolition on Liquid Gold in 4:48." },
+    all: { rows: [
+      ["653", "Career games", "1,079", "t"],
+      ["60.2%", "Win rate", "52.3%", "m"],
+      ["52.6<small>83rd percentile</small>", "Avg APM", "41.2<small>42nd percentile</small>", "m"],
+      ["Stealth 69.1%", "Best general", "Laser 57.6%", ""],
+      ["USA 50.0%", "Worst general", "Toxin 43.7%", ""],
+      ["Expansionist · Guard Duty · Minesweeper", "Top badges", "Scrap Scavenger · Power User · Expansionist", ""],
+      ["199–156", "Opposite teams", "156–199", "m"],
+      ["49–37", "Same team", "49–37", ""]
+    ], note: "WildCard has played far more games, and most of them in team formats. Modus leads on opposite teams in every format, 199–156. Modus's badges are gold; WildCard's are bronze." }
+  };
+  const tbl = document.getElementById("tape-table");
+  function renderTape(scope) {
+    tbl.innerHTML = TAPE[scope].rows.map(([a, l, b, e]) =>
+      `<tr><td class="num${e === "m" ? " edge" : ""}">${a}</td><td class="mid">${l}</td><td class="num${e === "t" ? " edge" : ""}">${b}</td></tr>`).join("");
+    document.getElementById("tape-note").textContent = TAPE[scope].note;
+    document.querySelectorAll("#tape .seg-toggle button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.scope === scope)));
+    try { localStorage.setItem("mw-tape", scope); } catch (e) {}
+  }
+  document.querySelectorAll("#tape .seg-toggle button").forEach(b => b.addEventListener("click", () => renderTape(b.dataset.scope)));
+  let saved = "tour";
+  try { saved = localStorage.getItem("mw-tape") || "tour"; } catch (e) {}
+  renderTape(TAPE[saved] ? saved : "tour");
+
+  // Faction bars
+  function facRecs(recs) { return FAC.map(([n, gs]) => [n, gs.reduce((a, g) => [a[0] + recs[g][0], a[1] + recs[g][1]], [0, 0])]); }
+  function renderFac(id, played, faced, color) {
+    const row = ([n, r]) => { const p = r[0] / (r[0] + r[1]); return `<span>${n}</span><span class="bar"><i style="width:${p * 100}%;background:${color}"></i></span><span class="v">${wl(r)}</span>`; };
+    document.getElementById(id).innerHTML = `<span class="grp">Playing as</span>${facRecs(played).map(row).join("")}<span class="grp">Against</span>${facRecs(faced).map(row).join("")}`;
+  }
+  renderFac("fac-m", D.m1, D.mv, "var(--modus)");
+  renderFac("fac-t", D.t1, D.tv, "var(--wild)");
+
+  // General table
+  const commPct = D.cw.map(r => r[0] / (r[0] + r[1]));
+  function zone(g) {
+    const e = D.mall[g] - D.tall[g];
+    if (e >= 5) return '<span class="zone mz">Modus zone</span>';
+    if (e <= -3) return '<span class="zone tz">WildCard zone</span>';
+    return '<span class="zone nz">Contested</span>';
+  }
+  let gt = `<thead><tr><th>General</th><th>Modus 1v1</th><th>Modus career</th><th>WildCard 1v1</th><th>WildCard career</th><th>Community 1v1</th><th>Edge</th><th>Zone</th></tr></thead><tbody>`;
+  FAC.forEach(([n, gs]) => {
+    gt += `<tr class="fac"><td colspan="8">${n}</td></tr>`;
+    gs.forEach(g => {
+      const e = D.mall[g] - D.tall[g];
+      const w = Math.min(60, Math.abs(e) / 12 * 60);
+      const bar = `<span class="edgebar" aria-hidden="true"><span>${e < 0 ? `<i style="width:${w}px"></i>` : ""}</span><span>${e > 0 ? `<i style="width:${w}px"></i>` : ""}</span></span>`;
+      gt += `<tr><td class="gname">${G[g]}</td><td>${wl(D.m1[g])}</td><td>${D.mall[g].toFixed(1)}%</td><td>${wl(D.t1[g])}</td><td>${D.tall[g].toFixed(1)}%</td><td>${Math.round(commPct[g] * 100)}%</td><td><span class="${e > 0 ? "m" : e < 0 ? "t" : ""}">${e > 0 ? "+" : ""}${e.toFixed(1)}</span>${bar}</td><td>${zone(g)}</td></tr>`;
+    });
+  });
+  document.getElementById("gtable").innerHTML = gt + "</tbody>";
+
+  // Heatmap of pair comfort (both legs averaged)
+  const pairC = (i, j) => (D.comfort[i][j] + D.comfort[j][i]) / 2;
+  const pairM = (i, j) => (D.model[i][j] + D.model[j][i]) / 2;
+  const hexRgb = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+  const NEU = hexRgb("#2a3442"), MOD = hexRgb("#2aa3c8"), WLD = hexRgb("#d9468f");
+  function heatColor(v) {
+    const t = Math.max(-1, Math.min(1, (v - 0.5) / 0.1));
+    const to = t > 0 ? MOD : WLD, a = Math.abs(t);
+    return "rgb(" + NEU.map((c, k) => Math.round(c + (to[k] - c) * a)).join(",") + ")";
+  }
+  const heat = document.getElementById("heat");
+  let html = '<span></span>' + AB.map(a => `<span class="hl" title="WildCard: ${a}">${a}</span>`).join("");
+  for (let i = 0; i < 12; i++) {
+    html += `<span class="hl row">${AB[i]}</span>`;
+    for (let j = 0; j < 12; j++) {
+      const v = pairC(i, j);
+      html += `<button data-i="${i}" data-j="${j}" style="background:${heatColor(v)}" aria-label="Modus ${G[i]}, WildCard ${G[j]}: ${pct(v)} Modus">${Math.round(v * 100)}</button>`;
+    }
+  }
+  heat.innerHTML = html;
+  const read = document.getElementById("heat-read");
+  function describe(i, j) {
+    const v = pairC(i, j);
+    const fav = v >= 0.5 ? `<span class="m">Modus ${pct(v)}</span>` : `<span class="t">WildCard ${pct(1 - v)}</span>`;
+    return i === j ? `${G[i]} mirror: ${fav}` : `${G[i]} / ${G[j]} pair, both ways: ${fav}`;
+  }
+  heat.addEventListener("mouseover", e => { const b = e.target.closest("button"); if (b) read.innerHTML = describe(+b.dataset.i, +b.dataset.j); });
+  heat.addEventListener("focusin", e => { const b = e.target.closest("button"); if (b) read.innerHTML = describe(+b.dataset.i, +b.dataset.j); });
+  heat.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    selM.value = b.dataset.i; selT.value = b.dataset.j; renderLab();
+    document.getElementById("lab").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+  });
+
+  // Pick lab
+  const selM = document.getElementById("lab-m"), selT = document.getElementById("lab-t");
+  const opts = FAC.map(([n, gs]) => `<optgroup label="${n}">${gs.map(g => `<option value="${g}">${G[g]}</option>`).join("")}</optgroup>`).join("");
+  selM.innerHTML = opts; selT.innerHTML = opts;
+  selM.value = "9"; selT.value = "2";
+  function legCard(n, mg, tg) {
+    const c = D.comfort[mg][tg], md = D.model[mg][tg], cm = D.comm[mg][tg];
+    return `<div class="legcard"><h4>Game ${n}: <span class="m">Modus ${G[mg]}</span> vs <span class="t">WildCard ${G[tg]}</span></h4>
+      <div class="meter" aria-hidden="true"><i style="width:${c * 100}%"></i></div>
+      <dl>
+        <dt>Comfort index</dt><dd>${c >= .5 ? `<span class="m">Modus ${pct(c)}</span>` : `<span class="t">WildCard ${pct(1 - c)}</span>`}</dd>
+        <dt>Model</dt><dd>${md >= .5 ? `<span class="m">Modus ${pct(md)}</span>` : `<span class="t">WildCard ${pct(1 - md)}</span>`}</dd>
+        <dt>Modus 1v1 on ${G[mg]}</dt><dd>${wl(D.m1[mg])}</dd>
+        <dt>Modus 1v1 vs ${G[tg]}</dt><dd>${wl(D.mv[tg])}</dd>
+        <dt>WildCard 1v1 on ${G[tg]}</dt><dd>${wl(D.t1[tg])}</dd>
+        <dt>WildCard 1v1 vs ${G[mg]}</dt><dd>${wl(D.tv[mg])}</dd>
+        <dt>Community ${G[mg]} vs ${G[tg]}</dt><dd>${mg === tg ? "mirror" : cm ? wl(cm) : "—"}</dd>
+      </dl></div>`;
+  }
+  function renderLab() {
+    const i = +selM.value, j = +selT.value;
+    document.getElementById("legs").innerHTML = i === j ? legCard(1, i, j) : legCard(1, i, j) + legCard(2, j, i);
+    const c = pairC(i, j), m = pairM(i, j);
+    let txt;
+    if (c >= 0.6) txt = `<b class="m">Modus pair.</b> Modus is comfortable on both generals and WildCard isn't. Expect Modus to push for this.`;
+    else if (c <= 0.5) txt = `<b class="t">WildCard pair.</b> WildCard's best generals and Modus's weakest. In this matchup, that's as good as it gets for WildCard.`;
+    else txt = `<b>Playable pair.</b> Modus is still the favorite, but by little enough that execution decides it.`;
+    document.getElementById("verdict").innerHTML = `${txt} <span style="color:var(--ink-dim)">Pair comfort ${pct(c)} Modus · model ${(m * 100).toFixed(1)}% Modus.</span>`;
+    heat.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i && +b.dataset.j === j)));
+    read.innerHTML = describe(i, j);
+  }
+  selM.addEventListener("change", renderLab); selT.addEventListener("change", renderLab);
+  renderLab();
+
+  // Mirror picks for game seven
+  const mir = G.map((n, g) => ({ g, c: D.comfort[g][g], md: D.model[g][g] })).sort((a, b) => b.c - a.c);
+  const best = mir[0], worst = mir[mir.length - 1], coin = mir.slice().sort((a, b) => Math.abs(a.c - .5) - Math.abs(b.c - .5))[0];
+  document.getElementById("mirror").innerHTML = [
+    [best, "Modus wants", "m", `Comfort ${pct(best.c)} Modus. Modus is ${wl(D.m1[best.g])} on it in 1v1s and wins ${D.mall[best.g]}% overall; WildCard wins ${D.tall[best.g]}%.`],
+    [coin, "Closest to even", "", `Comfort ${pct(Math.max(coin.c, 1 - coin.c))} ${coin.c >= .5 ? "Modus" : "WildCard"}. WildCard is ${wl(D.t1[coin.g])} on it in 1v1s; Modus is ${wl(D.m1[coin.g])}.`],
+    [worst, "WildCard wants", "t", `Comfort ${pct(1 - worst.c)} WildCard. It's WildCard's best career general at ${D.tall[worst.g]}%, against Modus's ${D.mall[worst.g]}%.`]
+  ].map(([x, lab, cls, p]) => `<div class="mcard"><span class="label ${cls}">${lab}</span><div class="who">${G[x.g]} mirror</div><p>${p}</p></div>`).join("");
+
+  // Road
+  const ROAD = {
+    m: [
+      { rnd: "Winners Round 1", opp: "Bye (#1 seed)", bye: true },
+      { rnd: "Winners Round 2 · Bo5", opp: "Neo", score: "3–0", w: true, games: [
+        [1, "TD NoBugsCars", "GLA", "Air Force", 4.9], [1, "TD NoBugsCars", "Air Force", "GLA", 7.1], [1, "Snowy Drought", "China", "Nuke", 17.7]] },
+      { rnd: "Winners Semifinal · Bo7", opp: "Gorn", score: "3–4", w: false, games: [
+        [0, "Vendetta", "Superweapon", "GLA", 12.3], [1, "Vendetta", "GLA", "Superweapon", 8.7], [1, "Snowy Drought", "Infantry", "Demolition", 6.4], [0, "Snowy Drought", "Demolition", "Infantry", 8.0],
+        [1, "Natural Threats", "Tank", "China", 8.2], [0, "Natural Threats", "China", "Tank", 7.6], [0, "Oxygen 1", "Infantry", "Infantry", 10.6]] },
+      { rnd: "Losers Round 3 · Bo5", opp: "CoreDawg", score: "3–0", w: true, games: [
+        [1, "Snowy Drought", "Toxin", "Nuke", 4.1], [1, "Snowy Drought", "Nuke", "Toxin", 5.7], [1, "Oxygen 1", "Toxin", "Superweapon", 3.2]] },
+      { rnd: "Losers Round 4 · Bo7", opp: "Tytan", score: "4–2", w: true, games: [
+        [0, "Snowy Drought", "Demolition", "Air Force", 12.1], [1, "Snowy Drought", "Air Force", "Demolition", 10.4], [0, "Vendetta", "Tank", "Infantry", 12.6], [1, "Vendetta", "Infantry", "Tank", 5.2],
+        [1, "Canyon of the Dead", "Tank", "Nuke", 12.6], [1, "Canyon of the Dead", "Nuke", "Tank", 12.4]] },
+      { rnd: "Losers Final · Next", opp: "WildCard", pending: true }
+    ],
+    t: [
+      { rnd: "Winners Round 1", opp: "Bye (#3 seed)", bye: true },
+      { rnd: "Winners Round 2 · Bo5", opp: "CoreDawg", score: "3–1", w: true, games: [
+        [1, "Vendetta", "Air Force", "Laser", 5.1], [0, "Vendetta", "Laser", "Air Force", 7.4], [1, "Snowy Drought", "Laser", "Demolition", 10.7], [1, "Snowy Drought", "Demolition", "Laser", 8.5]] },
+      { rnd: "Winners Semifinal · Bo7", opp: "Tytan", score: "4–0", w: true, games: [
+        [1, "Vendetta", "GLA", "Superweapon", 15.8], [1, "Vendetta", "Superweapon", "GLA", 11.0], [1, "Snowy Drought", "Laser", "Toxin", 12.3], [1, "Snowy Drought", "Toxin", "Laser", 5.1]] },
+      { rnd: "Winners Final · Bo7", opp: "Gorn", score: "3–4", w: false, games: [
+        [0, "Oxygen 1", "Toxin", "Tank", 5.8], [1, "Oxygen 1", "Tank", "Toxin", 13.7], [0, "Vendetta", "Laser", "Infantry", 5.5], [1, "Vendetta", "Infantry", "Laser", 8.3],
+        [0, "Canyon of the Dead", "Infantry", "GLA", 12.9], [1, "Canyon of the Dead", "GLA", "Infantry", 4.7], [0, "TD NoBugsCars", "Demolition", "Demolition", 21.9]] },
+      { rnd: "Losers Final · Next", opp: "Modus", pending: true }
+    ]
+  };
+  const fmtMin = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ":" + pad(s % 60); };
+  function renderRoad(key) {
+    const el = document.getElementById("road-" + key);
+    el.innerHTML = ROAD[key].map((s, i) => {
+      if (s.bye) return `<div class="series"><button disabled style="cursor:default"><span class="rnd">${s.rnd}</span><span class="opp" style="color:var(--ink-dim)">${s.opp}</span></button></div>`;
+      if (s.pending) return `<div class="series pending"><button disabled style="cursor:default"><span class="rnd">${s.rnd}</span><span class="opp">vs ${s.opp}</span><span class="score" style="color:var(--signal)">?</span></button></div>`;
+      const id = `g-${key}-${i}`;
+      const games = s.games.map((g, n) => `<div class="game"><span class="r ${g[0] ? "w" : "l"}">${g[0] ? "W" : "L"}</span><span class="gm"><b>G${n + 1} · ${g[1]}</b><br><span>${g[2]} vs ${g[3]}</span></span><span class="tm">${fmtMin(g[4])}</span></div>`).join("");
+      return `<div class="series"><button aria-expanded="false" aria-controls="${id}" id="b-${id}"><span class="rnd">${s.rnd} <span class="chev">▾</span></span><span class="opp">vs ${s.opp}</span><span class="score ${s.w ? "w" : "l"} num">${s.score}</span></button><div class="games" id="${id}" hidden>${games}</div></div>`;
+    }).join("");
+    el.querySelectorAll("button[aria-controls]").forEach(b => b.addEventListener("click", () => {
+      const panel = document.getElementById(b.getAttribute("aria-controls"));
+      const open = b.getAttribute("aria-expanded") === "true";
+      b.setAttribute("aria-expanded", String(!open));
+      panel.hidden = open;
+      b.querySelector(".chev").textContent = open ? "▾" : "▴";
+    }));
+  }
+  renderRoad("m"); renderRoad("t");
+  ["b-g-m-4", "b-g-t-3"].forEach(id => { const b = document.getElementById(id); if (b) b.click(); });
+
+  // Map room
+  const MAPS = [
+    { name: "Snowy Drought", side: "n", mod: "5–2", wc: "4–0", verdict: "Collision course",
+      body: "Both players' best map. Modus has gone to Snowy Drought in all four series: a 17:42 win over Neo, a split with Gorn, a 2–0 over CoreDawg and a split with Tytan. WildCard is perfect here, 2–0 against CoreDawg (Laser, Demolition) and 2–0 against Tytan (Laser, Toxin).",
+      fine: "Outside the bracket, Modus beat WildCard here twice on April 24, in 6:30 on Stealth and 11:24 on USA." },
+    { name: "Vendetta", side: "t", mod: "2–2", wc: "4–2", verdict: "Leans WildCard",
+      body: "The bracket's most-played map, with 14 games. WildCard swept Tytan here, including the 15:48 comeback from 15%, and split with CoreDawg and Gorn. Modus split with Gorn and with Tytan, losing a 12:36 Tank game and winning the swap in 5:12.",
+      fine: "WildCard's two losses here both came on Laser." },
+    { name: "Canyon of the Dead", side: "m", mod: "2–0", wc: "1–1", verdict: "Leans Modus",
+      body: "Modus closed out Tytan here with two long China wins, 12:36 on Tank and 12:24 on Nuke. WildCard split with Gorn, losing a 12:54 Infantry game and then winning on GLA in 4:42.",
+      fine: "It's the second most-played map of the bracket, and seven of its 13 games have ended inside six minutes." },
+    { name: "TD NoBugsCars", side: "m", mod: "2–0", wc: "0–1", verdict: "Leans Modus",
+      body: "Modus beat Neo here twice in under eight minutes, on GLA in 4:54 and on Air Force in 7:06. WildCard's only game here was the 21:54 Demolition mirror that decided the Winners Final.",
+      fine: "That's the longest game of the bracket." },
+    { name: "Oxygen 1", side: "n", mod: "1–1", wc: "1–1", verdict: "Neutral",
+      body: "Modus lost the game-seven Infantry mirror to Gorn here, then closed out CoreDawg on Toxin in 3:12. WildCard opened the Winners Final here, losing on Toxin in 5:48 and winning the swap on Tank in 13:42.",
+      fine: "Only six games played here all tournament." },
+    { name: "Natural Threats", side: "n", mod: "1–1", wc: null, verdict: "Neutral",
+      body: "Modus split two games with Gorn here, winning on Tank and losing the swapped game on China. WildCard hasn't played it in the bracket.",
+      fine: "Only two games played here all tournament." }
+  ];
+  const sideColor = { m: "var(--modus)", t: "var(--wild)", n: "var(--ink-dim)" };
+  const list = document.getElementById("maplist");
+  list.innerHTML = MAPS.map((m, i) => `<button id="map-${i}" data-i="${i}" aria-pressed="false"><span>${m.name}</span><span class="dot" style="background:${sideColor[m.side]}"></span></button>`).join("");
+  function renderMap(i) {
+    const m = MAPS[i];
+    const rec = (v, who, cls) => `<div class="rec"><div class="who ${cls}">${who}</div><div class="wl num ${v ? cls : "none"}">${v || "Unplayed"}</div></div>`;
+    const bg = m.side === "m" ? "background:var(--modus);color:#04161d" : m.side === "t" ? "background:var(--wild);color:#2a0718" : "background:var(--panel-2);color:var(--ink)";
+    document.getElementById("mapcard").innerHTML = `<span class="vtag" style="${bg}">${m.verdict}</span><h3>${m.name}</h3><div class="recs">${rec(m.mod, "Modus", "m")}${rec(m.wc, "WildCard", "t")}</div><p>${m.body}</p><p class="fine">${m.fine}</p>`;
+    list.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+  }
+  list.querySelectorAll("button").forEach(b => b.addEventListener("click", () => renderMap(+b.dataset.i)));
+  renderMap(0);
+
+  // Series simulator (best of 7)
+  const C = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
+  const slider = document.getElementById("sim-p");
+  function renderSim() {
+    const p = slider.value / 100, q = 1 - p;
+    document.getElementById("sim-pct").textContent = slider.value + "%";
+    // First to 4: the winner takes game 4+k after losing k of the first 3+k.
+    const out = [0, 1, 2, 3].map(k => [`4–${k}`, C(3 + k, k) * p ** 4 * q ** k, "m"])
+      .concat([3, 2, 1, 0].map(k => [`${k}–4`, C(3 + k, k) * q ** 4 * p ** k, "t"]));
+    const max = Math.max(...out.map(o => o[1]));
+    document.getElementById("outcomes").innerHTML = out.map(([s, v, k]) =>
+      `<div class="oc"><span class="p">${Math.round(v * 100)}%</span><div class="bar" style="height:${Math.max(2, v / max * 100) * .72}%;background:${k === "m" ? "var(--modus)" : "var(--wild)"}"></div><span class="s ${k}">${s}</span></div>`).join("");
+    const pm = out.slice(0, 4).reduce((a, o) => a + o[1], 0);
+    const tm = document.getElementById("tot-m"), tt = document.getElementById("tot-t");
+    tm.style.flexBasis = (pm * 100) + "%"; tt.style.flexBasis = ((1 - pm) * 100) + "%";
+    tm.textContent = pm > .14 ? `Modus ${Math.round(pm * 100)}%` : "";
+    tt.textContent = pm < .86 ? `WildCard ${Math.round((1 - pm) * 100)}%` : "";
+  }
+  slider.addEventListener("input", renderSim);
+  document.querySelectorAll(".sim-presets button").forEach(b => b.addEventListener("click", () => { slider.value = b.dataset.p; renderSim(); }));
+  renderSim();
+})();
+</script>
+</body>
+</html>

@@ -137,6 +137,9 @@ def configure_logging(dev: bool = False) -> None:
     # Third-party libraries stay at INFO; in dev our own loggers drop to DEBUG.
     root.setLevel(logging.INFO)
     logging.getLogger("radarvan").setLevel(logging.DEBUG if dev else logging.INFO)
+    # Their INFO line is the full request URL, which leaks the webhook token.
+    for name in ("httpx", "httpx2"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
     # uvicorn/gunicorn install their own handlers on named loggers with
     # propagate=False, so their output would otherwise bypass this formatter.

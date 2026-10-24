@@ -15,6 +15,8 @@ call; ``force_refresh`` then overwrites the cached row, ``bypass_cache``
 leaves it untouched. Both are admin-tier-only - see the route docstrings.
 """
 
+import threading
+from collections.abc import Hashable
 from typing import NamedTuple
 
 import structlog
@@ -45,6 +47,17 @@ from . import bracket as bracket_routes
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["commentary"])
+
+# One lock per cache key: generation outlives Heroku's 30s router timeout, so
+# a reload after the 503 would otherwise miss the cache and bill a second call.
+# Keys are bounded (rounds x players, tournaments x stages), so never evicted.
+_generation_locks: dict[Hashable, threading.Lock] = {}
+_generation_locks_guard = threading.Lock()
+
+
+def _generation_lock(key: Hashable) -> threading.Lock:
+    with _generation_locks_guard:
+        return _generation_locks.setdefault(key, threading.Lock())
 
 
 @router.get("/api/matchup_commentary/")
@@ -97,23 +110,29 @@ def get_matchup_commentary(
             status_code=503,
             detail="commentary generation is not available on this server",
         )
-    try:
-        text = matchup_commentary.generate_commentary(
-            replay_manager, player1, player2, round_name
-        )
-    except matchup_commentary.CommentaryGenerationError as e:
-        logger.error("matchup commentary generation failed", exc_info=e)
-        raise HTTPException(
-            status_code=502, detail="commentary generation failed"
-        ) from e
-    if not bypass_cache:
-        replay_manager.save_commentary(
-            player1,
-            player2,
-            round_name,
-            text,
-            matchup_commentary.active_provider(),
-        )
+    with _generation_lock(("commentary", player1, player2, round_name)):
+        # Another request may have generated it while this one waited.
+        if not skip_cache_read:
+            cached = replay_manager.get_cached_commentary(player1, player2, round_name)
+            if cached is not None:
+                return MatchupCommentaryResponse(commentary=cached)
+        try:
+            text = matchup_commentary.generate_commentary(
+                replay_manager, player1, player2, round_name
+            )
+        except matchup_commentary.CommentaryGenerationError as e:
+            logger.error("matchup commentary generation failed", exc_info=e)
+            raise HTTPException(
+                status_code=502, detail="commentary generation failed"
+            ) from e
+        if not bypass_cache:
+            replay_manager.save_commentary(
+                player1,
+                player2,
+                round_name,
+                text,
+                matchup_commentary.active_provider(),
+            )
     return MatchupCommentaryResponse(commentary=text)
 
 
@@ -253,20 +272,32 @@ def get_bracket_summary(
             status_code=503,
             detail="commentary generation is not available on this server",
         )
-    try:
-        text = postgame_summary.generate_summary(
-            replay_manager, recappable.match, recappable.games
-        )
-    except matchup_commentary.CommentaryGenerationError as e:
-        logger.error("bracket summary generation failed", exc_info=e, stage=match_id)
-        raise HTTPException(status_code=502, detail="summary generation failed") from e
-    if not bypass_cache:
-        summary_repo.save_summary(
-            recappable.tournament_id,
-            match_id,
-            text,
-            matchup_commentary.active_provider(),
-        )
+    with _generation_lock(("summary", recappable.tournament_id, match_id)):
+        # Another request may have generated it while this one waited.
+        if not skip_cache_read:
+            cached = summary_repo.get_cached_summary(recappable.tournament_id, match_id)
+            if cached is not None:
+                return BracketSummaryResponse(
+                    match_id=match_id, ready=True, summary=cached
+                )
+        try:
+            text = postgame_summary.generate_summary(
+                replay_manager, recappable.match, recappable.games
+            )
+        except matchup_commentary.CommentaryGenerationError as e:
+            logger.error(
+                "bracket summary generation failed", exc_info=e, stage=match_id
+            )
+            raise HTTPException(
+                status_code=502, detail="summary generation failed"
+            ) from e
+        if not bypass_cache:
+            summary_repo.save_summary(
+                recappable.tournament_id,
+                match_id,
+                text,
+                matchup_commentary.active_provider(),
+            )
     return BracketSummaryResponse(match_id=match_id, ready=True, summary=text)
 
 
