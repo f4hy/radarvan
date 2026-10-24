@@ -27,7 +27,7 @@
     "react-activity-calendar": "^3.2.1",
     "react-dom": "^19.3.0",
     "react-is": "^19.3.0",
-    "react-router": "^8.4.0",
+    "react-router": "^8.5.0",
     "recharts": "^3.10.1"
   },
   "scripts": {
