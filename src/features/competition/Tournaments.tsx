@@ -1,21 +1,23 @@
+import {
+  Chip,
+  Tooltip as MuiTooltip,
+  Typography,
+  useTheme,
+} from "@mui/material"
+import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
+import Divider from "@mui/material/Divider"
+import LinearProgress from "@mui/material/LinearProgress"
+import Paper from "@mui/material/Paper"
+import Stack from "@mui/material/Stack"
 import Table from "@mui/material/Table"
-import ToggleButton from "@mui/material/ToggleButton"
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
-import Box from "@mui/material/Box"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
-import Button from "@mui/material/Button"
-import Stack from "@mui/material/Stack"
-import Loading from "../../components/Loading"
-import Page from "../../components/Page"
-import { queryFallback } from "../../components/QueryState"
-import LinearProgress from "@mui/material/LinearProgress"
-import Divider from "@mui/material/Divider"
-import Paper from "@mui/material/Paper"
-import { Chip, Tooltip as MuiTooltip, useTheme } from "@mui/material"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
@@ -23,28 +25,30 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  Legend,
 } from "recharts"
-import type {
-  Tournament,
-  TournamentResult,
-  MatchupResult,
-  WinLoss,
-  MatchInfo,
-} from "../../api/types.gen"
 import {
   getMatchByIdApiMatchMatchIdGetOptions,
   getTournamentReportApiTournamentReportTournamentNameGetOptions,
   getTournamentResultsApiTournamentResultsGetOptions,
 } from "../../api/@tanstack/react-query.gen"
-import { useIsAdmin } from "../../lib/AuthContext"
-import { WIN_COLOR, WIN_COLOR_SOFT, LOSS_COLOR } from "../../lib/theme"
-import { Typography } from "@mui/material"
+import type {
+  MatchInfo,
+  MatchupResult,
+  Tournament,
+  TournamentResult,
+  WinLoss,
+} from "../../api/types.gen"
+import Loading from "../../components/Loading"
 import { MatchCard } from "../../components/MatchCard"
+import Page from "../../components/Page"
+import { queryFallback } from "../../components/QueryState"
+import { useIsAdmin } from "../../lib/AuthContext"
+import { LOSS_COLOR, WIN_COLOR, WIN_COLOR_SOFT } from "../../lib/theme"
 
 const getWinRateStyle = (winRate: number) => {
   if (winRate >= 55) {

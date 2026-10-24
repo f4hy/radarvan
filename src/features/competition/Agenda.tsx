@@ -14,17 +14,19 @@ import Stack from "@mui/material/Stack"
 import { alpha, keyframes, type Theme } from "@mui/material/styles"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
-import DateTimeField from "../../components/DateTimeField"
-import dayjs, { type Dayjs } from "dayjs"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import dayjs, { type Dayjs } from "dayjs"
 import * as React from "react"
-import { useAuth, useIsTournamentAdmin } from "../../lib/AuthContext"
-import { startDiscordLogin } from "../../lib/auth"
 import {
   getBracketPredictionLeaderboardApiBracketPredictionLeaderboardGetOptions,
   getBracketPredictionsApiBracketPredictionsGetOptions,
   getBracketPredictionsApiBracketPredictionsGetQueryKey,
 } from "../../api/@tanstack/react-query.gen"
+import DateTimeField from "../../components/DateTimeField"
+import { useAuth, useIsTournamentAdmin } from "../../lib/AuthContext"
+import { startDiscordLogin } from "../../lib/auth"
+import { WIN_COLOR } from "../../lib/theme"
+import { useErrorSnackbar } from "../../lib/useErrorSnackbar"
 import {
   type BracketMatchOutput,
   type BracketMatchPrediction,
@@ -39,8 +41,6 @@ import {
   shortMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
-import { WIN_COLOR } from "../../lib/theme"
-import { useErrorSnackbar } from "../../lib/useErrorSnackbar"
 
 // Escalating hype thresholds for AgendaCountdown - calm and quiet until a
 // match is a week out, then increasingly loud so the countdown itself
