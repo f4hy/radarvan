@@ -161,7 +161,7 @@ def test_legacy_page_link_redirects(client: TestClient) -> None:
     assert resp.status_code == 301
     assert resp.headers["location"] == "/game-night?date=2026-01-05"
     resp = client.get("/?page=renamed-long-ago")
-    assert resp.headers["location"] == "/matches"
+    assert resp.headers["location"] == "/game-night"
 
 
 def test_trailing_slash_redirects(client: TestClient) -> None:

@@ -25,7 +25,7 @@ import {
   chooseMap,
   playerCountsQuery,
   votingPlayersQuery,
-} from "./voting"
+} from "../maps/voting"
 
 type Phase = "pick" | "ready" | "reveal" | "spin" | "done"
 
