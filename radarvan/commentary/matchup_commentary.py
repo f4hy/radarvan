@@ -234,12 +234,8 @@ def build_prompt(
     return MatchupPrompt(system=SYSTEM_PROMPT, user_message=user_message)
 
 
-def generate_commentary(
-    replay_manager: ReplayManager, player1: str, player2: str, round_name: str
-) -> str:
-    """Fetch both players' data and generate pre-game commentary for
-    round_name, using whichever provider COMMENTARY_PROVIDER selects."""
-    prompt = build_prompt(replay_manager, player1, player2, round_name)
+def generate_commentary(prompt: llm.Prompt, player1: str, player2: str) -> str:
+    """Generate pre-game commentary from ``build_prompt``'s output."""
     return llm.generate(
         prompt, kind="Matchup commentary", label=f"{player1} vs {player2}"
     )
