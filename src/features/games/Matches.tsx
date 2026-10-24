@@ -8,6 +8,7 @@ import Chip from "@mui/material/Chip"
 import Link from "@mui/material/Link"
 import Stack from "@mui/material/Stack"
 import TextField from "@mui/material/TextField"
+import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 
 import groupBy from "lodash/groupBy"
@@ -126,10 +127,15 @@ function MatchDateSummary(props: {
     const color = scaled >= 0 ? "success.main" : "error.main"
     const prefix = scaled >= 0 ? "+" : ""
     return (
-      <Typography key={r.name} variant="body2" color={color}>
-        {normalizePlayerName(r.name)}: {prefix}
-        {scaled}
-      </Typography>
+      <Tooltip key={r.name} title="Rating change this night">
+        <Typography
+          variant="body2"
+          sx={{ color, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}
+        >
+          {normalizePlayerName(r.name)} {prefix}
+          {scaled}
+        </Typography>
+      </Tooltip>
     )
   })
 
@@ -195,11 +201,17 @@ function MatchDateSummary(props: {
           spacing={1}
           sx={{
             flexWrap: "wrap",
+            alignItems: "center",
             mt: 0.5,
             display: { xs: "none", sm: "flex" },
           }}
         >
           {wlChips}
+          {ratingItems.length > 0 && (
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Rating
+            </Typography>
+          )}
           {ratingItems}
         </Stack>
       )}

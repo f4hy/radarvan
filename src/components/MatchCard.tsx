@@ -129,7 +129,8 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
   let icon = props.won ? <EmojiEventsIcon /> : <ErrorIcon />
   let bandColor = props.won ? WON_BAND : LOST_BAND
   // Observer-ness comes from `role`, not `team` - see utils.isObserver.
-  if (first != null && isObserver(first)) {
+  const observers = first != null && isObserver(first)
+  if (observers) {
     label = "Observers"
     icon = <VisibilityIcon />
     bandColor = NEUTRAL_BAND
@@ -139,10 +140,12 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     bandColor = NEUTRAL_BAND
   }
   return (
+    // Observers get a narrower column: they didn't play, so they shouldn't
+    // take as much of the row as a team does.
     <Card
       sx={{
-        width: { xs: "100%", sm: "50%", md: "auto" },
-        flex: { md: 1 },
+        width: { xs: "100%", sm: "calc(50% - 4px)", md: "auto" },
+        flex: { md: observers ? "0 1 180px" : 1 },
         minWidth: 0,
         overflow: "hidden",
       }}
@@ -544,7 +547,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
         sx={{
           justifyContent: "flex-start",
           flexWrap: { xs: "wrap", md: "nowrap" },
-          rowGap: 1,
+          gap: 1,
           mt: 1,
         }}
       >
@@ -557,7 +560,14 @@ export const MatchCard = React.memo(function MatchCard(props: {
             won={team[0].team === props.match.winning_team}
           />
         ))}
-        <Box sx={{ flexShrink: 0, width: { xs: "100%", md: "auto" } }}>
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: { xs: "100%", md: "auto" },
+            borderRadius: 1,
+            overflow: "hidden",
+          }}
+        >
           <GameMap
             mapname={props.match.map}
             playerPositions={playerPositions}

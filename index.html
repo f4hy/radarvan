@@ -6,9 +6,10 @@
     <link rel="icon" type="image/webp" href="/img/radarvan_logo.webp" />
     <link rel="apple-touch-icon" href="/img/radarvan_logo.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Matches the app bar (theme.ts APPBAR_BG) so mobile chrome blends into
-         the page instead of framing it in black. -->
-    <meta name="theme-color" content="#1f2733" />
+    <!-- Matches the app bar (theme.ts paperBg per mode) so mobile chrome
+         blends into the page. -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a212c" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href="/manifest.json" />
     <!-- In production the server replaces everything between the seo markers
          with per-page tags (radarvan/seo.py); these are the fallback. -->

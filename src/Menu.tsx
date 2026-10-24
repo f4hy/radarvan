@@ -66,7 +66,7 @@ function ColorModeToggle() {
   )
 }
 
-const drawerWidth = 204
+const drawerWidth = 220
 
 /**
  * The app shell: top bar, sidebar, and the slot the routed page renders into.
@@ -191,9 +191,17 @@ export default function Menu() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          {/* Phones only: on wider screens the sidebar shows the logo and the
+              page's own <h1> sits right below, so a title here repeats it. */}
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ display: { sm: "none" } }}
+          >
             {current?.title ?? "Radarvan"}
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
           <ColorModeToggle />
           {/* Icon-only on phones: a long player name here squeezed the page
               title down to a few characters. */}
