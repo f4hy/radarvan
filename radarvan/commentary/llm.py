@@ -97,7 +97,11 @@ def _notify_generated(
 
 
 def _record_usage(
-    provider: str, model: str, input_tokens: int | None, output_tokens: int | None
+    provider: str,
+    model: str,
+    input_tokens: int | None,
+    output_tokens: int | None,
+    reasoning_tokens: int | None = None,
 ) -> None:
     span = trace.get_current_span()
     span.set_attribute("gen_ai.provider.name", provider)
@@ -106,6 +110,8 @@ def _record_usage(
         span.set_attribute("gen_ai.usage.input_tokens", input_tokens)
     if output_tokens is not None:
         span.set_attribute("gen_ai.usage.output_tokens", output_tokens)
+    if reasoning_tokens is not None:
+        span.set_attribute("gen_ai.usage.reasoning.output_tokens", reasoning_tokens)
 
 
 def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
@@ -194,7 +200,9 @@ def _generate_with_gemini(prompt: Prompt, kind: str, label: str) -> str:
     input_tokens = usage.total_input_tokens if usage else None
     output_tokens = usage.total_output_tokens if usage else None
     thought_tokens = usage.total_thought_tokens if usage else None
-    _record_usage("gemini", gemini_client.MODEL, input_tokens, output_tokens)
+    _record_usage(
+        "gemini", gemini_client.MODEL, input_tokens, output_tokens, thought_tokens
+    )
     logger.info(
         "llm text generated",
         provider="gemini",

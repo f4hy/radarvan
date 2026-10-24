@@ -10,6 +10,7 @@ from anthropic.types import TextBlock, Usage
 
 from radarvan.api_types import (
     HeadToHeadDetail,
+    MatchupCommentaryResponse,
     PlayerProfile,
 )
 from radarvan.commentary import (
@@ -21,6 +22,7 @@ from radarvan.commentary import (
 )
 from radarvan.db_utils import ReplayManager
 from radarvan.routes import commentary
+from conftest import BackgroundGeneration
 
 
 def _profile(player: str) -> PlayerProfile:
@@ -151,41 +153,81 @@ def test_route_503_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exc_info.value.status_code == 503
 
 
-def test_route_200_returns_generated_text(monkeypatch: pytest.MonkeyPatch) -> None:
+def _patch_generation(
+    monkeypatch: pytest.MonkeyPatch,
+    generate: object = lambda prompt, p1, p2: "**Hype.**",
+) -> None:
     monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
+    monkeypatch.setattr(matchup_commentary, "active_provider", lambda: "gemini")
     monkeypatch.setattr(
-        matchup_commentary,
-        "generate_commentary",
-        lambda replay_manager, player1, player2, round_name: "**Hype.**",
+        matchup_commentary, "build_prompt", lambda *args: llm.Prompt("sys", "user")
     )
-    result = commentary.get_matchup_commentary(
+    monkeypatch.setattr(matchup_commentary, "generate_commentary", generate)
+
+
+def _get(stub: _StubReplayManager, **kwargs: object) -> MatchupCommentaryResponse:
+    return commentary.get_matchup_commentary(
         "Alice",
         "Bob",
         "Winners Round 1",
-        replay_manager=cast(ReplayManager, _StubReplayManager()),
+        replay_manager=cast(ReplayManager, stub),
+        **kwargs,  # type: ignore[arg-type]
     )
-    assert result.commentary == "**Hype.**"
 
 
-def test_route_502_on_generation_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
+def test_route_miss_answers_pending_and_saves_in_the_background(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
+    _patch_generation(monkeypatch)
+    result = _get(_StubReplayManager())
+    assert result.pending is True
+    assert result.commentary is None
+    assert background_generation.saved == []
 
-    def _boom(
-        replay_manager: object, player1: str, player2: str, round_name: str
-    ) -> str:
-        raise matchup_commentary.CommentaryGenerationError("boom")
+    background_generation.run_all()
+    assert background_generation.saved == [
+        ("Alice", "Bob", "Winners Round 1", "**Hype.**", "gemini")
+    ]
 
-    monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
+
+def test_route_polls_while_generating_never_start_a_second_run(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
+    """Polling is free: the UI asks every few seconds while ``pending``."""
+    _patch_generation(monkeypatch)
+    _get(_StubReplayManager())
+    assert _get(_StubReplayManager()).pending is True
+    assert len(background_generation.spawned) == 1
+
+
+def test_route_502_after_a_failed_run_without_retrying(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
+    """A failure must end the UI's polling, not turn each poll into a new bill."""
     from fastapi import HTTPException
 
+    def _boom(prompt: object, player1: str, player2: str) -> str:
+        raise matchup_commentary.CommentaryGenerationError("boom")
+
+    _patch_generation(monkeypatch, _boom)
+    _get(_StubReplayManager())
+    background_generation.run_all()
+
     with pytest.raises(HTTPException) as exc_info:
-        commentary.get_matchup_commentary(
-            "Alice",
-            "Bob",
-            "Winners Round 1",
-            replay_manager=cast(ReplayManager, _StubReplayManager()),
-        )
+        _get(_StubReplayManager())
     assert exc_info.value.status_code == 502
+    assert background_generation.spawned == []
+    assert background_generation.saved == []
+
+
+def test_route_retries_after_the_failure_cooldown(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
+    _patch_generation(monkeypatch)
+    key = ("commentary", "Alice", "Bob", "Winners Round 1")
+    commentary._failed_at[key] = -commentary.FAILURE_COOLDOWN_S - 1.0
+    assert _get(_StubReplayManager()).pending is True
+    assert len(background_generation.spawned) == 1
 
 
 def test_route_returns_cached_commentary_without_generating(
@@ -199,43 +241,18 @@ def test_route_returns_cached_commentary_without_generating(
         raise AssertionError("generate_commentary should not be called on a cache hit")
 
     monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
-    stub = _StubReplayManager(cached="**Already hyped.**")
-    result = commentary.get_matchup_commentary(
-        "Alice", "Bob", "Winners Round 1", replay_manager=cast(ReplayManager, stub)
-    )
+    result = _get(_StubReplayManager(cached="**Already hyped.**"))
     assert result.commentary == "**Already hyped.**"
 
 
-def test_route_saves_commentary_after_generating(
-    monkeypatch: pytest.MonkeyPatch,
+def test_route_rechecks_cache_after_claiming_the_key(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
 ) -> None:
-    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
-    monkeypatch.setattr(
-        matchup_commentary,
-        "generate_commentary",
-        lambda replay_manager, player1, player2, round_name: "**Hype.**",
-    )
-    monkeypatch.setattr(matchup_commentary, "active_provider", lambda: "gemini")
-    stub = _StubReplayManager()
-    commentary.get_matchup_commentary(
-        "Alice", "Bob", "Winners Round 1", replay_manager=cast(ReplayManager, stub)
-    )
-    assert stub.saved == ("Alice", "Bob", "Winners Round 1", "**Hype.**", "gemini")
+    """A request that missed the cache just as another run saved and released
+    the key must serve that text rather than bill a second call."""
+    _patch_generation(monkeypatch)
 
-
-def test_route_rechecks_cache_after_waiting_for_generation_lock(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A request that missed the cache while another was generating must
-    serve the text that one saved rather than bill a second call."""
-    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
-
-    def _boom(*args: object, **kwargs: object) -> str:
-        raise AssertionError("generate_commentary should not run twice")
-
-    monkeypatch.setattr(matchup_commentary, "generate_commentary", _boom)
-
-    class _FilledWhileWaiting(_StubReplayManager):
+    class _FilledMeanwhile(_StubReplayManager):
         def __init__(self) -> None:
             super().__init__()
             self.reads = 0
@@ -246,12 +263,10 @@ def test_route_rechecks_cache_after_waiting_for_generation_lock(
             self.reads += 1
             return None if self.reads == 1 else "**From the other request.**"
 
-    stub = _FilledWhileWaiting()
-    result = commentary.get_matchup_commentary(
-        "Alice", "Bob", "Winners Round 1", replay_manager=cast(ReplayManager, stub)
-    )
+    result = _get(_FilledMeanwhile())
     assert result.commentary == "**From the other request.**"
-    assert stub.saved is None
+    assert background_generation.spawned == []
+    assert commentary._in_flight == set()
 
 
 def test_route_400_on_unknown_round_name(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -302,27 +317,29 @@ def test_route_403_when_forcing_regeneration_without_admin_key(
     assert exc_info.value.status_code == 403
 
 
-def test_route_force_refresh_regenerates_with_admin_key(
-    monkeypatch: pytest.MonkeyPatch,
+def test_route_force_refresh_regenerates_in_the_background(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
 ) -> None:
-    monkeypatch.setattr(matchup_commentary, "commentary_available", lambda: True)
-    monkeypatch.setattr(
-        matchup_commentary,
-        "generate_commentary",
-        lambda replay_manager, player1, player2, round_name: "**Fresh.**",
+    _patch_generation(monkeypatch, lambda prompt, p1, p2: "**Fresh.**")
+    result = _get(
+        _StubReplayManager(cached="**Stale.**"), force_refresh=True, admin_access=True
     )
-    monkeypatch.setattr(matchup_commentary, "active_provider", lambda: "gemini")
+    assert result.pending is True
+    background_generation.run_all()
+    assert background_generation.saved == [
+        ("Alice", "Bob", "Winners Round 1", "**Fresh.**", "gemini")
+    ]
+
+
+def test_route_bypass_cache_generates_inline_without_saving(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
+    _patch_generation(monkeypatch, lambda prompt, p1, p2: "**Fresh.**")
     stub = _StubReplayManager(cached="**Stale.**")
-    result = commentary.get_matchup_commentary(
-        "Alice",
-        "Bob",
-        "Winners Round 1",
-        force_refresh=True,
-        admin_access=True,
-        replay_manager=cast(ReplayManager, stub),
-    )
+    result = _get(stub, bypass_cache=True, admin_access=True)
     assert result.commentary == "**Fresh.**"
-    assert stub.saved is not None
+    assert background_generation.spawned == []
+    assert stub.saved is None
 
 
 def test_known_round_names_covers_every_bracket_round() -> None:
@@ -447,13 +464,7 @@ def test_generate_with_gemini_raises_on_empty_text(
 def test_generate_commentary_dispatches_by_provider(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        matchup_commentary,
-        "build_prompt",
-        lambda replay_manager, player1, player2, round_name: (
-            matchup_commentary.MatchupPrompt(system="sys", user_message="user")
-        ),
-    )
+    prompt = llm.Prompt(system="sys", user_message="user")
     monkeypatch.setattr(
         llm,
         "_generate_with_anthropic",
@@ -467,24 +478,16 @@ def test_generate_commentary_dispatches_by_provider(
 
     monkeypatch.delenv(matchup_commentary.PROVIDER_ENV, raising=False)
     assert (
-        matchup_commentary.generate_commentary(
-            cast(ReplayManager, None), "Alice", "Bob", "Winners Round 1"
-        )
-        == "gemini-text"
+        matchup_commentary.generate_commentary(prompt, "Alice", "Bob") == "gemini-text"
     )
 
     monkeypatch.setenv(matchup_commentary.PROVIDER_ENV, "anthropic")
     assert (
-        matchup_commentary.generate_commentary(
-            cast(ReplayManager, None), "Alice", "Bob", "Winners Round 1"
-        )
+        matchup_commentary.generate_commentary(prompt, "Alice", "Bob")
         == "anthropic-text"
     )
 
     monkeypatch.setenv(matchup_commentary.PROVIDER_ENV, "gemini")
     assert (
-        matchup_commentary.generate_commentary(
-            cast(ReplayManager, None), "Alice", "Bob", "Winners Round 1"
-        )
-        == "gemini-text"
+        matchup_commentary.generate_commentary(prompt, "Alice", "Bob") == "gemini-text"
     )
