@@ -62,6 +62,22 @@ export const BILLED_QUERY_OPTIONS = {
   retry: false,
 } as const
 
+const PENDING_POLL_MS = 5000
+
+/**
+ * `refetchInterval` for a billed endpoint that answers `pending: true` while it
+ * generates in the background. Polls are free — the server never starts a
+ * second run for a key already in flight, and answers a recent failure with a
+ * 502, which ends the polling.
+ */
+export function pollWhilePending(query: {
+  state: { status: string; data?: { pending?: boolean } }
+}): number | false {
+  return query.state.status === "success" && query.state.data?.pending
+    ? PENDING_POLL_MS
+    : false
+}
+
 /**
  * A query's error, as something worth showing a person.
  *

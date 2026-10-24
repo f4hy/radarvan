@@ -92,14 +92,8 @@ def build_prompt(
     return llm.Prompt(system=SYSTEM_PROMPT, user_message=build_user_message(summary))
 
 
-def generate_summary(
-    replay_manager: ReplayManager,
-    bracket_match: BracketMatchOutput,
-    games: list[MatchInfo],
-) -> str:
-    """Generate the post-game recap for one completed bracket match, using
-    whichever provider COMMENTARY_PROVIDER selects."""
-    prompt = build_prompt(replay_manager, bracket_match, games)
+def generate_summary(prompt: llm.Prompt, bracket_match: BracketMatchOutput) -> str:
+    """Generate the post-game recap from ``build_prompt``'s output."""
     return llm.generate(
         prompt,
         kind="Post-game summary",
