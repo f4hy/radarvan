@@ -66,3 +66,50 @@ def pytest_terminal_summary(terminalreporter: pytest.TerminalReporter) -> None:
             f"- run `make test-pg` to include them",
             yellow=True,
         )
+
+
+class BackgroundGeneration:
+    """Captures what routes/commentary.py would run on its background thread."""
+
+    def __init__(self) -> None:
+        self.spawned: list[tuple[object, object, object]] = []
+        self.saved: list[tuple[object, ...]] = []
+
+    def run_all(self) -> None:
+        from radarvan.routes import commentary
+
+        spawned, self.spawned = self.spawned, []
+        for key, generate, save in spawned:
+            commentary._run(key, generate, save)  # type: ignore[arg-type]
+
+
+@pytest.fixture
+def background_generation(monkeypatch: pytest.MonkeyPatch) -> BackgroundGeneration:
+    from contextlib import contextmanager
+
+    from radarvan.routes import commentary
+
+    bg = BackgroundGeneration()
+
+    class _Repo:
+        def __init__(self, session: object) -> None:
+            pass
+
+        def save_commentary(self, *args: object) -> None:
+            bg.saved.append(args)
+
+        def save_summary(self, *args: object) -> None:
+            bg.saved.append(args)
+
+    class _DbManager:
+        @contextmanager
+        def get_session(self) -> Iterator[None]:
+            yield None
+
+    monkeypatch.setattr(commentary, "_in_flight", set())
+    monkeypatch.setattr(commentary, "_failed_at", {})
+    monkeypatch.setattr(commentary, "_spawn", lambda *args: bg.spawned.append(args))
+    monkeypatch.setattr(commentary, "db_manager", _DbManager())
+    monkeypatch.setattr(commentary, "MatchupCommentaryRepo", _Repo)
+    monkeypatch.setattr(commentary, "BracketSummaryRepo", _Repo)
+    return bg
