@@ -35,13 +35,13 @@ test.describe("links already pasted into chat still work", () => {
     // a not-found screen would be a dead end for a visitor who did nothing wrong.
     await mockApi(page)
     await page.goto("/?page=some-page-we-renamed")
-    await expect(page).toHaveURL("/matches")
+    await expect(page).toHaveURL(/\/game-night(\?|$)/)
   })
 
   test("the bare root goes to the default page", async ({ page }) => {
     await mockApi(page)
     await page.goto("/")
-    await expect(page).toHaveURL("/matches")
+    await expect(page).toHaveURL(/\/game-night(\?|$)/)
   })
 
   test("the legacy URL is replaced, not pushed, so Back doesn't re-redirect", async ({
