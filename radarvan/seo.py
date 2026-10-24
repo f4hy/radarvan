@@ -71,13 +71,13 @@ PAGES: dict[str, StaticPage] = {
         "Matches",
         "Every C&C Generals Zero Hour match our group has played, newest first: "
         "teams, generals, maps, winners, replay stats and build orders.",
-        priority=0.9,
+        priority=0.8,
     ),
     "game-night": StaticPage(
         "Game Night",
         "Recaps of each Command & Conquer Generals Zero Hour game night: "
         "standings, highlights, the match of the night and every replay.",
-        priority=0.8,
+        priority=0.9,
     ),
     "tournaments": StaticPage(
         "Tournaments",
@@ -176,7 +176,7 @@ PAGES: dict[str, StaticPage] = {
     "account": StaticPage("Account", "", indexable=False),
     "match": StaticPage("Match", "", indexable=False),
 }
-DEFAULT_SLUG = "matches"
+DEFAULT_SLUG = "game-night"
 LEGACY_PAGE_PARAM = "page"
 
 GENERAL_NAMES = {
@@ -446,7 +446,7 @@ def _static_meta(slug: str) -> PageMeta:
 
 
 def _legacy_redirect(query: Mapping[str, str]) -> str:
-    # Mirrors App.tsx's LegacyPageRedirect, unknown slug -> Matches included.
+    # Mirrors App.tsx's LegacyPageRedirect, unknown slug -> DEFAULT_SLUG included.
     slug = query[LEGACY_PAGE_PARAM].lower()
     target = slug if slug in PAGES and slug != "match" else DEFAULT_SLUG
     rest = {k: v for k, v in query.items() if k != LEGACY_PAGE_PARAM}
