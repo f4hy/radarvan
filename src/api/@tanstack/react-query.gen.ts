@@ -1503,6 +1503,9 @@ export const getMatchupCommentaryApiMatchupCommentaryGetQueryKey = (options: Opt
  * whether the result is then persisted: ``force_refresh`` overwrites the
  * cached row, ``bypass_cache`` does not touch it. If both are set,
  * ``bypass_cache`` wins (no write).
+ *
+ * A miss answers ``pending`` and generates in the background. Only
+ * ``bypass_cache`` generates inline, since it has nowhere to put the result.
  */
 export const getMatchupCommentaryApiMatchupCommentaryGetOptions = (options: Options<getMatchupCommentaryApiMatchupCommentaryGetData>) => queryOptions<getMatchupCommentaryApiMatchupCommentaryGetResponse, getMatchupCommentaryApiMatchupCommentaryGetError, getMatchupCommentaryApiMatchupCommentaryGetResponse, ReturnType<typeof getMatchupCommentaryApiMatchupCommentaryGetQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -1564,6 +1567,9 @@ export const getBracketSummaryApiBracketSummaryMatchIdGetQueryKey = (options: Op
  * does not touch it. If both are set, ``bypass_cache`` wins (no write).
  * ``force_refresh`` is the answer to a recap whose games an admin
  * relinked afterwards.
+ *
+ * A miss answers ``pending`` and generates in the background, as the
+ * pre-game route does.
  */
 export const getBracketSummaryApiBracketSummaryMatchIdGetOptions = (options: Options<getBracketSummaryApiBracketSummaryMatchIdGetData>) => queryOptions<getBracketSummaryApiBracketSummaryMatchIdGetResponse, getBracketSummaryApiBracketSummaryMatchIdGetError, getBracketSummaryApiBracketSummaryMatchIdGetResponse, ReturnType<typeof getBracketSummaryApiBracketSummaryMatchIdGetQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

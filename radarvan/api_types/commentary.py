@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class MatchupCommentaryResponse(BaseModel):
-    commentary: str
+    """``pending`` while generation runs in the background; poll until it clears."""
+
+    commentary: str | None = None
+    pending: bool = False
 
 
 class MatchupCommentaryPromptPreview(BaseModel):
