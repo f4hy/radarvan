@@ -591,20 +591,20 @@ img { max-width: 100%; }
   const wl = r => r[0] + r[1] ? `${r[0]}–${r[1]}` : "—";
   const pct = x => Math.round(x * 100) + "%";
 
-  // Set to the scheduled start (UTC) once the match has a time; null shows "to be announced".
-  const START = null;
-  if (START === null) {
-    document.getElementById("cd").hidden = true;
-  } else {
+  // The start time comes from the live bracket, so scheduling the match in the
+  // app starts this countdown with no edit here. Off-site (or if the request
+  // fails) it stays "to be announced".
+  const cd = document.getElementById("cd");
+  cd.hidden = true;
+  const cdBanner = html => { cd.innerHTML = '<div class="cd-cell" style="min-width:auto"><b style="color:var(--signal)">' + html + '</b><small>Losers Final</small></div>'; cd.hidden = false; };
+  function startCountdown(start) {
     try {
-      document.getElementById("cd-local").textContent = new Date(START).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+      document.getElementById("cd-local").textContent = new Date(start).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
     } catch (e) {}
+    cd.hidden = false;
     const tick = () => {
-      const d = START - Date.now();
-      if (d <= 0) {
-        document.getElementById("cd").innerHTML = '<div class="cd-cell" style="min-width:auto"><b style="color:var(--signal)">' + (d > -4 * 3600e3 ? "LIVE NOW" : "FINAL") + '</b><small>Losers Final</small></div>';
-        return;
-      }
+      const d = start - Date.now();
+      if (d <= 0) { cdBanner(d > -4 * 3600e3 ? "LIVE NOW" : "FINAL"); return; }
       const s = Math.floor(d / 1000);
       document.getElementById("cd-d").textContent = Math.floor(s / 86400);
       document.getElementById("cd-h").textContent = pad(Math.floor(s / 3600) % 24);
@@ -614,6 +614,21 @@ img { max-width: 100%; }
     };
     tick();
   }
+  fetch("/api/bracket", { cache: "no-store" })
+    .then(r => r.ok ? r.json() : null)
+    .then(b => {
+      const m = b && b.matches.find(x => x.match_id === "LB5-1");
+      if (!m || ![m.player_a, m.player_b].includes("Modus") || ![m.player_a, m.player_b].includes("WildCard")) return;
+      if (m.status === "completed" && m.score_a != null) {
+        const [w, l] = m.score_a > m.score_b ? [m.player_a, m.player_b] : [m.player_b, m.player_a];
+        cdBanner(`FINAL · ${w} ${Math.max(m.score_a, m.score_b)}–${Math.min(m.score_a, m.score_b)}`);
+        document.querySelector(".cd-meta").hidden = true;
+        return;
+      }
+      const start = m.scheduled_at ? Date.parse(m.scheduled_at) : NaN;
+      if (!Number.isNaN(start)) startCountdown(start);
+    })
+    .catch(() => {});
 
   // Tale of the tape: [modus, label, wildcard, edge]
   const TAPE = {

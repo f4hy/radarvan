@@ -32,8 +32,7 @@ import ListItemText from "@mui/material/ListItemText"
 import Paper from "@mui/material/Paper"
 import Slider from "@mui/material/Slider"
 import Stack from "@mui/material/Stack"
-import { alpha, useTheme } from "@mui/material/styles"
-import useMediaQuery from "@mui/material/useMediaQuery"
+import { alpha, keyframes, useTheme } from "@mui/material/styles"
 import Tab from "@mui/material/Tab"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
@@ -45,28 +44,57 @@ import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
-import DateTimeField from "../../components/DateTimeField"
-import dayjs, { type Dayjs } from "dayjs"
+import useMediaQuery from "@mui/material/useMediaQuery"
 import {
   keepPreviousData,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+import dayjs, { type Dayjs } from "dayjs"
 import * as React from "react"
-import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
-import { renderAiText, renderBoldSegments } from "../../components/aiText"
-import { useIsTournamentAdmin } from "../../lib/AuthContext"
+import {
+  getBracketMapRecordsApiBracketMapRecordsGetOptions,
+  getMatchupCommentaryApiMatchupCommentaryGetOptions,
+  predictFactionMatchupApiPredictFactionMatchupGetOptions,
+} from "../../api/@tanstack/react-query.gen"
+import {
+  getBracketGamesApiBracketGamesMatchIdGet,
+  getBracketSummaryApiBracketSummaryMatchIdGet,
+} from "../../api/sdk.gen"
 import type {
   BracketMatchGames,
   FactionMatchupOption,
 } from "../../api/types.gen"
+import { renderAiText, renderBoldSegments } from "../../components/aiText"
+import DateTimeField from "../../components/DateTimeField"
+import Loading from "../../components/Loading"
+import GameMap from "../../components/Map"
+import { MatchCard } from "../../components/MatchCard"
+import Page from "../../components/Page"
+import { PlayerChip, PlayerDot } from "../../components/PlayerChip"
+import { queryFallback } from "../../components/QueryState"
+import { useIsTournamentAdmin } from "../../lib/AuthContext"
+import { toGeneralName } from "../../lib/general_utils"
+import { usePlayerNav } from "../../lib/links"
+import { mapKey } from "../../lib/mapName"
+import { usePlayerAccentColor } from "../../lib/PlayerColorsContext"
+import { BILLED_QUERY_OPTIONS } from "../../lib/queryClient"
+import {
+  BRAND_COLOR,
+  CHART_PALETTE,
+  LOSS_COLOR,
+  NEUTRAL_COLOR,
+  WIN_COLOR,
+} from "../../lib/theme"
+import { useErrorSnackbar } from "../../lib/useErrorSnackbar"
+import AgendaPanel, { AgendaCountdown, agendaMatches } from "./Agenda"
 import {
   type BracketMatchOutput,
   type BracketMatchStatus,
   type BracketPlayerEntry,
   type BracketTournamentOutput,
-  bracketQuery as bracketQueryOptions,
   bracketQueryKey,
+  bracketQuery as bracketQueryOptions,
   createBracket,
   eligiblePlayersQuery,
   type MapPlayerRecords,
@@ -84,34 +112,7 @@ import {
   sourceMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
-import {
-  getBracketMapRecordsApiBracketMapRecordsGetOptions,
-  getMatchupCommentaryApiMatchupCommentaryGetOptions,
-  predictFactionMatchupApiPredictFactionMatchupGetOptions,
-} from "../../api/@tanstack/react-query.gen"
-import {
-  getBracketGamesApiBracketGamesMatchIdGet,
-  getBracketSummaryApiBracketSummaryMatchIdGet,
-} from "../../api/sdk.gen"
-import { toGeneralName } from "../../lib/general_utils"
-import { mapKey } from "../../lib/mapName"
-import Loading from "../../components/Loading"
-import { queryFallback } from "../../components/QueryState"
-import GameMap from "../../components/Map"
-import { MatchCard } from "../../components/MatchCard"
-import { PlayerChip, PlayerDot } from "../../components/PlayerChip"
-import { usePlayerAccentColor } from "../../lib/PlayerColorsContext"
-import {
-  BRAND_COLOR,
-  CHART_PALETTE,
-  LOSS_COLOR,
-  NEUTRAL_COLOR,
-  WIN_COLOR,
-} from "../../lib/theme"
-import Page from "../../components/Page"
-import { BILLED_QUERY_OPTIONS } from "../../lib/queryClient"
-import { usePlayerNav } from "../../lib/links"
-import { useErrorSnackbar } from "../../lib/useErrorSnackbar"
+import { hypePageHref } from "./hypePages"
 
 const DEFAULT_SEEDS = [
   "Modus",
@@ -990,6 +991,7 @@ function MatchupPopup({
               Head to Head
             </Button>
           )}
+          <HypePageButton match={match} />
         </Stack>
         {playerA && playerB && bestDraws.length > 0 && (
           <Box sx={{ mb: 2 }}>
@@ -1774,9 +1776,83 @@ function NextMatchBanner({
           </Typography>
         </Stack>
       </Stack>
-      {/* scheduledAt is narrowed non-null by the nextMatch guard above */}
-      <AgendaCountdown scheduledAt={nextMatch.scheduled_at as Date} />
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{ alignItems: "center", flexWrap: "wrap" }}
+      >
+        <HypePageButton match={nextMatch} />
+        {/* scheduledAt is narrowed non-null by the nextMatch guard above */}
+        <AgendaCountdown scheduledAt={nextMatch.scheduled_at as Date} />
+      </Stack>
     </Paper>
+  )
+}
+
+const hypeFlow = keyframes`
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+`
+const hypeGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 8px 1px rgba(255, 94, 26, 0.55); transform: scale(1); }
+  50% { box-shadow: 0 0 22px 6px rgba(255, 46, 99, 0.75); transform: scale(1.05); }
+`
+const hypeFlicker = keyframes`
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.2) rotate(-8deg); }
+  60% { transform: scale(0.95) rotate(6deg); }
+`
+
+// A real <a>, not a router Link: the hype pages are static files outside the SPA.
+function HypePageButton({ match }: { match: BracketMatchOutput }) {
+  const href = hypePageHref(match)
+  if (!href) return null
+  return (
+    <Button
+      variant="contained"
+      startIcon={<WhatshotIcon />}
+      endIcon={<WhatshotIcon />}
+      component="a"
+      href={href}
+      target="_blank"
+      rel="noopener"
+      // The banner around it opens the Agenda tab on click.
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      sx={{
+        px: 2.5,
+        py: 1,
+        borderRadius: 999,
+        fontWeight: 900,
+        fontSize: "1rem",
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "#fff",
+        textShadow: "0 1px 2px rgba(0, 0, 0, 0.45)",
+        border: "2px solid #ffd23f",
+        backgroundImage:
+          "linear-gradient(90deg, #ff2e63, #ff8a00, #ffd23f, #ff8a00, #ff2e63)",
+        backgroundSize: "200% 100%",
+        animation: `${hypeFlow} 2.5s linear infinite, ${hypeGlow} 1.4s ease-in-out infinite`,
+        "& .MuiButton-startIcon svg, & .MuiButton-endIcon svg": {
+          fontSize: "1.4rem",
+          animation: `${hypeFlicker} 0.8s ease-in-out infinite`,
+        },
+        "&:hover": {
+          backgroundImage:
+            "linear-gradient(90deg, #ff2e63, #ff8a00, #ffd23f, #ff8a00, #ff2e63)",
+          filter: "brightness(1.15) saturate(1.2)",
+          transform: "scale(1.08)",
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          animation: "none",
+          "& .MuiButton-startIcon svg, & .MuiButton-endIcon svg": {
+            animation: "none",
+          },
+        },
+      }}
+    >
+      Match preview
+    </Button>
   )
 }
 
