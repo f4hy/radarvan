@@ -27,11 +27,13 @@ from radarvan.api_types import (
     TimelineEvent,
     TournamentTag,
 )
-from radarvan.commentary import postgame_summary, summary_data, summary_prompts
+from radarvan.commentary import llm, postgame_summary, summary_data, summary_prompts
 from radarvan.db_utils import ReplayManager
 from radarvan.player_role import PlayerRole
 from radarvan.repositories import BracketRepo, BracketSummaryRepo, TournamentRepo
 from radarvan.routes import commentary
+
+from conftest import BackgroundGeneration
 
 
 def _match(
@@ -527,10 +529,10 @@ def test_route_returns_cached_summary_without_generating(
     assert result.ready is True
 
 
-def test_route_generates_and_saves_on_a_cache_miss(
+def _patch_generation(
     monkeypatch: pytest.MonkeyPatch,
+    generate: object = lambda prompt, match: "**Fresh recap.**",
 ) -> None:
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
     monkeypatch.setattr(
         commentary.matchup_commentary, "commentary_available", lambda: True
     )
@@ -539,13 +541,27 @@ def test_route_generates_and_saves_on_a_cache_miss(
     )
     monkeypatch.setattr(
         postgame_summary,
-        "generate_summary",
-        lambda replay_manager, match, games: "**Fresh recap.**",
+        "build_prompt",
+        lambda replay_manager, match, games: llm.Prompt("sys", "user"),
     )
-    repo = _StubSummaryRepo()
-    result = _call(repo)
-    assert result.summary == "**Fresh recap.**"
-    assert repo.saved == (7, "WB1-1", "**Fresh recap.**", "gemini")
+    monkeypatch.setattr(postgame_summary, "generate_summary", generate)
+
+
+def test_route_miss_answers_pending_and_saves_in_the_background(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
+    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
+    _patch_generation(monkeypatch)
+    result = _call(_StubSummaryRepo())
+    assert result.ready is True
+    assert result.pending is True
+    assert result.summary is None
+
+    background_generation.run_all()
+    assert background_generation.saved == [(7, "WB1-1", "**Fresh recap.**", "gemini")]
+    assert _call(_StubSummaryRepo(cached="**Fresh recap.**")).summary == (
+        "**Fresh recap.**"
+    )
 
 
 def test_route_403_when_forcing_regeneration_without_admin_key(
@@ -560,18 +576,24 @@ def test_route_403_when_forcing_regeneration_without_admin_key(
     assert exc_info.value.status_code == 403
 
 
-def test_route_502_on_generation_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_route_502_after_a_failed_run_without_retrying(
+    monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
+) -> None:
     from fastapi import HTTPException
 
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
-    monkeypatch.setattr(
-        commentary.matchup_commentary, "commentary_available", lambda: True
-    )
-
-    def _boom(replay_manager: object, match: object, games: object) -> str:
+    def _boom(prompt: object, match: object) -> str:
         raise commentary.matchup_commentary.CommentaryGenerationError("boom")
 
-    monkeypatch.setattr(postgame_summary, "generate_summary", _boom)
+    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
+    _patch_generation(monkeypatch, _boom)
+    assert _call(_StubSummaryRepo()).pending is True
+    background_generation.run_all()
+
     with pytest.raises(HTTPException) as exc_info:
         _call(_StubSummaryRepo())
     assert exc_info.value.status_code == 502
+    assert background_generation.spawned == []
+
+    # force_refresh is the admin's way past the cooldown.
+    assert _call(_StubSummaryRepo(), force_refresh=True, admin_access=True).pending
+    assert len(background_generation.spawned) == 1
