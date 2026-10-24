@@ -22,12 +22,12 @@
   --line: #263243;
   --ink: #e9eef5;
   --ink-dim: #93a1b4;
-  --modus: #2aa3c8;
-  --modus-ink: #6cc7e4;
-  --modus-deep: #0d3040;
-  --wild: #d9468f;
-  --wild-ink: #f47ab6;
-  --wild-deep: #3d0f26;
+  --modus: #30a070;
+  --modus-ink: #5fd39a;
+  --modus-deep: #0d3a26;
+  --wild: #3b82f6;
+  --wild-ink: #7fb0ff;
+  --wild-deep: #10254a;
   --neutral: #2a3442;
   --signal: #f3b33d;
   --loss: #e0605a;
@@ -134,7 +134,7 @@ section.seg { padding-block: 44px 8px; }
 .edgebar span:last-child i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--modus); border-radius: 0 4px 4px 0; }
 .edgebar span:last-child { border-left: 1px solid var(--ink-dim); }
 .zone { display: inline-block; font-family: var(--f-label); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; }
-.zone.mz { background: var(--modus); color: #04161d; } .zone.tz { background: var(--wild); color: #2a0718; } .zone.nz { border: 1px solid var(--line); color: var(--ink-dim); }
+.zone.mz { background: var(--modus); color: #03180e; } .zone.tz { background: var(--wild); color: #03122b; } .zone.nz { border: 1px solid var(--line); color: var(--ink-dim); }
 
 .cancel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
 .leg { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
@@ -245,8 +245,8 @@ section.seg { padding-block: 44px 8px; }
 .oc .s { font-family: var(--f-display); font-weight: 800; font-size: 20px; }
 .sim-total { display: flex; gap: 2px; height: 36px; margin-top: 16px; font-family: var(--f-label); font-weight: 700; font-size: 15px; }
 .sim-total div { display: flex; align-items: center; padding: 0 10px; transition: flex-basis .35s ease; white-space: nowrap; overflow: hidden; min-width: 0; }
-.sim-total .tm { background: var(--modus); color: #04161d; }
-.sim-total .tt { background: var(--wild); color: #2a0718; justify-content: flex-end; }
+.sim-total .tm { background: var(--modus); color: #03180e; }
+.sim-total .tt { background: var(--wild); color: #03122b; justify-content: flex-end; }
 
 .path { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .step { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
@@ -432,11 +432,11 @@ img { max-width: 100%; }
     <p class="note">So the model favors Modus in every pair, and no pick moves it much. What can move it is player comfort, which the model sees only partly. A pair works for you when you're comfortable on both generals and your opponent isn't. That's what the heatmap below measures.</p>
 
     <h3 class="sub"><small>2e · Pair finder</small>Which general pairs favor whom</h3>
-    <p class="lede">Each cell is one general pair, played both ways. Color shows the comfort index: each player's career win rate on each general, compared head to head. Blue favors Modus, pink favors WildCard. Hover or tap a cell, then use the lab below.</p>
+    <p class="lede">Each cell is one general pair, played both ways. Color shows the comfort index: each player's career win rate on each general, compared head to head. Green favors Modus, blue favors WildCard. Hover or tap a cell, then use the lab below.</p>
     <div class="heat-wrap"><div class="heat" id="heat" role="grid" aria-label="General pair heatmap"></div></div>
     <div class="heat-legend"><span class="t">WildCard 40%</span><span class="ramp" aria-hidden="true"></span><span class="m">Modus 60%</span><span style="color:var(--ink-dim)">· neutral grey is 50%</span></div>
     <div class="heat-read" id="heat-read" aria-live="polite"></div>
-    <p class="note">The board is mostly blue, because Modus's career win rate (60.2%) is well above WildCard's (52.3%). The only pink cells are pairs built from Laser and USA. That's where WildCard has to fight.</p>
+    <p class="note">The board is mostly green, because Modus's career win rate (60.2%) is well above WildCard's (52.3%). The only blue cells are pairs built from Laser and USA. That's where WildCard has to fight.</p>
 
     <div class="lab" id="lab">
       <div class="label" style="color:var(--signal)">The pick lab</div>
@@ -515,10 +515,10 @@ img { max-width: 100%; }
         <div class="label">What Modus has to do</div>
         <h3>Make WildCard play GLA</h3>
         <ol>
-          <li><div><b>Put Toxin or Stealth in the pair</b><span>The swap means WildCard has to play whatever Modus picks. Toxin is WildCard's worst career general (43.7%) and Modus wins 66.7% on it. Stealth is Modus's best (69.1%). Toxin with Stealth is the bluest non-mirror pair on the board at 68%, and the Toxin mirror tops the mirror list at 70%.</span></div></li>
+          <li><div><b>Put Toxin or Stealth in the pair</b><span>The swap means WildCard has to play whatever Modus picks. Toxin is WildCard's worst career general (43.7%) and Modus wins 66.7% on it. Stealth is Modus's best (69.1%). Toxin with Stealth is the greenest non-mirror pair on the board at 68%, and the Toxin mirror tops the mirror list at 70%.</span></div></li>
           <li><div><b>Keep it under ten minutes</b><span>Modus is 9–2 in bracket games under ten minutes and 4–4 in longer ones. WildCard is 5–2 past ten. One of the wins over Tytan took 5:12, on Infantry on Vendetta.</span></div></li>
           <li><div><b>Keep WildCard off Infantry and Air Force</b><span>In 1v1s, Modus is 0–4 against Infantry and 1–3 against Air Force. Both of Modus's losses to Tytan came against those two generals. WildCard is 3–1 on Infantry and 2–0 on Air Force.</span></div></li>
-          <li><div><b>Stay away from Laser and USA</b><span>They're the only pink cells on the board. Modus is 0–2 on Laser in 1v1s and wins only 50% on USA overall, which is Modus's lowest number.</span></div></li>
+          <li><div><b>Stay away from Laser and USA</b><span>They're the only blue cells on the board. Modus is 0–2 on Laser in 1v1s and wins only 50% on USA overall, which is Modus's lowest number.</span></div></li>
           <li><div><b>Trust the 6–0, carefully</b><span>Six 1v1s, six wins, on five different generals, and two of them on Snowy Drought. But five came on April 24, six months ago, and the last one was September 5. They haven't met one on one since.</span></div></li>
         </ol>
       </div>
@@ -526,7 +526,7 @@ img { max-width: 100%; }
         <div class="label">What WildCard has to do</div>
         <h3>Laser focus</h3>
         <ol>
-          <li><div><b>Build pairs from Laser and USA</b><span>Laser is WildCard's best career general (57.6%, 6–4 in 1v1s) and plain USA is 8–2 in 1v1s. Laser with USA is the pinkest non-mirror pair on the board, about 52% WildCard, and the Laser mirror is WildCard's best game-seven option.</span></div></li>
+          <li><div><b>Build pairs from Laser and USA</b><span>Laser is WildCard's best career general (57.6%, 6–4 in 1v1s) and plain USA is 8–2 in 1v1s. Laser with USA is the bluest non-mirror pair on the board, about 52% WildCard, and the Laser mirror is WildCard's best game-seven option.</span></div></li>
           <li><div><b>Reach for Infantry and Air Force</b><span>Modus is 1–7 against those two generals in 1v1s, and both of Modus's losses to Tytan came against them. Infantry is also the community's best 1v1 general at 63%.</span></div></li>
           <li><div><b>Drag it past ten minutes</b><span>WildCard is 5–2 in long bracket games, and WildCard's career wins average 16.6 minutes. Modus is 4–4 once a game goes long.</span></div></li>
           <li><div><b>Take it to Vendetta</b><span>WildCard is 4–2 on the bracket's most-played map, including the 2–0 sweep of Tytan. Modus is 2–2 there.</span></div></li>
@@ -709,7 +709,7 @@ img { max-width: 100%; }
   const pairC = (i, j) => (D.comfort[i][j] + D.comfort[j][i]) / 2;
   const pairM = (i, j) => (D.model[i][j] + D.model[j][i]) / 2;
   const hexRgb = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
-  const NEU = hexRgb("#2a3442"), MOD = hexRgb("#2aa3c8"), WLD = hexRgb("#d9468f");
+  const NEU = hexRgb("#2a3442"), MOD = hexRgb("#30a070"), WLD = hexRgb("#3b82f6");
   function heatColor(v) {
     const t = Math.max(-1, Math.min(1, (v - 0.5) / 0.1));
     const to = t > 0 ? MOD : WLD, a = Math.abs(t);
@@ -858,7 +858,7 @@ img { max-width: 100%; }
   function renderMap(i) {
     const m = MAPS[i];
     const rec = (v, who, cls) => `<div class="rec"><div class="who ${cls}">${who}</div><div class="wl num ${v ? cls : "none"}">${v || "Unplayed"}</div></div>`;
-    const bg = m.side === "m" ? "background:var(--modus);color:#04161d" : m.side === "t" ? "background:var(--wild);color:#2a0718" : "background:var(--panel-2);color:var(--ink)";
+    const bg = m.side === "m" ? "background:var(--modus);color:#03180e" : m.side === "t" ? "background:var(--wild);color:#03122b" : "background:var(--panel-2);color:var(--ink)";
     document.getElementById("mapcard").innerHTML = `<span class="vtag" style="${bg}">${m.verdict}</span><h3>${m.name}</h3><div class="recs">${rec(m.mod, "Modus", "m")}${rec(m.wc, "WildCard", "t")}</div><p>${m.body}</p><p class="fine">${m.fine}</p>`;
     list.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
   }
