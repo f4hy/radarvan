@@ -15,7 +15,7 @@ import { playerProfileHref } from "../lib/links"
  *
  * The swatch is the raw in-game color; everything around it is derived from
  * that hue (utils.playerPalette) so the chip reads as *theirs* without putting
- * `#FF0000` next to `#FFFF00` on an otherwise muted page.
+ * saturated red next to saturated yellow on an otherwise muted page.
  *
  * This used to be an initial-in-a-circle filled with the raw color and ringed
  * in a second, hash-derived color. The ring was there to separate two players

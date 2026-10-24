@@ -211,22 +211,25 @@ export { mapDisplayName as displayMapName } from "./mapName"
 
 // Module scope, not rebuilt per call: getColorHex runs once per player per
 // chart series on every render.
+// Toned-down stand-ins for the game's pure hues (#FF0000, #00FF00, …), which
+// glare next to the muted UI. Each still reads as its color name, and the
+// close pairs (yellow/gold, green/lime, purple/violet, red/maroon) stay apart.
 const COLOR_MAP: { [key: string]: string } = {
-  pink: "#FFC0CB",
-  red: "#FF0000",
-  blue: "#0000FF",
-  skyblue: "#87CEEB",
-  green: "#00FF00",
-  yellow: "#FFFF00",
-  purple: "#800080",
-  orange: "#FFA500",
-  gold: "#FFD700",
+  pink: "#F7A8C4",
+  red: "#E53935",
+  blue: "#2547D0",
+  skyblue: "#5BB8E8",
+  green: "#2DBE4E",
+  yellow: "#F2D50F",
+  purple: "#8E3AB8",
+  orange: "#F98C1A",
+  gold: "#D9A520",
   black: "#212121",
-  lime: "#BFFF00",
+  lime: "#A6E22E",
   silver: "#C0C0C0",
-  maroon: "#800000",
+  maroon: "#8C1C1C",
   metallicgrey: "#808080",
-  violet: "#7F00FF",
+  violet: "#6D3FE0",
 }
 
 export function getColorHex(colorName: string): string {
@@ -320,8 +323,8 @@ export interface PlayerPalette {
 /**
  * Turn a raw in-game color into a set that can actually be used in the UI.
  *
- * The game's colors are pure hues — `#FF0000`, `#FFFF00`, `#00FF00` — which
- * are unreadable as text and clash with the app's muted palette if used
+ * Player colors are bright, saturated hues — yellow and lime especially —
+ * which are unreadable as text and clash with the app's muted palette if used
  * directly. Clamping saturation and pinning lightness per role keeps each
  * player recognisably *their* color while letting twelve of them sit next to
  * each other without the page turning into a bag of highlighters. The raw

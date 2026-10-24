@@ -1,4 +1,8 @@
-import { createTheme, responsiveFontSizes } from "@mui/material/styles"
+import {
+  createTheme,
+  responsiveFontSizes,
+  type Shadows,
+} from "@mui/material/styles"
 
 /**
  * Central design tokens for the whole app — light AND dark.
@@ -119,6 +123,14 @@ const DARK_SURFACES: SurfaceTokens = {
   selectedTintStrong: "rgba(47, 109, 240, 0.28)",
 }
 
+// Index 1 is what `boxShadow: 1` and elevation-1 Paper resolve to, so softening
+// it here is what makes hand-shadowed cards match the theme's own surfaces.
+const SOFT_SHADOW =
+  "0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08)"
+const SHADOWS = createTheme().shadows.map((s, i) =>
+  i === 1 ? SOFT_SHADOW : s,
+) as Shadows
+
 // The attribute+value selector `ColorModeContext.tsx` stamps on <html> —
 // shared verbatim with index.css's `[data-color-mode="dark"]` recharts rules.
 const COLOR_SCHEME_SELECTOR = '[data-color-mode="%s"]'
@@ -160,11 +172,14 @@ let theme = createTheme({
     },
   },
   shape: { borderRadius: 10 },
+  shadows: SHADOWS,
   typography: {
     fontFamily: FONT_STACK,
-    h4: { fontWeight: 700, letterSpacing: "-0.01em" },
-    h5: { fontWeight: 700, letterSpacing: "-0.01em" },
-    h6: { fontWeight: 700 },
+    // Inter is spaced for body sizes; display sizes want it pulled in.
+    h3: { fontWeight: 700, letterSpacing: "-0.02em" },
+    h4: { fontWeight: 700, letterSpacing: "-0.02em" },
+    h5: { fontWeight: 700, letterSpacing: "-0.02em" },
+    h6: { fontWeight: 700, letterSpacing: "-0.01em" },
     subtitle1: { fontWeight: 600 },
     subtitle2: { fontWeight: 600 },
     button: { textTransform: "none", fontWeight: 600 },
@@ -192,7 +207,7 @@ let theme = createTheme({
         outlined: ({ theme: t }) => ({ borderColor: t.palette.divider }),
         // Softer, lower shadows than MUI defaults for a flatter, modern feel.
         elevation1: ({ theme: t }) => ({
-          boxShadow: "0 1px 2px rgba(16, 24, 40, 0.06)",
+          boxShadow: SOFT_SHADOW,
           border: `1px solid ${LIGHT_SURFACES.hairline}`,
           ...t.applyStyles("dark", {
             boxShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
@@ -205,6 +220,18 @@ let theme = createTheme({
       defaultProps: { variant: "outlined" },
       styleOverrides: {
         root: ({ theme: t }) => ({ borderColor: t.palette.divider }),
+      },
+    },
+    // One visible keyboard-focus ring for everything clickable; MUI's
+    // default is only the faint focus ripple.
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          "&.Mui-focusVisible": {
+            outline: `2px solid ${BRAND_COLOR}`,
+            outlineOffset: 2,
+          },
+        },
       },
     },
     MuiButton: {

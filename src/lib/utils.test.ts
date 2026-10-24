@@ -98,9 +98,9 @@ describe("displayMapName", () => {
 
 describe("getColorHex", () => {
   it("maps known color names to hex (case-insensitive)", () => {
-    expect(getColorHex("red")).toBe("#FF0000")
-    expect(getColorHex("Blue")).toBe("#0000FF")
-    expect(getColorHex("VIOLET")).toBe("#7F00FF")
+    expect(getColorHex("red")).toBe("#E53935")
+    expect(getColorHex("Blue")).toBe("#2547D0")
+    expect(getColorHex("VIOLET")).toBe("#6D3FE0")
   })
 
   it("maps the sentinel '-1' to black", () => {
@@ -169,8 +169,8 @@ describe("buildPlayerColorMap", () => {
       { Name: "Bob", Color: "blue" },
     ]
     expect(buildPlayerColorMap(summaries, getColorHex)).toEqual({
-      Alice: "#FF0000",
-      Bob: "#0000FF",
+      Alice: "#E53935",
+      Bob: "#2547D0",
     })
   })
 
