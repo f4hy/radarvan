@@ -931,6 +931,9 @@ export const predictFactionMatrixApiPredictFactionMatrixGet = <ThrowOnError exte
  * whether the result is then persisted: ``force_refresh`` overwrites the
  * cached row, ``bypass_cache`` does not touch it. If both are set,
  * ``bypass_cache`` wins (no write).
+ *
+ * A miss answers ``pending`` and generates in the background. Only
+ * ``bypass_cache`` generates inline, since it has nowhere to put the result.
  */
 export const getMatchupCommentaryApiMatchupCommentaryGet = <ThrowOnError extends boolean = true>(options: Options<getMatchupCommentaryApiMatchupCommentaryGetData, ThrowOnError>): RequestResult<getMatchupCommentaryApiMatchupCommentaryGetResponses, getMatchupCommentaryApiMatchupCommentaryGetErrors, ThrowOnError> => (options.client ?? client).get<getMatchupCommentaryApiMatchupCommentaryGetResponses, getMatchupCommentaryApiMatchupCommentaryGetErrors, ThrowOnError>({
     security: [{ name: 'X-API-Key', type: 'apiKey' }],
@@ -974,6 +977,9 @@ export const getMatchupCommentaryPromptPreviewApiMatchupCommentaryPromptPreviewG
  * does not touch it. If both are set, ``bypass_cache`` wins (no write).
  * ``force_refresh`` is the answer to a recap whose games an admin
  * relinked afterwards.
+ *
+ * A miss answers ``pending`` and generates in the background, as the
+ * pre-game route does.
  */
 export const getBracketSummaryApiBracketSummaryMatchIdGet = <ThrowOnError extends boolean = true>(options: Options<getBracketSummaryApiBracketSummaryMatchIdGetData, ThrowOnError>): RequestResult<getBracketSummaryApiBracketSummaryMatchIdGetResponses, getBracketSummaryApiBracketSummaryMatchIdGetErrors, ThrowOnError> => (options.client ?? client).get<getBracketSummaryApiBracketSummaryMatchIdGetResponses, getBracketSummaryApiBracketSummaryMatchIdGetErrors, ThrowOnError>({
     security: [{ name: 'X-API-Key', type: 'apiKey' }],
