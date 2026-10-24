@@ -8,6 +8,7 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import EventNoteIcon from "@mui/icons-material/EventNote"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import GavelIcon from "@mui/icons-material/Gavel"
+import InsightsIcon from "@mui/icons-material/Insights"
 import MapIcon from "@mui/icons-material/Map"
 import PersonIcon from "@mui/icons-material/Person"
 import SettingsIcon from "@mui/icons-material/Settings"
@@ -112,7 +113,7 @@ import {
   sourceMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
-import { hypePageHref } from "./hypePages"
+import { matchPageLink } from "./matchPages"
 
 const DEFAULT_SEEDS = [
   "Modus",
@@ -991,7 +992,7 @@ function MatchupPopup({
               Head to Head
             </Button>
           )}
-          <HypePageButton match={match} />
+          <MatchPageButton match={match} />
         </Stack>
         {playerA && playerB && bestDraws.length > 0 && (
           <Box sx={{ mb: 2 }}>
@@ -1781,7 +1782,7 @@ function NextMatchBanner({
         spacing={1.5}
         sx={{ alignItems: "center", flexWrap: "wrap" }}
       >
-        <HypePageButton match={nextMatch} />
+        <MatchPageButton match={nextMatch} />
         {/* scheduledAt is narrowed non-null by the nextMatch guard above */}
         <AgendaCountdown scheduledAt={nextMatch.scheduled_at as Date} />
       </Stack>
@@ -1797,23 +1798,36 @@ const hypeGlow = keyframes`
   0%, 100% { box-shadow: 0 0 8px 1px rgba(255, 94, 26, 0.55); transform: scale(1); }
   50% { box-shadow: 0 0 22px 6px rgba(255, 46, 99, 0.75); transform: scale(1.05); }
 `
+const recapGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 8px 1px rgba(48, 160, 112, 0.5); }
+  50% { box-shadow: 0 0 20px 5px rgba(42, 163, 200, 0.7); }
+`
 const hypeFlicker = keyframes`
   0%, 100% { transform: scale(1) rotate(0deg); }
   25% { transform: scale(1.2) rotate(-8deg); }
   60% { transform: scale(0.95) rotate(6deg); }
 `
 
-// A real <a>, not a router Link: the hype pages are static files outside the SPA.
-function HypePageButton({ match }: { match: BracketMatchOutput }) {
-  const href = hypePageHref(match)
-  if (!href) return null
+const PREVIEW_GRADIENT =
+  "linear-gradient(90deg, #ff2e63, #ff8a00, #ffd23f, #ff8a00, #ff2e63)"
+const RECAP_GRADIENT =
+  "linear-gradient(90deg, #1f7a8c, #30a070, #7fd4a8, #30a070, #1f7a8c)"
+
+// A real <a>, not a router Link: these pages are static files outside the SPA.
+// Unplayed matches link their hype preview; finished ones their recap.
+function MatchPageButton({ match }: { match: BracketMatchOutput }) {
+  const link = matchPageLink(match)
+  if (!link) return null
+  const recap = link.kind === "recap"
+  const Icon = recap ? InsightsIcon : WhatshotIcon
+  const gradient = recap ? RECAP_GRADIENT : PREVIEW_GRADIENT
   return (
     <Button
       variant="contained"
-      startIcon={<WhatshotIcon />}
-      endIcon={<WhatshotIcon />}
+      startIcon={<Icon />}
+      endIcon={recap ? undefined : <Icon />}
       component="a"
-      href={href}
+      href={link.href}
       target="_blank"
       rel="noopener"
       // The banner around it opens the Agenda tab on click.
@@ -1828,18 +1842,20 @@ function HypePageButton({ match }: { match: BracketMatchOutput }) {
         textTransform: "uppercase",
         color: "#fff",
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.45)",
-        border: "2px solid #ffd23f",
-        backgroundImage:
-          "linear-gradient(90deg, #ff2e63, #ff8a00, #ffd23f, #ff8a00, #ff2e63)",
+        border: `2px solid ${recap ? "#7fd4a8" : "#ffd23f"}`,
+        backgroundImage: gradient,
         backgroundSize: "200% 100%",
-        animation: `${hypeFlow} 2.5s linear infinite, ${hypeGlow} 1.4s ease-in-out infinite`,
+        animation: recap
+          ? `${hypeFlow} 4s linear infinite, ${recapGlow} 2.2s ease-in-out infinite`
+          : `${hypeFlow} 2.5s linear infinite, ${hypeGlow} 1.4s ease-in-out infinite`,
         "& .MuiButton-startIcon svg, & .MuiButton-endIcon svg": {
           fontSize: "1.4rem",
-          animation: `${hypeFlicker} 0.8s ease-in-out infinite`,
+          animation: recap
+            ? "none"
+            : `${hypeFlicker} 0.8s ease-in-out infinite`,
         },
         "&:hover": {
-          backgroundImage:
-            "linear-gradient(90deg, #ff2e63, #ff8a00, #ffd23f, #ff8a00, #ff2e63)",
+          backgroundImage: gradient,
           filter: "brightness(1.15) saturate(1.2)",
           transform: "scale(1.08)",
         },
@@ -1851,7 +1867,7 @@ function HypePageButton({ match }: { match: BracketMatchOutput }) {
         },
       }}
     >
-      Match preview
+      {recap ? "Match recap" : "Match preview"}
     </Button>
   )
 }
