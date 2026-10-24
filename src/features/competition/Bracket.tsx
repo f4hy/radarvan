@@ -79,7 +79,7 @@ import { toGeneralName } from "../../lib/general_utils"
 import { usePlayerNav } from "../../lib/links"
 import { mapKey } from "../../lib/mapName"
 import { usePlayerAccentColor } from "../../lib/PlayerColorsContext"
-import { BILLED_QUERY_OPTIONS } from "../../lib/queryClient"
+import { BILLED_QUERY_OPTIONS, pollWhilePending } from "../../lib/queryClient"
 import {
   BRAND_COLOR,
   CHART_PALETTE,
@@ -856,15 +856,16 @@ function MatchupPopup({
         round_name: match.round_name,
       },
     }),
-    select: (res) => res.commentary ?? null,
     enabled: Boolean(playerA && playerB),
     // A disabled provider (503) or a generation failure (502) also just hides
     // the section; BILLED_QUERY_OPTIONS' `retry: false` is what stops a failure
     // becoming a second billable attempt.
     ...BILLED_QUERY_OPTIONS,
+    refetchInterval: pollWhilePending,
   })
-  const commentary = commentaryQuery.data ?? null
-  const commentaryLoading = commentaryQuery.isFetching
+  const commentary = commentaryQuery.data?.commentary ?? null
+  const commentaryLoading =
+    commentaryQuery.isFetching || commentaryQuery.data?.pending === true
 
   // The recap only exists once the set is finished AND every game of it is
   // linked; the backend decides that and answers `ready: false` (free, no
@@ -880,13 +881,15 @@ function MatchupPopup({
       const { data } = await getBracketSummaryApiBracketSummaryMatchIdGet({
         path: { match_id: match.match_id },
       })
-      return data.summary ?? null
+      return data
     },
     enabled: isCompleted,
     ...BILLED_QUERY_OPTIONS,
+    refetchInterval: pollWhilePending,
   })
-  const summary = summaryQuery.data ?? null
-  const summaryLoading = summaryQuery.isFetching
+  const summary = summaryQuery.data?.summary ?? null
+  const summaryLoading =
+    summaryQuery.isFetching || summaryQuery.data?.pending === true
 
   // The games played are a stored fact (the tournament_games link table), not
   // derived by matching player names against the night's matches — that
