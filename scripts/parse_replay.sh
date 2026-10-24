@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Parse a .rep file through cncstats and save the JSON it returns.
 #
-#   ./parse_replay.sh <replay.rep> [output.json]
+#   scripts/parse_replay.sh <replay.rep> [output.json]
 #
 # Output defaults to the replay's basename with a .json extension.
 # Requires CNCSTATS_APIKEY - the Bearer token for POST /replay. (Not

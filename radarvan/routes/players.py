@@ -58,8 +58,9 @@ _TEAM_FORMATS = {"2v2", "3v3", "4v4"}
 _H2H_VALUE_WINDOW = 150
 
 
+# Sorted so the OpenAPI spec (and the generated client) is stable across runs.
 PlayerEnum = Enum(  # type: ignore[misc]
-    "PlayerEnum", {v.upper(): v for v in player_ids.PLAYER_NAMES}, type=str
+    "PlayerEnum", {v.upper(): v for v in sorted(player_ids.PLAYER_NAMES)}, type=str
 )
 
 

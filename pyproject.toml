@@ -195,6 +195,9 @@ section-order = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# --strict-markers so a typo'd mark fails instead of silently matching nothing.
+addopts = ["--strict-markers"]
+markers = ["slow: spawns the .venv-ml interpreter; skipped by `make test-fast`"]
 
 [tool.mypy]
 python_version = "3.14"

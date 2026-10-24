@@ -209,9 +209,12 @@ app.include_router(seo_routes.router)
 
 
 # html=True serves dist/index.html for "/". Cache-Control rules for the built
-# frontend live in radarvan.http_cache.
+# frontend live in radarvan.http_cache. check_dir=False lets the app import
+# without a frontend build (tests, scripts/dump_openapi.py).
 app.mount(
     "/",
-    CachedStaticFiles(directory="dist", html=True, shell=seo.shell_page),
+    CachedStaticFiles(
+        directory="dist", html=True, check_dir=False, shell=seo.shell_page
+    ),
     name="dist",
 )

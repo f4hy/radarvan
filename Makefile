@@ -1,6 +1,6 @@
-.PHONY: help format lint lint-fix typecheck ty check \
-        ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check \
-        build clean install test all \
+.PHONY: help format format-check lint lint-fix typecheck ty check \
+        ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check ts-test \
+        gen-client client-check build clean install test test-fast test-pg ci all \
         up up-build down logs ps shell db-shell db-snapshot db-snapshot-full \
         db-restore db-reset migrate test-e2e
 
@@ -22,6 +22,9 @@ install: ## Install Python and Node dependencies
 format: ## Format Python code with ruff
 	uv run ruff format radarvan/ tests/
 
+format-check: ## Check Python formatting (no write)
+	uv run ruff format --check radarvan/ tests/
+
 lint: ## Lint Python code with ruff
 	uv run ruff check --no-fix radarvan/ tests/
 
@@ -36,7 +39,7 @@ typecheck: ## Type-check Python code with mypy
 ty: ## Type-check Python code with ty (advisory; mypy is the gate)
 	uv run ty check radarvan/
 
-check: lint typecheck ## Run all Python checks (no formatting)
+check: lint format-check typecheck ## Run all Python checks (no writes)
 	@echo "✓ Python checks passed!"
 
 # ── TypeScript / React ────────────────────────────────────────────────────────
@@ -58,6 +61,19 @@ ts-typecheck: ## Type-check TypeScript code with tsc
 
 ts-check: ts-format-check ts-lint ts-typecheck ## Run all TypeScript checks (no formatting)
 	@echo "✓ TypeScript checks passed!"
+
+ts-test: ## Run frontend unit tests (vitest)
+	npm test
+
+# ── Generated API client ──────────────────────────────────────────────────────
+
+gen-client: ## Regenerate src/api from the app's OpenAPI spec (no server needed)
+	./gen_client.sh
+
+client-check: gen-client ## Fail if src/api is stale against the Python models
+	@git diff --exit-code --stat -- src/api && test -z "$$(git ls-files --others --exclude-standard -- src/api)" \
+		|| (echo "✗ src/api is out of date: run 'make gen-client' and commit the result" && exit 1)
+	@echo "✓ Generated client is up to date!"
 
 # ── Combined ──────────────────────────────────────────────────────────────────
 
@@ -83,9 +99,12 @@ clean: ## Clean build artifacts and cache files
 test: ## Run tests (PostgreSQL cases skip; see test-pg)
 	uv run pytest
 
+test-fast: ## Run tests minus the slow ML ones (inner loop)
+	uv run pytest -m "not slow"
+
 # Starts the tmpfs Postgres from docker-compose.yml's `test` profile, then runs
-# the suite against it. DATABASE_URL is pinned inert here because `make test`
-# otherwise inherits the dev shell's, which .env points at production.
+# the suite against it. DATABASE_URL is pinned inert so the tests can never
+# reach the dev database the shell may have exported.
 test-pg: ## Run tests including the PostgreSQL integration cases
 	docker compose --profile test up -d --wait test-db
 	DATABASE_URL=sqlite:// \
@@ -153,5 +172,7 @@ db-reset: ## Destroy the local database volume and re-run migrations from scratc
 test-e2e: ## Run the browser suite (Firefox; builds and previews the app itself)
 	npm run test:e2e
 
-ci: clean install all build ## Run full CI pipeline
+# The same gates as .github/workflows/ci.yml, none of which write to the tree
+# (client-check regenerates src/api, but only to diff it).
+ci: install check ts-check client-check test-pg ts-test ## Run the CI checks locally
 	@echo "✓ CI pipeline complete!"

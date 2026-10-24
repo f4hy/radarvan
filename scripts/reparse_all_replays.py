@@ -17,7 +17,7 @@ single reparse clears the whole (bloated) player collection before rebuilding
 it clean.
 
 Usage:
-    uv run python reparse_all_replays.py [--max-concurrent N] [--limit N]
+    uv run python -m scripts.reparse_all_replays [--max-concurrent N] [--limit N]
 
 Note: this talks directly to the database, not the running API server, so it
 won't clear that process's in-memory caches. If radarvan is running against

@@ -76,3 +76,12 @@ def test_sqlalchemy_url_pins_psycopg2() -> None:
             == "postgresql+psycopg2://u:p@h:5432/db"
         )
     assert sqlalchemy_url("sqlite:///x.db") == "sqlite:///x.db"
+
+
+def test_the_committed_model_files_are_where_serving_looks() -> None:
+    """A missing model file only shows up as a 503 from its endpoints."""
+    from radarvan import ml_inference, winprob_inference
+
+    for path in winprob_inference._BUNDLE:
+        assert (ROOT / path).is_file(), path
+    assert any((ROOT / ml_inference.ENSEMBLE_DIR).glob("model-*.onnx"))

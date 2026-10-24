@@ -24,6 +24,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     passWithNoTests: true,
-    exclude: [...configDefaults.exclude, "e2e/**"],
+    // .claude/worktrees/ holds full checkouts, e2e specs included.
+    exclude: [...configDefaults.exclude, "e2e/**", ".claude/**"],
   },
 })
