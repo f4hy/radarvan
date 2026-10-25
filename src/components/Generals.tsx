@@ -4,35 +4,22 @@ import china from "../img/Gen_China_Logo.webp"
 import usa from "../img/Gen_USA_Logo.webp"
 import gla from "../img/Gla.webp"
 import { General } from "../lib/General"
+import { type Faction, generalFaction } from "../lib/general_utils"
 
-type Side = "GLA" | "CHINA" | "USA"
-
-const sideImg: Record<Side, string> = {
+const factionImg: Record<Faction, string> = {
   GLA: gla,
   CHINA: china,
   USA: usa,
 }
 
-function generalToSide(general: General): Side {
-  switch (general) {
-    case General.USA:
-    case General.AIR:
-    case General.LASER:
-    case General.SUPER:
-      return "USA"
-    case General.CHINA:
-    case General.NUKE:
-    case General.TANK:
-    case General.INFANTRY:
-      return "CHINA"
-    case General.GLA:
-    case General.TOXIN:
-    case General.STEALTH:
-    case General.DEMO:
-      return "GLA"
-    default:
-      return "USA"
-  }
+export function FactionAvatar(props: { faction: Faction; size?: string }) {
+  const size = props.size ?? "2rem"
+  return (
+    <Avatar
+      src={factionImg[props.faction]}
+      sx={{ width: size, height: size }}
+    />
+  )
 }
 
 /** A general's faction logo on its own, sizable and with no name badge.
@@ -43,10 +30,10 @@ function generalToSide(general: General): Side {
  * matrix header - where a badge would collide with the text beside it. */
 export function GeneralAvatar(props: { general: General; size?: string }) {
   const size = props.size ?? "2rem"
-  const known = General[props.general] !== "UNRECOGNIZED"
+  const faction = generalFaction(props.general)
   const sx = { width: size, height: size, fontSize: "0.75rem" }
-  return known ? (
-    <Avatar src={sideImg[generalToSide(props.general)]} sx={sx} />
+  return faction ? (
+    <Avatar src={factionImg[faction]} sx={sx} />
   ) : (
     <Avatar sx={sx}>?</Avatar>
   )
