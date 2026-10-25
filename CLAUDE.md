@@ -30,6 +30,7 @@ Backend lives in `radarvan/` — the layout is self-describing, read the module 
 - **Prefer the specific repo in `repositories/`** over the `ReplayManager` facade in `db_utils.py`; the facade exists for legacy callers.
 - **`main.py` is app composition only** (middleware order, router registration, lifespan, the global exception handler, static serving). Handlers go in `routes/`.
 - **ML inference is ONNX Runtime only — no torch in prod** (`ml_inference.py`, `winprob_inference.py`).
+- **Every server span carries who and where** (`request_tags.py`): `enduser.id` (stable user id; the changeable name is `app.user.name`), `enduser.pseudo.id` (anonymous browser id, minted client-side in `apiConfig.ts`), `app.page` (the SPA page that made the call), `app.client`, `user_agent.original`, `app.api_key_tier`. Page views are `POST /api/page_view` spans — one per route entered, never for query-only changes. A handler adds its own attributes with `tag_request()` — in a handler, `trace.get_current_span()` is FastAPI's `fastapi.endpoint` child, not the server span.
 - **Rating *levels* are never shown to a normal visitor** — a rating number, ordinal, or leaderboard position must not reach the Records page, a profile, a match view, or commentary. See the `player-ratings-and-roles` skill before surfacing anything rating-derived.
 
 Data flow: replays arrive by scheduled scrape or `POST /api/upload_replay` → cncstats parses the `.rep` → `.rep`+parsed JSON go to S3, rows to Postgres → derived data is cached and served via REST, consumed by the generated client.

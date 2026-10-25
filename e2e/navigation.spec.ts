@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, type Page, test } from "@playwright/test"
 import { expectClean, heading, watchForProblems } from "./harness"
 import { playerProfile } from "./fixtures"
 import { mockApi } from "./mockApi"
@@ -130,5 +130,102 @@ test.describe("a match has its own page", () => {
     await page.goto("/match/abc")
     await expect(page.getByText("There's no match with ID")).toBeVisible()
     expect(mock.calls.filter((p) => p.startsWith("/api/match/"))).toEqual([])
+  })
+})
+
+test.describe("page views are reported", () => {
+  // A view is entering a route. Query-only changes never count, whoever makes
+  // them: the page writing its own default, the visitor picking another night,
+  // a highlight focusing a game, a filter. See usePageViewBeacon.
+  async function recordViews(page: Page): Promise<unknown[]> {
+    const views: unknown[] = []
+    page.on("request", (req) => {
+      if (new URL(req.url()).pathname === "/api/page_view") {
+        views.push(req.postDataJSON())
+      }
+    })
+    return views
+  }
+
+  test("entering a route is one view, carrying where it came from", async ({
+    page,
+  }) => {
+    await mockApi(page)
+    const views = await recordViews(page)
+    // "/" redirects to Game Night, which then writes ?date= in itself.
+    await page.goto("/")
+    await expect(page).toHaveURL(/\/game-night\?date=/)
+    await page.locator('nav a[href="/team-stats"]').first().click()
+    await expect(page).toHaveURL("/team-stats")
+    await expect.poll(() => views.length).toBe(2)
+    expect(views).toEqual([
+      { path: "/game-night", query: "", referrer: null },
+      { path: "/team-stats", query: "", referrer: "/game-night" },
+    ])
+  })
+
+  test("changing nights or focusing a game is not a new view", async ({
+    page,
+  }) => {
+    await mockApi(page)
+    const views = await recordViews(page)
+    await page.goto("/game-night?date=2026-08-29")
+    await expect(page.getByText("Match of the night")).toBeVisible()
+    await page.getByRole("button", { name: "Older night" }).click()
+    await expect(page).toHaveURL(/date=2026-08-28/)
+    await page.locator('[title="Show this game below"]').first().click()
+    await expect(page).toHaveURL(/match=/)
+    // Leave, so the assertion can't pass merely by checking too early.
+    await page.locator('nav a[href="/team-stats"]').first().click()
+    await expect.poll(() => views.length).toBe(2)
+    expect(views[0]).toEqual({
+      path: "/game-night",
+      query: "date=2026-08-29",
+      referrer: null,
+    })
+  })
+
+  test("a filter is not a new view", async ({ page }) => {
+    await mockApi(page)
+    const views = await recordViews(page)
+    await page.goto("/matches")
+    await page.getByRole("button", { name: "2v2" }).click()
+    await expect(page).toHaveURL(/format=2v2/)
+    await page.locator('nav a[href="/team-stats"]').first().click()
+    await expect.poll(() => views.length).toBe(2)
+    expect(views.map((v) => (v as { path: string }).path)).toEqual([
+      "/matches",
+      "/team-stats",
+    ])
+  })
+
+  test("API calls carry the page that made them", async ({ page }) => {
+    await mockApi(page)
+    const pages = new Set<string>()
+    page.on("request", (req) => {
+      if (new URL(req.url()).pathname === "/api/team_stats/") {
+        pages.add(req.headers()["x-radarvan-page"] ?? "")
+      }
+    })
+    await page.goto("/team-stats")
+    await expect.poll(() => [...pages]).toEqual(["/team-stats"])
+  })
+
+  test("every API call from one browser carries the same visitor id", async ({
+    page,
+  }) => {
+    await mockApi(page)
+    const visitors = new Set<string>()
+    page.on("request", (req) => {
+      if (new URL(req.url()).pathname.startsWith("/api/")) {
+        visitors.add(req.headers()["x-radarvan-visitor"] ?? "missing")
+      }
+    })
+    await page.goto("/team-stats")
+    await page.reload()
+    await page.locator('nav a[href="/matches"]').first().click()
+    await expect(page).toHaveURL("/matches")
+    expect(visitors.size).toBe(1)
+    expect([...visitors][0]).toMatch(/^[0-9a-f-]{36}$/)
   })
 })

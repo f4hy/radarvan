@@ -18,6 +18,7 @@ from ..dependencies import (
     FRONTEND_URL,
     get_current_user,
     get_user_repo,
+    remember_user_label,
     require_current_user,
 )
 from ..player_ids import PLAYER_NAMES
@@ -67,6 +68,7 @@ async def discord_callback(
     avatar = profile.get("avatar")
     user = repo.upsert_discord_user(discord_id, username, avatar)
     request.session["user_id"] = user.id
+    remember_user_label(request, user)
     logger.info("discord login", discord_id=discord_id, user_id=user.id)
     return RedirectResponse(FRONTEND_URL, status_code=303)
 
@@ -84,6 +86,8 @@ def select_player(
     req: SelectPlayerRequest,
     user: User = Depends(require_current_user),
     repo: UserRepo = Depends(get_user_repo),
+    *,
+    request: Request,
 ) -> AuthStatus:
     """Claim an in-game name (first-login step). Name must be in PLAYER_NAMES."""
     if req.player_name not in PLAYER_NAMES:
@@ -94,6 +98,7 @@ def select_player(
             status_code=409, detail="That player name is already claimed"
         )
     repo.set_player_name(user, req.player_name)
+    remember_user_label(request, user)
     return _logged_in_status(user)
 
 
