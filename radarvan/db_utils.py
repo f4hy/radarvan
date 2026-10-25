@@ -51,7 +51,11 @@ class DatabaseManager:
 
         Example: DatabaseManager('postgresql://user:password@localhost:5432/cnc_stats')
         """
-        self.engine = create_engine(sqlalchemy_url(connection_string), echo=False)
+        # Prod connections get dropped server-side (SSL SYSCALL EOF); ping on checkout
+        # so the pool discards the dead one instead of failing the request.
+        self.engine = create_engine(
+            sqlalchemy_url(connection_string), echo=False, pool_pre_ping=True
+        )
         self.SessionLocal = sessionmaker(bind=self.engine)
 
     def create_all_tables(self) -> None:
