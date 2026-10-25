@@ -7,6 +7,7 @@ import EditIcon from "@mui/icons-material/Edit"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 import EventNoteIcon from "@mui/icons-material/EventNote"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import FlagIcon from "@mui/icons-material/Flag"
 import GavelIcon from "@mui/icons-material/Gavel"
 import InsightsIcon from "@mui/icons-material/Insights"
 import MapIcon from "@mui/icons-material/Map"
@@ -113,6 +114,8 @@ import {
   sourceMatchLabel,
   useCountdownMs,
 } from "./bracketFormat"
+import FactionsPanel from "./Factions"
+import { PlayerRecordChips } from "./PlayerRecords"
 import { matchPageLink } from "./matchPages"
 
 const DEFAULT_SEEDS = [
@@ -226,12 +229,6 @@ const POOL_NAME_BY_KEY = new Map(
   TOURNAMENT_MAP_LIST.map((name) => [mapKey(name), name]),
 )
 
-function recordColor(wins: number, losses: number): string {
-  if (wins > losses) return WIN_COLOR
-  if (losses > wins) return LOSS_COLOR
-  return NEUTRAL_COLOR
-}
-
 // Every pool map is listed whether or not it's been played, in the same order
 // as the cards above; a map played but not in the pool (shouldn't happen under
 // the rules) is appended under whatever name the match recorded.
@@ -291,34 +288,7 @@ function MapPlayerRecordList() {
                 : "not played yet"}
             </Typography>
           </Stack>
-          {record && (
-            <Stack
-              direction="row"
-              spacing={1.5}
-              useFlexGap
-              sx={{ flexWrap: "wrap", alignItems: "center", mt: 0.75 }}
-            >
-              {record.players.map((p) => (
-                <Stack
-                  key={p.player}
-                  direction="row"
-                  spacing={0.5}
-                  sx={{ alignItems: "center" }}
-                >
-                  <PlayerChip name={p.player} />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: recordColor(p.wins, p.losses),
-                      fontWeight: 600,
-                    }}
-                  >
-                    {p.wins}–{p.losses}
-                  </Typography>
-                </Stack>
-              ))}
-            </Stack>
-          )}
+          {record && <PlayerRecordChips players={record.players} />}
         </Box>
       ))}
     </Stack>
@@ -1900,7 +1870,7 @@ export default function DisplayBracket() {
   const theme = useTheme()
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"))
   const [pageTab, setPageTab] = React.useState<
-    "bracket" | "rules" | "maps" | "agenda"
+    "bracket" | "rules" | "maps" | "factions" | "agenda"
   >("bracket")
 
   // Admin-only "peek early" toggle (see RevealCountdown / the button below).
@@ -2287,9 +2257,16 @@ export default function DisplayBracket() {
           icon={<MapIcon />}
           iconPosition="start"
         />
+        <Tab
+          value="factions"
+          label="Factions"
+          icon={<FlagIcon />}
+          iconPosition="start"
+        />
       </Tabs>
       {pageTab === "rules" && <TournamentRulesPanel />}
       {pageTab === "maps" && <TournamentMapListPanel />}
+      {pageTab === "factions" && <FactionsPanel />}
       {pageTab === "agenda" && (
         <AgendaPanel
           bracketData={bracketData}

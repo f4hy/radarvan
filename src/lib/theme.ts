@@ -43,6 +43,12 @@ export const WIN_COLOR_SOFT = "#9bccb1"
 export const LOSS_COLOR_SOFT = "#e0a6a6"
 export const NEUTRAL_COLOR = "#9aa4b2"
 
+export function recordColor(wins: number, losses: number): string {
+  if (wins > losses) return WIN_COLOR
+  if (losses > wins) return LOSS_COLOR
+  return NEUTRAL_COLOR
+}
+
 // Paired win/loss COUNT bars (general/player stats): wins are the hero color,
 // losses are a neutral slate so the two adjacent full-height bars don't read as
 // garish green+red. Grey-for-loss is safe here because observers never appear
