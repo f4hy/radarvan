@@ -7,6 +7,23 @@ if (apiKey) {
   headers["X-API-Key"] = apiKey
 }
 
+// A random id per browser, for counting distinct visitors in the traces
+// (request_tags.py). Generated here rather than by the server so the
+// concurrent requests of a first page load all carry the same one.
+const VISITOR_STORAGE_KEY = "radarvan-visitor-id"
+const visitorId: string | null = (() => {
+  try {
+    const stored = localStorage.getItem(VISITOR_STORAGE_KEY)
+    if (stored) return stored
+    const minted = crypto.randomUUID()
+    localStorage.setItem(VISITOR_STORAGE_KEY, minted)
+    return minted
+  } catch {
+    // Storage blocked (private mode, disabled site data): stay anonymous.
+    return null
+  }
+})()
+
 // How many times to transparently retry a 429 before giving up and letting the
 // ApiError propagate to the caller's error handling.
 const MAX_RATE_LIMIT_RETRIES = 3
@@ -50,6 +67,7 @@ async function apiFetch(
     "X-Radarvan-Page",
     window.location.pathname + window.location.search,
   )
+  if (visitorId) request.headers.set("X-Radarvan-Visitor", visitorId)
   const response = await fetchWithRateLimitRetry(request)
   if (!response.ok) throw await readApiError(response)
   return response

@@ -5,7 +5,7 @@ page, or by caller type (the app vs. pollers, crawlers and scripts).
 """
 
 from collections.abc import Mapping
-import secrets
+import re
 from urllib.parse import urlsplit
 
 from fastapi import Request
@@ -19,8 +19,11 @@ from .middleware import CLIENT_ID_HEADER, is_crawler
 
 # The SPA route (path + query) the browser was on when it made the call.
 PAGE_HEADER = "X-Radarvan-Page"
-FRONTEND_CLIENT = "react-frontend"
-VISITOR_SESSION_KEY = "visitor_id"
+# A random id the browser generates once and keeps in localStorage. Minted
+# client-side so the concurrent requests of a first page load all agree on it;
+# minted server-side, each would race to write its own into the session cookie.
+VISITOR_HEADER = "X-Radarvan-Visitor"
+_VISITOR_ID = re.compile(r"[0-9a-f-]{8,64}")
 _MAX_HEADER_CHARS = 512
 _STATE_KEY = "span_tags"
 
@@ -42,37 +45,17 @@ def _header(request: Request, name: str) -> str | None:
     return value[:_MAX_HEADER_CHARS] if value else None
 
 
-def visitor_id(request: Request) -> str | None:
-    """The browser's random visitor id, minted on its first app request.
-
-    Only the app's own calls get one: pollers and scripts don't keep cookies,
-    so minting for them would make every request a new "visitor".
-    """
-    existing = request.session.get(VISITOR_SESSION_KEY)
-    if existing is not None:
-        return str(existing)
-    if request.headers.get(CLIENT_ID_HEADER) != FRONTEND_CLIENT:
-        return None
-    minted = secrets.token_hex(8)
-    request.session[VISITOR_SESSION_KEY] = minted
-    return minted
-
-
-def request_attributes(request: Request) -> dict[str, SpanValue]:
+def caller_attributes(request: Request) -> dict[str, SpanValue]:
     attrs: dict[str, SpanValue] = {
         "app.client": request.headers.get(CLIENT_ID_HEADER, "unknown"),
         "app.crawler": is_crawler(request),
         "app.api_key_tier": resolve_tier(request.headers.get(API_KEY_HEADER)).value,
-        "app.logged_in": "user_id" in request.session,
     }
     if (agent := _header(request, "user-agent")) is not None:
         attrs["user_agent.original"] = agent
-    if (visitor := visitor_id(request)) is not None:
-        attrs["app.visitor_id"] = visitor
-    if (label := request.session.get(USER_LABEL_SESSION_KEY)) is not None:
-        attrs["enduser.id"] = label
-    if (user_id := request.session.get("user_id")) is not None:
-        attrs["app.user_id"] = user_id
+    visitor = request.headers.get(VISITOR_HEADER, "")
+    if _VISITOR_ID.fullmatch(visitor):
+        attrs["enduser.pseudo.id"] = visitor
     if (page := _header(request, PAGE_HEADER)) is not None:
         parts = urlsplit(page)
         attrs["app.page"] = parts.path
@@ -81,19 +64,34 @@ def request_attributes(request: Request) -> dict[str, SpanValue]:
     return attrs
 
 
+def identity_attributes(request: Request) -> dict[str, SpanValue]:
+    # enduser.id is the stable user id; the name can change (Discord name until
+    # a player is claimed), so it rides alongside rather than being the key.
+    user_id = request.session.get("user_id")
+    attrs: dict[str, SpanValue] = {"app.logged_in": user_id is not None}
+    if user_id is not None:
+        attrs["enduser.id"] = str(user_id)
+    if (label := request.session.get(USER_LABEL_SESSION_KEY)) is not None:
+        attrs["app.user.name"] = label
+    return attrs
+
+
 class RequestTagsMiddleware(BaseHTTPMiddleware):
-    """Must sit inside SessionMiddleware: it reads the session, and a visitor id
-    it mints only reaches the cookie if Session sees the write."""
+    """Must sit inside SessionMiddleware, which is what gives it the session."""
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        attrs = request_attributes(request)
         span = trace.get_current_span()
         if span.is_recording():
-            span.set_attributes(attrs)
+            span.set_attributes(caller_attributes(request))
+            span.set_attributes(identity_attributes(request))
         response = await call_next(request)
         # The server span is still open here: it ends once the body is sent.
+        # Identity is re-read so login and name selection are tagged with the
+        # session they leave behind; a logout keeps who it was (attributes are
+        # only ever overwritten) with app.logged_in now false.
         if span.is_recording():
+            span.set_attributes(identity_attributes(request))
             span.set_attributes(getattr(request.state, _STATE_KEY, {}))
         return response

@@ -23,7 +23,6 @@ from ..dependencies import (
 )
 from ..player_ids import PLAYER_NAMES
 from ..repositories import UserRepo
-from ..request_tags import VISITOR_SESSION_KEY
 
 logger = structlog.get_logger(__name__)
 
@@ -69,6 +68,7 @@ async def discord_callback(
     avatar = profile.get("avatar")
     user = repo.upsert_discord_user(discord_id, username, avatar)
     request.session["user_id"] = user.id
+    remember_user_label(request, user)
     logger.info("discord login", discord_id=discord_id, user_id=user.id)
     return RedirectResponse(FRONTEND_URL, status_code=303)
 
@@ -105,9 +105,5 @@ def select_player(
 @router.post("/logout")
 def logout(request: Request) -> dict[str, bool]:
     """Clear the session cookie."""
-    # Logging out shouldn't make the same browser a new visitor.
-    visitor = request.session.get(VISITOR_SESSION_KEY)
     request.session.clear()
-    if visitor is not None:
-        request.session[VISITOR_SESSION_KEY] = visitor
     return {"ok": True}
