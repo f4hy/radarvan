@@ -109,6 +109,12 @@ class WinLoss(BaseModel):
     losses: int
 
 
+class PlayerWL(BaseModel):
+    player: str
+    wins: int
+    losses: int
+
+
 class DateMessage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

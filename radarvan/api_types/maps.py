@@ -12,14 +12,9 @@ from .common import (
     DateMessage,
     General,
     PlayerName,
+    PlayerWL,
     Team,
 )
-
-
-class MapPlayerWL(BaseModel):
-    player: str
-    wins: int
-    losses: int
 
 
 class MapGeneralWL(BaseModel):
@@ -36,7 +31,7 @@ class MapData(BaseModel):
 
     map_name: str = Field(alias="mapName")
     total_games: int = Field(alias="totalGames")
-    player_stats: list[MapPlayerWL] = Field(alias="playerStats")
+    player_stats: list[PlayerWL] = Field(alias="playerStats")
     general_stats: list[MapGeneralWL] = Field(alias="generalStats")
 
 
@@ -57,7 +52,7 @@ class MapPlayerRecords(BaseModel):
     map_key: str
     map_name: str
     total_games: int
-    players: list[MapPlayerWL]
+    players: list[PlayerWL]
 
 
 class MapStat(BaseModel):

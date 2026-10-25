@@ -33,7 +33,6 @@ export type {
   BracketPredictionLeaderboardEntry,
   BracketTournamentOutput,
   MapPlayerRecords,
-  MapPlayerWL,
   SetBracketMatchRequest,
   SetBracketRevealAtRequest,
 } from "../../api/types.gen"

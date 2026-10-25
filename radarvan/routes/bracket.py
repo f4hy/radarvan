@@ -18,7 +18,14 @@ import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import bracket, discord_events, map_stats, player_ids, tournament_membership
+from .. import (
+    bracket,
+    discord_events,
+    general_stats,
+    map_stats,
+    player_ids,
+    tournament_membership,
+)
 from ..api_types import (
     BracketMatchGames,
     BracketMatchOutput,
@@ -26,6 +33,7 @@ from ..api_types import (
     BracketPredictionLeaderboardEntry,
     BracketTournamentOutput,
     CreateBracketRequest,
+    GeneralPickRecord,
     LoserOfSource,
     MatchInfo,
     BracketMatchPrediction,
@@ -545,6 +553,34 @@ def get_bracket_map_records(
     tournament_row = repo.get_active()
     if tournament_row is None:
         return []
+    return map_stats.map_player_records(
+        _linked_games(tournament_row, user, tournament_repo, replay_manager)
+    )
+
+
+@router.get("/api/bracket_general_records")
+def get_bracket_general_records(
+    user: User | None = Depends(get_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    tournament_repo: TournamentRepo = Depends(get_tournament_repo),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[GeneralPickRecord]:
+    """Which generals have been picked across the bracket's linked games, and how each did."""
+    tournament_row = repo.get_active()
+    if tournament_row is None:
+        return []
+    return general_stats.general_pick_records(
+        _linked_games(tournament_row, user, tournament_repo, replay_manager)
+    )
+
+
+def _linked_games(
+    tournament_row: BracketTournament,
+    user: User | None,
+    tournament_repo: TournamentRepo,
+    replay_manager: ReplayManager,
+) -> list[MatchInfo]:
+    """Every game linked to the bracket - none before reveal, since they name who played whom."""
     is_admin = user is not None and player_ids.is_tournament_admin(user.discord_id)
     if not is_revealed(tournament_row, allow_preview=is_admin):
         return []
@@ -552,12 +588,11 @@ def get_bracket_map_records(
     if parent is None:
         return []
     known = sorted_deduped_matches(replay_manager)
-    games = [
+    return [
         known[link.match_id]
         for link in tournament_repo.list_links(parent.id)
         if link.match_id in known
     ]
-    return map_stats.map_player_records(games)
 
 
 def _prediction_is_open(
