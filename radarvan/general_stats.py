@@ -1,12 +1,14 @@
 """Compute generals stats."""
 
 from collections import defaultdict
+from collections.abc import Iterable
 
 from .api_types import (
     MatchInfo,
     General,
     GeneralMatchupCell,
     GeneralMatchups,
+    GeneralPickRecord,
     GeneralStat,
     GeneralStats,
     Statistic,
@@ -15,6 +17,7 @@ from .api_types import (
 )
 from . import game_composition
 from . import player_ids
+from .player_records import player_records_by
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -169,3 +172,15 @@ def get_general_matchups(games: list[MatchInfo]) -> GeneralMatchups:
         for (a, b), wl in sorted(pair_wins.items(), key=lambda kv: kv[0])
     ]
     return GeneralMatchups(cells=cells)
+
+
+def general_pick_records(games: Iterable[MatchInfo]) -> list[GeneralPickRecord]:
+    """Per-general, per-player win-loss over exactly the games handed in, most-picked first."""
+    records = [
+        GeneralPickRecord(general=general, players=players)
+        for general, players in player_records_by(
+            games, lambda _g, p: General(p.general)
+        ).items()
+    ]
+    records.sort(key=lambda r: (-sum(p.wins + p.losses for p in r.players), r.general))
+    return records
