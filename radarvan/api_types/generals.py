@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field, ConfigDict
-from .common import General, WinLoss
+from .common import General, PlayerWL, WinLoss
 
 
 class GeneralStatPlayerWL(BaseModel):
@@ -45,3 +45,10 @@ class GeneralMatchups(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     cells: list[GeneralMatchupCell]
+
+
+class GeneralPickRecord(BaseModel):
+    """One general's per-player records over a caller-chosen game set."""
+
+    general: General
+    players: list[PlayerWL]
