@@ -1608,6 +1608,19 @@ export type GeneralOpeningBook = {
 };
 
 /**
+ * GeneralPickRecord
+ *
+ * One general's per-player records over a caller-chosen game set.
+ */
+export type GeneralPickRecord = {
+    general: General;
+    /**
+     * Players
+     */
+    players: Array<PlayerWL>;
+};
+
+/**
  * GeneralPowers
  *
  * One player's power habits on one general.
@@ -1992,7 +2005,7 @@ export type MapData = {
     /**
      * Playerstats
      */
-    playerStats: Array<MapPlayerWL>;
+    playerStats: Array<PlayerWL>;
     /**
      * Generalstats
      */
@@ -2167,7 +2180,7 @@ export type MapPlayerRecords = {
     /**
      * Players
      */
-    players: Array<MapPlayerWL>;
+    players: Array<PlayerWL>;
 };
 
 /**
@@ -2186,24 +2199,6 @@ export type MapPlayerStart = {
      * Y
      */
     y: number;
-};
-
-/**
- * MapPlayerWL
- */
-export type MapPlayerWL = {
-    /**
-     * Player
-     */
-    player: string;
-    /**
-     * Wins
-     */
-    wins: number;
-    /**
-     * Losses
-     */
-    losses: number;
 };
 
 /**
@@ -3748,6 +3743,24 @@ export type PlayerSynergy = {
      * Solo B
      */
     solo_b: number | null;
+};
+
+/**
+ * PlayerWL
+ */
+export type PlayerWL = {
+    /**
+     * Player
+     */
+    player: string;
+    /**
+     * Wins
+     */
+    wins: number;
+    /**
+     * Losses
+     */
+    losses: number;
 };
 
 /**
@@ -7609,6 +7622,24 @@ export type getBracketMapRecordsApiBracketMapRecordsGetResponses = {
 };
 
 export type getBracketMapRecordsApiBracketMapRecordsGetResponse = getBracketMapRecordsApiBracketMapRecordsGetResponses[keyof getBracketMapRecordsApiBracketMapRecordsGetResponses];
+
+export type getBracketGeneralRecordsApiBracketGeneralRecordsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/bracket_general_records';
+};
+
+export type getBracketGeneralRecordsApiBracketGeneralRecordsGetResponses = {
+    /**
+     * Response Get Bracket General Records Api Bracket General Records Get
+     *
+     * Successful Response
+     */
+    200: Array<GeneralPickRecord>;
+};
+
+export type getBracketGeneralRecordsApiBracketGeneralRecordsGetResponse = getBracketGeneralRecordsApiBracketGeneralRecordsGetResponses[keyof getBracketGeneralRecordsApiBracketGeneralRecordsGetResponses];
 
 export type getBracketPredictionsApiBracketPredictionsGetData = {
     body?: never;
