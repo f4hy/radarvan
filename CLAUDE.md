@@ -30,6 +30,7 @@ Backend lives in `radarvan/` — the layout is self-describing, read the module 
 - **Prefer the specific repo in `repositories/`** over the `ReplayManager` facade in `db_utils.py`; the facade exists for legacy callers.
 - **`main.py` is app composition only** (middleware order, router registration, lifespan, the global exception handler, static serving). Handlers go in `routes/`.
 - **ML inference is ONNX Runtime only — no torch in prod** (`ml_inference.py`, `winprob_inference.py`).
+- **Generals are always assigned at random — in every recorded game, no player ever chooses one.** How often a player has played a general is chance, not preference. Never call a general someone's "pick", "favourite" or "main", and never model, adjust for, or ask about general selection: no pick bias, no player–general familiarity, no skill/choice confounding. Do not report the randomness as "inferred from usage" either — it is a fact of how the group plays.
 - **Rating *levels* are never shown to a normal visitor** — a rating number, ordinal, or leaderboard position must not reach the Records page, a profile, a match view, or commentary. See the `player-ratings-and-roles` skill before surfacing anything rating-derived.
 
 Data flow: replays arrive by scheduled scrape or `POST /api/upload_replay` → cncstats parses the `.rep` → `.rep`+parsed JSON go to S3, rows to Postgres → derived data is cached and served via REST, consumed by the generated client.

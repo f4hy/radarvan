@@ -114,6 +114,11 @@ PAGES: dict[str, StaticPage] = {
         "- overall, by map and by matchup.",
         priority=0.8,
     ),
+    "composition-predictor": StaticPage(
+        "Composition Predictor",
+        "Which Zero Hour generals, team compositions and maps are favored "
+        "between equally skilled players, estimated from our replays.",
+    ),
     "powers": StaticPage(
         "Generals Powers",
         "Which generals powers C&C Zero Hour players pick and use, and how "
