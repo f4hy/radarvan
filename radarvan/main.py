@@ -43,6 +43,7 @@ from .routes import (
     players,
     predict,
     profile,
+    scenario,
     seo as seo_routes,
     superlatives,
     teams,
@@ -171,6 +172,7 @@ app.include_router(superlatives.router, dependencies=PROTECTED)
 app.include_router(tournaments.router, dependencies=PROTECTED)
 app.include_router(admin.router, dependencies=PROTECTED)
 app.include_router(predict.router, dependencies=PROTECTED)
+app.include_router(scenario.router, dependencies=PROTECTED)
 app.include_router(commentary.router, dependencies=PROTECTED)
 app.include_router(game_night.router, dependencies=PROTECTED)
 
