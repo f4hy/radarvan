@@ -47,7 +47,6 @@ import {
 import { useUrlChoice, useUrlParam, useUrlPatch } from "../../lib/useUrlState"
 
 const FORMATS = ["1v1", "2v2", "3v3", "4v4"] as const
-type Format = (typeof FORMATS)[number]
 
 const TEAM_A_COLOR = BRAND_COLOR
 const TEAM_B_COLOR = CHART_PALETTE[3]
@@ -275,13 +274,7 @@ function IntervalBar(props: {
   )
 }
 
-function Headline({
-  prediction,
-  format,
-}: {
-  prediction: ScenarioPrediction
-  format: Format
-}) {
+function Headline({ prediction }: { prediction: ScenarioPrediction }) {
   const p = prediction.probTeamA
   const settled = excludesZero({
     value: 0,
@@ -316,18 +309,17 @@ function Headline({
         rightColor={TEAM_B_COLOR}
       />
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        Equal skill &amp; familiarity · Team A 90% interval {pct(p.low)}–
-        {pct(p.high)}
+        Equal skill · 90%: {pct(p.low)}–{pct(p.high)}
       </Typography>
       <Typography variant="body1">
         {settled
           ? `${leader} is favored (${pct(share)}).`
-          : `Too close to call — the data doesn't separate these ${format} lineups.`}
+          : "Too close to call."}
         {!prediction.combinationsExact &&
-          ` Random slots averaged over a sample of ${prediction.combinations} lineups.`}
+          ` Random slots: ${prediction.combinations} sampled lineups.`}
         {prediction.combinationsExact &&
           prediction.combinations > 1 &&
-          ` Averaged over all ${prediction.combinations} lineups the random slots allow.`}
+          ` Random slots: all ${prediction.combinations} lineups.`}
       </Typography>
       <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
         {pieces.map(([label, logit]) => (
@@ -346,14 +338,13 @@ function Headline({
         ))}
       </Stack>
       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-        Each tile is that part's push toward Team A on its own, in percentage
-        points.
+        Points toward Team A.
         {prediction.support &&
           (prediction.support.exactGames > 0
-            ? ` Exactly these generals have met ${prediction.support.exactGames} times (Team A's side won ${prediction.support.exactTeamAWins}), with real players of unequal skill.`
-            : " Exactly these generals have never met in a recorded game — the estimate is built from shared effects.")}
+            ? ` This exact lineup: ${prediction.support.exactTeamAWins}–${prediction.support.exactGames - prediction.support.exactTeamAWins} in ${prediction.support.exactGames} real games.`
+            : " This exact lineup has never been played.")}
         {prediction.map &&
-          ` ${prediction.map.key}: ${prediction.map.trainingGames} training games${prediction.map.knownGeometry ? "" : ", no geometry (treated as an average map)"}.`}
+          ` ${prediction.map.key}: ${prediction.map.trainingGames} games${prediction.map.knownGeometry ? "" : ", no geometry"}.`}
       </Typography>
     </Stack>
   )
@@ -429,7 +420,7 @@ function SwapGrid(props: {
                   return (
                     <Tooltip
                       key={o.general}
-                      title={`${team}${slot.index + 1} → ${toGeneralName(o.general)}: ${pp(d)} pts for Team ${team} (90%: ${pp(lo)} to ${pp(hi)})${clear ? "" : " — not distinguishable from no change"}`}
+                      title={`${team}${slot.index + 1} → ${toGeneralName(o.general)}: ${pp(d)} pts for Team ${team} (90%: ${pp(lo)} to ${pp(hi)})${clear ? "" : " — not clear"}`}
                     >
                       <TableCell
                         onClick={() =>
@@ -619,27 +610,12 @@ function WhatMatters({
     summary.generals.map((g) => g.effect),
     slot,
   )
-  const cv = summary.evaluation.find((e) => e.protocol === "night_cv")
-  const fmt = `${n}v${n}`
   return (
     <Stack spacing={2}>
       <Section
-        title="What the model learned"
-        caption={`Trained on ${summary.model.nGames} games (${summary.model.dateMin} to ${summary.model.dateMax}), with each player's strength fitted and then set equal. Effects are percentage points for one slot in a ${fmt}; bold ones have a 90% interval that excludes zero. Among dozens of pairs a few will by chance, so read single pair effects as hints.`}
+        title="General strength"
+        caption={`From ${summary.model.nGames} games, ${summary.model.dateMin} to ${summary.model.dateMax}. Points per slot in a ${n}v${n}, vs an average general; bold = clear effect. Who's playing matters far more than which general.`}
       >
-        {cv && (
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            Knowing every team's generals and the map changes held-out
-            prediction log-loss by {cv.deltaLogLoss.value.toFixed(4)} (95%:{" "}
-            {cv.deltaLogLoss.low.toFixed(4)} to{" "}
-            {cv.deltaLogLoss.high.toFixed(4)}) over {cv.games} games, compared
-            with players alone. Who is playing matters far more than what they
-            play.
-          </Typography>
-        )}
-        <Typography variant="subtitle2" sx={{ mt: 1 }}>
-          General strength (vs an average general)
-        </Typography>
         <Table size="small">
           <TableBody>
             {summary.generals.map((g) => (
@@ -667,7 +643,7 @@ function WhatMatters({
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <Section
           title="Largest matchups"
-          caption={`One opposing pair in a ${fmt}: the first general facing the second.`}
+          caption={"First general facing the second."}
         >
           <Table size="small">
             <TableBody>
@@ -690,8 +666,8 @@ function WhatMatters({
           title="Teammate factions"
           caption={
             pair
-              ? `One pair of teammates in a ${fmt}, by faction. Specific general pairs add nothing the data can detect beyond this.`
-              : "Teammate pairings don't exist in a 1v1 — pick a team format."
+              ? "By faction; general pairs add nothing detectable."
+              : "No teammates in a 1v1."
           }
         >
           {pair && (
@@ -716,7 +692,7 @@ function WhatMatters({
       </Stack>
       <Section
         title="Largest map effects"
-        caption={`One slot in a ${fmt}, per standard deviation of the map feature. Supply and tech counts are objects on the map, not money amounts.`}
+        caption="How generals do as maps get bigger or have more supply and tech."
       >
         <Table size="small">
           <TableBody>
@@ -742,7 +718,6 @@ function WhatMatters({
 function Results(props: {
   team: { a: ScenarioPick[]; b: ScenarioPick[] }
   map: string | null
-  format: Format
   setSlot: (team: "A" | "B", index: number, pick: ScenarioPick) => void
   setMap: (key: string | null) => void
 }) {
@@ -761,11 +736,11 @@ function Results(props: {
       {(prediction) => (
         <Stack spacing={2} sx={{ opacity: query.isPlaceholderData ? 0.6 : 1 }}>
           <Section title="Prediction">
-            <Headline prediction={prediction} format={props.format} />
+            <Headline prediction={prediction} />
           </Section>
           <Section
             title="Change one slot"
-            caption="Points for that slot's own team if it switched to each general (green helps, red hurts). Faded cells can't be told apart from no change. Click a cell to make the swap."
+            caption="Points for that slot's team if it switched. Faded = no clear change. Click to swap."
           >
             <SwapGrid
               swaps={prediction.swaps}
@@ -781,7 +756,7 @@ function Results(props: {
           </Section>
           <Section
             title="Same lineups on other maps"
-            caption="The most-played maps, compared with an average map. Click one to select it."
+            caption="Vs an average map. Click to select."
           >
             <MapComparison
               prediction={prediction}
@@ -821,7 +796,7 @@ export default function CompositionPredictor() {
     <Page
       title="Composition Predictor"
       surface={false}
-      description="Who is favored between equally skilled players, given only the generals on each side and the map. Generals are always assigned at random, so this is close to a controlled experiment; player strength is still fitted during training and then set equal, so a lucky run of strong players on one general doesn't count for it."
+      description="Who's favored between equally skilled players, from generals and map alone."
       actions={
         <FormatToggle
           options={FORMATS}
@@ -875,11 +850,10 @@ export default function CompositionPredictor() {
           key={format}
           team={team}
           map={activeMap}
-          format={format}
           setSlot={setSlot}
           setMap={setMap}
         />
-        <QueryState query={summary} what="model summary">
+        <QueryState query={summary} what="general stats">
           {(s) => <WhatMatters summary={s} n={n} />}
         </QueryState>
       </Stack>
