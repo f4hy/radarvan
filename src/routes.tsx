@@ -16,6 +16,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook"
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech"
 import NightlightRoundIcon from "@mui/icons-material/NightlightRound"
 import PersonIcon from "@mui/icons-material/Person"
+import ScienceIcon from "@mui/icons-material/Science"
 import ShuffleIcon from "@mui/icons-material/Shuffle"
 import SportsKabaddiIcon from "@mui/icons-material/SportsKabaddi"
 import TableView from "@mui/icons-material/TableView"
@@ -70,6 +71,9 @@ const BalanceTeams = React.lazy(
 )
 const Bracket = React.lazy(() => import("./features/competition/Bracket"))
 const ChooseMap = React.lazy(() => import("./features/play-tonight/ChooseMap"))
+const CompositionPredictor = React.lazy(
+  () => import("./features/stats/CompositionPredictor"),
+)
 const DebugData = React.lazy(() => import("./features/admin/DebugData"))
 const Draft = React.lazy(() => import("./features/play-tonight/Draft"))
 const FFA = React.lazy(() => import("./features/stats/FFA"))
@@ -222,6 +226,14 @@ export const ROUTES: AppRoute[] = [
     heading: "Stats",
     gate: "public",
     Component: GeneralStats,
+  },
+  {
+    slug: "composition-predictor",
+    title: "Composition Predictor",
+    icon: <ScienceIcon />,
+    heading: "Stats",
+    gate: "public",
+    Component: CompositionPredictor,
   },
   {
     slug: "superlatives",
