@@ -109,6 +109,11 @@ QUERY_VALUES = {
     },
     "/api/files_for_match": {"match_id": corpus.A_MATCH.id},
     "/api/presigned_urls_for_match": {"match_id": corpus.A_MATCH.id},
+    "/api/scenario/predict": {
+        "team_a": ["LASER", "RANDOM_GLA"],
+        "team_b": ["CHINA", "TOXIN"],
+        "map_name": corpus.A_MAP,
+    },
 }
 
 # Routes this module deliberately does not execute. Every entry needs a reason;
