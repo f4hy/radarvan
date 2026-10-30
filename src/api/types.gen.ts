@@ -4170,6 +4170,349 @@ export type ReplayWithoutPlayerStats = {
 };
 
 /**
+ * ScenarioContributions
+ *
+ * Logit-scale pieces of the point estimate, positive favouring team A.
+ */
+export type ScenarioContributions = {
+    /**
+     * Generals
+     */
+    generals: number;
+    /**
+     * Teammates
+     */
+    teammates: number;
+    /**
+     * Matchups
+     */
+    matchups: number;
+    /**
+     * Map
+     */
+    map: number;
+};
+
+/**
+ * ScenarioEvaluation
+ *
+ * Held-out log-loss change from adding every general/map term to a players-only fit.
+ */
+export type ScenarioEvaluation = {
+    /**
+     * Protocol
+     */
+    protocol: string;
+    /**
+     * Games
+     */
+    games: number;
+    deltaLogLoss: ScenarioInterval;
+};
+
+/**
+ * ScenarioFactionPairEffect
+ */
+export type ScenarioFactionPairEffect = {
+    factionA: Faction;
+    factionB: Faction;
+    effect: ScenarioInterval;
+};
+
+/**
+ * ScenarioGeneralEffect
+ */
+export type ScenarioGeneralEffect = {
+    general: General;
+    effect: ScenarioInterval;
+    /**
+     * Games
+     */
+    games: number;
+};
+
+/**
+ * ScenarioInterval
+ *
+ * Point estimate with a 5-95% game-night bootstrap interval.
+ */
+export type ScenarioInterval = {
+    /**
+     * Value
+     */
+    value: number;
+    /**
+     * Low
+     */
+    low: number;
+    /**
+     * High
+     */
+    high: number;
+};
+
+/**
+ * ScenarioMapEffect
+ */
+export type ScenarioMapEffect = {
+    general: General;
+    /**
+     * Feature
+     */
+    feature: string;
+    effect: ScenarioInterval;
+};
+
+/**
+ * ScenarioMapEntry
+ */
+export type ScenarioMapEntry = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Traininggames
+     */
+    trainingGames: number;
+    /**
+     * Knowngeometry
+     */
+    knownGeometry: boolean;
+    /**
+     * Players
+     */
+    players: number | null;
+};
+
+/**
+ * ScenarioMapInfo
+ */
+export type ScenarioMapInfo = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Knowngeometry
+     */
+    knownGeometry: boolean;
+    /**
+     * Traininggames
+     */
+    trainingGames: number;
+    /**
+     * Features
+     */
+    features: {
+        [key: string]: number;
+    };
+};
+
+/**
+ * ScenarioMapOption
+ */
+export type ScenarioMapOption = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Traininggames
+     */
+    trainingGames: number;
+    /**
+     * Probteama
+     */
+    probTeamA: number;
+    delta: ScenarioInterval;
+};
+
+/**
+ * ScenarioModelInfo
+ */
+export type ScenarioModelInfo = {
+    /**
+     * Ngames
+     */
+    nGames: number;
+    /**
+     * Datemin
+     */
+    dateMin: string;
+    /**
+     * Datemax
+     */
+    dateMax: string;
+    /**
+     * Trainedat
+     */
+    trainedAt: string;
+    /**
+     * Replicates
+     */
+    replicates: number;
+};
+
+/**
+ * ScenarioModelSummary
+ */
+export type ScenarioModelSummary = {
+    model: ScenarioModelInfo;
+    /**
+     * Generals
+     */
+    generals: Array<ScenarioGeneralEffect>;
+    /**
+     * Matchups
+     */
+    matchups: Array<ScenarioPairEffect>;
+    /**
+     * Teammates
+     */
+    teammates: Array<ScenarioFactionPairEffect>;
+    /**
+     * Mapeffects
+     */
+    mapEffects: Array<ScenarioMapEffect>;
+    /**
+     * Mapfeatures
+     */
+    mapFeatures: Array<string>;
+    /**
+     * Maps
+     */
+    maps: Array<ScenarioMapEntry>;
+    /**
+     * Evaluation
+     */
+    evaluation: Array<ScenarioEvaluation>;
+};
+
+/**
+ * ScenarioPairEffect
+ */
+export type ScenarioPairEffect = {
+    generalA: General;
+    generalB: General;
+    effect: ScenarioInterval;
+};
+
+/**
+ * ScenarioPick
+ *
+ * One slot: a specific general, or a uniformly random one from a faction (or any).
+ */
+export const ScenarioPick = {
+    USA: 'USA',
+    AIR: 'AIR',
+    LASER: 'LASER',
+    SUPER: 'SUPER',
+    CHINA: 'CHINA',
+    NUKE: 'NUKE',
+    TANK: 'TANK',
+    INFANTRY: 'INFANTRY',
+    GLA: 'GLA',
+    TOXIN: 'TOXIN',
+    STEALTH: 'STEALTH',
+    DEMO: 'DEMO',
+    RANDOM_USA: 'RANDOM_USA',
+    RANDOM_CHINA: 'RANDOM_CHINA',
+    RANDOM_GLA: 'RANDOM_GLA',
+    RANDOM: 'RANDOM'
+} as const;
+
+/**
+ * ScenarioPick
+ *
+ * One slot: a specific general, or a uniformly random one from a faction (or any).
+ */
+export type ScenarioPick = typeof ScenarioPick[keyof typeof ScenarioPick];
+
+/**
+ * ScenarioPrediction
+ */
+export type ScenarioPrediction = {
+    probTeamA: ScenarioInterval;
+    contributions: ScenarioContributions;
+    /**
+     * Combinations
+     */
+    combinations: number;
+    /**
+     * Combinationsexact
+     */
+    combinationsExact: boolean;
+    map: ScenarioMapInfo | null;
+    support: ScenarioSupport | null;
+    /**
+     * Swaps
+     */
+    swaps: Array<ScenarioSlotSwaps>;
+    /**
+     * Maps
+     */
+    maps: Array<ScenarioMapOption>;
+    model: ScenarioModelInfo;
+};
+
+/**
+ * ScenarioSlotSwaps
+ *
+ * What happens to P(team A) if this one slot is changed to each general.
+ */
+export type ScenarioSlotSwaps = {
+    /**
+     * Team
+     */
+    team: string;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Options
+     */
+    options: Array<ScenarioSwapOption>;
+};
+
+/**
+ * ScenarioSupport
+ *
+ * Historical games with exactly this general composition (players ignored).
+ */
+export type ScenarioSupport = {
+    /**
+     * Exactgames
+     */
+    exactGames: number;
+    /**
+     * Exactteamawins
+     */
+    exactTeamAWins: number;
+    /**
+     * Exactgamesonmap
+     */
+    exactGamesOnMap: number;
+    /**
+     * Exactteamawinsonmap
+     */
+    exactTeamAWinsOnMap: number;
+};
+
+/**
+ * ScenarioSwapOption
+ */
+export type ScenarioSwapOption = {
+    general: General;
+    /**
+     * Probteama
+     */
+    probTeamA: number;
+    delta: ScenarioInterval;
+};
+
+/**
  * SeedSource
  */
 export type SeedSource = {
@@ -6883,6 +7226,60 @@ export type predictFactionMatrixApiPredictFactionMatrixGetResponses = {
 };
 
 export type predictFactionMatrixApiPredictFactionMatrixGetResponse = predictFactionMatrixApiPredictFactionMatrixGetResponses[keyof predictFactionMatrixApiPredictFactionMatrixGetResponses];
+
+export type scenarioModelApiScenarioModelGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/scenario/model';
+};
+
+export type scenarioModelApiScenarioModelGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScenarioModelSummary;
+};
+
+export type scenarioModelApiScenarioModelGetResponse = scenarioModelApiScenarioModelGetResponses[keyof scenarioModelApiScenarioModelGetResponses];
+
+export type scenarioPredictApiScenarioPredictGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Team A
+         */
+        team_a: Array<ScenarioPick>;
+        /**
+         * Team B
+         */
+        team_b: Array<ScenarioPick>;
+        /**
+         * Map Name
+         */
+        map_name?: string | null;
+    };
+    url: '/api/scenario/predict';
+};
+
+export type scenarioPredictApiScenarioPredictGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type scenarioPredictApiScenarioPredictGetError = scenarioPredictApiScenarioPredictGetErrors[keyof scenarioPredictApiScenarioPredictGetErrors];
+
+export type scenarioPredictApiScenarioPredictGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScenarioPrediction;
+};
+
+export type scenarioPredictApiScenarioPredictGetResponse = scenarioPredictApiScenarioPredictGetResponses[keyof scenarioPredictApiScenarioPredictGetResponses];
 
 export type getMatchupCommentaryApiMatchupCommentaryGetData = {
     body?: never;
