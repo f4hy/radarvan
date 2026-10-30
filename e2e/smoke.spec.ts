@@ -24,6 +24,7 @@ const PAGES: [slug: string, title: string][] = [
   ["superlatives", "Records"],
   ["team-stats", "Team Stats"],
   ["general-stats", "General Stats"],
+  ["composition-predictor", "Composition Predictor"],
   ["powers", "Generals Powers"],
   ["game-length", "Game Length"],
   ["ffa", "Free-For-All"],
