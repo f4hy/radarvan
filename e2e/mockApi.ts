@@ -83,6 +83,8 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/bracket_prediction_leaderboard", []],
   ["/api/bracket", null],
   ["/api/predict/faction_matrix", null],
+  ["/api/scenario/model", fx.SCENARIO_MODEL.body],
+  ["/api/scenario/predict", fx.SCENARIO_PREDICTION.body],
   [
     "/api/map_data/",
     wire<MapDataPayload>({
