@@ -20,11 +20,26 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      # React refuses to start if react and react-dom versions differ, so they
+      # must move together. Listed first: a dependency joins the first group
+      # it matches, and @types/react would otherwise land in the dev group.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-is"
+          - "@types/react"
+          - "@types/react-dom"
       npm-dev-dependencies:
         dependency-type: "development"
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # @vitejs/plugin-react 6.1.2 peers on ^0.152.0; drop this once a
+      # plugin-react release accepts a newer oxc-transform-react.
+      - dependency-name: "oxc-transform-react"
+        versions: [">=0.153.0"]
 
   # Python dependencies managed by uv (pyproject.toml / uv.lock). The uv
   # ecosystem doesn't distinguish dependency-groups for dependency-type
