@@ -43,11 +43,11 @@ import torch
 from radarvan.api_types import MatchInfo
 from radarvan.matches import filter_by_months_back
 
-from .baselines import base_rate_probs, bt_logistic_probs
+from .baselines import Metrics, base_rate_probs, bt_logistic_probs, fmt_metrics, score
 from .config import DATA_DIR, Config
 from .features import Vocab, build_vocab
 from .model import OutcomeLitModule
-from .predict import Metrics, model_probs, openskill_probs, score
+from .predict import model_probs, openskill_probs
 from .snapshot import load_snapshot
 from .train import train
 
@@ -182,7 +182,7 @@ def rolling_eval(
         f"{len(per_cut)} cuts x {len(seeds)} seeds) ==="
     )
     for r in results[: 1 + len(baselines)]:
-        print(_fmt(r))
+        print(fmt_metrics(r))
     print(
         f"{'ml_single (mean)':<22} n={len(labels):<5} "
         f"logloss={statistics.mean(s.log_loss for s in singles):.4f} "
@@ -190,7 +190,7 @@ def rolling_eval(
         f"auc={statistics.mean(s.auc for s in singles):.3f} "
         f"brier={statistics.mean(s.brier for s in singles):.4f}"
     )
-    print(_fmt(results[-1]))
+    print(fmt_metrics(results[-1]))
     print("\nper cut:")
     for c in per_cut:
         print(
@@ -211,13 +211,6 @@ def rolling_eval(
     }
     (out_dir / "results.json").write_text(json.dumps(payload, indent=2, default=str))
     return payload
-
-
-def _fmt(m: Metrics) -> str:
-    return (
-        f"{m.name:<22} n={m.n:<5} logloss={m.log_loss:.4f} "
-        f"acc={m.accuracy:.3f} auc={m.auc:.3f} brier={m.brier:.4f}"
-    )
 
 
 def main() -> None:
