@@ -35,6 +35,11 @@ valid on the app's 3.14, and it is a SyntaxError here; it broke `ml.train` at
 
 ## Pipeline
 
+To retrain and deploy **every** served model (this ensemble, `ml_scenario/` and
+`ml_winprob_bundle/`) with an old-vs-new report, run `make retrain`
+(`scripts/retrain_models.sh` + `ml/retrain_report.py`). The steps below are
+this model's pipeline on its own.
+
 Steps 1-2 (snapshot, split) and 5 (export) are torch-free; 3/4/6/7 need the
 3.13 ml venv above.
 
