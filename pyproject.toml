@@ -17,7 +17,7 @@ dependencies = [
     "boto3>=1.43.117",
     "cachetools>=7.2.1",
     "cachetools-async>=0.0.5",
-    "fastapi[standard]>=0.143.0",
+    "fastapi[standard]>=0.162.0",
     "fsspec[s3]>=2026.9.0",
     "google-genai>=2.30.0",
     # Pydantic's maintained fork of httpx (upstream is frozen at 0.28.1).
