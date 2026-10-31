@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 API_KEY_ENV = "CLAUDE_API_KEY"
 
 # Single place to change which model generates commentary.
-MODEL = "claude-sonnet-5"
+MODEL = "claude-sonnet-5-5"
 
 
 def commentary_available() -> bool:
