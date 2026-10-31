@@ -21,9 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
-from dataclasses import dataclass
 from pathlib import Path
 
 import structlog
@@ -34,7 +32,7 @@ from radarvan.api_types import General, MatchInfo, Team
 from radarvan.db_utils import DatabaseManager, ReplayManager
 from radarvan.matches import match_to_matchinfo
 
-from .baselines import base_rate_probs, bt_logistic_probs
+from .baselines import Metrics, base_rate_probs, bt_logistic_probs, fmt_metrics, score
 from .config import Config, ModelConfig, TrainConfig
 from .dataset import Batch, collate
 from .features import Vocab, encode_match, resolved_real_players
@@ -69,45 +67,6 @@ def load_bundle(run_dir: Path) -> tuple[OutcomeLitModule, Vocab, Config]:
         module.model.temperature = torch.tensor([float(t)])
     module.eval()
     return module, vocab, cfg
-
-
-# --- metrics ---------------------------------------------------------------
-
-
-@dataclass(slots=True)
-class Metrics:
-    name: str
-    n: int
-    log_loss: float
-    accuracy: float
-    brier: float
-    auc: float
-
-
-def _auc(probs: list[float], labels: list[int]) -> float:
-    pos = [p for p, y in zip(probs, labels) if y == 1]
-    neg = [p for p, y in zip(probs, labels) if y == 0]
-    if not pos or not neg:
-        return float("nan")
-    wins = sum(
-        (1.0 if pp > pn else 0.5 if pp == pn else 0.0) for pp in pos for pn in neg
-    )
-    return wins / (len(pos) * len(neg))
-
-
-def score(name: str, probs: list[float], labels: list[int]) -> Metrics:
-    eps = 1e-7
-    n = len(labels)
-    ll = (
-        -sum(
-            y * math.log(max(p, eps)) + (1 - y) * math.log(max(1 - p, eps))
-            for p, y in zip(probs, labels)
-        )
-        / n
-    )
-    acc = sum((p > 0.5) == bool(y) for p, y in zip(probs, labels)) / n
-    brier = sum((p - y) ** 2 for p, y in zip(probs, labels)) / n
-    return Metrics(name, n, ll, acc, brier, _auc(probs, labels))
 
 
 # --- baselines -------------------------------------------------------------
@@ -169,13 +128,6 @@ def model_probs(
     return probs, labels
 
 
-def _fmt(m: Metrics) -> str:
-    return (
-        f"{m.name:<22} n={m.n:<5} logloss={m.log_loss:.4f} "
-        f"acc={m.accuracy:.3f} auc={m.auc:.3f} brier={m.brier:.4f}"
-    )
-
-
 def evaluate(run_dir: Path) -> None:
     split_dir = run_dir.parent.parent
     train = load_snapshot(split_dir / "train.jsonl.gz")
@@ -203,7 +155,7 @@ def evaluate(run_dir: Path) -> None:
 
     print("\n=== dev evaluation ===")
     for r in results:
-        print(_fmt(r))
+        print(fmt_metrics(r))
 
 
 # --- single-match prediction ----------------------------------------------
