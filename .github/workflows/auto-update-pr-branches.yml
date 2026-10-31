@@ -25,6 +25,12 @@ jobs:
               state: 'open',
             });
             for (const pr of prs) {
+              // A GITHUB_TOKEN push leaves the PR's CI runs awaiting approval,
+              // and a foreign commit stops Dependabot rebasing its own branch.
+              if (pr.user.login === 'dependabot[bot]') {
+                core.info(`Skipping #${pr.number}: Dependabot rebases its own PRs`);
+                continue;
+              }
               try {
                 await github.rest.pulls.updateBranch({
                   owner: context.repo.owner,
