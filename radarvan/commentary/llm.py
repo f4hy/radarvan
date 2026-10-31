@@ -115,19 +115,21 @@ def _record_usage(
 
 
 def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
-    from anthropic.types import TextBlock
-
     from . import anthropic_client
 
     start = time.monotonic()
     try:
-        with anthropic_client.anthropic_client().messages.stream(
+        # fallbacks="default" lets the API retry certain refusals on another
+        # model inside the same call; it is beta-only.
+        with anthropic_client.anthropic_client().beta.messages.stream(
             model=anthropic_client.MODEL,
             max_tokens=MAX_TOKENS,
             thinking={"type": "adaptive"},
             output_config={"effort": "high"},
             system=prompt.system,
             messages=[{"role": "user", "content": prompt.user_message}],
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",
         ) as stream:
             response = stream.get_final_message()
     except Exception as e:
@@ -149,6 +151,7 @@ def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
         provider="anthropic",
         kind=kind,
         label=label,
+        model=response.model,
         duration_s=round(time.monotonic() - start, 2),
         stop_reason=response.stop_reason,
         input_tokens=usage.input_tokens,
@@ -157,9 +160,12 @@ def _generate_with_anthropic(prompt: Prompt, kind: str, label: str) -> str:
         cache_read_input_tokens=usage.cache_read_input_tokens,
     )
 
-    text = "".join(
-        block.text for block in response.content if isinstance(block, TextBlock)
-    )
+    # A mid-stream refusal leaves partial text behind; never publish it.
+    if response.stop_reason == "refusal":
+        category = response.stop_details.category if response.stop_details else None
+        raise CommentaryGenerationError(f"model declined (category={category!r})")
+
+    text = "".join(block.text for block in response.content if block.type == "text")
     if not text:
         # Most likely cause: max_tokens was consumed entirely by thinking
         # before any text block was written - stop_reason/output_tokens

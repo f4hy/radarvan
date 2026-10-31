@@ -366,12 +366,47 @@ def test_generate_with_anthropic_logs_usage_and_duration(
 ) -> None:
     """llm._generate_with_anthropic must read response.usage/duration without
     raising (see the logger.info call) and still return the extracted text."""
-    captured_kwargs: dict[str, object] = {}
-    final_message = SimpleNamespace(
-        content=[TextBlock(type="text", text="**Hype.**")],
-        usage=Usage(input_tokens=123, output_tokens=45),
-        stop_reason="end_turn",
+    captured_kwargs = _stub_anthropic(
+        monkeypatch,
+        SimpleNamespace(
+            content=[TextBlock(type="text", text="**Hype.**")],
+            usage=Usage(input_tokens=123, output_tokens=45),
+            stop_reason="end_turn",
+            stop_details=None,
+            model=anthropic_client.MODEL,
+        ),
     )
+
+    prompt = llm.Prompt(system="sys", user_message="user")
+    text = llm._generate_with_anthropic(prompt, "Matchup commentary", "Alice vs Bob")
+    assert text == "**Hype.**"
+    assert captured_kwargs["system"] == "sys"
+    assert captured_kwargs["fallbacks"] == "default"
+
+
+def test_generate_with_anthropic_never_returns_text_from_a_refusal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_anthropic(
+        monkeypatch,
+        SimpleNamespace(
+            content=[TextBlock(type="text", text="**Hype.** The matchup betw")],
+            usage=Usage(input_tokens=123, output_tokens=45),
+            stop_reason="refusal",
+            stop_details=SimpleNamespace(category="general_harms"),
+            model=anthropic_client.MODEL,
+        ),
+    )
+
+    prompt = llm.Prompt(system="sys", user_message="user")
+    with pytest.raises(llm.CommentaryGenerationError, match="general_harms"):
+        llm._generate_with_anthropic(prompt, "Matchup commentary", "Alice vs Bob")
+
+
+def _stub_anthropic(
+    monkeypatch: pytest.MonkeyPatch, final_message: SimpleNamespace
+) -> dict[str, object]:
+    captured_kwargs: dict[str, object] = {}
 
     class _StubStream:
         def __enter__(self) -> _StubStream:
@@ -389,14 +424,10 @@ def test_generate_with_anthropic_logs_usage_and_duration(
             return _StubStream()
 
     class _StubClient:
-        messages = _StubMessages()
+        beta = SimpleNamespace(messages=_StubMessages())
 
     monkeypatch.setattr(anthropic_client, "anthropic_client", lambda: _StubClient())
-
-    prompt = llm.Prompt(system="sys", user_message="user")
-    text = llm._generate_with_anthropic(prompt, "Matchup commentary", "Alice vs Bob")
-    assert text == "**Hype.**"
-    assert captured_kwargs["system"] == "sys"
+    return captured_kwargs
 
 
 def test_generate_with_gemini_logs_usage_and_duration(
