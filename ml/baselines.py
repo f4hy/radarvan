@@ -27,12 +27,60 @@ be imported from anywhere in ``ml/``.
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
+from dataclasses import dataclass
 
 import numpy as np
 
 from radarvan import player_ids
 from radarvan.api_types import MatchInfo
+
+# --- metrics ---------------------------------------------------------------
+
+
+@dataclass(slots=True)
+class Metrics:
+    name: str
+    n: int
+    log_loss: float
+    accuracy: float
+    brier: float
+    auc: float
+
+
+def _auc(probs: list[float], labels: list[int]) -> float:
+    pos = [p for p, y in zip(probs, labels) if y == 1]
+    neg = [p for p, y in zip(probs, labels) if y == 0]
+    if not pos or not neg:
+        return float("nan")
+    wins = sum(
+        (1.0 if pp > pn else 0.5 if pp == pn else 0.0) for pp in pos for pn in neg
+    )
+    return wins / (len(pos) * len(neg))
+
+
+def score(name: str, probs: list[float], labels: list[int]) -> Metrics:
+    eps = 1e-7
+    n = len(labels)
+    ll = (
+        -sum(
+            y * math.log(max(p, eps)) + (1 - y) * math.log(max(1 - p, eps))
+            for p, y in zip(probs, labels)
+        )
+        / n
+    )
+    acc = sum((p > 0.5) == bool(y) for p, y in zip(probs, labels)) / n
+    brier = sum((p - y) ** 2 for p, y in zip(probs, labels)) / n
+    return Metrics(name, n, ll, acc, brier, _auc(probs, labels))
+
+
+def fmt_metrics(m: Metrics) -> str:
+    return (
+        f"{m.name:<22} n={m.n:<5} logloss={m.log_loss:.4f} "
+        f"acc={m.accuracy:.3f} auc={m.auc:.3f} brier={m.brier:.4f}"
+    )
+
 
 # Ridge strength on the summed (weighted) log-likelihood, i.e. the objective is
 # ``sum_i w_i * nll_i + 0.5 * L2 * ||beta||^2`` with the intercept unpenalised.

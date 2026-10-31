@@ -2,7 +2,7 @@
         ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check ts-test \
         gen-client client-check build clean install test test-fast test-pg ci all \
         up up-build down logs ps shell db-shell db-snapshot db-snapshot-full \
-        db-restore db-reset migrate test-e2e
+        db-restore db-reset migrate test-e2e retrain
 
 # Default target
 .DEFAULT_GOAL := help
@@ -176,3 +176,8 @@ test-e2e: ## Run the browser suite (Firefox; builds and previews the app itself)
 # (client-check regenerates src/api, but only to diff it).
 ci: install check ts-check client-check test-pg ts-test ## Run the CI checks locally
 	@echo "✓ CI pipeline complete!"
+
+# ── ML ────────────────────────────────────────────────────────────────────────
+
+retrain: ## Retrain + deploy all served models from the local DB, then report old vs new
+	./scripts/retrain_models.sh
