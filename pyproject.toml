@@ -9,7 +9,7 @@ dependencies = [
     # `alembic upgrade head` on every deploy, and Heroku's buildpack
     # installs only [project] dependencies (uv sync --no-dev).
     "alembic>=1.20.0",
-    "anthropic>=1.13.0,<2",
+    "anthropic>=1.13.0,<3",
     "beautifulsoup4>=4.15.0",
     # Capped in practice by s3fs -> aiobotocore, which pins a narrow botocore
     # range (aiobotocore 3.10.0 allows botocore <1.43.118). Raising this past the
