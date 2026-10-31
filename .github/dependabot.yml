@@ -12,13 +12,14 @@ updates:
           - "*"
 
   # Frontend dependencies (package.json / package-lock.json at repo root).
-  # Dev tooling (linter, test framework, build tool, types, ...) is grouped
-  # into one low-risk PR for minor/patch bumps. Production deps and major
-  # dev-tool bumps stay as individual PRs since they need real review.
+  # Minor/patch bumps arrive as one dev-tooling PR and one production PR;
+  # majors stay as individual PRs since they need real review.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    # The default of 5 let ungrouped PRs starve everything else.
+    open-pull-requests-limit: 10
     groups:
       # React refuses to start if react and react-dom versions differ, so they
       # must move together. Listed first: a dependency joins the first group
@@ -35,6 +36,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      npm-prod-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       # @vitejs/plugin-react 6.1.2 peers on ^0.152.0; drop this once a
       # plugin-react release accepts a newer oxc-transform-react.
@@ -45,12 +51,13 @@ updates:
   # ecosystem doesn't distinguish dependency-groups for dependency-type
   # (https://github.com/dependabot/dependabot-core/issues/13202), so the
   # dev-tooling group below is matched explicitly by package name to mirror
-  # [dependency-groups.dev] in pyproject.toml. Production deps and major
-  # dev-tool bumps stay as individual PRs.
+  # [dependency-groups.dev] in pyproject.toml; everything else falls through
+  # to the production group. Majors stay as individual PRs.
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 10
     groups:
       python-dev-dependencies:
         patterns:
@@ -69,6 +76,15 @@ updates:
           - "tqdm"
           - "types-cachetools"
           - "types-tqdm"
+        update-types:
+          - "minor"
+          - "patch"
+      python-prod-dependencies:
+        patterns:
+          - "*"
+        # Still 0.x, where a "minor" bump can break; review it on its own.
+        exclude-patterns:
+          - "fastapi"
         update-types:
           - "minor"
           - "patch"

@@ -12,9 +12,9 @@ dependencies = [
     "anthropic>=1.13.0,<2",
     "beautifulsoup4>=4.15.0",
     # Capped in practice by s3fs -> aiobotocore, which pins a narrow botocore
-    # range (aiobotocore 3.9.2 allows botocore <1.43.107). Raising this past the
+    # range (aiobotocore 3.10.0 allows botocore <1.43.118). Raising this past the
     # matching boto3 makes the lock unsolvable; bump it when aiobotocore does.
-    "boto3>=1.43.106",
+    "boto3>=1.43.117",
     "cachetools>=7.2.1",
     "cachetools-async>=0.0.5",
     "fastapi[standard]>=0.143.0",
