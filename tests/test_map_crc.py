@@ -71,7 +71,7 @@ class _FakeAsyncClient:
 
 
 class _FakeFS:
-    """Minimal fsspec stand-in for the stored .map / .tga reads."""
+    """Minimal S3Store stand-in for the stored .map / .tga reads."""
 
     def __init__(self, files: dict[str, bytes]) -> None:
         self.files = files
@@ -112,7 +112,7 @@ def test_sync_skips_push_when_cncstats_has_it(monkeypatch: pytest.MonkeyPatch) -
     def _boom() -> object:
         raise AssertionError("should not read S3 when CRC is known and present")
 
-    monkeypatch.setattr(missing_maps.replay_files, "get_fs", _boom)
+    monkeypatch.setattr(missing_maps.s3_store, "get_store", _boom)
 
     crc, pushed = asyncio.run(
         missing_maps.sync_stored_map_to_cncstats("X", crc_hint="DEADBEEF")
@@ -131,7 +131,7 @@ def test_sync_pushes_when_cncstats_missing(monkeypatch: pytest.MonkeyPatch) -> N
             missing_maps.s3_uri_for("X", "tga"): b"tga",
         }
     )
-    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: fs)
+    monkeypatch.setattr(missing_maps.s3_store, "get_store", lambda: fs)
 
     crc, pushed = asyncio.run(missing_maps.sync_stored_map_to_cncstats("X"))
     assert pushed is True
@@ -143,7 +143,7 @@ def test_crc_from_hosted_map_computes_from_s3_bytes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     fs = _FakeFS({missing_maps.s3_uri_for("Brand New", "map"): b"\x01\x01"})
-    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: fs)
+    monkeypatch.setattr(missing_maps.s3_store, "get_store", lambda: fs)
     crc = missing_maps.crc_from_hosted_map("Brand New")
     assert crc == missing_maps.compute_map_crc_hex(b"\x01\x01")
 
@@ -151,7 +151,7 @@ def test_crc_from_hosted_map_computes_from_s3_bytes(
 def test_crc_from_hosted_map_is_none_when_we_dont_host_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(missing_maps.replay_files, "get_fs", lambda: _FakeFS({}))
+    monkeypatch.setattr(missing_maps.s3_store, "get_store", lambda: _FakeFS({}))
     assert missing_maps.crc_from_hosted_map("Nowhere") is None
 
 

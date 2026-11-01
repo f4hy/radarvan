@@ -2,23 +2,19 @@
 
 import hashlib
 import re
+import httpx2
 import structlog
-import fsspec
 from collections import defaultdict
 from datetime import UTC, datetime
-from typing import Any, NamedTuple
+from typing import NamedTuple
 from .api_types import MatchInfo
 from .cncstats_model.zhreplay import EnhancedReplayV2
-from functools import cache
 from .parse_replay import parse_replay_data
-from . import utils
+from . import s3_store, utils
 from .log_time import log_time
 from .db_utils import ReplayManager
 from .player_ids import resolve_player_name
 from .repositories.maps import normalize_map_name
-import boto3
-from urllib.parse import urlparse
-from botocore.config import Config
 
 logger = structlog.get_logger(__name__)
 
@@ -34,22 +30,6 @@ bill = "131_5211058E5C33"
 s3_root = "s3://generals-stats/radarvan/dev/"
 
 
-@cache
-def get_fs() -> fsspec.AbstractFileSystem:
-    return fsspec.filesystem("s3")
-
-
-@cache
-def _s3_client() -> Any:
-    # Client construction (credential/endpoint resolution) is expensive and the
-    # client is thread-safe; build it once. Callers like routes/files.py sign
-    # multiple URLs per request. Typed Any because the precise S3Client type
-    # lives in boto3-stubs (dev-only) and TYPE_CHECKING imports are banned here.
-    return boto3.client(
-        "s3", region_name="us-east-2", config=Config(signature_version="s3v4")
-    )
-
-
 def presigned_url(
     s3_path: str, expires_in: int = 3600, save_as: str | None = None
 ) -> str:
@@ -61,28 +41,14 @@ def presigned_url(
     would land under the S3 key - a content hash. Pass a name from
     `download_filename`.
     """
-    parsed = urlparse(s3_path)
-    bucket = parsed.netloc
-    key = parsed.path.lstrip("/")
-
-    params = {"Bucket": bucket, "Key": key}
-    if save_as is not None:
-        params["ResponseContentDisposition"] = f'attachment; filename="{save_as}"'
-
-    url = _s3_client().generate_presigned_url(
-        "get_object",
-        Params=params,
-        ExpiresIn=expires_in,
-    )
-
-    return str(url)
+    return s3_store.get_store().presigned_get_url(s3_path, expires_in, save_as)
 
 
 def test_connection() -> None:
-    fs = get_fs()
-    fs.write_text(f"{s3_root}test.txt", "test")
-    listing = fs.ls(s3_root)
-    logger.info("listing", listing=listing)
+    store = s3_store.get_store()
+    uri = f"{s3_root}test.txt"
+    store.write_text(uri, "test")
+    logger.info("s3 reachable", uri=uri, exists=store.exists(uri))
 
 
 def save_replay_if_missing(
@@ -90,10 +56,11 @@ def save_replay_if_missing(
 ) -> None:
     if replay_manager.get_replay_file(replay_path):
         return
-    fs = get_fs()
+    store = s3_store.get_store()
     with log_time("saving replay", logger, path=replay_path):
-        raw_data = fsspec.filesystem("http").read_bytes(replay_path)
-        fs.write_bytes(save_path, raw_data)
+        response = httpx2.get(replay_path, follow_redirects=True, timeout=60.0)
+        raw_data = response.raise_for_status().content
+        store.write_bytes(save_path, raw_data)
     file_hash = compute_hash(raw_data)
     # `replay_files.file_hash` is uniquely constrained, but the same bytes do
     # legitimately show up under more than one original_url: a replay uploaded
@@ -123,9 +90,9 @@ def with_filename(replay: EnhancedReplayV2, path: str) -> EnhancedReplayV2:
 
 
 def parse_json(json_path: str) -> EnhancedReplayV2:
-    fs = get_fs()
+    store = s3_store.get_store()
     with log_time("reading json", logger, path=json_path):
-        json_data = fs.read_bytes(json_path)
+        json_data = store.read_bytes(json_path)
     with log_time("validating json", logger, path=json_path):
         return EnhancedReplayV2.model_validate_json(json_data)
 
@@ -145,18 +112,18 @@ def parse_replay(path: str, replay_manager: ReplayManager) -> EnhancedReplayV2:
     json_path = replay_path.replace(".rep", ".json")
     logger.debug("paths", json_path=json_path, replay_path=replay_path)
 
-    fs = get_fs()
+    store = s3_store.get_store()
     existing = replay_manager.get_parsed_file(json_path)
     if existing and existing.is_v2 is True:
         with log_time("reading json", logger, path=json_path):
-            json_data = fs.read_bytes(json_path)
+            json_data = store.read_bytes(json_path)
         with log_time("validating json", logger, path=json_path):
             parsed_replay = EnhancedReplayV2.model_validate_json(json_data)
     else:
         logger.info("json does not exist", json_path=json_path)
-        raw_replay = fs.read_bytes(replay_path)
+        raw_replay = store.read_bytes(replay_path)
         parsed_replay = parse_replay_data(raw_replay, replay_manager)
-        fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
+        store.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
         replay_manager.save_parsed_json(
             parsed_replay=parsed_replay,
             original_replay_file_url=path,
@@ -181,16 +148,16 @@ def reparse(
     original_path = existing.replay_file_url
     replay_path = existing.replay_file.s3_uri
 
-    fs = get_fs()
+    store = s3_store.get_store()
     existing_replay: EnhancedReplayV2 | None = None
     if existing.is_v2:
-        existing_data = fs.read_bytes(json_path)
+        existing_data = store.read_bytes(json_path)
         existing_replay = EnhancedReplayV2.model_validate_json(existing_data)
         if not utils.is_long_enough(existing_replay):
             logger.warning("Too short, skipping")
             return None
 
-    raw_replay = fs.read_bytes(replay_path)
+    raw_replay = store.read_bytes(replay_path)
     parsed_replay = with_filename(
         parse_replay_data(raw_replay, replay_manager), original_path
     )
@@ -221,9 +188,9 @@ def reparse_paths(
     """
     logger.info("reparsing", original_path=original_path)
 
-    fs = get_fs()
+    store = s3_store.get_store()
     if parsed_replay is None:
-        raw_replay = fs.read_bytes(replay_path)
+        raw_replay = store.read_bytes(replay_path)
         parsed_replay = with_filename(
             parse_replay_data(raw_replay, replay_manager), original_path
         )
@@ -233,7 +200,7 @@ def reparse_paths(
         original_replay_file_url=original_path,
         parsed_replay=parsed_replay,
     )
-    fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
+    store.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
     return ParsedReplayResult(replay=parsed_replay, json_path=json_path)
 
 
@@ -266,9 +233,9 @@ def upload_and_parse(
 
     s3_uri = f"{s3_root}uploads/{file_hash}.rep"
     json_path = f"{s3_root}uploads/{file_hash}.json"
-    fs = get_fs()
-    fs.write_bytes(s3_uri, data)
-    fs.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
+    store = s3_store.get_store()
+    store.write_bytes(s3_uri, data)
+    store.write_text(json_path, parsed_replay.model_dump_json(by_alias=True))
 
     replay_manager.register_uploaded_replay(
         original_url=original_url,

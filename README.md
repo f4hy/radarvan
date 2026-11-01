@@ -16,7 +16,7 @@ predictor — to a React single-page app.
   TypeScript API client under `src/api/` is auto-generated from the backend's
   OpenAPI spec (do not edit it by hand).
 - **Storage:** Replay `.rep` files and their parsed JSON live in S3
-  (`s3://generals-stats/radarvan/dev/`), accessed via `fsspec` / `s3fs`.
+  (`s3://generals-stats/radarvan/dev/`), accessed via `boto3`.
 - **Win prediction:** an N-model ONNX ensemble (`ml_ensemble/`) served with
   `onnxruntime` - every prediction runs all N replicates and reports the mean
   plus the spread across them; player ratings use OpenSkill.
