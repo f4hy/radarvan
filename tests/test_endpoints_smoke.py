@@ -41,7 +41,7 @@ from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
 
 from radarvan import derived, dependencies as deps, matches as matches_mod
-from radarvan import missing_maps, replay_files
+from radarvan import missing_maps, replay_files, s3_store
 from radarvan.main import app
 from radarvan.repositories.maps import MapRegistryRevision
 
@@ -266,13 +266,13 @@ def client() -> TestClient:
     real_session_local = deps.db_manager.SessionLocal
     real_find_s3_asset = missing_maps.find_s3_asset
     real_presigned_url = replay_files.presigned_url
-    real_get_fs = replay_files.get_fs
+    real_get_store = s3_store.get_store
     matches_mod.get_match_infos = lambda replay_manager: list(corpus.CORPUS)
     # S3 lookups and presigning: a developer shell has real credentials and CI
     # has none, so left real these pass locally and fail in CI.
     missing_maps.find_s3_asset = lambda name, ext: f"s3://stub/{name}.{ext}"
     replay_files.presigned_url = lambda uri, **kwargs: f"https://stub/{uri}"
-    replay_files.get_fs = lambda: SimpleNamespace(cat_file=lambda uri: STUB_WEBP)
+    s3_store.get_store = lambda: SimpleNamespace(read_bytes=lambda uri: STUB_WEBP)
     deps.db_manager.get_replay_manager = _forbid_db
     deps.db_manager.SessionLocal = _forbid_db
     _clear_caches()
@@ -284,7 +284,7 @@ def client() -> TestClient:
     matches_mod.get_match_infos = real_get_match_infos
     missing_maps.find_s3_asset = real_find_s3_asset
     replay_files.presigned_url = real_presigned_url
-    replay_files.get_fs = real_get_fs
+    s3_store.get_store = real_get_store
     deps.db_manager.get_replay_manager = real_db_manager_get
     deps.db_manager.SessionLocal = real_session_local
     app.dependency_overrides.clear()

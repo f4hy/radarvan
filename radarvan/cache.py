@@ -20,7 +20,7 @@ from collections.abc import Callable
 from typing import NamedTuple
 from opentelemetry import trace
 
-from . import game_composition, matches, missing_maps, player_rating, replay_files
+from . import game_composition, matches, missing_maps, player_rating, s3_store
 from .api_types import MatchInfo, MatchDetails
 from .db_utils import ReplayManager
 from . import match_details
@@ -83,7 +83,7 @@ def map_image(replay_manager: ReplayManager, map_name: str) -> MapImage:
     s3_uri = missing_maps.find_s3_webp(canonical)
     if s3_uri is None:
         raise MapImageNotFound(map_name)
-    webp = replay_files.get_fs().cat_file(s3_uri)
+    webp = s3_store.get_store().read_bytes(s3_uri)
     return MapImage(webp=webp, etag=f'"{hashlib.sha256(webp).hexdigest()[:20]}"')
 
 

@@ -37,7 +37,7 @@ from .derived import CORPUS, derived
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .db import MapData, Match, ParsedReplayJson
 from .db_utils import ReplayManager
-from . import replay_files
+from . import replay_files, s3_store
 from typing import NamedTuple
 
 logger = structlog.get_logger(__name__)
@@ -127,9 +127,9 @@ def get_map_crc_from_match(match_id: int, replay_manager: ReplayManager) -> str 
     if not json_uri:
         logger.warning("no parsed JSON for match", match_id=match_id)
         return None
-    fs = replay_files.get_fs()
+    store = s3_store.get_store()
     try:
-        data = fs.read_text(json_uri)
+        data = store.read_text(json_uri)
     except Exception as e:
         logger.warning("could not read", json_uri=json_uri, error=repr(e))
         return None
@@ -336,17 +336,17 @@ async def sync_stored_map_to_cncstats(
     if crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hint)):
         return MapSyncResult(crc_hex=crc_hint, pushed=False)
 
-    fs = replay_files.get_fs()
+    store = s3_store.get_store()
     map_uri = s3_uri_for(base_name, "map")
-    map_bytes: bytes = await asyncio.to_thread(fs.read_bytes, map_uri)
+    map_bytes: bytes = await asyncio.to_thread(store.read_bytes, map_uri)
     crc_hex = crc_hint or compute_map_crc_hex(map_bytes)
     if not crc_hint and await client.map_exists_async(hex_crc_to_decimal(crc_hex)):
         return MapSyncResult(crc_hex=crc_hex, pushed=False)
 
     tga: bytes | None = None
     tga_uri = s3_uri_for(base_name, "tga")
-    if await asyncio.to_thread(fs.exists, tga_uri):
-        tga = await asyncio.to_thread(fs.read_bytes, tga_uri)
+    if await asyncio.to_thread(store.exists, tga_uri):
+        tga = await asyncio.to_thread(store.read_bytes, tga_uri)
     await _post_map_assets_async(hex_crc_to_decimal(crc_hex), map_bytes, tga, base_name)
     return MapSyncResult(crc_hex=crc_hex, pushed=True)
 
@@ -407,13 +407,13 @@ def upload_map_assets(
     base_name: str, tga: bytes, webp: bytes, map_file: bytes
 ) -> FetchedMap:
     """Upload the three map artefacts to S3 and return their URIs."""
-    fs = replay_files.get_fs()
+    store = s3_store.get_store()
     tga_uri = s3_uri_for(base_name, "tga")
     webp_uri = s3_uri_for(base_name, "webp")
     map_uri = s3_uri_for(base_name, "map")
-    fs.write_bytes(tga_uri, tga)
-    fs.write_bytes(webp_uri, webp)
-    fs.write_bytes(map_uri, map_file)
+    store.write_bytes(tga_uri, tga)
+    store.write_bytes(webp_uri, webp)
+    store.write_bytes(map_uri, map_file)
     logger.info("uploaded map assets", base_name=base_name, prefix=S3_MAPS_PREFIX)
     return FetchedMap(
         base_name=base_name,
@@ -595,7 +595,7 @@ def reparse_stored_map(map_name: str, replay_manager: ReplayManager) -> MapDataP
     uri = find_s3_asset(map_name, "map")
     if uri is None:
         raise FileNotFoundError(f"no hosted .map file for {map_name!r}")
-    map_bytes = replay_files.get_fs().read_bytes(uri)
+    map_bytes = s3_store.get_store().read_bytes(uri)
     payload = parse_map_file(map_bytes)
     replay_manager.save_map_data(
         map_name, payload, mapparse_bin_hash=mapparse_bin_hash()
@@ -605,8 +605,8 @@ def reparse_stored_map(map_name: str, replay_manager: ReplayManager) -> MapDataP
 
 def s3_webp_exists(base_name: str) -> bool:
     """Return True if a webp for this map name already lives in S3."""
-    fs = replay_files.get_fs()
-    return bool(fs.exists(s3_uri_for(base_name, "webp")))
+    store = s3_store.get_store()
+    return bool(store.exists(s3_uri_for(base_name, "webp")))
 
 
 def find_s3_asset(map_name: str, ext: str) -> str | None:
@@ -619,7 +619,7 @@ def find_s3_asset(map_name: str, ext: str) -> str | None:
     MapData row yet (register them via `/api/fetch_missing_maps` for a
     reliable match instead of relying on a guess).
     """
-    fs = replay_files.get_fs()
+    store = s3_store.get_store()
     no_ws = "".join(map_name.split())
     candidates = [
         map_name,
@@ -638,10 +638,10 @@ def find_s3_asset(map_name: str, ext: str) -> str | None:
         seen.add(c)
         uri = s3_uri_for(c, ext)
         try:
-            if fs.exists(uri):
+            if store.exists(uri):
                 return uri
         except Exception as e:
-            logger.debug("fs.exists failed", uri=uri, error=repr(e))
+            logger.debug("store.exists failed", uri=uri, error=repr(e))
             continue
     return None
 
@@ -662,7 +662,7 @@ def crc_from_hosted_map(map_name: str) -> str | None:
     if uri is None:
         return None
     try:
-        return compute_map_crc_hex(replay_files.get_fs().read_bytes(uri))
+        return compute_map_crc_hex(s3_store.get_store().read_bytes(uri))
     except Exception as e:
         logger.warning("could not read hosted map", uri=uri, error=repr(e))
         return None
