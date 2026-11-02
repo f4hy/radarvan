@@ -19,10 +19,20 @@ describe("matchPageLink", () => {
     expect(matchPageLink(match("LB5-1", "WildCard", "Modus"))?.href).toBe(href)
   })
 
+  it("links the Grand Final preview", () => {
+    expect(matchPageLink(match("GF-1", "Gorn", "Modus"))).toEqual({
+      kind: "preview",
+      href: "/hype/modus-gorn/index.html",
+    })
+  })
+
   it("switches a played match to its recap", () => {
     expect(
       matchPageLink(match("LB4-1", "Modus", "Tytan", "completed")),
     ).toEqual({ kind: "recap", href: "/recap/modus-tytan/index.html" })
+    expect(
+      matchPageLink(match("LB5-1", "WildCard", "Modus", "completed")),
+    ).toEqual({ kind: "recap", href: "/recap/modus-wildcard/index.html" })
   })
 
   it("drops the preview once played when there's no recap", () => {

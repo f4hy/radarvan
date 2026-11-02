@@ -35,6 +35,18 @@ const MATCH_PAGES: {
     kind: "preview",
     slug: "modus-wildcard",
   },
+  {
+    matchId: "LB5-1",
+    players: ["Modus", "WildCard"],
+    kind: "recap",
+    slug: "modus-wildcard",
+  },
+  {
+    matchId: "GF-1",
+    players: ["Gorn", "Modus"],
+    kind: "preview",
+    slug: "modus-gorn",
+  },
 ]
 
 // A preview only until the match is played, a recap only after.

@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="Post-match breakdown of Modus 4–1 WildCard, the Losers Final of the 2026 1v1 Bracket, built from the replay files.">
+<meta property="og:title" content="Modus 4–1 WildCard · The Breakdown">
+<meta property="og:description" content="Game by game from the replays: the decisions that won and lost each game of the Losers Final.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c1118">
+<title>Modus–WildCard Breakdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: post-game analysis desk. Final score header, series overview, three takeaways, then one segment per game with an annotated win-probability chart. */
+:root {
+  --ground: #0c1118;
+  --panel: #131b26;
+  --panel-2: #1a2432;
+  --line: #263243;
+  --grid: #222d3c;
+  --ink: #e9eef5;
+  --ink-dim: #93a1b4;
+  --modus: #30a070;
+  --modus-ink: #5fd39a;
+  --modus-deep: #0d3a26;
+  --wild: #3b82f6;
+  --wild-ink: #7fb0ff;
+  --wild-deep: #10254a;
+  --signal: #f3b33d;
+  --f-display: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { max-width: 70ch; }
+.label { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.num { font-variant-numeric: tabular-nums; }
+.m { color: var(--modus-ink); } .t { color: var(--wild-ink); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+/* Header: a final score card, not a hype hero */
+.final { border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #111925, var(--ground)); }
+.final .wrap { padding-block: 28px 30px; }
+.final-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.chip { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); color: var(--ink-dim); }
+.chip.ft { border-color: var(--signal); color: var(--signal); }
+.score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-top: 22px; }
+.score .side h1, .score .side .nm { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(40px, 9vw, 96px); line-height: .9; }
+.score .side.r { text-align: right; }
+.score .side small { display: block; font-family: var(--f-label); font-size: 16px; color: var(--ink-dim); margin-top: 6px; }
+.score .big { font-family: var(--f-display); font-weight: 900; font-size: clamp(48px, 10vw, 110px); line-height: .9; white-space: nowrap; }
+.score .big .dash { color: var(--ink-dim); padding: 0 .1em; }
+.final .dek { margin-top: 20px; font-size: 19px; max-width: 64ch; color: var(--ink); }
+.final .dek em { font-style: normal; color: var(--signal); }
+
+section.seg { padding-block: 44px 8px; }
+.seg-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.seg-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.4vw, 42px); line-height: 1; letter-spacing: .02em; }
+.seg-head .label { color: var(--signal); }
+.lede { color: var(--ink-dim); margin: 0 0 16px; }
+.desk { background: var(--panel); border-left: 4px solid var(--ink-dim); padding: 18px 22px; font-size: 17px; max-width: 74ch; }
+.desk p { margin: 0 0 10px; } .desk p:last-child { margin: 0; }
+.desk .who { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--ink-dim); font-weight: 700; display: block; margin-bottom: 6px; }
+
+/* Series strip */
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.gcard { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid; padding: 12px; text-align: left; cursor: pointer; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.gcard:hover { background: var(--panel-2); }
+.gcard.wm { border-top-color: var(--modus); } .gcard.wt { border-top-color: var(--wild); }
+.gcard .gn { font-family: var(--f-label); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 12px; color: var(--ink-dim); }
+.gcard .gw { font-family: var(--f-display); font-weight: 800; font-size: 22px; text-transform: uppercase; line-height: 1.05; }
+.gcard .gm { font-size: 13px; color: var(--ink-dim); line-height: 1.35; }
+.gcard svg { width: 100%; height: 40px; display: block; margin-top: 4px; }
+.running { margin-top: 12px; font-family: var(--f-label); font-size: 15px; color: var(--ink-dim); }
+.strip-key { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-family: var(--f-label); font-size: 14px; color: var(--ink-dim); align-items: center; }
+.strip-key i { display: inline-block; width: 18px; height: 2px; vertical-align: middle; margin-right: 6px; }
+
+/* Takeaways */
+.takes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.take { background: var(--panel); border: 1px solid var(--line); padding: 18px; min-width: 0; }
+.take .k { font-family: var(--f-display); font-weight: 900; font-size: 44px; line-height: 1; color: var(--signal); }
+.take h3 { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .05em; font-size: 20px; font-weight: 700; margin: 8px 0 6px; }
+.take p { margin: 0; font-size: 15px; color: var(--ink-dim); }
+.pairs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.pair { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; min-width: 0; }
+.pair .label { display: block; margin-bottom: 6px; }
+.pair .row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; padding: 3px 0; }
+.pair .verdict { margin-top: 8px; font-family: var(--f-label); font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Game segments */
+.game { padding-block: 52px 8px; border-top: 1px solid var(--line); margin-top: 36px; }
+.game-head { display: flex; gap: 10px 18px; align-items: baseline; flex-wrap: wrap; }
+.game-head .gnum { font-family: var(--f-display); font-weight: 900; font-size: 64px; line-height: .8; color: var(--line); }
+.game-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.6vw, 44px); line-height: 1; }
+.game-meta { display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 10px 0 18px; font-family: var(--f-label); font-size: 16px; color: var(--ink-dim); }
+.game-meta b { color: var(--ink); font-weight: 600; }
+.result { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; font-size: 14px; }
+.result.wm { background: var(--modus); color: #03180e; } .result.wt { background: var(--wild); color: #04122a; }
+.chart-wrap { background: var(--panel); border: 1px solid var(--line); padding: 14px 14px 8px; position: relative; }
+.chart-title { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-family: var(--f-label); font-size: 14px; color: var(--ink-dim); margin-bottom: 4px; }
+.chart-wrap svg { display: block; max-width: 100%; overflow: visible; touch-action: pan-y; }
+.chart-wrap text { font-family: var(--f-label); }
+.tip { position: absolute; pointer-events: none; background: #0a0f15; border: 1px solid var(--line); padding: 6px 9px; font-family: var(--f-label); font-size: 14px; white-space: nowrap; transform: translate(-50%, -100%); opacity: 0; transition: opacity .1s; z-index: 2; }
+.tip b { font-weight: 700; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; margin-top: 20px; }
+.moments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.moments li { display: grid; grid-template-columns: 28px 52px 1fr; gap: 10px; padding: 9px 10px; border-left: 3px solid transparent; cursor: default; }
+.moments li:hover, .moments li.hot { background: var(--panel); }
+.moments li.sm { border-left-color: var(--modus); } .moments li.st { border-left-color: var(--wild); } .moments li.sn { border-left-color: var(--ink-dim); }
+.moments .mk { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-label); font-weight: 700; font-size: 13px; background: var(--panel-2); border: 1px solid var(--ink-dim); }
+.moments .tm { font-family: var(--f-label); font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.moments .tx { font-size: 15px; }
+.moments .tx b { font-weight: 600; }
+.calls { display: flex; flex-direction: column; gap: 14px; }
+.call { background: var(--panel); padding: 16px 18px; border-top: 4px solid; }
+.call.cm { border-color: var(--modus); } .call.ct { border-color: var(--wild); }
+.call h4 { margin: 0 0 8px; font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; font-size: 17px; font-weight: 700; }
+.call ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.call li::marker { color: var(--ink-dim); }
+.receipts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.rc { background: var(--panel-2); padding: 10px 12px; min-width: 0; }
+.rc .label { display: block; font-size: 12px; }
+.rc .v { font-family: var(--f-label); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc .v span + span::before { content: " · "; color: var(--ink-dim); }
+.analyst { margin-top: 18px; }
+
+.ahead { padding-block: 44px 56px; }
+.ahead a { color: var(--signal); }
+footer { color: var(--ink-dim); font-size: 13px; border-top: 1px solid var(--line); padding-block: 16px 28px; }
+footer p { max-width: none; margin: 0 0 6px; }
+
+@media (max-width: 860px) {
+  .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .takes, .pairs, .cols { grid-template-columns: 1fr; }
+  .receipts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .score { grid-template-columns: 1fr; text-align: center; gap: 6px; }
+  .score .side.r { text-align: center; }
+  .moments li { grid-template-columns: 24px 44px 1fr; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } html { scroll-behavior: auto; } }
+html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<header class="final">
+  <div class="wrap">
+    <div class="final-top">
+      <span class="label">Post-match · 2026 1v1 Bracket · November 1</span>
+      <span class="chip ft">Final · Losers Final · Best of 7</span>
+    </div>
+    <div class="score">
+      <div class="side"><h1 class="m">Modus</h1><small>Advances to the Grand Final</small></div>
+      <div class="big num"><span class="m">4</span><span class="dash">–</span><span class="t">1</span></div>
+      <div class="side r"><div class="nm t">WildCard</div><small>Eliminated in 3rd place</small></div>
+    </div>
+    <p class="dek">Five games, three maps, and WildCard's first 1v1 win over Modus in eleven tries. We went through every replay order by order to find what actually swung each game. <em>The short version: Modus won four games by reaching WildCard's workers or WildCard's base first, and lost the one where Modus raided into the Missile Defenders again.</em></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="seg" id="overview">
+    <div class="seg-head"><span class="label">The series</span><h2>Five games at a glance</h2></div>
+    <div class="strip" id="strip"></div>
+    <div class="strip-key"><span><i style="background:var(--modus)"></i>Modus's chance to win, per the RadarVan model</span><span><i style="background:var(--ink-dim);height:1px"></i>50%</span><span>Tap a game to jump to its breakdown.</span></div>
+  </section>
+
+  <section class="seg" id="takeaways">
+    <div class="seg-head"><span class="label">The analyst desk</span><h2>Three things that decided it</h2></div>
+    <div class="takes">
+      <div class="take">
+        <div class="k">4–0</div>
+        <h3>Canyon belongs to Modus</h3>
+        <p>Modus won both Canyon of the Dead games, Laser against Stealth and then Stealth against Laser. Add the two Canyon wins over Tytan and Modus is 4–0 on the map in this bracket. No other player is unbeaten on it.</p>
+      </div>
+      <div class="take">
+        <div class="k">4–0</div>
+        <h3>On Snowy Drought, USA beats Demolition</h3>
+        <p>On Snowy Drought, the USA side beat Demolition both ways, just as Air Force did against Demolition in the Tytan series. Across the two series, USA generals are 4–0 against Demolition on this map, whoever is playing.</p>
+      </div>
+      <div class="take">
+        <div class="k">42</div>
+        <h3>Workers, not armies</h3>
+        <p>Modus's Humvees and Hellfire Drones killed 27 workers in game 1 and 15 in game 4. Both times WildCard's army was doing real damage in Modus's base, and both times the raid on the worker line was worth more.</p>
+      </div>
+    </div>
+    <div class="pairs">
+      <div class="pair">
+        <span class="label">Canyon of the Dead · games 1–2</span>
+        <div class="row"><span>G1 <span class="m">Modus Laser</span></span><span>beat Stealth</span></div>
+        <div class="row"><span>G2 <span class="m">Modus Stealth</span></span><span>beat Laser</span></div>
+        <div class="verdict m">Modus sweeps the pair</div>
+      </div>
+      <div class="pair">
+        <span class="label">Snowy Drought · games 3–4</span>
+        <div class="row"><span>G3 <span class="t">WildCard USA</span></span><span>beat Demolition</span></div>
+        <div class="row"><span>G4 <span class="m">Modus USA</span></span><span>beat Demolition</span></div>
+        <div class="verdict">Split · USA 2–0</div>
+      </div>
+      <div class="pair">
+        <span class="label">Vendetta · game 5</span>
+        <div class="row"><span>G5 <span class="m">Modus Tank</span></span><span>beat China</span></div>
+        <div class="row"><span>&nbsp;</span><span></span></div>
+        <div class="verdict m">Series over in five</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="games"></div>
+
+  <section class="seg ahead" id="ahead">
+    <div class="seg-head"><span class="label">What's next</span><h2>Film to take into the Grand Final</h2></div>
+    <div class="desk">
+      <span class="who">Analyst desk</span>
+      <p>Each of Modus's four wins came from getting somewhere first: into the worker line in games 1 and 4, and into WildCard's base before the army was built in games 2 and 5. The loss came from the habit the <a href="/recap/modus-tytan/index.html">Tytan recap</a> flagged: Demolition raiding into Missile Defenders. Modus did it in game 1 against Tytan and again in game 3 here, and lost both games.</p>
+      <p>Gorn is next. Gorn is unbeaten in this bracket and has already beaten Modus, 4–3 in the Winners Semifinal on August 21. Those seven games are the pair's entire 1v1 history, so Modus is 3–4 against Gorn. Coming from the losers bracket, Modus has to win two series: the Grand Final, to force a reset, and then the reset itself.</p>
+      <p>On this bracket's three maps, Modus's best is Canyon of the Dead (4–0) and Gorn's is Vendetta (4–2).</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Built from the five replay files of the Losers Final (match IDs 1498241348, 1350279594, 1304732617, 858801919, 1667910896) and RadarVan's match details. Values lost are the build cost of what was destroyed; GLA Technicals, which the replay records at no cost, are counted at $500. Win probability is the RadarVan model's estimate every 30 seconds, from Modus's side.</p>
+    <p>"Economy" means workers, supply trucks, Chinooks, dozers and supply buildings. Army counts are approximate: units built minus units destroyed. Career and bracket records count 1v1 games only.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const GAMES = [
+    {
+      n: 1, map: "Canyon of the Dead", mg: "Laser", tg: "Stealth", w: "m", len: "15:59",
+      title: "Seven minutes under siege",
+      wp: [71,72,78,76,88,88,86,91,90,77,74,75,72,68,70,73,70,74,68,56,64,71,70,85,78,82,84,87,92,92,95,97],
+      moments: [
+        [2.0, "m", "WildCard opens with Terrorists and Technicals at Modus's base. Humvees and Missile Defenders hold, <b>1,100 to 300</b>."],
+        [4.53, "t", "The siege begins. Technicals and Tunnel Defenders take Modus's Fire Base and a Dozer at 4:32, and the model drops from 90% to 77%."],
+        [5.65, "m", "Modus puts the Strategy Center on Bombardment at 5:39. Its cannon gets 9 kills on the raiders over the game."],
+        [7.9, "t", "Between 6:27 and 9:59, WildCard's raiders take Modus's Barracks, War Factory, Power Plant and a Supply Center. Modus's base is out of power from 8:05."],
+        [9.25, "t", "Jarmen Kell kills three Missile Defenders in under three seconds, two Chinooks go down to Tunnel Defenders, and one of Modus's Dozers ends up in WildCard's hands at 9:27."],
+        [9.9, "m", "The counterpunch. Modus's Humvees reach WildCard's base and kill <b>8 workers in six seconds</b>, plus four Rocket Buggies. With the Supply Center falling at home at the same moment, the model bottoms out at 56%."],
+        [11.0, "m", "WildCard's last big push dies in Modus's base, <b>6,600 to 2,800</b>. WildCard goes from about 13 Technicals at minute 11 to 3 at minute 12."],
+        [12.1, "m", "Second raid: <b>7 workers</b> in seven seconds, a Tunnel Network and a Supply Stash. Modus spends three saved general's points at 12:19 and calls in an A-10 strike."],
+        [14.0, "m", "Third raid: <b>7 more workers</b>. Humvees take both Arms Dealers and the Power Plants between 13:18 and 14:29."],
+        [15.85, "m", "Modus calls in a Spectre Gunship as WildCard is eliminated at 15:51."]
+      ],
+      right: ["Held the base without pulling the raiding army home. The siege took five buildings but never reached the Command Center.", "Put the Strategy Center on Bombardment during the siege, and its cannon got 9 kills.", "Hit back where it hurt. Humvees killed 26 of the 27 workers WildCard lost, in three trips."],
+      wrong: ["Won the trade in Modus's base (39,600 to 29,400 between 4:00 and 11:30) but never reached the Command Center, so all the damage could be rebuilt.", "Left the worker line open three times while the army was away.", "Kept feeding Technicals into Missile Defenders: 46 built, 43 lost.", "Rocket Buggies arrived late, at minute 10, and 16 of the 17 died."],
+      receipts: { econ: [9200, 7400], bank: [5218, 3120], apm: [82.2, 58.2], spent: [102225, 69900] },
+      desk: "The longest game of the series, and the model never once had WildCard ahead. WildCard took five buildings out of Modus's base and won the trade there, but a siege that doesn't reach the Command Center only buys time, and Modus used it. While WildCard's army sat in Modus's base, Modus's Humvees went the other way three times, and each trip cost WildCard seven or eight workers. The one thing Modus could clean up: more than 10,000 sitting unspent through minutes 11 and 12."
+    },
+    {
+      n: 2, map: "Canyon of the Dead", mg: "Stealth", tg: "Laser", w: "m", len: "4:03",
+      title: "Out before the wall went up",
+      wp: [65,70,79,83,82,78,87,97,99],
+      moments: [
+        [1.42, "m", "Modus drops five Tunnel Networks at 1:25 and has Tunnel Defenders and a Hijacker out by 1:30. WildCard's first units don't appear until 2:02."],
+        [2.33, "m", "The Hijacker steals a Humvee, with its Scout Drone, inside WildCard's base at 2:20. It steals a second Humvee at 3:23."],
+        [2.53, "t", "WildCard's Humvees win the first exchange at home, <b>800 to 0</b>, including the stolen Humvee's drone."],
+        [3.45, "m", "Modus commits. Technicals pick off Humvees and Missile Defenders, then the Quad Cannons arrive: <b>5,600 to 3,300</b> in WildCard's base."],
+        [3.72, "m", "The Quad Cannons kill both of WildCard's Chinooks, and with them half of WildCard's income."],
+        [3.93, "m", "WildCard is out at 3:56 with every building still standing."]
+      ],
+      right: ["Got the army out first: Tunnel Defenders at 1:25, a Hijacker at 1:30, a Quad Cannon at 1:50.", "Took the fight into WildCard's base before the Missile Defender wall existed.", "Stole two Humvees with one Hijacker, then killed the Chinooks to cut the income."],
+      wrong: ["Slow start: War Factory at 1:20, first units at 2:02, Barracks not until 2:18.", "Lost two Humvees to a Hijacker inside its own base.", "Earned only 13,350 all game, to Modus's 18,900."],
+      receipts: { econ: [2400, 200], bank: [2574, 2556], apm: [68.8, 55.6], spent: [23300, 24600] },
+      desk: "The fastest Modus win of the series. A Humvee and Missile Defender army needs time to build its wall, and Modus didn't give WildCard any. By the time WildCard had three Humvees out, Modus had a Hijacker in WildCard's base and Quad Cannons on the way. The model had Modus ahead from the first 30 seconds, and the replay agrees."
+    },
+    {
+      n: 3, map: "Snowy Drought", mg: "Demolition", tg: "USA", w: "t", len: "14:02",
+      title: "The wall Modus had seen before",
+      wp: [70,55,53,57,66,39,33,27,16,21,20,18,27,14,8,7,9,5,4,3,5,4,3,2,1,1,1,0,0],
+      moments: [
+        [2.23, "m", "A Terrorist takes out WildCard's Power Plant at 2:14. The model has Modus at 66%."],
+        [2.6, "t", "WildCard's Humvees catch the follow-up raid, <b>2,100 to 0</b>, including a Tunnel Network and a worker."],
+        [3.5, "t", "Modus keeps sending Tunnel Defenders and Technicals into WildCard's half. Over the first seven minutes, Modus loses <b>16,000 there to WildCard's 7,000</b>."],
+        [5.4, "t", "WildCard takes an Oil Refinery and Derrick at home, buys Supply Lines, and puts the Strategy Center on Search and Destroy. The army keeps growing: 20 Missile Defenders at minute 5, 44 at minute 9."],
+        [6.8, "t", "WildCard finally attacks: <b>4 workers and a Supply Stash</b> between 6:44 and 6:52, then a Barracks at 7:16. The model has WildCard at 92% by 7:30."],
+        [8.5, "t", "Humvees hunt the worker line: six more workers, a Supply Stash and the Oil Derrick between 8:01 and 8:57."],
+        [10.0, "m", "Modus's best fight. Rocket Buggies, Quad Cannons and Jarmen Kell take down 4 Missile Defenders and 2 Humvees in Modus's base, but lose <b>7,750 to 2,600</b> doing it."],
+        [11.75, "t", "Hellfire Drones and Humvees take five workers and a Barracks between 11:38 and 11:50. Modus is down to Angry Mobs and a handful of vehicles."],
+        [13.7, "t", "The last Arms Dealer falls at 13:42. Modus is eliminated at 13:54."]
+      ],
+      right: ["Built the counter and kept building it: 54 Missile Defenders and 40 Humvees, losing only 12 of the Missile Defenders.", "Stayed in its own half until the army was big enough, through minute 5, then attacked and never stopped.", "Took the tech at home early: an Oil Refinery and Derrick by 5:00."],
+      wrong: ["Spent seven minutes raiding into Missile Defenders and lost 16,000 to 7,000 doing it. It's the same mistake that cost game 1 against Tytan.", "Lost 19 of 24 workers.", "Built 20 Rocket Buggies and lost 19."],
+      receipts: { econ: [1000, 8300], bank: [2455, 6882], apm: [64.5, 66.0], spent: [87950, 86130] },
+      desk: "This is game 1 of the Tytan series again: same map, Demolition for Modus again, Humvees and Missile Defenders on the other side, and the same opening of raids into the wall. It's also the first time WildCard has beaten Modus in a 1v1, in eleven tries. The model turned on Modus at 3:00 and never had Modus above 33% again. WildCard sat on 10,000 to 20,000 unspent from minute 9 on, and it didn't matter."
+    },
+    {
+      n: 4, map: "Snowy Drought", mg: "USA", tg: "Demolition", w: "m", len: "5:58",
+      title: "Workers for a War Factory",
+      wp: [45,53,63,47,39,38,35,33,35,45,54,93,94],
+      moments: [
+        [1.86, "t", "WildCard's Terrorists reach Modus's base at 1:51 and take a Missile Defender and the Power Plant. Modus is out of power."],
+        [2.43, "t", "Terrorists take three more Missile Defenders at once at 2:26. WildCard has 7 Terrorists out by minute 2."],
+        [3.62, "m", "The trade. Modus's Humvees and Hellfire Drones hit WildCard's worker line: <b>6 workers in 9 seconds</b> from 3:36. One second later, a Terrorist takes Modus's War Factory."],
+        [4.0, "t", "Model: WildCard 67%, its high point of the game."],
+        [4.6, "m", "Second raid: Hellfire Drones lead the way and <b>6 more workers</b> die between 4:31 and 4:41, along with a Tunnel Network."],
+        [5.13, "m", "Humvees take a Supply Stash at 5:08. WildCard's income falls from 5,450 a minute to 3,075."],
+        [5.8, "m", "The Barracks and three more workers go. WildCard is out at 5:50 with the Command Center still standing."]
+      ],
+      right: ["Answered the damage at home with damage in WildCard's base instead of bringing the army back.", "Bought Hellfire Drones at 3:09 and 4:20. They got 10 kills, 9 of them workers.", "Took the Oil Refinery and Derrick at home at 3:33."],
+      wrong: ["Put the money into Terrorists (15 built) to hit buildings and left the worker line unguarded.", "Lost 15 of 23 workers in a little over two minutes.", "Spent 12,000 less than Modus once the income was gone."],
+      receipts: { econ: [4500, 1000], bank: [2328, 1978], apm: [68.1, 57.0], spent: [35940, 23700] },
+      desk: "WildCard did to Modus's base what Modus usually does to everyone else: Terrorists took the power and then the War Factory. It's the only game Modus won from behind, with the model under 50% from 2:00 to 5:00. But Modus never brought the army home. The Humvees were already in WildCard's worker line when the War Factory fell, and 15 dead workers are worth more than one War Factory."
+    },
+    {
+      n: 5, map: "Vendetta", mg: "Tank", tg: "China", w: "m", len: "3:21",
+      title: "Tanks first",
+      wp: [58,53,68,59,66,70,90],
+      moments: [
+        [1.3, "m", "Modus has two Gattling Tanks out at 1:18 and two Dragons at 1:33. WildCard's War Factories open with Listening Outposts at 1:41."],
+        [2.15, "m", "First blood at 2:09: Modus's Gattlings kill a supply truck."],
+        [2.6, "m", "Dragons and Gattlings beat WildCard's Tank Hunters and Listening Outposts in the middle, <b>2,600 to 0</b>."],
+        [3.1, "m", "Modus pushes straight into WildCard's base, <b>5,400 to 950</b>. Dragon fire takes a War Factory at 3:15 and two Dozers."],
+        [3.3, "m", "WildCard is out at 3:21, and Modus is in the Grand Final."]
+      ],
+      right: ["Built tanks first: two Gattlings and two Dragons out by 1:33.", "Pushed the moment the first fight was won, straight at the War Factory.", "Lost 1,650 all game: one Gattling and one Listening Outpost."],
+      wrong: ["Opened with Listening Outposts into tanks, and all five were destroyed.", "Had two Gattlings and no Dragons by the time Modus attacked.", "Earned 8,400 to Modus's 12,450."],
+      receipts: { econ: [2600, 0], bank: [2644, 2588], apm: [45.0, 53.1], spent: [24150, 20500] },
+      desk: "The series ended the way game 2 did, with Modus's army out first. Modus had four tanks on the field before WildCard's first Gattling, and the Listening Outposts that were supposed to carry Tank Hunters forward turned into targets. Three minutes and twenty-one seconds, the shortest game of the series."
+    }
+  ];
+
+  const fmt = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const money = v => v.toLocaleString("en-US");
+  const sideName = s => s === "m" ? "Modus" : s === "t" ? "WildCard" : "";
+  const sideVar = s => s === "m" ? "var(--modus)" : s === "t" ? "var(--wild)" : "var(--ink-dim)";
+
+  // Series strip with sparklines
+  let mw = 0, tw = 0;
+  document.getElementById("strip").innerHTML = GAMES.map(g => {
+    g.w === "m" ? mw++ : tw++;
+    const W = 120, H = 40, n = g.wp.length;
+    const pts = g.wp.map((v, i) => `${(i / (n - 1) * W).toFixed(1)},${(H - v / 100 * H).toFixed(1)}`).join(" ");
+    return `<button class="gcard ${g.w === "m" ? "wm" : "wt"}" data-n="${g.n}" aria-label="Game ${g.n}: ${sideName(g.w)} wins on ${g.map}">
+      <span class="gn">Game ${g.n} · ${g.len}</span>
+      <span class="gw ${g.w}">${sideName(g.w)}</span>
+      <span class="gm">${g.map}<br><span class="m">${g.mg}</span> v <span class="t">${g.tg}</span></span>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" stroke="#93a1b4" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/><polyline points="${pts}" fill="none" stroke="#30a070" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>
+      <span class="gm num">Series: <span class="m">${mw}</span>–<span class="t">${tw}</span></span>
+    </button>`;
+  }).join("");
+  document.querySelectorAll(".gcard").forEach(b => b.addEventListener("click", () => document.getElementById("game-" + b.dataset.n).scrollIntoView()));
+
+  // Game segments
+  const host = document.getElementById("games");
+  host.innerHTML = GAMES.map(g => {
+    const win = g.w === "m" ? "Modus" : "WildCard", lose = g.w === "m" ? "WildCard" : "Modus";
+    const r = g.receipts;
+    const pair = (a, b, f) => `<span class="m">${f(a)}</span><span class="t">${f(b)}</span>`;
+    return `<section class="game" id="game-${g.n}">
+      <div class="game-head"><span class="gnum">${g.n}</span><h2>${g.title}</h2></div>
+      <div class="game-meta"><span class="result ${g.w === "m" ? "wm" : "wt"}">${win} wins</span><span><b>${g.map}</b></span><span><span class="m">Modus ${g.mg}</span> vs <span class="t">WildCard ${g.tg}</span></span><span class="num">${g.len}</span></div>
+      <div class="chart-wrap">
+        <div class="chart-title"><span>Modus's chance to win · RadarVan model</span><span>Numbered dots are the key moments below</span></div>
+        <div class="chart" data-n="${g.n}"></div>
+        <div class="tip" role="status"></div>
+      </div>
+      <div class="cols">
+        <ol class="moments" data-n="${g.n}">${g.moments.map(([t, s, tx], i) => `<li class="s${s}" data-i="${i}"><span class="mk">${i + 1}</span><span class="tm">${fmt(t)}</span><span class="tx">${tx}</span></li>`).join("")}</ol>
+        <div class="calls">
+          <div class="call ${g.w === "m" ? "cm" : "ct"}"><h4>What ${win} got right</h4><ul>${g.right.map(x => `<li>${x}</li>`).join("")}</ul></div>
+          <div class="call ${g.w === "m" ? "ct" : "cm"}"><h4>What ${lose} got wrong</h4><ul>${g.wrong.map(x => `<li>${x}</li>`).join("")}</ul></div>
+        </div>
+      </div>
+      <div class="label" style="margin-top:18px"><span class="m">Modus</span> · <span class="t">WildCard</span></div>
+      <div class="receipts" style="margin-top:6px">
+        <div class="rc"><span class="label">Economy destroyed</span><div class="v">${pair(r.econ[0], r.econ[1], money)}</div></div>
+        <div class="rc"><span class="label">Avg unspent money</span><div class="v">${pair(r.bank[0], r.bank[1], money)}</div></div>
+        <div class="rc"><span class="label">Money spent</span><div class="v">${pair(r.spent[0], r.spent[1], money)}</div></div>
+        <div class="rc"><span class="label">APM</span><div class="v">${pair(r.apm[0], r.apm[1], v => v.toFixed(1))}</div></div>
+      </div>
+      <div class="desk analyst"><span class="who">Analyst desk</span><p>${g.desk}</p></div>
+    </section>`;
+  }).join("");
+
+  // Win-probability charts: one series (Modus's chance), 50% reference, moment markers, crosshair tooltip.
+  const NS = "http://www.w3.org/2000/svg";
+  // Drawn at the container's pixel width (not scaled) so labels stay legible on phones.
+  function draw(g) {
+    const el = document.querySelector(`.chart[data-n="${g.n}"]`);
+    const wrap = el.parentElement, tip = wrap.querySelector(".tip");
+    const W = Math.max(300, Math.round(el.clientWidth)), H = W < 600 ? 220 : 260, L = 40, R = 14, T = 12, B = 30;
+    const xs = [0].concat(g.wp.map((_, i) => (i + 1) * 0.5));
+    const ys = [50].concat(g.wp);
+    const xmax = xs[xs.length - 1];
+    const X = m => L + m / xmax * (W - L - R), Y = v => T + (1 - v / 100) * (H - T - B);
+    const at = m => { for (let i = 1; i < xs.length; i++) if (m <= xs[i]) { const f = (m - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[i - 1] + f * (ys[i] - ys[i - 1]); } return ys[ys.length - 1]; };
+    const line = xs.map((m, i) => `${X(m).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join(" ");
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Game ${g.n}: Modus's win probability over time">
+      <defs><clipPath id="ca${g.n}"><rect x="${L}" y="${T}" width="${W - L - R}" height="${Y(50) - T}"/></clipPath><clipPath id="cb${g.n}"><rect x="${L}" y="${Y(50)}" width="${W - L - R}" height="${H - B - Y(50)}"/></clipPath></defs>`;
+    [0, 25, 75, 100].forEach(v => { s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#222d3c" stroke-width="1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" fill="#93a1b4" font-size="12">${v}%</text>`; });
+    s += `<line x1="${L}" x2="${W - R}" y1="${Y(50)}" y2="${Y(50)}" stroke="#93a1b4" stroke-width="1" stroke-dasharray="4 4"/><text x="${L - 6}" y="${Y(50) + 4}" text-anchor="end" fill="#93a1b4" font-size="12">50%</text>`;
+    s += `<text x="${L + 6}" y="${T + 14}" fill="#5fd39a" font-size="13" font-weight="700">MODUS AHEAD</text><text x="${L + 6}" y="${H - B - 6}" fill="#7fb0ff" font-size="13" font-weight="700">WILDCARD AHEAD</text>`;
+    const step = W < 600 ? (xmax > 8 ? 4 : 2) : (xmax > 8 ? 2 : 1);
+    for (let m = 0; m <= Math.floor(xmax); m += step) s += `<text x="${X(m)}" y="${H - 8}" text-anchor="middle" fill="#93a1b4" font-size="12">${m}:00</text>`;
+    const area = `${X(0)},${Y(50)} ${line} ${X(xmax)},${Y(50)}`;
+    s += `<polygon points="${area}" fill="#30a070" fill-opacity=".22" clip-path="url(#ca${g.n})"/><polygon points="${area}" fill="#3b82f6" fill-opacity=".22" clip-path="url(#cb${g.n})"/>`;
+    s += `<polyline points="${line}" fill="none" stroke="#e9eef5" stroke-width="2" stroke-linejoin="round"/>`;
+    s += `<line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="#93a1b4" stroke-width="1" opacity="0"/><circle class="xd" r="5" fill="#e9eef5" stroke="#131b26" stroke-width="2" opacity="0"/>`;
+    g.moments.forEach(([t, side], i) => {
+      const cx = X(Math.min(t, xmax)), cy = Y(at(t));
+      const fill = side === "m" ? "#30a070" : side === "t" ? "#3b82f6" : "#93a1b4";
+      s += `<g class="mark" data-i="${i}"><circle cx="${cx}" cy="${cy}" r="11" fill="${fill}" stroke="#131b26" stroke-width="2"/><text x="${cx}" y="${cy + 4.5}" text-anchor="middle" fill="#0c1118" font-size="13" font-weight="700">${i + 1}</text></g>`;
+    });
+    s += `<rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+    el.innerHTML = s;
+    const svg = el.querySelector("svg"), xh = svg.querySelector(".xh"), xd = svg.querySelector(".xd"), hit = svg.querySelector(".hit");
+    const list = document.querySelector(`.moments[data-n="${g.n}"]`);
+    function show(evt) {
+      const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const m = Math.max(0, Math.min(xmax, (p.x - L) / (W - L - R) * xmax));
+      const v = at(m);
+      xh.setAttribute("x1", X(m)); xh.setAttribute("x2", X(m)); xh.setAttribute("opacity", 1);
+      xd.setAttribute("cx", X(m)); xd.setAttribute("cy", Y(v)); xd.setAttribute("opacity", 1);
+      const near = g.moments.map((mm, i) => [Math.abs(mm[0] - m), i]).sort((a, b) => a[0] - b[0])[0];
+      list.querySelectorAll("li").forEach(li => li.classList.toggle("hot", near[0] < 0.35 && +li.dataset.i === near[1]));
+      const box = wrap.getBoundingClientRect(), sb = svg.getBoundingClientRect();
+      tip.style.left = Math.max(70, Math.min(box.width - 70, sb.left - box.left + X(m) / W * sb.width)) + "px";
+      tip.style.top = (sb.top - box.top + Y(v) / H * sb.height - 10) + "px";
+      tip.innerHTML = `<b>${fmt(m)}</b> · Modus ${Math.round(v)}% · <span style="color:var(--wild-ink)">WildCard ${100 - Math.round(v)}%</span>`;
+      tip.style.opacity = 1;
+    }
+    function hide() { xh.setAttribute("opacity", 0); xd.setAttribute("opacity", 0); tip.style.opacity = 0; list.querySelectorAll("li").forEach(li => li.classList.remove("hot")); }
+    hit.addEventListener("pointermove", show); hit.addEventListener("pointerdown", show); hit.addEventListener("pointerleave", hide);
+  }
+  GAMES.forEach(g => {
+    draw(g);
+    // Hovering a moment in the list highlights its marker (looked up live, since charts redraw on resize).
+    const list = document.querySelector(`.moments[data-n="${g.n}"]`);
+    const mk = li => document.querySelector(`.chart[data-n="${g.n}"] .mark[data-i="${li.dataset.i}"] circle`);
+    list.querySelectorAll("li").forEach(li => {
+      li.addEventListener("mouseenter", () => { const c = mk(li); c.setAttribute("r", 15); c.setAttribute("stroke", "#f3b33d"); });
+      li.addEventListener("mouseleave", () => { const c = mk(li); c.setAttribute("r", 11); c.setAttribute("stroke", "#131b26"); });
+    });
+  });
+  let rz, lastW = window.innerWidth;
+  window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; GAMES.forEach(draw); } }, 150); });
+})();
+</script>
+</body>
+</html>
