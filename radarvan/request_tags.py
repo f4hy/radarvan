@@ -5,8 +5,7 @@ from urllib.parse import urlsplit
 
 from fastapi import Request
 from opentelemetry import trace
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .middleware import CLIENT_ID_HEADER, is_crawler
 
@@ -43,13 +42,15 @@ def request_attributes(request: Request) -> dict[str, str | bool]:
     return attrs
 
 
-class RequestTagsMiddleware(BaseHTTPMiddleware):
+class RequestTagsMiddleware:
     """Must sit inside SessionMiddleware, which is what gives it the session."""
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        span = trace.get_current_span()
-        if span.is_recording():
-            span.set_attributes(request_attributes(request))
-        return await call_next(request)
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            span = trace.get_current_span()
+            if span.is_recording():
+                span.set_attributes(request_attributes(Request(scope)))
+        await self.app(scope, receive, send)
