@@ -25,6 +25,7 @@ from .dependencies import IS_DEV, SESSION_SECRET, verify_api_key
 from .http_cache import CachedStaticFiles
 from .logging_config import configure_logging
 from .notify import notify_async
+from .request_tags import RequestTagsMiddleware
 from .routes import (
     admin,
     auth,
@@ -84,9 +85,11 @@ PROTECTED = [Depends(verify_api_key)]
 
 # Middleware order matters. add_middleware prepends, so the LAST added is the
 # outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit,
-# Session, app - so CORS decorates every response (including the limiter's 429),
-# request-id is bound before the limiter logs, the limiter rejects just before
-# app work, and Session (innermost) populates request.session for the handlers.
+# Session, RequestTags, app - so CORS decorates every response (including the
+# limiter's 429), request-id is bound before the limiter logs, the limiter
+# rejects just before app work, Session populates request.session, and
+# RequestTags reads it to tag the span.
+app.add_middleware(RequestTagsMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
