@@ -1,29 +1,10 @@
-# Keep the build context small. Note that docker-compose.yml bind-mounts the
-# repo at runtime, so anything excluded here is still available to a running
-# container -- this only affects `docker compose build`.
-.git
-.github
-node_modules
-.venv
-.venv-ml
-build
-dist
-db_snapshots
-__pycache__
-**/__pycache__
-*.pyc
-.mypy_cache
-.ruff_cache
-.pytest_cache
-.dmypy.json
-graphify-out
-analysis
-jsons
-replays
-reps
-map_tgas
-map_images
-references
-test-results
-playwright-report
-blob-report
+# Allowlist: the dev images only COPY their lockfile inputs; the repo itself is
+# bind-mounted at runtime (docker-compose.yml). Add a path here if a Dockerfile
+# starts COPYing it.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!README.md
+!package.json
+!package-lock.json
