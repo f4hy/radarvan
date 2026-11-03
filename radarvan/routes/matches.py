@@ -46,6 +46,7 @@ def empty_match_details(match_id: int) -> MatchDetails:
 
 @router.get("/api/dates/", dependencies=[Depends(cache_short)])
 def get_dates(
+    exclude_dev: bool = False,
     player: PlayerName | None = None,
     map_name: str | None = None,
     game_format: str | None = None,
@@ -64,6 +65,7 @@ def get_dates(
         player=player,
         map_name=map_name,
         game_format=game_format,
+        exclude_dev=exclude_dev,
     )
     dates = Counter(r.date for r in replays)
     return dict(sorted(dates.items(), reverse=True))
@@ -86,14 +88,11 @@ def get_matches_by_date(
     replays = sorted_deduped_matches(replay_manager)
     return Matches(
         matches=filter_matches(
-            [
-                r
-                for r in replays.values()
-                if r.date == date and not (exclude_dev and r.is_dev)
-            ],
+            [r for r in replays.values() if r.date == date],
             player=player,
             map_name=map_name,
             game_format=game_format,
+            exclude_dev=exclude_dev,
         )
     )
 

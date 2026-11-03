@@ -459,7 +459,10 @@ export default function GameNight() {
 
   // Already newest-first from the API. Same payload the night list comes from —
   // the counts feed the calendar too.
-  const datesQuery = useQuery(getDatesApiDatesGetOptions())
+  // The recap never includes dev builds, even for admins, so neither do the nights.
+  const datesQuery = useQuery(
+    getDatesApiDatesGetOptions({ query: { exclude_dev: true } }),
+  )
   const dateCounts = datesQuery.data ?? NO_DATES
 
   const nights = React.useMemo(() => Object.keys(dateCounts), [dateCounts])

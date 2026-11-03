@@ -599,6 +599,7 @@ def filter_matches(
     player: str | None = None,
     map_name: str | None = None,
     game_format: str | None = None,
+    exclude_dev: bool = False,
 ) -> list[MatchInfo]:
     """Narrow a match list by player, map and format - the Matches page's filters.
 
@@ -610,6 +611,8 @@ def filter_matches(
     the map test one string, and only what survives both pays for a roster.
     """
     filtered = filter_by_format(games, game_format)
+    if exclude_dev:
+        filtered = [g for g in filtered if not g.is_dev]
     if map_name is not None:
         filtered = [g for g in filtered if g.map == map_name]
     if player is not None:

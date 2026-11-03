@@ -271,8 +271,7 @@ function DisplayMatchesForDate(props: {
       </AccordionSummary>
       <AccordionDetails sx={{ bgcolor: "background.default" }}>
         {queryFallback(matchesQuery, "this night's games") ??
-          // Loaded and empty: /api/dates counts dev builds that this list hides
-          // from non-admins, so a dev-only night lands here.
+          // Loaded and empty: shouldn't happen now that /api/dates gets the same params.
           (matchList.matches.length === 0 ? (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               No games to show for this night.
@@ -373,8 +372,11 @@ export default function DisplayMatches() {
   )
   const [visibleNights, setVisibleNights] = React.useState(NIGHTS_PER_PAGE)
 
+  const isAdmin = useIsAdmin()
   const datesQuery = useQuery(
-    getDatesApiDatesGetOptions({ query: filterParams(filters) }),
+    getDatesApiDatesGetOptions({
+      query: { exclude_dev: !isAdmin, ...filterParams(filters) },
+    }),
   )
 
   const dates = datesQuery.data ?? null
