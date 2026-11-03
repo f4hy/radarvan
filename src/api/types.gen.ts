@@ -5559,6 +5559,10 @@ export type getDatesApiDatesGetData = {
     path?: never;
     query?: {
         /**
+         * Exclude Dev
+         */
+        exclude_dev?: boolean;
+        /**
          * Player
          */
         player?: string | null;
