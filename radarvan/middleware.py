@@ -1,5 +1,5 @@
-"""Starlette HTTP middleware - request-id binding, request timing, and in-memory
-rate limiting."""
+"""Request plumbing: request-id binding and timing (ASGI middleware), and the
+in-memory rate limit (an app-wide dependency)."""
 
 import math
 import os
@@ -8,10 +8,9 @@ import time
 import uuid
 
 import structlog
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import JSONResponse, Response
-from starlette.types import ASGIApp
+from fastapi import HTTPException, Request
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from .rate_limit import InMemoryRateLimitStore, RateLimitStore
 
@@ -58,106 +57,98 @@ RATE_LIMIT_RETRY_JITTER_SECONDS = float(os.getenv("RATE_LIMIT_RETRY_JITTER", "5"
 _WINDOW_SECONDS = 60.0
 
 
-class RequestContextMiddleware(BaseHTTPMiddleware):
+class RequestContextMiddleware:
     """Assign a request id, identify the caller, and log timing per request.
 
-    Reuses an incoming X-Request-ID if the caller supplied one, otherwise
-    generates a uuid4. The id and caller are bound to structlog's contextvars
-    so every log line emitted while handling the request carries them, and the
-    id is echoed back in the response headers. Callers identify themselves via
-    X-Client-Id (the React app sends "react-frontend").
+    Reuses an incoming X-Request-ID or generates a uuid4, binds it and the
+    X-Client-Id caller to structlog's contextvars for every log line of the
+    request, and echoes the id back on the response.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        request = Request(scope)
         request_id = request.headers.get(REQUEST_ID_HEADER) or str(uuid.uuid4())
-        client_id = request.headers.get(CLIENT_ID_HEADER, "unknown")
-        # Stored on state so the app-level exception handler can echo the id
-        # back on the 500 path, where call_next raises past this point.
+        # On state so the app-level 500 handler, which runs outside this
+        # middleware, can still echo the id.
         request.state.request_id = request_id
         structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(request_id=request_id, client=client_id)
+        structlog.contextvars.bind_contextvars(
+            request_id=request_id,
+            client=request.headers.get(CLIENT_ID_HEADER, "unknown"),
+        )
+        path = request.url.path
+        # The SPA's data, not pages; map images may still be indexed.
+        noindex = path.startswith("/api") and not path.startswith("/api/map_image/")
+        status = 500
+
+        async def send_with_headers(message: Message) -> None:
+            nonlocal status
+            if message["type"] == "http.response.start":
+                status = message["status"]
+                headers = MutableHeaders(scope=message)
+                headers[REQUEST_ID_HEADER] = request_id
+                if noindex:
+                    headers["X-Robots-Tag"] = "noindex"
+            await send(message)
 
         start_time = time.time()
-        status = 500
         try:
-            response = await call_next(request)
-            status = response.status_code
-            response.headers[REQUEST_ID_HEADER] = request_id
-            # The SPA's data, not pages; map images may still be indexed.
-            path = request.url.path
-            if path.startswith("/api") and not path.startswith("/api/map_image/"):
-                response.headers["X-Robots-Tag"] = "noindex"
-            return response
+            await self.app(scope, receive, send_with_headers)
         finally:
             logger.info(
                 "request",
                 method=request.method,
-                path=request.url.path,
+                path=path,
                 status=status,
                 took=round(time.time() - start_time, 4),
             )
             structlog.contextvars.clear_contextvars()
 
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
+class RateLimit:
     """Per-client sliding-window request rate limit on /api routes.
 
-    Limits each client to `limit_per_minute` requests in any trailing 60s
-    window. On exceed it returns 429 with `Retry-After` (seconds to wait, with
-    random jitter so throttled clients don't retry in lockstep) plus
-    `X-RateLimit-Limit/Remaining/Reset` headers.
-
-    Only /api/* is limited - static assets and the SPA shell are left alone so
-    the app still loads under throttling. Hit storage is delegated to a
-    `RateLimitStore` (default in-memory, per worker); pass a shared
-    Redis/DB-backed store to enforce a global limit across workers/dynos.
-    Clients are keyed by the first X-Forwarded-For hop (Heroku sets it) falling
-    back to the socket peer.
+    An app-wide dependency, so it runs before every router's auth check and a
+    flood of bad keys can't become a flood of auth notices. Over the limit it
+    raises 429 with a jittered `Retry-After`, which apiConfig.ts waits out.
+    Async on purpose: the store is called on the event loop, never the
+    threadpool.
     """
 
     def __init__(
         self,
-        app: ASGIApp,
         limit_per_minute: int = RATE_LIMIT_PER_MINUTE,
         store: RateLimitStore | None = None,
     ) -> None:
-        super().__init__(app)
         self.limit = limit_per_minute
         self.store: RateLimitStore = store or InMemoryRateLimitStore()
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def __call__(self, request: Request) -> None:
         if self.limit <= 0 or not request.url.path.startswith("/api"):
-            return await call_next(request)
-
+            return
         key = client_key(request)
         decision = self.store.check(key, self.limit, _WINDOW_SECONDS)
-
-        if not decision.allowed:
-            # Non-crypto jitter: only spreads out retry timing, never a secret.
-            jitter = random.uniform(0, RATE_LIMIT_RETRY_JITTER_SECONDS)  # noqa: S311
-            retry_after = max(1, math.ceil(decision.retry_after + jitter))
-            logger.warning(
-                "rate limited",
-                client=key,
-                path=request.url.path,
-                retry_after=retry_after,
-            )
-            return JSONResponse(
-                status_code=429,
-                content={"detail": f"Rate limit exceeded. Retry after {retry_after}s."},
-                headers={
-                    "Retry-After": str(retry_after),
-                    "X-RateLimit-Limit": str(decision.limit),
-                    "X-RateLimit-Remaining": "0",
-                    "X-RateLimit-Reset": str(retry_after),
-                },
-            )
-
-        response = await call_next(request)
-        response.headers["X-RateLimit-Limit"] = str(decision.limit)
-        response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
-        return response
+        if decision.allowed:
+            return
+        # Non-crypto jitter: only spreads out retry timing, never a secret.
+        jitter = random.uniform(0, RATE_LIMIT_RETRY_JITTER_SECONDS)  # noqa: S311
+        retry_after = max(1, math.ceil(decision.retry_after + jitter))
+        logger.warning(
+            "rate limited", client=key, path=request.url.path, retry_after=retry_after
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Retry after {retry_after}s.",
+            headers={
+                "Retry-After": str(retry_after),
+                "X-RateLimit-Limit": str(decision.limit),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(retry_after),
+            },
+        )

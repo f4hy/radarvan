@@ -76,6 +76,9 @@ app = FastAPI(
     # tracing.py owns the provider and exporter; auto_configure would attach a
     # second OTLP exporter to it (every span sent twice).
     telemetry={"auto_configure": False},
+    # App-level dependencies run before every router's own, so this rejects
+    # before verify_api_key can report a flood of bad keys.
+    dependencies=[Depends(middleware.RateLimit())],
 )
 
 configure_tracing()
@@ -83,17 +86,16 @@ configure_tracing()
 PROTECTED = [Depends(verify_api_key)]
 
 # Middleware order matters. add_middleware prepends, so the LAST added is the
-# outermost. We want, outer→inner: CORS, RequestContext, GZip, RateLimit,
-# Session, app - so CORS decorates every response (including the limiter's 429),
-# request-id is bound before the limiter logs, the limiter rejects just before
-# app work, and Session (innermost) populates request.session for the handlers.
+# outermost. We want, outer→inner: CORS, RequestContext, GZip, Session, app - so
+# CORS decorates every response (including the rate limit's 429), request-id is
+# bound before anything logs, and Session (innermost) populates request.session
+# for the handlers. The rate limit is the app-wide dependency on `app` above.
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
     same_site="lax",
     https_only=not IS_DEV,
 )
-app.add_middleware(middleware.RateLimitMiddleware)
 # Starlette defaults to level 9: ~100ms on a 1.1 MB /api/details body vs ~16ms
 # at 5, for a 6% larger payload.
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
