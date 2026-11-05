@@ -94,6 +94,11 @@ def test_cached_reads_round_trip_through_pydantic(postgres_db_url: str) -> None:
 
             assert repo.get_cached_details(details.match_id, "v1") == stored
             assert repo.get_cached_details(details.match_id, "v2") is None
+            assert repo.get_cached_details_many([details.match_id, 999], "v1") == {
+                details.match_id: stored
+            }
+            assert repo.get_cached_details_many([details.match_id], "v2") == {}
+            assert repo.get_cached_details_many([], "v1") == {}
             kills = repo.get_cached_kill_data_rows([details.match_id, 999], "v1")
             assert list(kills) == [details.match_id]
             assert kills[details.match_id].kill_events == stored.kill_events

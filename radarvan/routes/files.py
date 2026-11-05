@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -119,6 +120,7 @@ def get_replay_by_url(
 
 @router.post("/api/upload_replay")
 def upload_replay(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     mac_id: str | None = Form(None),
     board_id: str | None = Form(None),
@@ -177,11 +179,10 @@ def upload_replay(
     if outcome.match_info is None:
         raise HTTPException(status_code=422, detail="Replay is too short or invalid")
     invalidate_match_caches()
-    # Best-effort win prediction for the uploaded match (notifies pred vs actual).
-    # Only for the upload that actually created the match: the other player's
-    # client uploads the same match moments later and would double-post.
+    # Only for the upload that created the match: the other player's client
+    # uploads the same game moments later and would double-post.
     if outcome.created:
-        ml_inference.predict_and_notify(outcome.match_info)
+        background_tasks.add_task(ml_inference.predict_and_notify, outcome.match_info)
     return outcome.match_info
 
 

@@ -233,13 +233,37 @@ def load_match_details_threadsafe(
         return None
 
 
+def load_cached_details_threadsafe(
+    match_ids: list[int], db_manager: DatabaseManager
+) -> dict[int, MatchDetails]:
+    """Whichever of `match_ids` have a current cached row, in one query."""
+    from .db_utils import ReplayManager as _ReplayManager
+
+    try:
+        with db_manager.get_session() as session:
+            return _ReplayManager(session).get_cached_details_many(
+                match_ids, DETAILS_VERSION
+            )
+    except Exception:
+        logger.exception("failed to load cached details", match_count=len(match_ids))
+        return {}
+
+
 async def load_many_match_details(
     match_ids: list[int], db_manager: DatabaseManager, max_concurrent: int = 20
 ) -> list[MatchDetails]:
-    """Load match details for many matches in parallel with bounded concurrency."""
+    """Details for many matches, in `match_ids` order, skipping ones that can't load.
+
+    Cache hits come back in one query; only misses take the per-match S3 parse.
+    """
+    cached = await asyncio.to_thread(
+        load_cached_details_threadsafe, match_ids, db_manager
+    )
     semaphore = asyncio.Semaphore(max_concurrent)
 
     async def _bounded(match_id: int) -> MatchDetails | None:
+        if match_id in cached:
+            return cached[match_id]
         async with semaphore:
             return await asyncio.to_thread(
                 load_match_details_threadsafe, match_id, db_manager

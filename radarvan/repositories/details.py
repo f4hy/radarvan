@@ -60,6 +60,24 @@ class MatchDetailsRepo(BaseRepo):
         )
         return None if text is None else MatchDetails.model_validate_json(text)
 
+    def get_cached_details_many(
+        self, match_ids: list[int], version: str
+    ) -> dict[int, MatchDetails]:
+        """`get_cached_details` for many matches in one query; misses are omitted."""
+        if not match_ids:
+            return {}
+        rows = self.session.execute(
+            select(
+                MatchDetailsCache.match_id, cast(MatchDetailsCache.data, Text)
+            ).where(
+                MatchDetailsCache.match_id.in_(match_ids),
+                MatchDetailsCache.version == version,
+            )
+        ).all()
+        return {
+            match_id: MatchDetails.model_validate_json(text) for match_id, text in rows
+        }
+
     def get_cached_kill_data_rows(
         self, match_ids: list[int], version: str
     ) -> dict[int, KillData]:

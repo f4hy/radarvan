@@ -1,7 +1,8 @@
 """Posts notification messages to a configured webhook (``NOTIFY_WEB_HOOK``).
 
 Four entry points with the same best-effort contract (a webhook outage must
-never break the caller): ``notify`` for sync code, ``notify_async`` for async
+never break the caller): ``notify`` for sync code - it queues the post on a
+single worker thread and returns at once - ``notify_async`` for async
 code - it does the HTTP call natively on the event loop, so callers don't need
 to wrap ``notify`` in ``asyncio.to_thread`` themselves - ``notify_background``
 for async code that shouldn't wait for the webhook at all, and
@@ -9,7 +10,9 @@ for async code that shouldn't wait for the webhook at all, and
 """
 
 import asyncio
+import contextvars
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx2
 import structlog
@@ -39,15 +42,25 @@ def _log_rejection(resp: httpx2.Response) -> None:
         )
 
 
+# One worker keeps messages in order. Its thread is joined at interpreter exit,
+# so a short-lived script's queued messages still go out.
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="notify")
+
+
+def _post(url: str, message: str) -> None:
+    try:
+        _log_rejection(client().post(url, json=_payload(message)))
+    except Exception:
+        logger.exception("notify webhook failed", message=message)
+
+
 def notify(message: str) -> None:
-    """Best-effort: a webhook outage must never break the caller."""
+    """Best-effort and non-blocking: the webhook call never delays the caller."""
     if not WEB_HOOK:
         logger.warning("web hook not set, skipping notify", message=message)
         return
-    try:
-        _log_rejection(client().post(WEB_HOOK, json=_payload(message)))
-    except Exception:
-        logger.exception("notify webhook failed", message=message)
+    # copy_context keeps the post's span inside the caller's trace.
+    _executor.submit(contextvars.copy_context().run, _post, WEB_HOOK, message)
 
 
 async def notify_async(message: str) -> None:
