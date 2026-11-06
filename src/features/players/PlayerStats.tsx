@@ -31,7 +31,7 @@ import type {
 } from "../../api/types.gen"
 import { getPlayerStatsApiPlayerstatsGetOptions } from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { TEAM_FORMATS } from "../../components/FormatToggle"
-import DisplayGeneral from "../../components/Generals"
+import { GeneralAvatar } from "../../components/Generals"
 import Page from "../../components/Page"
 import { PlayerChip, PlayerLabel } from "../../components/PlayerChip"
 import QueryState from "../../components/QueryState"
@@ -235,7 +235,7 @@ function GeneralRecordRow(props: {
   return (
     <ListItem disableGutters dense sx={{ gap: 1.5 }}>
       <ListItemAvatar sx={{ minWidth: 0 }}>
-        <DisplayGeneral general={props.general} />
+        <GeneralAvatar general={props.general} size="1.5rem" />
       </ListItemAvatar>
       <ListItemText
         primary={toGeneralName(props.general)}
@@ -377,7 +377,7 @@ function ConsistencyCard(props: {
             alignItems: "center",
           }}
         >
-          <DisplayGeneral general={props.player.bestGeneral} />
+          <GeneralAvatar general={props.player.bestGeneral} />
           <Typography
             variant="caption"
             sx={{
@@ -393,7 +393,7 @@ function ConsistencyCard(props: {
             alignItems: "center",
           }}
         >
-          <DisplayGeneral general={props.player.worstGeneral} />
+          <GeneralAvatar general={props.player.worstGeneral} />
           <Typography
             variant="caption"
             sx={{
@@ -418,7 +418,9 @@ function RankedPlayerCard(props: {
         sx={{ p: 1, textAlign: "center", height: "100%" }}
         variant="outlined"
       >
-        <DisplayGeneral general={props.general} />
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <GeneralAvatar general={props.general} />
+        </Box>
         <Typography
           variant="subtitle2"
           sx={{

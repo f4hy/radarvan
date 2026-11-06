@@ -21,7 +21,7 @@ import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import type { GeneralPowers, PowerRow, UnusualPick } from "../../api/types.gen"
 import { getPowerStatsApiPowerStatsGetOptions } from "../../api/@tanstack/react-query.gen"
-import DisplayGeneral from "../../components/Generals"
+import { GeneralAvatar } from "../../components/Generals"
 import { toGeneralName } from "../../lib/general_utils"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
@@ -214,7 +214,12 @@ function GeneralSection(props: {
           sx={{ alignItems: "center", flexWrap: "wrap", width: "100%" }}
           useFlexGap
         >
-          <DisplayGeneral general={general.general} />
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <GeneralAvatar general={general.general} size="1.75rem" />
+            <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+              {toGeneralName(general.general)}
+            </Typography>
+          </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {general.games} game{general.games === 1 ? "" : "s"} · group has{" "}
             {general.groupGames}
@@ -301,7 +306,7 @@ function SignatureCard(props: { unusual: UnusualPick[] }) {
 function PlayerPicker(props: {
   players: string[]
   value: string | null
-  onChange: (value: string | null) => void
+  onChange: (value: string) => void
 }) {
   const colors = usePlayerColors()
   const { mode } = useColorMode()
@@ -310,7 +315,10 @@ function PlayerPicker(props: {
       exclusive
       size="small"
       value={props.value}
-      onChange={(_, value: string | null) => props.onChange(value)}
+      // Clicking the selected button would deselect it; there's always a player.
+      onChange={(_, value: string | null) =>
+        value !== null && props.onChange(value)
+      }
       sx={{ flexWrap: "wrap" }}
       aria-label="Player"
     >
@@ -353,12 +361,20 @@ function PlayerPicker(props: {
 }
 
 export default function Powers() {
-  const [player, setPlayer] = useUrlParam("player")
-  const query = useQuery(
-    getPowerStatsApiPowerStatsGetOptions({
+  const [playerParam, setPlayer] = useUrlParam("player")
+  // With no player chosen, show the first on the roster rather than an empty
+  // page. The default stays out of the URL so a shared link names a choice.
+  const roster = useQuery({
+    ...getPowerStatsApiPowerStatsGetOptions({ query: {} }),
+    enabled: playerParam === null,
+  })
+  const player = playerParam ?? roster.data?.players[0] ?? null
+  const query = useQuery({
+    ...getPowerStatsApiPowerStatsGetOptions({
       query: player ? { player } : {},
     }),
-  )
+    enabled: player !== null || roster.isSuccess,
+  })
 
   const stats = query.data
   const profile = stats?.profile ?? null
@@ -376,11 +392,12 @@ export default function Powers() {
       }
       surface={false}
     >
-      {queryFallback(query, "generals powers")}
+      {roster.isError
+        ? queryFallback(roster, "generals powers")
+        : queryFallback(query, "generals powers")}
       {query.isSuccess && !player && (
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Pick a player to see which powers they take, and which ones nobody
-          else does.
+          No power data yet.
         </Typography>
       )}
       {query.isSuccess &&

@@ -38,7 +38,7 @@ import QueryState from "../../components/QueryState"
 import { PlayerLabel } from "../../components/PlayerChip"
 import WinRateChip from "../../components/WinRateChip"
 import WinRateRadar from "../../components/WinRateRadar"
-import DisplayGeneral from "../../components/Generals"
+import { GeneralAvatar } from "../../components/Generals"
 import { toGeneralName } from "../../lib/general_utils"
 import type { FFAStats, FFAPlayerStat } from "../../api/types.gen"
 import { getFfaStatsApiFfastatsGetOptions } from "../../api/@tanstack/react-query.gen"
@@ -345,7 +345,9 @@ function GeneralWinRates(props: { stats: FFAStats }) {
         {sorted.map((g) => (
           <Grid key={g.general} size={{ xs: 6, sm: 4, md: 3, lg: 2 }}>
             <Paper variant="outlined" sx={{ p: 1, textAlign: "center" }}>
-              <DisplayGeneral general={g.general} />
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <GeneralAvatar general={g.general} />
+              </Box>
               <Typography variant="subtitle2" sx={{ mt: 0.5 }}>
                 {toGeneralName(g.general)}
               </Typography>

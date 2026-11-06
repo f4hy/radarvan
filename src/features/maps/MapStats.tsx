@@ -20,6 +20,7 @@ import { getMapStatsApiMapStatsGetOptions } from "../../api/@tanstack/react-quer
 import type { MapData } from "../../api/types.gen"
 import { GeneralAvatar } from "../../components/Generals"
 import GameMap, { MapThumbnail } from "../../components/Map"
+import MapRateChip from "../../components/MapRateChip"
 import Page from "../../components/Page"
 import { PlayerLabel } from "../../components/PlayerChip"
 import { queryFallback } from "../../components/QueryState"
@@ -199,53 +200,6 @@ function computePlayerBestWorst(maps: MapData[]): Array<[string, BestWorst]> {
   return result
 }
 
-function MapBadge(props: {
-  entry: MapEntry
-  variant: "best" | "worst"
-  onMapClick: (mapName: string) => void
-}) {
-  const wr = winRate(props.entry.wins, props.entry.losses)
-  const displayName = displayMapName(props.entry.mapName)
-  const total = props.entry.wins + props.entry.losses
-  return (
-    <Tooltip
-      title={`${displayName}: ${props.entry.wins}W–${props.entry.losses}L (${total} games) — click to scroll`}
-    >
-      <Chip
-        size="small"
-        color={props.variant === "best" ? "success" : "error"}
-        variant="outlined"
-        onClick={() => props.onMapClick(props.entry.mapName)}
-        // The percentage sits outside the ellipsis so a long map name can't
-        // push the number out of view.
-        label={
-          <Box sx={{ display: "flex", gap: 0.75, minWidth: 0 }}>
-            <Box
-              component="span"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                color: "text.primary",
-              }}
-            >
-              {displayName}
-            </Box>
-            <Box component="span" sx={{ fontWeight: 700, flexShrink: 0 }}>
-              {(wr * 100).toFixed(0)}%
-            </Box>
-          </Box>
-        }
-        sx={{
-          maxWidth: "100%",
-          justifySelf: "start",
-          fontSize: "0.7rem",
-          cursor: "pointer",
-        }}
-      />
-    </Tooltip>
-  )
-}
-
 function BestWorstTable<K extends React.Key>(props: {
   title: string
   rows: Array<[K, BestWorst]>
@@ -292,15 +246,17 @@ function BestWorstTable<K extends React.Key>(props: {
             >
               {props.renderLabel(key)}
             </Box>
-            <MapBadge
+            <MapRateChip
               entry={bw.best}
               variant="best"
-              onMapClick={props.onMapClick}
+              onClick={() => props.onMapClick(bw.best.mapName)}
+              hint="click to scroll"
             />
-            <MapBadge
+            <MapRateChip
               entry={bw.worst}
               variant="worst"
-              onMapClick={props.onMapClick}
+              onClick={() => props.onMapClick(bw.worst.mapName)}
+              hint="click to scroll"
             />
           </React.Fragment>
         ))}

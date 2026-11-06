@@ -15,7 +15,6 @@ import MuiTooltip from "@mui/material/Tooltip"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { Link } from "react-router"
 import {
   Bar,
   BarChart,
@@ -39,8 +38,9 @@ import {
   predictFactionMatrixApiPredictFactionMatrixGetOptions,
 } from "../../api/@tanstack/react-query.gen"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
-import DisplayGeneral, { GeneralAvatar } from "../../components/Generals"
+import { GeneralAvatar } from "../../components/Generals"
 import Loading from "../../components/Loading"
+import MapRateChip from "../../components/MapRateChip"
 import Page from "../../components/Page"
 import QueryState from "../../components/QueryState"
 import WinRateChip from "../../components/WinRateChip"
@@ -55,7 +55,6 @@ import { CHART_LOSS, CHART_WIN, LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
 import { useUrlChoice } from "../../lib/useUrlState"
 import {
   DEFAULT_HISTORY_CUTOFF,
-  displayMapName,
   formatCash,
   HISTORY_CUTOFFS,
   type HistoryCutoff,
@@ -146,31 +145,8 @@ function DisplayOverallGeneralStat(props: { stats: GeneralStats }) {
   return <GeneralWinLossChart data={data} isMobile={isMobile} />
 }
 
-function MapEdgeChip(props: {
-  entry: BestWorst["best"]
-  variant: "best" | "worst"
-}) {
-  const { entry } = props
-  const wr = winRate(entry.wins, entry.losses)
-  return (
-    <MuiTooltip
-      title={`${entry.wins}W-${entry.losses}L on ${displayMapName(entry.mapName)} - click to view on Map Stats`}
-    >
-      <Chip
-        component={Link}
-        to={mapStatsHref(entry.mapName)}
-        clickable
-        size="small"
-        color={props.variant === "best" ? "success" : "error"}
-        variant="outlined"
-        label={`${props.variant === "best" ? "Best" : "Worst"}: ${displayMapName(entry.mapName)} ${(wr * 100).toFixed(0)}%`}
-        sx={{ fontSize: "0.7rem" }}
-      />
-    </MuiTooltip>
-  )
-}
-
 function DisplayGeneralStat(props: {
+  rank: number
   stat: GeneralStat
   bestWorst?: BestWorst
 }) {
@@ -180,43 +156,83 @@ function DisplayGeneralStat(props: {
   const valueDestroyed = props.stat.value_destroyed ?? 0
   const valueLost = props.stat.value_lost ?? 0
   const tradeRatio = valueLost > 0 ? valueDestroyed / valueLost : undefined
+  const indent = { pl: { xs: 0, sm: "4.25rem" } }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ py: 1.25, borderBottom: 1, borderColor: "divider" }}>
       <Stack
         direction="row"
-        spacing={1}
-        sx={{
-          alignItems: "center",
-          mb: 0.5,
-        }}
+        spacing={1.25}
+        useFlexGap
+        sx={{ alignItems: "center", flexWrap: "wrap" }}
       >
-        <DisplayGeneral general={props.stat.general} />
         <Typography
-          variant="subtitle1"
-          sx={{
-            fontWeight: "bold",
-          }}
+          variant="body2"
+          sx={{ color: "text.secondary", width: "1.25rem", textAlign: "right" }}
         >
+          {props.rank}
+        </Typography>
+        <GeneralAvatar general={props.stat.general} size="1.75rem" />
+        <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
           {toGeneralName(props.stat.general)}
         </Typography>
         <WinRateChip wins={overallWins} losses={overallLosses} />
+        {(valueDestroyed > 0 || valueLost > 0) && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              ml: { sm: "auto" },
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
+            {formatCash(valueDestroyed)} destroyed · {formatCash(valueLost)}{" "}
+            lost
+            {tradeRatio !== undefined && (
+              <Box component="span" sx={{ fontWeight: 600 }}>
+                {` · ${tradeRatio.toFixed(2)}x trade`}
+              </Box>
+            )}
+          </Typography>
+        )}
       </Stack>
-      {(valueDestroyed > 0 || valueLost > 0) && (
-        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          {formatCash(valueDestroyed)} destroyed · {formatCash(valueLost)} lost
-          {tradeRatio !== undefined && ` · ${tradeRatio.toFixed(2)}x trade`}
-        </Typography>
-      )}
       {props.bestWorst && (
-        <Stack
-          direction="row"
-          spacing={0.75}
-          sx={{ mt: 0.5, flexWrap: "wrap" }}
+        <Box
+          sx={{
+            ...indent,
+            mt: 0.75,
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "auto minmax(0, 1fr)",
+              sm: "auto minmax(0, 1fr) auto minmax(0, 1fr)",
+            },
+            columnGap: 0.75,
+            rowGap: 0.5,
+            alignItems: "center",
+          }}
         >
-          <MapEdgeChip entry={props.bestWorst.best} variant="best" />
-          <MapEdgeChip entry={props.bestWorst.worst} variant="worst" />
-        </Stack>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            Best
+          </Typography>
+          <MapRateChip
+            entry={props.bestWorst.best}
+            variant="best"
+            to={mapStatsHref(props.bestWorst.best.mapName)}
+            hint="view on Map Stats"
+          />
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", pl: { sm: 0.75 } }}
+          >
+            Worst
+          </Typography>
+          <MapRateChip
+            entry={props.bestWorst.worst}
+            variant="worst"
+            to={mapStatsHref(props.bestWorst.worst.mapName)}
+            hint="view on Map Stats"
+          />
+        </Box>
       )}
     </Box>
   )
@@ -623,28 +639,29 @@ function GeneralStatsBody({
           alignItems: "flex-start",
         }}
       >
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <MuiTooltip title="Ranked by the lower bound of the 95% Wilson confidence interval, so a well-sampled win rate outranks a lucky small sample. Chips turn green/red only when the interval is confidently above/below 50%; grey means the sample is inconclusive.">
             <Typography
               variant="h6"
-              sx={{ mb: 1, cursor: "default", width: "fit-content" }}
+              sx={{ mb: 0.5, cursor: "default", width: "fit-content" }}
             >
               Ranked by win rate ⓘ
             </Typography>
           </MuiTooltip>
-          <Grid container spacing={2}>
-            {sorted.map((m) => (
-              <Grid key={m.general} size={12}>
-                <DisplayGeneralStat
-                  stat={m}
-                  bestWorst={bestWorstByGeneral.get(m.general)}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          {sorted.map((m, i) => (
+            <DisplayGeneralStat
+              key={m.general}
+              rank={i + 1}
+              stat={m}
+              bestWorst={bestWorstByGeneral.get(m.general)}
+            />
+          ))}
         </Grid>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <WinRateRadar data={radarData} aspect={1.4} />
+        <Grid
+          size={{ xs: 12, md: 5 }}
+          sx={{ position: { md: "sticky" }, top: { md: 80 } }}
+        >
+          <WinRateRadar data={radarData} aspect={1} />
         </Grid>
       </Grid>
       <Divider sx={{ mt: 4, mb: 2 }} />

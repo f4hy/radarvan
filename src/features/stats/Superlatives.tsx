@@ -26,26 +26,52 @@ import { PlayerChip } from "../../components/PlayerChip"
 // "Efficiency" used to sit below "Combat & Activity" and "Money", which made it
 // unreachable - every "… to Win" record matched "Units"/"Buildings"/"Money"
 // first, and the section never rendered.
-const CATEGORY_ORDER: { label: string; keywords: string[] }[] = [
-  { label: "Overview", keywords: ["Games"] },
-  { label: "Ratings", keywords: ["Rating", "Record", "Upset"] },
-  { label: "Momentum", keywords: ["Comeback", "Choke"] },
+type Category = { label: string; keywords: string[]; cols?: 3 | 4 }
+const CATEGORY_ORDER: Category[] = [
+  {
+    label: "Overview",
+    keywords: ["Total Games", "2v2 Games", "3v3 Games", "4v4 Games"],
+  },
+  { label: "Ratings", keywords: ["Rating", "Record"] },
+  { label: "Momentum", keywords: ["Upset", "Comeback", "Choke"], cols: 3 },
   { label: "Streaks", keywords: ["Streak", "Game Night"] },
   { label: "Maps", keywords: ["Map"] },
-  { label: "Match Duration", keywords: ["Longest", "Shortest"] },
-  { label: "First Blood", keywords: ["First Blood"] },
-  { label: "Hunted", keywords: ["Hunted"] },
-  { label: "APM", keywords: ["APM"] },
-  { label: "Superweapons & Tech", keywords: ["Superweapon", "Tech Captures"] },
-  { label: "Efficiency", keywords: ["to Win"] },
+  { label: "Match Duration", keywords: ["Longest", "Shortest"], cols: 3 },
+  {
+    label: "First Blood & Hunted",
+    keywords: ["First Blood", "Hunted"],
+    cols: 3,
+  },
+  { label: "APM", keywords: ["APM"], cols: 3 },
+  {
+    label: "Superweapons & Tech",
+    keywords: ["Superweapon", "Tech Captures"],
+    cols: 3,
+  },
+  { label: "Efficiency", keywords: ["to Win"], cols: 3 },
   { label: "Money", keywords: ["Money"] },
   {
     label: "Combat & Activity",
     keywords: ["Units", "Buildings", "XP", "Upgrades", "Rank 5", "Destroy"],
+    cols: 3,
   },
-  { label: "Teamwork", keywords: ["Duo"] },
-  { label: "Activity", keywords: ["Day"] },
+  {
+    label: "Activity & Teamwork",
+    keywords: ["Games Played", "Day", "Duo"],
+    cols: 3,
+  },
 ]
+
+// Longest 2v2/3v3/4v4 on one row and Shortest on the next, instead of
+// alternating.
+function sectionOrder(label: string, stats: Statistic[]): Statistic[] {
+  if (label !== "Match Duration") return stats
+  return [...stats].sort(
+    (a, b) =>
+      Number(a.stat_name.includes("Shortest")) -
+      Number(b.stat_name.includes("Shortest")),
+  )
+}
 
 function categorize(statName: string): string {
   for (const { label, keywords } of CATEGORY_ORDER) {
@@ -73,6 +99,8 @@ const StatCard = React.memo(function StatCard({
   onMatchClick: (id: number) => void
 }) {
   const displayValue = stat.value != null ? String(stat.value) : "—"
+  // Phrases like "was at 97.9% to win" wrap to three lines at h4.
+  const long = displayValue.length > 12
 
   return (
     <Card
@@ -91,10 +119,11 @@ const StatCard = React.memo(function StatCard({
           {stat.stat_name}
         </Typography>
         <Typography
-          variant="h4"
+          variant={long ? "h5" : "h4"}
           sx={{
             fontWeight: "bold",
             my: 1,
+            lineHeight: 1.2,
           }}
         >
           {displayValue}
@@ -126,10 +155,12 @@ const StatCard = React.memo(function StatCard({
 function CategorySection({
   label,
   stats,
+  cols = 4,
   onMatchClick,
 }: {
   label: string
   stats: Statistic[]
+  cols?: 3 | 4
   onMatchClick: (id: number) => void
 }) {
   return (
@@ -138,8 +169,11 @@ function CategorySection({
         {label}
       </Typography>
       <Grid container spacing={2}>
-        {stats.map((stat) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={stat.stat_name}>
+        {sectionOrder(label, stats).map((stat) => (
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4, lg: 12 / cols }}
+            key={stat.stat_name}
+          >
             <StatCard stat={stat} onMatchClick={onMatchClick} />
           </Grid>
         ))}
@@ -179,12 +213,12 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
   }, [data])
 
   const orderedGroups = React.useMemo(() => {
-    const groups: [string, Statistic[]][] = CATEGORY_ORDER.map(
-      ({ label }): [string, Statistic[]] => [label, grouped.get(label) ?? []],
+    const groups: [Category, Statistic[]][] = CATEGORY_ORDER.map(
+      (cat): [Category, Statistic[]] => [cat, grouped.get(cat.label) ?? []],
     ).filter(([, stats]) => stats.length > 0)
     const other = grouped.get("Other")
     if (other) {
-      groups.push(["Other", other])
+      groups.push([{ label: "Other", keywords: [] }, other])
     }
     return groups
   }, [grouped])
@@ -222,10 +256,11 @@ function SuperlativesBody({ data }: { data: Superlatives }) {
           <Divider sx={{ mt: 2 }} />
         </Box>
       )}
-      {orderedGroups.map(([label, stats]) => (
+      {orderedGroups.map(([cat, stats]) => (
         <CategorySection
-          key={label}
-          label={label}
+          key={cat.label}
+          label={cat.label}
+          cols={cat.cols}
           stats={stats}
           onMatchClick={setSelectedMatch}
         />

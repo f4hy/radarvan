@@ -434,9 +434,9 @@ def get_calendar_stats(games: list[MatchInfo], computed_at: date) -> list[Statis
     busiest_date, busiest_count = date_counts.most_common(1)[0]
     stats.append(
         Statistic(
-            stat_name="Most Matches in a Day",
+            stat_name=f"Most Matches in a Day ({busiest_date})",
             date_computed=computed_at,
-            value=f"{busiest_count} ({busiest_date})",
+            value=busiest_count,
         )
     )
     return stats
