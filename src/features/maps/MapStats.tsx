@@ -16,24 +16,25 @@ import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { useIsAdmin } from "../../lib/AuthContext"
-import type { MapData } from "../../api/types.gen"
 import { getMapStatsApiMapStatsGetOptions } from "../../api/@tanstack/react-query.gen"
-import DisplayGeneral from "../../components/Generals"
-import { toGeneralName } from "../../lib/general_utils"
+import type { MapData } from "../../api/types.gen"
+import { GeneralAvatar } from "../../components/Generals"
 import GameMap, { MapThumbnail } from "../../components/Map"
+import Page from "../../components/Page"
+import { PlayerLabel } from "../../components/PlayerChip"
+import { queryFallback } from "../../components/QueryState"
+import { WinRateBar } from "../../components/WinRateChip"
+import { useIsAdmin } from "../../lib/AuthContext"
+import type { General } from "../../lib/General"
+import { toGeneralName } from "../../lib/general_utils"
 import {
   type BestWorst,
   computeGeneralBestWorst,
   type MapEntry,
   MIN_SUMMARY_GAMES,
 } from "../../lib/mapGeneralStats"
-import Page from "../../components/Page"
-import { PlayerLabel } from "../../components/PlayerChip"
-import { queryFallback } from "../../components/QueryState"
 import { useUrlChoice, useUrlParam } from "../../lib/useUrlState"
 import { displayMapName, winRate } from "../../lib/utils"
-import { WinRateBar } from "../../components/WinRateChip"
 
 function mapId(mapName: string): string {
   return `map-${mapName.replace(/[^a-zA-Z0-9]/g, "-")}`
@@ -55,7 +56,7 @@ function WinRateRow(props: {
         : "error.main"
   const deltaStr =
     delta !== undefined && Math.abs(delta) >= 0.01
-      ? ` delta from generals ave ${delta > 0 ? "+" : ""}${(delta * 100).toFixed(0)}%`
+      ? ` ${delta > 0 ? "+" : ""}${(delta * 100).toFixed(0)}% vs avg`
       : null
   return (
     <Box sx={{ mb: 1 }}>
@@ -151,14 +152,7 @@ function GeneralWinRates(props: { generals: MapData["generalStats"] }) {
       {sorted.map((g) => (
         <WinRateRow
           key={g.general}
-          label={
-            <>
-              <DisplayGeneral general={g.general} />
-              <Typography variant="body2">
-                {toGeneralName(g.general)}
-              </Typography>
-            </>
-          }
+          label={<GeneralLabel general={g.general} />}
           wins={g.wins}
           losses={g.losses}
           delta={g.winRateDelta}
@@ -215,126 +209,112 @@ function MapBadge(props: {
   const total = props.entry.wins + props.entry.losses
   return (
     <Tooltip
-      title={`${props.entry.wins}W–${props.entry.losses}L (${total} games) — click to scroll`}
+      title={`${displayName}: ${props.entry.wins}W–${props.entry.losses}L (${total} games) — click to scroll`}
     >
       <Chip
         size="small"
         color={props.variant === "best" ? "success" : "error"}
         variant="outlined"
-        label={`${displayName} ${(wr * 100).toFixed(0)}%`}
         onClick={() => props.onMapClick(props.entry.mapName)}
-        sx={{ fontSize: "0.7rem", cursor: "pointer" }}
+        // The percentage sits outside the ellipsis so a long map name can't
+        // push the number out of view.
+        label={
+          <Box sx={{ display: "flex", gap: 0.75, minWidth: 0 }}>
+            <Box
+              component="span"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                color: "text.primary",
+              }}
+            >
+              {displayName}
+            </Box>
+            <Box component="span" sx={{ fontWeight: 700, flexShrink: 0 }}>
+              {(wr * 100).toFixed(0)}%
+            </Box>
+          </Box>
+        }
+        sx={{
+          maxWidth: "100%",
+          justifySelf: "start",
+          fontSize: "0.7rem",
+          cursor: "pointer",
+        }}
       />
     </Tooltip>
   )
 }
 
-function BestWorstBadgePair(props: {
-  label: React.ReactNode
-  bw: BestWorst
+function BestWorstTable<K extends React.Key>(props: {
+  title: string
+  rows: Array<[K, BestWorst]>
+  renderLabel: (key: K) => React.ReactNode
   onMapClick: (mapName: string) => void
 }) {
+  if (props.rows.length === 0) return null
+  const header = { color: "text.secondary", fontWeight: 600, pb: 0.5 }
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        flexWrap: "wrap",
-      }}
+    <Paper
+      variant="outlined"
+      sx={{ p: 2, flex: 1, minWidth: 0, width: { xs: "100%", md: "auto" } }}
     >
-      {props.label}
-      <MapBadge
-        entry={props.bw.best}
-        variant="best"
-        onMapClick={props.onMapClick}
-      />
-      <MapBadge
-        entry={props.bw.worst}
-        variant="worst"
-        onMapClick={props.onMapClick}
-      />
+      <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+        {props.title}
+      </Typography>
+      <Box
+        sx={{
+          display: "grid",
+          // On a phone the name takes its own row so the chips get the width.
+          gridTemplateColumns: {
+            xs: "minmax(0, 1fr) minmax(0, 1fr)",
+            sm: "max-content minmax(0, 1fr) minmax(0, 1fr)",
+          },
+          columnGap: 1.5,
+          rowGap: 0.75,
+          alignItems: "center",
+        }}
+      >
+        <Box sx={{ display: { xs: "none", sm: "block" } }} />
+        <Typography variant="overline" sx={header}>
+          Best
+        </Typography>
+        <Typography variant="overline" sx={header}>
+          Worst
+        </Typography>
+        {props.rows.map(([key, bw]) => (
+          <React.Fragment key={key}>
+            <Box
+              sx={{
+                gridColumn: { xs: "1 / -1", sm: "auto" },
+                mt: { xs: 0.5, sm: 0 },
+              }}
+            >
+              {props.renderLabel(key)}
+            </Box>
+            <MapBadge
+              entry={bw.best}
+              variant="best"
+              onMapClick={props.onMapClick}
+            />
+            <MapBadge
+              entry={bw.worst}
+              variant="worst"
+              onMapClick={props.onMapClick}
+            />
+          </React.Fragment>
+        ))}
+      </Box>
+    </Paper>
+  )
+}
+
+function GeneralLabel(props: { general: General }) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <GeneralAvatar general={props.general} size="1.5rem" />
+      <Typography variant="body2">{toGeneralName(props.general)}</Typography>
     </Box>
-  )
-}
-
-function GeneralBestWorstSummary(props: {
-  rows: Array<[number, BestWorst]>
-  onMapClick: (mapName: string) => void
-}) {
-  const { rows } = props
-  if (rows.length === 0) return null
-  return (
-    <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
-      <Typography
-        variant="subtitle1"
-        sx={{
-          fontWeight: "bold",
-          mb: 1,
-        }}
-      >
-        General Best / Worst Maps
-      </Typography>
-      <Stack spacing={0.75}>
-        {rows.map(([general, bw]) => (
-          <BestWorstBadgePair
-            key={general}
-            bw={bw}
-            onMapClick={props.onMapClick}
-            label={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  minWidth: 130,
-                }}
-              >
-                <DisplayGeneral general={general} />
-                <Typography variant="body2">
-                  {toGeneralName(general)}
-                </Typography>
-              </Box>
-            }
-          />
-        ))}
-      </Stack>
-    </Paper>
-  )
-}
-
-function PlayerBestWorstSummary(props: {
-  rows: Array<[string, BestWorst]>
-  onMapClick: (mapName: string) => void
-}) {
-  const { rows } = props
-  if (rows.length === 0) return null
-  return (
-    <Paper variant="outlined" sx={{ p: 2, flexGrow: 1 }}>
-      <Typography
-        variant="subtitle1"
-        sx={{
-          fontWeight: "bold",
-          mb: 1,
-        }}
-      >
-        Player Best / Worst Maps
-      </Typography>
-      <Stack spacing={0.75}>
-        {rows.map(([player, bw]) => (
-          <BestWorstBadgePair
-            key={player}
-            bw={bw}
-            onMapClick={props.onMapClick}
-            label={
-              <Box sx={{ minWidth: 110 }}>
-                <PlayerLabel name={player} />
-              </Box>
-            }
-          />
-        ))}
-      </Stack>
-    </Paper>
   )
 }
 
@@ -570,12 +550,16 @@ export default function DisplayMapStats() {
           mb: 2,
         }}
       >
-        <GeneralBestWorstSummary
+        <BestWorstTable
+          title="General Best / Worst Maps"
           rows={generalBestWorst}
+          renderLabel={(g) => <GeneralLabel general={g} />}
           onMapClick={handleMapClick}
         />
-        <PlayerBestWorstSummary
+        <BestWorstTable
+          title="Player Best / Worst Maps"
           rows={playerBestWorst}
+          renderLabel={(p) => <PlayerLabel name={p} />}
           onMapClick={handleMapClick}
         />
       </Stack>
