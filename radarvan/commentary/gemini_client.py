@@ -17,10 +17,24 @@ from typing import Final
 
 import structlog
 from google import genai
+from google.genai import types
 
 logger = structlog.get_logger(__name__)
 
 API_KEY_ENV = "GEMINI_API_KEY"
+
+# Ride out "high demand" 503s and 429s for hours rather than fail: every caller
+# is a background thread or a scheduled job, and a late blurb beats none. The
+# Interactions API counts retries, not elapsed time - 5s doubling to a 15-min
+# cap over 32 retries is ~6h (less with its up-to-25% jitter). A server
+# Retry-After overrides the computed wait.
+RETRY_OPTIONS: Final = types.HttpRetryOptions(
+    attempts=32,
+    initial_delay=5.0,
+    max_delay=15 * 60.0,
+    exp_base=2.0,
+    http_status_codes=[408, 429, 500, 502, 503, 504],
+)
 
 # Single place to change which model generates commentary. Final so mypy
 # infers the precise Literal type interactions.create()'s overloads need to
@@ -39,4 +53,7 @@ def commentary_available() -> bool:
 def gemini_client() -> genai.Client:
     """Process-wide Gemini client; reused for the life of the process."""
     logger.info("Building Gemini client")
-    return genai.Client(api_key=os.environ[API_KEY_ENV])
+    return genai.Client(
+        api_key=os.environ[API_KEY_ENV],
+        http_options=types.HttpOptions(retry_options=RETRY_OPTIONS),
+    )
