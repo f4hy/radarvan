@@ -12,10 +12,10 @@ dependencies = [
     "anthropic>=2.4.0,<3",
     "beautifulsoup4>=4.15.0",
     "boto3>=1.43.123",
-    "cachetools>=7.2.8",
+    "cachetools>=8.0.0",
     "cachetools-async>=0.0.5",
     "fastapi[standard]>=0.162.0",
-    "google-genai>=2.30.0",
+    "google-genai>=2.30.0,<3",
     # Pydantic's maintained fork of httpx (upstream is frozen at 0.28.1).
     # Plain httpx is NOT a direct dependency: nothing of ours imports it,
     # but it stays in the tree via google-genai and fastapi[standard].
