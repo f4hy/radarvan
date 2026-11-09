@@ -19,8 +19,10 @@ export function playerProfileHref(playerName: string): string {
   return `/player-profile?${new URLSearchParams({ player: playerName })}`
 }
 
-export function headToHeadHref(player1: string, player2: string): string {
-  return `/head-to-head?${new URLSearchParams({ player1, player2 })}`
+export function headToHeadHref(player1: string, player2?: string): string {
+  const params = new URLSearchParams({ player1 })
+  if (player2 != null) params.set("player2", player2)
+  return `/head-to-head?${params}`
 }
 
 /** One evening's recap. The link Matches puts on every night row, and the one

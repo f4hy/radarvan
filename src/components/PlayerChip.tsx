@@ -58,6 +58,8 @@ export const PlayerChip = React.memo(function PlayerChip(props: {
   size?: "small" | "medium"
   /** Opt out of navigation — for a chip inside another control. */
   disableNav?: boolean
+  /** Where the chip points instead of the player's profile. */
+  to?: string
 }) {
   const palette = usePlayerPalette(props.name)
   // Linking to the profile is the default, not something each call site has to
@@ -74,7 +76,7 @@ export const PlayerChip = React.memo(function PlayerChip(props: {
       variant="filled"
       clickable={linked}
       {...(linked
-        ? { component: Link, to: playerProfileHref(props.name) }
+        ? { component: Link, to: props.to ?? playerProfileHref(props.name) }
         : {})}
       sx={{
         bgcolor: palette.tint,

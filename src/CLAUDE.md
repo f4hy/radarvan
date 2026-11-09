@@ -3,6 +3,7 @@
 ## Layout
 
 `lib/` (non-UI: helpers, hooks, contexts), `components/` (shared UI), `features/<nav heading>/` (pages), `api/` (generated — never hand-edit). App shell stays at the root: `App.tsx`, `index.tsx`, `routes.tsx`, `Menu.tsx`.
+
 - **`features/` buckets are `routes.tsx`'s `HEADING_ORDER`**, so the tree and the sidebar can't drift. A new page goes in the directory named after its nav heading.
 - **A page must not import another page.** Shared pieces move to `components/`; `MatchCard` is the worked example — four pages used to import it from `Matches.tsx` and drag the whole page into their chunk.
 

@@ -509,7 +509,11 @@ function Section(props: {
   children: React.ReactNode
 }) {
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 } }}>
+    // Scrolls its own tables on a phone instead of widening the whole page.
+    <Paper
+      variant="outlined"
+      sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0, overflowX: "auto" }}
+    >
       <Typography variant="h6">{props.title}</Typography>
       {props.caption && (
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>

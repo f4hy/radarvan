@@ -41,6 +41,8 @@ import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import DisplayGeneral from "../../components/Generals"
 import Page from "../../components/Page"
 import PlayerChip from "../../components/PlayerChip"
+import { PlayerQuickPick } from "../../components/PlayerQuickPick"
+import { headToHeadHref } from "../../lib/links"
 import QueryState from "../../components/QueryState"
 import WinRateChip from "../../components/WinRateChip"
 import WinShareBar from "../../components/WinShareBar"
@@ -594,6 +596,21 @@ export default function HeadToHead() {
         >
           Pick two different players.
         </Typography>
+      )}
+      {!player1 !== !player2 && (
+        <PlayerQuickPick
+          prompt={`Who should ${player1 || player2} face?`}
+          exclude={player1 || player2}
+          hrefFor={(name) =>
+            headToHeadHref((player1 || player2) as string, name)
+          }
+        />
+      )}
+      {!player1 && !player2 && (
+        <PlayerQuickPick
+          prompt="Pick two players to compare, or start with one:"
+          hrefFor={(name) => headToHeadHref(name)}
+        />
       )}
       {bothPicked && (
         <QueryState query={query} what="this matchup">

@@ -1618,9 +1618,11 @@ function LosersBracketColumns({
   }, [matches])
 
   return (
+    // No connector lines between these columns, so a tighter gap than the
+    // winners tree: five rounds then fit a 1440px screen without clipping.
     <Stack
       direction="row"
-      spacing={4}
+      spacing={2}
       sx={{ width: "fit-content", alignItems: "flex-start" }}
     >
       {rounds.map(({ roundNumber, matches: roundMatches }) => (

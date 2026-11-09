@@ -68,6 +68,8 @@ import { toGeneralName } from "../../lib/general_utils"
 import Page from "../../components/Page"
 import QueryState from "../../components/QueryState"
 import PlayerChip from "../../components/PlayerChip"
+import { PlayerQuickPick } from "../../components/PlayerQuickPick"
+import { playerProfileHref } from "../../lib/links"
 import { usePlayerAccentColor } from "../../lib/PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
 import { useUrlParam } from "../../lib/useUrlState"
@@ -1283,15 +1285,10 @@ export default function DisplayPlayerProfile() {
           {(profile) => <ProfileBody profile={profile} />}
         </QueryState>
       ) : (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            mt: 2,
-          }}
-        >
-          Pick a player to see what they&apos;re known for.
-        </Typography>
+        <PlayerQuickPick
+          prompt="Pick a player to see what they're known for."
+          hrefFor={playerProfileHref}
+        />
       )}
     </Page>
   )

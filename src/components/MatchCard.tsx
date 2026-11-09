@@ -121,7 +121,11 @@ function StatusBand(props: {
   )
 }
 
-function TeamCard(props: { players: Player[]; won: boolean }) {
+function TeamCard(props: {
+  players: Player[]
+  won: boolean
+  stacked: boolean
+}) {
   const { mode } = useColorMode()
   const first = props.players[0]
   const team = first?.team
@@ -145,7 +149,7 @@ function TeamCard(props: { players: Player[]; won: boolean }) {
     <Card
       sx={{
         width: { xs: "100%", sm: "calc(50% - 4px)", md: "auto" },
-        flex: { md: observers ? "0 1 180px" : 1 },
+        flex: { md: props.stacked ? "none" : observers ? "0 1 180px" : 1 },
         minWidth: 0,
         overflow: "hidden",
       }}
@@ -504,6 +508,15 @@ export const MatchCard = React.memo(function MatchCard(props: {
   const teams = groupBy(props.match.players, (p) =>
     isObserver(p) ? "observers" : p.team,
   )
+  // Beside a 300px map, a row of one-name cards is mostly empty box; stacked,
+  // small teams fill the map's height instead. Bigger teams would overrun it.
+  const stackTeams =
+    Math.max(
+      0,
+      ...Object.entries(teams)
+        .filter(([group]) => group !== "observers")
+        .map(([, team]) => team.length),
+    ) <= 2
 
   const incomplete = (props.match.incomplete ?? "").length !== 0
   const paperSx = incomplete
@@ -547,19 +560,33 @@ export const MatchCard = React.memo(function MatchCard(props: {
         sx={{
           justifyContent: "flex-start",
           flexWrap: { xs: "wrap", md: "nowrap" },
+          alignItems: "flex-start",
           gap: 1,
           mt: 1,
         }}
       >
-        {/* Keyed on the group, not team[0].team: historical observers sit on
-            team 0 beside any unknown-team players, which would collide. */}
-        {Object.entries(teams).map(([group, team]) => (
-          <TeamCard
-            key={group}
-            players={team}
-            won={team[0].team === props.match.winning_team}
-          />
-        ))}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            flexDirection: { xs: "row", md: stackTeams ? "column" : "row" },
+            flexWrap: { xs: "wrap", md: "nowrap" },
+            alignItems: { md: stackTeams ? "stretch" : "flex-start" },
+            gap: 1,
+          }}
+        >
+          {/* Keyed on the group, not team[0].team: historical observers sit on
+              team 0 beside any unknown-team players, which would collide. */}
+          {Object.entries(teams).map(([group, team]) => (
+            <TeamCard
+              key={group}
+              players={team}
+              won={team[0].team === props.match.winning_team}
+              stacked={stackTeams}
+            />
+          ))}
+        </Box>
         <Box
           sx={{
             flexShrink: 0,
