@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="Post-match breakdown of Modus 5–3 Gorn, the Grand Final of the 2026 1v1 Bracket, built from the replay files.">
+<meta property="og:title" content="Modus 5–3 Gorn · The Breakdown">
+<meta property="og:description" content="Game by game from the replays: the decisions that won and lost each game of the Grand Final, and forced a bracket reset.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c1118">
+<title>Modus–Gorn Breakdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: post-game analysis desk. Final score header, series overview, three takeaways, then one segment per game with an annotated win-probability chart. */
+:root {
+  --ground: #0c1118;
+  --panel: #131b26;
+  --panel-2: #1a2432;
+  --line: #263243;
+  --grid: #222d3c;
+  --ink: #e9eef5;
+  --ink-dim: #93a1b4;
+  --modus: #30a070;
+  --modus-ink: #5fd39a;
+  --modus-deep: #0d3a26;
+  --gorn: #2b9de8;
+  --gorn-ink: #7cc4f5;
+  --gorn-deep: #0b2c44;
+  --signal: #f3b33d;
+  --f-display: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { max-width: 70ch; }
+.label { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.num { font-variant-numeric: tabular-nums; }
+.m { color: var(--modus-ink); } .t { color: var(--gorn-ink); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+/* Header: a final score card, not a hype hero */
+.final { border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #111925, var(--ground)); }
+.final .wrap { padding-block: 28px 30px; }
+.final-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.chip { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); color: var(--ink-dim); }
+.chip.ft { border-color: var(--signal); color: var(--signal); }
+.score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-top: 22px; }
+.score .side h1, .score .side .nm { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(40px, 9vw, 96px); line-height: .9; }
+.score .side.r { text-align: right; }
+.score .side small { display: block; font-family: var(--f-label); font-size: 16px; color: var(--ink-dim); margin-top: 6px; }
+.score .big { font-family: var(--f-display); font-weight: 900; font-size: clamp(48px, 10vw, 110px); line-height: .9; white-space: nowrap; }
+.score .big .dash { color: var(--ink-dim); padding: 0 .1em; }
+.final .dek { margin-top: 20px; font-size: 19px; max-width: 64ch; color: var(--ink); }
+.final .dek em { font-style: normal; color: var(--signal); }
+
+section.seg { padding-block: 44px 8px; }
+.seg-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.seg-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.4vw, 42px); line-height: 1; letter-spacing: .02em; }
+.seg-head .label { color: var(--signal); }
+.lede { color: var(--ink-dim); margin: 0 0 16px; }
+.desk { background: var(--panel); border-left: 4px solid var(--ink-dim); padding: 18px 22px; font-size: 17px; max-width: 74ch; }
+.desk p { margin: 0 0 10px; } .desk p:last-child { margin: 0; }
+.desk .who { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--ink-dim); font-weight: 700; display: block; margin-bottom: 6px; }
+
+/* Series strip */
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.gcard { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid; padding: 12px; text-align: left; cursor: pointer; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.gcard:hover { background: var(--panel-2); }
+.gcard.wm { border-top-color: var(--modus); } .gcard.wt { border-top-color: var(--gorn); }
+.gcard .gn { font-family: var(--f-label); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 12px; color: var(--ink-dim); }
+.gcard .gw { font-family: var(--f-display); font-weight: 800; font-size: 22px; text-transform: uppercase; line-height: 1.05; }
+.gcard .gm { font-size: 13px; color: var(--ink-dim); line-height: 1.35; }
+.gcard svg { width: 100%; height: 40px; display: block; margin-top: 4px; }
+.running { margin-top: 12px; font-family: var(--f-label); font-size: 15px; color: var(--ink-dim); }
+.strip-key { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-family: var(--f-label); font-size: 14px; color: var(--ink-dim); align-items: center; }
+.strip-key i { display: inline-block; width: 18px; height: 2px; vertical-align: middle; margin-right: 6px; }
+
+/* Takeaways */
+.takes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.take { background: var(--panel); border: 1px solid var(--line); padding: 18px; min-width: 0; }
+.take .k { font-family: var(--f-display); font-weight: 900; font-size: 44px; line-height: 1; color: var(--signal); }
+.take h3 { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .05em; font-size: 20px; font-weight: 700; margin: 8px 0 6px; }
+.take p { margin: 0; font-size: 15px; color: var(--ink-dim); }
+.pairs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.pair { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; min-width: 0; }
+.pair .label { display: block; margin-bottom: 6px; }
+.pair .row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; padding: 3px 0; }
+.pair .verdict { margin-top: 8px; font-family: var(--f-label); font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Game segments */
+.game { padding-block: 52px 8px; border-top: 1px solid var(--line); margin-top: 36px; }
+.game-head { display: flex; gap: 10px 18px; align-items: baseline; flex-wrap: wrap; }
+.game-head .gnum { font-family: var(--f-display); font-weight: 900; font-size: 64px; line-height: .8; color: var(--line); }
+.game-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.6vw, 44px); line-height: 1; }
+.game-meta { display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 10px 0 18px; font-family: var(--f-label); font-size: 16px; color: var(--ink-dim); }
+.game-meta b { color: var(--ink); font-weight: 600; }
+.result { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; font-size: 14px; }
+.result.wm { background: var(--modus); color: #03180e; } .result.wt { background: var(--gorn); color: #04122a; }
+.chart-wrap { background: var(--panel); border: 1px solid var(--line); padding: 14px 14px 8px; position: relative; }
+.chart-title { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-family: var(--f-label); font-size: 14px; color: var(--ink-dim); margin-bottom: 4px; }
+.chart-wrap svg { display: block; max-width: 100%; overflow: visible; touch-action: pan-y; }
+.chart-wrap text { font-family: var(--f-label); }
+.tip { position: absolute; pointer-events: none; background: #0a0f15; border: 1px solid var(--line); padding: 6px 9px; font-family: var(--f-label); font-size: 14px; white-space: nowrap; transform: translate(-50%, -100%); opacity: 0; transition: opacity .1s; z-index: 2; }
+.tip b { font-weight: 700; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; margin-top: 20px; }
+.moments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.moments li { display: grid; grid-template-columns: 28px 52px 1fr; gap: 10px; padding: 9px 10px; border-left: 3px solid transparent; cursor: default; }
+.moments li:hover, .moments li.hot { background: var(--panel); }
+.moments li.sm { border-left-color: var(--modus); } .moments li.st { border-left-color: var(--gorn); } .moments li.sn { border-left-color: var(--ink-dim); }
+.moments .mk { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-label); font-weight: 700; font-size: 13px; background: var(--panel-2); border: 1px solid var(--ink-dim); }
+.moments .tm { font-family: var(--f-label); font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.moments .tx { font-size: 15px; }
+.moments .tx b { font-weight: 600; }
+.calls { display: flex; flex-direction: column; gap: 14px; }
+.call { background: var(--panel); padding: 16px 18px; border-top: 4px solid; }
+.call.cm { border-color: var(--modus); } .call.ct { border-color: var(--gorn); }
+.call h4 { margin: 0 0 8px; font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; font-size: 17px; font-weight: 700; }
+.call ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.call li::marker { color: var(--ink-dim); }
+.receipts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.rc { background: var(--panel-2); padding: 10px 12px; min-width: 0; }
+.rc .label { display: block; font-size: 12px; }
+.rc .v { font-family: var(--f-label); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc .v span + span::before { content: " · "; color: var(--ink-dim); }
+.analyst { margin-top: 18px; }
+
+.ahead { padding-block: 44px 56px; }
+.ahead a { color: var(--signal); }
+footer { color: var(--ink-dim); font-size: 13px; border-top: 1px solid var(--line); padding-block: 16px 28px; }
+footer p { max-width: none; margin: 0 0 6px; }
+
+@media (max-width: 860px) {
+  .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .takes, .pairs, .cols { grid-template-columns: 1fr; }
+  .receipts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .score { grid-template-columns: 1fr; text-align: center; gap: 6px; }
+  .score .side.r { text-align: center; }
+  .moments li { grid-template-columns: 24px 44px 1fr; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } html { scroll-behavior: auto; } }
+html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<header class="final">
+  <div class="wrap">
+    <div class="final-top">
+      <span class="label">Post-match · 2026 1v1 Bracket · November 8</span>
+      <span class="chip ft">Final · Grand Final · Best of 9</span>
+    </div>
+    <div class="score">
+      <div class="side"><h1 class="m">Modus</h1><small>Forces the bracket reset</small></div>
+      <div class="big num"><span class="m">5</span><span class="dash">–</span><span class="t">3</span></div>
+      <div class="side r"><div class="nm t">Gorn</div><small>First series loss of the bracket</small></div>
+    </div>
+    <p class="dek">Eight games, four maps, and a title that now comes down to one more series. We went through every replay order by order to find what actually swung each game. <em>The short version: Modus won four games by getting somewhere first and one by waiting for Gorn's attack, and two of the three losses came on Natural Threats after the model had Modus at 85% or better.</em></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="seg" id="overview">
+    <div class="seg-head"><span class="label">The series</span><h2>Eight games at a glance</h2></div>
+    <div class="strip" id="strip"></div>
+    <div class="strip-key"><span><i style="background:var(--modus)"></i>Modus's chance to win, per the RadarVan model</span><span><i style="background:var(--ink-dim);height:1px"></i>50%</span><span>Tap a game to jump to its breakdown.</span></div>
+  </section>
+
+  <section class="seg" id="takeaways">
+    <div class="seg-head"><span class="label">The analyst desk</span><h2>Three things that decided it</h2></div>
+    <div class="takes">
+      <div class="take">
+        <div class="k">29%</div>
+        <h3>Game 2 was the swing</h3>
+        <p>Modus was at 29% at 5:00 of game 2, on the way to being out-earned by 9,000. Then Gorn lost 16,020 to 2,600 in 69 seconds, and the series went to 2–0 instead of 1–1. Modus won the series by two games.</p>
+      </div>
+      <div class="take">
+        <div class="k">2 of 2</div>
+        <h3>Natural Threats beat the model</h3>
+        <p>The model had Modus at 89% in game 3 and 85% in game 4. Gorn won both. Modus was 1–1 on this map in August and is now 1–3 on it, and Gorn is 3–1.</p>
+      </div>
+      <div class="take">
+        <div class="k">1–3</div>
+        <h3>Demolition, finally</h3>
+        <p>Modus had lost all three Demolition games in this bracket, and game 8 was the game the series could have gone to a decider on. Modus hit Gorn's power and trucks early and won it in 6:34.</p>
+      </div>
+    </div>
+    <div class="pairs">
+      <div class="pair">
+        <span class="label">Snowy Drought · games 1–2</span>
+        <div class="row"><span>G1 <span class="m">Modus Nuke</span></span><span>beat Superweapon</span></div>
+        <div class="row"><span>G2 <span class="m">Modus Superweapon</span></span><span>beat Nuke</span></div>
+        <div class="verdict m">Modus sweeps the pair</div>
+      </div>
+      <div class="pair">
+        <span class="label">Natural Threats · games 3–4</span>
+        <div class="row"><span>G3 <span class="t">Gorn Stealth</span></span><span>beat Infantry</span></div>
+        <div class="row"><span>G4 <span class="t">Gorn Infantry</span></span><span>beat Stealth</span></div>
+        <div class="verdict t">Gorn sweeps the pair</div>
+      </div>
+      <div class="pair">
+        <span class="label">Arctic Lagoon · games 5–6</span>
+        <div class="row"><span>G5 <span class="m">Modus USA</span></span><span>beat Toxin</span></div>
+        <div class="row"><span>G6 <span class="t">Gorn USA</span></span><span>beat Toxin</span></div>
+        <div class="verdict">Split · USA 2–0</div>
+      </div>
+      <div class="pair">
+        <span class="label">TD NoBugsCars · games 7–8</span>
+        <div class="row"><span>G7 <span class="m">Modus Infantry</span></span><span>beat Demolition</span></div>
+        <div class="row"><span>G8 <span class="m">Modus Demolition</span></span><span>beat Infantry</span></div>
+        <div class="verdict m">Modus sweeps the pair</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="games"></div>
+
+  <section class="seg ahead" id="ahead">
+    <div class="seg-head"><span class="label">What's next</span><h2>Film to take into the reset</h2></div>
+    <div class="desk">
+      <span class="who">Analyst desk</span>
+      <p>In seven of the eight games, the winner did most of the fighting on the other player's side of the map. The exception was game 2, which Modus won by letting Gorn's attack come to the Humvees. Modus is now 18–0 in bracket games where most of the fighting happens in the opponent's half.</p>
+      <p>The reset is one more best of 9, scheduled for November 14, and the winner takes the title. The series is 1–1, and in games Modus leads 8–7. Gorn's clearest path is still the long game: Gorn is 8–2 in bracket games of ten minutes or more, and Modus is 16–3 in the ones under ten.</p>
+      <p>On the maps that have been played by both, Modus's best is TD NoBugsCars (4–0) and Gorn's is Natural Threats (3–1).</p>
+      <p><a href="/hype/modus-gorn-reset/index.html">Grand Final Reset preview →</a></p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Built from the eight replay files of the Grand Final (match IDs 1392508927, 686388083, 767712454, 622854126, 428588073, 1966232855, 1123899701, 339125771) and RadarVan's match details. Values lost are the build cost of what was destroyed; GLA Technicals, which the replay records at no cost, are counted at $500. Win probability is the RadarVan model's estimate every 30 seconds, from Modus's side.</p>
+    <p>"Economy" means workers, supply trucks, Chinooks, dozers and supply buildings. Army counts are approximate: units built minus units destroyed. Career and bracket records count 1v1 games only. Generals are assigned at random in every game.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const GAMES = [{"n": 1, "map": "Snowy Drought", "mg": "Nuke", "tg": "Superweapon", "w": "m", "len": "4:00", "title": "Two War Factories", "wp": [82, 81, 86, 84, 83, 92, 95, 99], "moments": [[1.37, "m", "Modus has two War Factories up by 1:02 and tanks rolling at 1:22. Five are out by 1:48, before a Barracks exists."], [2.2, "t", "Gorn draws first blood at 2:11: Missile Defenders and Humvees kill a Gattling and a Battlemaster."], [2.7, "m", "The tanks don't stop. A Dozer dies at 2:41 and Chinooks at 2:42 and 2:49."], [3.0, "m", "The model reaches 92%. Gorn earned 4,800 in minute 2 and earns 600 in minute 3."], [3.4, "m", "The last two Chinooks go at 3:21 and 3:40. Every fight of the game happens on Gorn's side of the map."], [3.85, "m", "Gorn is out at 3:51 with every building still standing."]], "right": ["Went straight to tanks: two War Factories by 1:02 and five tanks out by 1:48.", "Drove through the Missile Defenders to the Chinooks and killed all four.", "Won the only fight of the game <b>13,350 to 4,000</b>."], "wrong": ["Opened on Missile Defenders: 16 built and 11 killed, with all five Humvees lost as well.", "Lost the whole income in 58 seconds and earned 10,800 all game.", "Never got a fight on Modus's side of the map."], "receipts": {"econ": [5800, 0], "bank": [2524, 2150], "apm": [44.8, 50.1], "spent": [26500, 26450]}, "desk": "The fastest game of the series. Both players spent the same money, 26,500 to 26,450. Modus put most of it into six Gattlings and four Battlemasters and sent them at the Chinooks. The model had Modus ahead from the first 30 seconds and never wavered."}, {"n": 2, "map": "Snowy Drought", "mg": "Superweapon", "tg": "Nuke", "w": "m", "len": "6:09", "title": "Sixty-nine seconds", "wp": [61, 73, 71, 45, 61, 52, 42, 38, 37, 29, 42, 67, 90], "moments": [[1.85, "t", "First blood at 1:51. Gorn's Gattlings reach Modus's base and kill a Missile Defender."], [2.75, "t", "The trade is even in Modus's base, but the model falls from 61% to 42%. In minute 3 Gorn earns 7,500 and Modus 3,600."], [5.0, "t", "Modus's low point: 29%. Gorn takes an Oil Refinery at 5:01 and an Oil Derrick at 5:09, and has out-earned Modus all game."], [5.1, "m", "The turn. Supply trucks die at 4:57 and 5:03, then Humvees take two Helixes at 5:13 and 5:19."], [5.58, "m", "Humvees take Gorn's Airfield at 5:35."], [5.9, "m", "Gorn's Red Guards go into Modus's base and <b>all 16 die</b> in 23 seconds: 14 to Humvees and two under Modus's Dozer."], [6.13, "m", "Gorn is out at 6:08. The model has gone from 29% to 90% in a minute and a half."]], "right": ["Stayed in front of the base and let Gorn's attack arrive: 67% of the value destroyed died on Modus's side.", "Built Humvees (nine) and kept them alive for the last minute: 22 kills, every one of them in the last 70 seconds.", "Trusted the defense while Gorn's income ran away."], "wrong": ["Out-earned Modus 34,350 to 25,350 and spent the lead on an attack into Humvees.", "Lost <b>16,020 to 2,600</b> between 4:57 and 6:06.", "Lost all 16 Red Guards to a defense that had been waiting for them."], "receipts": {"econ": [1800, 1200], "bank": [2130, 2883], "apm": [56.9, 40.2], "spent": [36150, 41870]}, "desk": "If you only watch one game, watch the last 70 seconds of this one. Gorn had the bigger economy, both Oil captures and a 71% model reading at 5:00. Then the Helixes went down, Gorn's Red Guards walked into Modus's base, and the Humvees took them apart. The series was very nearly 1–1 here."}, {"n": 3, "map": "Natural Threats", "mg": "Infantry", "tg": "Stealth", "w": "t", "len": "16:15", "title": "138 kills", "wp": [83, 77, 80, 80, 85, 89, 89, 89, 87, 80, 78, 75, 72, 74, 76, 74, 80, 82, 72, 57, 52, 59, 49, 59, 41, 25, 19, 15, 14, 15, 14, 14, 4], "moments": [[1.81, "t", "First blood at 1:49. Five Tunnel Networks went up at 1:27, and Gorn's Tunnel Defenders are out."], [2.5, "t", "Tunnel Defenders kill a Dozer at 2:17 and two supply trucks at 2:35 and 2:40."], [3.4, "m", "Modus answers in Gorn's base: <b>eight workers</b> between 3:10 and 4:17. The model reaches 89%."], [6.9, "m", "A Dragon's firewall catches <b>seven more workers</b> between 6:40 and 7:05."], [9.3, "m", "A Black Lotus steals a Supply Stash at about 9:15. Carpet Bomb and Artillery Barrage land at 9:28. The model is at 82% as late as 9:00."], [10.3, "t", "Gorn's Quad Cannons catch the Tank Hunters in Modus's half: <b>8,400 to 1,500</b> in 15 seconds. The model drops to 52%."], [12.17, "t", "The Supply Center falls at 12:09, a truck at 12:13, and the Power Plant at 12:28. Minute 12: Gorn earns 10,495, Modus 1,300."], [15.05, "m", "Cluster Mines at 14:57 get six kills, and Carpet Bomb and Artillery Barrage go in again. It's too late."], [16.1, "t", "Modus is eliminated at 16:06."]], "right": ["Kept building Quad Cannons: 52 of them, with <b>138 kills</b>.", "Replaced the workers: 46 built, 28 lost, and income still reached 10,495 in minute 12.", "Hit the Supply Center and power once Modus's army was gone."], "wrong": ["Fed Tank Hunters and Listening Outposts into Quad Cannons: 111 Tank Hunters and 33 Outposts lost.", "Killed 28 workers without ever cutting Gorn's income for long.", "Spent 28,150 less than Gorn once the economy broke."], "receipts": {"econ": [7100, 7600], "bank": [2407, 2333], "apm": [65.3, 45.6], "spent": [84950, 113100]}, "desk": "The model had Modus at 89% four minutes in and at 82% nine minutes in, and Modus still lost. Modus killed 28 workers and Gorn simply bought more. What Modus could not replace was the Tank Hunter army, which kept walking into Quad Cannon fire. The 10:15 fight turned the game; the Supply Center at 12:09 ended it."}, {"n": 4, "map": "Natural Threats", "mg": "Stealth", "tg": "Infantry", "w": "t", "len": "10:25", "title": "Broke and winning", "wp": [51, 57, 59, 54, 65, 64, 66, 60, 43, 64, 64, 69, 55, 85, 80, 72, 69, 69, 66, 69, 51], "moments": [[1.6, "t", "First blood at 1:36: Gorn's supply trucks run over two workers and two Tunnel Defenders."], [2.42, "m", "A Terrorist takes out Gorn's Dozer at 2:25."], [4.78, "m", "Gorn's Power Plant goes down at 4:47, and the base is out of power."], [6.12, "m", "Quad Cannons reach the supply line: trucks at 5:52 and 6:10, a Supply Center at 6:07, two more trucks by 6:43."], [7.12, "m", "The second Supply Center falls at 7:07. The model has Modus at 85%, and Gorn's bank hits zero and stays there."], [8.3, "t", "But the Tank Hunters are already on the field. Modus's Arms Dealer, Quad Cannons and Tunnel Networks start falling: <b>49 Tank Hunter kills</b> from 7:07."], [9.15, "t", "A second Arms Dealer and a Supply Stash go. Modus's income, 4,525 in minute 7, is 1,300 in minute 9."], [10.28, "t", "Modus is eliminated at 10:17. Gorn hasn't earned a dollar since the last truck died at 6:43."]], "right": ["Won with the army already on the field after the economy was gone.", "Tank Hunters: <b>73 kills</b>, 49 of them after 7:07.", "Went after Modus's army and base instead of the raiders."], "wrong": ["Took all of Gorn's income and still lost: 16 Quad Cannons built, 16 lost.", "Lost 25 of 25 Tunnel Defenders into Tank Hunters.", "Lost 17 workers with the game in hand."], "receipts": {"econ": [7000, 7900], "bank": [1989, 1889], "apm": [59.6, 42.1], "spent": [50400, 42950]}, "desk": "The strangest game of the series. Gorn's supply line was dead by 7:07, Gorn's bank was zero from there on, and the model had Modus at 85%. Three minutes later Gorn was the winner. Gorn's Tank Hunters were already out and Modus's army was the thing that broke. The lesson is simple and expensive: the economy only matters if the army holds."}, {"n": 5, "map": "Arctic Lagoon", "mg": "USA", "tg": "Toxin", "w": "m", "len": "8:07", "title": "Nine workers in thirty seconds", "wp": [72, 68, 58, 65, 65, 61, 60, 56, 52, 77, 92, 90, 94, 94, 97, 99, 99], "moments": [[1.4, "m", "First blood at 1:24: Modus's Dozer kills a worker."], [2.1, "m", "Between 2:07 and 2:11, Modus's ambulance runs over four Tunnel Defenders and a worker."], [4.25, "t", "Technicals push into Modus's base, and the model slides to 52%, the closest Gorn gets."], [4.93, "m", "Humvees reach the worker line at 4:55. <b>Nine workers</b> die by 5:24. The model goes from 52% to 92% in a minute."], [5.3, "m", "Both Arms Dealers fall, at 5:04 and 5:41."], [6.6, "m", "Supply Stashes go at 6:25 and 6:52."], [7.98, "m", "Gorn is out at 7:59."]], "right": ["Sent 14 Humvees at the worker line once the base was safe.", "Lost only 2,100 in the winning stretch from 4:53.", "Used the Dozer and the ambulance as weapons when the opportunities came."], "wrong": ["Left the worker line open: 14 workers lost.", "Built 17 Technicals and lost 15.", "Earned 29,150 to Modus's 35,325."], "receipts": {"econ": [5800, 0], "bank": [3018, 3000], "apm": [69.0, 43.9], "spent": [43900, 37900]}, "desk": "Modus's Humvees ended this one in half a minute. The model never had Modus under 52%, but until 4:55 this was a close game. Then nine workers went in 30 seconds, and Gorn lost 14,900 to Modus's 2,100 from there on."}, {"n": 6, "map": "Arctic Lagoon", "mg": "Toxin", "tg": "USA", "w": "t", "len": "6:51", "title": "The same game back", "wp": [52, 45, 52, 60, 34, 28, 28, 47, 22, 17, 12, 9, 5, 1], "moments": [[2.15, "t", "First blood at 2:09. Modus's raid goes into Gorn's half and dies, <b>2,800 to 0</b> by 2:44."], [3.0, "t", "The model swings from 60% to 28% for Modus in a minute."], [4.15, "t", "Gorn's Humvees and Missile Defenders reach the workers: <b>12 workers</b> between 4:09 and 6:30."], [4.4, "t", "Supply Stashes go at 4:23, 4:58 and 6:11."], [5.07, "t", "Gorn puts the Strategy Center on Search and Destroy at 5:04."], [6.73, "t", "Modus is out at 6:44. Gorn lost three units all game."]], "right": ["Copied the game 5 script: Humvees and Missile Defenders, then the worker line.", "Built 37 Missile Defenders.", "Lost only 1,000 all game."], "wrong": ["Raided into Missile Defenders at 2:09 and lost it all.", "Researched no upgrades in nearly seven minutes.", "Lost 14 workers and three Supply Stashes."], "receipts": {"econ": [0, 7300], "bank": [2017, 1991], "apm": [58.7, 52.6], "spent": [30900, 45500]}, "desk": "USA beat Toxin both ways on Arctic Lagoon, and this was the more one-sided half. Gorn spent 45,500 to Modus's 30,900 and lost 1,000. Modus didn't kill a single piece of Gorn's economy."}, {"n": 7, "map": "TD NoBugsCars", "mg": "Infantry", "tg": "Demolition", "w": "m", "len": "16:52", "title": "Sixteen minutes on top", "wp": [83, 77, 83, 87, 92, 91, 90, 92, 93, 97, 97, 97, 97, 94, 96, 91, 93, 90, 93, 96, 95, 96, 96, 97, 97, 98, 98, 98, 99, 99, 99, 99, 99, 100], "moments": [[1.6, "m", "First blood at 1:36. Modus's supply truck runs over a worker, and does it again at 1:57 and 2:17."], [4.95, "m", "Mini Gunners and a Helix catch the worker line: <b>five workers</b> by 5:04, and an Arms Dealer goes in the same trip."], [7.65, "t", "Modus's big attack dies in Gorn's base, <b>19,200 to 7,650</b> between 7:30 and 8:20. The model barely moves."], [10.1, "m", "Modus's income holds at about 5,200 a minute, and the Listening Outposts keep coming. Four more workers die between 10:02 and 10:08."], [10.4, "t", "Jarmen Kell goes to work on the Tank Hunters, with 21 kills on the game."], [14.27, "m", "Three generals points at 13:34 turn into Cluster Mines, Artillery Barrage and Carpet Bomb at 14:16 to 14:19."], [14.8, "m", "Carpet Bomb takes two Tunnel Networks and a Black Market."], [16.72, "m", "Gorn is eliminated at 16:43."]], "right": ["Kept the economy running through the whole game: 87,571 earned to 67,099.", "Rebuilt after the failed attack instead of going home.", "Took most of the fight to Gorn: 91% of the value destroyed died in Gorn's half."], "wrong": ["Stayed in the base and never got a real attack going.", "Sat on 3,400 to 4,700 between minutes 9 and 13.", "Lost 20 workers, and only earned 67,099."], "receipts": {"econ": [7000, 2800], "bank": [3644, 2389], "apm": [59.8, 42.0], "spent": [98725, 85700]}, "desk": "The longest game of the series, and the model never had Modus below 77%. Gorn's best moment was killing Modus's whole 7:30 attack, and it barely mattered, because Modus's economy never stopped. This is the game Gorn is supposed to win: long, expensive, and full of Tunnel Networks. Modus won it from the front."}, {"n": 8, "map": "TD NoBugsCars", "mg": "Demolition", "tg": "Infantry", "w": "m", "len": "6:34", "title": "Demolition, finally", "wp": [57, 75, 57, 82, 77, 72, 58, 65, 67, 48, 47, 58, 56, 82], "moments": [[2.38, "m", "Modus takes down Gorn's Power Plant at 2:23. Gorn won't build another until 5:30."], [2.95, "m", "Technicals kill supply trucks at 2:51 and 2:59, then a Dozer at 3:23. Gorn's income halves, from 4,800 in minute 2 to 2,400 in minute 3."], [3.71, "m", "Tunnel Defenders finish the War Factory at 3:43."], [4.55, "t", "Dragon firewalls burn through Modus's base: an Arms Dealer, a Supply Stash and three workers, <b>5,350 to 900</b>."], [5.25, "t", "The model drops to 47%, Modus's lowest of the game."], [5.77, "m", "Terrorists take out two Listening Outposts at 5:46."], [6.57, "m", "Gorn is out at 6:35, and the bracket resets."]], "right": ["Went after power and the supply trucks first.", "Finished on the first Demolition win of the bracket, after 0–3.", "Earned 24,150 to Gorn's 15,900."], "wrong": ["Never built a Barracks.", "Didn't replace the Power Plant for three minutes.", "Built only 5 Dragons and 8 Listening Outposts all game."], "receipts": {"econ": [2800, 4200], "bank": [2297, 2233], "apm": [66.9, 39.4], "spent": [37800, 29100]}, "desk": "Modus was 0–3 on Demolition in this bracket, including a raid into a defense that had already cost Modus games against Gorn, Tytan and WildCard. This time the raid worked: power first, then the trucks. Gorn's firewalls took 32 kills and got the model back to 47%, but the income was gone. Modus closed out the series on the general that had been the weak spot."}];
+
+  const fmt = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const money = v => v.toLocaleString("en-US");
+  const sideName = s => s === "m" ? "Modus" : s === "t" ? "Gorn" : "";
+  const sideVar = s => s === "m" ? "var(--modus)" : s === "t" ? "var(--gorn)" : "var(--ink-dim)";
+
+  // Series strip with sparklines
+  let mw = 0, tw = 0;
+  document.getElementById("strip").innerHTML = GAMES.map(g => {
+    g.w === "m" ? mw++ : tw++;
+    const W = 120, H = 40, n = g.wp.length;
+    const pts = g.wp.map((v, i) => `${(i / (n - 1) * W).toFixed(1)},${(H - v / 100 * H).toFixed(1)}`).join(" ");
+    return `<button class="gcard ${g.w === "m" ? "wm" : "wt"}" data-n="${g.n}" aria-label="Game ${g.n}: ${sideName(g.w)} wins on ${g.map}">
+      <span class="gn">Game ${g.n} · ${g.len}</span>
+      <span class="gw ${g.w}">${sideName(g.w)}</span>
+      <span class="gm">${g.map}<br><span class="m">${g.mg}</span> v <span class="t">${g.tg}</span></span>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" stroke="#93a1b4" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/><polyline points="${pts}" fill="none" stroke="#30a070" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>
+      <span class="gm num">Series: <span class="m">${mw}</span>–<span class="t">${tw}</span></span>
+    </button>`;
+  }).join("");
+  document.querySelectorAll(".gcard").forEach(b => b.addEventListener("click", () => document.getElementById("game-" + b.dataset.n).scrollIntoView()));
+
+  // Game segments
+  const host = document.getElementById("games");
+  host.innerHTML = GAMES.map(g => {
+    const win = g.w === "m" ? "Modus" : "Gorn", lose = g.w === "m" ? "Gorn" : "Modus";
+    const r = g.receipts;
+    const pair = (a, b, f) => `<span class="m">${f(a)}</span><span class="t">${f(b)}</span>`;
+    return `<section class="game" id="game-${g.n}">
+      <div class="game-head"><span class="gnum">${g.n}</span><h2>${g.title}</h2></div>
+      <div class="game-meta"><span class="result ${g.w === "m" ? "wm" : "wt"}">${win} wins</span><span><b>${g.map}</b></span><span><span class="m">Modus ${g.mg}</span> vs <span class="t">Gorn ${g.tg}</span></span><span class="num">${g.len}</span></div>
+      <div class="chart-wrap">
+        <div class="chart-title"><span>Modus's chance to win · RadarVan model</span><span>Numbered dots are the key moments below</span></div>
+        <div class="chart" data-n="${g.n}"></div>
+        <div class="tip" role="status"></div>
+      </div>
+      <div class="cols">
+        <ol class="moments" data-n="${g.n}">${g.moments.map(([t, s, tx], i) => `<li class="s${s}" data-i="${i}"><span class="mk">${i + 1}</span><span class="tm">${fmt(t)}</span><span class="tx">${tx}</span></li>`).join("")}</ol>
+        <div class="calls">
+          <div class="call ${g.w === "m" ? "cm" : "ct"}"><h4>What ${win} got right</h4><ul>${g.right.map(x => `<li>${x}</li>`).join("")}</ul></div>
+          <div class="call ${g.w === "m" ? "ct" : "cm"}"><h4>What ${lose} got wrong</h4><ul>${g.wrong.map(x => `<li>${x}</li>`).join("")}</ul></div>
+        </div>
+      </div>
+      <div class="label" style="margin-top:18px"><span class="m">Modus</span> · <span class="t">Gorn</span></div>
+      <div class="receipts" style="margin-top:6px">
+        <div class="rc"><span class="label">Economy destroyed</span><div class="v">${pair(r.econ[0], r.econ[1], money)}</div></div>
+        <div class="rc"><span class="label">Avg unspent money</span><div class="v">${pair(r.bank[0], r.bank[1], money)}</div></div>
+        <div class="rc"><span class="label">Money spent</span><div class="v">${pair(r.spent[0], r.spent[1], money)}</div></div>
+        <div class="rc"><span class="label">APM</span><div class="v">${pair(r.apm[0], r.apm[1], v => v.toFixed(1))}</div></div>
+      </div>
+      <div class="desk analyst"><span class="who">Analyst desk</span><p>${g.desk}</p></div>
+    </section>`;
+  }).join("");
+
+  // Win-probability charts: one series (Modus's chance), 50% reference, moment markers, crosshair tooltip.
+  const NS = "http://www.w3.org/2000/svg";
+  // Drawn at the container's pixel width (not scaled) so labels stay legible on phones.
+  function draw(g) {
+    const el = document.querySelector(`.chart[data-n="${g.n}"]`);
+    const wrap = el.parentElement, tip = wrap.querySelector(".tip");
+    const W = Math.max(300, Math.round(el.clientWidth)), H = W < 600 ? 220 : 260, L = 40, R = 14, T = 12, B = 30;
+    const xs = [0].concat(g.wp.map((_, i) => (i + 1) * 0.5));
+    const ys = [50].concat(g.wp);
+    const xmax = xs[xs.length - 1];
+    const X = m => L + m / xmax * (W - L - R), Y = v => T + (1 - v / 100) * (H - T - B);
+    const at = m => { for (let i = 1; i < xs.length; i++) if (m <= xs[i]) { const f = (m - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[i - 1] + f * (ys[i] - ys[i - 1]); } return ys[ys.length - 1]; };
+    const line = xs.map((m, i) => `${X(m).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join(" ");
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Game ${g.n}: Modus's win probability over time">
+      <defs><clipPath id="ca${g.n}"><rect x="${L}" y="${T}" width="${W - L - R}" height="${Y(50) - T}"/></clipPath><clipPath id="cb${g.n}"><rect x="${L}" y="${Y(50)}" width="${W - L - R}" height="${H - B - Y(50)}"/></clipPath></defs>`;
+    [0, 25, 75, 100].forEach(v => { s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#222d3c" stroke-width="1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" fill="#93a1b4" font-size="12">${v}%</text>`; });
+    s += `<line x1="${L}" x2="${W - R}" y1="${Y(50)}" y2="${Y(50)}" stroke="#93a1b4" stroke-width="1" stroke-dasharray="4 4"/><text x="${L - 6}" y="${Y(50) + 4}" text-anchor="end" fill="#93a1b4" font-size="12">50%</text>`;
+    s += `<text x="${L + 6}" y="${T + 14}" fill="#5fd39a" font-size="13" font-weight="700">MODUS AHEAD</text><text x="${L + 6}" y="${H - B - 6}" fill="#7cc4f5" font-size="13" font-weight="700">GORN AHEAD</text>`;
+    const step = W < 600 ? (xmax > 8 ? 4 : 2) : (xmax > 8 ? 2 : 1);
+    for (let m = 0; m <= Math.floor(xmax); m += step) s += `<text x="${X(m)}" y="${H - 8}" text-anchor="middle" fill="#93a1b4" font-size="12">${m}:00</text>`;
+    const area = `${X(0)},${Y(50)} ${line} ${X(xmax)},${Y(50)}`;
+    s += `<polygon points="${area}" fill="#30a070" fill-opacity=".22" clip-path="url(#ca${g.n})"/><polygon points="${area}" fill="#2b9de8" fill-opacity=".22" clip-path="url(#cb${g.n})"/>`;
+    s += `<polyline points="${line}" fill="none" stroke="#e9eef5" stroke-width="2" stroke-linejoin="round"/>`;
+    s += `<line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="#93a1b4" stroke-width="1" opacity="0"/><circle class="xd" r="5" fill="#e9eef5" stroke="#131b26" stroke-width="2" opacity="0"/>`;
+    g.moments.forEach(([t, side], i) => {
+      const cx = X(Math.min(t, xmax)), cy = Y(at(t));
+      const fill = side === "m" ? "#30a070" : side === "t" ? "#2b9de8" : "#93a1b4";
+      s += `<g class="mark" data-i="${i}"><circle cx="${cx}" cy="${cy}" r="11" fill="${fill}" stroke="#131b26" stroke-width="2"/><text x="${cx}" y="${cy + 4.5}" text-anchor="middle" fill="#0c1118" font-size="13" font-weight="700">${i + 1}</text></g>`;
+    });
+    s += `<rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+    el.innerHTML = s;
+    const svg = el.querySelector("svg"), xh = svg.querySelector(".xh"), xd = svg.querySelector(".xd"), hit = svg.querySelector(".hit");
+    const list = document.querySelector(`.moments[data-n="${g.n}"]`);
+    function show(evt) {
+      const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const m = Math.max(0, Math.min(xmax, (p.x - L) / (W - L - R) * xmax));
+      const v = at(m);
+      xh.setAttribute("x1", X(m)); xh.setAttribute("x2", X(m)); xh.setAttribute("opacity", 1);
+      xd.setAttribute("cx", X(m)); xd.setAttribute("cy", Y(v)); xd.setAttribute("opacity", 1);
+      const near = g.moments.map((mm, i) => [Math.abs(mm[0] - m), i]).sort((a, b) => a[0] - b[0])[0];
+      list.querySelectorAll("li").forEach(li => li.classList.toggle("hot", near[0] < 0.35 && +li.dataset.i === near[1]));
+      const box = wrap.getBoundingClientRect(), sb = svg.getBoundingClientRect();
+      tip.style.left = Math.max(70, Math.min(box.width - 70, sb.left - box.left + X(m) / W * sb.width)) + "px";
+      tip.style.top = (sb.top - box.top + Y(v) / H * sb.height - 10) + "px";
+      tip.innerHTML = `<b>${fmt(m)}</b> · Modus ${Math.round(v)}% · <span style="color:var(--gorn-ink)">Gorn ${100 - Math.round(v)}%</span>`;
+      tip.style.opacity = 1;
+    }
+    function hide() { xh.setAttribute("opacity", 0); xd.setAttribute("opacity", 0); tip.style.opacity = 0; list.querySelectorAll("li").forEach(li => li.classList.remove("hot")); }
+    hit.addEventListener("pointermove", show); hit.addEventListener("pointerdown", show); hit.addEventListener("pointerleave", hide);
+  }
+  GAMES.forEach(g => {
+    draw(g);
+    // Hovering a moment in the list highlights its marker (looked up live, since charts redraw on resize).
+    const list = document.querySelector(`.moments[data-n="${g.n}"]`);
+    const mk = li => document.querySelector(`.chart[data-n="${g.n}"] .mark[data-i="${li.dataset.i}"] circle`);
+    list.querySelectorAll("li").forEach(li => {
+      li.addEventListener("mouseenter", () => { const c = mk(li); c.setAttribute("r", 15); c.setAttribute("stroke", "#f3b33d"); });
+      li.addEventListener("mouseleave", () => { const c = mk(li); c.setAttribute("r", 11); c.setAttribute("stroke", "#131b26"); });
+    });
+  });
+  let rz, lastW = window.innerWidth;
+  window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; GAMES.forEach(draw); } }, 150); });
+})();
+</script>
+</body>
+</html>

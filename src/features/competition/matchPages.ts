@@ -47,6 +47,18 @@ const MATCH_PAGES: {
     kind: "preview",
     slug: "modus-gorn",
   },
+  {
+    matchId: "GF-1",
+    players: ["Gorn", "Modus"],
+    kind: "recap",
+    slug: "modus-gorn",
+  },
+  {
+    matchId: "GF-2",
+    players: ["Gorn", "Modus"],
+    kind: "preview",
+    slug: "modus-gorn-reset",
+  },
 ]
 
 // A preview only until the match is played, a recap only after.
