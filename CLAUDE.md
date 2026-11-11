@@ -8,6 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Client codegen**: `make gen-client` (`./gen_client.sh`) regenerates the TypeScript client in `src/api/` from the OpenAPI spec, built offline by `scripts/dump_openapi.py` — no server needed. Always use it (it pins `@hey-api/openapi-ts` and the TypeScript it needs; config in `openapi-ts.config.mjs`). Never hand-edit `src/api/` (auto-generated); CI's `make client-check` fails if it's stale. Usage patterns are in `src/CLAUDE.md`.
 
+## How to think about this project
+
+- **The house pattern is "make the mistake impossible, then test that it stays impossible"** — `@derived` (no unbounded/unversioned cache can be declared), `wire<T>()` e2e fixtures, `client-check`, the `mapparse` hash pin, `REQUIRE_POSTGRES_TESTS`. When you fix a bug, ask what check would have caught it and add that; a comment explaining the trap is the fallback, not the fix.
+- **Exactly one web process.** `invalidate()`'s epoch, the rate limiter and `routes/commentary.py`'s in-flight set are all process-local. Scheduled jobs are separate one-off dynos that exit, and reach the web dyno only through the database (the 60s `CORPUS`/`MAPS` probes). Don't design anything that assumes a second web dyno, and don't add infrastructure (Redis, a queue) to solve what a DB row solves.
+- **The normal-tier API key is public** — it is `VITE_API_KEY`, shipped in the JS bundle. Treat every route behind `verify_api_key` as reachable by anyone on the internet. Anything that bills, writes or is expensive must bound itself by values *the server enumerates* (a bracket's rounds, a known player list), never by a caller-supplied string.
+- **A login proves a Discord account, nothing more.** Anyone can log in; `require_current_user` is not "one of us". Privilege comes only from the three `*_DISCORD_IDS` env lists.
+- **Guidance that outlives its truth is worse than none.** Code comments here cite "CLAUDE.md" for rules that have since moved or gone. If you change or remove a rule, grep for what points at it. Known structural debt and its status is tracked in `docs/ARCHITECTURE_REVIEW.md` — update the status table there when you close an item, rather than writing a new document.
+
+## Sessions without the local stack (cloud, CI-like)
+
+- The skills named below live in `.claude/`, which is gitignored — they exist only on the owner's machine. If one isn't available, say so and read the code it covers (`alembic/` + `scripts/bootstrap_db.py` for migrations) instead of guessing.
+- There is no running stack and no database, so the `localhost:8000` rules below don't apply. Verify with `make check ts-check`, `npm test`, and `npm run build && DATABASE_URL=sqlite:// uv run pytest` — the build comes first because `tests/test_spa_fallback.py` needs `dist/`. PostgreSQL-backed tests skip without `TEST_POSTGRES_URL`; say so rather than reporting the suite green.
+
 ## Dev workflow
 
 - The dev servers are normally **already running** via `make up` (`LOCAL_DEV.md`): Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit), backed by a local Postgres container. Never launch your own instances to verify changes — connect to the running ones. `.env`'s `DATABASE_URL` is that local database; production is only in `PROD_DATABASE_URL`, read by `make db-snapshot`. Never copy it into `DATABASE_URL` or point a server at it.
@@ -27,7 +40,7 @@ Backend lives in `radarvan/` — the layout is self-describing, read the module 
 
 - **`api_types/` is the canonical wire schema** (a package, one module per domain — `players.py`, `matches.py`, `bracket.py`, etc.). TS types are generated from the resulting OpenAPI spec, so change the Pydantic model, not the generated client.
 - **`cncstats_model/zhreplay.py`'s `EnhancedReplayV2` is the only replay type to import** — `cncstats_types.py`/`cncstats_types_v2.py` are unused reference copies.
-- **Prefer the specific repo in `repositories/`** over the `ReplayManager` facade in `db_utils.py`; the facade exists for legacy callers.
+- **Prefer the specific repo in `repositories/`** over the `ReplayManager` facade in `db_utils.py`; the facade exists for legacy callers. The exception is a `@derived(on=CORPUS)` / `@derived(on=MAPS)` function reading the database: the probe binds a parameter named `replay_manager`, so those must take the facade.
 - **`main.py` is app composition only** (middleware order, router registration, lifespan, the global exception handler, static serving). Handlers go in `routes/`.
 - **ML inference is ONNX Runtime only — no torch in prod** (`ml_inference.py`, `winprob_inference.py`).
 - **Generals are always assigned at random — in every recorded game, no player ever chooses one.** How often a player has played a general is chance, not preference. Never call a general someone's "pick", "favourite" or "main", and never model, adjust for, or ask about general selection: no pick bias, no player–general familiarity, no skill/choice confounding. Do not report the randomness as "inferred from usage" either — it is a fact of how the group plays.

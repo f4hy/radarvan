@@ -1,5 +1,89 @@
 # Architecture review
 
+## Follow-up, 2026-11-10
+
+A second pass, checking the original findings below against the tree and looking
+for what they missed. Checks run on a clean checkout: ruff and `mypy radarvan/`
+clean, `tsc` and biome clean, vitest 70/70, pytest 1,321 passed once `dist/`
+exists (21 PostgreSQL tests skipped — no database here).
+
+### Status of the original findings
+
+| § | Finding | Status |
+|---|---|---|
+| 1 | `stat_name` is six things | **Open.** Still 57 `stat_name=` sites; Records still groups by substring |
+| 2 | Bracket outside the architecture | **Open, and growing.** `routes/bracket.py` 743 → 768 lines, `Bracket.tsx` 2,457 → 2,554; tournament content still TS constants |
+| 3 | Flat `src/` | **Done** |
+| 4 | `ReplayManager` contradiction | **Documented** in CLAUDE.md (the `@derived` exception). Importers 38 → 41; the Protocol fix is still the real one |
+| 5 | Map-key spellings | **Mostly done.** Duplicate removed; the TS twin survives but is pinned by `tests/test_map_key_parity.py` |
+| 6 | Lint/type coverage | **Half done.** ruff covers `tests/`. `mypy tests/` reports 724 errors; `ml*/`, `scripts/`, `tools/` are unlinted (43 findings, 34 of them `print`) |
+| 7 | Single-dyno invariant | **Written down** in CLAUDE.md. `corpus_revision` still not needed |
+| 8 | `mapparse` provenance | **Done** |
+| 9 | Duplicated ML packages | **Open**, still lowest priority |
+| 10 | `derived_registry_plan.md` | **Open.** Three references to a file that doesn't exist |
+
+### New findings
+
+Ordered by severity. The first three share one cause: the normal-tier API key is
+`VITE_API_KEY`, public in the JS bundle, so every `PROTECTED` route is reachable
+by anyone.
+
+**A. `GET /api/matchup_commentary/` can be billed without limit.** Its docstring
+says player names "are already bounded by `PlayerName`'s alias resolution." They
+aren't: `resolve_player_name` returns an unknown name unchanged, and
+`build_prompt` builds a full prompt for a player with no games. So any invented
+name pair is a fresh cache key, and each one starts a thread, a billed call (the
+whole-population ratings block goes in regardless; 16k output at high thinking)
+and a Discord notification. The route's own tests use `Alice`/`Bob`, which are
+not players. Fix: accept only names the server can enumerate (profiled players
+or the active bracket's entrants), order the pair so A–B and B–A share a row,
+and cap concurrent generations. Add the test that an unknown name is a 400.
+
+**B. The rate limiter keys on a header the client controls.**
+`middleware.client_key` takes the *first* `X-Forwarded-For` hop. Heroku appends
+the real address, so the first hop is whatever the caller sent: a new value per
+request gets a new bucket. Use the last hop. The same value is what auth
+notices report as the client.
+
+**C. Map upload has no size limits and is open to any Discord account.**
+`routes/map_upload.py` reads the whole body, and `maps_from_zip` calls
+`zf.read()` per entry with no cap on count or decompressed size — one small zip
+can exhaust the 512 MB dyno. The bytes then go to Pillow and the `mapparse`
+binary. `upload_replay` already has the pattern (`MAX_REPLAY_UPLOAD_BYTES`,
+read limit + 1); apply it here, check `ZipInfo.file_size` before reading, and
+decide whether upload should require a claimed player name.
+
+**D. `make test` and `make ci` fail on a fresh clone.** Eight tests in
+`tests/test_spa_fallback.py` need `dist/` (the static mount raises without it).
+CI passes only because `npm run build` happens to precede pytest; `make ci` has
+no build step at all. Either build in a session fixture / skip with a loud
+message when `dist/index.html` is missing, or make `test` depend on the build.
+
+**E. The guidance layer has drifted from the code.** About thirty comments cite
+"CLAUDE.md" for rules that are no longer in it (the `session.merge` gotcha, the
+rating section, player-name resolution, the generator path-merge gotcha).
+CLAUDE.md names three skills that live in gitignored `.claude/`, and `auth.md`,
+also gitignored. Anyone without the owner's machine — a cloud session, a
+collaborator — follows pointers to nothing. Track `.claude/skills/` (or fold the
+three skills into tracked docs), and point comments at the code or test that
+enforces the rule rather than at a document.
+
+**F. The comment rule and the comments disagree.** CLAUDE.md asks for short
+comments and no multi-line docstrings; the best-engineered modules (`derived/`,
+`cache.py`, `routes/commentary.py`) are roughly half prose, much of it history
+("this used to…"). The history is valuable and belongs in commit messages. The
+practical cost is that the one false sentence in finding A sat inside a
+30-line docstring where it read as verified.
+
+**G. Frontend tests stop at pure functions.** Six vitest files for ~26k lines;
+component behaviour is covered only by the mocked-API Playwright suite. That is
+a reasonable split, but `Bracket.tsx` — the largest, most stateful file, with
+admin writes — has the least. Splitting it (§2) is what makes it testable.
+
+---
+
+## Original review
+
 A read of the whole repo — ~50k lines of Python across 151 modules, ~25k lines of
 TypeScript across 80 files, 61 test files, 115 API routes, 2,291 matches over 412
 game nights in production.
