@@ -65,9 +65,11 @@ def temporal_split(
     else:
         reserved = [m for m in ordered if is_1v1(m)]
         splittable = [m for m in ordered if not is_1v1(m)]
-    n_dev = max(1, round(len(splittable) * dev_frac))
-    train = sorted([*splittable[:-n_dev], *reserved], key=lambda m: m.timestamp)
-    return train, splittable[-n_dev:]
+    # dev_frac 0 is the served fit: nothing held out, the vocab sees every game.
+    n_dev = max(1, round(len(splittable) * dev_frac)) if dev_frac > 0 else 0
+    cut = len(splittable) - n_dev
+    train = sorted([*splittable[:cut], *reserved], key=lambda m: m.timestamp)
+    return train, splittable[cut:]
 
 
 def random_split(
