@@ -4,6 +4,8 @@ Usage::
 
     uv run python -m ml.retrain_report --old ml/data/retrain-<date>/old \\
         --pregame-split ml/data/split-<date>-temporal \\
+        [--pregame-served-split ml/data/split-<date>-full] \\
+        [--eval-ensemble <dir> --old-eval-ensemble <dir>] \\
         --winprob-snapshot ml_win_prediction_over_time/data/snapshot-<date>.jsonl.gz \\
         [--prev-pregame-split ...] [--prev-winprob-snapshot ...] --out ml/data/retrain-<date>
 """
@@ -70,38 +72,56 @@ def _vocab_diff(old: Path, new: Path) -> dict[str, dict[str, list[str]]]:
     }
 
 
-def pregame(old_root: Path, split: Path, prev_split: Path | None) -> dict[str, Any]:
+def pregame(
+    old_root: Path,
+    split: Path,
+    prev_split: Path | None,
+    *,
+    served_split: Path | None = None,
+    prev_served_split: Path | None = None,
+    eval_ensemble: Path | None = None,
+    old_eval_ensemble: Path | None = None,
+) -> dict[str, Any]:
+    # The served ensemble trains on every game, dev included, so it can't be scored here.
+    # The holdout fits are the same pipeline trained without dev; they default to the
+    # served dirs for reports from before the two were separate.
+    served_split = served_split or split
+    eval_ensemble = eval_ensemble or REPO_ROOT / ENSEMBLE
+    old_eval_ensemble = old_eval_ensemble or old_root / ENSEMBLE
     dev_path = split / "dev.jsonl.gz"
     dev, train = load_snapshot(dev_path), load_snapshot(split / "train.jsonl.gz")
-    vocab = Vocab.load(REPO_ROOT / ENSEMBLE / "vocab.json")
+    vocab = Vocab.load(eval_ensemble / "vocab.json")
     labels = [e.label for m in dev if (e := encode_match(m, vocab)) is not None]
-    old_dir = old_root / ENSEMBLE
     scores = {
-        "old_ensemble": score(
-            "old_ensemble", _ensemble_dev_probs(old_dir, dev_path), labels
+        "old_holdout_fit": score(
+            "old_holdout_fit", _ensemble_dev_probs(old_eval_ensemble, dev_path), labels
         ),
-        "new_ensemble": score(
-            "new_ensemble", _ensemble_dev_probs(REPO_ROOT / ENSEMBLE, dev_path), labels
+        "new_holdout_fit": score(
+            "new_holdout_fit", _ensemble_dev_probs(eval_ensemble, dev_path), labels
         ),
         "bt_logistic": score("bt_logistic", *bt_logistic_probs(train, dev)),
     }
     split_meta = json.loads((split / "split.json").read_text())
+    served_meta = json.loads((served_split / "split.json").read_text())
     report: dict[str, Any] = {
         "n_train": split_meta["n_train"],
         "n_dev": split_meta["n_dev"],
+        "n_served": served_meta["n_train"],
         "dev_scores": {k: asdict(v) for k, v in scores.items()},
         "vocab_changes": _vocab_diff(
-            old_dir / "vocab.json", REPO_ROOT / ENSEMBLE / "vocab.json"
+            old_root / ENSEMBLE / "vocab.json", REPO_ROOT / ENSEMBLE / "vocab.json"
         ),
-        "n_significant_cells": _n_significant(split / "bootstrap" / "results.json"),
+        "n_significant_cells": _n_significant(
+            served_split / "bootstrap" / "results.json"
+        ),
     }
     if prev_split is not None:
         prev_train = {m.id for m in load_snapshot(prev_split / "train.jsonl.gz")}
-        # Non-zero means the old ensemble saw some dev games, so its dev score flatters it.
+        # Non-zero means the old holdout fit saw some dev games, so its dev score flatters it.
         report["old_ensemble_trained_on_dev"] = len(prev_train & {m.id for m in dev})
         report["n_train_prev"] = len(prev_train)
         report["n_significant_cells_prev"] = _n_significant(
-            prev_split / "bootstrap" / "results.json"
+            (prev_served_split or prev_split) / "bootstrap" / "results.json"
         )
     return report
 
@@ -246,7 +266,8 @@ def render(r: dict[str, Any]) -> str:
     p = r["pregame"]
     lines += [
         "## Pre-game ensemble",
-        f"train {p.get('n_train_prev', '?')} -> {p['n_train']}, dev {p['n_dev']}",
+        f"served ensemble trained on {p.get('n_served', '?')} games (every game, so it has no held-out score)",
+        f"holdout fits: train {p.get('n_train_prev', '?')} -> {p['n_train']}, dev {p['n_dev']}",
         "",
         "| model | log-loss | AUC | acc | brier |",
         "|---|---|---|---|---|",
@@ -255,7 +276,7 @@ def render(r: dict[str, Any]) -> str:
             for k, s in p["dev_scores"].items()
         ),
         "",
-        f"old ensemble trained on dev games: {p.get('old_ensemble_trained_on_dev', '?')}",
+        f"old holdout fit trained on dev games: {p.get('old_ensemble_trained_on_dev', '?')}",
         f"significant matchup cells: {p.get('n_significant_cells_prev', '?')} -> {p['n_significant_cells']}",
         f"vocab changes: {json.dumps(p['vocab_changes']) if p['vocab_changes'] else 'none'}",
         "",
@@ -320,6 +341,14 @@ def main() -> None:
     )
     parser.add_argument("--pregame-split", type=Path)
     parser.add_argument("--prev-pregame-split", type=Path)
+    parser.add_argument(
+        "--pregame-served-split", type=Path, help="the dev-frac 0 split served from"
+    )
+    parser.add_argument("--prev-pregame-served-split", type=Path)
+    parser.add_argument(
+        "--eval-ensemble", type=Path, help="new ensemble fit without the dev games"
+    )
+    parser.add_argument("--old-eval-ensemble", type=Path)
     parser.add_argument("--winprob-snapshot", type=Path)
     parser.add_argument("--prev-winprob-snapshot", type=Path)
     parser.add_argument("--out", type=Path)
@@ -333,7 +362,15 @@ def main() -> None:
         )
 
     report = {
-        "pregame": pregame(args.old, args.pregame_split, args.prev_pregame_split),
+        "pregame": pregame(
+            args.old,
+            args.pregame_split,
+            args.prev_pregame_split,
+            served_split=args.pregame_served_split,
+            prev_served_split=args.prev_pregame_served_split,
+            eval_ensemble=args.eval_ensemble,
+            old_eval_ensemble=args.old_eval_ensemble,
+        ),
         "scenario": scenario(args.old / SCENARIO, REPO_ROOT / SCENARIO),
         "winprob": winprob(args.old, args.winprob_snapshot, args.prev_winprob_snapshot),
     }

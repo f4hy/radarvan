@@ -29,11 +29,12 @@ STAMP=$(date -u +%Y%m%d)
 OUT="ml/data/retrain-$STAMP"
 PG_SNAP="ml/data/snapshot-$STAMP.jsonl.gz"
 PG_SPLIT="ml/data/split-$STAMP-temporal"
+PG_FULL="ml/data/split-$STAMP-full"
 WP_DIR="ml_win_prediction_over_time/data"
 WP_SNAP="$WP_DIR/snapshot-$STAMP.jsonl.gz"
 WP_SPLIT="$WP_DIR/split-$STAMP-full"
 
-for d in "$OUT" "$PG_SPLIT" "$WP_SPLIT"; do
+for d in "$OUT" "$PG_SPLIT" "$PG_FULL" "$WP_SPLIT"; do
   if [[ -e "$d" ]]; then
     echo "$d already exists (retrained today already?) - remove it to rerun" >&2
     exit 1
@@ -42,7 +43,10 @@ done
 
 latest_before_today() { ls -d "$@" 2>/dev/null | grep -v "$STAMP" | sort | tail -1 || true; }
 PREV_PG_SPLIT=$(latest_before_today ml/data/split-[0-9]*-temporal)
+PREV_PG_FULL=$(latest_before_today ml/data/split-[0-9]*-full)
 PREV_WP_SNAP=$(latest_before_today "$WP_DIR"/snapshot-*.jsonl.gz)
+# The last holdout-fit ensemble; before those were kept, the served one was a holdout fit.
+PREV_EVAL=$(latest_before_today ml/data/retrain-*/eval_ensemble)
 
 LOGS="$OUT/logs"
 mkdir -p "$OUT/old" "$LOGS"
@@ -64,10 +68,18 @@ echo "==> [2/5] composition model (CPU, in the background)"
 uv run python -m ml.scenario_train "$PG_SNAP" >"$LOGS/scenario.log" 2>&1 &
 sc_pid=$!
 
-echo "==> [3/5] pre-game ensemble (K=$K)"
+# Two fits. The holdout fit leaves the newest 15% out and exists only to be scored
+# in the report. The served fit trains on everything: withholding those ~200 games
+# costs ~0.017 log-loss on the games that follow.
+echo "==> [3/5] pre-game ensemble (K=$K): holdout fit for the report, then the served fit"
 uv run python -m ml.split "$PG_SNAP" --mode temporal >"$LOGS/pregame_split.log" 2>&1
-"$PY_ML" -m ml.bootstrap_matrix "$PG_SPLIT" --k "$K" >"$LOGS/bootstrap.log" 2>&1
-"$PY_ML" -m ml.bootstrap_matrix "$PG_SPLIT" --k 0 --promote >>"$LOGS/bootstrap.log" 2>&1
+"$PY_ML" -m ml.bootstrap_matrix "$PG_SPLIT" --k "$K" >"$LOGS/bootstrap_holdout.log" 2>&1
+"$PY_ML" -m ml.bootstrap_matrix "$PG_SPLIT" --k 0 --promote \
+  --ensemble-dir "$OUT/eval_ensemble" >>"$LOGS/bootstrap_holdout.log" 2>&1
+uv run python -m ml.split "$PG_SNAP" --mode temporal --dev-frac 0 --out-dir "$PG_FULL" \
+  >>"$LOGS/pregame_split.log" 2>&1
+"$PY_ML" -m ml.bootstrap_matrix "$PG_FULL" --k "$K" >"$LOGS/bootstrap.log" 2>&1
+"$PY_ML" -m ml.bootstrap_matrix "$PG_FULL" --k 0 --promote >>"$LOGS/bootstrap.log" 2>&1
 
 echo "==> [4/5] win-prob bundle (${#WP_SEEDS[@]} GRU seeds + GBDT)"
 "$PY_ML" -m ml_win_prediction_over_time.split "$WP_SNAP" --dev-frac 0 --drop kills alive \
@@ -83,6 +95,9 @@ wait "$sc_pid" || { echo "composition model failed, see $LOGS/scenario.log" >&2;
 echo "==> [5/5] report"
 uv run python -m ml.retrain_report --old "$OUT/old" --out "$OUT" \
   --pregame-split "$PG_SPLIT" ${PREV_PG_SPLIT:+--prev-pregame-split "$PREV_PG_SPLIT"} \
+  --pregame-served-split "$PG_FULL" \
+  ${PREV_PG_FULL:+--prev-pregame-served-split "$PREV_PG_FULL"} \
+  --eval-ensemble "$OUT/eval_ensemble" ${PREV_EVAL:+--old-eval-ensemble "$PREV_EVAL"} \
   --winprob-snapshot "$WP_SNAP" ${PREV_WP_SNAP:+--prev-winprob-snapshot "$PREV_WP_SNAP"} \
   2>"$LOGS/report.log"
 

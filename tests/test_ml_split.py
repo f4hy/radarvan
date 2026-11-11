@@ -93,3 +93,9 @@ def test_no_1v1s_present_is_unaffected() -> None:
     assert temporal_split(team_only, dev_frac=0.2) == temporal_split(
         team_only, dev_frac=0.2, holdout_1v1=True
     )
+
+
+def test_dev_frac_zero_holds_nothing_out() -> None:
+    train, dev = temporal_split(_corpus(), dev_frac=0.0)
+    assert len(train) == 100
+    assert dev == []

@@ -89,13 +89,19 @@ uv run python -m ml.export <run_dir>  # a specific run
 #    (~1000 train matches is too little to trust any single model's point
 #    estimate - see ml/bootstrap_matrix.py's docstring and the faction-matrix
 #    write-up it grew out of). Prints which effects survive vs. look like noise.
-uv run python -m ml.bootstrap_matrix ml/data/split-<date>-temporal/ --k 30
-#   -> ml/data/split-<date>-temporal/bootstrap/{boot-NNN/, results.json}
+#    Serve from a --dev-frac 0 split, i.e. every game: holding the newest ~200
+#    out of the served fit costs ~0.017 log-loss on the games that follow. The
+#    temporal split's dev is for scoring a separate holdout fit, as `make
+#    retrain` does.
+uv run python -m ml.split ml/data/snapshot-<date>.jsonl.gz --dev-frac 0 \
+    --out-dir ml/data/split-<date>-full
+uv run python -m ml.bootstrap_matrix ml/data/split-<date>-full/ --k 30
+#   -> ml/data/split-<date>-full/bootstrap/{boot-NNN/, results.json}
 
 # 7. Once you're happy with results.json, promote it to what the app serves
 #    (radarvan/ml_inference.py reads ML_ENSEMBLE_DIR, default ml_ensemble/ at
 #    the repo root) - re-run with --k 0 to promote without retraining.
-uv run python -m ml.bootstrap_matrix ml/data/split-<date>-temporal/ --k 0 --promote
+uv run python -m ml.bootstrap_matrix ml/data/split-<date>-full/ --k 0 --promote
 #   -> ml_ensemble/{model-000.onnx..model-NNN.onnx, vocab.json}
 # Commit ml_ensemble/ like any other deployed artifact (see repo root README.md).
 ```
