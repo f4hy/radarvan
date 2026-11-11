@@ -2463,6 +2463,13 @@ export default function DisplayBracket() {
                 <Box sx={{ position: "relative" }}>
                   <BracketDataContext.Provider value={bracketDataValue}>
                     <BracketTreeSection
+                      title="👑 Grand Final (Bo9)"
+                      nodes={grandFinalNodes}
+                      isAdmin={bracketAdminView}
+                      onEdit={handleEdit}
+                      registerBox={registerBox}
+                    />
+                    <BracketTreeSection
                       title="Winners Bracket"
                       nodes={[winnersTree]}
                       columnTitles={[
@@ -2484,13 +2491,6 @@ export default function DisplayBracket() {
                         registerBox={registerBox}
                       />
                     </Box>
-                    <BracketTreeSection
-                      title="👑 Grand Final (Bo9)"
-                      nodes={grandFinalNodes}
-                      isAdmin={bracketAdminView}
-                      onEdit={handleEdit}
-                      registerBox={registerBox}
-                    />
                   </BracketDataContext.Provider>
                 </Box>
               </Box>
