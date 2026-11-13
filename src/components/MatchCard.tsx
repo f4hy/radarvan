@@ -34,7 +34,8 @@ import GameMap, { type PlayerPosition } from "./Map"
 import { MatchRowLoading } from "./Loading"
 import { PlayerDot } from "./PlayerChip"
 import { useColorMode } from "../lib/ColorModeContext"
-import { matchHref } from "../lib/links"
+import { mapStatsHref, matchHref } from "../lib/links"
+import { mapDisplayName } from "../lib/mapName"
 import { toGeneralName } from "../lib/general_utils"
 import {
   getColorHex,
@@ -255,7 +256,7 @@ function MatchHeader(props: {
   action?: React.ReactNode
 }) {
   const { match } = props
-  const mapName = match.map.split("/").slice(-1)[0]
+  const mapName = mapDisplayName(match.map)
   const date = match.timestamp.toLocaleString("en-US", {
     timeZoneName: "short",
   })
@@ -279,14 +280,16 @@ function MatchHeader(props: {
         }}
       >
         <Chip label={props.formatLabel} size="small" variant="outlined" />
-        <Typography
+        <Link
+          component={RouterLink}
+          to={mapStatsHref(mapName)}
           variant="body2"
-          sx={{
-            fontWeight: 600,
-          }}
+          color="inherit"
+          underline="hover"
+          sx={{ fontWeight: 600 }}
         >
           {mapName}
-        </Typography>
+        </Link>
         {match.has_ai && (
           <Tooltip title="AI player present — ratings for this game are only minorly impacted">
             <SmartToyIcon fontSize="small" sx={{ color: "text.secondary" }} />

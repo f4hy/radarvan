@@ -288,6 +288,8 @@ const MapCard = React.memo(function MapCard(props: {
   return (
     <Accordion
       id={mapId(map.mapName)}
+      // Clears the fixed app bar when a `?map=` link scrolls here.
+      sx={{ scrollMarginTop: 80 }}
       expanded={props.expanded}
       onChange={(_, isExpanded) => props.onToggle(map.mapName, isExpanded)}
       slotProps={{
@@ -385,8 +387,12 @@ export default function DisplayMapStats() {
 
   const mapStats = mapStatsQuery.data
 
+  // Skipped when arriving on a `?map=` link: three accordions animating open
+  // above the target grow the page after the scroll has picked its position,
+  // leaving the map you came for off-screen.
+  const arrivedFocused = React.useRef(focusedMap !== null)
   React.useEffect(() => {
-    if (mapStats) {
+    if (mapStats && !arrivedFocused.current) {
       setExpandedMaps(new Set(mapStats.maps.slice(0, 3).map((m) => m.mapName)))
     }
   }, [mapStats])
