@@ -5,7 +5,6 @@ import LoginIcon from "@mui/icons-material/Login"
 import MenuIcon from "@mui/icons-material/Menu"
 import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness"
 import AppBar from "@mui/material/AppBar"
-import { keyframes } from "@mui/material/styles"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import CssBaseline from "@mui/material/CssBaseline"
@@ -17,20 +16,21 @@ import ListItemButton from "@mui/material/ListItemButton"
 import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
 import ListSubheader from "@mui/material/ListSubheader"
+import { keyframes } from "@mui/material/styles"
 import Toolbar from "@mui/material/Toolbar"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
-import { useAuth } from "./lib/AuthContext"
-import type { ColorModePreference } from "./lib/ColorModeContext"
-import { useColorMode } from "./lib/ColorModeContext"
 import ErrorBoundary from "./components/ErrorBoundary"
-import { startDiscordLogin } from "./lib/auth"
+import Loading from "./components/Loading"
 import radarvanLogo from "./img/radarvan_logo.webp"
 import radarvanLogoDark from "./img/radarvan_logo_dark.webp"
-import Loading from "./components/Loading"
-import { navGroups, routeBySlug } from "./routes"
+import { useAuth } from "./lib/AuthContext"
+import { startDiscordLogin } from "./lib/auth"
+import type { ColorModePreference } from "./lib/ColorModeContext"
+import { useColorMode } from "./lib/ColorModeContext"
+import { navGroups, type RouteGroup, routeBySlug } from "./routes"
 
 // Cycles system -> light -> dark -> system on click, and shows the current
 // preference (not just the resolved mode) so "system" stays visible as a
@@ -144,36 +144,7 @@ export default function Menu() {
         </Box>
       </Toolbar>
       <Divider />
-      <List sx={{ px: 1, pb: 2 }}>
-        {groups.map((group) => (
-          <React.Fragment key={group.heading}>
-            <ListSubheader
-              disableSticky
-              sx={{
-                bgcolor: "transparent",
-                lineHeight: 1.9,
-                mt: 1,
-                px: 1.5,
-                fontSize: "0.7rem",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "text.secondary",
-              }}
-            >
-              {group.heading}
-            </ListSubheader>
-            {group.routes.map((route) => (
-              <MenuItem
-                key={route.slug}
-                slug={route.slug}
-                text={route.title}
-                icon={route.icon}
-                onNavigate={() => setMobileOpen(false)}
-              />
-            ))}
-          </React.Fragment>
-        ))}
-      </List>
+      <NavList groups={groups} onNavigate={() => setMobileOpen(false)} />
     </div>
   )
 
@@ -271,6 +242,7 @@ export default function Menu() {
           }}
           sx={{
             display: { xs: "block", sm: "none" },
+            "& .MuiBackdrop-root": { backdropFilter: "blur(3px)" },
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
@@ -332,6 +304,119 @@ export default function Menu() {
   )
 }
 
+const NAV_EASE = "cubic-bezier(0.2, 0, 0, 1)"
+
+interface PillRect {
+  top: number
+  height: number
+  animate: boolean
+}
+
+function NavList(props: { groups: RouteGroup[]; onNavigate: () => void }) {
+  const { pathname } = useLocation()
+  const listRef = React.useRef<HTMLUListElement>(null)
+  const [pill, setPill] = React.useState<PillRect | null>(null)
+
+  const measure = React.useCallback(() => {
+    const list = listRef.current
+    // The drawer for the other breakpoint is display:none and measures as 0.
+    if (!list || list.getClientRects().length === 0) return
+    const active = list.querySelector<HTMLElement>("a.active")
+    if (!active) {
+      setPill(null)
+      return
+    }
+    const { offsetTop: top, offsetHeight: height } = active
+    setPill((prev) =>
+      prev && prev.top === top && prev.height === height
+        ? prev
+        : { top, height, animate: prev !== null },
+    )
+  }, [])
+
+  React.useLayoutEffect(() => {
+    measure()
+    listRef.current
+      ?.querySelector("a.active")
+      ?.scrollIntoView({ block: "nearest" })
+  }, [pathname, measure])
+
+  // Groups appearing (admin login) or the drawer becoming visible move the
+  // active row without a navigation.
+  React.useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const observer = new ResizeObserver(measure)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [measure])
+
+  return (
+    <List ref={listRef} sx={{ px: 1, pb: 2, position: "relative" }}>
+      <Box
+        aria-hidden
+        sx={(t) => ({
+          position: "absolute",
+          top: 0,
+          left: t.spacing(1),
+          right: t.spacing(1),
+          height: pill?.height ?? 0,
+          transform: `translateY(${pill?.top ?? 0}px)`,
+          opacity: pill ? 1 : 0,
+          borderRadius: 1.5,
+          bgcolor: "rgba(47, 109, 240, 0.12)",
+          pointerEvents: "none",
+          transition: pill?.animate
+            ? `transform 280ms ${NAV_EASE}, height 280ms ${NAV_EASE}, opacity 150ms`
+            : "none",
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: 9,
+            bottom: 9,
+            width: 3,
+            borderRadius: 3,
+            bgcolor: "primary.main",
+          },
+          ...t.applyStyles("dark", { bgcolor: "rgba(47, 109, 240, 0.22)" }),
+        })}
+      />
+      {props.groups.map((group) => (
+        <React.Fragment key={group.heading}>
+          <ListSubheader
+            disableSticky
+            sx={{
+              bgcolor: "transparent",
+              lineHeight: 1.9,
+              mt: 1.5,
+              px: 1.5,
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "text.secondary",
+              opacity: 0.8,
+            }}
+          >
+            {group.heading}
+          </ListSubheader>
+          {group.routes.map((route) => (
+            <MenuItem
+              key={route.slug}
+              slug={route.slug}
+              text={route.title}
+              icon={route.icon}
+              onNavigate={props.onNavigate}
+            />
+          ))}
+        </React.Fragment>
+      ))}
+    </List>
+  )
+}
+
 function MenuItem(props: {
   slug: string
   text: string
@@ -348,17 +433,33 @@ function MenuItem(props: {
         borderRadius: 1.5,
         mb: 0.25,
         px: 1.5,
+        transition: `background-color 160ms ${NAV_EASE}, transform 120ms ${NAV_EASE}`,
+        "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
+          transition: `color 160ms ${NAV_EASE}, transform 200ms ${NAV_EASE}`,
+        },
+        "& .MuiSvgIcon-root": { fontSize: 20 },
+        "&:hover .MuiListItemIcon-root": {
+          color: "text.primary",
+          transform: "translateX(2px)",
+        },
+        "&:active": { transform: "scale(0.98)" },
         // NavLink sets aria-current="page" on the active link, so the selected
         // styling reads off the same signal assistive tech does rather than a
-        // separate `selected` prop that could disagree with the URL.
+        // separate `selected` prop that could disagree with the URL. The
+        // background is NavList's sliding pill, not the row's own.
         "&.active": {
-          bgcolor: "rgba(47, 109, 240, 0.12)",
-          "&:hover": { bgcolor: "rgba(47, 109, 240, 0.18)" },
-          "& .MuiListItemIcon-root": { color: "primary.main" },
+          "&:hover": { bgcolor: "transparent" },
+          "& .MuiListItemIcon-root": {
+            color: "primary.main",
+            transform: "none",
+          },
           "& .MuiListItemText-primary": {
-            fontWeight: 700,
+            fontWeight: 650,
             color: "primary.main",
           },
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          "&, & *": { transition: "none" },
         },
       }}
     >
@@ -375,7 +476,9 @@ function MenuItem(props: {
       <ListItemText
         primary={props.text}
         slotProps={{
-          primary: { sx: { fontWeight: 500, color: "text.primary" } },
+          primary: {
+            sx: { fontSize: "0.9rem", fontWeight: 500, color: "text.primary" },
+          },
         }}
       />
     </ListItemButton>
