@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { BracketMatchOutput } from "./bracketApi"
-import { matchPageLink } from "./matchPages"
+import { championPageLinks, matchPageLink } from "./matchPages"
 
 const match = (
   match_id: string,
@@ -44,6 +44,25 @@ describe("matchPageLink", () => {
       kind: "recap",
       href: "/recap/modus-gorn/index.html",
     })
+  })
+
+  it("links the final recap and the story from a finished bracket", () => {
+    const gf = (id: string, status: BracketMatchOutput["status"]) =>
+      ({
+        ...match(id, "Gorn", "Modus", status),
+        bracket: "GF",
+      }) as BracketMatchOutput
+    expect(
+      championPageLinks([gf("GF-1", "completed"), gf("GF-2", "completed")]),
+    ).toEqual({
+      finalRecap: "/recap/modus-gorn-reset/index.html",
+      story: "/recap/2026-1v1-bracket/index.html",
+    })
+    expect(championPageLinks([gf("GF-1", "completed")])).toEqual({
+      finalRecap: "/recap/modus-gorn/index.html",
+      story: null,
+    })
+    expect(championPageLinks([gf("GF-1", "ready")])).toBeNull()
   })
 
   it("drops the preview once played when there's no recap", () => {

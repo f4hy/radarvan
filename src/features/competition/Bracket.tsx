@@ -115,8 +115,8 @@ import {
   useCountdownMs,
 } from "./bracketFormat"
 import FactionsPanel from "./Factions"
+import { championPageLinks, matchPageLink } from "./matchPages"
 import { PlayerRecordChips } from "./PlayerRecords"
-import { matchPageLink } from "./matchPages"
 
 const DEFAULT_SEEDS = [
   "Modus",
@@ -1847,6 +1847,42 @@ function MatchPageButton({ match }: { match: BracketMatchOutput }) {
   )
 }
 
+function ChampionLinks({ matches }: { matches: BracketMatchOutput[] }) {
+  const links = championPageLinks(matches)
+  if (!links) return null
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      useFlexGap
+      sx={{ mt: 1.5, flexWrap: "wrap" }}
+    >
+      <Button
+        variant="contained"
+        startIcon={<InsightsIcon />}
+        component="a"
+        href={links.finalRecap}
+        target="_blank"
+        rel="noopener"
+      >
+        Grand Final recap
+      </Button>
+      {links.story && (
+        <Button
+          variant="outlined"
+          startIcon={<EmojiEventsIcon />}
+          component="a"
+          href={links.story}
+          target="_blank"
+          rel="noopener"
+        >
+          The tournament story
+        </Button>
+      )}
+    </Stack>
+  )
+}
+
 // setTimeout overflows past 2^31-1 ms (~24.8 days) and fires at once, so a
 // far-off reveal is waited out in hour-long steps instead.
 const MAX_REVEAL_WAIT_MS = 60 * 60_000
@@ -2419,6 +2455,7 @@ export default function DisplayBracket() {
                     Runner-up: {bracketData.runner_up}
                   </Typography>
                 )}
+                <ChampionLinks matches={bracketData.matches} />
               </Paper>
             )}
 

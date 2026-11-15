@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="The story of the 2026 1v1 Bracket: ten players, 19 series, 85 recorded games, and a title decided in the last game of a bracket reset.">
+<meta property="og:title" content="The 2026 1v1 Bracket · The Whole Story">
+<meta property="og:description" content="Fourteen weeks, ten players, and a final that needed 17 games. How Gorn won the bracket, and how close Modus came.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c1118">
+<title>2026 1v1 Bracket Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: tournament retrospective. Champion header, numbers, six chapters of series cards, the Modus–Gorn rivalry game by game, standings, records. */
+:root {
+  --ground: #0c1118;
+  --panel: #131b26;
+  --panel-2: #1a2432;
+  --line: #263243;
+  --ink: #e9eef5;
+  --ink-dim: #93a1b4;
+  --modus: #30a070;
+  --modus-ink: #5fd39a;
+  --gorn: #2b9de8;
+  --gorn-ink: #7cc4f5;
+  --signal: #f3b33d;
+  --f-display: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { max-width: 70ch; }
+a { color: var(--signal); }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.label { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.num { font-variant-numeric: tabular-nums; }
+.m { color: var(--modus-ink); } .t { color: var(--gorn-ink); }
+
+.hero { border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #151c22, var(--ground)); }
+.hero .wrap { padding-block: 32px 36px; }
+.hero-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.chip { font-family: var(--f-label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; padding: 4px 10px; border: 1px solid var(--signal); color: var(--signal); }
+.hero h1 { font-family: var(--f-display); font-weight: 900; text-transform: uppercase; font-size: clamp(44px, 9vw, 104px); line-height: .9; margin-top: 22px; }
+.hero h1 span { display: block; font-size: .36em; letter-spacing: .06em; color: var(--signal); margin-bottom: 10px; }
+.hero .dek { margin: 20px 0 0; font-size: 19px; max-width: 64ch; }
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 26px; }
+.pod { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--ink-dim); padding: 12px 14px; min-width: 0; }
+.pod.p1 { border-top-color: var(--signal); }
+.pod .nm { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(22px, 4vw, 34px); line-height: 1; overflow-wrap: anywhere; }
+.pod .prec { font-family: var(--f-label); font-size: 15px; color: var(--ink-dim); margin-top: 4px; }
+
+section.seg { padding-block: 44px 8px; }
+.seg-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.seg-head h2 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(28px, 4.4vw, 42px); line-height: 1; letter-spacing: .02em; }
+.seg-head .label { color: var(--signal); }
+.lede { color: var(--ink-dim); margin: 0 0 16px; }
+
+.nums { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.nbox { background: var(--panel); border: 1px solid var(--line); padding: 14px 12px; min-width: 0; }
+.nbox .k { font-family: var(--f-display); font-weight: 900; font-size: 40px; line-height: 1; color: var(--signal); }
+.nbox .d { font-family: var(--f-label); font-size: 15px; color: var(--ink-dim); margin-top: 4px; line-height: 1.25; }
+
+.chapter { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 0 18px; padding: 26px 0; border-top: 1px solid var(--line); }
+.chapter:first-of-type { border-top: 0; padding-top: 4px; }
+.chapter .cn { font-family: var(--f-display); font-weight: 900; font-size: 64px; line-height: .8; color: var(--line); }
+.chapter h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: clamp(24px, 3.6vw, 34px); line-height: 1; }
+.chapter .when { font-family: var(--f-label); color: var(--ink-dim); font-size: 15px; margin: 4px 0 10px; }
+.chapter p { margin: 0 0 12px; }
+.series { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+.sc { background: var(--panel); border: 1px solid var(--line); padding: 12px 14px; min-width: 0; }
+.sc .rd { font-family: var(--f-label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); display: flex; justify-content: space-between; gap: 8px; }
+.sc .line { font-family: var(--f-label); font-weight: 700; font-size: 21px; margin: 2px 0 4px; display: flex; justify-content: space-between; gap: 10px; }
+.sc .line .lo { color: var(--ink-dim); font-weight: 500; }
+.sc .note { font-size: 14px; color: var(--ink-dim); line-height: 1.4; }
+.sc .more { font-size: 14px; margin-top: 6px; display: flex; gap: 4px 14px; flex-wrap: wrap; }
+
+.rivalry { display: flex; flex-direction: column; gap: 14px; }
+.rs { background: var(--panel); border: 1px solid var(--line); padding: 14px; }
+.rs-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-family: var(--f-label); font-size: 16px; margin-bottom: 10px; }
+.rs-head b { font-weight: 700; }
+.tiles { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; }
+.tile { border-top: 4px solid; background: var(--panel-2); padding: 6px 7px; min-width: 0; font-family: var(--f-label); line-height: 1.2; }
+.tile.wm { border-color: var(--modus); } .tile.wt { border-color: var(--gorn); }
+.tile .g { font-size: 12px; color: var(--ink-dim); letter-spacing: .06em; }
+.tile .w { font-weight: 700; font-size: 16px; text-transform: uppercase; }
+.tile .x { font-size: 12.5px; color: var(--ink-dim); overflow-wrap: anywhere; }
+.tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.tally .nbox .k { font-size: 34px; }
+.tally .nbox .k .dash { color: var(--ink-dim); padding: 0 .08em; }
+
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--panel); padding: 18px 20px; border-top: 4px solid; min-width: 0; }
+.card.cm { border-color: var(--modus); } .card.ct { border-color: var(--gorn); }
+.card h3 { font-family: var(--f-display); font-weight: 800; text-transform: uppercase; font-size: 34px; line-height: 1; }
+.card .sub { font-family: var(--f-label); color: var(--ink-dim); font-size: 15px; margin: 4px 0 10px; }
+.card ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.card li::marker { color: var(--ink-dim); }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+td.pl { font-family: var(--f-label); font-weight: 700; font-size: 18px; }
+td.c, th.c { text-align: right; font-variant-numeric: tabular-nums; }
+td .bar { display: flex; height: 8px; min-width: 120px; background: var(--panel-2); }
+td .bar i { display: block; background: var(--ink); }
+td .bar i + i { background: #4a586b; }
+tr.r1 td.pl { color: var(--gorn-ink); } tr.r2 td.pl { color: var(--modus-ink); }
+
+.recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.rec { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; min-width: 0; }
+.rec .label { display: block; }
+.rec .v { font-family: var(--f-display); font-weight: 800; font-size: 30px; line-height: 1.05; margin: 4px 0; }
+.rec p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+
+.desk { background: var(--panel); border-left: 4px solid var(--ink-dim); padding: 18px 22px; font-size: 17px; max-width: 74ch; }
+.desk p { margin: 0 0 10px; } .desk p:last-child { margin: 0; }
+.archive { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-bottom: 48px; }
+.archive a { display: block; background: var(--panel); border: 1px solid var(--line); padding: 12px 14px; text-decoration: none; color: var(--ink); font-family: var(--f-label); font-size: 17px; font-weight: 600; }
+.archive a:hover { background: var(--panel-2); }
+.archive a small { display: block; font-weight: 500; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--signal); }
+footer { color: var(--ink-dim); font-size: 13px; border-top: 1px solid var(--line); padding-block: 16px 28px; }
+footer p { max-width: none; margin: 0 0 6px; }
+
+@media (max-width: 860px) {
+  .nums { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .series, .duo { grid-template-columns: 1fr; }
+  .recs, .archive, .tally { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .chapter { grid-template-columns: 1fr; }
+  .chapter .cn { font-size: 44px; margin-bottom: 6px; }
+  .nums, .recs, .archive { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .podium { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <span class="label">2026 1v1 Bracket · August 7 to November 14</span>
+      <span class="chip">Tournament complete</span>
+    </div>
+    <h1><span>The whole story</span>Gorn wins the bracket</h1>
+    <p class="dek">Ten players, double elimination, fourteen weeks. It ended with the same two players meeting for the third time, a bracket reset, and a ninth game that lasted 4:46. Gorn and Modus played 24 games against each other along the way and won 12 each.</p>
+    <div class="podium">
+      <div class="pod p1"><span class="label">Champion · #4 seed</span><div class="nm t">Gorn</div><div class="prec num">4–1 in series · 19–16 in games</div></div>
+      <div class="pod"><span class="label">Runner-up · #1 seed</span><div class="nm m">Modus</div><div class="prec num">5–2 in series · 26–15 in games</div></div>
+      <div class="pod"><span class="label">Third</span><div class="nm">WildCard</div><div class="prec num">2–2 in series · 11–9 in games</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="seg" id="numbers">
+    <div class="seg-head"><span class="label">The bracket</span><h2>By the numbers</h2></div>
+    <div class="nums">
+      <div class="nbox"><div class="k num">10</div><div class="d">players</div></div>
+      <div class="nbox"><div class="k num">19</div><div class="d">series</div></div>
+      <div class="nbox"><div class="k num">85</div><div class="d">games on record</div></div>
+      <div class="nbox"><div class="k num">13½</div><div class="d">hours of game time</div></div>
+      <div class="nbox"><div class="k num">11</div><div class="d">maps</div></div>
+      <div class="nbox"><div class="k num">4</div><div class="d">series that went to a decider</div></div>
+    </div>
+  </section>
+
+  <section class="seg" id="story">
+    <div class="seg-head"><span class="label">Six chapters</span><h2>How it went</h2></div>
+    <div id="chapters"></div>
+  </section>
+
+  <section class="seg" id="rivalry">
+    <div class="seg-head"><span class="label">Modus vs Gorn</span><h2>Twenty-four games, twelve each</h2></div>
+    <p class="lede">They met in the Winners Semifinal, the Grand Final and the Reset. Each tile is one game, coloured by who won it, with the winner's general, the map and the length.</p>
+    <div class="rivalry" id="rivalry-body"></div>
+    <div class="tally">
+      <div class="nbox"><div class="k num"><span class="m">12</span><span class="dash">–</span><span class="t">12</span></div><div class="d">games, over 3 hours 35 minutes</div></div>
+      <div class="nbox"><div class="k num"><span class="m">9</span><span class="dash">–</span><span class="t">6</span></div><div class="d">in games under ten minutes</div></div>
+      <div class="nbox"><div class="k num"><span class="m">3</span><span class="dash">–</span><span class="t">6</span></div><div class="d">in games of ten minutes or more</div></div>
+      <div class="nbox"><div class="k num"><span class="m">6</span><span class="dash">–</span><span class="t">18</span></div><div class="d">first blood</div></div>
+    </div>
+  </section>
+
+  <section class="seg" id="finalists">
+    <div class="seg-head"><span class="label">The finalists</span><h2>Two ways to get there</h2></div>
+    <div class="duo">
+      <div class="card ct">
+        <h3 class="t">Gorn</h3>
+        <div class="sub">Champion · 19–16 · one series lost</div>
+        <ul>
+          <li>Won three series by a single game, and all three in the deciding game: 4–3 over Modus, 4–3 over WildCard, 5–4 over Modus.</li>
+          <li>Won six games after the model had them at 30% or worse, and never lost one from 85% or better.</li>
+          <li>10–4 in games of ten minutes or more, and 9–12 in shorter ones.</li>
+          <li>Drew first blood in 23 of 35 games, at 47 actions a minute.</li>
+          <li>Called 17 of the 19 series correctly on the prediction board, the best record on it.</li>
+        </ul>
+      </div>
+      <div class="card cm">
+        <h3 class="m">Modus</h3>
+        <div class="sub">Runner-up · 26–15 · lost only to Gorn</div>
+        <ul>
+          <li>Won more games than anyone, 26, and more series, five.</li>
+          <li>Went 11–3 through three losers-bracket series to reach the Grand Final, then won it 5–3.</li>
+          <li>18–6 in games under ten minutes, and 8–9 in longer ones.</li>
+          <li>6–0 on TD NoBugsCars and 4–0 on Canyon of the Dead.</li>
+          <li>21–2 in games where most of the fighting was on the opponent's side of the map. Both losses were in the Reset.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg" id="standings">
+    <div class="seg-head"><span class="label">Final standings</span><h2>All ten</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Place</th><th>Player</th><th>Went out in</th><th class="c">Series</th><th class="c">Games</th><th>Won / lost</th></tr></thead>
+        <tbody id="standings-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="seg" id="records">
+    <div class="seg-head"><span class="label">Records</span><h2>The extremes</h2></div>
+    <div class="recs">
+      <div class="rec"><span class="label">Longest game</span><div class="v num">21:38</div><p>Game 7 of the Winners Final. Gorn over WildCard in a Demolition mirror on TD NoBugsCars.</p></div>
+      <div class="rec"><span class="label">Shortest game</span><div class="v num">2:48</div><p>OneThree111 over Pancake on Canyon of the Dead, in Losers Round 2.</p></div>
+      <div class="rec"><span class="label">Fastest series</span><div class="v num">10:23</div><p>All three games of OneThree111's 3–0 over Pancake, added together.</p></div>
+      <div class="rec"><span class="label">Longest series</span><div class="v num">81 min</div><p>The Grand Final Reset: nine games, five maps.</p></div>
+      <div class="rec"><span class="label">Biggest comeback</span><div class="v num">3%</div><p>Where the model had Syn at 2:30 of game 2 against CoreDawg. Syn won it in 15:07.</p></div>
+      <div class="rec"><span class="label">Only sweep in a best of 7</span><div class="v num">4–0</div><p>WildCard over Tytan in the other Winners Semifinal.</p></div>
+    </div>
+  </section>
+
+  <section class="seg" id="lessons">
+    <div class="seg-head"><span class="label">Across all 85 games</span><h2>What won games</h2></div>
+    <div class="nums" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+      <div class="nbox"><div class="k num">73</div><div class="d">won by the player who earned more money</div></div>
+      <div class="nbox"><div class="k num">57</div><div class="d">won by the model's favourite at the two-minute mark</div></div>
+      <div class="nbox"><div class="k num">47</div><div class="d">won by the player with more actions a minute</div></div>
+      <div class="nbox"><div class="k num">44</div><div class="d">won by the player who drew first blood</div></div>
+    </div>
+    <div class="desk" style="margin-top:18px">
+      <p>Income decided this bracket more than anything else did. First blood was close to a coin flip, and so was being the faster player. The champion played at 47 actions a minute and the runner-up at 62.</p>
+      <p>Generals are assigned at random in every game, so nobody chose what they played. Across the field, GLA went 14–6 and Infantry 13–8. China went 2–9 and Toxin 5–10. Vendetta and Snowy Drought were the most-played maps, with 17 games each.</p>
+    </div>
+  </section>
+
+  <section class="seg" id="archive">
+    <div class="seg-head"><span class="label">The archive</span><h2>Every preview and recap</h2></div>
+    <div class="archive">
+      <a href="/recap/modus-gorn-reset/index.html"><small>Recap</small>Grand Final Reset · Gorn 5–4 Modus</a>
+      <a href="/hype/modus-gorn-reset/index.html"><small>Preview</small>Grand Final Reset</a>
+      <a href="/recap/modus-gorn/index.html"><small>Recap</small>Grand Final · Modus 5–3 Gorn</a>
+      <a href="/hype/modus-gorn/index.html"><small>Preview</small>Grand Final</a>
+      <a href="/recap/modus-wildcard/index.html"><small>Recap</small>Losers Final · Modus 4–1 WildCard</a>
+      <a href="/hype/modus-wildcard/index.html"><small>Preview</small>Losers Final</a>
+      <a href="/recap/modus-tytan/index.html"><small>Recap</small>Losers Round 4 · Modus 4–2 Tytan</a>
+      <a href="/hype/modus-tytan/index.html"><small>Preview</small>Losers Round 4</a>
+      <a href="/hype/modus-coredawg/index.html"><small>Preview</small>Losers Round 3 · Modus vs CoreDawg</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Built from the bracket results and the 85 replay files on record. Series scores and standings come from the bracket, which counts 88 games: Skip vs OneThree111 in Losers Round 1 was scored 3–0 with no replays on file, so those three games are in the standings and not in any game statistic. Dates are US Eastern.</p>
+    <p>Win probability is the RadarVan model's estimate every 30 seconds. Game lengths are in-game time. Generals are assigned at random in every game.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const cls = n => n === "Modus" ? "m" : n === "Gorn" ? "t" : "";
+  const nm = n => `<span class="${cls(n)}">${n}</span>`;
+
+  // w = winner, l = loser, s = score
+  const CHAPTERS = [
+    { title: "Opening rounds", when: "August 7 to 22",
+      text: "Four players started in Winners Round 1 and six had byes. The higher seed won all six opening series. Only one of them needed five games.",
+      series: [
+        { rd: "Winners Round 1", d: "Aug 7", w: "Neo", l: "Syn", s: "3–0", note: "The first series of the bracket. Game 2 ran 18:35." },
+        { rd: "Winners Round 1", d: "Aug 12", w: "Pancake", l: "Skip", s: "3–2", note: "The only best of 5 to go the distance, settled by an Infantry mirror in 9:45." },
+        { rd: "Winners Round 2", d: "Aug 8", w: "Gorn", l: "OneThree111", s: "3–1", note: "Gorn lost their first game of the bracket in 6:20, then won three in a row." },
+        { rd: "Winners Round 2", d: "Aug 12", w: "Modus", l: "Neo", s: "3–0", note: "Two wins on TD NoBugsCars, the map Modus never lost on." },
+        { rd: "Winners Round 2", d: "Aug 16", w: "Tytan", l: "Pancake", s: "3–0", note: "The last two games took nine minutes between them." },
+        { rd: "Winners Round 2", d: "Aug 22", w: "WildCard", l: "CoreDawg", s: "3–1", note: "CoreDawg took game 2 in 11:12. WildCard took the other three." },
+      ] },
+    { title: "The semifinals", when: "August 21 and September 7",
+      text: "The first Modus–Gorn series set the pattern for the other two. Modus led 3–2. Gorn won game 6 after the model had them at 12%, and then won the decider.",
+      series: [
+        { rd: "Winners Semifinal", d: "Aug 21", w: "Gorn", l: "Modus", s: "4–3", note: "Decided by an Infantry mirror on Oxygen in 10:22. It sent the #1 seed to the losers bracket." },
+        { rd: "Winners Semifinal", d: "Sep 7", w: "WildCard", l: "Tytan", s: "4–0", note: "The only sweep in a best of 7. Three of the four games went past ten minutes." },
+      ] },
+    { title: "The Winners Final", when: "September 26",
+      text: "Seven games, and neither player won two in a row. Game 7 was a Demolition mirror that ran 21:38, the longest game of the bracket. The model had Gorn at 21% seven and a half minutes in.",
+      series: [
+        { rd: "Winners Final", d: "Sep 26", w: "Gorn", l: "WildCard", s: "4–3", note: "Gorn's second straight series won in a deciding game. It put Gorn in the Grand Final with no series lost." },
+      ] },
+    { title: "The losers bracket", when: "August 20 to November 1",
+      text: "Modus waited eight weeks for a losers-bracket opponent, then played three series in fifteen days and lost three games in them. The first, against CoreDawg, took 12 minutes 32 seconds of game time.",
+      series: [
+        { rd: "Losers Round 1", d: "Aug 15", w: "OneThree111", l: "Skip", s: "3–0", note: "No replays on file for this one." },
+        { rd: "Losers Round 1", d: "Aug 30", w: "CoreDawg", l: "Syn", s: "3–1", note: "Syn's one win of the bracket came from 3% on the model." },
+        { rd: "Losers Round 2", d: "Aug 20", w: "OneThree111", l: "Pancake", s: "3–0", note: "Games of 2:48, 2:55 and 4:40. The fastest series of the bracket." },
+        { rd: "Losers Round 2", d: "Oct 3", w: "CoreDawg", l: "Neo", s: "3–0", note: "CoreDawg's second series win in a row." },
+        { rd: "Losers Round 3", d: "Sep 11", w: "Tytan", l: "OneThree111", s: "3–1", note: "OneThree111 won game 2 in 20:42, from 4% on the model. Tytan won the next two in under nine minutes combined." },
+        { rd: "Losers Round 3", d: "Oct 17", w: "Modus", l: "CoreDawg", s: "3–0", note: "Games of 3:59, 5:28 and 3:05.", links: [["Preview", "/hype/modus-coredawg/index.html"]] },
+        { rd: "Losers Round 4", d: "Oct 23", w: "Modus", l: "Tytan", s: "4–2", note: "Tytan won games 1 and 3, both after the model had Modus at 87% or better. Modus won the last three.", links: [["Preview", "/hype/modus-tytan/index.html"], ["Recap", "/recap/modus-tytan/index.html"]] },
+        { rd: "Losers Final", d: "Nov 1", w: "Modus", l: "WildCard", s: "4–1", note: "Closed out with a 3:07 game on Vendetta.", links: [["Preview", "/hype/modus-wildcard/index.html"], ["Recap", "/recap/modus-wildcard/index.html"]] },
+      ] },
+    { title: "The Grand Final", when: "November 8",
+      text: "Gorn needed one series win. Modus needed two. Modus took the first two games on Snowy Drought, lost both on Natural Threats after leading in each, and closed it out with two wins on TD NoBugsCars. That was Gorn's first series loss, and it reset the bracket.",
+      series: [
+        { rd: "Grand Final", d: "Nov 8", w: "Modus", l: "Gorn", s: "5–3", note: "Gorn's first series loss. Game 2 turned in the last 69 seconds.", links: [["Preview", "/hype/modus-gorn/index.html"], ["Recap", "/recap/modus-gorn/index.html"]] },
+      ] },
+    { title: "The Reset", when: "November 14",
+      text: "One more best of 9, winner takes the title. Gorn won the first four games, two of them after the model had Modus at 93% and 76%. Modus won the next four. The ninth game was a Superweapon mirror on Arctic Lagoon. Gorn built a Barracks first, walked Missile Defenders across the map, and won in 4:46.",
+      series: [
+        { rd: "Grand Final Reset", d: "Nov 14", w: "Gorn", l: "Modus", s: "5–4", note: "Each of the four map pairs was swept by one player. Gorn's third deciding game of the bracket, and third win.", links: [["Preview", "/hype/modus-gorn-reset/index.html"], ["Recap", "/recap/modus-gorn-reset/index.html"]] },
+      ] },
+  ];
+  document.getElementById("chapters").innerHTML = CHAPTERS.map((c, i) => `<article class="chapter">
+    <div class="cn">${i + 1}</div>
+    <div>
+      <h3>${c.title}</h3>
+      <div class="when">${c.when}</div>
+      <p>${c.text}</p>
+      <div class="series">${c.series.map(s => `<div class="sc">
+        <div class="rd"><span>${s.rd}</span><span>${s.d}</span></div>
+        <div class="line"><span>${nm(s.w)} <span class="lo">over ${s.l}</span></span><span class="num">${s.s}</span></div>
+        <div class="note">${s.note}</div>
+        ${s.links ? `<div class="more">${s.links.map(([t, h]) => `<a href="${h}">${t} →</a>`).join("")}</div>` : ""}
+      </div>`).join("")}</div>
+    </div>
+  </article>`).join("");
+
+  // [winner, winner's general, loser's general, map, length]
+  const RIVALRY = [
+    { name: "Winners Semifinal", d: "Aug 21", res: "Gorn 4–3", href: null, games: [
+      ["t", "GLA", "Superweapon", "Vendetta", "12:05"], ["m", "GLA", "Superweapon", "Vendetta", "8:28"],
+      ["m", "Infantry", "Demolition", "Snowy Drought", "6:05"], ["t", "Infantry", "Demolition", "Snowy Drought", "7:33"],
+      ["m", "Tank", "China", "Natural Threats", "8:03"], ["t", "Tank", "China", "Natural Threats", "7:24"],
+      ["t", "Infantry", "Infantry", "Oxygen", "10:22"]] },
+    { name: "Grand Final", d: "Nov 8", res: "Modus 5–3", href: "/recap/modus-gorn/index.html", games: [
+      ["m", "Nuke", "Superweapon", "Snowy Drought", "4:00"], ["m", "Superweapon", "Nuke", "Snowy Drought", "6:09"],
+      ["t", "Stealth", "Infantry", "Natural Threats", "16:15"], ["t", "Infantry", "Stealth", "Natural Threats", "10:25"],
+      ["m", "USA", "Toxin", "Arctic Lagoon", "8:07"], ["t", "USA", "Toxin", "Arctic Lagoon", "6:51"],
+      ["m", "Infantry", "Demolition", "TD NoBugsCars", "16:52"], ["m", "Demolition", "Infantry", "TD NoBugsCars", "6:34"]] },
+    { name: "Grand Final Reset", d: "Nov 14", res: "Gorn 5–4", href: "/recap/modus-gorn-reset/index.html", games: [
+      ["t", "Toxin", "USA", "Vendetta", "4:15"], ["t", "USA", "Toxin", "Vendetta", "10:31"],
+      ["t", "China", "Laser", "Snowy Drought", "11:53"], ["t", "Laser", "China", "Snowy Drought", "7:58"],
+      ["m", "Nuke", "Laser", "Natural Threats", "6:45"], ["m", "Laser", "Nuke", "Natural Threats", "7:51"],
+      ["m", "GLA", "Demolition", "TD NoBugsCars", "15:42"], ["m", "Demolition", "GLA", "TD NoBugsCars", "11:35"],
+      ["t", "Superweapon", "Superweapon", "Arctic Lagoon", "4:46"]] },
+  ];
+  document.getElementById("rivalry-body").innerHTML = RIVALRY.map(s => `<div class="rs">
+    <div class="rs-head"><span><b>${s.name}</b> · ${s.d}</span><span><b class="${s.res.startsWith("Gorn") ? "t" : "m"}">${s.res}</b>${s.href ? ` · <a href="${s.href}">Recap →</a>` : ""}</span></div>
+    <div class="tiles">${s.games.map(([w, g, og, map, len], i) => `<div class="tile ${w === "m" ? "wm" : "wt"}" title="Game ${i + 1}: ${w === "m" ? "Modus" : "Gorn"} (${g}) beat ${w === "m" ? "Gorn" : "Modus"} (${og}) on ${map} in ${len}">
+      <div class="g">G${i + 1} · ${len}</div><div class="w ${w}">${w === "m" ? "Modus" : "Gorn"}</div><div class="x">${g} v ${og}</div><div class="x">${map}</div></div>`).join("")}</div>
+  </div>`).join("");
+
+  // [place, player, went out in, series W, series L, games W, games L]
+  const STANDINGS = [
+    ["1st", "Gorn", "Champion", 4, 1, 19, 16], ["2nd", "Modus", "Grand Final Reset", 5, 2, 26, 15],
+    ["3rd", "WildCard", "Losers Final", 2, 2, 11, 9], ["4th", "Tytan", "Losers Round 4", 2, 2, 8, 9],
+    ["5th–6th", "CoreDawg", "Losers Round 3", 2, 2, 7, 7], ["5th–6th", "OneThree111", "Losers Round 3", 2, 2, 8, 6],
+    ["7th–8th", "Neo", "Losers Round 2", 1, 2, 3, 6], ["7th–8th", "Pancake", "Losers Round 2", 1, 2, 3, 8],
+    ["9th–10th", "Syn", "Losers Round 1", 0, 2, 1, 6], ["9th–10th", "Skip", "Losers Round 1", 0, 2, 2, 6],
+  ];
+  const most = Math.max(...STANDINGS.map(r => r[5] + r[6]));
+  document.getElementById("standings-body").innerHTML = STANDINGS.map((r, i) => `<tr class="r${i + 1}">
+    <td>${r[0]}</td><td class="pl">${r[1]}</td><td>${r[2]}</td><td class="c">${r[3]}–${r[4]}</td><td class="c">${r[5]}–${r[6]}</td>
+    <td><div class="bar" role="img" aria-label="${r[5]} won, ${r[6]} lost"><i style="width:${r[5] / most * 100}%"></i><i style="width:${r[6] / most * 100}%"></i></div></td></tr>`).join("");
+})();
+</script>
+</body>
+</html>
