@@ -1,14 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
-import * as React from "react"
-import type { Statistic, Superlatives } from "../../api/types.gen"
-import {
-  getMatchByIdApiMatchMatchIdGetOptions,
-  getSuperlativesApiSuperlativesGetOptions,
-} from "../../api/@tanstack/react-query.gen"
-import Page from "../../components/Page"
-import { useUrlId } from "../../lib/useUrlState"
-import QueryState from "../../components/QueryState"
-import { MatchCard } from "../../components/MatchCard"
+import SportsScoreIcon from "@mui/icons-material/SportsScore"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import Card from "@mui/material/Card"
@@ -18,8 +8,20 @@ import Divider from "@mui/material/Divider"
 import Grid from "@mui/material/Grid"
 import Stack from "@mui/material/Stack"
 import Typography from "@mui/material/Typography"
-import SportsScoreIcon from "@mui/icons-material/SportsScore"
+import { useQuery } from "@tanstack/react-query"
+import * as React from "react"
+import {
+  getMatchByIdApiMatchMatchIdGetOptions,
+  getSuperlativesApiSuperlativesGetOptions,
+} from "../../api/@tanstack/react-query.gen"
+import type { Statistic, Superlatives } from "../../api/types.gen"
+import CountUp from "../../components/CountUp"
+import { MatchCard } from "../../components/MatchCard"
+import Page from "../../components/Page"
 import { PlayerChip } from "../../components/PlayerChip"
+import QueryState from "../../components/QueryState"
+import { staggerSx } from "../../lib/motion"
+import { useUrlId } from "../../lib/useUrlState"
 
 // First match wins, so the order is load-bearing: a more specific bucket has
 // to sit above one whose keywords are substrings of the same stat names.
@@ -126,7 +128,7 @@ const StatCard = React.memo(function StatCard({
             lineHeight: 1.2,
           }}
         >
-          {displayValue}
+          <CountUp value={displayValue} />
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
           {stat.player && <PlayerChip name={stat.player} />}
@@ -169,10 +171,11 @@ function CategorySection({
         {label}
       </Typography>
       <Grid container spacing={2}>
-        {sectionOrder(label, stats).map((stat) => (
+        {sectionOrder(label, stats).map((stat, index) => (
           <Grid
             size={{ xs: 12, sm: 6, md: 4, lg: 12 / cols }}
             key={stat.stat_name}
+            sx={staggerSx(index)}
           >
             <StatCard stat={stat} onMatchClick={onMatchClick} />
           </Grid>

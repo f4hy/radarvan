@@ -7,6 +7,7 @@ import LinkIcon from "@mui/icons-material/Link"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
 import SmartToyIcon from "@mui/icons-material/SmartToy"
 import VisibilityIcon from "@mui/icons-material/Visibility"
+import { Tooltip } from "@mui/material"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -20,29 +21,28 @@ import IconButton from "@mui/material/IconButton"
 import Link from "@mui/material/Link"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
-import { Tooltip } from "@mui/material"
 import Typography from "@mui/material/Typography"
-
 import groupBy from "lodash/groupBy"
 import * as React from "react"
 import { Link as RouterLink } from "react-router"
-
 import { getMatchReplayUrlApiReplayUrlMatchIdGet } from "../api/sdk.gen"
 import type { MatchInfo, Player } from "../api/types.gen"
-import DisplayGeneral from "./Generals"
-import GameMap, { type PlayerPosition } from "./Map"
-import { MatchRowLoading } from "./Loading"
-import { PlayerDot } from "./PlayerChip"
 import { useColorMode } from "../lib/ColorModeContext"
+import { toGeneralName } from "../lib/general_utils"
 import { mapStatsHref, matchHref } from "../lib/links"
 import { mapDisplayName } from "../lib/mapName"
-import { toGeneralName } from "../lib/general_utils"
+import type { SxProps, Theme } from "@mui/material/styles"
+import { hoverShadowSx } from "../lib/motion"
 import {
   getColorHex,
   isCompetitor,
   isObserver,
   playerPalette,
 } from "../lib/utils"
+import DisplayGeneral from "./Generals"
+import { MatchRowLoading } from "./Loading"
+import GameMap, { type PlayerPosition } from "./Map"
+import { PlayerDot } from "./PlayerChip"
 
 // ShowMatchDetails drags in recharts, and this is the landing page — most
 // visits never expand a match, so it is split out and only fetched on demand.
@@ -236,7 +236,7 @@ function FfaPlayerCard(props: { player: Player }) {
 // Shared frame for one match so consecutive matches in a day read as distinct
 // panels: a white surface lifted off the grey page with a hairline border + soft
 // shadow, padded so the inner team cards sit inside a clear boundary.
-const MATCH_CARD_SX = {
+const MATCH_CARD_BASE = {
   width: "99%",
   maxWidth: 1600,
   borderRadius: 2,
@@ -245,6 +245,12 @@ const MATCH_CARD_SX = {
   mb: 2.5,
   boxShadow: 1,
 } as const
+const MATCH_CARD_SX: SxProps<Theme> = [MATCH_CARD_BASE, hoverShadowSx]
+const INCOMPLETE_CARD_SX: SxProps<Theme> = [
+  MATCH_CARD_BASE,
+  hoverShadowSx,
+  { bgcolor: "action.disabledBackground", borderColor: "error.main" },
+]
 
 // Compact, scannable match header shared by the FFA and team cards: the key
 // facts (format, map, length) read on one line; date/version/id are demoted to a
@@ -522,13 +528,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
     ) <= 2
 
   const incomplete = (props.match.incomplete ?? "").length !== 0
-  const paperSx = incomplete
-    ? {
-        ...MATCH_CARD_SX,
-        bgcolor: "action.disabledBackground",
-        borderColor: "error.main",
-      }
-    : MATCH_CARD_SX
+  const paperSx = incomplete ? INCOMPLETE_CARD_SX : MATCH_CARD_SX
   const matchDisplay = (
     <Paper sx={paperSx} variant="outlined">
       <MatchHeader

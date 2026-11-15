@@ -90,7 +90,12 @@ export default function Page(props: {
   const bare = props.surface === false
   const Surface = bare ? Box : Paper
   return (
-    <Surface sx={{ maxWidth, ...(bare ? {} : { p: { xs: 1.5, sm: 2 } }) }}>
+    <Surface
+      sx={{
+        maxWidth,
+        ...(bare ? {} : { p: { xs: 1.5, sm: 2 } }),
+      }}
+    >
       <PageHeader
         title={props.title}
         description={props.description}

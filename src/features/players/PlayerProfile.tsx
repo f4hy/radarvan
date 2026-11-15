@@ -51,6 +51,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import {
+  getEligiblePlayersApiPlayerProfileEligiblePlayersGetOptions,
+  getPlayerProfileApiPlayerProfileGetOptions,
+} from "../../api/@tanstack/react-query.gen"
 import type {
   FavoriteObject,
   GeneralWinRateSeries,
@@ -59,23 +63,20 @@ import type {
   PlayerProfile,
   ProfileBadge,
 } from "../../api/types.gen"
-import {
-  getEligiblePlayersApiPlayerProfileEligiblePlayersGetOptions,
-  getPlayerProfileApiPlayerProfileGetOptions,
-} from "../../api/@tanstack/react-query.gen"
+import CountUp from "../../components/CountUp"
 import DisplayGeneral from "../../components/Generals"
-import { toGeneralName } from "../../lib/general_utils"
 import Page from "../../components/Page"
-import QueryState from "../../components/QueryState"
 import PlayerChip from "../../components/PlayerChip"
 import { PlayerQuickPick } from "../../components/PlayerQuickPick"
+import QueryState from "../../components/QueryState"
+import WinRateChip from "../../components/WinRateChip"
+import WinRateRadar from "../../components/WinRateRadar"
+import { toGeneralName } from "../../lib/general_utils"
 import { playerProfileHref } from "../../lib/links"
 import { usePlayerAccentColor } from "../../lib/PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
 import { useUrlParam } from "../../lib/useUrlState"
 import { displayMapName, formatPercent, wilsonInterval } from "../../lib/utils"
-import WinRateChip from "../../components/WinRateChip"
-import WinRateRadar from "../../components/WinRateRadar"
 
 // A general needs at least this many games in its running series before it's
 // worth a tab - a handful of points reads as noise, not a trend.
@@ -381,7 +382,7 @@ function PercentileTile(props: {
   return (
     <StatTile
       label={props.label}
-      value={props.value}
+      value={<CountUp value={props.value} />}
       detail={
         props.percentile !== null
           ? `beats ${props.percentile}% of players`

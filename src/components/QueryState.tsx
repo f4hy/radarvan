@@ -1,10 +1,12 @@
 import RefreshIcon from "@mui/icons-material/Refresh"
 import Alert from "@mui/material/Alert"
 import AlertTitle from "@mui/material/AlertTitle"
+import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import type { UseQueryResult } from "@tanstack/react-query"
 import type * as React from "react"
 import { errorMessage } from "../lib/apiError"
+import { fadeInSx } from "../lib/motion"
 import Loading from "./Loading"
 
 /**
@@ -75,7 +77,9 @@ export default function QueryState<T>(props: {
   // `isPending` and `isError` are both false, so data is loaded. The cast is
   // the one place this is asserted, instead of every call site testing for a
   // null that only ever meant "still loading".
-  return <>{props.children(query.data as T)}</>
+  // Mounts when the skeleton unmounts, so the content fades in over it
+  // instead of cutting.
+  return <Box sx={fadeInSx}>{props.children(query.data as T)}</Box>
 }
 
 /**

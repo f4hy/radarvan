@@ -3,6 +3,7 @@ import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import Autocomplete from "@mui/material/Autocomplete"
+import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import Link from "@mui/material/Link"
@@ -10,27 +11,27 @@ import Stack from "@mui/material/Stack"
 import TextField from "@mui/material/TextField"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
-
-import groupBy from "lodash/groupBy"
 import { useQuery } from "@tanstack/react-query"
+import groupBy from "lodash/groupBy"
 import * as React from "react"
 import { Link as RouterLink, useSearchParams } from "react-router"
-
-import type { MatchInfo, PlayerRatingDailyChange } from "../../api/types.gen"
 import {
   getDatesApiDatesGetOptions,
   getMapMatchCountsApiMapMatchCountsGetOptions,
   getMatchesByDateApiMatchesByDateDateGetOptions,
   getPlayerRatingDailyChangesApiPlayerRatingsDailyChangesGetOptions,
 } from "../../api/@tanstack/react-query.gen"
+
+import type { MatchInfo, PlayerRatingDailyChange } from "../../api/types.gen"
 import FormatToggle, { ALL_FORMATS } from "../../components/FormatToggle"
 import { MatchesLoading } from "../../components/Loading"
 import { MatchCard, normalizePlayerName } from "../../components/MatchCard"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
 import { useIsAdmin } from "../../lib/AuthContext"
-import { usePlayerColors } from "../../lib/PlayerColorsContext"
 import { gameNightHref } from "../../lib/links"
+import { staggerSx } from "../../lib/motion"
+import { usePlayerColors } from "../../lib/PlayerColorsContext"
 import { useUrlPatch } from "../../lib/useUrlState"
 import {
   displayMapName,
@@ -278,7 +279,9 @@ function DisplayMatchesForDate(props: {
             </Typography>
           ) : (
             matchList.matches.map((m, matchIdx) => (
-              <MatchCard match={m} key={m.id} idx={matchIdx} />
+              <Box key={m.id} sx={staggerSx(matchIdx)}>
+                <MatchCard match={m} idx={matchIdx} />
+              </Box>
             ))
           ))}
       </AccordionDetails>

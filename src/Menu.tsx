@@ -16,7 +16,6 @@ import ListItemButton from "@mui/material/ListItemButton"
 import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
 import ListSubheader from "@mui/material/ListSubheader"
-import { keyframes } from "@mui/material/styles"
 import Toolbar from "@mui/material/Toolbar"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
@@ -30,6 +29,9 @@ import { useAuth } from "./lib/AuthContext"
 import { startDiscordLogin } from "./lib/auth"
 import type { ColorModePreference } from "./lib/ColorModeContext"
 import { useColorMode } from "./lib/ColorModeContext"
+import { EASE, pageEnterSx, REDUCED_MOTION } from "./lib/motion"
+import { selectedTintSx } from "./lib/theme"
+import { indicatorSx, useSlidingIndicator } from "./lib/useSlidingIndicator"
 import { navGroups, type RouteGroup, routeBySlug } from "./routes"
 
 // Cycles system -> light -> dark -> system on click, and shows the current
@@ -68,11 +70,6 @@ function ColorModeToggle() {
 }
 
 const drawerWidth = 220
-
-const pageEnter = keyframes`
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
-`
 
 /**
  * The app shell: top bar, sidebar, and the slot the routed page renders into.
@@ -287,8 +284,7 @@ export default function Menu() {
             maxWidth: 1700,
             mx: "auto",
             mt: { xs: 1, sm: 2 },
-            animation: `${pageEnter} 180ms ease-out`,
-            "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+            ...pageEnterSx,
           }}
         >
           {/* Keyed on the path so navigating away clears a caught error
@@ -304,72 +300,27 @@ export default function Menu() {
   )
 }
 
-const NAV_EASE = "cubic-bezier(0.2, 0, 0, 1)"
-
-interface PillRect {
-  top: number
-  height: number
-  animate: boolean
-}
-
 function NavList(props: { groups: RouteGroup[]; onNavigate: () => void }) {
   const { pathname } = useLocation()
-  const listRef = React.useRef<HTMLUListElement>(null)
-  const [pill, setPill] = React.useState<PillRect | null>(null)
-
-  const measure = React.useCallback(() => {
-    const list = listRef.current
-    // The drawer for the other breakpoint is display:none and measures as 0.
-    if (!list || list.getClientRects().length === 0) return
-    const active = list.querySelector<HTMLElement>("a.active")
-    if (!active) {
-      setPill(null)
-      return
-    }
-    const { offsetTop: top, offsetHeight: height } = active
-    setPill((prev) =>
-      prev && prev.top === top && prev.height === height
-        ? prev
-        : { top, height, animate: prev !== null },
-    )
-  }, [])
+  const { ref: listRef, rect: pill } = useSlidingIndicator<HTMLUListElement>(
+    "a.active",
+    pathname,
+  )
 
   React.useLayoutEffect(() => {
-    measure()
     listRef.current
       ?.querySelector("a.active")
       ?.scrollIntoView({ block: "nearest" })
-  }, [pathname, measure])
-
-  // Groups appearing (admin login) or the drawer becoming visible move the
-  // active row without a navigation.
-  React.useEffect(() => {
-    const list = listRef.current
-    if (!list) return
-    const observer = new ResizeObserver(measure)
-    observer.observe(list)
-    return () => observer.disconnect()
-  }, [measure])
+  }, [pathname, listRef])
 
   return (
     <List ref={listRef} sx={{ px: 1, pb: 2, position: "relative" }}>
       <Box
         aria-hidden
         sx={(t) => ({
-          position: "absolute",
-          top: 0,
-          left: t.spacing(1),
-          right: t.spacing(1),
-          height: pill?.height ?? 0,
-          transform: `translateY(${pill?.top ?? 0}px)`,
-          opacity: pill ? 1 : 0,
+          ...indicatorSx(pill),
           borderRadius: 1.5,
-          bgcolor: "rgba(47, 109, 240, 0.12)",
-          pointerEvents: "none",
-          transition: pill?.animate
-            ? `transform 280ms ${NAV_EASE}, height 280ms ${NAV_EASE}, opacity 150ms`
-            : "none",
-          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+          ...selectedTintSx(t),
           "&::before": {
             content: '""',
             position: "absolute",
@@ -380,7 +331,6 @@ function NavList(props: { groups: RouteGroup[]; onNavigate: () => void }) {
             borderRadius: 3,
             bgcolor: "primary.main",
           },
-          ...t.applyStyles("dark", { bgcolor: "rgba(47, 109, 240, 0.22)" }),
         })}
       />
       {props.groups.map((group) => (
@@ -433,9 +383,9 @@ function MenuItem(props: {
         borderRadius: 1.5,
         mb: 0.25,
         px: 1.5,
-        transition: `background-color 160ms ${NAV_EASE}, transform 120ms ${NAV_EASE}`,
+        transition: `background-color 160ms ${EASE}, transform 120ms ${EASE}`,
         "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
-          transition: `color 160ms ${NAV_EASE}, transform 200ms ${NAV_EASE}`,
+          transition: `color 160ms ${EASE}, transform 200ms ${EASE}`,
         },
         "& .MuiSvgIcon-root": { fontSize: 20 },
         "&:hover .MuiListItemIcon-root": {
@@ -458,7 +408,7 @@ function MenuItem(props: {
             color: "primary.main",
           },
         },
-        "@media (prefers-reduced-motion: reduce)": {
+        [REDUCED_MOTION]: {
           "&, & *": { transition: "none" },
         },
       }}

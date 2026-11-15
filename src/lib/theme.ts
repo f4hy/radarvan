@@ -2,7 +2,9 @@ import {
   createTheme,
   responsiveFontSizes,
   type Shadows,
+  type Theme,
 } from "@mui/material/styles"
+import { hoverShadowSx } from "./motion"
 
 /**
  * Central design tokens for the whole app — light AND dark.
@@ -129,6 +131,13 @@ const DARK_SURFACES: SurfaceTokens = {
   selectedTintStrong: "rgba(47, 109, 240, 0.28)",
 }
 
+export function selectedTintSx(t: Theme) {
+  return {
+    backgroundColor: LIGHT_SURFACES.selectedTint,
+    ...t.applyStyles("dark", { backgroundColor: DARK_SURFACES.selectedTint }),
+  }
+}
+
 // Index 1 is what `boxShadow: 1` and elevation-1 Paper resolve to, so softening
 // it here is what makes hand-shadowed cards match the theme's own surfaces.
 const SOFT_SHADOW =
@@ -225,7 +234,10 @@ let theme = createTheme({
     MuiCard: {
       defaultProps: { variant: "outlined" },
       styleOverrides: {
-        root: ({ theme: t }) => ({ borderColor: t.palette.divider }),
+        root: ({ theme: t }) => ({
+          borderColor: t.palette.divider,
+          ...hoverShadowSx(t),
+        }),
       },
     },
     // One visible keyboard-focus ring for everything clickable; MUI's

@@ -16,6 +16,7 @@ import MenuItem from "@mui/material/MenuItem"
 import Paper from "@mui/material/Paper"
 import Select from "@mui/material/Select"
 import Stack from "@mui/material/Stack"
+import { alpha, useTheme } from "@mui/material/styles"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
@@ -23,27 +24,27 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Typography from "@mui/material/Typography"
-import { alpha, useTheme } from "@mui/material/styles"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import type { GameNightHighlight, GameNightRecap } from "../../api/types.gen"
-import { AiBlurb, renderAiText } from "../../components/aiText"
 import {
   getDatesApiDatesGetOptions,
   getGameNightRecapApiGameNightNightGetOptions,
   getMatchesByDateApiMatchesByDateDateGetOptions,
 } from "../../api/@tanstack/react-query.gen"
+import type { GameNightHighlight, GameNightRecap } from "../../api/types.gen"
+import { AiBlurb, renderAiText } from "../../components/aiText"
 import Loading from "../../components/Loading"
 import MatchActivityCalendar from "../../components/MatchActivityCalendar"
 import { MatchCard } from "../../components/MatchCard"
 import MatchNarrative from "../../components/MatchNarrative"
-import Page from "../../components/Page"
-import { queryFallback } from "../../components/QueryState"
 import MomentumSparkline from "../../components/MomentumSparkline"
+import Page from "../../components/Page"
 import PlayerChip from "../../components/PlayerChip"
+import { queryFallback } from "../../components/QueryState"
+import { hoverShadowSx, REDUCED_MOTION, staggerSx } from "../../lib/motion"
 import { BRAND_COLOR, LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
-import { formatPercent, localDate, winRateTone } from "../../lib/utils"
 import { useUrlId, useUrlParam } from "../../lib/useUrlState"
+import { formatPercent, localDate, winRateTone } from "../../lib/utils"
 
 // Emoji per highlight kind. `kind` is a stable backend slug; an unrecognised
 // one still renders (with the fallback), so adding a highlight server-side
@@ -93,6 +94,7 @@ function HighlightFrame(props: {
   highlight: GameNightHighlight
   onFocusMatch: (matchId: number) => void
   featured?: boolean
+  index: number
   children: React.ReactNode
 }) {
   const { highlight } = props
@@ -106,13 +108,24 @@ function HighlightFrame(props: {
           : undefined
       }
       title={clickable ? "Show this game below" : undefined}
-      sx={{
-        p: props.featured ? 2 : 1.5,
-        flex: props.featured ? "1 1 100%" : "1 1 220px",
-        minWidth: props.featured ? 0 : 200,
-        cursor: clickable ? "pointer" : "default",
-        "&:hover": clickable ? { borderColor: BRAND_COLOR } : {},
-      }}
+      // An array, so each entry's reduced-motion block survives the others'.
+      sx={[
+        {
+          p: props.featured ? 2 : 1.5,
+          flex: props.featured ? "1 1 100%" : "1 1 220px",
+          minWidth: props.featured ? 0 : 200,
+          cursor: clickable ? "pointer" : "default",
+        },
+        staggerSx(props.index),
+        clickable && hoverShadowSx,
+        clickable && {
+          "&:hover": {
+            borderColor: BRAND_COLOR,
+            transform: "translateY(-2px)",
+          },
+          [REDUCED_MOTION]: { "&:hover": { transform: "none" } },
+        },
+      ]}
     >
       {props.children}
     </Paper>
@@ -122,6 +135,7 @@ function HighlightFrame(props: {
 function HighlightCard(props: {
   highlight: GameNightHighlight
   onFocusMatch: (matchId: number) => void
+  index: number
 }) {
   const { highlight } = props
   return (
@@ -151,6 +165,7 @@ function HighlightCard(props: {
 function FeaturedHighlight(props: {
   highlight: GameNightHighlight
   onFocusMatch: (matchId: number) => void
+  index: number
 }) {
   const { highlight } = props
   return (
@@ -386,7 +401,7 @@ function GameByGame(props: {
                   ))}
                 </Stack>
               )}
-              {matches.map((match) => {
+              {matches.map((match, index) => {
                 const cardOpen = openCards.has(match.id)
                 return (
                   <Box
@@ -394,14 +409,15 @@ function GameByGame(props: {
                     ref={(el: HTMLDivElement | null) => {
                       rowRefs.current[match.id] = el
                     }}
-                    sx={
-                      match.id === highlightedMatchId
+                    sx={{
+                      ...staggerSx(index),
+                      ...(match.id === highlightedMatchId
                         ? {
                             outline: `2px solid ${BRAND_COLOR}`,
                             borderRadius: 1,
                           }
-                        : {}
-                    }
+                        : {}),
+                    }}
                   >
                     <MatchNarrative matchId={match.id} />
                     <Button
@@ -653,7 +669,7 @@ export default function GameNight() {
                       Number(b.kind === FEATURED_KIND) -
                       Number(a.kind === FEATURED_KIND),
                   )
-                  .map((highlight) => {
+                  .map((highlight, index) => {
                     const Card =
                       highlight.kind === FEATURED_KIND
                         ? FeaturedHighlight
@@ -662,6 +678,7 @@ export default function GameNight() {
                       <Card
                         key={`${highlight.kind}-${highlight.title}`}
                         highlight={highlight}
+                        index={index}
                         onFocusMatch={setFocusedMatchId}
                       />
                     )

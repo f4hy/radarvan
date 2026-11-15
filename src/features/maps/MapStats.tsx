@@ -34,6 +34,7 @@ import {
   type MapEntry,
   MIN_SUMMARY_GAMES,
 } from "../../lib/mapGeneralStats"
+import { STAGGER_CAP, staggerSx } from "../../lib/motion"
 import { useUrlChoice, useUrlParam } from "../../lib/useUrlState"
 import { displayMapName, winRate } from "../../lib/utils"
 
@@ -278,6 +279,7 @@ function GeneralLabel(props: { general: General }) {
 
 const MapCard = React.memo(function MapCard(props: {
   map: MapData
+  index: number
   expanded: boolean
   onToggle: (mapName: string, expanded: boolean) => void
 }) {
@@ -289,7 +291,7 @@ const MapCard = React.memo(function MapCard(props: {
     <Accordion
       id={mapId(map.mapName)}
       // Clears the fixed app bar when a `?map=` link scrolls here.
-      sx={{ scrollMarginTop: 80 }}
+      sx={{ scrollMarginTop: 80, ...staggerSx(props.index) }}
       expanded={props.expanded}
       onChange={(_, isExpanded) => props.onToggle(map.mapName, isExpanded)}
       slotProps={{
@@ -531,9 +533,11 @@ export default function DisplayMapStats() {
           No maps match “{search}”.
         </Typography>
       ) : (
-        visibleMaps.map((m) => (
+        visibleMaps.map((m, index) => (
           <MapCard
             key={m.mapName}
+            // Clamped so filtering the list leaves most cards' props unchanged.
+            index={Math.min(index, STAGGER_CAP)}
             map={m}
             expanded={expandedMaps.has(m.mapName)}
             onToggle={handleToggle}

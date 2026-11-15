@@ -1,7 +1,8 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
-import Tooltip from "@mui/material/Tooltip"
 import LinearProgress from "@mui/material/LinearProgress"
+import Tooltip from "@mui/material/Tooltip"
+import { EASE, growInSx, slideInSx } from "../lib/motion"
 import { CHART_LOSS, CHART_WIN } from "../lib/theme"
 import { formatPercent, winRateTone } from "../lib/utils"
 
@@ -64,7 +65,7 @@ export function WinRateBar(props: { wins: number; losses: number }) {
         borderRadius: 4,
         opacity: 0.45 + 0.55 * confidence,
         bgcolor: "action.hover",
-        "& .MuiLinearProgress-bar": { bgcolor: hex },
+        "& .MuiLinearProgress-bar": { bgcolor: hex, ...slideInSx },
       }}
     />
   )
@@ -105,8 +106,22 @@ export function WinLossVolumeBar(props: {
           overflow: "hidden",
         }}
       >
-        <Box sx={{ display: "flex", width: `${length}%`, height: "100%" }}>
-          <Box sx={{ width: `${winShare}%`, bgcolor: CHART_WIN }} />
+        <Box
+          sx={{
+            display: "flex",
+            width: `${length}%`,
+            height: "100%",
+            transition: `width 400ms ${EASE}`,
+            ...growInSx,
+          }}
+        >
+          <Box
+            sx={{
+              width: `${winShare}%`,
+              bgcolor: CHART_WIN,
+              transition: `width 400ms ${EASE}`,
+            }}
+          />
           <Box sx={{ flexGrow: 1, bgcolor: CHART_LOSS }} />
         </Box>
       </Box>

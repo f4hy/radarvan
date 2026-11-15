@@ -7,13 +7,14 @@ import Tabs from "@mui/material/Tabs"
 import Typography from "@mui/material/Typography"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import type { TeamRecord, TeamSizeGroup } from "../../api/types.gen"
 import { getTeamStatsApiTeamStatsGetOptions } from "../../api/@tanstack/react-query.gen"
+import type { TeamRecord, TeamSizeGroup } from "../../api/types.gen"
 import Page from "../../components/Page"
-import { useUrlNumber } from "../../lib/useUrlState"
+import { PlayerChip } from "../../components/PlayerChip"
 import QueryState from "../../components/QueryState"
 import { WinRateBar } from "../../components/WinRateChip"
-import { PlayerChip } from "../../components/PlayerChip"
+import { staggerSx } from "../../lib/motion"
+import { useUrlNumber } from "../../lib/useUrlState"
 import { formatPercent, wilsonLowerBound, winRateTone } from "../../lib/utils"
 
 function TeamRow(props: { team: TeamRecord }) {
@@ -86,8 +87,10 @@ function TeamSizeTab(props: { group: TeamSizeGroup }) {
       spacing={1}
       sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1 }}
     >
-      {sorted.map((team) => (
-        <TeamRow key={team.players.join(",")} team={team} />
+      {sorted.map((team, index) => (
+        <Box key={team.players.join(",")} sx={staggerSx(index)}>
+          <TeamRow team={team} />
+        </Box>
       ))}
     </Stack>
   )
