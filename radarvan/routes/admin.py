@@ -34,10 +34,13 @@ from .. import (
 )
 from ..api_types import (
     AdminUser,
+    MatchNetstats,
     MatchInfo,
     Team,
     WinnerOverride,
 )
+from ..cncstats_client import CncstatsClient
+from ..netstats import parse_match_netstats
 from ..cache import invalidate_match_caches, sorted_deduped_matches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
@@ -46,6 +49,7 @@ from ..dependencies import (
     OPS_ADMIN,
     db_manager,
     get_bracket_repo,
+    get_cncstats_client,
     get_replay_manager,
     get_user_repo,
 )
@@ -115,6 +119,26 @@ def debug_match(
         par = replay_files.parse_replay(rep.replay_file_url, replay_manager)
         debug_data["header"] = par.header.model_dump_json()
     return debug_data
+
+
+@session_router.get(
+    "/api/admin/match/{match_id}/netstats",
+    dependencies=ADMIN_LOGIN,
+    response_model=MatchNetstats,
+)
+async def match_netstats(
+    match_id: int, client: CncstatsClient = Depends(get_cncstats_client)
+) -> MatchNetstats:
+    """PC and network stats from the clients' own logs; the match id is the seed."""
+    zip_bytes = await asyncio.to_thread(client.get_logs_zip, match_id)
+    if zip_bytes is None:
+        raise HTTPException(
+            status_code=404, detail="No client logs stored for this match"
+        )
+    report = await asyncio.to_thread(parse_match_netstats, zip_bytes, match_id)
+    if not report.players:
+        raise HTTPException(status_code=404, detail="No client logs for this match")
+    return report
 
 
 @router.get("/api/debug/json_url/{match_id}")

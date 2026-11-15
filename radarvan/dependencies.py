@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from . import db, player_ids
 from .auth_notify import API_KEY_HEADER, notify_auth_event
+from .cncstats_client import CncstatsClient, cncstats_client
 from .db_utils import DatabaseManager, ReplayManager
 from .repositories import (
     BracketPredictionRepo,
@@ -314,6 +315,10 @@ def require_admin_login(
     OpenAPI spec, when the credential callers actually send is the cookie.
     """
     _require_logged_in_admin(request, user, player_ids.is_admin)
+
+
+def get_cncstats_client() -> CncstatsClient:
+    return cncstats_client()
 
 
 # Tag for admin routes driven from the UI: `dependencies=ADMIN_LOGIN`.

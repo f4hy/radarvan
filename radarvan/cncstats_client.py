@@ -109,6 +109,20 @@ class CncstatsClient:
         resp.raise_for_status()
         return resp.content
 
+    def get_logs_zip(self, seed: int) -> bytes | None:
+        """Download every player's logs for a match seed; None if none are stored."""
+        if not self._parse_token:
+            raise RuntimeError(f"{PARSE_BEARER_ENV} is not set; cannot fetch logs")
+        resp = self._client.get(
+            f"{self._base_url}/get_logs",
+            params={"seed": seed},
+            headers={"Authorization": f"Bearer {self._parse_token}"},
+        )
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return resp.content
+
     def _add_map_headers(
         self, crc_decimal: int, file_type: str, map_name: str | None
     ) -> dict[str, str]:

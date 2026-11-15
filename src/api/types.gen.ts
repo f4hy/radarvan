@@ -1185,6 +1185,26 @@ export type FirstBlood = {
 };
 
 /**
+ * Freeze
+ *
+ * The game stopped for `waited_ms` waiting on the players in `slots`.
+ */
+export type Freeze = {
+    /**
+     * Frame
+     */
+    frame: number;
+    /**
+     * Waitedms
+     */
+    waitedMs: number;
+    /**
+     * Slots
+     */
+    slots: Array<number>;
+};
+
+/**
  * GameComposition
  *
  * Detailed composition information about an RTS game.
@@ -2780,6 +2800,41 @@ export type MatchNarrative = {
 };
 
 /**
+ * MatchNetstats
+ *
+ * Everything the clients logged about one match, keyed by the match seed.
+ *
+ * `freezes` is one player's view (`freezes_view_slot`, the log that lists
+ * every peer); each client logs only the waits it saw itself.
+ */
+export type MatchNetstats = {
+    /**
+     * Seed
+     */
+    seed: number;
+    /**
+     * Frames
+     */
+    frames?: number | null;
+    /**
+     * Desync
+     */
+    desync?: boolean | null;
+    /**
+     * Players
+     */
+    players: Array<PlayerNetstats>;
+    /**
+     * Freezes
+     */
+    freezes: Array<Freeze>;
+    /**
+     * Freezesviewslot
+     */
+    freezesViewSlot?: number | null;
+};
+
+/**
  * MatchPowers
  *
  * Per-player generals-power picks and activations for one match.
@@ -2981,6 +3036,42 @@ export type NarrativeBeat = {
 };
 
 /**
+ * NetstatSample
+ *
+ * One ~10 s window from a player's own log.
+ */
+export type NetstatSample = {
+    /**
+     * Frame
+     */
+    frame: number;
+    /**
+     * Fps
+     */
+    fps: number;
+    /**
+     * Clientmsavg
+     */
+    clientMsAvg: number;
+    /**
+     * Clientmsmax
+     */
+    clientMsMax: number;
+    /**
+     * Logicmsavg
+     */
+    logicMsAvg: number;
+    /**
+     * Logicmsmax
+     */
+    logicMsMax: number;
+    /**
+     * Objects
+     */
+    objects: number;
+};
+
+/**
  * ObjectSummary
  */
 export type ObjectSummary = {
@@ -3159,6 +3250,26 @@ export type ParsedReplayJsonSchema = {
 };
 
 /**
+ * PingSample
+ *
+ * Median and worst link ping from one player's PC, at one `GO routes` line.
+ */
+export type PingSample = {
+    /**
+     * Seconds
+     */
+    seconds: number;
+    /**
+     * Medianms
+     */
+    medianMs: number;
+    /**
+     * Maxms
+     */
+    maxMs: number;
+};
+
+/**
  * Player
  */
 export type Player = {
@@ -3262,6 +3373,60 @@ export type PlayerListing = {
      * Color
      */
     color: string;
+};
+
+/**
+ * PlayerNetstats
+ */
+export type PlayerNetstats = {
+    /**
+     * Slot
+     */
+    slot: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Team
+     */
+    team?: number | null;
+    /**
+     * Samples
+     */
+    samples: Array<NetstatSample>;
+    /**
+     * Pings
+     */
+    pings: Array<PingSample>;
+    /**
+     * Clientmsavg
+     */
+    clientMsAvg?: number | null;
+    /**
+     * Logicmsavg
+     */
+    logicMsAvg?: number | null;
+    /**
+     * Peakobjects
+     */
+    peakObjects?: number | null;
+    /**
+     * Medianpingms
+     */
+    medianPingMs?: number | null;
+    /**
+     * Minfps
+     */
+    minFps?: number | null;
+    /**
+     * Freezescaused
+     */
+    freezesCaused: number;
+    /**
+     * Freezemscaused
+     */
+    freezeMsCaused: number;
 };
 
 /**
@@ -8159,6 +8324,36 @@ export type scrapeApiScrapeDaysPostResponses = {
 };
 
 export type scrapeApiScrapeDaysPostResponse = scrapeApiScrapeDaysPostResponses[keyof scrapeApiScrapeDaysPostResponses];
+
+export type matchNetstatsApiAdminMatchMatchIdNetstatsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Match Id
+         */
+        match_id: number;
+    };
+    query?: never;
+    url: '/api/admin/match/{match_id}/netstats';
+};
+
+export type matchNetstatsApiAdminMatchMatchIdNetstatsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type matchNetstatsApiAdminMatchMatchIdNetstatsGetError = matchNetstatsApiAdminMatchMatchIdNetstatsGetErrors[keyof matchNetstatsApiAdminMatchMatchIdNetstatsGetErrors];
+
+export type matchNetstatsApiAdminMatchMatchIdNetstatsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MatchNetstats;
+};
+
+export type matchNetstatsApiAdminMatchMatchIdNetstatsGetResponse = matchNetstatsApiAdminMatchMatchIdNetstatsGetResponses[keyof matchNetstatsApiAdminMatchMatchIdNetstatsGetResponses];
 
 export type computeMatchCompositionApiMatchesMatchIdCompositionPostData = {
     body?: never;

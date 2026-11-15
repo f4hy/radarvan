@@ -53,6 +53,7 @@ const GATED_PAGES = [
   "player-rating",
   "player-synergy",
   "debug-data",
+  "match-netstats",
   "admin-panel",
 ]
 

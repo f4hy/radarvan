@@ -29,7 +29,10 @@ import os
 # reaches a real database is _forbid_db below, which holds either way.
 os.environ["DATABASE_URL"] = "postgresql://stub:stub@127.0.0.1:1/stub-not-used"
 
+import gzip
+import io
 import logging
+import zipfile
 from datetime import datetime
 from types import SimpleNamespace
 from typing import ClassVar
@@ -247,9 +250,22 @@ def _forbid_db(*args: object, **kwargs: object):
     )
 
 
+class _StubCncstats:
+    def get_logs_zip(self, seed: int) -> bytes:
+        log = (
+            f"[23:00:00] === Match start: map='m.map' mode=5 crcInterval=100 seed={seed} logicFps=60 localSlot=0 resumeTo=0 ===\n"
+            "[23:00:59] === Match end: frame=2000 desync=0 ==="
+        )
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("Ann/ReleaseLog.txt.gz", gzip.compress(log.encode()))
+        return buf.getvalue()
+
+
 @pytest.fixture(scope="module")
 def client() -> TestClient:
     stub = _StubRepo()
+    app.dependency_overrides[deps.get_cncstats_client] = lambda: _StubCncstats()
     app.dependency_overrides[deps.get_replay_manager] = lambda: stub
     app.dependency_overrides[deps.get_db_session] = lambda: None
     for provider in (

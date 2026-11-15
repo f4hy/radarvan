@@ -1,5 +1,6 @@
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
+import NetworkCheckIcon from "@mui/icons-material/NetworkCheck"
 import BadgeIcon from "@mui/icons-material/Badge"
 import BalanceIcon from "@mui/icons-material/Balance"
 import BoltIcon from "@mui/icons-material/Bolt"
@@ -75,6 +76,7 @@ const CompositionPredictor = React.lazy(
   () => import("./features/stats/CompositionPredictor"),
 )
 const DebugData = React.lazy(() => import("./features/admin/DebugData"))
+const MatchNetstats = React.lazy(() => import("./features/admin/MatchNetstats"))
 const Draft = React.lazy(() => import("./features/play-tonight/Draft"))
 const FFA = React.lazy(() => import("./features/stats/FFA"))
 const GameLength = React.lazy(() => import("./features/stats/GameLength"))
@@ -335,6 +337,14 @@ export const ROUTES: AppRoute[] = [
     heading: "Admin",
     gate: "admin",
     Component: DebugData,
+  },
+  {
+    slug: "match-netstats",
+    title: "Match Netstats",
+    icon: <NetworkCheckIcon />,
+    heading: "Admin",
+    gate: "admin",
+    Component: MatchNetstats,
   },
   {
     slug: "admin-panel",
