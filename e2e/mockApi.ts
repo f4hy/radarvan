@@ -32,6 +32,7 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/auth/me", fx.LOGGED_OUT.body],
   ["/api/dates/", fx.DATES],
   ["/api/matches/by_date/", fx.MATCHES.body],
+  ["/api/lag_flags/by_date/", {}],
   ["/api/match/", fx.MATCH.body],
   ["/api/team_stats/", fx.TEAM_STATS.body],
   ["/api/superlatives", fx.SUPERLATIVES.body],

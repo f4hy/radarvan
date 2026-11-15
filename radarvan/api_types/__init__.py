@@ -82,10 +82,14 @@ from .details import (
 )
 from .netstats import (
     Freeze,
+    LagFlag,
+    MatchLagFlags,
     MatchNetstats,
     NetstatSample,
+    NetstatsSummary,
     PingSample,
     PlayerNetstats,
+    RosterSlot,
 )
 from .durations import (
     DurationBucket,
@@ -359,6 +363,7 @@ __all__ = [
     "HeadToHeadGeneralRecord",
     "HeadToHeadMapRecord",
     "KillEventOutput",
+    "LagFlag",
     "LoserOfSource",
     "MapData",
     "MapDataPayload",
@@ -396,6 +401,7 @@ __all__ = [
     "MatchBlurbRun",
     "MatchDetails",
     "MatchInfo",
+    "MatchLagFlags",
     "MatchListing",
     "MatchNarrative",
     "MatchNetstats",
@@ -411,6 +417,7 @@ __all__ = [
     "MissingMapInfo",
     "NarrativeBeat",
     "NetstatSample",
+    "NetstatsSummary",
     "ObjectSummary",
     "ObjectUsageStat",
     "Opening",
@@ -458,6 +465,7 @@ __all__ = [
     "ReplayDownload",
     "ReplayFileSchema",
     "ReplayWithoutPlayerStats",
+    "RosterSlot",
     "SaveResponse",
     "ScenarioContributions",
     "ScenarioEvaluation",

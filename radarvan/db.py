@@ -801,3 +801,23 @@ class MatchBlurbCache(Base):
 
     def __repr__(self) -> str:
         return f"<MatchBlurbCache(match_id={self.match_id!r})>"
+
+
+class MatchNetstatsRow(Base):
+    """Client-log netstats for one match; written only by the netstats job."""
+
+    __tablename__ = "match_netstats"
+
+    match_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    # "ok", "no_logs" (cncstats had none yet) or "parse_error".
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    parser_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    # A serialized `NetstatsSummary`; NULL unless status is "ok".
+    summary: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+    def __repr__(self) -> str:
+        return f"<MatchNetstatsRow(match_id={self.match_id!r}, status={self.status!r})>"

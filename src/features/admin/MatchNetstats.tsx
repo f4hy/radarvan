@@ -27,7 +27,11 @@ import {
   ZAxis,
 } from "recharts"
 import { matchNetstatsApiAdminMatchMatchIdNetstatsGetOptions } from "../../api/@tanstack/react-query.gen"
-import type { MatchNetstats, PlayerNetstats } from "../../api/types.gen"
+import type {
+  MatchNetstats,
+  PlayerNetstats,
+  RosterSlot,
+} from "../../api/types.gen"
 import Page from "../../components/Page"
 import { queryFallback } from "../../components/QueryState"
 import { useUrlParam } from "../../lib/useUrlState"
@@ -170,8 +174,6 @@ function Scoreboard(props: {
             <TableCell align="right">Sim ms avg</TableCell>
             <TableCell align="right">Peak objects</TableCell>
             <TableCell align="right">Median ping ms</TableCell>
-            <TableCell align="right">Freezes caused</TableCell>
-            <TableCell align="right">Freeze time</TableCell>
             <TableCell align="right">Lowest fps</TableCell>
           </TableRow>
         </TableHead>
@@ -202,11 +204,42 @@ function Scoreboard(props: {
               <TableCell align="right">{num(p.logicMsAvg)}</TableCell>
               <TableCell align="right">{p.peakObjects ?? "–"}</TableCell>
               <TableCell align="right">{num(p.medianPingMs, 0)}</TableCell>
-              <TableCell align="right">{p.freezesCaused}</TableCell>
-              <TableCell align="right">
-                {(p.freezeMsCaused / 1000).toFixed(1)} s
-              </TableCell>
               <TableCell align="right">{p.minFps ?? "–"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+function WaitedOn(props: { roster: RosterSlot[] }) {
+  const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`
+  return (
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Player</TableCell>
+            <TableCell align="right">Long freezes</TableCell>
+            <TableCell align="right">Freeze time</TableCell>
+            <TableCell align="right">Short stalls</TableCell>
+            <TableCell align="right">Stall time</TableCell>
+            <TableCell align="right">Logs judging</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {props.roster.map((r) => (
+            <TableRow key={r.slot}>
+              <TableCell>
+                {r.name}
+                {!r.hasLogs && " (no logs)"}
+              </TableCell>
+              <TableCell align="right">{r.freezes}</TableCell>
+              <TableCell align="right">{s(r.freezeMs)}</TableCell>
+              <TableCell align="right">{r.stalls.toLocaleString()}</TableCell>
+              <TableCell align="right">{s(r.stallMs)}</TableCell>
+              <TableCell align="right">{r.views}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -378,6 +411,21 @@ function Report(props: { report: MatchNetstats }) {
           is a longer wait.
         </Typography>
         <Freezes report={report} colors={colors} hidden={hidden} />
+      </Box>
+      <Box>
+        <Typography variant="h6" component="h2">
+          Who the game waited on
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{ color: "text.secondary", mb: 1, maxWidth: "80ch" }}
+        >
+          The median over every other player's log, so a player is never judged
+          by his own (the one with the bad link waits on everyone). Long freezes
+          (half a second or more) point at a connection, thousands of short
+          stalls at a PC that can't hold 60 fps.
+        </Typography>
+        <WaitedOn roster={report.roster ?? []} />
       </Box>
       <SeriesChart
         title="Ping per PC"

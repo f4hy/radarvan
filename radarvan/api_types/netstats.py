@@ -52,8 +52,26 @@ class PlayerNetstats(BaseModel):
     peak_objects: int | None = Field(default=None, alias="peakObjects")
     median_ping_ms: float | None = Field(default=None, alias="medianPingMs")
     min_fps: int | None = Field(default=None, alias="minFps")
-    freezes_caused: int = Field(alias="freezesCaused")
-    freeze_ms_caused: int = Field(alias="freezeMsCaused")
+
+
+class RosterSlot(BaseModel):
+    """How long the game waited on one slot: the median over the other players' logs.
+
+    `freezes` are waits long enough for a NETSTALL line (~0.5 s+), `stalls` the
+    shorter ones. Present whether or not this player uploaded logs.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    slot: int
+    name: str
+    team: int | None = None
+    has_logs: bool = Field(alias="hasLogs")
+    views: int
+    freezes: int
+    freeze_ms: int = Field(alias="freezeMs")
+    stalls: int
+    stall_ms: int = Field(alias="stallMs")
 
 
 class MatchNetstats(BaseModel):
@@ -69,5 +87,37 @@ class MatchNetstats(BaseModel):
     frames: int | None = None
     desync: bool | None = None
     players: list[PlayerNetstats]
+    roster: list[RosterSlot] = []
     freezes: list[Freeze]
     freezes_view_slot: int | None = Field(default=None, alias="freezesViewSlot")
+    # False when the router host's log is missing, so `freezes` is partial.
+    # `freezes` is one log's timeline, for the chart; blame is in `roster`.
+    host_view: bool = Field(default=False, alias="hostView")
+
+
+class NetstatsSummary(BaseModel):
+    """The slice of `MatchNetstats` persisted per match (`match_netstats.summary`)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    frames: int | None = None
+    desync: bool | None = None
+    roster: list[RosterSlot]
+
+
+class LagFlag(BaseModel):
+    """The one player the rest of a match spent most of its waiting on."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str
+    count: int
+    wait_ms: int = Field(alias="waitMs")
+    share: float
+
+
+class MatchLagFlags(BaseModel):
+    """`potato`: constant short waits (a slow PC). `connection`: long freezes."""
+
+    potato: LagFlag | None = None
+    connection: LagFlag | None = None

@@ -274,6 +274,7 @@ def client() -> TestClient:
         deps.get_bracket_repo,
         deps.get_bracket_prediction_repo,
         deps.get_game_night_summary_repo,
+        deps.get_netstats_repo,
     ):
         app.dependency_overrides[provider] = lambda: stub
 

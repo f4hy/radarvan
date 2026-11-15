@@ -28,6 +28,7 @@ from .. import (
     match_details,
     matches,
     replay_files,
+    s3_store,
     schedule,
     tournament_membership,
     utils,
@@ -41,6 +42,7 @@ from ..api_types import (
 )
 from ..cncstats_client import CncstatsClient
 from ..netstats import parse_match_netstats
+from ..netstats_sync import load_logs_zip
 from ..cache import invalidate_match_caches, sorted_deduped_matches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
@@ -130,7 +132,9 @@ async def match_netstats(
     match_id: int, client: CncstatsClient = Depends(get_cncstats_client)
 ) -> MatchNetstats:
     """PC and network stats from the clients' own logs; the match id is the seed."""
-    zip_bytes = await asyncio.to_thread(client.get_logs_zip, match_id)
+    zip_bytes = await asyncio.to_thread(
+        load_logs_zip, client, s3_store.get_store(), match_id, save=False
+    )
     if zip_bytes is None:
         raise HTTPException(
             status_code=404, detail="No client logs stored for this match"

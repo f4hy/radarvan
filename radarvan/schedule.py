@@ -15,6 +15,10 @@ from . import tournament_membership
 from datetime import UTC, datetime
 import asyncio
 from . import scrape_games
+from . import s3_store
+from .cncstats_client import cncstats_client
+from .netstats_sync import sync_netstats as _sync_netstats
+from .repositories import NetstatsRepo
 from . import player_profile as player_profile_module
 import structlog
 from .notify import notify_async
@@ -50,6 +54,17 @@ async def update_games(db_manager: DatabaseManager, days: int = 1) -> None:
         # may not.
         await asyncio.to_thread(_sync_tournament_links, replay_manager)
     logger.info("done updating", found=len(paths))
+
+
+async def sync_netstats(db_manager: DatabaseManager) -> None:
+    """Pull client netstats logs for recent matches (blocking HTTP, S3 and DB)."""
+    with db_manager.get_replay_manager() as replay_manager:
+        await asyncio.to_thread(
+            _sync_netstats,
+            NetstatsRepo(replay_manager.session),
+            cncstats_client(),
+            s3_store.get_store(),
+        )
 
 
 async def compute_and_save_superlatives(db_manager: DatabaseManager) -> None:

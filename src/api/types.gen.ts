@@ -1997,6 +1997,30 @@ export type KillEventOutput = {
 };
 
 /**
+ * LagFlag
+ *
+ * The one player the rest of a match spent most of its waiting on.
+ */
+export type LagFlag = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Waitms
+     */
+    waitMs: number;
+    /**
+     * Share
+     */
+    share: number;
+};
+
+/**
  * LoserOfSource
  */
 export type LoserOfSource = {
@@ -2710,6 +2734,16 @@ export type MatchInfo = {
 };
 
 /**
+ * MatchLagFlags
+ *
+ * `potato`: constant short waits (a slow PC). `connection`: long freezes.
+ */
+export type MatchLagFlags = {
+    potato?: LagFlag | null;
+    connection?: LagFlag | null;
+};
+
+/**
  * MatchListing
  */
 export type MatchListing = {
@@ -2825,6 +2859,10 @@ export type MatchNetstats = {
      */
     players: Array<PlayerNetstats>;
     /**
+     * Roster
+     */
+    roster?: Array<RosterSlot>;
+    /**
      * Freezes
      */
     freezes: Array<Freeze>;
@@ -2832,6 +2870,10 @@ export type MatchNetstats = {
      * Freezesviewslot
      */
     freezesViewSlot?: number | null;
+    /**
+     * Hostview
+     */
+    hostView?: boolean;
 };
 
 /**
@@ -3419,14 +3461,6 @@ export type PlayerNetstats = {
      * Minfps
      */
     minFps?: number | null;
-    /**
-     * Freezescaused
-     */
-    freezesCaused: number;
-    /**
-     * Freezemscaused
-     */
-    freezeMsCaused: number;
 };
 
 /**
@@ -4332,6 +4366,53 @@ export type ReplayWithoutPlayerStats = {
      * All Replay Urls
      */
     all_replay_urls: Array<string>;
+};
+
+/**
+ * RosterSlot
+ *
+ * How long the game waited on one slot: the median over the other players' logs.
+ *
+ * `freezes` are waits long enough for a NETSTALL line (~0.5 s+), `stalls` the
+ * shorter ones. Present whether or not this player uploaded logs.
+ */
+export type RosterSlot = {
+    /**
+     * Slot
+     */
+    slot: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Team
+     */
+    team?: number | null;
+    /**
+     * Haslogs
+     */
+    hasLogs: boolean;
+    /**
+     * Views
+     */
+    views: number;
+    /**
+     * Freezes
+     */
+    freezes: number;
+    /**
+     * Freezems
+     */
+    freezeMs: number;
+    /**
+     * Stalls
+     */
+    stalls: number;
+    /**
+     * Stallms
+     */
+    stallMs: number;
 };
 
 /**
@@ -5811,6 +5892,40 @@ export type getMatchesByDateApiMatchesByDateDateGetResponses = {
 };
 
 export type getMatchesByDateApiMatchesByDateDateGetResponse = getMatchesByDateApiMatchesByDateDateGetResponses[keyof getMatchesByDateApiMatchesByDateDateGetResponses];
+
+export type getLagFlagsByDateApiLagFlagsByDateDateGetData = {
+    body?: never;
+    path: {
+        /**
+         * Date
+         */
+        date: Date;
+    };
+    query?: never;
+    url: '/api/lag_flags/by_date/{date}';
+};
+
+export type getLagFlagsByDateApiLagFlagsByDateDateGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type getLagFlagsByDateApiLagFlagsByDateDateGetError = getLagFlagsByDateApiLagFlagsByDateDateGetErrors[keyof getLagFlagsByDateApiLagFlagsByDateDateGetErrors];
+
+export type getLagFlagsByDateApiLagFlagsByDateDateGetResponses = {
+    /**
+     * Response Get Lag Flags By Date Api Lag Flags By Date  Date  Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: MatchLagFlags;
+    };
+};
+
+export type getLagFlagsByDateApiLagFlagsByDateDateGetResponse = getLagFlagsByDateApiLagFlagsByDateDateGetResponses[keyof getLagFlagsByDateApiLagFlagsByDateDateGetResponses];
 
 export type getTeamGamesWithoutWinnerApiTeamGamesWithoutWinnerGetData = {
     body?: never;

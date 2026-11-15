@@ -16,6 +16,7 @@ from .commentary import (
 )
 from .details import MatchDetailsRepo
 from .maps import MapRepo
+from .netstats import NetstatsRepo, StoredNetstats
 from .matches import MatchDebugData, MatchRepo
 from .profiles import ProfileRepo
 from .replays import AllFilesForId, FileListing, ReplayRepo, ReplayToProcess
@@ -39,10 +40,12 @@ __all__ = [
     "MatchDetailsRepo",
     "MatchRepo",
     "MatchupCommentaryRepo",
+    "NetstatsRepo",
     "ProfileRepo",
     "ReplayRepo",
     "ReplayToProcess",
     "StatsRepo",
+    "StoredNetstats",
     "TournamentRepo",
     "UserRepo",
     "VoteLimitExceeded",

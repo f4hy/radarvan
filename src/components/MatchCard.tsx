@@ -5,9 +5,11 @@ import ErrorIcon from "@mui/icons-material/Error"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import LinkIcon from "@mui/icons-material/Link"
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark"
+import SignalWifiBadIcon from "@mui/icons-material/SignalWifiBad"
 import SmartToyIcon from "@mui/icons-material/SmartToy"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import { Tooltip } from "@mui/material"
+import { useQuery } from "@tanstack/react-query"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -25,8 +27,9 @@ import Typography from "@mui/material/Typography"
 import groupBy from "lodash/groupBy"
 import * as React from "react"
 import { Link as RouterLink } from "react-router"
+import { getLagFlagsByDateApiLagFlagsByDateDateGetOptions } from "../api/@tanstack/react-query.gen"
 import { getMatchReplayUrlApiReplayUrlMatchIdGet } from "../api/sdk.gen"
-import type { MatchInfo, Player } from "../api/types.gen"
+import type { MatchInfo, MatchLagFlags, Player } from "../api/types.gen"
 import { useColorMode } from "../lib/ColorModeContext"
 import { toGeneralName } from "../lib/general_utils"
 import { mapStatsHref, matchHref } from "../lib/links"
@@ -63,6 +66,55 @@ export function normalizePlayerName(name: string): string {
   const armyMatch = name.match(/^(.+?)\s?Army$/)
   if (armyMatch) return `${armyMatch[1]}A`
   return name
+}
+
+// One request per night, shared by every card from it. Only recent matches have
+// netstats, and a failure just means no flags, so errors are not surfaced.
+function useLagFlags(match: MatchInfo): MatchLagFlags | undefined {
+  const { data } = useQuery({
+    ...getLagFlagsByDateApiLagFlagsByDateDateGetOptions({
+      path: { date: match.date },
+    }),
+    select: (byId) => byId[String(match.id)],
+  })
+  return data
+}
+
+const secs = (ms: number) => Math.round(ms / 1000)
+const pct = (share: number) => Math.round(share * 100)
+
+function LagMarks(props: { flags?: MatchLagFlags; player: Player }) {
+  const { potato, connection } = props.flags ?? {}
+  return (
+    <>
+      {potato?.name === props.player.name && (
+        <Tooltip
+          title={`Constant stutter: the others waited on this PC ${potato.count.toLocaleString()} times, ${secs(potato.waitMs)}s in all (${pct(potato.share)}% of the stutter)`}
+        >
+          <Box
+            component="span"
+            role="img"
+            aria-label="PC couldn't keep up"
+            sx={{ fontSize: "1.1rem", lineHeight: 1, cursor: "default" }}
+          >
+            🥔
+          </Box>
+        </Tooltip>
+      )}
+      {connection?.name === props.player.name && (
+        <Tooltip
+          title={`Poor connection: froze the game ${connection.count}× for ${secs(connection.waitMs)}s (${pct(connection.share)}% of the freezes)`}
+        >
+          <SignalWifiBadIcon
+            role="img"
+            aria-label="Poor connection"
+            fontSize="small"
+            sx={{ color: "warning.main" }}
+          />
+        </Tooltip>
+      )}
+    </>
+  )
 }
 
 function buildPlayerPositions(
@@ -126,6 +178,7 @@ function TeamCard(props: {
   players: Player[]
   won: boolean
   stacked: boolean
+  flags?: MatchLagFlags
 }) {
   const { mode } = useColorMode()
   const first = props.players[0]
@@ -181,6 +234,7 @@ function TeamCard(props: {
             >
               {normalizePlayerName(p.name)}
             </Typography>
+            <LagMarks flags={props.flags} player={p} />
           </Box>
         ))}
       </Stack>
@@ -188,7 +242,7 @@ function TeamCard(props: {
   )
 }
 
-function FfaPlayerCard(props: { player: Player }) {
+function FfaPlayerCard(props: { player: Player; flags?: MatchLagFlags }) {
   const { mode } = useColorMode()
   const { player } = props
   return (
@@ -227,6 +281,7 @@ function FfaPlayerCard(props: { player: Player }) {
           >
             {normalizePlayerName(player.name)}
           </Typography>
+          <LagMarks flags={props.flags} player={player} />
         </Stack>
       </Stack>
     </Card>
@@ -423,6 +478,7 @@ function DetailsExpander(props: { open: boolean; onToggle: () => void }) {
 function FfaMatchDisplay(props: {
   match: MatchInfo
   defaultDetailsOpen: boolean
+  flags?: MatchLagFlags
 }) {
   const { match } = props
   const [details, setDetails] = React.useState(props.defaultDetailsOpen)
@@ -447,7 +503,11 @@ function FfaMatchDisplay(props: {
       >
         {match.players.map((p) => (
           // Color is unique per player in a match; names aren't (twin CPUs).
-          <FfaPlayerCard key={`${p.name}-${p.color}`} player={p} />
+          <FfaPlayerCard
+            key={`${p.name}-${p.color}`}
+            player={p}
+            flags={props.flags}
+          />
         ))}
         <Box sx={{ width: { xs: "100%", sm: "auto" } }}>
           <GameMap mapname={match.map} playerPositions={playerPositions} />
@@ -493,12 +553,14 @@ export const MatchCard = React.memo(function MatchCard(props: {
     () => buildPlayerPositions(props.match.players),
     [props.match.players],
   )
+  const flags = useLagFlags(props.match)
 
   if (props.match.composition?.isFfa && !props.match.incomplete) {
     return (
       <FfaMatchDisplay
         match={props.match}
         defaultDetailsOpen={defaultDetailsOpen}
+        flags={flags}
       />
     )
   }
@@ -587,6 +649,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
               players={team}
               won={team[0].team === props.match.winning_team}
               stacked={stackTeams}
+              flags={flags}
             />
           ))}
         </Box>

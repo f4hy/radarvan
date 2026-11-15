@@ -177,6 +177,7 @@ PAGES: dict[str, StaticPage] = {
     "player-synergy": StaticPage("Player Synergy", "", indexable=False),
     "manage-maps": StaticPage("Manage Maps", "", indexable=False),
     "debug-data": StaticPage("Debug Matchid", "", indexable=False),
+    "match-netstats": StaticPage("Match Netstats", "", indexable=False),
     "admin-panel": StaticPage("Admin", "", indexable=False),
     "account": StaticPage("Account", "", indexable=False),
     "match": StaticPage("Match", "", indexable=False),

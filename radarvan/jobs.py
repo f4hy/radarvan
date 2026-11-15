@@ -25,7 +25,10 @@ type Step = Callable[[DatabaseManager], Awaitable[None]]
 # hand from the command in the failure notice. Scheduler times are UTC.
 JOBS: dict[str, list[Step]] = {
     # 01:00, 07:00, 13:00, 19:00
-    "update_games": [schedule.update_games],
+    # Netstats right after, so a just-registered match gets its logs fetched.
+    "update_games": [schedule.update_games, schedule.sync_netstats],
+    # Optional extra scheduler entry (e.g. hourly) to pick up late log uploads.
+    "netstats": [schedule.sync_netstats],
     # 04:00. Profiles second: the superlatives pass leaves match_details_cache warm.
     "nightly_stats": [
         schedule.compute_and_save_superlatives,

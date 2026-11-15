@@ -12,6 +12,7 @@
 | `NOTIFY_WEB_HOOK` | Discord webhook for `notify()` |
 | `CNCSTATS_APIKEY` | Bearer token for cncstats **replay parsing** (`POST /replay`) |
 | `CNCSTATS_API_KEY` | X-API-Key for the cncstats **map registry** (`/add_map`) — distinct from the above, do not conflate |
+| `POTATO_*` / `CONNECTION_*` (`_MIN_MS`, `_MIN_MS_PER_MIN`, `_MIN_SHARE`, `_MIN_LEAD`) | When a match card flags a player (`netstats.lag_flags`). Waiting on each player is the median over the *other* players' logs; 🥔 `POTATO_` scores short stalls (a PC that can't hold 60 fps), the connection icon `CONNECTION_` scores long freezes. The worst player must reach all four: total ms, ms per match minute, share of all such waiting, and multiple of the next-worst. Defaults: potato 30000 / 3000 / 0.5 / 2.0, connection 5000 / 500 / 0.5 / 2.0. Read per request |
 | `ML_ENSEMBLE_DIR`, `WINPROB_MODEL_PATH`/`WINPROB_STATS_PATH` | ONNX model files; endpoints 503 when absent. `ML_ENSEMBLE_DIR` (default `ml_ensemble`) holds an N-model win-prediction ensemble (`model-*.onnx` + shared `vocab.json`) - every prediction runs all N and reports mean + std (`ml.bootstrap_matrix`) |
 | `RATE_LIMIT_PER_MINUTE` | Per-client sliding window on `/api` (0 disables) |
 | `CLAUDE_API_KEY` / `GEMINI_API_KEY` | Matchup commentary LLM providers (`commentary/anthropic_client.py` / `commentary/gemini_client.py`); `commentary_available()` 503s when the active one's key is absent |
