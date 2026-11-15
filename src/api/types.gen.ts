@@ -2861,7 +2861,7 @@ export type MatchNetstats = {
     /**
      * Roster
      */
-    roster?: Array<RosterSlot>;
+    roster: Array<RosterSlot>;
     /**
      * Freezes
      */
@@ -2870,10 +2870,6 @@ export type MatchNetstats = {
      * Freezesviewslot
      */
     freezesViewSlot?: number | null;
-    /**
-     * Hostview
-     */
-    hostView?: boolean;
 };
 
 /**
@@ -4371,10 +4367,7 @@ export type ReplayWithoutPlayerStats = {
 /**
  * RosterSlot
  *
- * How long the game waited on one slot: the median over the other players' logs.
- *
- * `freezes` are waits long enough for a NETSTALL line (~0.5 s+), `stalls` the
- * shorter ones. Present whether or not this player uploaded logs.
+ * Median wait on one slot over the other players' logs; `freezes` are NETSTALLs (~0.5 s+).
  */
 export type RosterSlot = {
     /**
@@ -4385,10 +4378,6 @@ export type RosterSlot = {
      * Name
      */
     name: string;
-    /**
-     * Team
-     */
-    team?: number | null;
     /**
      * Haslogs
      */

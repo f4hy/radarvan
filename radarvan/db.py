@@ -803,14 +803,19 @@ class MatchBlurbCache(Base):
         return f"<MatchBlurbCache(match_id={self.match_id!r})>"
 
 
+class NetstatsStatus(enum.StrEnum):
+    OK = "ok"
+    NO_LOGS = "no_logs"  # cncstats had none (yet)
+    PARSE_ERROR = "parse_error"
+
+
 class MatchNetstatsRow(Base):
     """Client-log netstats for one match; written only by the netstats job."""
 
     __tablename__ = "match_netstats"
 
     match_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
-    # "ok", "no_logs" (cncstats had none yet) or "parse_error".
-    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)  # NetstatsStatus
     parser_version: Mapped[int] = mapped_column(Integer, nullable=False)
     # A serialized `NetstatsSummary`; NULL unless status is "ok".
     summary: Mapped[dict[str, object] | None] = mapped_column(JSONB)

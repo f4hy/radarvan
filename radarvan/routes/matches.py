@@ -29,8 +29,7 @@ from ..dependencies import (
     get_replay_manager,
 )
 from ..matches import filter_matches
-from ..netstats import lag_flags
-from ..queries import CompetitiveGames
+from ..queries import CompetitiveGames, lag_flags_on
 from ..repositories import MatchBlurbRepo, NetstatsRepo
 
 logger = structlog.get_logger(__name__)
@@ -111,17 +110,7 @@ def get_lag_flags_by_date(
     netstats: NetstatsRepo = Depends(get_netstats_repo),
 ) -> dict[int, MatchLagFlags]:
     """Who stuttered (potato) or kept freezing (connection), for matches on ``date`` with either."""
-    durations = {
-        m.id: m.duration_minutes
-        for m in sorted_deduped_matches(replay_manager).values()
-        if m.date == date
-    }
-    found = {}
-    for stored in netstats.get_summaries(durations):
-        flags = lag_flags(stored.summary, durations[stored.match_id])
-        if flags.potato or flags.connection:
-            found[stored.match_id] = flags
-    return found
+    return lag_flags_on(date, replay_manager, netstats)
 
 
 @router.get("/api/team_games_without_winner/", dependencies=[Depends(cache_short)])

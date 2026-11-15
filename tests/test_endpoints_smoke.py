@@ -219,6 +219,10 @@ class _StubRepo:
         # cold-cache answer the powers query has to handle.
         return {}
 
+    def get_summaries(self, match_ids: object) -> dict[int, object]:
+        # A mapping: no match on the night has stored netstats.
+        return {}
+
     def map_registry_revision(self) -> MapRegistryRevision:
         # Backs derived.MAPS. Fixed, so the map derivations key stably across the
         # module rather than re-deriving per request.

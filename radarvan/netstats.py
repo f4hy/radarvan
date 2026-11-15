@@ -7,18 +7,15 @@ from __future__ import annotations
 
 import gzip
 import io
-import os
 import re
 import statistics
 import zipfile
 from collections import Counter, defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from .api_types import (
     Freeze,
-    LagFlag,
-    MatchLagFlags,
     MatchNetstats,
     NetstatSample,
     NetstatsSummary,
@@ -26,7 +23,6 @@ from .api_types import (
     PlayerNetstats,
     RosterSlot,
 )
-from .player_ids import resolve_player_name
 
 # Bump when parsing changes what `NetstatsSummary` would hold for the same logs;
 # the netstats job re-derives every stored row from an older version.
@@ -79,14 +75,14 @@ def _parse_log(lines: Iterable[str], seed: int) -> _Block | None:
             continue
         h, mi, s, body = int(m[1]), int(m[2]), int(m[3]), m[4].rstrip("\r\n")
         now = h * 3600 + mi * 60 + s
-        start = _START.search(body)
+        start = body.startswith("=== Match start") and _START.search(body)
         if start:
             block = _Block(int(start[2]), now) if int(start[1]) == seed else None
             continue
         if block is None:
             continue
         rel = now - block.t0 if now >= block.t0 else now + 86400 - block.t0
-        if end := _END.search(body):
+        if body.startswith("=== Match end") and (end := _END.search(body)):
             block.frames, block.desync = int(end[1]), end[2] != "0"
             result, block = block, None
         elif ros := _ROSTER.match(body):
@@ -169,7 +165,6 @@ def parse_match_netstats(zip_bytes: bytes, seed: int) -> MatchNetstats:
 
     # Only the router host's log lists every peer, so it sees every freeze.
     view = next((p for p, b in blocks.items() if b.has_peers), None)
-    host_view = view is not None
     if view is None and blocks:
         view = max(blocks, key=lambda p: len(blocks[p].freezes))
     freezes = blocks[view].freezes if view else []
@@ -203,35 +198,26 @@ def parse_match_netstats(zip_bytes: bytes, seed: int) -> MatchNetstats:
         roster=_roster(blocks),
         freezes=freezes,
         freezes_view_slot=blocks[view].slot if view else None,
-        host_view=host_view,
     )
 
 
 def _roster(blocks: dict[str, _Block]) -> list[RosterSlot]:
-    """Each slot's blame as the median over every *other* player's log.
-
-    A player's own log is left out: the one with the bad link waits on everyone,
-    so his view blames the whole lobby.
-    """
-    names: dict[int, str] = {}
-    teams: dict[int, int] = {}
-    for b in blocks.values():
-        names = b.names | names
-        teams = b.teams | teams
+    # A player's own log is excluded: the one with a bad link waits on everyone.
     uploaders = {b.slot: player for player, b in blocks.items()}
-    names = names | {s: p for s, p in uploaders.items() if s not in names}
+    logged: dict[int, str] = {}
+    for b in blocks.values():
+        logged = b.names | logged
+    names = uploaders | logged
     blamed = {s for b in blocks.values() for f in b.freezes for s in f.slots}
+    stalled = {s for b in blocks.values() for s in b.stalls}
     roster = []
-    for slot in sorted(
-        names.keys() | blamed | {s for b in blocks.values() for s in b.stalls}
-    ):
+    for slot in sorted(names.keys() | blamed | stalled):
         views = [b for b in blocks.values() if b.slot != slot]
         mine = [[f for f in b.freezes if slot in f.slots] for b in views]
         roster.append(
             RosterSlot(
                 slot=slot,
                 name=names.get(slot, f"slot {slot}"),
-                team=teams.get(slot),
                 has_logs=slot in uploaders,
                 views=len(views),
                 freezes=_median_int([len(fs) for fs in mine]),
@@ -244,90 +230,7 @@ def _roster(blocks: dict[str, _Block]) -> list[RosterSlot]:
 
 
 def summarize(report: MatchNetstats) -> NetstatsSummary:
-    return NetstatsSummary(
-        frames=report.frames, desync=report.desync, roster=report.roster
-    )
-
-
-@dataclass(frozen=True)
-class FlagThresholds:
-    min_ms: int
-    min_ms_per_min: float
-    min_share: float
-    min_lead: float
-
-    @classmethod
-    def from_env(cls, prefix: str, defaults: FlagThresholds) -> FlagThresholds:
-        def get(name: str, default: float) -> float:
-            return float(os.environ.get(f"{prefix}_{name}", default))
-
-        return cls(
-            min_ms=int(get("MIN_MS", defaults.min_ms)),
-            min_ms_per_min=get("MIN_MS_PER_MIN", defaults.min_ms_per_min),
-            min_share=get("MIN_SHARE", defaults.min_share),
-            min_lead=get("MIN_LEAD", defaults.min_lead),
-        )
-
-
-# Short waits: a PC that can't keep up with the frame rate (the potato).
-POTATO_DEFAULTS = FlagThresholds(
-    min_ms=30_000, min_ms_per_min=3000, min_share=0.5, min_lead=2.0
-)
-# Long freezes: most likely a connection dropping out.
-CONNECTION_DEFAULTS = FlagThresholds(
-    min_ms=5000, min_ms_per_min=500, min_share=0.5, min_lead=2.0
-)
-
-
-def find_flag(
-    roster: list[RosterSlot],
-    wait_ms: Callable[[RosterSlot], int],
-    count: Callable[[RosterSlot], int],
-    duration_minutes: float,
-    thresholds: FlagThresholds,
-) -> LagFlag | None:
-    """The one slot that clearly caused this kind of waiting, or None if shared or minor."""
-    ranked = sorted((r for r in roster if r.views), key=wait_ms, reverse=True)
-    # A lone log can't be outvoted, and it may be the culprit's own.
-    if not ranked or sum(r.has_logs for r in roster) < 2:
-        return None
-    if ranked[0].views < min(2, len(roster) - 1):
-        return None
-    worst = wait_ms(ranked[0])
-    runner_up = wait_ms(ranked[1]) if len(ranked) > 1 else 0
-    total = sum(wait_ms(r) for r in ranked)
-    if (
-        worst < thresholds.min_ms
-        or worst < thresholds.min_ms_per_min * max(duration_minutes, 1.0)
-        or worst < thresholds.min_share * total
-        or worst < thresholds.min_lead * runner_up
-    ):
-        return None
-    return LagFlag(
-        name=resolve_player_name(ranked[0].name),
-        count=count(ranked[0]),
-        wait_ms=worst,
-        share=worst / total,
-    )
-
-
-def lag_flags(summary: NetstatsSummary, duration_minutes: float) -> MatchLagFlags:
-    return MatchLagFlags(
-        potato=find_flag(
-            summary.roster,
-            lambda r: r.stall_ms,
-            lambda r: r.stalls,
-            duration_minutes,
-            FlagThresholds.from_env("POTATO", POTATO_DEFAULTS),
-        ),
-        connection=find_flag(
-            summary.roster,
-            lambda r: r.freeze_ms,
-            lambda r: r.freezes,
-            duration_minutes,
-            FlagThresholds.from_env("CONNECTION", CONNECTION_DEFAULTS),
-        ),
-    )
+    return NetstatsSummary.model_validate(report, from_attributes=True)
 
 
 def _median_int(values: list[float]) -> int:

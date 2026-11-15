@@ -55,17 +55,12 @@ class PlayerNetstats(BaseModel):
 
 
 class RosterSlot(BaseModel):
-    """How long the game waited on one slot: the median over the other players' logs.
-
-    `freezes` are waits long enough for a NETSTALL line (~0.5 s+), `stalls` the
-    shorter ones. Present whether or not this player uploaded logs.
-    """
+    """Median wait on one slot over the other players' logs; `freezes` are NETSTALLs (~0.5 s+)."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     slot: int
     name: str
-    team: int | None = None
     has_logs: bool = Field(alias="hasLogs")
     views: int
     freezes: int
@@ -87,12 +82,10 @@ class MatchNetstats(BaseModel):
     frames: int | None = None
     desync: bool | None = None
     players: list[PlayerNetstats]
-    roster: list[RosterSlot] = []
+    roster: list[RosterSlot]
+    # One log's timeline, for the chart; blame is in `roster`.
     freezes: list[Freeze]
     freezes_view_slot: int | None = Field(default=None, alias="freezesViewSlot")
-    # False when the router host's log is missing, so `freezes` is partial.
-    # `freezes` is one log's timeline, for the chart; blame is in `roster`.
-    host_view: bool = Field(default=False, alias="hostView")
 
 
 class NetstatsSummary(BaseModel):

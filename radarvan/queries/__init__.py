@@ -19,6 +19,7 @@ from .game_night import (
     on_night,
     with_blurbs,
 )
+from .netstats import lag_flags_on
 from .powers import (
     PowerIndex,
     power_index,
@@ -52,6 +53,7 @@ __all__ = [
     "build_night_recap",
     "closed_nights_within",
     "competitive_games",
+    "lag_flags_on",
     "latest_closed_night",
     "night_narratives",
     "on_night",

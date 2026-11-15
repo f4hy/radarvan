@@ -425,7 +425,7 @@ function Report(props: { report: MatchNetstats }) {
           (half a second or more) point at a connection, thousands of short
           stalls at a PC that can't hold 60 fps.
         </Typography>
-        <WaitedOn roster={report.roster ?? []} />
+        <WaitedOn roster={report.roster} />
       </Box>
       <SeriesChart
         title="Ping per PC"

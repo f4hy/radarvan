@@ -5,13 +5,13 @@ import zipfile
 import pytest
 
 from radarvan.api_types import NetstatsSummary, RosterSlot
-from radarvan.netstats import (
+from radarvan.lag_flags import (
     CONNECTION_DEFAULTS,
     POTATO_DEFAULTS,
-    FlagThresholds,
+    Thresholds,
     lag_flags,
-    parse_match_netstats,
 )
+from radarvan.netstats import parse_match_netstats
 
 SEED = 51399702
 
@@ -121,7 +121,7 @@ def test_blame_is_the_median_of_the_other_logs_and_ignores_your_own():
         _zip({"Ann/ReleaseLog.txt.gz": ann, "Bob/ReleaseLog.txt.gz": bob}), SEED
     )
     cat = next(s for s in r.roster if s.slot == 2)
-    assert (cat.name, cat.team, cat.has_logs, cat.views) == ("Cat", -1, False, 2)
+    assert (cat.name, cat.has_logs, cat.views) == ("Cat", False, 2)
     assert (cat.freezes, cat.freeze_ms) == (1, 8500)
     bob_slot = next(s for s in r.roster if s.slot == 1)
     assert (bob_slot.views, bob_slot.freeze_ms) == (1, 3000)
@@ -167,7 +167,7 @@ def test_stutter_and_connection_are_flagged_separately():
             _slot(3, "OneThree111", freeze_ms=7900, stall_ms=6000),
         ]
     )
-    flags = lag_flags(s, 17.6)
+    flags = lag_flags(s, 17.6, POTATO_DEFAULTS, CONNECTION_DEFAULTS)
     assert flags.potato is not None and flags.potato.name == "Neo"
     assert flags.connection is not None and flags.connection.name == "Pancake"
     assert flags.connection.wait_ms == 24000 and flags.connection.count == 24
@@ -180,12 +180,27 @@ def test_no_flag_when_waiting_is_shared_or_minor():
             {"Ann": 12000, "Bob": 9600, "Cat": 7500, "Dan": 7400}.items()
         )
     ]
-    assert lag_flags(NetstatsSummary(roster=shared), 41).connection is None
+    assert (
+        lag_flags(
+            NetstatsSummary(roster=shared), 41, POTATO_DEFAULTS, CONNECTION_DEFAULTS
+        ).connection
+        is None
+    )
     minor = [_slot(0, "Ann", stall_ms=20000), _slot(1, "Bob")]
-    assert lag_flags(NetstatsSummary(roster=minor), 10).potato is None
+    assert (
+        lag_flags(
+            NetstatsSummary(roster=minor), 10, POTATO_DEFAULTS, CONNECTION_DEFAULTS
+        ).potato
+        is None
+    )
     # 40 s of stutter over a 20 min game is under 3 s/min.
     slow = [_slot(0, "Ann", stall_ms=40000), _slot(1, "Bob")]
-    assert lag_flags(NetstatsSummary(roster=slow), 20).potato is None
+    assert (
+        lag_flags(
+            NetstatsSummary(roster=slow), 20, POTATO_DEFAULTS, CONNECTION_DEFAULTS
+        ).potato
+        is None
+    )
 
 
 def test_a_lone_log_cannot_flag_anyone():
@@ -194,11 +209,16 @@ def test_a_lone_log_cannot_flag_anyone():
         _slot(1, "Bob").model_copy(update={"views": 0}),
         _slot(2, "Cat", freeze_ms=0).model_copy(update={"has_logs": False}),
     ]
-    assert lag_flags(NetstatsSummary(roster=lone), 10).connection is None
+    assert (
+        lag_flags(
+            NetstatsSummary(roster=lone), 10, POTATO_DEFAULTS, CONNECTION_DEFAULTS
+        ).connection
+        is None
+    )
 
 
 def test_thresholds_come_from_the_environment(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("POTATO_MIN_SHARE", "0.9")
     monkeypatch.setenv("CONNECTION_MIN_MS", "1")
-    assert FlagThresholds.from_env("POTATO", POTATO_DEFAULTS).min_share == 0.9
-    assert FlagThresholds.from_env("CONNECTION", CONNECTION_DEFAULTS).min_ms == 1
+    assert Thresholds.from_env("POTATO", POTATO_DEFAULTS).min_share == 0.9
+    assert Thresholds.from_env("CONNECTION", CONNECTION_DEFAULTS).min_ms == 1

@@ -37,6 +37,7 @@ import { mapDisplayName } from "../lib/mapName"
 import type { SxProps, Theme } from "@mui/material/styles"
 import { hoverShadowSx } from "../lib/motion"
 import {
+  formatPercent,
   getColorHex,
   isCompetitor,
   isObserver,
@@ -81,7 +82,6 @@ function useLagFlags(match: MatchInfo): MatchLagFlags | undefined {
 }
 
 const secs = (ms: number) => Math.round(ms / 1000)
-const pct = (share: number) => Math.round(share * 100)
 
 function LagMarks(props: { flags?: MatchLagFlags; player: Player }) {
   const { potato, connection } = props.flags ?? {}
@@ -89,7 +89,7 @@ function LagMarks(props: { flags?: MatchLagFlags; player: Player }) {
     <>
       {potato?.name === props.player.name && (
         <Tooltip
-          title={`Constant stutter: the others waited on this PC ${potato.count.toLocaleString()} times, ${secs(potato.waitMs)}s in all (${pct(potato.share)}% of the stutter)`}
+          title={`Constant stutter: the others waited on this PC ${potato.count.toLocaleString()} times, ${secs(potato.waitMs)}s in all (${formatPercent(potato.share)} of the stutter)`}
         >
           <Box
             component="span"
@@ -103,7 +103,7 @@ function LagMarks(props: { flags?: MatchLagFlags; player: Player }) {
       )}
       {connection?.name === props.player.name && (
         <Tooltip
-          title={`Poor connection: froze the game ${connection.count}× for ${secs(connection.waitMs)}s (${pct(connection.share)}% of the freezes)`}
+          title={`Poor connection: froze the game ${connection.count}× for ${secs(connection.waitMs)}s (${formatPercent(connection.share)} of the freezes)`}
         >
           <SignalWifiBadIcon
             role="img"

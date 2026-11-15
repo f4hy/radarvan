@@ -42,7 +42,7 @@ from ..api_types import (
 )
 from ..cncstats_client import CncstatsClient
 from ..netstats import parse_match_netstats
-from ..netstats_sync import load_logs_zip
+from ..netstats_sync import latest_logs_zip
 from ..cache import invalidate_match_caches, sorted_deduped_matches
 from ..db import Match, PlayerKey
 from ..db_utils import MatchDebugData, ReplayManager
@@ -133,7 +133,7 @@ async def match_netstats(
 ) -> MatchNetstats:
     """PC and network stats from the clients' own logs; the match id is the seed."""
     zip_bytes = await asyncio.to_thread(
-        load_logs_zip, client, s3_store.get_store(), match_id, save=False
+        latest_logs_zip, client, s3_store.get_store(), match_id
     )
     if zip_bytes is None:
         raise HTTPException(
