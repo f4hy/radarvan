@@ -28,6 +28,14 @@ export const FACTIONS: {
   },
 ]
 
+// Accents grounded in the game's three sides, kept apart from the app's
+// win/loss/brand hues.
+export const FACTION_COLOR: Record<Faction, string> = {
+  USA: "#3d6fb4",
+  CHINA: "#b3542e",
+  GLA: "#8a7141",
+}
+
 export function generalFaction(general: General): Faction | undefined {
   return FACTIONS.find((f) => f.generals.includes(general))?.faction
 }

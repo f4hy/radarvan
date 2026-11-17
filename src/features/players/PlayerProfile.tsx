@@ -65,13 +65,18 @@ import type {
 } from "../../api/types.gen"
 import CountUp from "../../components/CountUp"
 import DisplayGeneral from "../../components/Generals"
+import type { General } from "../../lib/General"
 import Page from "../../components/Page"
 import PlayerChip from "../../components/PlayerChip"
 import { PlayerQuickPick } from "../../components/PlayerQuickPick"
 import QueryState from "../../components/QueryState"
 import WinRateChip from "../../components/WinRateChip"
 import WinRateRadar from "../../components/WinRateRadar"
-import { toGeneralName } from "../../lib/general_utils"
+import {
+  FACTION_COLOR,
+  generalFaction,
+  toGeneralName,
+} from "../../lib/general_utils"
 import { playerProfileHref } from "../../lib/links"
 import { usePlayerAccentColor } from "../../lib/PlayerColorsContext"
 import { LOSS_COLOR, WIN_COLOR } from "../../lib/theme"
@@ -87,20 +92,9 @@ function prettyObjectName(name: string): string {
   return name.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
 }
 
-// Faction accent colors grounded in the game's own three sides, kept apart
-// from the app's win/loss/brand hues so a favorite's origin general reads at
-// a glance without borrowing meaning from elsewhere on the page. General IDs
-// 0-3 are USA-family (America), 4-7 China-family, 8-11 GLA-family.
-const FACTION_COLOR = {
-  America: "#3d6fb4",
-  China: "#b3542e",
-  GLA: "#8a7141",
-} as const
-
+// Unrecognized (-1) falls back to USA, as the old id-range test did.
 function factionColor(general: number): string {
-  if (general <= 3) return FACTION_COLOR.America
-  if (general <= 7) return FACTION_COLOR.China
-  return FACTION_COLOR.GLA
+  return FACTION_COLOR[generalFaction(general as General) ?? "USA"]
 }
 
 /** Icon + label header shared by every section so the page reads as distinct
