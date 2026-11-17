@@ -336,6 +336,65 @@ def test_other_night_is_not_linked() -> None:
     assert tournament_membership.detect_bracket_links("cup", [_WB2_2], [match]) == []
 
 
+def test_set_played_a_night_early_links() -> None:
+    """LB1-2's real shape: scheduled the 15th, played the 14th."""
+    match = _1v1(99, "Grn", "131", night=date(2026, 8, 7))
+    links = tournament_membership.detect_bracket_links("cup", [_WB2_2], [match])
+    assert [(link.match_id, link.series_index) for link in links] == [(99, 1)]
+
+
+def test_fallback_stops_at_its_window() -> None:
+    match = _1v1(99, "Grn", "131", night=date(2026, 8, 12))
+    assert tournament_membership.detect_bracket_links("cup", [_WB2_2], [match]) == []
+
+
+def test_fallback_takes_only_the_nearest_night() -> None:
+    far = _1v1(1, "Grn", "131", night=date(2026, 8, 6))
+    near = _1v1(2, "Grn", "131", night=date(2026, 8, 9))
+    links = tournament_membership.detect_bracket_links("cup", [_WB2_2], [far, near])
+    assert [link.match_id for link in links] == [2]
+
+
+def test_fallback_tie_goes_to_the_earlier_night() -> None:
+    before = _1v1(1, "Grn", "131", night=date(2026, 8, 7))
+    after = _1v1(2, "Grn", "131", night=date(2026, 8, 9))
+    links = tournament_membership.detect_bracket_links("cup", [_WB2_2], [after, before])
+    assert [link.match_id for link in links] == [1]
+
+
+def test_scheduled_night_beats_fallback_even_when_ordered_later() -> None:
+    """A rematch the next night keeps its games from an earlier, gameless stage."""
+    rematch = BracketStage(
+        stage="LB3-1",
+        round_name="Losers Round 3",
+        player_a="Gorn",
+        player_b="OneThree111",
+        scheduled_at=datetime(2026, 8, 10, 1, 30),
+    )
+    match = _1v1(99, "Grn", "131", night=date(2026, 8, 9))
+    links = tournament_membership.detect_bracket_links(
+        "cup", [_WB2_2, rematch], [match]
+    )
+    assert [link.stage for link in links] == ["LB3-1"]
+
+
+def test_stage_whose_night_was_taken_does_not_fall_back() -> None:
+    """A same-night reset with nothing left to claim stays empty."""
+    tonight = _1v1(1, "Grn", "131")
+    tomorrow = _1v1(2, "Grn", "131", night=date(2026, 8, 9))
+    links = tournament_membership.detect_bracket_links(
+        "cup", [_WB2_2, _DUPLICATE_STAGE], [tonight, tomorrow]
+    )
+    assert [(link.stage, link.match_id) for link in links] == [("WB2-2", 1)]
+
+
+def test_candidates_fall_back_past_games_taken_elsewhere() -> None:
+    early = _1v1(1, "Grn", "131", night=date(2026, 8, 7))
+    late = _1v1(2, "Grn", "131", night=date(2026, 8, 9))
+    found = tournament_membership.candidate_games(_WB2_2, [early, late], frozenset({1}))
+    assert [m.id for m in found] == [2]
+
+
 def test_wrong_pairing_is_not_linked() -> None:
     match = _1v1(99, "Grn", "Neo")
     assert tournament_membership.detect_bracket_links("cup", [_WB2_2], [match]) == []

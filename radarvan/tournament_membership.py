@@ -11,7 +11,8 @@ Two strategies, one per tournament format:
 - **Round robin** reuses ``tournament.is_tournament_game`` unchanged - date
   range plus an exact match of both teams against the configured team list.
 - **Bracket** matches a scheduled bracket slot against the 1v1s played on
-  that game night by exactly those two people.
+  that game night by exactly those two people - or, when that night has
+  none, on the nearest night within ``FALLBACK_NIGHTS`` that does.
 
 The bracket rule is the one that has to be careful about names. Bracket slots
 hold canonical names (``Gorn``, ``OneThree111``) while ``MatchInfo`` players
@@ -23,9 +24,9 @@ like their game.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import structlog
 
@@ -84,33 +85,73 @@ def _by_game_night(matches: Iterable[MatchInfo]) -> dict[date, list[MatchInfo]]:
 
 
 def candidate_games(
-    stage: BracketStage, matches: Iterable[MatchInfo]
+    stage: BracketStage,
+    matches: Iterable[MatchInfo],
+    taken: frozenset[int] = frozenset(),
 ) -> list[MatchInfo]:
     """The 1v1s that look like games of this bracket match, oldest first.
 
     Compared on ``MatchInfo.date`` (already the game-night date, Eastern with
     the 5am rollover) against the game night of ``scheduled_at`` - never on
     raw UTC calendar dates, which land a night early for anything after 8pm
-    Eastern.
+    Eastern. ``taken`` is games already belonging to other stages.
 
     Incomplete games (disconnect/desync/too-short) are left out: they'd
     inflate ``series_index`` for the real games of a best-of. An admin can
     still link one by hand if it counted.
     """
-    return _candidates_from_index(stage, _by_game_night(matches))
+    by_night = _by_game_night(matches)
+    if _on_scheduled_night(stage, by_night, ()):
+        return _on_scheduled_night(stage, by_night, taken)
+    return _on_nearest_night(stage, by_night, taken)
 
 
-def _candidates_from_index(
-    stage: BracketStage, by_night: dict[date, list[MatchInfo]]
+# Sets are sometimes played a night or two off their scheduled date without
+# anyone updating it (Skip v OneThree111, LB1-2 of the 2026 bracket).
+FALLBACK_NIGHTS = 3
+
+
+def _pair_games_on(
+    stage: BracketStage,
+    night: date,
+    by_night: dict[date, list[MatchInfo]],
+    taken: Collection[int],
 ) -> list[MatchInfo]:
-    """``candidate_games`` against an index the caller already built."""
     pair = frozenset({stage.player_a, stage.player_b})
     hits = [
         m
-        for m in by_night.get(game_night_date_of(stage.scheduled_at), [])
-        if m.roster().human_participant_names() == pair
+        for m in by_night.get(night, [])
+        if m.id not in taken and m.roster().human_participant_names() == pair
     ]
     return sorted(hits, key=lambda m: m.timestamp)
+
+
+def _on_scheduled_night(
+    stage: BracketStage,
+    by_night: dict[date, list[MatchInfo]],
+    taken: Collection[int],
+) -> list[MatchInfo]:
+    return _pair_games_on(
+        stage, game_night_date_of(stage.scheduled_at), by_night, taken
+    )
+
+
+def _on_nearest_night(
+    stage: BracketStage,
+    by_night: dict[date, list[MatchInfo]],
+    taken: Collection[int],
+) -> list[MatchInfo]:
+    """Every game of the one closest night that has any; the earlier wins a tie."""
+    scheduled = game_night_date_of(stage.scheduled_at)
+    for offset in range(1, FALLBACK_NIGHTS + 1):
+        for night in (
+            scheduled - timedelta(days=offset),
+            scheduled + timedelta(days=offset),
+        ):
+            games = _pair_games_on(stage, night, by_night, taken)
+            if games:
+                return games
+    return []
 
 
 def detect_bracket_links(
@@ -118,42 +159,51 @@ def detect_bracket_links(
 ) -> list[ProposedLink]:
     """Proposed links for every scheduled slot of a bracket tournament.
 
-    A match that somehow matches two slots (the same pair scheduled twice on
-    one night) is attributed to the first slot only - double-linking would
-    violate the per-tournament unique index and silently reassign the game.
+    Every stage's scheduled night is claimed before any stage falls back to a
+    nearby night, so a rematch between the same pair a few nights later keeps
+    its own games. A match is attributed to one stage only - double-linking
+    would violate the per-tournament unique index and silently reassign it.
     """
     by_night = _by_game_night(matches)
     claimed: set[int] = set()
-    links: list[ProposedLink] = []
+    found: dict[str, list[MatchInfo]] = {}
     for stage in stages:
-        found = _candidates_from_index(stage, by_night)
-        contested = [m for m in found if m.id in claimed]
+        games = _on_scheduled_night(stage, by_night, ())
+        contested = [m for m in games if m.id in claimed]
         if contested:
             logger.warning(
                 "matches already claimed by an earlier bracket stage",
                 match_ids=[m.id for m in contested],
                 stage=stage.stage,
             )
-        # Number what this stage keeps, not what it found. Today the two are
-        # the same or the stage keeps nothing - candidates are keyed on night
-        # + pairing, so two stages either see identical lists (the first takes
-        # all of them) or disjoint ones. Numbering the survivors means a
-        # partial overlap, if that keying ever widens, can't leave a hole that
-        # makes the remaining game "game 2" of a series with no game 1.
-        for index, match in enumerate(
-            (m for m in found if m.id not in claimed), start=1
-        ):
-            claimed.add(match.id)
-            links.append(
-                ProposedLink(
-                    tournament_slug=slug,
-                    match_id=match.id,
-                    stage=stage.stage,
-                    round_name=stage.round_name,
-                    series_index=index,
-                )
+        found[stage.stage] = [m for m in games if m.id not in claimed]
+        claimed.update(m.id for m in found[stage.stage])
+    for stage in stages:
+        # Only a night with no games for the pair falls back - not one whose
+        # games another stage (a same-night reset) already took.
+        if _on_scheduled_night(stage, by_night, ()):
+            continue
+        games = _on_nearest_night(stage, by_night, claimed)
+        if games:
+            logger.info(
+                "bracket stage linked off its scheduled night",
+                stage=stage.stage,
+                night=str(games[0].date),
             )
-    return links
+        found[stage.stage] = games
+        claimed.update(m.id for m in games)
+
+    return [
+        ProposedLink(
+            tournament_slug=slug,
+            match_id=match.id,
+            stage=stage.stage,
+            round_name=stage.round_name,
+            series_index=index,
+        )
+        for stage in stages
+        for index, match in enumerate(found[stage.stage], start=1)
+    ]
 
 
 def detect_round_robin_links(matches: Iterable[MatchInfo]) -> list[ProposedLink]:

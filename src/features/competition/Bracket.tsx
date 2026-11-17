@@ -775,7 +775,7 @@ function CommentaryPanel({ label, text }: { label: string; text: string }) {
 // player's profile and their head-to-head record, the AI-generated pre-game
 // hype blurb and - once the set is over and every game of it is on record -
 // the post-game recap (see radarvan/commentary/), plus whatever 1v1 games
-// were actually played between them on the match's scheduled date.
+// were actually played between them on (or near) the match's scheduled date.
 function MatchupPopup({
   match,
   onClose,

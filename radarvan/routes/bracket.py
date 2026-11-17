@@ -431,9 +431,14 @@ def _games_response(
             player_b=resolved.player_b,
             scheduled_at=scheduled_at,
         )
+        elsewhere = frozenset(
+            link.match_id for link in all_links if link.stage != match_id
+        )
         candidates = [
             m
-            for m in tournament_membership.candidate_games(stage, all_matches.values())
+            for m in tournament_membership.candidate_games(
+                stage, all_matches.values(), elsewhere
+            )
             if m.id not in spoken_for
         ]
     return BracketMatchGames(match_id=match_id, linked=linked, candidates=candidates)
