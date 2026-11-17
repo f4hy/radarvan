@@ -1,6 +1,7 @@
 import type { BracketFactionGame, PlayerWL } from "../../api/types.gen"
 import type { General } from "../../lib/General"
 import { FACTIONS, type Faction, generalFaction } from "../../lib/general_utils"
+import { winRate } from "../../lib/utils"
 
 export type Grain = "general" | "faction"
 
@@ -12,18 +13,22 @@ export const SIDE_ORDER: Record<Grain, Side[]> = {
   faction: FACTIONS.map((f) => f.faction),
 }
 
-export function sideOf(general: number, grain: Grain): Side | undefined {
-  const g = general as General
-  return grain === "general" ? g : generalFaction(g)
+export function sideOf(general: General, grain: Grain): Side | undefined {
+  return grain === "general" ? general : generalFaction(general)
 }
+
+type WL = { wins: number; losses: number }
+
+export const sumWL = (rows: WL[]): WL => ({
+  wins: rows.reduce((n, r) => n + r.wins, 0),
+  losses: rows.reduce((n, r) => n + r.losses, 0),
+})
 
 export type Matchup = {
   a: Side
   b: Side
   aWins: number
   bWins: number
-  // Games won by the player who went on to lose that set.
-  setLoserWins: number
   games: BracketFactionGame[]
 }
 
@@ -44,12 +49,10 @@ export function matchups(games: BracketFactionGame[], grain: Grain): Matchup[] {
       b,
       aWins: 0,
       bWins: 0,
-      setLoserWins: 0,
       games: [],
     }
     if (w === a) row.aWins += 1
     else row.bWins += 1
-    if (game.winnerLostSet) row.setLoserWins += 1
     row.games.push(game)
     byPair.set(key, row)
   }
@@ -100,14 +103,13 @@ export function setLoserRecords(
       )
       return {
         side,
-        wins: list.reduce((n, p) => n + p.wins, 0),
-        losses: list.reduce((n, p) => n + p.losses, 0),
+        ...sumWL(list),
         players: list,
       }
     })
     .sort(
       (x, y) =>
-        y.wins / (y.wins + y.losses) - x.wins / (x.wins + x.losses) ||
+        winRate(y.wins, y.losses) - winRate(x.wins, x.losses) ||
         y.wins + y.losses - (x.wins + x.losses) ||
         rank(grain, x.side) - rank(grain, y.side),
     )

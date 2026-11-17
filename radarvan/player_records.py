@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
+from typing import NamedTuple
 
 from .api_types import MatchInfo, PlayerWL
 from .game_composition import RosterSlot
@@ -10,6 +11,21 @@ from .player_ids import resolve_player_name
 
 def decided_games(games: Iterable[MatchInfo]) -> Iterator[MatchInfo]:
     return (g for g in games if not g.incomplete and g.winning_team >= 1)
+
+
+class WinnerLoser(NamedTuple):
+    won: RosterSlot
+    lost: RosterSlot
+
+
+def winner_and_loser(match: MatchInfo) -> WinnerLoser | None:
+    """The two sides of a two-human 1v1 with known generals and one winner."""
+    slots = [s for s in match.roster().human_participants if s.has_known_general]
+    winners = [s for s in slots if s.won]
+    losers = [s for s in slots if not s.won]
+    if len(winners) != 1 or len(losers) != 1:
+        return None
+    return WinnerLoser(winners[0], losers[0])
 
 
 def player_records_by[K](

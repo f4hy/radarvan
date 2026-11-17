@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping
 from .api_types import BracketFactionGame, General, MatchInfo
 from .db import TournamentGame
 from .player_ids import resolve_player_name
-from .player_records import decided_games
+from .player_records import decided_games, winner_and_loser
 
 
 def bracket_faction_games(
@@ -14,31 +14,27 @@ def bracket_faction_games(
     set_winners: Mapping[str, str | None],
 ) -> list[BracketFactionGame]:
     """One row per decided, linked 1v1 whose two generals are known, oldest first."""
-    stage_of = {link.match_id: link for link in links if link.stage is not None}
+    stage_of = {link.match_id: link.stage for link in links if link.stage is not None}
+    games = sorted(
+        (known[i] for i in stage_of if i in known), key=lambda m: m.timestamp
+    )
     rows = []
-    for game in decided_games(known[i] for i in stage_of if i in known):
-        sides = game.roster().participants
-        winners = [p for p in sides if p.won]
-        losers = [p for p in sides if not p.won]
-        if len(winners) != 1 or len(losers) != 1:
+    for game in decided_games(games):
+        sides = winner_and_loser(game)
+        if sides is None:
             continue
-        won, lost = winners[0], losers[0]
-        if not (won.has_known_general and lost.has_known_general):
-            continue
-        link = stage_of[game.id]
-        winner = resolve_player_name(won.name, won.color)
-        set_winner = set_winners.get(link.stage or "")
+        stage = stage_of[game.id]
+        winner = resolve_player_name(sides.won.name, sides.won.color)
+        set_winner = set_winners.get(stage)
         rows.append(
             BracketFactionGame(
                 match_id=game.id,
-                stage=link.stage or "",
-                round_name=link.round_name,
-                timestamp=game.timestamp,
+                stage=stage,
                 winner=winner,
-                winner_general=General(won.general),
-                loser=resolve_player_name(lost.name, lost.color),
-                loser_general=General(lost.general),
+                winner_general=General(sides.won.general),
+                loser=resolve_player_name(sides.lost.name, sides.lost.color),
+                loser_general=General(sides.lost.general),
                 winner_lost_set=None if set_winner is None else winner != set_winner,
             )
         )
-    return sorted(rows, key=lambda r: r.timestamp)
+    return rows

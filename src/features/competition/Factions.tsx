@@ -28,33 +28,28 @@ import { FactionAvatar, GeneralAvatar } from "../../components/Generals"
 import { PlayerChip } from "../../components/PlayerChip"
 import QueryState from "../../components/QueryState"
 import { WinLossVolumeBar } from "../../components/WinRateChip"
-import type { General } from "../../lib/General"
 import { FACTIONS, toGeneralName } from "../../lib/general_utils"
 import { matchHref } from "../../lib/links"
+import { winRate } from "../../lib/utils"
 import {
   type Grain,
   type Matchup,
   matchups,
   type Side,
   setLoserRecords,
+  sumWL,
 } from "./factionMatchups"
 import { PlayerRecordChips, RecordText } from "./PlayerRecords"
 
-type WL = { wins: number; losses: number }
-
-const sumWL = (rows: WL[]): WL => ({
-  wins: rows.reduce((n, r) => n + r.wins, 0),
-  losses: rows.reduce((n, r) => n + r.losses, 0),
-})
-
 const gamesLabel = (n: number) => `${n} game${n === 1 ? "" : "s"}`
 
-function GeneralRow({
-  general,
+// One general or faction: its record, a games-scaled bar, and who played it.
+function SideRow({
+  side,
   players,
   maxGames,
 }: {
-  general: General
+  side: Side
   players: PlayerWL[] | undefined
   maxGames: number
 }) {
@@ -62,10 +57,8 @@ function GeneralRow({
   return (
     <Box sx={{ opacity: total ? 1 : 0.5 }}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <GeneralAvatar general={general} size="1.5rem" />
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, flexGrow: 1 }}>
-          {toGeneralName(general)}
-        </Typography>
+        <SideLabel side={side} />
+        <Box sx={{ flexGrow: 1 }} />
         <Typography variant="caption" sx={{ color: "text.secondary" }}>
           {total ? gamesLabel(total.wins + total.losses) : "not played yet"}
         </Typography>
@@ -181,9 +174,9 @@ function FactionBreakdown({ records }: { records: GeneralPickRecord[] }) {
             </Stack>
             <Stack spacing={1.5} divider={<Divider flexItem />}>
               {generals.map((g) => (
-                <GeneralRow
+                <SideRow
                   key={g}
-                  general={g}
+                  side={g}
                   players={byGeneral.get(g)}
                   maxGames={maxGames}
                 />
@@ -261,8 +254,13 @@ function GameLine({ game }: { game: BracketFactionGame }) {
 
 function MatchupRow({ row }: { row: Matchup }) {
   const mirror = row.a === row.b
+  const setLoserWins = row.games.filter((g) => g.winnerLostSet).length
   return (
-    <Accordion disableGutters variant="outlined">
+    <Accordion
+      disableGutters
+      variant="outlined"
+      slotProps={{ transition: { unmountOnExit: true } }}
+    >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Stack
           direction="row"
@@ -282,9 +280,9 @@ function MatchupRow({ row }: { row: Matchup }) {
             </>
           )}
           <Box sx={{ flexGrow: 1 }} />
-          {row.setLoserWins > 0 && (
+          {setLoserWins > 0 && (
             <Typography variant="caption" sx={{ color: "warning.main" }}>
-              {row.setLoserWins} won by the set loser
+              {setLoserWins} won by the set loser
             </Typography>
           )}
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
@@ -348,29 +346,17 @@ function SetLoserSection({
         Every set has a loser, and they still win games along the way. This is
         their record in their sets by the {grain} they played each game: they
         won {overall.wins} of {overallGames} (
-        {Math.round((overall.wins / overallGames) * 100)}%) overall, so a{" "}
-        {grain} well above that is where losing players kept winning.
+        {Math.round(winRate(overall.wins, overall.losses) * 100)}%) overall, so
+        a {grain} well above that is where losing players kept winning.
       </Typography>
       <Stack spacing={1.5} divider={<Divider flexItem />}>
         {rows.map((row) => (
-          <Box key={row.side}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <SideLabel side={row.side} />
-              <Box sx={{ flexGrow: 1 }} />
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {gamesLabel(row.wins + row.losses)}
-              </Typography>
-              <RecordText wins={row.wins} losses={row.losses} />
-            </Stack>
-            <Box sx={{ display: "flex", mt: 0.5 }}>
-              <WinLossVolumeBar
-                wins={row.wins}
-                losses={row.losses}
-                max={maxGames}
-              />
-            </Box>
-            <PlayerRecordChips players={row.players} />
-          </Box>
+          <SideRow
+            key={row.side}
+            side={row.side}
+            players={row.players}
+            maxGames={maxGames}
+          />
         ))}
       </Stack>
     </Box>

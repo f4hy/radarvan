@@ -34,6 +34,7 @@ from ..api_types import (
     UnitDamageStat,
 )
 from ..player_ids import resolve_player_name
+from ..player_records import winner_and_loser
 from ..replay_files import map_basename
 
 
@@ -307,14 +308,10 @@ def tournament_game(match: MatchInfo) -> HypeTournamentGame | None:
     guessed at: a game with an unparsed general or no recorded winner would
     otherwise render as an authoritative-looking line the model would quote.
     """
-    slots = [s for s in match.roster().human_participants if s.has_known_general]
-    if len(slots) != 2:
+    sides = winner_and_loser(match)
+    if sides is None:
         return None
-    winners = [s for s in slots if s.won]
-    losers = [s for s in slots if not s.won]
-    if len(winners) != 1 or len(losers) != 1:
-        return None
-    won, lost = winners[0], losers[0]
+    won, lost = sides
     return HypeTournamentGame(
         series_index=match.tournament.series_index if match.tournament else None,
         map=map_basename(match.map),

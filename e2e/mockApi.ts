@@ -118,6 +118,11 @@ export interface ApiMock {
   urls: string[]
 }
 
+// On a path-segment boundary: "/api/bracket" must not answer "/api/bracket_games".
+const covers = (path: string, prefix: string) =>
+  path === prefix ||
+  path.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)
+
 export async function mockApi(
   page: Page,
   overrides: Record<string, Body> = {},
@@ -136,7 +141,7 @@ export async function mockApi(
       return route.fulfill({ status: 404, body: "" })
     }
 
-    const override = Object.entries(overrides).find(([p]) => path.startsWith(p))
+    const override = Object.entries(overrides).find(([p]) => covers(path, p))
     if (override) {
       return route.fulfill({
         status: 200,
@@ -145,7 +150,7 @@ export async function mockApi(
       })
     }
 
-    const match = ROUTES.filter(([p]) => path.startsWith(p)).sort(
+    const match = ROUTES.filter(([p]) => covers(path, p)).sort(
       (a, b) => b[0].length - a[0].length,
     )[0]
     if (!match) {

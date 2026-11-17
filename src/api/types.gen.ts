@@ -235,14 +235,6 @@ export type BracketFactionGame = {
      */
     stage: string;
     /**
-     * Roundname
-     */
-    roundName?: string | null;
-    /**
-     * Timestamp
-     */
-    timestamp: Date;
-    /**
      * Winner
      */
     winner: string;

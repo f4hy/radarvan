@@ -38,8 +38,6 @@ class BracketFactionGame(BaseModel):
 
     match_id: int = Field(alias="matchId")
     stage: str
-    round_name: str | None = Field(default=None, alias="roundName")
-    timestamp: datetime
     winner: str
     winner_general: General = Field(alias="winnerGeneral")
     loser: str
