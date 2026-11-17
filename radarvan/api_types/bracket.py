@@ -11,7 +11,7 @@ from pydantic import (
 from datetime import datetime
 from typing import Annotated, Literal
 from .. import bracket as _bracket
-from .common import PlayerName
+from .common import General, PlayerName
 from .matches import MatchInfo
 
 
@@ -29,6 +29,23 @@ class BracketMatchGames(BaseModel):
     match_id: str = Field(alias="matchId")
     linked: list[MatchInfo] = Field(default_factory=list)
     candidates: list[MatchInfo] = Field(default_factory=list)
+
+
+class BracketFactionGame(BaseModel):
+    """One decided 1v1 linked to a bracket set, with both sides' generals."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    match_id: int = Field(alias="matchId")
+    stage: str
+    round_name: str | None = Field(default=None, alias="roundName")
+    timestamp: datetime
+    winner: str
+    winner_general: General = Field(alias="winnerGeneral")
+    loser: str
+    loser_general: General = Field(alias="loserGeneral")
+    # The game's winner went on to lose the set. None while the set is unscored.
+    winner_lost_set: bool | None = Field(default=None, alias="winnerLostSet")
 
 
 class SetBracketGamesRequest(BaseModel):

@@ -221,6 +221,44 @@ export type Body_upload_replay_api_upload_replay_post = {
 };
 
 /**
+ * BracketFactionGame
+ *
+ * One decided 1v1 linked to a bracket set, with both sides' generals.
+ */
+export type BracketFactionGame = {
+    /**
+     * Matchid
+     */
+    matchId: number;
+    /**
+     * Stage
+     */
+    stage: string;
+    /**
+     * Roundname
+     */
+    roundName?: string | null;
+    /**
+     * Timestamp
+     */
+    timestamp: Date;
+    /**
+     * Winner
+     */
+    winner: string;
+    winnerGeneral: General;
+    /**
+     * Loser
+     */
+    loser: string;
+    loserGeneral: General;
+    /**
+     * Winnerlostset
+     */
+    winnerLostSet?: boolean | null;
+};
+
+/**
  * BracketMatchGames
  *
  * The games played for one bracket match, plus what else it could be.
@@ -8310,6 +8348,24 @@ export type getBracketGeneralRecordsApiBracketGeneralRecordsGetResponses = {
 };
 
 export type getBracketGeneralRecordsApiBracketGeneralRecordsGetResponse = getBracketGeneralRecordsApiBracketGeneralRecordsGetResponses[keyof getBracketGeneralRecordsApiBracketGeneralRecordsGetResponses];
+
+export type getBracketFactionGamesApiBracketFactionGamesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/bracket_faction_games';
+};
+
+export type getBracketFactionGamesApiBracketFactionGamesGetResponses = {
+    /**
+     * Response Get Bracket Faction Games Api Bracket Faction Games Get
+     *
+     * Successful Response
+     */
+    200: Array<BracketFactionGame>;
+};
+
+export type getBracketFactionGamesApiBracketFactionGamesGetResponse = getBracketFactionGamesApiBracketFactionGamesGetResponses[keyof getBracketFactionGamesApiBracketFactionGamesGetResponses];
 
 export type getBracketPredictionsApiBracketPredictionsGetData = {
     body?: never;

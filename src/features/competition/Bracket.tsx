@@ -2297,7 +2297,7 @@ export default function DisplayBracket() {
         />
         <Tab
           value="factions"
-          label="Factions"
+          label="Factions & Matchups"
           icon={<FlagIcon />}
           iconPosition="start"
         />

@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from .. import (
     bracket,
+    bracket_factions,
     discord_events,
     general_stats,
     map_stats,
@@ -27,6 +28,7 @@ from .. import (
     tournament_membership,
 )
 from ..api_types import (
+    BracketFactionGame,
     BracketMatchGames,
     BracketMatchOutput,
     BracketPlayerEntry,
@@ -47,7 +49,13 @@ from ..api_types import (
     WinnerOfSource,
 )
 from ..cache import invalidate_match_caches, sorted_deduped_matches
-from ..db import BracketMatchState, BracketTournament, Tournament, User
+from ..db import (
+    BracketMatchState,
+    BracketTournament,
+    Tournament,
+    TournamentGame,
+    User,
+)
 from ..db_utils import ReplayManager
 from ..dependencies import (
     get_bracket_prediction_repo,
@@ -579,25 +587,56 @@ def get_bracket_general_records(
     )
 
 
-def _linked_games(
+@router.get("/api/bracket_faction_games")
+def get_bracket_faction_games(
+    user: User | None = Depends(get_current_user),
+    repo: BracketRepo = Depends(get_bracket_repo),
+    tournament_repo: TournamentRepo = Depends(get_tournament_repo),
+    replay_manager: ReplayManager = Depends(get_replay_manager),
+) -> list[BracketFactionGame]:
+    """Every linked 1v1's two generals, its winner, and whether that winner lost the set."""
+    tournament_row = repo.get_active()
+    if tournament_row is None:
+        return []
+    links = _visible_links(tournament_row, user, tournament_repo)
+    if not links:
+        return []
+    resolved = resolve_from_states(
+        tournament_row, repo.get_match_states(tournament_row.id)
+    )
+    return bracket_factions.bracket_faction_games(
+        links,
+        sorted_deduped_matches(replay_manager),
+        {m.match_id: m.winner for m in resolved.matches},
+    )
+
+
+def _visible_links(
     tournament_row: BracketTournament,
     user: User | None,
     tournament_repo: TournamentRepo,
-    replay_manager: ReplayManager,
-) -> list[MatchInfo]:
-    """Every game linked to the bracket - none before reveal, since they name who played whom."""
+) -> list[TournamentGame]:
+    """The bracket's game links - none before reveal, since they name who played whom."""
     is_admin = user is not None and player_ids.is_tournament_admin(user.discord_id)
     if not is_revealed(tournament_row, allow_preview=is_admin):
         return []
     parent = tournament_for_bracket(tournament_row, tournament_repo)
     if parent is None:
         return []
+    return tournament_repo.list_links(parent.id)
+
+
+def _linked_games(
+    tournament_row: BracketTournament,
+    user: User | None,
+    tournament_repo: TournamentRepo,
+    replay_manager: ReplayManager,
+) -> list[MatchInfo]:
+    links = _visible_links(tournament_row, user, tournament_repo)
+    if not links:
+        return []
     known = sorted_deduped_matches(replay_manager)
-    return [
-        known[link.match_id]
-        for link in tournament_repo.list_links(parent.id)
-        if link.match_id in known
-    ]
+    return [known[link.match_id] for link in links if link.match_id in known]
 
 
 def _prediction_is_open(

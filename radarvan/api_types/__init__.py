@@ -16,6 +16,7 @@ from .auth import (
     SelectPlayerRequest,
 )
 from .bracket import (
+    BracketFactionGame,
     BracketMatchGames,
     BracketMatchOutput,
     BracketMatchPrediction,
@@ -297,6 +298,7 @@ __all__ = [
     "AdminUser",
     "AuthStatus",
     "BackfillMapCrcsResponse",
+    "BracketFactionGame",
     "BracketMatchGames",
     "BracketMatchOutput",
     "BracketMatchPrediction",

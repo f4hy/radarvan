@@ -79,6 +79,8 @@ const ROUTES: [pattern: string, body: Body][] = [
   ["/api/tournament_report/", { stats: [] }],
   ["/api/game_night/", fx.GAME_NIGHT.body],
   ["/api/bracket_eligible_players", ["Skip", "CoreDawg"]],
+  ["/api/bracket_faction_games", []],
+  ["/api/bracket_general_records", []],
   ["/api/bracket_map_records", []],
   ["/api/bracket_predictions", []],
   ["/api/bracket_prediction_leaderboard", []],
