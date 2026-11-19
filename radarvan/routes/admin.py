@@ -52,10 +52,11 @@ from ..dependencies import (
     db_manager,
     get_bracket_repo,
     get_cncstats_client,
+    get_netstats_repo,
     get_replay_manager,
     get_user_repo,
 )
-from ..repositories import BracketRepo, UserRepo
+from ..repositories import BracketRepo, NetstatsRepo, UserRepo
 from ..game_composition import GameComposition
 
 logger = structlog.get_logger(__name__)
@@ -143,6 +144,18 @@ async def match_netstats(
     if not report.players:
         raise HTTPException(status_code=404, detail="No client logs for this match")
     return report
+
+
+@session_router.post("/api/admin/netstats/reset", dependencies=OPS_ADMIN)
+def reset_netstats(
+    background_tasks: BackgroundTasks,
+    repo: NetstatsRepo = Depends(get_netstats_repo),
+) -> dict[str, int]:
+    """Delete every stored netstats summary and refetch those matches in the background."""
+    match_ids = repo.delete_all()
+    background_tasks.add_task(schedule.refetch_netstats, db_manager, match_ids)
+    logger.info("cleared netstats", deleted=len(match_ids))
+    return {"deleted": len(match_ids)}
 
 
 @router.get("/api/debug/json_url/{match_id}")

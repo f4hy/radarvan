@@ -100,3 +100,12 @@ def test_unparseable_logs_are_marked_not_raised():
     repo = _Repo([NetstatsWork(SEED, 0)])
     netstats_sync.sync_netstats(repo, _Client({SEED: b"not a zip"}), _Store(), NOW)
     assert repo.rows[SEED][0] == NetstatsStatus.PARSE_ERROR
+
+
+def test_refetch_restarts_attempts_and_falls_back_to_the_archive():
+    store = _Store({netstats_sync.netstats_s3_uri(SEED): GOOD})
+    repo = _Repo([])
+    result = netstats_sync.refetch_netstats(repo, _Client({}), store, [SEED, 7])
+    assert repo.rows[SEED][0] == NetstatsStatus.OK and repo.rows[SEED][3] == 1
+    assert repo.rows[7][0] == NetstatsStatus.NO_LOGS and repo.rows[7][3] == 1
+    assert result == {"ok": 1, "no_logs": 1}

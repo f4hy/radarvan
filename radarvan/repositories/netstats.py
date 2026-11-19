@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 import structlog
 from pydantic import ValidationError
-from sqlalchemy import func
+from sqlalchemy import delete, func
 
 from ..api_types import NetstatsSummary
 from ..db import Match, MatchNetstatsRow, NetstatsStatus
@@ -79,6 +79,16 @@ class NetstatsRepo(BaseRepo):
             .all()
         )
         return [NetstatsWork(*r) for r in rows]
+
+    def delete_all(self) -> list[int]:
+        """Drop every row; returns the match ids that had one."""
+        ids = list(
+            self.session.scalars(
+                delete(MatchNetstatsRow).returning(MatchNetstatsRow.match_id)
+            )
+        )
+        self._commit_if_auto()
+        return ids
 
     def save(
         self,

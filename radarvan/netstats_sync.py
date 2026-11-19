@@ -113,3 +113,23 @@ def sync_netstats(
             result["rederived"] += 1
     logger.info("netstats sync done", **result)
     return result
+
+
+def refetch_netstats(
+    repo: NetstatsRepo,
+    client: CncstatsClient,
+    store: s3_store.S3Store,
+    match_ids: list[int],
+) -> Counter[str]:
+    """Fetch ``match_ids`` from scratch, whatever their age or attempt count."""
+    result = Counter[str]()
+    for match_id in match_ids:
+        status = _process(
+            repo,
+            NetstatsWork(match_id, 0),
+            lambda m: _fetch_and_archive(client, store, m),
+            fresh=True,
+        )
+        result[status or "fetch_failed"] += 1
+    logger.info("netstats refetch done", **result)
+    return result

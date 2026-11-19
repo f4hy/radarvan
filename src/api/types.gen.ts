@@ -8507,6 +8507,26 @@ export type matchNetstatsApiAdminMatchMatchIdNetstatsGetResponses = {
 
 export type matchNetstatsApiAdminMatchMatchIdNetstatsGetResponse = matchNetstatsApiAdminMatchMatchIdNetstatsGetResponses[keyof matchNetstatsApiAdminMatchMatchIdNetstatsGetResponses];
 
+export type resetNetstatsApiAdminNetstatsResetPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/admin/netstats/reset';
+};
+
+export type resetNetstatsApiAdminNetstatsResetPostResponses = {
+    /**
+     * Response Reset Netstats Api Admin Netstats Reset Post
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: number;
+    };
+};
+
+export type resetNetstatsApiAdminNetstatsResetPostResponse = resetNetstatsApiAdminNetstatsResetPostResponses[keyof resetNetstatsApiAdminNetstatsResetPostResponses];
+
 export type computeMatchCompositionApiMatchesMatchIdCompositionPostData = {
     body?: never;
     path: {

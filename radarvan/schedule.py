@@ -17,6 +17,7 @@ import asyncio
 from . import scrape_games
 from . import s3_store
 from .cncstats_client import cncstats_client
+from .netstats_sync import refetch_netstats as _refetch_netstats
 from .netstats_sync import sync_netstats as _sync_netstats
 from .repositories import NetstatsRepo
 from . import player_profile as player_profile_module
@@ -64,6 +65,17 @@ async def sync_netstats(db_manager: DatabaseManager) -> None:
             NetstatsRepo(replay_manager.session),
             cncstats_client(),
             s3_store.get_store(),
+        )
+
+
+async def refetch_netstats(db_manager: DatabaseManager, match_ids: list[int]) -> None:
+    with db_manager.get_replay_manager() as replay_manager:
+        await asyncio.to_thread(
+            _refetch_netstats,
+            NetstatsRepo(replay_manager.session),
+            cncstats_client(),
+            s3_store.get_store(),
+            match_ids,
         )
 
 

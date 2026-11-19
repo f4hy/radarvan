@@ -511,6 +511,15 @@ const SECTIONS: readonly TaskSection[] = [
         confirmWord: () => "CLEAR",
       },
       {
+        id: "reset_netstats",
+        title: "Clear and refetch netstats",
+        description:
+          "Delete every stored netstats summary, then refetch each of those matches' client logs from cncstats (falling back to the S3 archive) in the background. Lag flags are missing until it finishes.",
+        method: "POST",
+        path: () => "/api/admin/netstats/reset",
+        confirmWord: () => "CLEAR",
+      },
+      {
         id: "reset_match",
         title: "Reset match",
         description:
