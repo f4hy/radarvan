@@ -87,7 +87,7 @@ def get_map_summary(
     prediction = ml_inference.predict_and_notify_features(
         resolved_map, [(p.name, p.general, p.team) for p in request.players]
     )
-    return map_stats_module.format_map_summary(summary, prediction)
+    return map_stats_module.format_map_summary(summary, request.players, prediction)
 
 
 @router.get("/api/map_match_counts", dependencies=[Depends(cache_short)])
