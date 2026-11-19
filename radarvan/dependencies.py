@@ -167,7 +167,7 @@ async def require_admin_key(
 ADMIN_ONLY = [Depends(require_admin_key)]
 
 
-def has_admin_access(key: str | None = Security(_api_key_header)) -> bool:
+async def has_admin_access(key: str | None = Security(_api_key_header)) -> bool:
     """True when the caller holds an admin-tier API key.
 
     For routes reachable at the normal tier that expose an admin-only *option*
@@ -175,6 +175,10 @@ def has_admin_access(key: str | None = Security(_api_key_header)) -> bool:
     call). Mirrors the dependencies' stances: no keys configured at all, or
     auth not enforced, means everything is permitted.
     """
+    return _is_admin_key(key)
+
+
+def _is_admin_key(key: str | None) -> bool:
     if not _keys_configured():
         return True
     if not ENFORCE_AUTH:
@@ -198,57 +202,61 @@ def get_db_session() -> Generator[Session]:
         session.close()
 
 
-def get_replay_manager(session: Session = Depends(get_db_session)) -> ReplayManager:
+async def get_replay_manager(
+    session: Session = Depends(get_db_session),
+) -> ReplayManager:
     """Dependency that provides a ReplayManager instance."""
     return ReplayManager(session, notify=True)
 
 
-def get_user_repo(session: Session = Depends(get_db_session)) -> UserRepo:
+async def get_user_repo(session: Session = Depends(get_db_session)) -> UserRepo:
     """Dependency that provides a UserRepo instance."""
     return UserRepo(session)
 
 
-def get_map_vote_repo(session: Session = Depends(get_db_session)) -> MapVoteRepo:
+async def get_map_vote_repo(session: Session = Depends(get_db_session)) -> MapVoteRepo:
     """Dependency that provides a MapVoteRepo instance."""
     return MapVoteRepo(session)
 
 
-def get_bracket_repo(session: Session = Depends(get_db_session)) -> BracketRepo:
+async def get_bracket_repo(session: Session = Depends(get_db_session)) -> BracketRepo:
     """Dependency that provides a BracketRepo instance."""
     return BracketRepo(session)
 
 
-def get_bracket_summary_repo(
+async def get_bracket_summary_repo(
     session: Session = Depends(get_db_session),
 ) -> BracketSummaryRepo:
     """Dependency that provides a BracketSummaryRepo instance."""
     return BracketSummaryRepo(session)
 
 
-def get_game_night_summary_repo(
+async def get_game_night_summary_repo(
     session: Session = Depends(get_db_session),
 ) -> GameNightSummaryRepo:
     """Dependency that provides a GameNightSummaryRepo instance."""
     return GameNightSummaryRepo(session)
 
 
-def get_match_blurb_repo(
+async def get_match_blurb_repo(
     session: Session = Depends(get_db_session),
 ) -> MatchBlurbRepo:
     """Dependency that provides a MatchBlurbRepo instance."""
     return MatchBlurbRepo(session)
 
 
-def get_netstats_repo(session: Session = Depends(get_db_session)) -> NetstatsRepo:
+async def get_netstats_repo(session: Session = Depends(get_db_session)) -> NetstatsRepo:
     return NetstatsRepo(session)
 
 
-def get_tournament_repo(session: Session = Depends(get_db_session)) -> TournamentRepo:
+async def get_tournament_repo(
+    session: Session = Depends(get_db_session),
+) -> TournamentRepo:
     """Dependency that provides a TournamentRepo instance."""
     return TournamentRepo(session)
 
 
-def get_bracket_prediction_repo(
+async def get_bracket_prediction_repo(
     session: Session = Depends(get_db_session),
 ) -> BracketPredictionRepo:
     """Dependency that provides a BracketPredictionRepo instance."""
@@ -268,7 +276,7 @@ def get_current_user(
     return repo.get_by_id(user_id)
 
 
-def require_current_user(
+async def require_current_user(
     user: db.User | None = Depends(get_current_user),
 ) -> db.User:
     """Like get_current_user but 401s when no user is authenticated."""
@@ -290,7 +298,7 @@ def _require_logged_in_admin(
     the checks - key short-circuit, then 401, then 403 - can't drift apart
     between them; the status codes are what the auth-notify webhook reports.
     """
-    if has_admin_access(request.headers.get(API_KEY_HEADER)):
+    if _is_admin_key(request.headers.get(API_KEY_HEADER)):
         return
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -298,7 +306,7 @@ def _require_logged_in_admin(
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
-def require_admin_login(
+async def require_admin_login(
     request: Request,
     user: db.User | None = Depends(get_current_user),
 ) -> None:
@@ -322,7 +330,7 @@ def require_admin_login(
     _require_logged_in_admin(request, user, player_ids.is_admin)
 
 
-def get_cncstats_client() -> CncstatsClient:
+async def get_cncstats_client() -> CncstatsClient:
     return cncstats_client()
 
 
@@ -330,7 +338,7 @@ def get_cncstats_client() -> CncstatsClient:
 ADMIN_LOGIN = [Depends(require_admin_login)]
 
 
-def require_ops_admin(
+async def require_ops_admin(
     request: Request,
     user: db.User | None = Depends(get_current_user),
 ) -> None:
@@ -351,7 +359,7 @@ def require_ops_admin(
 OPS_ADMIN = [Depends(require_ops_admin)]
 
 
-def require_dev() -> None:
+async def require_dev() -> None:
     """404s unless running in dev mode (`DEV` env var set).
 
     For routes that must be genuinely unreachable in prod, not just hidden
@@ -362,7 +370,7 @@ def require_dev() -> None:
         raise HTTPException(status_code=404, detail="Not found")
 
 
-def cache_short(response: Response) -> None:
+async def cache_short(response: Response) -> None:
     """Mark a response privately cacheable for 60s.
 
     For stats/listing endpoints derived from match data: fresh-ish is fine, it

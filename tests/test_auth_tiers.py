@@ -145,7 +145,7 @@ def test_nothing_enforced_without_enforce_auth(
     monkeypatch.setattr(dependencies, "ENFORCE_AUTH", False)
     run(verify_api_key(_request(), Response(), None))
     run(require_admin_key(_request(), None))
-    assert has_admin_access(None) is True
+    assert run(has_admin_access(None)) is True
 
 
 def test_no_keys_configured_is_wide_open(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -154,13 +154,13 @@ def test_no_keys_configured_is_wide_open(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(dependencies, "ENFORCE_AUTH", True)
     run(verify_api_key(_request(), Response(), None))
     run(require_admin_key(_request(), None))
-    assert has_admin_access(None) is True
+    assert run(has_admin_access(None)) is True
 
 
 def test_has_admin_access(keys: None) -> None:
-    assert has_admin_access(ADMIN_KEY) is True
-    assert has_admin_access(NORMAL_KEY) is False
-    assert has_admin_access(None) is False
+    assert run(has_admin_access(ADMIN_KEY)) is True
+    assert run(has_admin_access(NORMAL_KEY)) is False
+    assert run(has_admin_access(None)) is False
 
 
 # --- which routes are elevated ---------------------------------------------
@@ -315,27 +315,31 @@ def _admin_discord_id() -> str:
 
 
 def test_require_admin_login_accepts_admin_user(keys: None) -> None:
-    require_admin_login(_request(), User(discord_id=_admin_discord_id()))
+    run(require_admin_login(_request(), User(discord_id=_admin_discord_id())))
 
 
 def test_require_admin_login_rejects_non_admin_user(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_admin_login(_request(), User(discord_id="unprivileged"))
+        run(require_admin_login(_request(), User(discord_id="unprivileged")))
     assert exc.value.status_code == 403
 
 
 def test_claiming_an_admin_player_name_does_not_grant_access(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_admin_login(
-            _request(), User(discord_id="attacker", player_name="Modus")
+        run(
+            require_admin_login(
+                _request(), User(discord_id="attacker", player_name="Modus")
+            )
         )
     assert exc.value.status_code == 403
 
 
 def test_admin_access_survives_a_player_name_change(keys: None) -> None:
-    require_admin_login(
-        _request(),
-        User(discord_id=_admin_discord_id(), player_name="SomeOtherPlayer"),
+    run(
+        require_admin_login(
+            _request(),
+            User(discord_id=_admin_discord_id(), player_name="SomeOtherPlayer"),
+        )
     )
 
 
@@ -360,19 +364,19 @@ def test_current_user_roles_are_computed_from_discord_id(keys: None) -> None:
 def test_require_admin_login_rejects_normal_key_without_session(keys: None) -> None:
     """The key the browser ships is normal-tier - it must not be enough."""
     with pytest.raises(HTTPException) as exc:
-        require_admin_login(_request(key=NORMAL_KEY), None)
+        run(require_admin_login(_request(key=NORMAL_KEY), None))
     assert exc.value.status_code == 401
 
 
 def test_require_admin_login_401s_when_logged_out(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_admin_login(_request(), None)
+        run(require_admin_login(_request(), None))
     assert exc.value.status_code == 401
 
 
 def test_require_admin_login_accepts_admin_key_for_scripts(keys: None) -> None:
     """curl/ops keep working without a session."""
-    require_admin_login(_request(key=ADMIN_KEY), None)
+    run(require_admin_login(_request(key=ADMIN_KEY), None))
 
 
 def test_require_admin_login_open_in_dev(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -380,7 +384,7 @@ def test_require_admin_login_open_in_dev(monkeypatch: pytest.MonkeyPatch) -> Non
     gate here - so local curl and a logged-out DebugData still work."""
     monkeypatch.setattr(dependencies, "API_KEYS_NORMAL", set())
     monkeypatch.setattr(dependencies, "API_KEYS_ADMIN", set())
-    require_admin_login(_request(), None)
+    run(require_admin_login(_request(), None))
 
 
 # --- the ops-admin gate (the control panel) ---------------------------------
@@ -391,7 +395,7 @@ def _ops_admin_discord_id() -> str:
 
 
 def test_require_ops_admin_accepts_ops_admin_user(keys: None) -> None:
-    require_ops_admin(_request(), User(discord_id=_ops_admin_discord_id()))
+    run(require_ops_admin(_request(), User(discord_id=_ops_admin_discord_id())))
 
 
 def test_require_ops_admin_rejects_a_plain_admin(keys: None) -> None:
@@ -400,33 +404,33 @@ def test_require_ops_admin_rejects_a_plain_admin(keys: None) -> None:
     assert non_ops_admins, "no admin outside ops admins left to test the split with"
     for discord_id in non_ops_admins:
         with pytest.raises(HTTPException) as exc:
-            require_ops_admin(_request(), User(discord_id=discord_id))
+            run(require_ops_admin(_request(), User(discord_id=discord_id)))
         assert exc.value.status_code == 403
 
 
 def test_require_ops_admin_rejects_non_admin_user(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_ops_admin(_request(), User(discord_id="unprivileged"))
+        run(require_ops_admin(_request(), User(discord_id="unprivileged")))
     assert exc.value.status_code == 403
 
 
 def test_require_ops_admin_401s_when_logged_out(keys: None) -> None:
     with pytest.raises(HTTPException) as exc:
-        require_ops_admin(_request(), None)
+        run(require_ops_admin(_request(), None))
     assert exc.value.status_code == 401
 
 
 def test_require_ops_admin_rejects_normal_key_without_session(keys: None) -> None:
     """The key the browser ships is normal-tier - it must not be enough."""
     with pytest.raises(HTTPException) as exc:
-        require_ops_admin(_request(key=NORMAL_KEY), None)
+        run(require_ops_admin(_request(key=NORMAL_KEY), None))
     assert exc.value.status_code == 401
 
 
 def test_require_ops_admin_accepts_admin_key_for_scripts(keys: None) -> None:
     """These paths moved off the API-key router; curl with an admin key must
     still reach them, or every ops script breaks."""
-    require_ops_admin(_request(key=ADMIN_KEY), None)
+    run(require_ops_admin(_request(key=ADMIN_KEY), None))
 
 
 def test_ops_admin_is_narrower_than_admin(keys: None) -> None:
