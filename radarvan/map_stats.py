@@ -336,44 +336,73 @@ def _team_h2h(
     )
 
 
-def _format_prediction(p: MatchPrediction) -> str:
-    fav = "A" if p.favored_team == p.team_a else "B"
-    line = (
-        f"AI Predicted winner: Team {fav} ({p.favored_win_prob:.0%}) : "
-        f"A:[{','.join(p.team_a_players)}] vs B:[{','.join(p.team_b_players)}]"
-    )
-    if p.unknown_players:
-        line += f" (unknown to model: {','.join(p.unknown_players)})"
-    return line
+# The in-game display uses a proportional font with no emoji, so stay ASCII and
+# don't rely on column alignment.
+SUMMARY_PLAYERS_PER_LINE = 2
+
+
+def _team_letters(players: list[MapSummaryPlayer]) -> dict[int, str]:
+    # Ascending team id -> A, B, ... matches the model's and _team_h2h's ordering.
+    ids = sorted({p.team for p in players if p.team >= Team.ONE})
+    return {tid: chr(ord("A") + i) for i, tid in enumerate(ids)}
+
+
+def _format_player(
+    record: MapSummaryPlayerGeneralRecord, form: MapSummaryPlayerForm
+) -> str:
+    parts = [record.name, record.general.name]
+    if record.wins or record.losses:
+        parts.append(f"{record.wins}-{record.losses}")
+    if form.map_form or form.general_form:
+        parts.append(f"{form.map_form or '-'}/{form.general_form or '-'}")
+    return " ".join(parts)
 
 
 def format_map_summary(
-    s: MapSummaryResponse, prediction: MatchPrediction | None = None
+    s: MapSummaryResponse,
+    players: list[MapSummaryPlayer],
+    prediction: MatchPrediction | None = None,
 ) -> str:
-    """Render a concise pre-game summary: ML prediction + the most useful history."""
-    lines = [f"{s.map_name}: {s.total_games} games"]
+    letters = _team_letters(players)
+    lines = [f"{s.map_name}: {s.total_games} games played here"]
+    headline = []
     if prediction is not None:
-        lines.append(_format_prediction(prediction))
-    if s.total_games == 0:
-        return "\n".join(lines)
+        fav = letters.get(prediction.favored_team, "A")
+        ai = f"AI favors Team {fav} ({prediction.favored_win_prob:.0%})"
+        if prediction.unknown_players:
+            ai += f", new to it: {', '.join(prediction.unknown_players)}"
+        headline.append(ai)
     if s.team_h2h:
         h = s.team_h2h
+        headline.append(f"These teams here: A {h.team1_wins}-{h.team2_wins} B")
+    if headline:
+        lines.append(" | ".join(headline))
+
+    # With no history here there are no records, but the rosters still say who
+    # "Team A" and "Team B" are.
+    has_history = s.total_games > 0
+    entries_by_player = (
+        [
+            _format_player(record, form)
+            for record, form in zip(
+                s.player_general_records, s.recent_form, strict=True
+            )
+        ]
+        if has_history
+        else [f"{p.name} {p.general.name}" for p in players]
+    )
+    by_team: dict[str, list[str]] = defaultdict(list)
+    for p, entry in zip(players, entries_by_player, strict=True):
+        by_team[letters.get(p.team, "")].append(entry)
+    for letter in sorted(by_team):
+        entries = by_team[letter]
+        label = f"{letter}: " if letter else ""
+        for i in range(0, len(entries), SUMMARY_PLAYERS_PER_LINE):
+            chunk = entries[i : i + SUMMARY_PLAYERS_PER_LINE]
+            lines.append(label + " | ".join(chunk))
+    if has_history:
         lines.append(
-            f"h2h here: [{','.join(h.team1)}] {h.team1_wins}-{h.team2_wins} "
-            f"[{','.join(h.team2)}]"
+            f"(record here with this general; last {RECENT_RESULTS_LIMIT} here / "
+            f"last {RECENT_RESULTS_LIMIT} with this general, newest last)"
         )
-    if s.player_general_records:
-        recs = ", ".join(
-            f"{r.name}[{r.general.name}] {r.wins}-{r.losses}"
-            for r in s.player_general_records
-        )
-        lines.append(f"player records here: {recs}")
-    form_lines = [
-        f"{f.name}: {f.map_form or '-'} - {f.general_form or '-'}"
-        for f in s.recent_form
-        if f.map_form or f.general_form
-    ]
-    if form_lines:
-        lines.append("recent results on map - recent results on selected general:")
-        lines.extend(form_lines)
     return "\n".join(lines)
