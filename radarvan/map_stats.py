@@ -377,22 +377,32 @@ def format_map_summary(
         headline.append(f"These teams here: A {h.team1_wins}-{h.team2_wins} B")
     if headline:
         lines.append(" | ".join(headline))
-    if s.total_games == 0:
-        return "\n".join(lines)
 
+    # With no history here there are no records, but the rosters still say who
+    # "Team A" and "Team B" are.
+    has_history = s.total_games > 0
+    entries_by_player = (
+        [
+            _format_player(record, form)
+            for record, form in zip(
+                s.player_general_records, s.recent_form, strict=True
+            )
+        ]
+        if has_history
+        else [f"{p.name} {p.general.name}" for p in players]
+    )
     by_team: dict[str, list[str]] = defaultdict(list)
-    for p, record, form in zip(
-        players, s.player_general_records, s.recent_form, strict=True
-    ):
-        by_team[letters.get(p.team, "")].append(_format_player(record, form))
+    for p, entry in zip(players, entries_by_player, strict=True):
+        by_team[letters.get(p.team, "")].append(entry)
     for letter in sorted(by_team):
         entries = by_team[letter]
         label = f"{letter}: " if letter else ""
         for i in range(0, len(entries), SUMMARY_PLAYERS_PER_LINE):
             chunk = entries[i : i + SUMMARY_PLAYERS_PER_LINE]
             lines.append(label + " | ".join(chunk))
-    lines.append(
-        f"(record here with this general; last {RECENT_RESULTS_LIMIT} here / "
-        f"last {RECENT_RESULTS_LIMIT} with this general, newest last)"
-    )
+    if has_history:
+        lines.append(
+            f"(record here with this general; last {RECENT_RESULTS_LIMIT} here / "
+            f"last {RECENT_RESULTS_LIMIT} with this general, newest last)"
+        )
     return "\n".join(lines)
