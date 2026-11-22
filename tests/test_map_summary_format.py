@@ -59,10 +59,13 @@ def _summary() -> MapSummaryResponse:
 
 
 def test_groups_players_by_team_two_per_line() -> None:
-    text = format_map_summary(_summary(), PLAYERS, _prediction(favored_team=2))
+    text = format_map_summary(
+        _summary(), PLAYERS, _prediction(favored_team=2), rating_prob_team_a=0.45
+    )
     assert text.splitlines() == [
         "Desert: 5 games played here",
-        "AI favors Team B (62%) | These teams here: A 3-2 B",
+        "Balance favors Team B (55%) | AI w/ generals+map: Team B (62%) | "
+        "These teams here: A 3-2 B",
         "A: Pancake AIR -/WLW | Zed NUKE L/-",
         "B: Kronos STEALTH 1-2 WWL/LW | Toaster SUPER 2-1",
         "(record here with this general; last 5 here / "
@@ -76,7 +79,7 @@ def test_new_map_still_says_who_is_on_each_team() -> None:
     text = format_map_summary(empty, PLAYERS, _prediction(favored_team=1))
     assert text.splitlines() == [
         "Desert: 0 games played here",
-        "AI favors Team A (62%)",
+        "AI w/ generals+map: Team A (62%)",
         "A: Pancake AIR | Zed NUKE",
         "B: Kronos STEALTH | Toaster SUPER",
     ]

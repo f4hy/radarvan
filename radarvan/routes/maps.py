@@ -6,6 +6,7 @@ from typing import NamedTuple
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from .. import create_teams
 from .. import map_stats as map_stats_module
 from .. import ml_inference
 from .. import missing_maps as missing_maps_module
@@ -19,9 +20,11 @@ from ..api_types import (
     MapStatsResponse,
     MapsByPlayerCount,
     MapSummaryRequest,
+    MatchInfo,
     MissingMapInfo,
     BackfillMapCrcsResponse,
     PushMapResult,
+    Team,
     PushMapsResponse,
     ReparseMapResult,
     ReparseMapsResponse,
@@ -78,16 +81,33 @@ def get_map_summary(
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> str:
     """Return a pre-game summary: map history, team h2h, and per-player records."""
-    games = competitive_matches(replay_manager)
-    summary = map_stats_module.map_summary(
-        list(games.values()), request.map_name, request.players
-    )
+    games = list(competitive_matches(replay_manager).values())
+    summary = map_stats_module.map_summary(games, request.map_name, request.players)
     # Best-effort win prediction for this hypothetical matchup (notifies result).
     resolved_map = replay_manager.resolve_map_name(request.map_name) or request.map_name
     prediction = ml_inference.predict_and_notify_features(
         resolved_map, [(p.name, p.general, p.team) for p in request.players]
     )
-    return map_stats_module.format_map_summary(summary, request.players, prediction)
+    return map_stats_module.format_map_summary(
+        summary, request.players, prediction, _rating_prob_team_a(games, request)
+    )
+
+
+def _rating_prob_team_a(
+    games: list[MatchInfo], request: MapSummaryRequest
+) -> float | None:
+    """P(Team A wins) from the same split scores /api/balance_teams/ uses."""
+    teams = sorted({p.team for p in request.players if p.team >= Team.ONE})
+    if len(teams) != 2:
+        return None
+    team_a = {p.name for p in request.players if p.team == teams[0]}
+    roster = frozenset(p.name for p in request.players)
+    for team, win_prob in create_teams.balance_teams(games, roster).items():
+        if set(team) == team_a:
+            return win_prob
+        if set(team) == roster - team_a:
+            return 1 - win_prob
+    return None
 
 
 @router.get("/api/map_match_counts", dependencies=[Depends(cache_short)])

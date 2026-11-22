@@ -362,13 +362,21 @@ def format_map_summary(
     s: MapSummaryResponse,
     players: list[MapSummaryPlayer],
     prediction: MatchPrediction | None = None,
+    rating_prob_team_a: float | None = None,
 ) -> str:
     letters = _team_letters(players)
     lines = [f"{s.map_name}: {s.total_games} games played here"]
     headline = []
+    if rating_prob_team_a is not None:
+        fav, prob = (
+            ("A", rating_prob_team_a)
+            if rating_prob_team_a >= 0.5
+            else ("B", 1 - rating_prob_team_a)
+        )
+        headline.append(f"Balance favors Team {fav} ({prob:.0%})")
     if prediction is not None:
         fav = letters.get(prediction.favored_team, "A")
-        ai = f"AI favors Team {fav} ({prediction.favored_win_prob:.0%})"
+        ai = f"AI w/ generals+map: Team {fav} ({prediction.favored_win_prob:.0%})"
         if prediction.unknown_players:
             ai += f", new to it: {', '.join(prediction.unknown_players)}"
         headline.append(ai)
