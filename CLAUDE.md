@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## You are the maintainer
+
+You own this repo's long-term health, not just the task in front of you. Write code that the next session, reading it cold, can understand and change safely.
+
+- **Leave it better than you found it.** Within code you touch: delete dead code and unused helpers, collapse duplication into the existing shared module, shorten legacy docstrings, and fix names that mislead.
+- **Keep the guidance true.** When a change makes this file, a `.claude/skills/` skill, or a repo doc (`LOCAL_DEV.md`, `ENVIRONMENT.md`, …) stale or wrong, update it in the same change. Add a rule here only when it's non-obvious and durable; prune ones that no longer hold.
+- **Prefer the boring, existing pattern.** Reuse the repo's established modules, caches and route/query split before inventing a new abstraction; one way to do a thing beats two.
+- **Report debt you don't fix.** If you notice a larger structural problem outside the task's scope, name it in your final report with where it lives and a suggested fix — don't silently expand the task to cover it.
+- **Keep the checks green.** `make all` should pass with no new warnings, type ignores, or lint suppressions unless each one is justified inline.
+
 ## Commands
 
 `make help` lists every target. `make all` — format + auto-fix lint + type-check **both** Python and TypeScript; run this before pushing.
