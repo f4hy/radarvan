@@ -51,7 +51,7 @@ from .routes import (
     tournaments,
     votes,
 )
-from .tracing import configure_tracing
+from .tracing import configure_tracing, record_process_start, record_process_stop
 
 logger = structlog.get_logger(__name__)
 
@@ -65,7 +65,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     replay_files.test_connection()
     logger.info("connection tested")
     warm_caches()
+    record_process_start()
     yield
+    record_process_stop()
     logger.info("goodbye!")
 
 
