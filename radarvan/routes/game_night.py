@@ -29,6 +29,7 @@ from ..api_types import (
     GameNightSummaryStatus,
     MatchBlurbBackfill,
     MatchBlurbRun,
+    NightNetstats,
 )
 from ..commentary import llm, match_blurb, night_summary
 from ..dependencies import (
@@ -37,9 +38,10 @@ from ..dependencies import (
     db_manager,
     get_game_night_summary_repo,
     get_match_blurb_repo,
+    get_netstats_repo,
 )
 from ..queries import AllGames, UnfilteredCompetitiveGames
-from ..repositories import GameNightSummaryRepo, MatchBlurbRepo
+from ..repositories import GameNightSummaryRepo, MatchBlurbRepo, NetstatsRepo
 
 logger = structlog.get_logger(__name__)
 
@@ -94,6 +96,16 @@ async def get_game_night_recap(
             "ai_summary_computed_at": stored.computed_at,
         }
     return recap.model_copy(update=update)
+
+
+@router.get("/api/game_night_netstats/{night}", dependencies=[Depends(cache_short)])
+def get_game_night_netstats(
+    night: date,
+    all_games: AllGames,
+    netstats: NetstatsRepo = Depends(get_netstats_repo),
+) -> NightNetstats:
+    """Who the night spent its freezes and stutter waiting on, over the games with client logs."""
+    return queries.night_netstats(night, all_games, netstats)
 
 
 @router.get("/api/game_night_summaries", dependencies=[Depends(cache_short)])

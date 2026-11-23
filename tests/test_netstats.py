@@ -12,6 +12,8 @@ from radarvan.lag_flags import (
     lag_flags,
 )
 from radarvan.netstats import parse_match_netstats
+from radarvan.queries.netstats import roll_up
+from tests.corpus import match
 
 SEED = 51399702
 
@@ -222,3 +224,28 @@ def test_thresholds_come_from_the_environment(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("CONNECTION_MIN_MS", "1")
     assert Thresholds.from_env("POTATO", POTATO_DEFAULTS).min_share == 0.9
     assert Thresholds.from_env("CONNECTION", CONNECTION_DEFAULTS).min_ms == 1
+
+
+def test_night_roll_up_sums_each_player_and_counts_flags():
+    games = {1: match(1, day=5, duration_minutes=17.6), 2: match(2, day=5)}
+    stutter = NetstatsSummary(
+        roster=[
+            _slot(0, "Pancake", freeze_ms=24000, stall_ms=48000),
+            _slot(1, "Neo", freeze_ms=7900, stall_ms=163000),
+            _slot(2, "Modus", freeze_ms=4400, stall_ms=1000),
+            _slot(3, "OneThree111", freeze_ms=7900, stall_ms=6000),
+        ]
+    )
+    unseen = _slot(1, "Neo").model_copy(update={"views": 0, "has_logs": False})
+    quiet = NetstatsSummary(roster=[_slot(0, "Neo", stall_ms=900), unseen])
+
+    night = roll_up(games, {1: stutter, 2: quiet})
+
+    assert (night.match_count, night.logged_matches) == (2, 2)
+    assert night.logged_minutes == 32.6
+    assert night.players[0].name == "Neo"
+    neo = night.players[0]
+    # The views == 0 slot is no reading at all, so it adds no game.
+    assert (neo.games, neo.stall_ms, neo.potato_flags) == (2, 163900, 1)
+    assert night.stall_ms == 163900 + 48000 + 1000 + 6000
+    assert next(p for p in night.players if p.name == "Pancake").connection_flags == 1

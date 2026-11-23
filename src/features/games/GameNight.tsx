@@ -3,6 +3,7 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos"
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome"
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import SignalWifiBadIcon from "@mui/icons-material/SignalWifiBad"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -28,10 +29,15 @@ import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
 import {
   getDatesApiDatesGetOptions,
+  getGameNightNetstatsApiGameNightNetstatsNightGetOptions,
   getGameNightRecapApiGameNightNightGetOptions,
   getMatchesByDateApiMatchesByDateDateGetOptions,
 } from "../../api/@tanstack/react-query.gen"
-import type { GameNightHighlight, GameNightRecap } from "../../api/types.gen"
+import type {
+  GameNightHighlight,
+  GameNightRecap,
+  NightNetstats,
+} from "../../api/types.gen"
 import { AiBlurb, renderAiText } from "../../components/aiText"
 import Loading from "../../components/Loading"
 import MatchActivityCalendar from "../../components/MatchActivityCalendar"
@@ -459,6 +465,140 @@ function GameByGame(props: {
   )
 }
 
+function waitTime(ms: number): string {
+  const s = Math.round(ms / 1000)
+  if (s < 60) return `${s}s`
+  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`
+}
+
+function FlagCount(props: { count: number; children: React.ReactNode }) {
+  if (props.count === 0) return null
+  return (
+    <Box component="span" sx={{ display: "inline-flex", alignItems: "center" }}>
+      {props.children}
+      {props.count > 1 && (
+        <Typography component="span" variant="caption" sx={{ ml: 0.25 }}>
+          ×{props.count}
+        </Typography>
+      )}
+    </Box>
+  )
+}
+
+const WIDE_ONLY = { display: { xs: "none", sm: "table-cell" } }
+
+function NetstatsTable(props: { netstats: NightNetstats }) {
+  return (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Player</TableCell>
+            <TableCell align="right" sx={WIDE_ONLY}>
+              Games
+            </TableCell>
+            <TableCell align="right" sx={WIDE_ONLY}>
+              Freezes
+            </TableCell>
+            <TableCell align="right">Frozen</TableCell>
+            <TableCell align="right">Stutter</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {props.netstats.players.map((p) => (
+            <TableRow key={p.name} hover>
+              <TableCell>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center" }}
+                >
+                  <PlayerChip name={p.name} size="small" />
+                  <FlagCount count={p.connectionFlags}>
+                    <SignalWifiBadIcon
+                      role="img"
+                      aria-label="Poor connection"
+                      fontSize="small"
+                      sx={{ color: "warning.main" }}
+                    />
+                  </FlagCount>
+                  <FlagCount count={p.potatoFlags}>
+                    <Box
+                      component="span"
+                      role="img"
+                      aria-label="PC couldn't keep up"
+                    >
+                      🥔
+                    </Box>
+                  </FlagCount>
+                </Stack>
+              </TableCell>
+              <TableCell align="right" sx={WIDE_ONLY}>
+                {p.games}
+              </TableCell>
+              <TableCell align="right" sx={WIDE_ONLY}>
+                {p.freezes}
+              </TableCell>
+              <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                {waitTime(p.freezeMs)}
+              </TableCell>
+              <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                {waitTime(p.stallMs)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+// Collapsed by default: a diagnostics panel, not a highlight. Only recent
+// games have client logs, so nights without any render nothing at all.
+function NightLag(props: { date: string }) {
+  const query = useQuery(
+    getGameNightNetstatsApiGameNightNetstatsNightGetOptions({
+      path: { night: new Date(props.date) },
+    }),
+  )
+  const netstats = query.data
+  if (!netstats || netstats.loggedMatches === 0) return null
+  const coverage =
+    netstats.loggedMatches === netstats.matchCount
+      ? `all ${netstats.matchCount} games`
+      : `${netstats.loggedMatches} of ${netstats.matchCount} games`
+  return (
+    <Accordion slotProps={{ transition: { unmountOnExit: true } }}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+        >
+          <Typography sx={{ fontWeight: 600 }}>Lag &amp; stutter</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {waitTime(netstats.freezeMs + netstats.stallMs)} waiting over{" "}
+            {Math.round(netstats.loggedMinutes)} min played
+          </Typography>
+        </Stack>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Stack spacing={1}>
+          <Typography variant="caption" color="text.secondary">
+            From the players' client logs, covering {coverage}. Times are how
+            long everyone else waited on that player. A freeze is a stop of half
+            a second or more, usually a connection. Stutter is constant short
+            waits on a PC that can't keep up. An icon marks each game where one
+            player clearly caused most of it.
+          </Typography>
+          <NetstatsTable netstats={netstats} />
+        </Stack>
+      </AccordionDetails>
+    </Accordion>
+  )
+}
+
 export default function GameNight() {
   // In the URL, like `date` below — so "Match of the night" is a link that
   // lands directly on that game, expanded, not just "the right evening".
@@ -715,6 +855,8 @@ export default function GameNight() {
                 />
               ))}
             </Stack>
+
+            <NightLag date={recap.date.toISOString().slice(0, 10)} />
 
             <GameByGame
               date={recap.date.toISOString().slice(0, 10)}

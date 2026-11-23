@@ -114,3 +114,31 @@ class MatchLagFlags(BaseModel):
 
     potato: LagFlag | None = None
     connection: LagFlag | None = None
+
+
+class NightNetstatsPlayer(BaseModel):
+    """One player's share of a night's waiting, summed over their logged games."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str
+    games: int
+    freezes: int
+    freeze_ms: int = Field(alias="freezeMs")
+    stalls: int
+    stall_ms: int = Field(alias="stallMs")
+    connection_flags: int = Field(alias="connectionFlags")
+    potato_flags: int = Field(alias="potatoFlags")
+
+
+class NightNetstats(BaseModel):
+    """A night's netstats rolled up; only `logged_matches` of `match_count` had logs."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    match_count: int = Field(alias="matchCount")
+    logged_matches: int = Field(alias="loggedMatches")
+    logged_minutes: float = Field(alias="loggedMinutes")
+    freeze_ms: int = Field(alias="freezeMs")
+    stall_ms: int = Field(alias="stallMs")
+    players: list[NightNetstatsPlayer]

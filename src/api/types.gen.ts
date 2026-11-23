@@ -3140,6 +3140,78 @@ export type NetstatSample = {
 };
 
 /**
+ * NightNetstats
+ *
+ * A night's netstats rolled up; only `logged_matches` of `match_count` had logs.
+ */
+export type NightNetstats = {
+    /**
+     * Matchcount
+     */
+    matchCount: number;
+    /**
+     * Loggedmatches
+     */
+    loggedMatches: number;
+    /**
+     * Loggedminutes
+     */
+    loggedMinutes: number;
+    /**
+     * Freezems
+     */
+    freezeMs: number;
+    /**
+     * Stallms
+     */
+    stallMs: number;
+    /**
+     * Players
+     */
+    players: Array<NightNetstatsPlayer>;
+};
+
+/**
+ * NightNetstatsPlayer
+ *
+ * One player's share of a night's waiting, summed over their logged games.
+ */
+export type NightNetstatsPlayer = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Games
+     */
+    games: number;
+    /**
+     * Freezes
+     */
+    freezes: number;
+    /**
+     * Freezems
+     */
+    freezeMs: number;
+    /**
+     * Stalls
+     */
+    stalls: number;
+    /**
+     * Stallms
+     */
+    stallMs: number;
+    /**
+     * Connectionflags
+     */
+    connectionFlags: number;
+    /**
+     * Potatoflags
+     */
+    potatoFlags: number;
+};
+
+/**
  * ObjectSummary
  */
 export type ObjectSummary = {
@@ -7766,6 +7838,36 @@ export type getGameNightRecapApiGameNightNightGetResponses = {
 };
 
 export type getGameNightRecapApiGameNightNightGetResponse = getGameNightRecapApiGameNightNightGetResponses[keyof getGameNightRecapApiGameNightNightGetResponses];
+
+export type getGameNightNetstatsApiGameNightNetstatsNightGetData = {
+    body?: never;
+    path: {
+        /**
+         * Night
+         */
+        night: Date;
+    };
+    query?: never;
+    url: '/api/game_night_netstats/{night}';
+};
+
+export type getGameNightNetstatsApiGameNightNetstatsNightGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type getGameNightNetstatsApiGameNightNetstatsNightGetError = getGameNightNetstatsApiGameNightNetstatsNightGetErrors[keyof getGameNightNetstatsApiGameNightNetstatsNightGetErrors];
+
+export type getGameNightNetstatsApiGameNightNetstatsNightGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: NightNetstats;
+};
+
+export type getGameNightNetstatsApiGameNightNetstatsNightGetResponse = getGameNightNetstatsApiGameNightNetstatsNightGetResponses[keyof getGameNightNetstatsApiGameNightNetstatsNightGetResponses];
 
 export type listGameNightSummariesApiGameNightSummariesGetData = {
     body?: never;
