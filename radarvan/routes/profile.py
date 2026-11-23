@@ -13,12 +13,13 @@ import structlog
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from .. import player_profile, player_stats, player_synergy
+from .. import player_profile
 from ..api_types import PlayerName, PlayerProfile
-from ..cache import competitive_matches, sorted_deduped_matches
+from ..cache import competitive_matches
 from ..db_utils import ReplayManager
 from ..dependencies import OPS_ADMIN, cache_short, db_manager, get_replay_manager
 from ..notify import notify_async
+from ..queries import players as query_players
 
 logger = structlog.get_logger(__name__)
 
@@ -47,25 +48,9 @@ def get_player_profile(
     player: PlayerName,
     replay_manager: ReplayManager = Depends(get_replay_manager),
 ) -> PlayerProfile:
-    """Full profile for one player.
-
-    ``computed`` is None until the batch recompute has run at the current
-    PROFILE_VERSION (nightly, or via POST /api/player_profile/recompute).
-    """
-    # Same game set as the Player Stats page so the record and per-general
-    # numbers on both pages agree. Synergy keeps the competitive set - that's
-    # the population its (cached) model is fit on for every other endpoint.
-    games = [
-        g
-        for g in sorted_deduped_matches(replay_manager).values()
-        if player_stats.stats_game_filter(g)
-    ]
-    synergy_pairs = player_synergy.compute_player_synergy(
-        list(competitive_matches(replay_manager).values())
-    )
-    profile = player_profile.compute_live_profile(games, player, synergy_pairs)
-    computed = replay_manager.get_player_profile(player, player_profile.PROFILE_VERSION)
-    return profile.model_copy(update={"computed": computed})
+    """Full profile for one player; ``computed`` is None until the batch
+    recompute has run at the current PROFILE_VERSION."""
+    return query_players.player_profile_payload(replay_manager, player)
 
 
 async def _do_recompute(replay_manager: ReplayManager) -> int:

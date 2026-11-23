@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, ConfigDict
 from .common import (
     General,
@@ -145,15 +147,31 @@ class FirstBlood(BaseModel):
     atMinute: Minute
 
 
+# Closed so a misspelt comparison is a mypy comparison-overlap error and the
+# frontend's EVENT_TYPES must cover every member (a tsc error otherwise).
+TimelineEventType = Literal[
+    "upgrade",
+    "rank_up",
+    "generals_power",
+    "superweapon_built",
+    "superweapon_activated",
+    "search_and_destroy",
+    "low_power",
+    "hunted",
+    "unhunted",
+    "player_eliminated",
+    "tech_capture",
+    "first_radar",
+]
+
+
 class TimelineEvent(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     player_name: str = Field(alias="playerName")
     at_minute: Minute = Field(alias="atMinute")
     event_name: str = Field(alias="eventName")
-    # One of: "upgrade", "rank_up", "generals_power",
-    # "superweapon_built", "superweapon_activated".
-    event_type: str = Field(alias="eventType")
+    event_type: TimelineEventType = Field(alias="eventType")
     cost: int = 0
 
 

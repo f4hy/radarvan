@@ -78,6 +78,7 @@ from .details import (
     PlayerSummary,
     Spent,
     TimelineEvent,
+    TimelineEventType,
     UpgradeEvent,
     Upgrades,
 )
@@ -513,6 +514,7 @@ __all__ = [
     "TeamStatsResponse",
     "TeammateProfileStat",
     "TimelineEvent",
+    "TimelineEventType",
     "Tournament",
     "TournamentInfo",
     "TournamentReport",

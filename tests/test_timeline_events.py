@@ -10,10 +10,12 @@ fresh clone / CI).
 
 import json
 from pathlib import Path
+from typing import get_args
 
 import pytest
+from pydantic import ValidationError
 
-from radarvan.api_types import TimelineEvent
+from radarvan.api_types import TimelineEvent, TimelineEventType
 from radarvan.cncstats_model.header import GeneralsHeader, Metadata
 from radarvan.cncstats_model.statsfile import HuntedEvent, TimeSeries
 from radarvan.cncstats_model.zhreplay import (
@@ -105,8 +107,20 @@ def test_timeline_returns_flat_list_of_timeline_events(
         assert isinstance(e.player_name, str) and e.player_name
         assert isinstance(e.at_minute, float)
         assert isinstance(e.event_name, str) and e.event_name
-        assert isinstance(e.event_type, str) and e.event_type
+        assert e.event_type in get_args(TimelineEventType)
         assert isinstance(e.cost, int)
+
+
+def test_timeline_event_rejects_unknown_type() -> None:
+    with pytest.raises(ValidationError):
+        TimelineEvent.model_validate(
+            {
+                "playerName": "p",
+                "atMinute": 1.0,
+                "eventName": "x",
+                "eventType": "superweapon_activate",
+            }
+        )
 
 
 @_skip_no_fixture

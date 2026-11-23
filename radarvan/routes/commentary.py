@@ -44,13 +44,13 @@ from ..dependencies import (
     get_tournament_repo,
     has_admin_access,
 )
+from ..queries import bracket as query_bracket
 from ..repositories import (
     BracketRepo,
     BracketSummaryRepo,
     MatchupCommentaryRepo,
     TournamentRepo,
 )
-from . import bracket as bracket_routes
 
 logger = structlog.get_logger(__name__)
 
@@ -285,22 +285,21 @@ def _recappable_set(
     last check is the point of the whole gate - a recap written off three of
     a five-game set would describe a sweep that never happened.
 
-    Both reads go through the bracket route handlers rather than the repos
-    directly, for the reason ``matchup_commentary._tournament_inputs``
-    documents: ``get_bracket`` owns the pre-reveal redaction, and
-    ``get_bracket_games`` owns which games count. ``user=None`` (never an
-    admin preview) is deliberate - one cached recap is served to everyone, so
-    it must only ever be built from what everyone can already see.
+    Both reads go through ``queries.bracket``, which owns the pre-reveal
+    redaction and which games count. ``allow_preview=False`` is deliberate -
+    one cached recap is served to everyone, so it must only ever be built
+    from what everyone can already see.
     """
-    tournament_row, _raw_states, _result, _resolved = bracket_routes.load_match(
-        repo, match_id
-    )
-    parent = bracket_routes.tournament_for_bracket(tournament_row, tournament_repo)
+    try:
+        loaded = query_bracket.load_match(repo, match_id)
+    except query_bracket.BracketMatchNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    parent = query_bracket.tournament_for_bracket(loaded.tournament, tournament_repo)
     if parent is None:
         return None
-    output = bracket_routes.get_bracket(preview=False, user=None, repo=repo)
-    if output is None:
-        return None
+    output = query_bracket.build_output_from_states(
+        loaded.tournament, loaded.raw_states
+    )
     match = next((m for m in output.matches if m.match_id == match_id), None)
     if match is None or match.status != "completed":
         return None
@@ -309,12 +308,8 @@ def _recappable_set(
     if match.score_a is None or match.score_b is None:
         return None
 
-    games = bracket_routes.get_bracket_games(
-        match_id,
-        user=None,
-        repo=repo,
-        tournament_repo=tournament_repo,
-        replay_manager=replay_manager,
+    games = query_bracket.match_games(
+        loaded, tournament_repo, replay_manager, allow_preview=False
     ).linked
     if len(games) < match.score_a + match.score_b:
         return None

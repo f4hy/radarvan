@@ -1,11 +1,11 @@
-"""`matches.matches_differ` field-by-field comparison.
+"""`radarvan.matches`: incomplete detection, `matches_differ`, and how a
+`WinnerOverride` reshapes `match_to_matchinfo`.
 
-`matches_differ` only reads plain attributes off the two match objects and off
-each player in `.players` (see `radarvan/matches.py`), so lightweight
-`SimpleNamespace` stand-ins are sufficient (mirrors `tests/test_rating_upsets`).
+These functions only read plain attributes off the match/player objects, so
+lightweight `SimpleNamespace` stand-ins are sufficient.
 """
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -18,7 +18,14 @@ from radarvan.cncstats_model.zhreplay import (
     EnrichedStats,
     PlayerSummaryV2,
 )
-from radarvan.matches import filter_by_months_back, is_incomplete, matches_differ
+from radarvan.api_types import General, Player, Team
+from radarvan.matches import (
+    determine_winner,
+    filter_by_months_back,
+    is_incomplete,
+    match_to_matchinfo,
+    matches_differ,
+)
 from radarvan.player_role import PlayerRole
 
 
@@ -330,3 +337,107 @@ def test_filter_by_months_back_boundary_is_inclusive() -> None:
     cutoff_day = _game_on(today - timedelta(days=30))
     result = filter_by_months_back([cutoff_day], 1, today=today)
     assert result == [cutoff_day]
+
+
+def _db_match(**overrides: object) -> SimpleNamespace:
+    # A replay-decided 1v1: team 1 (Skip) won.
+    fields: dict[str, object] = {
+        "match_id": 7,
+        "timestamp": datetime(2026, 6, 1, 2, 0, tzinfo=UTC),
+        "replay_json": SimpleNamespace(game_date=date(2026, 5, 31)),
+        "filename": "g.rep",
+        "notes": "replay note",
+        "composition": None,
+        "is_dev": False,
+    }
+    return _match(**(fields | overrides))
+
+
+def _override(
+    winning_team_id: int | None, incomplete: str | None = None
+) -> SimpleNamespace:
+    return SimpleNamespace(winning_team_id=winning_team_id, incomplete=incomplete)
+
+
+def test_matchinfo_without_override_uses_the_replay() -> None:
+    info = match_to_matchinfo(_db_match())
+    assert info.winning_team == Team.ONE
+    assert [(p.name, p.won) for p in info.players] == [("Skip", True), ("131", False)]
+    assert info.notes == "replay note"
+    assert info.date == date(2026, 5, 31)
+    assert info.tournament is None
+
+
+def test_winner_override_flips_winner_and_every_won_flag() -> None:
+    info = match_to_matchinfo(_db_match(), _override(2))
+    assert info.winning_team == Team.TWO
+    assert [(p.name, p.won) for p in info.players] == [("Skip", False), ("131", True)]
+    # An override replaces the replay's incomplete/notes wholesale.
+    assert (info.incomplete, info.notes) == ("", "")
+
+
+def test_incomplete_only_override_keeps_the_replay_winner() -> None:
+    # No winning_team_id must not read as "no team won".
+    info = match_to_matchinfo(_db_match(), _override(None, incomplete="Disconnect"))
+    assert info.winning_team == Team.ONE
+    assert [p.won for p in info.players] == [True, False]
+    assert info.incomplete == "Disconnect"
+
+
+def test_override_can_clear_a_replay_incomplete_flag() -> None:
+    info = match_to_matchinfo(
+        _db_match(incomplete="Desync"), _override(None, incomplete=None)
+    )
+    assert info.incomplete == ""
+
+
+def test_missing_winner_maps_to_team_none() -> None:
+    info = match_to_matchinfo(_db_match(winning_team_id=None))
+    assert info.winning_team == Team.NONE
+
+
+def test_tournament_link_becomes_a_tag() -> None:
+    link = SimpleNamespace(
+        tournament=SimpleNamespace(slug="cup"),
+        stage="W",
+        round_name="Winners Round 1",
+        series_index=2,
+    )
+    info = match_to_matchinfo(_db_match(), None, link)
+    assert info.tournament is not None
+    assert (info.tournament.slug, info.tournament.series_index) == ("cup", 2)
+
+
+def test_match_without_replay_json_is_rejected() -> None:
+    with pytest.raises(ValueError, match="no associated replay JSON"):
+        match_to_matchinfo(_db_match(replay_json=None))
+
+
+def _api_player(name: str, team: Team) -> Player:
+    return Player(name=name, general=General.USA, team=team, color="red")
+
+
+def _summary_replay(*winners: str) -> EnhancedReplayV2:
+    summary = [_summary_player(i, n, 1, True) for i, n in enumerate(winners)]
+    return EnhancedReplayV2.model_construct(summary=summary)
+
+
+def test_winner_is_the_team_of_the_first_summary_winner() -> None:
+    players = [_api_player("A", Team.ONE), _api_player("B", Team.TWO)]
+    assert determine_winner(_summary_replay("B"), players).wining_team == Team.TWO
+
+
+@pytest.mark.parametrize(
+    ("winners", "players", "notes"),
+    [
+        ((), [_api_player("A", Team.ONE)], ""),
+        (("Ghost",), [_api_player("A", Team.ONE)], "Winner not in player list"),
+        # A spectator flagged as winner must not hand the game to "team -1".
+        (("Obs",), [_api_player("Obs", Team.OBSERVER)], "No team won?"),
+    ],
+)
+def test_undecidable_winner_is_team_none(
+    winners: tuple[str, ...], players: list[Player], notes: str
+) -> None:
+    result = determine_winner(_summary_replay(*winners), players)
+    assert (result.wining_team, result.notes) == (Team.NONE, notes)

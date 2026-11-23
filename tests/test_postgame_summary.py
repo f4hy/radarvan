@@ -403,8 +403,8 @@ def test_build_summary_set_rejects_an_unfinished_match() -> None:
 # --- route readiness gate ---
 
 
-class _StubBracketRoutes:
-    """Stands in for the two bracket route handlers _recappable_set calls."""
+class _StubBracketQueries:
+    """Stands in for the queries.bracket reads _recappable_set makes."""
 
     def __init__(self, match: BracketMatchOutput, linked: list[MatchInfo]) -> None:
         self.match = match
@@ -424,31 +424,31 @@ class _StubBracketRoutes:
         return BracketMatchGames(match_id=self.match.match_id, linked=self.linked)
 
 
-def _patch_bracket_routes(
+def _patch_bracket_queries(
     monkeypatch: pytest.MonkeyPatch,
     match: BracketMatchOutput,
     linked: list[MatchInfo],
 ) -> None:
-    stub = _StubBracketRoutes(match, linked)
+    stub = _StubBracketQueries(match, linked)
     monkeypatch.setattr(
-        commentary.bracket_routes,
+        commentary.query_bracket,
         "load_match",
-        lambda repo, match_id: (object(), {}, object(), object()),
+        lambda repo, match_id: type("L", (), {"tournament": None, "raw_states": {}})(),
     )
     monkeypatch.setattr(
-        commentary.bracket_routes,
+        commentary.query_bracket,
         "tournament_for_bracket",
         lambda tournament, tournament_repo: type("T", (), {"id": 7})(),
     )
     monkeypatch.setattr(
-        commentary.bracket_routes,
-        "get_bracket",
-        lambda preview, user, repo: stub.bracket(),
+        commentary.query_bracket,
+        "build_output_from_states",
+        lambda tournament, raw_states: stub.bracket(),
     )
     monkeypatch.setattr(
-        commentary.bracket_routes,
-        "get_bracket_games",
-        lambda match_id, user, repo, tournament_repo, replay_manager: stub.games(),
+        commentary.query_bracket,
+        "match_games",
+        lambda loaded, tournament_repo, replay_manager, allow_preview: stub.games(),
     )
 
 
@@ -491,7 +491,7 @@ def test_route_not_ready_when_games_are_missing(
 ) -> None:
     """The whole point of the gate: a 4-game set with 2 replays on record
     must not be recapped as a 2-0."""
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(2))
+    _patch_bracket_queries(monkeypatch, _bracket_match(), _linked(2))
 
     def _boom(*args: object, **kwargs: object) -> str:
         raise AssertionError("generate_summary must not be called")
@@ -506,7 +506,7 @@ def test_route_not_ready_while_the_set_is_unfinished(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     unfinished = _bracket_match(status="ready")
-    _patch_bracket_routes(monkeypatch, unfinished, _linked(4))
+    _patch_bracket_queries(monkeypatch, unfinished, _linked(4))
 
     def _boom(*args: object, **kwargs: object) -> str:
         raise AssertionError("generate_summary must not be called")
@@ -518,7 +518,7 @@ def test_route_not_ready_while_the_set_is_unfinished(
 def test_route_returns_cached_summary_without_generating(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
+    _patch_bracket_queries(monkeypatch, _bracket_match(), _linked(4))
 
     def _boom(*args: object, **kwargs: object) -> str:
         raise AssertionError("generate_summary must not be called on a cache hit")
@@ -550,7 +550,7 @@ def _patch_generation(
 def test_route_miss_answers_pending_and_saves_in_the_background(
     monkeypatch: pytest.MonkeyPatch, background_generation: BackgroundGeneration
 ) -> None:
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
+    _patch_bracket_queries(monkeypatch, _bracket_match(), _linked(4))
     _patch_generation(monkeypatch)
     result = _call(_StubSummaryRepo())
     assert result.ready is True
@@ -570,7 +570,7 @@ def test_route_403_when_forcing_regeneration_without_admin_key(
     """force_refresh bills a fresh LLM call on every request."""
     from fastapi import HTTPException
 
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
+    _patch_bracket_queries(monkeypatch, _bracket_match(), _linked(4))
     with pytest.raises(HTTPException) as exc_info:
         _call(_StubSummaryRepo(cached="cached"), force_refresh=True, admin_access=False)
     assert exc_info.value.status_code == 403
@@ -584,7 +584,7 @@ def test_route_502_after_a_failed_run_without_retrying(
     def _boom(prompt: object, match: object) -> str:
         raise commentary.matchup_commentary.CommentaryGenerationError("boom")
 
-    _patch_bracket_routes(monkeypatch, _bracket_match(), _linked(4))
+    _patch_bracket_queries(monkeypatch, _bracket_match(), _linked(4))
     _patch_generation(monkeypatch, _boom)
     assert _call(_StubSummaryRepo()).pending is True
     background_generation.run_all()

@@ -7,6 +7,8 @@ bracket round showed "no games found".
 """
 
 from datetime import date, datetime
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -23,6 +25,7 @@ from radarvan.db import (
 )
 from radarvan.game_composition import GameComposition
 from radarvan.player_role import PlayerRole
+from radarvan.repositories.bracket import BracketRepo
 from radarvan.repositories.tournaments import TournamentRepo
 from radarvan.tournament_membership import BracketStage
 
@@ -516,3 +519,126 @@ def test_round_robin_detection_matches_the_existing_rule() -> None:
     assert {link.match_id for link in links} == expected == {1}
     assert links[0].tournament_slug == "2025_2v2_tournament"
     assert links[0].stage is None
+
+
+# --- sync_links ---
+
+
+class _BracketRepoStub:
+    def __init__(
+        self, active: SimpleNamespace | None = None, states: dict | None = None
+    ) -> None:
+        self.active = active
+        self.states = states or {}
+        self.attached: list[tuple[int, int]] = []
+
+    def get_active(self) -> SimpleNamespace | None:
+        return self.active
+
+    def get_match_states(self, tournament_id: int) -> dict:
+        return self.states
+
+    def set_tournament_id(self, bracket_id: int, tournament_id: int) -> None:
+        assert self.active is not None
+        self.attached.append((bracket_id, tournament_id))
+        self.active.tournament_id = tournament_id
+
+
+_RR_GAME = _2v2(
+    1,
+    ["Syn", "WildCard"],
+    ["OneThree111", "Pancake"],
+    when=datetime(2025, 12, 1, 20, 0),
+    night=date(2025, 12, 1),
+)
+_RR_SLUG = "2025_2v2_tournament"
+_WARMUP = next(iter(tournament.KNOWN_EXCLUSIONS[_RR_SLUG]))
+
+
+def _sync(
+    session: Session,
+    matches: list[MatchInfo],
+    bracket_repo: _BracketRepoStub | None = None,
+) -> dict[str, int]:
+    return tournament_membership.sync_links(
+        _repo(session),
+        cast(BracketRepo, bracket_repo or _BracketRepoStub()),
+        matches,
+    )
+
+
+def _links(session: Session, slug: str) -> dict[int, tuple[str, bool]]:
+    t = _repo(session).get_tournament_by_slug(slug)
+    assert t is not None
+    return {
+        link.match_id: (link.source, link.excluded)
+        for link in _repo(session).list_links(t.id, include_excluded=True)
+    }
+
+
+def test_sync_links_registers_links_and_tombstones(session: Session) -> None:
+    counts = _sync(session, [_RR_GAME])
+    assert counts == {"tournaments": 1, "linked": 1, "retracted": 0, "excluded": 1}
+    expected = {1: ("auto", False), _WARMUP: ("manual", True)}
+    assert _links(session, _RR_SLUG) == expected
+    # Idempotent: a second run changes nothing.
+    assert _sync(session, [_RR_GAME])["retracted"] == 0
+    assert _links(session, _RR_SLUG) == expected
+
+
+def test_sync_links_retracts_only_auto_links_it_no_longer_proposes(
+    session: Session,
+) -> None:
+    _sync(session, [_RR_GAME])
+    t = _repo(session).get_tournament_by_slug(_RR_SLUG)
+    assert t is not None
+    _repo(session).link_match(t.id, 99, source="manual")
+
+    counts = _sync(session, [])
+    assert counts["retracted"] == 1
+    assert _links(session, _RR_SLUG) == {
+        99: ("manual", False),
+        _WARMUP: ("manual", True),
+    }
+
+
+def _bracket(created: datetime) -> SimpleNamespace:
+    # 9 entrants: WB1-1 is seed 8 vs seed 9.
+    names = {i: f"Filler{i}" for i in range(1, 8)} | {8: "Gorn", 9: "OneThree111"}
+    return SimpleNamespace(
+        id=5,
+        tournament_id=None,
+        created_at=created,
+        players=[SimpleNamespace(seed=s, player_name=n) for s, n in names.items()],
+    )
+
+
+def test_sync_links_mints_a_tournament_for_an_unlinked_bracket(
+    session: Session,
+) -> None:
+    wb1 = SimpleNamespace(
+        scheduled_at=datetime(2026, 8, 9, 1, 30),
+        best_of=None,
+        score_a=None,
+        score_b=None,
+    )
+    repo = _BracketRepoStub(_bracket(datetime(2026, 7, 1)), {"WB1-1": wb1})
+    counts = _sync(session, [_1v1(1931734, "Gorn", "OneThree111")], repo)
+    assert counts["linked"] == 1
+    minted = _repo(session).get_tournament_by_slug("2026_1v1_bracket")
+    assert minted is not None
+    assert repo.attached == [(5, minted.id)]
+    links = _repo(session).list_links(minted.id)
+    assert [(link.match_id, link.stage) for link in links] == [(1931734, "WB1-1")]
+
+
+def test_a_second_bracket_in_the_same_year_gets_its_own_slug(
+    session: Session,
+) -> None:
+    _sync(session, [], _BracketRepoStub(_bracket(datetime(2026, 7, 1))))
+    # A reset leaves the new bracket with no tournament_id; reusing the slug
+    # would merge both brackets' games.
+    _sync(session, [], _BracketRepoStub(_bracket(datetime(2026, 9, 1))))
+    second = _repo(session).get_tournament_by_slug("2026_1v1_bracket_2")
+    assert second is not None
+    assert second.name == "2026 1v1 Bracket #2"

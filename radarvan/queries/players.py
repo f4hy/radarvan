@@ -2,8 +2,8 @@
 
 These build `api_types` objects, which is normally a route's job. They live here
 because they have a second consumer: `commentary.matchup_commentary` needs the
-same ratings payload and the same head-to-head detail that `/api/player_ratings/`
-and `/api/player_head_to_head/` return, and it used to get them by *calling the
+same ratings payload, head-to-head detail and profile that `/api/player_ratings/`,
+`/api/player_head_to_head/` and `/api/player_profile/` return, and it used to get them by *calling the
 route handlers as functions* - passing `replay_manager=` into an HTTP handler and
 `asyncio.run`-ing an endpoint. That made the handler signature part of an internal
 API, so narrowing it (step 06) broke a module three layers away.
@@ -17,15 +17,26 @@ it.
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
-from .. import head_to_head, match_details, player_ids, player_rating
+from .. import (
+    head_to_head,
+    match_details,
+    player_ids,
+    player_profile,
+    player_rating,
+    player_stats,
+    player_synergy,
+)
 from ..api_types import (
     HeadToHeadDetail,
     MatchInfo,
     PlayerName,
+    PlayerProfile,
     PlayerRatingData,
     PlayerRatings,
     ShortPlayerRating,
 )
+from ..cache import competitive_matches, sorted_deduped_matches
+from ..db_utils import ReplayManager
 from ..dependencies import db_manager
 
 # How many of a pair's most recent shared games get kill data loaded for the
@@ -133,3 +144,22 @@ async def player_head_to_head_detail(
     return head_to_head.compute_head_to_head(
         game_list, player1, player2, value_by_match
     )
+
+
+def player_profile_payload(replay_manager: ReplayManager, player: str) -> PlayerProfile:
+    """Live profile plus the persisted deep stats (``computed`` is None until the
+    batch recompute has run at the current PROFILE_VERSION)."""
+    # Same game set as the Player Stats page so the record and per-general
+    # numbers on both pages agree. Synergy keeps the competitive set - that's
+    # the population its (cached) model is fit on for every other endpoint.
+    games = [
+        g
+        for g in sorted_deduped_matches(replay_manager).values()
+        if player_stats.stats_game_filter(g)
+    ]
+    synergy_pairs = player_synergy.compute_player_synergy(
+        list(competitive_matches(replay_manager).values())
+    )
+    profile = player_profile.compute_live_profile(games, player, synergy_pairs)
+    computed = replay_manager.get_player_profile(player, player_profile.PROFILE_VERSION)
+    return profile.model_copy(update={"computed": computed})

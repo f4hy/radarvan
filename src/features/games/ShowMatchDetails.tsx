@@ -208,82 +208,48 @@ function MoneyChart(props: {
   }
 }
 
-// Single source of truth for timeline event types: label, row (shared
-// Y-axis lane), and the icon to render. Row order in this list also
-// defines the per-player lane ordering.
-const EVENT_TYPES = [
-  { type: "upgrade", label: "Upgrade", row: "upgrades", icon: UpgradeIcon },
-  { type: "rank_up", label: "Rank Up", row: "rank ups", icon: StarIcon },
-  {
-    type: "generals_power",
-    label: "Generals Power",
-    row: "powers",
-    icon: BoltIcon,
-  },
-  {
-    type: "superweapon_built",
+type TimelineEventType = TimelineEvent["eventType"]
+
+// `satisfies Record` makes a type added to the backend's TimelineEventType a
+// tsc error here until it has a label, lane and icon. Key order is the legend
+// order and, through `row`, the per-player lane order.
+const EVENT_TYPE_BY_KEY = {
+  upgrade: { label: "Upgrade", row: "upgrades", icon: UpgradeIcon },
+  rank_up: { label: "Rank Up", row: "rank ups", icon: StarIcon },
+  generals_power: { label: "Generals Power", row: "powers", icon: BoltIcon },
+  superweapon_built: {
     label: "Superweapon Built",
     row: "superweapon",
     icon: ConstructionIcon,
   },
-  {
-    type: "superweapon_activated",
+  superweapon_activated: {
     label: "Superweapon Activated",
     row: "superweapon",
     icon: WhatshotIcon,
   },
-  {
-    type: "search_and_destroy",
+  search_and_destroy: {
     label: "Search & Destroy",
     row: "battle plans",
     icon: GpsFixedIcon,
   },
-  {
-    type: "low_power",
-    label: "Low Power",
-    row: "energy",
-    icon: BatteryAlertIcon,
-  },
-  {
-    type: "first_radar",
-    label: "First Radar",
-    row: "scouting",
-    icon: RadarIcon,
-  },
-  {
-    type: "tech_capture",
-    label: "Tech Capture",
-    row: "captures",
-    icon: FlagIcon,
-  },
-  {
-    type: "hunted",
-    label: "Hunted",
-    row: "hunted",
-    icon: CrisisAlertIcon,
-  },
-  {
-    type: "unhunted",
-    label: "No Longer Hunted",
-    row: "hunted",
-    icon: ShieldIcon,
-  },
-  {
-    type: "player_eliminated",
+  low_power: { label: "Low Power", row: "energy", icon: BatteryAlertIcon },
+  first_radar: { label: "First Radar", row: "scouting", icon: RadarIcon },
+  tech_capture: { label: "Tech Capture", row: "captures", icon: FlagIcon },
+  hunted: { label: "Hunted", row: "hunted", icon: CrisisAlertIcon },
+  unhunted: { label: "No Longer Hunted", row: "hunted", icon: ShieldIcon },
+  player_eliminated: {
     label: "Eliminated",
     row: "eliminations",
     icon: CancelIcon,
   },
-] as const satisfies readonly {
-  type: string
-  label: string
-  row: string
-  icon: React.ElementType
-}[]
+} as const satisfies Record<
+  TimelineEventType,
+  { label: string; row: string; icon: React.ElementType }
+>
 
-const EVENT_TYPE_BY_KEY = Object.fromEntries(
-  EVENT_TYPES.map((m) => [m.type, m]),
-) as Record<string, (typeof EVENT_TYPES)[number]>
+const EVENT_TYPES = (Object.keys(EVENT_TYPE_BY_KEY) as TimelineEventType[]).map(
+  (type) => ({ type, ...EVENT_TYPE_BY_KEY[type] }),
+)
 
 const ROW_ORDER = [...new Set(EVENT_TYPES.map((m) => m.row))]
 

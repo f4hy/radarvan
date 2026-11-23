@@ -5097,7 +5097,7 @@ export type TimelineEvent = {
     /**
      * Eventtype
      */
-    eventType: string;
+    eventType: 'upgrade' | 'rank_up' | 'generals_power' | 'superweapon_built' | 'superweapon_activated' | 'search_and_destroy' | 'low_power' | 'hunted' | 'unhunted' | 'player_eliminated' | 'tech_capture' | 'first_radar';
     /**
      * Cost
      */

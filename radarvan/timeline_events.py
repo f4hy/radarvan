@@ -8,7 +8,7 @@ acquisitions into a single chronological `list[TimelineEvent]`.
 
 from __future__ import annotations
 
-from .api_types import TimelineEvent, Upgrades
+from .api_types import TimelineEvent, TimelineEventType, Upgrades
 from .cncstats_model.zhreplay import EnhancedReplayV2
 from .generals_powers import clean_power_name
 from .replay_helpers import clean_object_name, is_initial_seed_frame
@@ -77,6 +77,7 @@ def timeline_events_from_replay(
             # would flood the timeline; we only want generals powers and
             # superweapons here.
             continue
+        event_type: TimelineEventType
         if any(kw in raw_name for kw in _SUPERWEAPON_ACTIVATION_KEYWORDS):
             event_type = "superweapon_activated"
         else:

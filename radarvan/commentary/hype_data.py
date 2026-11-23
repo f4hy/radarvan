@@ -419,7 +419,7 @@ def build_hype_tournament_context(
 ) -> HypeTournamentContext:
     """Both players' tournament so far, from the resolved bracket + linked games.
 
-    ``bracket_output`` is whatever ``routes.bracket.get_bracket`` returned, so
+    ``bracket_output`` is whatever ``queries.bracket.active_bracket`` returned, so
     a redacted pre-reveal bracket (player names nulled out) yields an empty
     context rather than leaking placements into generated text.
     """

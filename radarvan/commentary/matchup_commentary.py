@@ -6,25 +6,11 @@ whichever LLM provider is active, and return the generated commentary text.
 The provider call itself (selection, budget, usage logging, notification)
 lives in ``llm`` - shared with the post-game recap in ``postgame_summary``.
 
-Data fetch deliberately calls the existing route handler functions directly
-(``radarvan.routes.profile.get_player_profile``,
-``radarvan.routes.players.get_player_head_to_head``,
-``radarvan.routes.players.get_player_ratings``) rather than re-deriving the
-same games/synergy/rating assembly and calling the lower-level logic those
-routes wrap. This inverts the usual "routes depend on logic modules"
-direction on purpose: any future improvement to those endpoints - new
-fields, better computation, bug fixes - flows into commentary generation
-automatically instead of drifting out of sync with a second implementation.
-The fetched ``PlayerProfile``/``HeadToHeadDetail``/``PlayerRatingData`` are
-then reduced to ``hype_data.HypePlayerData``/``HypeHeadToHead``/
-``HypeRatingsContext`` - purpose-built shapes holding only what the
-guidelines reference, rendered as plain text rather than JSON (see
-``hype_data``'s module docstring for why).
-
-``_tournament_inputs`` adds the same treatment for the bracket itself
-(``routes.bracket.get_bracket`` + ``routes.tournaments.tournament_games_for``),
-giving the model what has already happened in the tournament being played -
-each player's completed sets, and the individual games behind them.
+Data comes from the same read models the profile, head-to-head, ratings and
+bracket endpoints serve (``queries.players``, ``queries.bracket``,
+``queries.tournaments``), so commentary can't drift from what the site shows.
+It is then reduced to ``hype_data``'s purpose-built shapes and rendered as
+plain text (see ``hype_data``'s module docstring for why).
 
 This module always regenerates - the cache check/write lives at the route
 layer (routes/commentary.py), keyed on (player1, player2, round_name) via
@@ -49,10 +35,9 @@ from ..api_types import BracketTournamentOutput, MatchInfo
 from ..db_utils import ReplayManager
 from ..repositories import BracketRepo
 from .. import queries
+from ..queries import bracket as query_bracket
 from ..queries import players as query_players
-from ..routes import bracket as bracket_routes
-from ..routes import profile as profile_routes
-from ..routes import tournaments as tournaments_routes
+from ..queries import tournaments as query_tournaments
 from . import hype_data, llm
 from .commentary_prompts import GUIDELINES
 from typing import NamedTuple
@@ -132,20 +117,11 @@ def _tournament_inputs(
 ) -> TournamentInputs:
     """The resolved bracket and every game linked to it.
 
-    Both come from the existing route handlers for the same reason the
-    profile/head-to-head pulls do (see the module docstring) - ``get_bracket``
-    in particular owns the pre-reveal redaction, so routing through it means
-    unrevealed placements can't reach a prompt by way of this module
-    forgetting to check.
-
-    ``user=None`` (never a preview) is deliberate: commentary is served to
-    everyone from one cache row, so it must only ever be built from what
-    everyone can already see.
+    Never a preview: commentary is served to everyone from one cache row, so
+    it must only ever be built from what everyone can already see.
     """
     bracket_repo = BracketRepo(replay_manager.session)
-    bracket_output = bracket_routes.get_bracket(
-        preview=False, user=None, repo=bracket_repo
-    )
+    bracket_output = query_bracket.active_bracket(bracket_repo, allow_preview=False)
     if bracket_output is None:
         return TournamentInputs(bracket_output=None, tournament_games=[])
 
@@ -158,13 +134,11 @@ def _tournament_inputs(
     parent = replay_manager.get_tournament_by_id(active.tournament_id)
     if parent is None:
         return TournamentInputs(bracket_output=bracket_output, tournament_games=[])
-    games = tournaments_routes.tournament_games_for(
-        slug=parent.slug,
-        replay_manager=replay_manager,
-        tournament_repo=replay_manager,
-    )
     return TournamentInputs(
-        bracket_output=bracket_output, tournament_games=games.matches
+        bracket_output=bracket_output,
+        tournament_games=query_tournaments.linked_games(
+            replay_manager, replay_manager, parent.id
+        ),
     )
 
 
@@ -178,12 +152,8 @@ def build_prompt(
     player1/player2 must already be alias-resolved - the PlayerName-typed
     query params on routes/commentary.py handle this before it reaches here.
     """
-    profile1 = profile_routes.get_player_profile(
-        player=player1, replay_manager=replay_manager
-    )
-    profile2 = profile_routes.get_player_profile(
-        player=player2, replay_manager=replay_manager
-    )
+    profile1 = query_players.player_profile_payload(replay_manager, player1)
+    profile2 = query_players.player_profile_payload(replay_manager, player2)
     # Team-game rating is fetched once for the whole population: per-player
     # recent form (plain W/L) goes in each profile block, while the ordinals
     # themselves go into one whole-population calibration block instead of

@@ -473,10 +473,8 @@ export const getEligiblePlayersApiPlayerProfileEligiblePlayersGet = <ThrowOnErro
 /**
  * Get Player Profile
  *
- * Full profile for one player.
- *
- * ``computed`` is None until the batch recompute has run at the current
- * PROFILE_VERSION (nightly, or via POST /api/player_profile/recompute).
+ * Full profile for one player; ``computed`` is None until the batch
+ * recompute has run at the current PROFILE_VERSION.
  */
 export const getPlayerProfileApiPlayerProfileGet = <ThrowOnError extends boolean = true>(options: Options<getPlayerProfileApiPlayerProfileGetData, ThrowOnError>): RequestResult<getPlayerProfileApiPlayerProfileGetResponses, getPlayerProfileApiPlayerProfileGetErrors, ThrowOnError> => (options.client ?? client).get<getPlayerProfileApiPlayerProfileGetResponses, getPlayerProfileApiPlayerProfileGetErrors, ThrowOnError>({
     responseTransformer: getPlayerProfileApiPlayerProfileGetResponseTransformer,
@@ -768,8 +766,6 @@ export const listTournamentsApiTournamentsGet = <ThrowOnError extends boolean = 
  *
  * Driven off the persisted links, so this answers "every game of this
  * tournament" for a finished bracket whose live state has since been reset.
- * Links whose match is missing from the listing are skipped - the link table
- * has no FK to matches on purpose (see db.TournamentGame).
  */
 export const tournamentGamesForApiTournamentsSlugGamesGet = <ThrowOnError extends boolean = true>(options: Options<tournamentGamesForApiTournamentsSlugGamesGetData, ThrowOnError>): RequestResult<tournamentGamesForApiTournamentsSlugGamesGetResponses, tournamentGamesForApiTournamentsSlugGamesGetErrors, ThrowOnError> => (options.client ?? client).get<tournamentGamesForApiTournamentsSlugGamesGetResponses, tournamentGamesForApiTournamentsSlugGamesGetErrors, ThrowOnError>({
     responseTransformer: tournamentGamesForApiTournamentsSlugGamesGetResponseTransformer,
@@ -1229,7 +1225,7 @@ export const uploadMapsApiMapUploadPost = <ThrowOnError extends boolean = true>(
  * The current bracket tournament, or None if none has been created yet.
  *
  * Before ``reveal_at``, player placements are withheld from the response
- * (see ``_build_output_from_states``) - only the roster and blank bracket
+ * (see ``queries.bracket``) - only the roster and blank bracket
  * shape are visible. ``preview=true`` bypasses that gate, but only for a
  * logged-in tournament admin; it's a per-request opt-in (an admin's own
  * "peek early" button), not a way to reveal the bracket for everyone.
@@ -1309,7 +1305,7 @@ export const setBracketMatchApiBracketMatchIdPost = <ThrowOnError extends boolea
  * Readable without an account once the bracket is revealed - which games
  * were played is what the Matches page already shows. Before ``reveal_at``
  * it returns nothing: both the linked MatchInfos and the detector
- * candidates name the two players, which is exactly what ``_redact``
+ * candidates name the two players, which is exactly what the redaction
  * withholds from ``GET /api/bracket``. Editing is admin-gated below.
  */
 export const getBracketGamesApiBracketGamesMatchIdGet = <ThrowOnError extends boolean = true>(options: Options<getBracketGamesApiBracketGamesMatchIdGetData, ThrowOnError>): RequestResult<getBracketGamesApiBracketGamesMatchIdGetResponses, getBracketGamesApiBracketGamesMatchIdGetErrors, ThrowOnError> => (options.client ?? client).get<getBracketGamesApiBracketGamesMatchIdGetResponses, getBracketGamesApiBracketGamesMatchIdGetErrors, ThrowOnError>({

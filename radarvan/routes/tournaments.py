@@ -17,6 +17,7 @@ from ..dependencies import (
     get_replay_manager,
     get_tournament_repo,
 )
+from ..queries import tournaments as query_tournaments
 from ..repositories import TournamentRepo
 
 logger = structlog.get_logger(__name__)
@@ -96,20 +97,13 @@ def tournament_games_for(
 
     Driven off the persisted links, so this answers "every game of this
     tournament" for a finished bracket whose live state has since been reset.
-    Links whose match is missing from the listing are skipped - the link table
-    has no FK to matches on purpose (see db.TournamentGame).
     """
     row = tournament_repo.get_tournament_by_slug(slug)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown tournament {slug}")
-    known = sorted_deduped_matches(replay_manager)
-    linked = [
-        known[link.match_id]
-        for link in tournament_repo.list_links(row.id)
-        if link.match_id in known
-    ]
-    linked.sort(key=lambda m: m.timestamp, reverse=True)
-    return Matches(matches=linked)
+    return Matches(
+        matches=query_tournaments.linked_games(replay_manager, tournament_repo, row.id)
+    )
 
 
 @router.get("/api/tournament_results/", dependencies=[Depends(cache_short)])

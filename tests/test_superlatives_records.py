@@ -16,6 +16,7 @@ from radarvan.api_types import (
     SuperlativePlayerSummary,
     SuperweaponLaunch,
     TimelineEvent,
+    TimelineEventType,
 )
 from radarvan import player_rating
 from radarvan.player_rating import GameUpset
@@ -378,7 +379,9 @@ def _details_with_events(match_id: int, events: list[TimelineEvent]) -> Superlat
     return superlative_data_from_details(details)
 
 
-def _event(player: str, name: str, event_type: str, minute: float) -> TimelineEvent:
+def _event(
+    player: str, name: str, event_type: TimelineEventType, minute: float
+) -> TimelineEvent:
     return TimelineEvent(
         player_name=player, at_minute=minute, event_name=name, event_type=event_type
     )
