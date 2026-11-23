@@ -107,3 +107,35 @@ def test_cached_reads_round_trip_through_pydantic(postgres_db_url: str) -> None:
             assert powers == {details.match_id: stored.powers}
     finally:
         engine.dispose()
+
+
+def test_backfill_stale_details_counts_and_rolls_back(monkeypatch) -> None:
+    from types import SimpleNamespace
+    from typing import cast
+
+    from radarvan import match_details
+    from radarvan.db_utils import ReplayManager
+
+    rolled_back: list[bool] = []
+
+    class FakeRM:
+        session = SimpleNamespace(rollback=lambda: rolled_back.append(True))
+
+        def list_stale_details_match_ids(self, version: str, limit: int) -> list[int]:
+            assert version == match_details.DETAILS_VERSION
+            return [1, 2, 3][:limit]
+
+        def count_stale_details(self, version: str) -> int:
+            return 7
+
+    def fake_load(match_id: int, _rm: object) -> object | None:
+        if match_id == 3:
+            raise RuntimeError("bad replay")
+        return None if match_id == 2 else object()
+
+    monkeypatch.setattr(match_details, "load_match_details", fake_load)
+    result = match_details.backfill_stale_details(cast(ReplayManager, FakeRM()), 10)
+    assert result == match_details.BackfillResult(
+        updated=1, skipped=1, failed=1, remaining=7
+    )
+    assert rolled_back == [True]

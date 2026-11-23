@@ -17,7 +17,7 @@ from fastapi import (
     UploadFile,
 )
 
-from .. import matches, ml_inference, replay_files
+from .. import match_details, matches, ml_inference, replay_files
 from ..api_types import (
     GameRecord,
     MatchInfo,
@@ -28,7 +28,7 @@ from ..api_types import (
 )
 from ..cache import invalidate_match_caches
 from ..db_utils import ReplayManager
-from ..dependencies import OPS_ADMIN, get_replay_manager
+from ..dependencies import OPS_ADMIN, db_manager, get_replay_manager
 
 logger = structlog.get_logger(__name__)
 
@@ -183,6 +183,11 @@ def upload_replay(
     # uploads the same game moments later and would double-post.
     if outcome.created:
         background_tasks.add_task(ml_inference.predict_and_notify, outcome.match_info)
+    # Derive details now so the first viewer (game-night page, match view)
+    # reads the durable row instead of paying the ~1.5s S3 parse.
+    background_tasks.add_task(
+        match_details.load_match_details_threadsafe, outcome.match_info.id, db_manager
+    )
     return outcome.match_info
 
 

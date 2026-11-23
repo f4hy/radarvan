@@ -10,7 +10,7 @@ from .db_utils import DatabaseManager, ReplayManager
 from .cache import competitive_matches
 from .matches import get_match_infos, register_matches
 from .repositories import BracketRepo, GameNightSummaryRepo, MatchBlurbRepo
-from . import computed_stats, queries
+from . import computed_stats, match_details, queries
 from . import tournament_membership
 from datetime import UTC, datetime
 import asyncio
@@ -55,6 +55,22 @@ async def update_games(db_manager: DatabaseManager, days: int = 1) -> None:
         # may not.
         await asyncio.to_thread(_sync_tournament_links, replay_manager)
     logger.info("done updating", found=len(paths))
+
+
+# Enough to cover a busy scrape plus a few nights of uploads; after a
+# DETAILS_VERSION bump the rest drains over the following runs, newest first.
+DETAILS_BACKFILL_PER_RUN = 500
+
+
+async def backfill_match_details(db_manager: DatabaseManager) -> None:
+    """Derive details for matches that have none at the current DETAILS_VERSION."""
+    with db_manager.get_replay_manager() as replay_manager:
+        result = await asyncio.to_thread(
+            match_details.backfill_stale_details,
+            replay_manager,
+            DETAILS_BACKFILL_PER_RUN,
+        )
+    logger.info("backfilled match details", **result._asdict())
 
 
 async def sync_netstats(db_manager: DatabaseManager) -> None:

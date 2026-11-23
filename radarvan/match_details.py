@@ -20,6 +20,7 @@ import asyncio
 import hashlib
 import json
 from collections import defaultdict
+from typing import NamedTuple
 
 from .api_types import (
     AcademyStats,
@@ -217,6 +218,44 @@ def load_match_details(
     if details is not None:
         replay_manager.save_cached_details(match_id, details, DETAILS_VERSION)
     return details
+
+
+class BackfillResult(NamedTuple):
+    updated: int
+    skipped: int
+    failed: int
+    remaining: int
+
+
+def backfill_stale_details(
+    replay_manager: ReplayManager, max_to_update: int
+) -> BackfillResult:
+    """Rebuild details rows that are missing or at an old DETAILS_VERSION, newest first.
+
+    Serial on purpose: each rebuild parses a multi-MB replay, so running them
+    concurrently is a memory spike for no gain on a one-core dyno.
+    """
+    updated = skipped = failed = 0
+    for match_id in replay_manager.list_stale_details_match_ids(
+        DETAILS_VERSION, max_to_update
+    ):
+        try:
+            details = load_match_details(match_id, replay_manager)
+        except Exception:
+            logger.exception("details backfill failed", match_id=match_id)
+            replay_manager.session.rollback()
+            failed += 1
+            continue
+        if details is None:
+            skipped += 1
+        else:
+            updated += 1
+    return BackfillResult(
+        updated=updated,
+        skipped=skipped,
+        failed=failed,
+        remaining=replay_manager.count_stale_details(DETAILS_VERSION),
+    )
 
 
 def load_match_details_threadsafe(
