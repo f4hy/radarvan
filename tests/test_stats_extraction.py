@@ -162,6 +162,22 @@ def test_income_by_source_caps_snapshot_count() -> None:
     assert series[minutes[-1]] == {"P1": (n - 1) * 10}
 
 
+def test_stats_series_capped_with_exact_endpoints() -> None:
+    n = 1200
+    money = [i * 10 for i in range(n)]
+    replay = _replay([_ts_player(1, None, money=money)])
+
+    result = stats_data_from_replay(replay)
+    assert result is not None
+    series = result.stats_data.money
+
+    assert len(series) <= 301
+    minutes = list(series)
+    assert minutes == sorted(minutes)
+    assert series[minutes[0]] == {"P1": 0}
+    assert series[minutes[-1]] == {"P1": (n - 1) * 10}
+
+
 def test_income_by_source_absent_on_older_replays() -> None:
     """Older cncstats outputs don't populate incomeBySource at all; the
     breakdown must come back completely empty, not partially filled with

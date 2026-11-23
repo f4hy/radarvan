@@ -72,7 +72,9 @@ logger = structlog.get_logger(__name__)
 # needs no bump: winprob_inference.bundle_version() is part of the version.)
 # v9: income_by_source emits each (source, player)'s own plateau edges instead
 # of every source at every point of the shared grid.
-_DETAILS_LOGIC_VERSION = 9
+# v10: every stats_data series is capped at ~300 points (stride-thinned,
+# endpoints exact) - long games had 6k+, ~half a cached MatchDetails' memory.
+_DETAILS_LOGIC_VERSION = 10
 
 
 def _compute_details_version() -> str:
@@ -273,7 +275,7 @@ def load_match_details_threadsafe(
 
 
 def load_cached_details_threadsafe(
-    match_ids: list[int], db_manager: DatabaseManager
+    match_ids: list[int], db_manager: DatabaseManager, *, without_series: bool = False
 ) -> dict[int, MatchDetails]:
     """Whichever of `match_ids` have a current cached row, in one query."""
     from .db_utils import ReplayManager as _ReplayManager
@@ -281,7 +283,7 @@ def load_cached_details_threadsafe(
     try:
         with db_manager.get_session() as session:
             return _ReplayManager(session).get_cached_details_many(
-                match_ids, DETAILS_VERSION
+                match_ids, DETAILS_VERSION, without_series=without_series
             )
     except Exception:
         logger.exception("failed to load cached details", match_count=len(match_ids))
@@ -289,14 +291,22 @@ def load_cached_details_threadsafe(
 
 
 async def load_many_match_details(
-    match_ids: list[int], db_manager: DatabaseManager, max_concurrent: int = 20
+    match_ids: list[int],
+    db_manager: DatabaseManager,
+    max_concurrent: int = 20,
+    *,
+    without_series: bool = False,
 ) -> list[MatchDetails]:
     """Details for many matches, in `match_ids` order, skipping ones that can't load.
 
     Cache hits come back in one query; only misses take the per-match S3 parse.
+    `without_series` leaves the chart series empty on hits (misses return them).
     """
     cached = await asyncio.to_thread(
-        load_cached_details_threadsafe, match_ids, db_manager
+        load_cached_details_threadsafe,
+        match_ids,
+        db_manager,
+        without_series=without_series,
     )
     semaphore = asyncio.Semaphore(max_concurrent)
 

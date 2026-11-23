@@ -79,12 +79,28 @@ class AllExtractedData:
 # extraction (and the wire dict) without further edits here.
 _INCOME_SOURCES = tuple(IncomeBySource.model_fields)
 
-# Trickle sources (supply, black market, hacker) change on nearly every
-# snapshot, so "only changed snapshots" alone can't bound the payload for a
-# long game. Cap the kept grid: a details chart is well under a thousand
-# pixels wide, so ~300 points is visually lossless while keeping the wire
-# size and recharts render cost flat regardless of match length.
-_MAX_INCOME_SNAPSHOTS = 300
+# Money and event-count series change on nearly every snapshot or event, so
+# "only changed points" alone can't bound them for a long game (a 60-min 4v4
+# had 6.6k points per series). A details chart is well under a thousand pixels
+# wide, so ~300 points is visually lossless while keeping the wire size, the
+# cached MatchDetails' memory and recharts render cost flat regardless of
+# match length.
+_MAX_CHART_POINTS = 300
+
+
+def _stride_thin[T](items: list[T], max_points: int) -> list[T]:
+    """Every k-th item so at most ~``max_points`` remain; both ends always survive."""
+    if len(items) <= max_points:
+        return items
+    stride = -(-len(items) // max_points)  # ceil division
+    kept = items[::stride]
+    if kept[-1] is not items[-1]:
+        kept.append(items[-1])
+    return kept
+
+
+def _cap_points(series: dict[float, dict[str, int]]) -> dict[float, dict[str, int]]:
+    return dict(_stride_thin(list(series.items()), _MAX_CHART_POINTS))
 
 
 def _sparse_keep_indices(
@@ -104,14 +120,7 @@ def _sparse_keep_indices(
             if vals[i] != vals[i - 1]:
                 keep.add(i)
                 keep.add(i - 1)
-    kept = sorted(keep)
-    if len(kept) > max_points:
-        stride = -(-len(kept) // max_points)  # ceil division
-        last = kept[-1]
-        kept = kept[::stride]
-        if kept[-1] != last:
-            kept.append(last)
-    return kept
+    return _stride_thin(sorted(keep), max_points)
 
 
 def _plateau_edges(values: list[int]) -> list[int]:
@@ -223,7 +232,7 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
         kept = _sparse_keep_indices(
             [vals for entries in pruned.values() for _, vals in entries],
             num_snapshots,
-            _MAX_INCOME_SNAPSHOTS,
+            _MAX_CHART_POINTS,
         )
         # The grid is shared so the chart's union of minutes stays capped, but
         # each (source, player) only emits its own plateau edges on it.
@@ -310,18 +319,18 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     faction_buildings_captured = _event_counts_to_series(fc_deltas, all_players, scale)
 
     sd = StatsData(
-        xp=xp,
-        units_built=units_built,
-        units_lost=units_lost,
-        buildings_built=buildings_built,
-        buildings_lost=buildings_lost,
-        money_earned=money_earned,
-        money_spent=money_spent,
-        money=money,
-        units_killed=units_killed,
-        buildings_killed=buildings_killed,
-        tech_buildings_captured=tech_buildings_captured,
-        faction_buildings_captured=faction_buildings_captured,
+        xp=_cap_points(xp),
+        units_built=_cap_points(units_built),
+        units_lost=_cap_points(units_lost),
+        buildings_built=_cap_points(buildings_built),
+        buildings_lost=_cap_points(buildings_lost),
+        money_earned=_cap_points(money_earned),
+        money_spent=_cap_points(money_spent),
+        money=_cap_points(money),
+        units_killed=_cap_points(units_killed),
+        buildings_killed=_cap_points(buildings_killed),
+        tech_buildings_captured=_cap_points(tech_buildings_captured),
+        faction_buildings_captured=_cap_points(faction_buildings_captured),
     )
     return AllExtractedData(
         stats_data=sd,

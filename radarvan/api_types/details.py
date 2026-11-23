@@ -262,6 +262,8 @@ class MatchDetails(BaseModel):
     costs: list[Costs]
     apms: list[APM]
     upgrade_events: dict[str, Upgrades] = Field(alias="upgradeEvents")
+    # Each series holds only changed points, thinned to ~300 with exact
+    # endpoints - read the final value by max minute, not by a fixed step.
     stats_data: dict[str, dict[Minute, dict[str, int]]] = Field(
         description="at a time map each player to xp"
     )

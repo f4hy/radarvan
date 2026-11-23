@@ -9,6 +9,7 @@ ratings note in CLAUDE.md).
 
 import re
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 from radarvan import game_night, match_narrative, queries, utils
 from radarvan.api_types import APM, FirstBlood, MatchDetails, Team, TimelineEvent
@@ -625,3 +626,21 @@ def test_the_backfill_window_is_counted_in_game_night_keys() -> None:
 def test_one_stray_upload_is_not_a_game_night_for_either_caller() -> None:
     """The floor lives with the generator so the job and the backfill share it."""
     assert night_summary.MIN_MATCHES_FOR_SUMMARY > 1
+
+
+def test_nothing_built_from_a_night_reads_the_chart_series() -> None:
+    """``queries.build_night_recap`` loads details without them (see ``details_for``)."""
+    root = Path(game_night.__file__).parent
+    readers = [
+        "game_night.py",
+        "match_narrative.py",
+        "win_curve.py",
+        "queries/game_night.py",
+        "commentary/match_blurb.py",
+        "commentary/night_summary.py",
+    ]
+    for name in readers:
+        source = (root / name).read_text()
+        assert not re.search(r"\.(stats_data|income_by_source|map_events)\b", source), (
+            name
+        )

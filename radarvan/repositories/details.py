@@ -8,12 +8,22 @@ that produced them; a read only returns a row whose version matches the
 caller's current version, so bumping the derivation invalidates every row.
 """
 
+import json
+from collections import defaultdict
 from datetime import UTC, datetime
 from typing import NamedTuple
 
 import structlog
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, Text, cast, delete as sa_delete, func, select
+from sqlalchemy import (
+    ColumnElement,
+    Text,
+    cast,
+    delete as sa_delete,
+    func,
+    select,
+    true,
+)
 
 from ..api_types import KillEventOutput, MatchDetails, MatchPowers, PlayerSummary
 from ..db import Match, MatchDetailsCache
@@ -31,6 +41,18 @@ _PLAYER_SUMMARY = TypeAdapter(list[PlayerSummary])
 def _stored_key(field: str) -> str:
     """The key a MatchDetails field is stored under (rows are dumped by_alias)."""
     return MatchDetails.model_fields[field].alias or field
+
+
+# The per-minute chart series and the playback event list, as stored key ->
+# empty value: ~75% of a row's bytes, read only by the match page and reports.
+_SERIES_BLANKED: dict[str, dict[str, object] | list[object]] = {
+    _stored_key("stats_data"): {},
+    _stored_key("income_by_source"): {},
+    _stored_key("map_events"): [],
+}
+_SERIES_BLANK_MEMBERS = [
+    f"{json.dumps(k)}:{json.dumps(v)}" for k, v in _SERIES_BLANKED.items()
+]
 
 
 class KillData(NamedTuple):
@@ -61,11 +83,16 @@ class MatchDetailsRepo(BaseRepo):
         return None if text is None else MatchDetails.model_validate_json(text)
 
     def get_cached_details_many(
-        self, match_ids: list[int], version: str
+        self, match_ids: list[int], version: str, *, without_series: bool = False
     ) -> dict[int, MatchDetails]:
-        """`get_cached_details` for many matches in one query; misses are omitted."""
+        """`get_cached_details` for many matches in one query; misses are omitted.
+
+        `without_series` leaves stats_data/income_by_source/map_events empty.
+        """
         if not match_ids:
             return {}
+        if without_series:
+            return self._cached_details_without_series(match_ids, version)
         rows = self.session.execute(
             select(
                 MatchDetailsCache.match_id, cast(MatchDetailsCache.data, Text)
@@ -76,6 +103,35 @@ class MatchDetailsRepo(BaseRepo):
         ).all()
         return {
             match_id: MatchDetails.model_validate_json(text) for match_id, text in rows
+        }
+
+    def _cached_details_without_series(
+        self, match_ids: list[int], version: str
+    ) -> dict[int, MatchDetails]:
+        # One row per top-level key, so Postgres never serializes the skipped
+        # values; `data - keys` or `data || blanks` would still walk them all.
+        member = (
+            func.jsonb_each(MatchDetailsCache.data)
+            .table_valued("key", "value")
+            .lateral()
+        )
+        rows = self.session.execute(
+            select(MatchDetailsCache.match_id, member.c.key, cast(member.c.value, Text))
+            .join(member, true())
+            .where(
+                MatchDetailsCache.match_id.in_(match_ids),
+                MatchDetailsCache.version == version,
+                member.c.key.not_in(list(_SERIES_BLANKED)),
+            )
+        ).all()
+        members: defaultdict[int, list[str]] = defaultdict(
+            lambda: list(_SERIES_BLANK_MEMBERS)
+        )
+        for match_id, key, value in rows:
+            members[match_id].append(f"{json.dumps(key)}:{value}")
+        return {
+            match_id: MatchDetails.model_validate_json("{" + ",".join(parts) + "}")
+            for match_id, parts in members.items()
         }
 
     def get_cached_kill_data_rows(

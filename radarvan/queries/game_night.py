@@ -89,10 +89,11 @@ async def details_for(
     Goes through the bounded-concurrency loader rather than a loop of
     ``details_from_id``: on a cold cache each miss is an S3 fetch and a parse,
     and a fifteen-game night would otherwise block the event loop for all of
-    them in series.
+    them in series. Without the chart series, which neither the recap nor the
+    narratives read (``tests/test_game_night.py`` holds that).
     """
     loaded = await match_details.load_many_match_details(
-        [match.id for match in matches], db_manager
+        [match.id for match in matches], db_manager, without_series=True
     )
     return {details.match_id: details for details in loaded}
 
