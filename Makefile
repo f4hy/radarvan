@@ -1,7 +1,7 @@
 .PHONY: help format format-check lint lint-fix typecheck ty check \
         ts-format ts-format-check ts-lint ts-lint-fix ts-typecheck ts-check ts-test \
         gen-client client-check build clean install test test-fast test-pg ci all \
-        up up-build down logs ps shell db-shell db-snapshot db-snapshot-full \
+        up up-build down logs ps shell db-shell db-snapshot db-snapshot-full test-db-down \
         db-restore db-reset migrate test-e2e retrain
 
 # Default target

@@ -132,3 +132,55 @@ test.describe("a match has its own page", () => {
     expect(mock.calls.filter((p) => p.startsWith("/api/match/"))).toEqual([])
   })
 })
+
+test.describe("the app-bar search", () => {
+  const searchBox = (page: import("@playwright/test").Page) =>
+    page.getByRole("combobox", { name: "Site search" })
+
+  test("/ focuses it, and a player name goes to their profile", async ({
+    page,
+  }) => {
+    const problems = watchForProblems(page)
+    await mockApi(page)
+    await page.goto("/team-stats")
+    await heading(page)
+    await page.keyboard.press("/")
+    await expect(searchBox(page)).toBeFocused()
+    await searchBox(page).fill("core")
+    await page.getByRole("option", { name: "CoreDawg" }).click()
+    await expect(page).toHaveURL("/player-profile?player=CoreDawg")
+    expectClean(problems)
+  })
+
+  test("a number offers that match, and Enter opens it", async ({ page }) => {
+    await mockApi(page)
+    await page.goto("/team-stats")
+    await heading(page)
+    await page.keyboard.press("Control+k")
+    await page.keyboard.type("#123")
+    await expect(page.getByRole("option", { name: "Match #123" })).toBeVisible()
+    await page.keyboard.press("Enter")
+    await expect(page).toHaveURL("/match/123")
+  })
+
+  test("a page title navigates to that page", async ({ page }) => {
+    await mockApi(page)
+    await page.goto("/team-stats")
+    await heading(page)
+    await searchBox(page).fill("records")
+    await page.keyboard.press("Enter")
+    await expect(page).toHaveURL("/superlatives")
+    await expect(page.locator("h1").first()).toHaveText("Records")
+  })
+
+  test("a visitor who never searches never fetches the player list", async ({
+    page,
+  }) => {
+    const mock = await mockApi(page)
+    await page.goto("/team-stats")
+    await heading(page)
+    expect(
+      mock.calls.filter((p) => p.startsWith("/api/player_profile/")),
+    ).toEqual([])
+  })
+})

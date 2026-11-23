@@ -6,11 +6,18 @@ fallback must *not* swallow is an API 404 or a missing hashed asset - both are
 real answers, and turning either into HTML hides the failure somewhere worse.
 """
 
+import shutil
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
+from starlette.routing import Mount
 
 from radarvan import seo
+from radarvan.http_cache import CachedStaticFiles
 from radarvan.main import app
+
+REPO_INDEX = Path(__file__).resolve().parent.parent / "index.html"
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +25,18 @@ def _no_db(monkeypatch: pytest.MonkeyPatch) -> None:
     # The shell's per-page tags read the corpus; without one they degrade to
     # page-level tags, which is all these tests look at.
     monkeypatch.setattr(seo, "load_index", lambda: None)
+
+
+@pytest.fixture(autouse=True)
+def _fake_build(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Serve the source index.html (same seo markers) from a temp dir, so the
+    # tests don't need `npm run build` to have left a dist/ behind.
+    shutil.copy(REPO_INDEX, tmp_path / "index.html")
+    (mount,) = (r for r in app.routes if isinstance(r, Mount) and r.name == "dist")
+    static = mount.app
+    assert isinstance(static, CachedStaticFiles)
+    monkeypatch.setattr(static, "directory", tmp_path)
+    monkeypatch.setattr(static, "all_directories", [tmp_path])
 
 
 @pytest.fixture(scope="module")

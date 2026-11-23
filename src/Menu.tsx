@@ -23,6 +23,7 @@ import * as React from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
 import ErrorBoundary from "./components/ErrorBoundary"
 import Loading from "./components/Loading"
+import SiteSearch from "./components/SiteSearch"
 import radarvanLogo from "./img/radarvan_logo.webp"
 import radarvanLogoDark from "./img/radarvan_logo_dark.webp"
 import { useAuth } from "./lib/AuthContext"
@@ -177,6 +178,7 @@ export default function Menu() {
             {current?.title ?? "Radarvan"}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
+          <SiteSearch groups={groups} />
           <ColorModeToggle />
           {/* Icon-only on phones: a long player name here squeezed the page
               title down to a few characters. */}

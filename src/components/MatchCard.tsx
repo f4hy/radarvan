@@ -199,27 +199,36 @@ function TeamCard(props: {
   }
   return (
     // Observers get a narrower column: they didn't play, so they shouldn't
-    // take as much of the row as a team does.
+    // take as much of the row as a team does. Teams grow to the map's height
+    // and share it out between their rows rather than leaving a blank tail.
     <Card
       sx={{
         width: { xs: "100%", sm: "calc(50% - 4px)", md: "auto" },
-        flex: { md: props.stacked ? "none" : observers ? "0 1 180px" : 1 },
+        flex: {
+          md: observers ? (props.stacked ? "none" : "0 1 180px") : 1,
+        },
         minWidth: 0,
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <StatusBand color={bandColor} icon={icon} label={label} />
-      <Stack divider={<Divider />}>
+      <Stack divider={<Divider />} sx={{ flexGrow: 1 }}>
         {props.players.map((p) => (
           <Box
             // Color is unique per player in a match; names aren't (twin CPUs).
             key={`${p.name}-${p.color}`}
             sx={{
+              flexGrow: 1,
               display: "flex",
               alignItems: "center",
               gap: 1.5,
               px: 1.5,
-              py: 1,
+              // The general's name badge rides above the avatar; this keeps it
+              // clear of the divider over the row.
+              pt: 1.5,
+              pb: 1,
             }}
           >
             <DisplayGeneral general={p.general} />
@@ -246,13 +255,12 @@ function FfaPlayerCard(props: { player: Player; flags?: MatchLagFlags }) {
   const { mode } = useColorMode()
   const { player } = props
   return (
-    // Grows on phones so two share a row instead of one 150px card per line;
-    // fixed above that, or the cards would crowd the map onto its own line.
     <Card
       sx={{
-        flex: { xs: "1 1 130px", sm: "0 0 auto" },
-        minWidth: { xs: 130, sm: 150 },
+        minWidth: 0,
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <StatusBand
@@ -264,8 +272,12 @@ function FfaPlayerCard(props: { player: Player; flags?: MatchLagFlags }) {
       <Stack
         spacing={1}
         sx={{
+          flexGrow: 1,
           alignItems: "center",
-          p: 1.5,
+          justifyContent: "center",
+          pt: 2,
+          pb: 1.5,
+          px: 1,
         }}
       >
         <DisplayGeneral general={player.general} />
@@ -371,6 +383,23 @@ function MatchHeader(props: {
       </Stack>
       {props.action}
     </Stack>
+  )
+}
+
+// Top-aligned so a team taller than the map doesn't stretch the frame.
+function MapFrame(props: { children: React.ReactNode }) {
+  return (
+    <Box
+      sx={{
+        flexShrink: 0,
+        alignSelf: "flex-start",
+        width: { xs: "100%", md: "auto" },
+        borderRadius: 1,
+        overflow: "hidden",
+      }}
+    >
+      {props.children}
+    </Box>
   )
 }
 
@@ -496,22 +525,40 @@ function FfaMatchDisplay(props: {
       <Stack
         direction="row"
         sx={{
-          flexWrap: "wrap",
+          flexWrap: { xs: "wrap", md: "nowrap" },
+          alignItems: { xs: "flex-start", md: "stretch" },
           gap: 1,
           mt: 1,
         }}
       >
-        {match.players.map((p) => (
-          // Color is unique per player in a match; names aren't (twin CPUs).
-          <FfaPlayerCard
-            key={`${p.name}-${p.color}`}
-            player={p}
-            flags={props.flags}
-          />
-        ))}
-        <Box sx={{ width: { xs: "100%", sm: "auto" } }}>
-          <GameMap mapname={match.map} playerPositions={playerPositions} />
+        {/* Two rows beside the map, so the cards share its height and a
+            six-player game doesn't push the map onto a line of its own. */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            width: { xs: "100%", md: "auto" },
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "repeat(auto-fit, minmax(130px, 1fr))",
+              md: `repeat(${Math.ceil(match.players.length / 2)}, minmax(0, 1fr))`,
+            },
+            gridAutoRows: { md: "1fr" },
+            gap: 1,
+          }}
+        >
+          {match.players.map((p) => (
+            // Color is unique per player in a match; names aren't (twin CPUs).
+            <FfaPlayerCard
+              key={`${p.name}-${p.color}`}
+              player={p}
+              flags={props.flags}
+            />
+          ))}
         </Box>
+        <MapFrame>
+          <GameMap mapname={match.map} playerPositions={playerPositions} />
+        </MapFrame>
       </Stack>
       <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
       <Collapse in={details} unmountOnExit>
@@ -625,7 +672,7 @@ export const MatchCard = React.memo(function MatchCard(props: {
         sx={{
           justifyContent: "flex-start",
           flexWrap: { xs: "wrap", md: "nowrap" },
-          alignItems: "flex-start",
+          alignItems: { xs: "flex-start", md: "stretch" },
           gap: 1,
           mt: 1,
         }}
@@ -637,7 +684,6 @@ export const MatchCard = React.memo(function MatchCard(props: {
             display: "flex",
             flexDirection: { xs: "row", md: stackTeams ? "column" : "row" },
             flexWrap: { xs: "wrap", md: "nowrap" },
-            alignItems: { md: stackTeams ? "stretch" : "flex-start" },
             gap: 1,
           }}
         >
@@ -653,19 +699,12 @@ export const MatchCard = React.memo(function MatchCard(props: {
             />
           ))}
         </Box>
-        <Box
-          sx={{
-            flexShrink: 0,
-            width: { xs: "100%", md: "auto" },
-            borderRadius: 1,
-            overflow: "hidden",
-          }}
-        >
+        <MapFrame>
           <GameMap
             mapname={props.match.map}
             playerPositions={playerPositions}
           />
-        </Box>
+        </MapFrame>
       </Stack>
       <DetailsExpander open={details} onToggle={() => setDetails((v) => !v)} />
       <Collapse in={details} unmountOnExit>
