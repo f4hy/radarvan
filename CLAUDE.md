@@ -20,7 +20,7 @@ You own this repo's long-term health, not just the task in front of you. Write c
 
 ## Dev workflow
 
-- The dev servers are normally **already running** via `make up` (`LOCAL_DEV.md`): Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit), backed by a local Postgres container. Never launch your own instances to verify changes — connect to the running ones. `.env`'s `DATABASE_URL` is that local database; production is only in `PROD_DATABASE_URL`, read by `make db-snapshot`. Never copy it into `DATABASE_URL` or point a server at it.
+- The dev servers are normally **already running** via `make up` (`LOCAL_DEV.md`): Vite on 5173 (proxying `/api`), FastAPI on 8000 (auto-reloads on edit), backed by a local Postgres container. Never launch your own instances to verify changes — connect to the running ones. `.env`'s `DATABASE_URL` is that local database; production credentials are never stored locally — `make db-snapshot` fetches them on demand via `heroku config:get` (`HEROKU_APP` in `.env`). Never put them in `.env` or point a server at production.
 - **Migrations**: alembic revisions apply themselves on deploy and the chain cannot build a schema from an empty database. Invoke the **`db-migrations`** skill before writing one.
 - Do not commit or push (and don't ask to) unless explicitly told. Finish the work, report what changed, and leave it in the working tree.
 - **Fetching real data (a match, replay, player stats, etc.) to inspect or verify something: use the running API at `http://localhost:8000` (`curl`), not a direct DB/S3 connection.**

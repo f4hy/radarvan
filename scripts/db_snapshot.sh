@@ -13,9 +13,8 @@
 #
 # Source URL resolution, in order:
 #   1. --source <url>
-#   2. $PROD_DATABASE_URL
-#   3. PROD_DATABASE_URL from ./.env (DATABASE_URL there is the local stack)
-#   4. `heroku config:get DATABASE_URL -a $HEROKU_APP`
+#   2. $PROD_DATABASE_URL (a one-off override; never store it in .env)
+#   3. `heroku config:get DATABASE_URL -a $HEROKU_APP`, HEROKU_APP from env or .env
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -36,10 +35,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$SOURCE_URL" && -f .env ]]; then
-  raw="$(grep -E '^PROD_DATABASE_URL=' .env | tail -1 | cut -d= -f2- || true)"
-  raw="${raw%\"}"; raw="${raw#\"}"; raw="${raw%\'}"; raw="${raw#\'}"
-  SOURCE_URL="$raw"
+if [[ -z "${HEROKU_APP:-}" && -f .env ]]; then
+  HEROKU_APP="$(grep -E '^HEROKU_APP=' .env | tail -1 | cut -d= -f2- | tr -d "\"'" || true)"
 fi
 
 if [[ -z "$SOURCE_URL" ]] && command -v heroku >/dev/null 2>&1 && [[ -n "${HEROKU_APP:-}" ]]; then
@@ -48,8 +45,8 @@ if [[ -z "$SOURCE_URL" ]] && command -v heroku >/dev/null 2>&1 && [[ -n "${HEROK
 fi
 
 if [[ -z "$SOURCE_URL" ]]; then
-  echo "no source database URL found. Set PROD_DATABASE_URL (env or .env)," >&2
-  echo "or pass --source postgres://..." >&2
+  echo "no source database URL found. Set HEROKU_APP (env or .env) with the" >&2
+  echo "heroku CLI logged in, or pass --source postgres://..." >&2
   exit 1
 fi
 

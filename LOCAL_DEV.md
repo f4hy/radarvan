@@ -20,8 +20,8 @@ takes; no rebuild.
 The dev servers are also perfectly runnable by hand (`fastapi dev
 radarvan/main.py` + `npm start`) — that still works and uses whatever
 `DATABASE_URL` your shell has. `.env` points it at the compose Postgres
-(`localhost:5433`, so `docker compose up -d db` first); production lives only
-in `PROD_DATABASE_URL`. The two ways compete for ports 8000 and
+(`localhost:5433`, so `docker compose up -d db` first). Production credentials
+never go in `.env`. The two ways compete for ports 8000 and
 5173, so stop one before starting the other, or set `API_PORT` / `WEB_PORT` in
 `.env` to move the compose stack out of the way.
 
@@ -81,9 +81,10 @@ make db-restore    # load the newest snapshot into the local database
 
 `db-snapshot` is read-only against production (`pg_dump` takes only ACCESS
 SHARE locks) and runs the dump inside a `postgres:17` container, so no local
-Postgres client is required. It reads the source URL from `PROD_DATABASE_URL`
-(environment, then `.env`), else `heroku config:get DATABASE_URL -a $HEROKU_APP`,
-and refuses to run against localhost.
+Postgres client is required. It fetches the source URL on demand with
+`heroku config:get DATABASE_URL -a $HEROKU_APP` (`HEROKU_APP` from the
+environment or `.env`; `PROD_DATABASE_URL` in the environment overrides it for a
+one-off), and refuses to run against localhost.
 
 By default it **skips the rows of `match_details_cache`** — that one table is
 80% of the database (175 MB of 222 MB) and is pure derived data that the app
