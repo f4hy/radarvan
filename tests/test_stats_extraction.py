@@ -162,7 +162,7 @@ def test_income_by_source_caps_snapshot_count() -> None:
     assert series[minutes[-1]] == {"P1": (n - 1) * 10}
 
 
-def test_stats_series_capped_with_exact_endpoints() -> None:
+def test_stats_straight_line_keeps_only_endpoints() -> None:
     n = 1200
     money = [i * 10 for i in range(n)]
     replay = _replay([_ts_player(1, None, money=money)])
@@ -171,11 +171,43 @@ def test_stats_series_capped_with_exact_endpoints() -> None:
     assert result is not None
     series = result.stats_data.money
 
-    assert len(series) <= 301
     minutes = list(series)
     assert minutes == sorted(minutes)
-    assert series[minutes[0]] == {"P1": 0}
-    assert series[minutes[-1]] == {"P1": (n - 1) * 10}
+    assert [series[m] for m in minutes] == [{"P1": 0}, {"P1": (n - 1) * 10}]
+
+
+def test_stats_jagged_line_capped_per_player_with_exact_endpoints() -> None:
+    n = 1200
+    money = [(i % 2) * 5000 + i for i in range(n)]  # never within tolerance
+    replay = _replay([_ts_player(1, None, money=money)])
+
+    result = stats_data_from_replay(replay)
+    assert result is not None
+    series = result.stats_data.money
+
+    assert len(series) == 600
+    minutes = list(series)
+    assert series[minutes[0]] == {"P1": money[0]}
+    assert series[minutes[-1]] == {"P1": money[-1]}
+
+
+def test_stats_rows_sparse_but_first_and_last_complete() -> None:
+    steady = [i * 10 for i in range(20)]
+    spiky = [0, 5000] * 10
+    replay = _replay(
+        [_ts_player(1, None, money=steady), _ts_player(2, None, money=spiky)]
+    )
+
+    result = stats_data_from_replay(replay)
+    assert result is not None
+    series = result.stats_data.money
+
+    minutes = list(series)
+    assert series[minutes[0]] == {"P1": 0, "P2": 0}
+    assert series[minutes[-1]] == {"P1": 190, "P2": 5000}
+    # P1 is a straight line, so it appears only in the first and last rows.
+    assert all(set(series[m]) == {"P2"} for m in minutes[1:-1])
+    assert len(minutes) == 20
 
 
 def test_income_by_source_absent_on_older_replays() -> None:

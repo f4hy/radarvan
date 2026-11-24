@@ -12,9 +12,12 @@ from collections import defaultdict
 from dataclasses import dataclass, fields
 from typing import NamedTuple
 
+import numpy as np
+
 from .api_types import FirstBlood
 from .cncstats_model.statsfile import IncomeBySource
 from .cncstats_model.zhreplay import EnhancedReplayV2
+from .line_simplify import simplify
 from .replay_helpers import is_initial_seed_frame
 from .utils import minutes_per_step
 
@@ -79,13 +82,15 @@ class AllExtractedData:
 # extraction (and the wire dict) without further edits here.
 _INCOME_SOURCES = tuple(IncomeBySource.model_fields)
 
-# Money and event-count series change on nearly every snapshot or event, so
-# "only changed points" alone can't bound them for a long game (a 60-min 4v4
-# had 6.6k points per series). A details chart is well under a thousand pixels
-# wide, so ~300 points is visually lossless while keeping the wire size, the
-# cached MatchDetails' memory and recharts render cost flat regardless of
-# match length.
+# The income_by_source chart's shared snapshot grid is stride-thinned to this.
 _MAX_CHART_POINTS = 300
+
+# stats_data lines are simplified per player to stay within this many pixels of
+# the original on the 300px-tall details chart (y axis from 0 to the series'
+# max), keeping at most _MAX_POINTS_PER_LINE points each.
+_CHART_HEIGHT_PX = 300
+_TOLERANCE_PX = 2
+_MAX_POINTS_PER_LINE = 600
 
 
 def _stride_thin[T](items: list[T], max_points: int) -> list[T]:
@@ -99,8 +104,27 @@ def _stride_thin[T](items: list[T], max_points: int) -> list[T]:
     return kept
 
 
-def _cap_points(series: dict[float, dict[str, int]]) -> dict[float, dict[str, int]]:
-    return dict(_stride_thin(list(series.items()), _MAX_CHART_POINTS))
+def _simplify_lines(
+    series: dict[float, dict[str, int]],
+) -> dict[float, dict[str, int]]:
+    """Simplify each player's line on its own, so rows come back sparse; the
+    first and last rows stay complete for readers that take the final value."""
+    if not series:
+        return {}
+    times = sorted(series)
+    ymax = max((v for row in series.values() for v in row.values()), default=0)
+    tolerance = _TOLERANCE_PX * ymax / _CHART_HEIGHT_PX
+    out: dict[float, dict[str, int]] = {
+        times[0]: dict(series[times[0]]),
+        times[-1]: dict(series[times[-1]]),
+    }
+    players = dict.fromkeys(p for row in series.values() for p in row)
+    for player in players:
+        ts = [t for t in times if player in series[t]]
+        ys = np.array([series[t][player] for t in ts], dtype=np.float64)
+        for i in simplify(np.array(ts), ys, tolerance, _MAX_POINTS_PER_LINE):
+            out.setdefault(ts[i], {})[player] = series[ts[i]][player]
+    return dict(sorted(out.items()))
 
 
 def _sparse_keep_indices(
@@ -319,18 +343,18 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     faction_buildings_captured = _event_counts_to_series(fc_deltas, all_players, scale)
 
     sd = StatsData(
-        xp=_cap_points(xp),
-        units_built=_cap_points(units_built),
-        units_lost=_cap_points(units_lost),
-        buildings_built=_cap_points(buildings_built),
-        buildings_lost=_cap_points(buildings_lost),
-        money_earned=_cap_points(money_earned),
-        money_spent=_cap_points(money_spent),
-        money=_cap_points(money),
-        units_killed=_cap_points(units_killed),
-        buildings_killed=_cap_points(buildings_killed),
-        tech_buildings_captured=_cap_points(tech_buildings_captured),
-        faction_buildings_captured=_cap_points(faction_buildings_captured),
+        xp=_simplify_lines(xp),
+        units_built=_simplify_lines(units_built),
+        units_lost=_simplify_lines(units_lost),
+        buildings_built=_simplify_lines(buildings_built),
+        buildings_lost=_simplify_lines(buildings_lost),
+        money_earned=_simplify_lines(money_earned),
+        money_spent=_simplify_lines(money_spent),
+        money=_simplify_lines(money),
+        units_killed=_simplify_lines(units_killed),
+        buildings_killed=_simplify_lines(buildings_killed),
+        tech_buildings_captured=_simplify_lines(tech_buildings_captured),
+        faction_buildings_captured=_simplify_lines(faction_buildings_captured),
     )
     return AllExtractedData(
         stats_data=sd,

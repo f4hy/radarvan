@@ -1,70 +1,26 @@
-import Tab from "@mui/material/Tab"
-import Tabs from "@mui/material/Tabs"
-import { alpha } from "@mui/material/styles"
-import Divider from "@mui/material/Divider"
-import Paper from "@mui/material/Paper"
-import Typography from "@mui/material/Typography"
-import orderBy from "lodash/orderBy"
-import { useQuery } from "@tanstack/react-query"
-import * as React from "react"
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  LabelList,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  type LegendPayload,
-  type TickItem,
-  type TooltipPayloadEntry,
-} from "recharts"
-import ShowPlayerSummaries from "./Summary"
-import { getMatchDetailsApiDetailsMatchIdGetOptions } from "../../api/@tanstack/react-query.gen"
-import type {
-  KillEventOutput,
-  MatchDetails,
-  APM,
-  PlayerSummary,
-  FirstBlood,
-  BuildOrder,
-  BuildOrderEntry,
-  TimelineEvent,
-} from "../../api/types.gen"
-import GameMap, { useMapSupplyTotal } from "../../components/Map"
-import ReplayPlayback from "./ReplayPlayback"
-import AIPredictions from "./AIPredictions"
-import { Alert, Stack, Tooltip as MuiTooltip } from "@mui/material"
-import UpgradeIcon from "@mui/icons-material/Upgrade"
-import StarIcon from "@mui/icons-material/Star"
-import BoltIcon from "@mui/icons-material/Bolt"
-import ConstructionIcon from "@mui/icons-material/Construction"
-import WhatshotIcon from "@mui/icons-material/Whatshot"
 import BatteryAlertIcon from "@mui/icons-material/BatteryAlert"
-import GpsFixedIcon from "@mui/icons-material/GpsFixed"
+import BoltIcon from "@mui/icons-material/Bolt"
 import CancelIcon from "@mui/icons-material/Cancel"
-import FlagIcon from "@mui/icons-material/Flag"
-import RadarIcon from "@mui/icons-material/Radar"
-import MovieIcon from "@mui/icons-material/Movie"
+import ConstructionIcon from "@mui/icons-material/Construction"
 import CrisisAlertIcon from "@mui/icons-material/CrisisAlert"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import FlagIcon from "@mui/icons-material/Flag"
+import GpsFixedIcon from "@mui/icons-material/GpsFixed"
+import MovieIcon from "@mui/icons-material/Movie"
+import RadarIcon from "@mui/icons-material/Radar"
 import ShieldIcon from "@mui/icons-material/Shield"
+import StarIcon from "@mui/icons-material/Star"
+import UpgradeIcon from "@mui/icons-material/Upgrade"
+import WhatshotIcon from "@mui/icons-material/Whatshot"
+import { Alert, Tooltip as MuiTooltip, Stack } from "@mui/material"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import { queryFallback } from "../../components/QueryState"
-import MatchNarrative from "../../components/MatchNarrative"
-import MomentumSparkline, {
-  winnerProbSeries,
-} from "../../components/MomentumSparkline"
 import Box from "@mui/material/Box"
+import Divider from "@mui/material/Divider"
+import Paper from "@mui/material/Paper"
+import { alpha } from "@mui/material/styles"
+import Tab from "@mui/material/Tab"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
@@ -72,13 +28,57 @@ import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import TableSortLabel from "@mui/material/TableSortLabel"
+import Tabs from "@mui/material/Tabs"
+import Typography from "@mui/material/Typography"
+import { useQuery } from "@tanstack/react-query"
+import orderBy from "lodash/orderBy"
+import * as React from "react"
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
+  LabelList,
+  Legend,
+  type LegendPayload,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  type TickItem,
+  Tooltip,
+  type TooltipPayloadEntry,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { getMatchDetailsApiDetailsMatchIdGetOptions } from "../../api/@tanstack/react-query.gen"
+import type {
+  APM,
+  BuildOrder,
+  BuildOrderEntry,
+  FirstBlood,
+  KillEventOutput,
+  MatchDetails,
+  PlayerSummary,
+  TimelineEvent,
+} from "../../api/types.gen"
+import GameMap, { useMapSupplyTotal } from "../../components/Map"
+import MatchNarrative from "../../components/MatchNarrative"
+import MomentumSparkline, {
+  winnerProbSeries,
+} from "../../components/MomentumSparkline"
+import { queryFallback } from "../../components/QueryState"
+import { BRAND_COLOR } from "../../lib/theme"
 import {
   buildPlayerColorMap,
   formatCash,
   formatCompact,
   getColorHex,
 } from "../../lib/utils"
-import { BRAND_COLOR } from "../../lib/theme"
+import AIPredictions from "./AIPredictions"
+import ReplayPlayback from "./ReplayPlayback"
+import ShowPlayerSummaries from "./Summary"
 
 // recharts' "value" sync needs an exact label match, but the timelines sample
 // on different grids (APM is 10s windows), so snap to the nearest point.
@@ -110,6 +110,31 @@ const TIMELINE_Y_AXIS_PROPS = { width: 60, tickFormatter: formatCompact }
 const formatMinute = (t: unknown) => `${Number(t).toFixed(1)}m`
 
 const byValueDesc = (item: TooltipPayloadEntry) => -(Number(item.value) || 0)
+
+type TimelineRow = { atMinute: number } & Record<string, number>
+
+// stats_data lines are simplified per player, so a row only holds the players
+// with a point there. Interpolating the gaps (the same straight line the chart
+// draws) keeps every player in the tooltip.
+function fillSparseRows(rows: TimelineRow[], players: string[]): TimelineRow[] {
+  const filled = rows.map((row) => ({ ...row }))
+  for (const p of players) {
+    let prev = -1
+    filled.forEach((row, i) => {
+      if (rows[i][p] === undefined) return
+      if (prev >= 0 && i - prev > 1) {
+        const a = rows[prev]
+        const span = row.atMinute - a.atMinute
+        for (let j = prev + 1; j < i; j++) {
+          const f = (rows[j].atMinute - a.atMinute) / span
+          filled[j][p] = Math.round(a[p] + f * (row[p] - a[p]))
+        }
+      }
+      prev = i
+    })
+  }
+  return filled
+}
 
 // Hovering a legend entry dims every other series.
 function useLegendHighlight() {
@@ -147,9 +172,12 @@ function MoneyChart(props: {
         atMinute: Number(atMinute),
       }))
       .sort((a, b) => a.atMinute - b.atMinute)
+    const players = [
+      ...new Set(data.flatMap((row) => Object.keys(row))),
+    ].filter((k) => k !== "atMinute")
     return {
-      players: Object.keys(Object.values(props.money)[0]),
-      data,
+      players,
+      data: fillSparseRows(data, players),
       max: Object.values(props.money).reduce(
         (acc, cur) => Math.max(acc, ...Object.values(cur)),
         0,

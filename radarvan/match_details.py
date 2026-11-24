@@ -74,7 +74,9 @@ logger = structlog.get_logger(__name__)
 # of every source at every point of the shared grid.
 # v10: every stats_data series is capped at ~300 points (stride-thinned,
 # endpoints exact) - long games had 6k+, ~half a cached MatchDetails' memory.
-_DETAILS_LOGIC_VERSION = 10
+# v11: stats_data lines are simplified per player (RDP within 2px of the chart,
+# <=600 points) instead of stride-thinned; rows are sparse.
+_DETAILS_LOGIC_VERSION = 11
 
 
 def _compute_details_version() -> str:
