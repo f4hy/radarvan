@@ -24,6 +24,7 @@ from sqlalchemy import (
     select,
     true,
 )
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from ..api_types import KillEventOutput, MatchDetails, MatchPowers, PlayerSummary
 from ..db import Match, MatchDetailsCache
@@ -248,16 +249,18 @@ class MatchDetailsRepo(BaseRepo):
         self, match_id: int, details: MatchDetails, version: str
     ) -> None:
         """Upsert the derived MatchDetails for a match at the given version."""
-        payload = details.model_dump(mode="json", by_alias=True)
-        # computed_at is set explicitly: session.merge() copies attribute state
-        # by PK, and an unset onupdate column would be merged as NULL (which a
-        # NOT NULL column rejects on the update path). See CLAUDE.md gotcha.
-        self.session.merge(
-            MatchDetailsCache(
-                match_id=match_id,
-                version=version,
-                data=payload,
-                computed_at=datetime.now(UTC),
+        # Atomic, not merge(): both players' uploads warm the same match at once,
+        # and merge's SELECT-then-INSERT races into a UniqueViolation.
+        values = {
+            "version": version,
+            "data": details.model_dump(mode="json", by_alias=True),
+            "computed_at": datetime.now(UTC),
+        }
+        stmt = pg_insert(MatchDetailsCache).values(match_id=match_id, **values)
+        self.session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[MatchDetailsCache.match_id],
+                set_={k: stmt.excluded[k] for k in values},
             )
         )
         self._commit_if_auto()
