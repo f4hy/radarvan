@@ -7,8 +7,12 @@
 FROM node:26-slim
 
 WORKDIR /app
+RUN chown node:node /app
+# Non-root: the named volume inherits this ownership, so Vite can write its
+# dep cache there while the repo itself is mounted read-only.
+USER node
 
-COPY package.json package-lock.json ./
+COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci
 
 EXPOSE 5173

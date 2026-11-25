@@ -131,11 +131,23 @@ services:
       # vite.config.ts reads this; inside the compose network the API is
       # reachable as `backend`, not localhost.
       VITE_API_PROXY_TARGET: http://backend:8000
+      # .env is hidden from this container (below), so pass its VITE_ vars here.
+      VITE_BRACKET_VISIBLE_TO_ALL: ${VITE_BRACKET_VISIBLE_TO_ALL-}
     command: ["npm", "start", "--", "--host", "0.0.0.0", "--port", "5173"]
     ports:
       - "127.0.0.1:${WEB_PORT:-5173}:5173"
+    # A dev server is one bug away from running attacker code (it has been, via
+    # a Vite RCE), so this container gets no secrets and can't write the repo:
+    # read-only mount, non-root (Dockerfile), .env/keys/snapshots masked.
+    # Mount points under a read-only mount must already exist: `make up` creates them.
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /app/keys
+      - /app/db_snapshots
     volumes:
-      - .:/app
+      - .:/app:ro
+      - ./docker/empty.env:/app/.env:ro
       # Named volume wins over the bind mount at this path: the container keeps
       # the linux node_modules built by `npm ci` in the image.
       #

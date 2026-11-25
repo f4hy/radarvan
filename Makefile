@@ -118,7 +118,11 @@ test-db-down: ## Stop the test PostgreSQL container
 # ── Local dev stack (docker compose) ──────────────────────────────────────────
 # Postgres + backend + frontend, all hot-reloading. See LOCAL_DEV.md.
 
+# The frontend mounts the repo read-only, so mount points under it must exist.
+FRONTEND_MOUNT_POINTS := node_modules keys db_snapshots
+
 up: ## Start the local stack (db + backend + frontend) in the background
+	mkdir -p $(FRONTEND_MOUNT_POINTS)
 	docker compose up -d --wait
 	@echo "✓ frontend http://localhost:$${WEB_PORT:-5173}  api http://localhost:$${API_PORT:-8000}"
 
@@ -133,6 +137,7 @@ up: ## Start the local stack (db + backend + frontend) in the background
 up-build: ## Rebuild the dev images and refresh node_modules, then start the stack
 	docker compose down
 	docker volume rm -f radarvan_node_modules
+	mkdir -p $(FRONTEND_MOUNT_POINTS)
 	docker compose up -d --build --wait
 	@echo "✓ frontend http://localhost:$${WEB_PORT:-5173}  api http://localhost:$${API_PORT:-8000}"
 
