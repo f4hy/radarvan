@@ -45,10 +45,10 @@ def presigned_url(
 
 
 def test_connection() -> None:
-    store = s3_store.get_store()
+    # Read-only on purpose: local dev runs with a read-only key. A bad or revoked
+    # key still fails startup here, since exists() re-raises 403.
     uri = f"{s3_root}test.txt"
-    store.write_text(uri, "test")
-    logger.info("s3 reachable", uri=uri, exists=store.exists(uri))
+    logger.info("s3 reachable", uri=uri, exists=s3_store.get_store().exists(uri))
 
 
 def save_replay_if_missing(
