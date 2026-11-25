@@ -1655,15 +1655,11 @@ export const recomputePlayerProfilesApiPlayerProfileRecomputePost = <ThrowOnErro
 /**
  * Generate Game Night Summary
  *
- * Write (or rewrite) one game night's LLM recap by hand.
+ * Queue (or, with ``force``, re-queue) one game night's billed LLM recap.
  *
- * A real, billed LLM call - which is why this is the only way to reach the
- * generator outside the nightly job, why it is ops-admin gated, and why it
- * refuses by default when a row already exists. ``force=true`` overwrites.
- *
- * Unlike the nightly job this does not require the night to be closed, so it
- * can be used to see what tonight would read like; the row it writes is then
- * the one the page serves, so re-run it with ``force`` once the night ends.
+ * Answers 202 with the night's current status; poll
+ * ``GET /api/game_night_status/{night}`` for the result. Unlike the backfill
+ * this does not require the night to be closed.
  */
 export const generateGameNightSummaryApiGenerateGameNightSummaryNightPost = <ThrowOnError extends boolean = true>(options: Options<generateGameNightSummaryApiGenerateGameNightSummaryNightPostData, ThrowOnError>): RequestResult<generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponses, generateGameNightSummaryApiGenerateGameNightSummaryNightPostErrors, ThrowOnError> => (options.client ?? client).post<generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponses, generateGameNightSummaryApiGenerateGameNightSummaryNightPostErrors, ThrowOnError>({
     responseTransformer: generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponseTransformer,
@@ -1674,9 +1670,10 @@ export const generateGameNightSummaryApiGenerateGameNightSummaryNightPost = <Thr
 /**
  * Generate Match Blurbs
  *
- * Caption one night's top matches by hand. **Every match written is a billed LLM call**
- * (at most ``MAX_BLURBS_PER_NIGHT``); picks that already have a blurb are skipped
- * unless ``force=true``. Does not require the night to be closed.
+ * Queue billed captions for one night's top matches (at most ``MAX_BLURBS_PER_NIGHT``).
+ *
+ * Picks that already have a blurb are skipped unless ``force=true``. Does
+ * not require the night to be closed. Answers 202 with what was queued.
  */
 export const generateMatchBlurbsApiGenerateMatchBlurbsNightPost = <ThrowOnError extends boolean = true>(options: Options<generateMatchBlurbsApiGenerateMatchBlurbsNightPostData, ThrowOnError>): RequestResult<generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponses, generateMatchBlurbsApiGenerateMatchBlurbsNightPostErrors, ThrowOnError> => (options.client ?? client).post<generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponses, generateMatchBlurbsApiGenerateMatchBlurbsNightPostErrors, ThrowOnError>({
     responseTransformer: generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponseTransformer,
@@ -1687,12 +1684,12 @@ export const generateMatchBlurbsApiGenerateMatchBlurbsNightPost = <ThrowOnError 
 /**
  * Backfill Match Blurbs
  *
- * Caption the top matches of the last ``days`` closed nights, newest first.
+ * Queue captions for the top matches of the last ``days`` closed nights, newest first.
  *
- * **Every blurb written is a billed LLM call**, and ``max_to_update`` is the
- * cap on them across the whole run (each night is capped separately at
- * ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it calls no
- * provider and reports what each night would spend. Never overwrites, and
+ * **Every blurb queued is a billed LLM call**, and ``max_to_update`` caps
+ * them across the whole run (each night is capped separately at
+ * ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it queues
+ * nothing and reports what each night would spend. Never overwrites, and
  * never touches the night still being played.
  */
 export const backfillMatchBlurbsApiBackfillMatchBlurbsPost = <ThrowOnError extends boolean = true>(options?: Options<backfillMatchBlurbsApiBackfillMatchBlurbsPostData, ThrowOnError>): RequestResult<backfillMatchBlurbsApiBackfillMatchBlurbsPostResponses, backfillMatchBlurbsApiBackfillMatchBlurbsPostErrors, ThrowOnError> => (options?.client ?? client).post<backfillMatchBlurbsApiBackfillMatchBlurbsPostResponses, backfillMatchBlurbsApiBackfillMatchBlurbsPostErrors, ThrowOnError>({
@@ -1704,26 +1701,19 @@ export const backfillMatchBlurbsApiBackfillMatchBlurbsPost = <ThrowOnError exten
 /**
  * Backfill Game Night Summaries
  *
- * Fill in missing LLM recaps for the last ``days`` game nights.
+ * Queue missing LLM recaps for the last ``days`` game nights, newest first.
  *
- * **Every night this writes is a real, billed LLM call**, which is what
- * shapes the two knobs. ``days`` says how far back to *look*;
- * ``max_to_update`` says how many calls this run may *spend* (the backfill
- * endpoint pattern - default 1, run it again to continue). Nights are taken
- * newest first, so a small budget buys the recaps people are most likely to
- * read.
+ * **Every night queued is a real, billed LLM call.** ``days`` says how far
+ * back to *look*; ``max_to_update`` says how many calls this run may
+ * *spend* (default 1, run it again to continue).
  *
- * Never overwrites: a night with a stored row is reported
- * ``already_summarized`` and skipped, because the stored text is the
- * delivery mechanism rather than a cache. Use
+ * Never overwrites: a night with a stored row is ``already_summarized``,
+ * because the stored text is the delivery mechanism rather than a cache - use
  * ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite
- * one deliberately. Nights below the floor the nightly job uses
- * (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night
- * currently in progress is never in the window - see
- * ``queries.closed_nights_within``.
- *
- * The report lists every night considered, so a run with the default budget
- * doubles as a dry run of the next one.
+ * one. Nights below ``night_summary.MIN_MATCHES_FOR_SUMMARY`` are skipped,
+ * and the night in progress is never in the window
+ * (``queries.closed_nights_within``). The report lists every night
+ * considered, so it doubles as a preview of the next run.
  */
 export const backfillGameNightSummariesApiBackfillGameNightSummariesPost = <ThrowOnError extends boolean = true>(options?: Options<backfillGameNightSummariesApiBackfillGameNightSummariesPostData, ThrowOnError>): RequestResult<backfillGameNightSummariesApiBackfillGameNightSummariesPostResponses, backfillGameNightSummariesApiBackfillGameNightSummariesPostErrors, ThrowOnError> => (options?.client ?? client).post<backfillGameNightSummariesApiBackfillGameNightSummariesPostResponses, backfillGameNightSummariesApiBackfillGameNightSummariesPostErrors, ThrowOnError>({
     responseTransformer: backfillGameNightSummariesApiBackfillGameNightSummariesPostResponseTransformer,

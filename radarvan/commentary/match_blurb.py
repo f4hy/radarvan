@@ -7,12 +7,11 @@ stored blurb or shows none.
 from __future__ import annotations
 
 import asyncio
-from typing import NamedTuple
 
 import structlog
 
 from .. import match_narrative
-from ..api_types import MatchBlurbBackfillNight, MatchBlurbRun, MatchNarrative
+from ..api_types import MatchBlurbBackfillNight, MatchNarrative
 from ..match_interest import (
     MIN_INTEREST_FOR_BLURB,
     Interest,
@@ -21,6 +20,7 @@ from ..match_interest import (
 )
 from ..queries.game_night import NightGames
 from ..repositories import MatchBlurbRepo
+from ..run_slot import RunSlot
 from . import llm
 from .match_prompts import MATCH_GUIDELINES
 from .night_summary import render_timeline, tournament_tag
@@ -34,6 +34,12 @@ MAX_BLURBS_PER_NIGHT = 3
 
 # Held across the nightly job and the ops endpoint so neither bills for the same match twice.
 generation_lock = asyncio.Lock()
+# An ops run claimed by its handler and released by its background task.
+manual_run = RunSlot()
+
+
+def busy() -> bool:
+    return generation_lock.locked() or manual_run.held
 
 
 def pick_candidates(night_games: NightGames) -> list[ScoredMatch]:
@@ -77,69 +83,49 @@ def generate_blurb(narrative: MatchNarrative, interest: Interest) -> str:
     )
 
 
+def uncaptioned(
+    night_games: NightGames, blurbs: MatchBlurbRepo, *, force: bool = False
+) -> list[ScoredMatch]:
+    """The night's picks that a run would pay for, best first (all of them with ``force``)."""
+    picks = pick_candidates(night_games)
+    have = set() if force else set(blurbs.get_blurbs(p.match.id for p in picks))
+    return [p for p in picks if p.match.id not in have]
+
+
 async def generate_night_blurbs(
     night_games: NightGames,
     blurbs: MatchBlurbRepo,
     *,
     force: bool = False,
     max_calls: int | None = None,
-) -> MatchBlurbRun:
-    """Caption this night's picks that lack a blurb (all of them with ``force``).
+) -> list[int]:
+    """Caption up to ``max_calls`` of ``uncaptioned`` and return the ids paid for.
 
-    Spends a real LLM call per id in ``generated``, at most ``max_calls`` of them.
     Each blurb is stored as it is written; a provider error propagates, keeping
     what was already paid for.
     """
-    picks = pick_candidates(night_games)
     generated: list[int] = []
     async with generation_lock:
-        have = set() if force else set(blurbs.get_blurbs(p.match.id for p in picks))
-        for pick in picks:
-            if pick.match.id in have:
-                continue
-            if max_calls is not None and len(generated) >= max_calls:
-                break
+        for pick in uncaptioned(night_games, blurbs, force=force)[:max_calls]:
             narrative = match_narrative.build_narrative(pick.match, pick.details)
             text = await asyncio.to_thread(generate_blurb, narrative, pick.interest)
             blurbs.save_blurb(pick.match.id, text, llm.active_provider())
             generated.append(pick.match.id)
-    logger.info("match blurbs written", generated=generated, picked=len(picks))
-    return MatchBlurbRun(
-        date=night_games.recap.date,
-        picked=[p.match.id for p in picks],
-        generated=generated,
+    logger.info(
+        "match blurbs written", night=str(night_games.recap.date), generated=generated
     )
+    return generated
 
 
-class NightCaptions(NamedTuple):
-    report: MatchBlurbBackfillNight
-    failed: bool
-
-
-async def caption_night(
-    night_games: NightGames, blurbs: MatchBlurbRepo, max_calls: int
-) -> NightCaptions:
-    """One night of a backfill: spend up to ``max_calls`` (0 spends nothing) and report.
-
-    Counts come from what is stored, so a provider error part-way still reports
-    the blurbs written before it.
-    """
-    picked = [p.match.id for p in pick_candidates(night_games)]
-    before = len(blurbs.get_blurbs(picked))
-    failed = False
-    if max_calls > 0:
-        try:
-            await generate_night_blurbs(night_games, blurbs, max_calls=max_calls)
-        except llm.CommentaryGenerationError:
-            logger.exception(
-                "match blurb backfill stopped", night=str(night_games.recap.date)
-            )
-            failed = True
-    have = len(blurbs.get_blurbs(picked))
-    report = MatchBlurbBackfillNight(
+def plan_night(
+    night_games: NightGames, blurbs: MatchBlurbRepo, budget: int
+) -> MatchBlurbBackfillNight:
+    """What a backfill with ``budget`` calls left would spend on this night. Spends nothing."""
+    missing = len(uncaptioned(night_games, blurbs))
+    queued = min(missing, budget)
+    return MatchBlurbBackfillNight(
         date=night_games.recap.date,
-        picked=len(picked),
-        generated=have - before,
-        pending=len(picked) - have,
+        picked=len(pick_candidates(night_games)),
+        queued=queued,
+        pending=missing - queued,
     )
-    return NightCaptions(report, failed)

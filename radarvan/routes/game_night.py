@@ -18,7 +18,7 @@ safely generate on demand (see routes/commentary.py).
 from datetime import date
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from .. import queries
 from ..api_types import (
@@ -28,6 +28,7 @@ from ..api_types import (
     GameNightRecap,
     GameNightSummaryStatus,
     MatchBlurbBackfill,
+    MatchBlurbBackfillNight,
     MatchBlurbRun,
     NightNetstats,
 )
@@ -40,8 +41,10 @@ from ..dependencies import (
     get_match_blurb_repo,
     get_netstats_repo,
 )
-from ..queries import AllGames, UnfilteredCompetitiveGames
+from ..notify import notify_async
+from ..queries import AllGames, NightGames, UnfilteredCompetitiveGames
 from ..repositories import GameNightSummaryRepo, MatchBlurbRepo, NetstatsRepo
+from ..run_slot import RunSlot
 
 logger = structlog.get_logger(__name__)
 
@@ -132,98 +135,159 @@ def get_game_night_summary_status(
     return summary_status(night, summaries)
 
 
-@session_router.post("/api/generate_game_night_summary/{night}", dependencies=OPS_ADMIN)
+# The four billed routes below answer with a plan and run the calls as a
+# background task: a call can outlast Heroku's 30s router timeout, and the
+# router 503s the caller while the dyno keeps paying for the work anyway.
+# Each claims its feature's `manual_run` before answering and the background
+# task releases it, so a second request 409s until the run is done.
+
+_BUSY_SUMMARY = "a game night summary is already being generated"
+_BUSY_BLURBS = "match blurbs are already being generated"
+
+
+def _require_provider() -> None:
+    if not llm.commentary_available():
+        raise HTTPException(
+            status_code=503, detail="LLM generation is not available on this server"
+        )
+
+
+def _reserve(slot: RunSlot, busy: bool, detail: str) -> None:
+    if busy or not slot.try_reserve():
+        raise HTTPException(status_code=409, detail=detail)
+
+
+async def _summarize_nights(nights: list[NightGames]) -> None:
+    try:
+        with db_manager.get_replay_manager() as replay_manager:
+            summaries = GameNightSummaryRepo(replay_manager.session)
+            for night_games in nights:
+                night = night_games.recap.date
+                try:
+                    await night_summary.generate_and_store(
+                        night_games.recap,
+                        queries.night_narratives(night_games),
+                        summaries,
+                    )
+                except llm.CommentaryGenerationError as e:
+                    # A provider error will hit every remaining night the same way.
+                    logger.error(
+                        "game night summary generation failed",
+                        night=str(night),
+                        exc_info=e,
+                    )
+                    await notify_async(f"Game night recap for {night} failed: {e}")
+                    return
+    finally:
+        night_summary.manual_run.release()
+
+
+async def _caption_nights(plan: list[tuple[NightGames, int]], force: bool) -> None:
+    try:
+        with db_manager.get_replay_manager() as replay_manager:
+            blurbs = MatchBlurbRepo(replay_manager.session)
+            for night_games, calls in plan:
+                night = night_games.recap.date
+                try:
+                    await match_blurb.generate_night_blurbs(
+                        night_games, blurbs, force=force, max_calls=calls
+                    )
+                except llm.CommentaryGenerationError as e:
+                    logger.error(
+                        "match blurb generation failed", night=str(night), exc_info=e
+                    )
+                    await notify_async(f"Match blurbs for {night} failed: {e}")
+                    return
+    finally:
+        match_blurb.manual_run.release()
+
+
+@session_router.post(
+    "/api/generate_game_night_summary/{night}",
+    dependencies=OPS_ADMIN,
+    status_code=202,
+)
 async def generate_game_night_summary(
     night: date,
     all_games: AllGames,
     competitive: UnfilteredCompetitiveGames,
+    background_tasks: BackgroundTasks,
     force: bool = False,
     summaries: GameNightSummaryRepo = Depends(get_game_night_summary_repo),
 ) -> GameNightSummaryStatus:
-    """Write (or rewrite) one game night's LLM recap by hand.
+    """Queue (or, with ``force``, re-queue) one game night's billed LLM recap.
 
-    A real, billed LLM call - which is why this is the only way to reach the
-    generator outside the nightly job, why it is ops-admin gated, and why it
-    refuses by default when a row already exists. ``force=true`` overwrites.
-
-    Unlike the nightly job this does not require the night to be closed, so it
-    can be used to see what tonight would read like; the row it writes is then
-    the one the page serves, so re-run it with ``force`` once the night ends.
+    Answers 202 with the night's current status; poll
+    ``GET /api/game_night_status/{night}`` for the result. Unlike the backfill
+    this does not require the night to be closed.
     """
-    if night_summary.generation_lock.locked():
-        raise HTTPException(
-            status_code=409, detail="a game night summary is already being generated"
-        )
+    if night_summary.busy():
+        raise HTTPException(status_code=409, detail=_BUSY_SUMMARY)
     if not force and summaries.has_night_summary(night):
         raise HTTPException(
             status_code=409,
             detail=f"{night} already has a summary; pass force=true to overwrite",
         )
-    if not llm.commentary_available():
-        raise HTTPException(
-            status_code=503,
-            detail="LLM generation is not available on this server",
-        )
+    _require_provider()
     night_games = await queries.build_night_recap(
         night, all_games, competitive, db_manager
     )
     if night_games.recap.match_count == 0:
         raise HTTPException(status_code=400, detail=f"no matches on game night {night}")
-    try:
-        await night_summary.generate_and_store(
-            night_games.recap, queries.night_narratives(night_games), summaries
-        )
-    except llm.CommentaryGenerationError as e:
-        logger.error("game night summary generation failed", exc_info=e)
-        raise HTTPException(status_code=502, detail="summary generation failed") from e
+    _reserve(night_summary.manual_run, night_summary.busy(), _BUSY_SUMMARY)
+    background_tasks.add_task(_summarize_nights, [night_games])
     return summary_status(night, summaries)
 
 
-@session_router.post("/api/generate_match_blurbs/{night}", dependencies=OPS_ADMIN)
+@session_router.post(
+    "/api/generate_match_blurbs/{night}", dependencies=OPS_ADMIN, status_code=202
+)
 async def generate_match_blurbs(
     night: date,
     all_games: AllGames,
     competitive: UnfilteredCompetitiveGames,
+    background_tasks: BackgroundTasks,
     force: bool = False,
     blurbs: MatchBlurbRepo = Depends(get_match_blurb_repo),
 ) -> MatchBlurbRun:
-    """Caption one night's top matches by hand. **Every match written is a billed LLM call**
-    (at most ``MAX_BLURBS_PER_NIGHT``); picks that already have a blurb are skipped
-    unless ``force=true``. Does not require the night to be closed.
+    """Queue billed captions for one night's top matches (at most ``MAX_BLURBS_PER_NIGHT``).
+
+    Picks that already have a blurb are skipped unless ``force=true``. Does
+    not require the night to be closed. Answers 202 with what was queued.
     """
-    if match_blurb.generation_lock.locked():
-        raise HTTPException(
-            status_code=409, detail="match blurbs are already being generated"
-        )
-    if not llm.commentary_available():
-        raise HTTPException(
-            status_code=503,
-            detail="LLM generation is not available on this server",
-        )
+    if match_blurb.busy():
+        raise HTTPException(status_code=409, detail=_BUSY_BLURBS)
+    _require_provider()
     night_games = await queries.build_night_recap(
         night, all_games, competitive, db_manager
     )
-    try:
-        return await match_blurb.generate_night_blurbs(night_games, blurbs, force=force)
-    except llm.CommentaryGenerationError as e:
-        logger.error("match blurb generation failed", exc_info=e)
-        raise HTTPException(status_code=502, detail="blurb generation failed") from e
+    queued = [
+        p.match.id for p in match_blurb.uncaptioned(night_games, blurbs, force=force)
+    ]
+    picked = [p.match.id for p in match_blurb.pick_candidates(night_games)]
+    if queued:
+        _reserve(match_blurb.manual_run, match_blurb.busy(), _BUSY_BLURBS)
+        background_tasks.add_task(_caption_nights, [(night_games, len(queued))], force)
+    return MatchBlurbRun(date=night, picked=picked, queued=queued)
 
 
-@session_router.post("/api/backfill_match_blurbs", dependencies=OPS_ADMIN)
+@session_router.post(
+    "/api/backfill_match_blurbs", dependencies=OPS_ADMIN, status_code=202
+)
 async def backfill_match_blurbs(
     all_games: AllGames,
     competitive: UnfilteredCompetitiveGames,
+    background_tasks: BackgroundTasks,
     days: int = 7,
     max_to_update: int = 3,
     blurbs: MatchBlurbRepo = Depends(get_match_blurb_repo),
 ) -> MatchBlurbBackfill:
-    """Caption the top matches of the last ``days`` closed nights, newest first.
+    """Queue captions for the top matches of the last ``days`` closed nights, newest first.
 
-    **Every blurb written is a billed LLM call**, and ``max_to_update`` is the
-    cap on them across the whole run (each night is capped separately at
-    ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it calls no
-    provider and reports what each night would spend. Never overwrites, and
+    **Every blurb queued is a billed LLM call**, and ``max_to_update`` caps
+    them across the whole run (each night is capped separately at
+    ``MAX_BLURBS_PER_NIGHT``). ``max_to_update=0`` is a dry run: it queues
+    nothing and reports what each night would spend. Never overwrites, and
     never touches the night still being played.
     """
     if days < 1:
@@ -232,86 +296,68 @@ async def backfill_match_blurbs(
         raise HTTPException(
             status_code=400, detail="max_to_update must not be negative"
         )
-    if match_blurb.generation_lock.locked():
-        raise HTTPException(
-            status_code=409, detail="match blurbs are already being generated"
-        )
-    if max_to_update > 0 and not llm.commentary_available():
-        raise HTTPException(
-            status_code=503,
-            detail="LLM generation is not available on this server",
-        )
+    if match_blurb.busy():
+        raise HTTPException(status_code=409, detail=_BUSY_BLURBS)
+    if max_to_update > 0:
+        _require_provider()
     budget = max_to_update
-    nights = []
-    stopped = False
+    nights: list[MatchBlurbBackfillNight] = []
+    plan: list[tuple[NightGames, int]] = []
     for night in queries.closed_nights_within(all_games, days):
         night_games = await queries.build_night_recap(
             night, all_games, competitive, db_manager
         )
-        result = await match_blurb.caption_night(night_games, blurbs, budget)
-        budget -= result.report.generated
-        nights.append(result.report)
-        if result.failed:
-            stopped = True
-            break
+        report = match_blurb.plan_night(night_games, blurbs, budget)
+        budget -= report.queued
+        nights.append(report)
+        if report.queued:
+            plan.append((night_games, report.queued))
+    if plan:
+        _reserve(match_blurb.manual_run, match_blurb.busy(), _BUSY_BLURBS)
+        background_tasks.add_task(_caption_nights, plan, False)
     return MatchBlurbBackfill(
         days=days,
-        generated=sum(n.generated for n in nights),
+        queued=sum(n.queued for n in nights),
         pending=sum(n.pending for n in nights),
-        stopped=stopped,
         nights=nights,
     )
 
 
-@session_router.post("/api/backfill_game_night_summaries", dependencies=OPS_ADMIN)
+@session_router.post(
+    "/api/backfill_game_night_summaries", dependencies=OPS_ADMIN, status_code=202
+)
 async def backfill_game_night_summaries(
     all_games: AllGames,
     competitive: UnfilteredCompetitiveGames,
+    background_tasks: BackgroundTasks,
     days: int = 7,
     max_to_update: int = 1,
     summaries: GameNightSummaryRepo = Depends(get_game_night_summary_repo),
 ) -> GameNightBackfill:
-    """Fill in missing LLM recaps for the last ``days`` game nights.
+    """Queue missing LLM recaps for the last ``days`` game nights, newest first.
 
-    **Every night this writes is a real, billed LLM call**, which is what
-    shapes the two knobs. ``days`` says how far back to *look*;
-    ``max_to_update`` says how many calls this run may *spend* (the backfill
-    endpoint pattern - default 1, run it again to continue). Nights are taken
-    newest first, so a small budget buys the recaps people are most likely to
-    read.
+    **Every night queued is a real, billed LLM call.** ``days`` says how far
+    back to *look*; ``max_to_update`` says how many calls this run may
+    *spend* (default 1, run it again to continue).
 
-    Never overwrites: a night with a stored row is reported
-    ``already_summarized`` and skipped, because the stored text is the
-    delivery mechanism rather than a cache. Use
+    Never overwrites: a night with a stored row is ``already_summarized``,
+    because the stored text is the delivery mechanism rather than a cache - use
     ``POST /api/generate_game_night_summary/{night}?force=true`` to rewrite
-    one deliberately. Nights below the floor the nightly job uses
-    (``night_summary.MIN_MATCHES_FOR_SUMMARY``) are skipped too, and the night
-    currently in progress is never in the window - see
-    ``queries.closed_nights_within``.
-
-    The report lists every night considered, so a run with the default budget
-    doubles as a dry run of the next one.
+    one. Nights below ``night_summary.MIN_MATCHES_FOR_SUMMARY`` are skipped,
+    and the night in progress is never in the window
+    (``queries.closed_nights_within``). The report lists every night
+    considered, so it doubles as a preview of the next run.
     """
     if days < 1:
         raise HTTPException(status_code=400, detail="days must be at least 1")
     if max_to_update < 1:
         raise HTTPException(status_code=400, detail="max_to_update must be at least 1")
-    if night_summary.generation_lock.locked():
-        raise HTTPException(
-            status_code=409, detail="a game night summary is already being generated"
-        )
-    if not llm.commentary_available():
-        raise HTTPException(
-            status_code=503,
-            detail="LLM generation is not available on this server",
-        )
+    if night_summary.busy():
+        raise HTTPException(status_code=409, detail=_BUSY_SUMMARY)
+    _require_provider()
 
     nights: list[GameNightBackfillNight] = []
-    generated = 0
-    # A provider error is not per-night bad luck - it will hit every remaining
-    # night the same way, so the first one stops the run rather than burning
-    # the budget on repeats. Already-written rows are kept and reported.
-    stopped = False
+    queued: list[NightGames] = []
     outcome: GameNightBackfillOutcome
     for night in queries.closed_nights_within(all_games, days):
         played = queries.on_night(all_games, night)
@@ -319,34 +365,25 @@ async def backfill_game_night_summaries(
             outcome = "already_summarized"
         elif len(played) < night_summary.MIN_MATCHES_FOR_SUMMARY:
             outcome = "too_few_games"
-        elif stopped or generated >= max_to_update:
+        elif len(queued) >= max_to_update:
             outcome = "not_attempted"
         else:
-            logger.info(
-                "backfilling game night summary", night=str(night), games=len(played)
-            )
-            night_games = await queries.build_night_recap(
-                night, all_games, competitive, db_manager
-            )
-            try:
-                await night_summary.generate_and_store(
-                    night_games.recap, queries.night_narratives(night_games), summaries
+            queued.append(
+                await queries.build_night_recap(
+                    night, all_games, competitive, db_manager
                 )
-            except llm.CommentaryGenerationError as e:
-                logger.error(
-                    "game night summary generation failed",
-                    night=str(night),
-                    exc_info=e,
-                )
-                outcome = "failed"
-                stopped = True
-            else:
-                generated += 1
-                outcome = "generated"
+            )
+            outcome = "queued"
         nights.append(
             GameNightBackfillNight(date=night, matches=len(played), outcome=outcome)
         )
-    remaining = sum(1 for n in nights if n.outcome in {"not_attempted", "failed"})
+    if queued:
+        _reserve(night_summary.manual_run, night_summary.busy(), _BUSY_SUMMARY)
+        logger.info(
+            "queued game night summaries", nights=[str(n.recap.date) for n in queued]
+        )
+        background_tasks.add_task(_summarize_nights, queued)
+    remaining = sum(1 for n in nights if n.outcome == "not_attempted")
     return GameNightBackfill(
-        days=days, generated=generated, remaining=remaining, nights=nights
+        days=days, queued=len(queued), remaining=remaining, nights=nights
     )

@@ -241,6 +241,13 @@ def generate(prompt: Prompt, *, kind: str, label: str) -> str:
     with tracer.start_as_current_span(
         f"llm {kind}", attributes={"llm.kind": kind, "llm.label": label}
     ):
+        logger.info(
+            "llm generation started",
+            provider=active_provider(),
+            kind=kind,
+            label=label,
+            prompt_chars=len(prompt.system) + len(prompt.user_message),
+        )
         if active_provider() == "anthropic":
             return _generate_with_anthropic(prompt, kind, label)
         return _generate_with_gemini(prompt, kind, label)

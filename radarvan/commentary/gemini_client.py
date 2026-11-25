@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from functools import cache
-from typing import Final
+from typing import Final, Protocol
 
 import structlog
 from google import genai
@@ -40,11 +41,33 @@ def commentary_available() -> bool:
     return bool(os.environ.get(API_KEY_ENV))
 
 
+class _Response(Protocol):
+    @property
+    def status_code(self) -> int: ...
+    @property
+    def headers(self) -> Mapping[str, str]: ...
+
+
+def _log_attempt(response: _Response) -> None:
+    # The SDK's Interactions retry loop is silent; this hook sees every attempt.
+    if response.status_code < 400:
+        logger.info("gemini http response", status=response.status_code)
+    else:
+        logger.warning(
+            "gemini http error, may retry",
+            status=response.status_code,
+            retry_after=response.headers.get("retry-after"),
+        )
+
+
 @cache
 def gemini_client() -> genai.Client:
     """Process-wide Gemini client; reused for the life of the process."""
-    logger.info("Building Gemini client")
+    logger.info("Building Gemini client", model=MODEL)
     return genai.Client(
         api_key=os.environ[API_KEY_ENV],
-        http_options=types.HttpOptions(retry_options=RETRY_OPTIONS),
+        http_options=types.HttpOptions(
+            retry_options=RETRY_OPTIONS,
+            client_args={"event_hooks": {"response": [_log_attempt]}},
+        ),
     )

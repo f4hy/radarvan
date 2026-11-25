@@ -7,8 +7,11 @@ none can reach a provider.
 """
 
 import asyncio
+from contextlib import contextmanager
+from types import SimpleNamespace
 
 import pytest
+from fastapi import BackgroundTasks
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -18,6 +21,7 @@ from radarvan.commentary import llm, match_blurb
 from radarvan.db import MatchBlurbCache
 from radarvan.match_interest import MIN_INTEREST_FOR_BLURB, Interest
 from radarvan.repositories import MatchBlurbRepo
+from radarvan.run_slot import RunSlot
 
 import corpus
 from corpus import BACK_AND_FORTH, STOMP
@@ -135,9 +139,8 @@ def test_each_pick_is_captioned_and_stored(
     provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
     night = _night({1: BACK_AND_FORTH, 2: BACK_AND_FORTH})
-    run = asyncio.run(match_blurb.generate_night_blurbs(night, repo))
-    assert run.date == NIGHT
-    assert sorted(run.generated) == sorted(run.picked) == [1, 2]
+    generated = asyncio.run(match_blurb.generate_night_blurbs(night, repo))
+    assert sorted(generated) == [1, 2]
     assert len(provider.prompts) == 2
     assert set(repo.get_blurbs([1, 2]).values()) == {"Caption 1.", "Caption 2."}
 
@@ -148,8 +151,8 @@ def test_running_a_captioned_night_again_spends_nothing(
     night = _night({1: BACK_AND_FORTH})
     asyncio.run(match_blurb.generate_night_blurbs(night, repo))
     again = asyncio.run(match_blurb.generate_night_blurbs(night, repo))
-    assert again.generated == []
-    assert again.picked == [1]
+    assert again == []
+    assert [p.match.id for p in match_blurb.pick_candidates(night)] == [1]
     assert len(provider.prompts) == 1
 
 
@@ -177,10 +180,9 @@ def test_a_provider_error_keeps_what_was_already_paid_for(
 def test_a_night_of_stomps_picks_nothing_and_makes_no_call(
     provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
-    run = asyncio.run(
-        match_blurb.generate_night_blurbs(_night({1: STOMP, 2: STOMP}), repo)
-    )
-    assert run.picked == [] and run.generated == []
+    night = _night({1: STOMP, 2: STOMP})
+    assert match_blurb.pick_candidates(night) == []
+    assert asyncio.run(match_blurb.generate_night_blurbs(night, repo)) == []
     assert provider.prompts == []
 
 
@@ -228,36 +230,26 @@ def _night_on(day: int, ids: range) -> queries.NightGames:
     )
 
 
-def test_a_zero_budget_reports_what_would_be_spent_and_calls_nothing(
+def test_a_plan_reports_what_a_budget_would_spend_and_calls_nothing(
     provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
-    result = asyncio.run(match_blurb.caption_night(_night_on(5, range(1, 4)), repo, 0))
-    assert (result.report.picked, result.report.generated, result.report.pending) == (
-        3,
-        0,
-        3,
-    )
-    assert not result.failed
+    night = _night_on(5, range(1, 4))
+    full = match_blurb.plan_night(night, repo, 9)
+    assert (full.picked, full.queued, full.pending) == (3, 3, 0)
+    part = match_blurb.plan_night(night, repo, 2)
+    assert (part.queued, part.pending) == (2, 1)
     assert provider.prompts == []
 
 
-def test_the_budget_stops_a_night_part_way(
-    provider: _FakeProvider, repo: MatchBlurbRepo
-) -> None:
-    report = asyncio.run(
-        match_blurb.caption_night(_night_on(5, range(1, 4)), repo, 2)
-    ).report
-    assert (report.generated, report.pending) == (2, 1)
-    assert len(provider.prompts) == 2
+class _FakeDb:
+    """Hands the background task the test session instead of opening a real one."""
 
+    def __init__(self, repo: MatchBlurbRepo) -> None:
+        self.repo = repo
 
-def test_a_provider_error_still_reports_what_was_written_before_it(
-    provider: _FakeProvider, repo: MatchBlurbRepo
-) -> None:
-    provider.fail_on_call = 2
-    result = asyncio.run(match_blurb.caption_night(_night_on(5, range(1, 4)), repo, 3))
-    assert result.failed
-    assert (result.report.generated, result.report.pending) == (1, 2)
+    @contextmanager
+    def get_replay_manager(self):  # type: ignore[no-untyped-def]
+        yield SimpleNamespace(session=self.repo.session)
 
 
 def _backfill(
@@ -266,16 +258,29 @@ def _backfill(
     nights: dict,
     **kwargs: object,
 ):  # type: ignore[no-untyped-def]
-    from radarvan.routes.game_night import backfill_match_blurbs
+    """Run the route, then whatever it queued, as FastAPI would after responding."""
+    from radarvan.routes import game_night as routes
 
     async def build(night, all_games, competitive, db_manager):  # type: ignore[no-untyped-def]
         return nights[night]
 
     monkeypatch.setattr(queries, "build_night_recap", build)
+    monkeypatch.setattr(routes, "db_manager", _FakeDb(repo))
     all_games = [g for n in nights.values() for g in n.played]
-    return asyncio.run(
-        backfill_match_blurbs(all_games, [], blurbs=repo, **{"days": 400, **kwargs})  # type: ignore[arg-type]
-    )
+    tasks = BackgroundTasks()
+
+    async def run():  # type: ignore[no-untyped-def]
+        report = await routes.backfill_match_blurbs(
+            all_games,
+            [],
+            tasks,
+            blurbs=repo,
+            **{"days": 400, **kwargs},  # type: ignore[arg-type]
+        )
+        await tasks()
+        return report
+
+    return asyncio.run(run())
 
 
 def test_the_backfill_shares_one_budget_across_nights_newest_first(
@@ -289,9 +294,10 @@ def test_the_backfill_shares_one_budget_across_nights_newest_first(
         max_to_update=4,
     )
     assert [n.date for n in report.nights] == [newer.recap.date, older.recap.date]
-    assert [n.generated for n in report.nights] == [2, 2]
-    assert (report.generated, report.pending, report.stopped) == (4, 1, False)
+    assert [n.queued for n in report.nights] == [2, 2]
+    assert (report.queued, report.pending) == (4, 1)
     assert len(provider.prompts) == 4
+    assert not match_blurb.manual_run.held
 
 
 def test_a_dry_run_backfill_spends_nothing_and_needs_no_provider(
@@ -300,8 +306,9 @@ def test_a_dry_run_backfill_spends_nothing_and_needs_no_provider(
     monkeypatch.setattr(llm, "commentary_available", lambda: False)
     night = _night_on(5, range(1, 4))
     report = _backfill(monkeypatch, repo, {night.recap.date: night}, max_to_update=0)
-    assert (report.generated, report.pending) == (0, 3)
+    assert (report.queued, report.pending) == (0, 3)
     assert provider.prompts == []
+    assert not match_blurb.manual_run.held
 
 
 def test_the_backfill_never_overwrites_and_a_rerun_spends_nothing(
@@ -311,23 +318,29 @@ def test_the_backfill_never_overwrites_and_a_rerun_spends_nothing(
     nights = {night.recap.date: night}
     _backfill(monkeypatch, repo, nights, max_to_update=10)
     again = _backfill(monkeypatch, repo, nights, max_to_update=10)
-    assert (again.generated, again.pending) == (0, 0)
+    assert (again.queued, again.pending) == (0, 0)
     assert len(provider.prompts) == 3
 
 
-def test_a_provider_error_stops_the_backfill_and_hides_later_nights(
+def test_a_provider_error_stops_the_background_run_and_frees_the_slot(
     monkeypatch: pytest.MonkeyPatch, provider: _FakeProvider, repo: MatchBlurbRepo
 ) -> None:
+    async def no_notify(message: str) -> None:
+        pass
+
+    from radarvan.routes import game_night as routes
+
+    monkeypatch.setattr(routes, "notify_async", no_notify)
     provider.fail_on_call = 1
     older, newer = _night_on(5, range(1, 4)), _night_on(6, range(11, 14))
-    report = _backfill(
+    _backfill(
         monkeypatch,
         repo,
         {older.recap.date: older, newer.recap.date: newer},
         max_to_update=9,
     )
-    assert report.stopped
-    assert [n.date for n in report.nights] == [newer.recap.date]
+    assert len(provider.prompts) == 1
+    assert not match_blurb.manual_run.held
 
 
 def test_the_backfill_refuses_bad_input_and_a_busy_generator(
@@ -347,9 +360,8 @@ def test_the_backfill_refuses_bad_input_and_a_busy_generator(
         _backfill(monkeypatch, repo, nights, max_to_update=3)
     assert no_provider.value.status_code == 503
 
-    held = asyncio.Lock()
-    asyncio.run(held.acquire())
-    monkeypatch.setattr(match_blurb, "generation_lock", held)
+    monkeypatch.setattr(match_blurb, "manual_run", RunSlot())
+    assert match_blurb.manual_run.try_reserve()
     with pytest.raises(HTTPException) as busy:
         _backfill(monkeypatch, repo, nights, max_to_update=0)
     assert busy.value.status_code == 409

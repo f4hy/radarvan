@@ -46,6 +46,7 @@ import structlog
 from ..api_types import GameNightRecap, MatchNarrative
 from ..queries.game_night import NightGame
 from ..repositories import GameNightSummaryRepo
+from ..run_slot import RunSlot
 from ..utils import GAME_NIGHT_TZ
 from . import llm
 from .night_prompts import NIGHT_GUIDELINES
@@ -59,6 +60,13 @@ SYSTEM_PROMPT = NIGHT_GUIDELINES
 # in flight for one night would pay twice to write one row. Held here rather
 # than at either call site so neither can forget it.
 generation_lock = asyncio.Lock()
+# An ops run claimed by its handler and released by its background task.
+manual_run = RunSlot()
+
+
+def busy() -> bool:
+    return generation_lock.locked() or manual_run.held
+
 
 # A single game is a match, not a game night. Below this the deterministic
 # recap already says everything there is to say, and spending a real LLM call
