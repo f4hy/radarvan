@@ -32,7 +32,7 @@ RETRY_OPTIONS: Final = types.HttpRetryOptions(
 # resolve to the non-streaming Interaction return type (a plain `str`
 # annotation doesn't match the SDK's closed model-ID Literal union, and
 # overload resolution falls back to the broader Interaction | Stream[...]).
-MODEL: Final = "gemini-3.8-flash"
+MODEL: Final = "gemini-4-hydrogen"
 
 
 def commentary_available() -> bool:
