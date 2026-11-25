@@ -1,13 +1,4 @@
-"""Single Gemini client for LLM-generated content (pre-game matchup
-commentary, see ``matchup_commentary.py``). Mirrors ``anthropic_client.py``'s
-shape so ``matchup_commentary`` can switch between providers uniformly.
-
-Uses the ``google-genai`` package's Interactions API
-(``client.interactions.create``) - the current recommended surface per
-https://ai.google.dev/gemini-api/docs as of this writing. This is a newer
-API shape (not the older ``client.models.generate_content``); if Google
-changes it again, this is the one file that needs updating.
-"""
+"""Gemini client for LLM content; mirrors ``anthropic_client.py``. Uses the Interactions API."""
 
 from __future__ import annotations
 
