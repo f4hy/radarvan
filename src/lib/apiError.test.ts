@@ -81,13 +81,21 @@ describe("the response transformers parse dates", () => {
         player_rating: [],
         player_form: {},
         player_rating_overtime: {
-          Skip: [{ mu: 30, sigma: 2, atdate: "2026-08-28" }],
+          Skip: [
+            {
+              mu: 30,
+              sigma: 2,
+              atdate: "2026-08-28",
+              at: "2026-08-29T03:40:00Z",
+            },
+          ],
         },
       },
     )
     expect(parsed.player_rating_overtime?.Skip?.[0]?.atdate).toBeInstanceOf(
       Date,
     )
+    expect(parsed.player_rating_overtime?.Skip?.[0]?.at).toBeInstanceOf(Date)
   })
 
   it("converts a plain array of models", async () => {

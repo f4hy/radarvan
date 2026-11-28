@@ -15,7 +15,7 @@ from .derived import CORPUS, derived
 from radarvan.api_types import (
     MatchInfo,
 )
-from datetime import date
+from datetime import date, datetime
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -81,6 +81,7 @@ class NamedRating:
     mu: float
     sigma: float
     at_date: date | None = None
+    at: datetime | None = None
 
     def ordinal(self) -> float:
         return self.mu - 3 * self.sigma
@@ -360,6 +361,7 @@ def _update_ratings_for_game(
                 mu=prev.mu + scale * (p.mu - prev.mu),
                 sigma=prev.sigma + scale * (target_sigma - prev.sigma),
                 at_date=game.date,
+                at=game.timestamp,
             )
             updated[p.name] = new_rate
             history[p.name] = new_rate

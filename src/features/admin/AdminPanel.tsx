@@ -394,13 +394,13 @@ const SECTIONS: readonly TaskSection[] = [
   {
     title: "Game night recaps",
     blurb:
-      "The LLM-written half of the game-night page. Every night generated is a real, billed call, so the budget is a separate number from the search window, and nothing here is free to re-run. The deterministic recap needs none of this - it renders for every night already.",
+      "The LLM-written half of the game-night page. Every night generated is a real, billed call, so the budget is a separate number from the search window, and nothing here is free to re-run. Each task answers right away with what it queued; the calls run in the background and their results post to Discord. A second run while one is in flight gets a 409. The deterministic recap needs none of this - it renders for every night already.",
     tasks: [
       {
         id: "backfill_game_night_summaries",
         title: "Backfill missing recaps",
         description:
-          "Write recaps for the last N closed game nights that have none, newest first, spending at most Max calls per run. Never overwrites an existing one, and never touches the night still being played. The report lists every night considered with what was done about it, so one run also shows what the next one would spend.",
+          "Queue recaps for the last N closed game nights that have none, newest first, spending at most Max calls per run. Never overwrites an existing one, and never touches the night still being played. The report lists every night considered and whether it was queued, so one run also shows what the next one would spend.",
         method: "POST",
         path: () => "/api/backfill_game_night_summaries",
         query: ["days", "max_to_update"],
@@ -415,7 +415,7 @@ const SECTIONS: readonly TaskSection[] = [
         id: "backfill_match_blurbs",
         title: "Backfill match blurbs",
         description:
-          "Caption the top matches (at most 3 a night) of the last N closed game nights, newest first, spending at most Max calls across the whole run. Never overwrites, and never touches the night still being played. Max calls 0 is a dry run: nothing is spent and the report shows what each night would cost.",
+          "Queue captions for the top matches (at most 3 a night) of the last N closed game nights, newest first, spending at most Max calls across the whole run. Never overwrites, and never touches the night still being played. Max calls 0 is a dry run: nothing is queued and the report shows what each night would cost.",
         method: "POST",
         path: () => "/api/backfill_match_blurbs",
         query: ["days", "max_to_update"],
@@ -430,7 +430,7 @@ const SECTIONS: readonly TaskSection[] = [
         id: "generate_game_night_summary",
         title: "Generate one night",
         description:
-          "Write (or, with Overwrite, rewrite) a single night's recap. Unlike the backfill this does not require the night to be closed, so it can show what tonight would read like.",
+          "Queue (or, with Overwrite, re-queue) a single night's recap. Unlike the backfill this does not require the night to be closed, so it can show what tonight would read like.",
         method: "POST",
         path: (v) => `/api/generate_game_night_summary/${v.night}`,
         query: ["force"],

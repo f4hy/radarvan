@@ -2013,6 +2013,22 @@ wheels = [
 ]
 
 [[package]]
+name = "plotsimplify"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/62/70153a3f41b1f2e3948310660913a0f6d36d73ec5f49661f3b2835e4f00f/plotsimplify-0.3.0.tar.gz", hash = "sha256:29b4ce8500ab8340d3fcc8d7cf6ae3f9750b9d377d5bab12e26d1f87be0012ad", size = 36640, upload-time = "2026-11-28T04:18:05.156Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/d2/d48bc9aa2962997e4f830908c30ca65c7df2660b87e8343015d7eea03ec6/plotsimplify-0.3.0-cp311-abi3-macosx_10_12_x86_64.whl", hash = "sha256:67158c9068d0a136778c8b7aff0ee40e313befe9b5f02a4300c92734540206de", size = 247816, upload-time = "2026-11-28T04:17:58.562Z" },
+    { url = "https://files.pythonhosted.org/packages/56/14/12f789221e938e5467193aa404b1419596b42306b0713bcc8251cd702144/plotsimplify-0.3.0-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:b38e487e4759b140c2af2234cebfbc4cb45f4f8524f7cb22abff226d93884c81", size = 236604, upload-time = "2026-11-28T04:17:59.936Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/68/674cd0ba5d32bac139a5be4801eabb33a5a50c885c94bbc89df4b1ceaa0d/plotsimplify-0.3.0-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:55138515e5708868c0ea10658f18e56974e3de2fd786859138705fa91002b10a", size = 249771, upload-time = "2026-11-28T04:18:01.266Z" },
+    { url = "https://files.pythonhosted.org/packages/39/d5/ea1c3596598082e377998e8d887da70487c50596cf31e23f7f2ac60ecc40/plotsimplify-0.3.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:2eb0dbedc0780e995d6830ba8077b37d0b0604e871715f51b63f119e64cbfd09", size = 253982, upload-time = "2026-11-28T04:18:02.786Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/f7/e5753b078c1b89a356e1b48183773b958bc83c10beb5320fd01a0b0d469b/plotsimplify-0.3.0-cp311-abi3-win_amd64.whl", hash = "sha256:464e10efa1ddecab7a662748d430c748eefe5fdba0f71118768f8199b17d9e29", size = 152001, upload-time = "2026-11-28T04:18:04.125Z" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2544,6 +2560,7 @@ dependencies = [
     { name = "opentelemetry-instrumentation-psycopg2" },
     { name = "opentelemetry-sdk" },
     { name = "pillow" },
+    { name = "plotsimplify" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "sqlalchemy" },
@@ -2598,6 +2615,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-psycopg2", specifier = ">=0.66b1" },
     { name = "opentelemetry-sdk", specifier = ">=1.45.1" },
     { name = "pillow", specifier = ">=12.3.0" },
+    { name = "plotsimplify", specifier = ">=0.3.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.13" },
     { name = "pydantic", specifier = ">=2.14.1" },
     { name = "sqlalchemy", specifier = ">=2.1.4" },

@@ -13,11 +13,11 @@ from dataclasses import dataclass, fields
 from typing import NamedTuple
 
 import numpy as np
+from plotsimplify import simplify
 
 from .api_types import FirstBlood
 from .cncstats_model.statsfile import IncomeBySource
 from .cncstats_model.zhreplay import EnhancedReplayV2
-from .line_simplify import simplify
 from .replay_helpers import is_initial_seed_frame
 from .utils import minutes_per_step
 
@@ -122,7 +122,10 @@ def _simplify_lines(
     for player in players:
         ts = [t for t in times if player in series[t]]
         ys = np.array([series[t][player] for t in ts], dtype=np.float64)
-        for i in simplify(np.array(ts), ys, tolerance, _MAX_POINTS_PER_LINE):
+        kept = simplify(
+            np.array(ts), ys, eps=tolerance, max_points=_MAX_POINTS_PER_LINE
+        )
+        for i in kept.indices.tolist():
             out.setdefault(ts[i], {})[player] = series[ts[i]][player]
     return dict(sorted(out.items()))
 

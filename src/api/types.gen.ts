@@ -1311,7 +1311,9 @@ export type GameComposition = {
 /**
  * GameNightBackfill
  *
- * The result of one backfill run over the last N game nights.
+ * The plan of one backfill run over the last N game nights.
+ *
+ * Queued nights are generated in the background after the response; results land in the logs and Discord.
  */
 export type GameNightBackfill = {
     /**
@@ -1319,9 +1321,9 @@ export type GameNightBackfill = {
      */
     days: number;
     /**
-     * Generated
+     * Queued
      */
-    generated: number;
+    queued: number;
     /**
      * Remaining
      */
@@ -1354,7 +1356,7 @@ export type GameNightBackfillNight = {
     /**
      * Outcome
      */
-    outcome: 'generated' | 'already_summarized' | 'too_few_games' | 'not_attempted' | 'failed';
+    outcome: 'queued' | 'already_summarized' | 'too_few_games' | 'not_attempted';
 };
 
 /**
@@ -2517,7 +2519,9 @@ export type MapsByPlayerCount = {
 /**
  * MatchBlurbBackfill
  *
- * The result of one blurb backfill run over the last N closed game nights.
+ * The plan of one blurb backfill run over the last N closed game nights.
+ *
+ * Queued calls run in the background after the response; results land in the logs and Discord.
  */
 export type MatchBlurbBackfill = {
     /**
@@ -2525,17 +2529,13 @@ export type MatchBlurbBackfill = {
      */
     days: number;
     /**
-     * Generated
+     * Queued
      */
-    generated: number;
+    queued: number;
     /**
      * Pending
      */
     pending: number;
-    /**
-     * Stopped
-     */
-    stopped: boolean;
     /**
      * Nights
      */
@@ -2545,7 +2545,7 @@ export type MatchBlurbBackfill = {
 /**
  * MatchBlurbBackfillNight
  *
- * What the blurb backfill did about one night: its picks, what it wrote, what is left.
+ * What the blurb backfill plans for one night: its picks, what it queued, what is left.
  */
 export type MatchBlurbBackfillNight = {
     /**
@@ -2557,9 +2557,9 @@ export type MatchBlurbBackfillNight = {
      */
     picked: number;
     /**
-     * Generated
+     * Queued
      */
-    generated: number;
+    queued: number;
     /**
      * Pending
      */
@@ -2569,7 +2569,7 @@ export type MatchBlurbBackfillNight = {
 /**
  * MatchBlurbRun
  *
- * What one night's match-blurb run picked and wrote.
+ * What one night's match-blurb run picked and queued for generation.
  */
 export type MatchBlurbRun = {
     /**
@@ -2581,9 +2581,9 @@ export type MatchBlurbRun = {
      */
     picked: Array<number>;
     /**
-     * Generated
+     * Queued
      */
-    generated: Array<number>;
+    queued: Array<number>;
 };
 
 /**
@@ -4941,6 +4941,8 @@ export type SetMatchPredictionRequest = {
 
 /**
  * ShortPlayerRating
+ *
+ * One game's rating in a player's (simplified) history; `at` is the game's start.
  */
 export type ShortPlayerRating = {
     /**
@@ -4955,6 +4957,10 @@ export type ShortPlayerRating = {
      * Atdate
      */
     atdate?: Date | null;
+    /**
+     * At
+     */
+    at: Date;
 };
 
 /**
@@ -9362,7 +9368,7 @@ export type generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponse
     /**
      * Successful Response
      */
-    200: GameNightSummaryStatus;
+    202: GameNightSummaryStatus;
 };
 
 export type generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponse = generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponses[keyof generateGameNightSummaryApiGenerateGameNightSummaryNightPostResponses];
@@ -9397,7 +9403,7 @@ export type generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponses = {
     /**
      * Successful Response
      */
-    200: MatchBlurbRun;
+    202: MatchBlurbRun;
 };
 
 export type generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponse = generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponses[keyof generateMatchBlurbsApiGenerateMatchBlurbsNightPostResponses];
@@ -9431,7 +9437,7 @@ export type backfillMatchBlurbsApiBackfillMatchBlurbsPostResponses = {
     /**
      * Successful Response
      */
-    200: MatchBlurbBackfill;
+    202: MatchBlurbBackfill;
 };
 
 export type backfillMatchBlurbsApiBackfillMatchBlurbsPostResponse = backfillMatchBlurbsApiBackfillMatchBlurbsPostResponses[keyof backfillMatchBlurbsApiBackfillMatchBlurbsPostResponses];
@@ -9465,7 +9471,7 @@ export type backfillGameNightSummariesApiBackfillGameNightSummariesPostResponses
     /**
      * Successful Response
      */
-    200: GameNightBackfill;
+    202: GameNightBackfill;
 };
 
 export type backfillGameNightSummariesApiBackfillGameNightSummariesPostResponse = backfillGameNightSummariesApiBackfillGameNightSummariesPostResponses[keyof backfillGameNightSummariesApiBackfillGameNightSummariesPostResponses];

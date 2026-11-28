@@ -87,6 +87,13 @@ function formatSkill(v: [number, number]): string {
   return `${val}±${ebar}`
 }
 
+type DayRating = {
+  atdate?: Date | null
+  mu: number
+  sigma: number
+  delta: number | null
+}
+
 function RatingsOverTime(props: { data: PlayerRatingData }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -115,25 +122,35 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
 
   const startMs = new Date(`${startYear}-01-01`).getTime()
 
+  // The server sends a per-game history thinned to what the band can show, with
+  // every day's last game kept exactly; day deltas are measured between those.
   const data = allEntries
-    .map(([name, d]) => {
-      const byDate = new Map<string, (typeof d)[0]>()
-      for (const entry of d) {
-        byDate.set(String(entry.atdate ?? ""), entry)
+    .map(([name, games]) => {
+      const lastOfDay = new Map<string, number>()
+      for (const [i, g] of games.entries()) {
+        lastOfDay.set(String(g.atdate ?? ""), i)
       }
-      const deduped = Array.from(byDate.values())
-      const sorted = [...deduped].sort(
-        (a, b) =>
-          new Date(a.atdate ?? 0).getTime() - new Date(b.atdate ?? 0).getTime(),
-      )
-      const withDelta = sorted.map((entry, i) => ({
-        ...entry,
-        delta: i > 0 ? (entry.mu ?? 0) - (sorted[i - 1].mu ?? 0) : null,
+      let prevMu: number | null = null
+      const days: DayRating[] = []
+      const dayDelta = new Map<number, number | null>()
+      for (const i of lastOfDay.values()) {
+        const g = games[i]
+        const delta = prevMu == null ? null : g.mu - prevMu
+        days.push({ atdate: g.atdate, mu: g.mu, sigma: g.sigma, delta })
+        dayDelta.set(i, delta)
+        prevMu = g.mu
+      }
+      const points = games.map((g, i) => ({
+        mu: g.mu,
+        sigma: g.sigma,
+        delta: dayDelta.get(i) ?? null,
+        skill: [g.mu - g.sigma, g.mu + g.sigma],
+        at: new Date(g.at).getTime(),
       }))
-      const finalMu = sorted[sorted.length - 1]?.mu ?? 0
-      return [name, withDelta, finalMu] as const
+      const finalMu = games[games.length - 1]?.mu ?? 0
+      return { name, days, points, finalMu }
     })
-    .sort((a, b) => b[2] - a[2])
+    .sort((a, b) => b.finalMu - a.finalMu)
 
   return (
     <Stack>
@@ -152,17 +169,9 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
-      {data.map(([name, d]) => {
-        const recentEntries = d.slice(-20)
-        const chartData = d
-          .map((x) => ({
-            mu: x.mu,
-            sigma: x.sigma,
-            delta: x.delta,
-            skill: [(x.mu ?? 0) - (x.sigma ?? 0), (x.mu ?? 0) + (x.sigma ?? 0)],
-            atdate: new Date(x.atdate ?? 0).getTime(),
-          }))
-          .filter((x) => x.atdate >= startMs)
+      {data.map(({ name, days, points }) => {
+        const recentEntries = days.slice(-20)
+        const chartData = points.filter((x) => x.at >= startMs)
         return (
           <Stack key={name}>
             <Typography>{name}</Typography>
@@ -258,7 +267,7 @@ function RatingsOverTime(props: { data: PlayerRatingData }) {
                   }}
                 />
                 <XAxis
-                  dataKey="atdate"
+                  dataKey="at"
                   type="number"
                   domain={[startMs, Date.now()]}
                   tickFormatter={(v) => formatDate(v, isMobile)}
