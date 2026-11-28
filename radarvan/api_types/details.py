@@ -269,10 +269,11 @@ class MatchDetails(BaseModel):
         description="at a time map each player to xp"
     )
     # Cumulative income broken down by source ("supply", "oil_derrick", ...),
-    # as {source: {minute: {player: value}}}. Sparse: an all-zero source, a
-    # player who never earned from a source, and unchanged timesteps are all
-    # omitted - absent means "zero"/"unchanged". Empty for replays predating
-    # cncstats incomeBySource support.
+    # as {source: {minute: {player: value}}}. Sparse: an all-zero source and a
+    # player who never earned from a source are omitted (absent means zero), and
+    # each player has rows only at their own simplified points, every one of
+    # their sources present there - interpolate between them. Empty for replays
+    # predating cncstats incomeBySource support.
     income_by_source: dict[str, dict[Minute, dict[str, int]]] = Field(
         default_factory=dict, alias="incomeBySource"
     )

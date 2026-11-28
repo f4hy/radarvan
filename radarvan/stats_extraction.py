@@ -13,7 +13,7 @@ from dataclasses import dataclass, fields
 from typing import NamedTuple
 
 import numpy as np
-from plotsimplify import simplify
+from plotsimplify import simplify, simplify_many
 
 from .api_types import FirstBlood
 from .cncstats_model.statsfile import IncomeBySource
@@ -69,10 +69,9 @@ class AllExtractedData:
     # Cumulative income broken down by source, keyed by the IncomeBySource
     # field name ("supply", "oil_derrick", ...). Only populated when cncstats
     # supplied `incomeBySource` for this replay (newer replay versions only).
-    # Sparse to keep the wire payload small: an all-zero source is omitted, a
-    # player who never earned from a source is omitted from that source's
-    # snapshots, and only change-boundary snapshots are kept - so a missing
-    # source/player/timestep means "zero" / "unchanged", never "unknown".
+    # Sparse: an all-zero source is omitted, a player who never earned from a
+    # source is omitted from it, and each player only has rows at their own
+    # simplified points (all of their sources at once) - see _income_by_source.
     income_by_source: dict[str, dict[float, dict[str, int]]]
     first_blood: FirstBlood | None
     building_first_blood: FirstBlood | None
@@ -82,8 +81,23 @@ class AllExtractedData:
 # extraction (and the wire dict) without further edits here.
 _INCOME_SOURCES = tuple(IncomeBySource.model_fields)
 
-# The income_by_source chart's shared snapshot grid is stride-thinned to this.
-_MAX_CHART_POINTS = 300
+# The income chart stacks sources in ShowMatchDetails.tsx's KNOWN_INCOME_SOURCES
+# order, with every other source summed into one "Other" band on top. The
+# stacked edges are what's drawn, so they're what simplification bounds: this
+# order must match the client's.
+_INCOME_STACK_ORDER = (
+    "supply",
+    "oil_derrick",
+    "black_market",
+    "hacker",
+    "crate",
+    "salvage",
+    "bounty",
+    "supply_drop",
+)
+# ~200px plot of the 260px income chart; y axis from 0 to the top player's total.
+_INCOME_CHART_HEIGHT_PX = 200
+_INCOME_TOLERANCE_PX = 0.5
 
 # stats_data lines are simplified per player to stay within this many pixels of
 # the original on the 300px-tall details chart (y axis from 0 to the series'
@@ -91,17 +105,6 @@ _MAX_CHART_POINTS = 300
 _CHART_HEIGHT_PX = 300
 _TOLERANCE_PX = 2
 _MAX_POINTS_PER_LINE = 600
-
-
-def _stride_thin[T](items: list[T], max_points: int) -> list[T]:
-    """Every k-th item so at most ~``max_points`` remain; both ends always survive."""
-    if len(items) <= max_points:
-        return items
-    stride = -(-len(items) // max_points)  # ceil division
-    kept = items[::stride]
-    if kept[-1] is not items[-1]:
-        kept.append(items[-1])
-    return kept
 
 
 def _simplify_lines(
@@ -130,34 +133,43 @@ def _simplify_lines(
     return dict(sorted(out.items()))
 
 
-def _sparse_keep_indices(
-    series: list[list[int]], num_snapshots: int, max_points: int
-) -> list[int]:
-    """Snapshot indices worth emitting for a set of cumulative series.
-
-    Keeps the endpoints and every index where some series changes value - plus
-    the index right before each change, so plateaus keep their shape when the
-    consumer interpolates between kept points - then thins by a uniform stride
-    if still over ``max_points`` (the endpoints always survive)."""
-    keep: set[int] = {0, num_snapshots - 1}
-    for vals in series:
-        if len(keep) >= num_snapshots:
-            break
-        for i in range(1, len(vals)):
-            if vals[i] != vals[i - 1]:
-                keep.add(i)
-                keep.add(i - 1)
-    return _stride_thin(sorted(keep), max_points)
-
-
-def _plateau_edges(values: list[int]) -> list[int]:
-    """Positions of both ends and of the first and last point of every flat run."""
-    last = len(values) - 1
-    return [
-        k
-        for k, v in enumerate(values)
-        if k in (0, last) or v != values[k - 1] or v != values[k + 1]
-    ]
+def _income_by_source(
+    earned_by_player: dict[str, list[tuple[str, list[int]]]],
+    interval: int,
+    scale: float,
+) -> dict[str, dict[float, dict[str, int]]]:
+    """Each player's stacked income band simplified as one, so every drawn edge
+    stays within tolerance; a kept row carries all of that player's sources."""
+    if not earned_by_player:
+        return {}
+    ymax = max(sum(v[-1] for _, v in e) for e in earned_by_player.values())
+    tolerance = _INCOME_TOLERANCE_PX * ymax / _INCOME_CHART_HEIGHT_PX
+    out: dict[str, dict[float, dict[str, int]]] = {}
+    for name, earned in earned_by_player.items():
+        n = min(len(vals) for _, vals in earned)
+        bands = [
+            [vals[:n] for src, vals in earned if src == key]
+            for key in _INCOME_STACK_ORDER
+        ]
+        bands.append(
+            [vals[:n] for src, vals in earned if src not in _INCOME_STACK_ORDER]
+        )
+        layers = np.array([np.sum(b, axis=0) for b in bands if b], dtype=np.float64)
+        edges = np.cumsum(layers, axis=0)
+        x = np.arange(n) * interval * scale
+        kept = simplify_many(
+            x,
+            list(edges),
+            eps=tolerance,
+            gaps="shared",
+            max_points=_MAX_POINTS_PER_LINE,
+        )
+        for i in kept.indices.tolist():
+            for src, vals in earned:
+                out.setdefault(src, {}).setdefault(i * interval * scale, {})[name] = (
+                    vals[i]
+                )
+    return {src: dict(sorted(out[src].items())) for src in sorted(out)}
 
 
 def _is_building(name: str | None) -> bool:
@@ -240,39 +252,19 @@ def stats_data_from_replay(replay: EnhancedReplayV2) -> AllExtractedData | None:
     money = _drop_redundant_consecutive(money)
 
     # Cumulative, so a (source, player) pair earned anything iff its final
-    # value is nonzero - that's the prune test below.
-    pruned: dict[str, list[tuple[str, list[int]]]] = {}
-    for src in _INCOME_SOURCES:
-        entries = []
-        for p in ts_players:
-            if p.income_by_source is None:
-                continue
-            vals: list[int] = getattr(p.income_by_source, src)
-            if vals and vals[-1] != 0:
-                entries.append((name_by_idx[p.index], vals))
-        if entries:
-            pruned[src] = entries
-    income_by_source: dict[str, dict[float, dict[str, int]]] = {
-        src: {} for src in pruned
-    }
-    if pruned:
-        kept = _sparse_keep_indices(
-            [vals for entries in pruned.values() for _, vals in entries],
-            num_snapshots,
-            _MAX_CHART_POINTS,
-        )
-        # The grid is shared so the chart's union of minutes stays capped, but
-        # each (source, player) only emits its own plateau edges on it.
-        for src, entries in pruned.items():
-            rows: dict[float, dict[str, int]] = {}
-            for name, vals in entries:
-                grid = [i for i in kept if i < len(vals)]
-                for pos in _plateau_edges([vals[i] for i in grid]):
-                    snap_idx = grid[pos]
-                    rows.setdefault(snap_idx * interval * scale, {})[name] = vals[
-                        snap_idx
-                    ]
-            income_by_source[src] = dict(sorted(rows.items()))
+    # value is nonzero - that's the prune test.
+    earned_by_player: dict[str, list[tuple[str, list[int]]]] = {}
+    for p in ts_players:
+        if p.income_by_source is None:
+            continue
+        earned = [
+            (src, vals)
+            for src in _INCOME_SOURCES
+            if (vals := getattr(p.income_by_source, src)) and vals[-1] != 0
+        ]
+        if earned:
+            earned_by_player[name_by_idx[p.index]] = earned
+    income_by_source = _income_by_source(earned_by_player, interval, scale)
 
     # xp from skillPointsEvents - each event records the player's current total
     xp: dict[float, dict[str, int]] = {}
