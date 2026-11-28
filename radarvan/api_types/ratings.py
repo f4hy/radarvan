@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from datetime import date
-from .common import _FROM_ATTRIBUTES
+from datetime import date, datetime
+from .common import _FROM_ATTRIBUTES, TwoDecimal
 
 
 class PlayerRatings(BaseModel):
@@ -22,11 +22,14 @@ class PlayerRatings(BaseModel):
 
 
 class ShortPlayerRating(BaseModel):
+    """One game's rating in a player's (simplified) history; `at` is the game's start."""
+
     model_config = _FROM_ATTRIBUTES
 
-    mu: float
-    sigma: float
+    mu: TwoDecimal
+    sigma: TwoDecimal
     atdate: date | None = None
+    at: datetime
 
 
 class PlayerRatingData(BaseModel):

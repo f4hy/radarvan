@@ -229,8 +229,18 @@ export const PLAYER_RATINGS = wire<PlayerRatingData>({
   player_form: {},
   player_rating_overtime: {
     Skip: [
-      { mu: 29.0, sigma: 3.0, atdate: "2026-08-01" },
-      { mu: 30.2, sigma: 2.1, atdate: "2026-08-28" },
+      {
+        mu: 29.0,
+        sigma: 3.0,
+        atdate: "2026-08-01",
+        at: "2026-08-02T02:10:00Z",
+      },
+      {
+        mu: 30.2,
+        sigma: 2.1,
+        atdate: "2026-08-28",
+        at: "2026-08-29T03:40:00Z",
+      },
     ],
   },
 })

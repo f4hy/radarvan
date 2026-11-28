@@ -90,6 +90,7 @@ const shortPlayerRatingSchemaResponseTransformer = (data: any) => {
     if (data.atdate) {
         data.atdate = new Date(data.atdate);
     }
+    data.at = new Date(data.at);
     return data;
 };
 

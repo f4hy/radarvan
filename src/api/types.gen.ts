@@ -4941,6 +4941,8 @@ export type SetMatchPredictionRequest = {
 
 /**
  * ShortPlayerRating
+ *
+ * One game's rating in a player's (simplified) history; `at` is the game's start.
  */
 export type ShortPlayerRating = {
     /**
@@ -4955,6 +4957,10 @@ export type ShortPlayerRating = {
      * Atdate
      */
     atdate?: Date | null;
+    /**
+     * At
+     */
+    at: Date;
 };
 
 /**

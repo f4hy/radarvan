@@ -16,6 +16,10 @@ it.
 
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
+
+import numpy as np
+from plotsimplify import simplify_many
 
 from .. import (
     head_to_head,
@@ -44,6 +48,33 @@ from ..dependencies import db_manager
 # long-running pairs (600+ shared games), even a single batched query transfers
 # enough kill-event JSON over the (remote) DB connection to take several seconds.
 H2H_VALUE_WINDOW = 40
+
+# Half a pixel of PlayerRatings.tsx's rating band: its fixed 0-50 y domain over
+# the ~195px desktop plot area. Vertical-metric RDP error ignores the x scale,
+# so one simplification holds at every `?since=` zoom.
+_CHART_EPS = 0.5 * 50 / 195
+
+
+def chart_history(
+    entries: list[player_rating.NamedRating],
+) -> list[player_rating.NamedRating]:
+    """Per-game history thinned to the points the mu±sigma band chart can show.
+
+    Each day's last game is always kept: the chart's labels and chips are per-day.
+    Each run between those is simplified on its own, since adding vertices to an
+    RDP result afterwards can push its error past eps.
+    """
+    x = np.array([int(e.at.timestamp()) if e.at else 0 for e in entries])
+    mu = np.array([e.mu for e in entries])
+    sigma = np.array([e.sigma for e in entries])
+    day_ends = sorted({e.at_date: i for i, e in enumerate(entries)}.values())
+    keep = set(day_ends)
+    for start, end in pairwise([0, *day_ends]):
+        run = slice(start, end + 1)
+        band = [mu[run] - sigma[run], mu[run] + sigma[run]]
+        kept = simplify_many(x[run], band, eps=_CHART_EPS, gaps="shared").indices
+        keep.update((start + kept).tolist())
+    return [entries[i] for i in sorted(keep)]
 
 
 def player_ratings_payload(game_list: list[MatchInfo]) -> PlayerRatingData:
@@ -81,6 +112,7 @@ def player_ratings_payload(game_list: list[MatchInfo]) -> PlayerRatingData:
             mu=rating.mu,
             sigma=rating.sigma,
             atdate=rating.at_date,
+            at=rating.at,
         )
 
     player_results: dict[str, list[bool]] = defaultdict(list)
@@ -98,7 +130,7 @@ def player_ratings_payload(game_list: list[MatchInfo]) -> PlayerRatingData:
 
     converted = [convert(r) for r in ratings_and_counts.ratings]
     over_time = {
-        name: [convert_short(r) for r in ratings]
+        name: [convert_short(r) for r in chart_history(ratings)]
         for name, ratings in ratings_and_counts.over_time.items()
     }
     return PlayerRatingData(
