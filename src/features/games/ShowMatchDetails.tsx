@@ -1296,15 +1296,17 @@ function BuildOrderTab(props: {
 
 // details.incomeBySource is only populated when cncstats supplied the
 // breakdown for this replay (newer replay versions only), and it is sparse:
-// an all-zero source, a player who never earned from a source, and unchanged
-// timesteps are all omitted - absent means "zero"/"unchanged", never
-// "unknown" (see MatchDetails.income_by_source in radarvan/api_types.py).
+// an all-zero source and a player who never earned from a source are omitted
+// (absent means zero), and each player has rows only at their own simplified
+// points (see MatchDetails.income_by_source in radarvan/api_types/details.py).
 type IncomeBySource = NonNullable<MatchDetails["incomeBySource"]>
 
 // Fixed label/color per known source so a source keeps its identity across
 // every player's chart regardless of which sources are active. Sources the
 // backend sends that aren't listed here (theft, other, anything cncstats
-// adds later) fold into a single gray "Other" band.
+// adds later) fold into a single gray "Other" band. This is also the stacking
+// order, which stats_extraction._INCOME_STACK_ORDER must match: the server
+// bounds the error of these stacked edges.
 const KNOWN_INCOME_SOURCES: { key: string; label: string; color: string }[] = [
   { key: "supply", label: "Supply", color: "#2a78d6" },
   { key: "oil_derrick", label: "Oil Derrick", color: "#1baf7a" },
@@ -1325,14 +1327,14 @@ function incomeSourceColor(key: string): string {
   )
 }
 
-// Shared time grid: union of every source's minute keys. Each (source, player)
-// only sends its own change points (see radarvan.stats_extraction), so a
-// value is absent wherever it is unchanged.
-function incomeMinutes(income: IncomeBySource): number[] {
+// Minutes with a row for `playerName` (every player when omitted). A player's
+// rows carry all of their sources, so their own minutes are the points to draw;
+// another player's minutes would turn this player's slopes into steps.
+function incomeMinutes(income: IncomeBySource, playerName?: string): number[] {
   const all = new Set<number>()
   for (const series of Object.values(income)) {
-    for (const m of Object.keys(series)) {
-      all.add(Number(m))
+    for (const [m, byPlayer] of Object.entries(series)) {
+      if (playerName == null || playerName in byPlayer) all.add(Number(m))
     }
   }
   return [...all].sort((a, b) => a - b)
@@ -1356,11 +1358,11 @@ function hasIncomeBySourceData(details: MatchDetails): boolean {
 function PlayerIncomeChart(props: {
   playerName: string
   income: IncomeBySource
-  minutes: number[]
   yMax: number
 }) {
-  const { playerName, income, minutes, yMax } = props
-  const { sources, otherKeys, data } = React.useMemo(() => {
+  const { playerName, income, yMax } = props
+  const { sources, otherKeys, data, maxTime } = React.useMemo(() => {
+    const minutes = incomeMinutes(income, playerName)
     // Sources this player never earned from are dropped from their chart (no
     // flat zero bands); the source->color mapping stays fixed match-wide.
     const sources = KNOWN_INCOME_SOURCES.filter((s) =>
@@ -1370,9 +1372,8 @@ function PlayerIncomeChart(props: {
       (k) =>
         !KNOWN_INCOME_KEYS.has(k) && playerHasIncomeFrom(income[k], playerName),
     )
-    // Decode the sparse series over the shared grid with last-value carry
-    // forward - correct for cumulative data, and robust even if the backend
-    // ever emits per-source grids.
+    // Every source is present on each of the player's rows; carrying forward
+    // only covers a source missing from one (absent means unchanged).
     const last: Record<string, number> = {}
     const data = minutes.map((m) => {
       const row: Record<string, number> = { atMinute: m }
@@ -1392,12 +1393,12 @@ function PlayerIncomeChart(props: {
       }
       return row
     })
-    return { sources, otherKeys, data }
-  }, [playerName, income, minutes])
+    const maxTime = minutes.length > 0 ? minutes[minutes.length - 1] : 0
+    return { sources, otherKeys, data, maxTime }
+  }, [playerName, income])
   if (sources.length === 0 && otherKeys.length === 0) {
     return null
   }
-  const maxTime = minutes.length > 0 ? minutes[minutes.length - 1] : 0
   return (
     <>
       <Typography variant="h6">{playerName}</Typography>
@@ -1416,7 +1417,7 @@ function PlayerIncomeChart(props: {
           {sources.map((s) => (
             <Area
               key={s.key}
-              type="monotone"
+              type="linear"
               dataKey={s.label}
               stackId="income"
               stroke={s.color}
@@ -1425,7 +1426,7 @@ function PlayerIncomeChart(props: {
           ))}
           {otherKeys.length > 0 && (
             <Area
-              type="monotone"
+              type="linear"
               dataKey={INCOME_OTHER_LABEL}
               stackId="income"
               stroke={INCOME_OTHER_COLOR}
@@ -1446,7 +1447,6 @@ function PlayerIncomeChart(props: {
 
 function IncomeBySourceTab(props: { details: MatchDetails }) {
   const income = props.details.incomeBySource ?? {}
-  const minutes = React.useMemo(() => incomeMinutes(income), [income])
   const mapSupplyTotal = useMapSupplyTotal(props.details.mapName ?? "")
   if (!hasIncomeBySourceData(props.details)) {
     return <Typography>No income-by-source data for this replay</Typography>
@@ -1472,7 +1472,6 @@ function IncomeBySourceTab(props: { details: MatchDetails }) {
           key={`${ps.Name}-${ps.Color}`}
           playerName={ps.Name}
           income={income}
-          minutes={minutes}
           yMax={yMax}
         />
       ))}
@@ -1513,9 +1512,8 @@ function econCategories(
 }
 
 // Final cumulative value for one player, summed across `keys`, carrying each
-// key's last-known value forward over the shared minute grid - matching
-// PlayerIncomeChart's decode, and correct even for a player whose series
-// ends early (e.g. left/disconnected before the match's final snapshot).
+// key's last-known value forward over the minute grid - correct even for a
+// player whose series ends early (left/disconnected before the last snapshot).
 function finalValueForPlayer(
   income: IncomeBySource,
   keys: string[],

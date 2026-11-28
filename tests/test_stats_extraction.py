@@ -17,7 +17,13 @@ from radarvan.cncstats_model.statsfile import (
     TimeSeries,
     TimeSeriesPlayer,
 )
-from radarvan.stats_extraction import stats_data_from_replay
+import numpy as np
+
+from radarvan.stats_extraction import (
+    _INCOME_CHART_HEIGHT_PX,
+    _INCOME_TOLERANCE_PX,
+    stats_data_from_replay,
+)
 
 FRAME_COUNT = 1800
 DURATION_MINUTES = 10.0
@@ -104,8 +110,7 @@ def test_income_by_source_extracted_per_player() -> None:
 
 
 def test_income_by_source_sparsifies_unchanged_snapshots() -> None:
-    """Only snapshots where a value changes (plus the one just before, so the
-    plateau shape survives interpolation, plus the endpoints) are emitted."""
+    """A flat run keeps only its two ends; corners and endpoints survive."""
     # supply changes at snapshots 1 and 4; 2-3 are a plateau, 5 repeats.
     supply = [0, 100, 100, 100, 200, 200]
     replay = _replay([_ts_player(1, _income(n=6, supply=supply), money=supply)])
@@ -123,12 +128,13 @@ def test_income_by_source_sparsifies_unchanged_snapshots() -> None:
     assert series[round(5 * minute_per_snap, 3)] == {"P1": 200}
 
 
-def test_income_by_source_flat_series_skip_the_shared_grid() -> None:
-    """A trickle source puts every snapshot on the grid; a flat source or a
-    flat player must still emit only its own plateau edges on it."""
+def test_income_by_source_rows_are_per_player() -> None:
+    """Each player has rows only at their own simplified points, with every
+    source they earned from present there; another player's corners don't add
+    rows for them."""
     supply = [0, 10, 20, 30, 40, 50]
     p1 = _income(n=6, supply=supply, salvage=[0, 50, 50, 50, 50, 50])
-    p2 = _income(n=6, supply=[0, 100, 100, 100, 100, 100])
+    p2 = _income(n=6, supply=[0, 0, 0, 100, 100, 100])
     replay = _replay([_ts_player(1, p1, money=supply), _ts_player(2, p2, money=supply)])
 
     result = stats_data_from_replay(replay)
@@ -136,30 +142,55 @@ def test_income_by_source_flat_series_skip_the_shared_grid() -> None:
     income = result.income_by_source
 
     minute_per_snap = SNAPSHOT_INTERVAL * DURATION_MINUTES / FRAME_COUNT
-    minutes = [i * minute_per_snap for i in range(6)]
-    assert list(income["salvage"]) == [minutes[0], minutes[1], minutes[5]]
-    assert income["salvage"][minutes[5]] == {"P1": 50}
-    # P2's flat supply is absent from the rows where only P1 changed.
-    assert income["supply"][minutes[3]] == {"P1": 30}
-    assert income["supply"][minutes[5]] == {"P1": 50, "P2": 100}
+    m = [i * minute_per_snap for i in range(6)]
+    # P1: supply is a straight line; the stacked salvage edge bends at 1.
+    assert [t for t in income["supply"] if "P1" in income["supply"][t]] == [
+        m[0],
+        m[1],
+        m[5],
+    ]
+    assert list(income["salvage"]) == [m[0], m[1], m[5]]
+    assert income["supply"][m[1]]["P1"] == 10 and income["salvage"][m[1]] == {"P1": 50}
+    # P2's step corners (2 and 3) are P2's alone.
+    assert [t for t in income["supply"] if "P2" in income["supply"][t]] == [
+        m[0],
+        m[2],
+        m[3],
+        m[5],
+    ]
+    assert "P1" not in income["supply"][m[2]]
 
 
-def test_income_by_source_caps_snapshot_count() -> None:
-    """A trickle source that changes on every snapshot must still come back
-    with a bounded number of points (thinned grid), keeping the wire payload
-    and chart render cost flat for long games - with the endpoints exact."""
+def test_income_by_source_stacked_edges_within_tolerance() -> None:
+    """Every edge the stacked chart draws (cumulative sum of sources in the
+    client's order) stays within half a pixel of the full-resolution one."""
+    rng = np.random.default_rng(0)
     n = 1200
-    supply = [i * 10 for i in range(n)]  # changes every snapshot
-    replay = _replay([_ts_player(1, _income(n=n, supply=supply), money=supply)])
+    cols = {
+        "supply": np.cumsum(rng.integers(0, 40, n)),
+        "oil_derrick": np.cumsum(rng.integers(0, 2, n) * 20),
+        "black_market": np.cumsum((rng.random(n) < 0.01) * 500),
+        "theft": np.cumsum((rng.random(n) < 0.002) * 3000),
+    }
+    p1 = _income(n=n, **{k: v.tolist() for k, v in cols.items()})
+    replay = _replay([_ts_player(1, p1, money=[0] * n)])
 
     result = stats_data_from_replay(replay)
     assert result is not None
-    series = result.income_by_source["supply"]
+    income = result.income_by_source
 
-    assert len(series) <= 301
-    minutes = sorted(series)
-    assert series[minutes[0]] == {"P1": 0}
-    assert series[minutes[-1]] == {"P1": (n - 1) * 10}
+    minute_per_snap = SNAPSHOT_INTERVAL * DURATION_MINUTES / FRAME_COUNT
+    x = np.arange(n) * minute_per_snap
+    kept_t = np.array(sorted(income["supply"]))
+    assert len(kept_t) < n / 4
+    total = sum(v[-1] for v in cols.values())
+    tolerance = _INCOME_TOLERANCE_PX * total / _INCOME_CHART_HEIGHT_PX
+    edge = np.zeros(n)
+    kept_edge = np.zeros(len(kept_t))
+    for src in ("supply", "oil_derrick", "black_market", "theft"):  # client order
+        edge = edge + cols[src]
+        kept_edge = kept_edge + np.array([income[src][t]["P1"] for t in kept_t])
+        assert np.max(np.abs(np.interp(x, kept_t, kept_edge) - edge)) <= tolerance
 
 
 def test_stats_straight_line_keeps_only_endpoints() -> None:

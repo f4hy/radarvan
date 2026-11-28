@@ -76,7 +76,9 @@ logger = structlog.get_logger(__name__)
 # endpoints exact) - long games had 6k+, ~half a cached MatchDetails' memory.
 # v11: stats_data lines are simplified per player (RDP within 2px of the chart,
 # <=600 points) instead of stride-thinned; rows are sparse.
-_DETAILS_LOGIC_VERSION = 11
+# v12: income_by_source is simplified per player as one stacked band (RDP within
+# 0.5px) instead of a stride-thinned shared grid; rows are per player.
+_DETAILS_LOGIC_VERSION = 12
 
 
 def _compute_details_version() -> str:
